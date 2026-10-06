@@ -68,7 +68,7 @@ unset($_SESSION['_network_statistics_reset']);
                     <button type="submit" class="button-secondary statistics-reset-button">Reset Statistics</button>
                 </form>
             <?php else: ?>
-                <a href="admin_elevation.php?return=<?php echo rawurlencode($pageUrl); ?>" class="button-secondary statistics-reset-button">Reset Statistics</a>
+                <a href="admin_elevation.php?return=<?php echo rawurlencode($pageUrl); ?>" class="button-secondary statistics-reset-button" data-admin-unlock-link>Reset Statistics</a>
             <?php endif; ?>
         </div>
     </div>

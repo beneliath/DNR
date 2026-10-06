@@ -10,17 +10,19 @@ $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
 require_once __DIR__ . '/integration_auth_helpers.php';
 function expectBulkHttp(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
-function bulkHttp(string $path, ?array $session = null, ?array $post = null): array {
+function bulkHttp(string $path, ?array $session = null, ?array $post = null, array $requestHeaders = []): array {
     $curl = curl_init(rtrim((string) getenv('DNR_TEST_BASE_URL'), '/') . '/' . $path);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 30,
-        CURLOPT_COOKIE => 'PHPSESSID=' . ($session[0] ?? '')]);
+        CURLOPT_COOKIE => 'PHPSESSID=' . ($session[0] ?? ''), CURLOPT_HTTPHEADER => $requestHeaders]);
     if ($post !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($post)]);
     $response = curl_exec($curl);
     if (!is_string($response)) throw new RuntimeException(curl_error($curl));
     $size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
     $headers = substr($response, 0, $size);
     preg_match('/^Location: (.+)$/mi', $headers, $location);
-    $result = ['status' => curl_getinfo($curl, CURLINFO_RESPONSE_CODE), 'location' => trim($location[1] ?? ''), 'body' => substr($response, $size)];
+    preg_match('/^Set-Cookie:\s*PHPSESSID=([^;\r\n]+)/mi', $headers, $sessionCookie);
+    $result = ['status' => curl_getinfo($curl, CURLINFO_RESPONSE_CODE), 'location' => trim($location[1] ?? ''),
+        'session_id' => $sessionCookie[1] ?? ($session[0] ?? ''), 'body' => substr($response, $size)];
     return $result;
 }
 function bulkSession(int $id, string $role): array {
@@ -58,10 +60,11 @@ $insert = static function (string $table, string $sql, array $params = []) use (
 $exists = static fn(string $table, int $id): bool => $conn->execute_query("SELECT id FROM {$table} WHERE id = ?", [$id])->num_rows === 1;
 try {
     foreach (['admin', 'editor', 'reviewer'] as $role) {
+        $password = bin2hex(random_bytes(12));
         $id = $insert('users', 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-            ['bulk-' . $role . '-' . $suffix, password_hash(bin2hex(random_bytes(12)), PASSWORD_DEFAULT), $role]);
+            ['bulk-' . $role . '-' . $suffix, password_hash($password, PASSWORD_DEFAULT), $role]);
         $sessions[$role] = bulkSession($id, $role);
-        if ($role === 'admin') $adminId = $id;
+        if ($role === 'admin') { $adminId = $id; $adminPassword = $password; }
     }
     $admin = $sessions['admin'];
     expectBulkHttp(bulkHttp('bulk_delete.php')['status'] === 302, 'Login is required.');
@@ -167,6 +170,47 @@ try {
     expectBulkHttp(!$exists('users', $inactive[1]) && !$exists('users', $inactive[2]) && $exists('users', $adminId), 'Bulk deletion removes inactive users and protects the current active admin.');
     $status = json_decode(bulkHttp('admin_unlock_status.php', $admin)['body'], true);
     expectBulkHttp($status['unlocked'] === true && (int) $status['expires_at'] === $deadlineStart + 300, 'Individual and bulk user deletion preserve the countdown.');
+
+    // Exercise the real unlock form, failed authentication, cancellation and session rotation.
+    bulkElevation($admin, null);
+    $return = 'users.php?per_page=100&search=' . rawurlencode('https://example.org/one..two/' . str_repeat('x', 600)) . '#user-activity';
+    $gate = bulkHttp('user_lifecycle.php', $admin, ['csrf_token' => $admin[1], 'action' => 'activate',
+        'id' => $adminId, '_admin_unlock_return' => $return]);
+    parse_str((string) parse_url($gate['location'], PHP_URL_QUERY), $gateQuery);
+    expectBulkHttp($gate['status'] === 302 && ($gateQuery['return'] ?? null) === $return, 'The server gate preserves full browser context rather than a fixed user list.');
+    $queryReturn = 'users.php?per_page=100&search=filtered';
+    $gate = bulkHttp('user_lifecycle.php', $admin, ['csrf_token' => $admin[1], 'action' => 'activate', 'id' => $adminId],
+        ['Referer: ' . rtrim((string) getenv('DNR_TEST_BASE_URL'), '/') . '/' . $queryReturn]);
+    parse_str((string) parse_url($gate['location'], PHP_URL_QUERY), $gateQuery);
+    expectBulkHttp(($gateQuery['return'] ?? null) === $queryReturn, 'A POST action also preserves source filters without JavaScript.');
+    $form = bulkHttp('admin_elevation.php?return=' . rawurlencode($return), $admin);
+    $dom = new DOMDocument(); @$dom->loadHTML($form['body']); $xpath = new DOMXPath($dom);
+    expectBulkHttp($form['status'] === 200
+        && $xpath->query('//input[@name="return"]')->item(0)?->getAttribute('value') === $return
+        && $xpath->query('//a[normalize-space()="Cancel"]')->item(0)?->getAttribute('href') === $return,
+        'The unlock form and Cancel retain the exact query and activity fragment.');
+    $codes = generateRecoveryCodes(1);
+    replaceRecoveryCodes($conn, $adminId, $codes);
+    $elevationPost = ['csrf_token' => $admin[1], 'return' => $return, 'admin_password' => 'wrong', 'admin_code' => $codes[0]];
+    $failed = bulkHttp('admin_elevation.php', $admin, $elevationPost);
+    $dom = new DOMDocument(); @$dom->loadHTML($failed['body']); $xpath = new DOMXPath($dom);
+    expectBulkHttp($failed['status'] === 200 && str_contains($failed['body'], 'was not accepted')
+        && $xpath->query('//input[@name="return"]')->item(0)?->getAttribute('value') === $return,
+        'Failed authentication must retain the destination for retry.');
+    $nav = $xpath->query('//a[@data-admin-unlock-link]')->item(0);
+    parse_str((string) parse_url($nav?->getAttribute('href') ?? '', PHP_URL_QUERY), $navQuery);
+    expectBulkHttp(($navQuery['return'] ?? null) === $return, 'The navigation link on a failed POST retains the pending destination.');
+    $elevationPost['admin_password'] = $adminPassword;
+    $unlocked = bulkHttp('admin_elevation.php', $admin, $elevationPost);
+    expectBulkHttp($unlocked['status'] === 302 && $unlocked['location'] === $return, 'Successful authentication returns to the exact activity.');
+    $sessions['admin'][0] = $unlocked['session_id'];
+    $admin = $sessions['admin'];
+    expectBulkHttp(bulkHttp('admin_elevation.php?return=' . rawurlencode($return), $admin)['location'] === $return,
+        'An already unlocked session resumes without another credential prompt.');
+    foreach (['admin_elevation.php?return=users.php', 'https://outside.example/users.php', 'delete_user.php'] as $unsafe) {
+        expectBulkHttp(bulkHttp('admin_elevation.php?return=' . rawurlencode($unsafe), $admin)['location'] === 'dashboard.php',
+            'Unsafe and recursive destinations fall back to the dashboard.');
+    }
 } finally {
     foreach (['presentations', 'follow_up_tasks', 'engagements', 'contacts', 'organizations', 'speakers', 'users'] as $table) {
         foreach ($fixtures[$table] ?? [] as $id) $conn->execute_query("DELETE FROM {$table} WHERE id = ?", [$id]);

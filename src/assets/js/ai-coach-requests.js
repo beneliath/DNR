@@ -33,7 +33,8 @@
             const unlock = await unlockResponse.json();
             if (unlock.unlocked !== true) {
                 const url = new URL('admin_elevation.php', window.location.href);
-                url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search);
+                url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search + window.location.hash);
+                document.dispatchEvent(new Event('admin-unlock-redirect'));
                 window.location.assign(url.href);
                 return;
             }

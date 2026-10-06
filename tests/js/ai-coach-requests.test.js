@@ -28,14 +28,15 @@ function fixture(unlocked = true) {
     const section = { querySelector: () => confirmation, childNodes: [confirmation] };
     const created = [], requests = [], redirects = [];
     vm.runInNewContext(source, {
-        HTMLDialogElement: function () {}, URL, FormData: class extends Map { constructor() { super(); } },
+        HTMLDialogElement: function () {}, URL, Event, FormData: class extends Map { constructor() { super(); } },
         document: {
             querySelector: () => button, body: { appendChild() {} },
             createElement() { const element = node(); created.push(element); return element; },
+            dispatchEvent(event) { requests.push({ event: event.type }); },
         },
         window: { location: {
             href: 'http://localhost/ai_coach_requests.php?per_page=50',
-            pathname: '/ai_coach_requests.php', search: '?per_page=50',
+            pathname: '/ai_coach_requests.php', search: '?per_page=50', hash: '#request-log',
             assign(url) { redirects.push(url); },
         } },
         DOMParser: class { parseFromString() { return { querySelector: () => section }; } },
@@ -71,7 +72,8 @@ test('clear popup posts to the form URL despite its named action button, and can
 test('locked administrators must unlock before a confirmation can be requested', async () => {
     const view = fixture(false);
     await view.submit();
-    assert.equal(view.requests.length, 1);
-    assert.match(view.redirects[0], /admin_elevation\.php\?return=ai_coach_requests\.php%3Fper_page%3D50$/);
+    assert.equal(view.requests.length, 2);
+    assert.equal(view.requests[1].event, 'admin-unlock-redirect');
+    assert.equal(new URL(view.redirects[0]).searchParams.get('return'), 'ai_coach_requests.php?per_page=50#request-log');
     assert.equal(view.created[0].open, undefined);
 });

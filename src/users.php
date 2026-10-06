@@ -261,7 +261,7 @@ $task_digest_day_options = [
                     </div>
                     <div class="user-actions-lifecycle">
                         <?php if ($admin_actions_unlocked && $user['account_status'] === 'invited'): ?>
-                            <form method="post" action="user_lifecycle.php" data-invitation-form>
+                            <form method="post" action="user_lifecycle.php" data-invitation-form data-admin-unlock-required>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="resend_invitation">
@@ -283,7 +283,7 @@ $task_digest_day_options = [
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="activate">
-                                <button type="submit" class="action-button reset-two-factor-button">Activate</button>
+                                <button type="submit" class="action-button reset-two-factor-button" data-admin-unlock-required>Activate</button>
                             </form>
                         <?php endif; ?>
                         <?php if ($user['account_status'] !== 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>

@@ -2,21 +2,96 @@
     'use strict';
 
     const checkingAdminUnlock = new WeakSet();
+    const approvedUnlockForms = new WeakSet();
+
+    // One short-lived snapshot per tab, scoped to the signed-in user and exact screen.
+    // Never retain credentials, files, confirmation phrases, or security tokens.
+    const sidebar = document.getElementById('app-sidebar');
+    const resumeKey = sidebar ? 'dnr.admin-unlock-return.' + sidebar.dataset.navPreferenceUser : null;
+    const screenUrl = () => window.location.pathname + window.location.search;
+    const pageForms = Array.from(document.querySelectorAll('main form'));
+    const controls = form => Array.from(form.elements).filter(field => field.name
+        && !['hidden', 'file', 'password', 'submit', 'button', 'reset'].includes(field.type)
+        && !/password|secret|token|confirmation|admin_code/i.test(field.name));
+    const values = form => controls(form).map(field => ({
+        name: field.name, type: field.type, value: field.value, checked: !!field.checked,
+        selected: field.type === 'select-multiple' ? Array.from(field.selectedOptions, option => option.value) : null
+    }));
+    const identity = form => JSON.stringify([form.getAttribute('id'), form.getAttribute('action'), form.getAttribute('method'),
+        Array.from(form.elements).filter(field => field.type === 'hidden'
+            && !/password|secret|token|confirmation|admin_code|_admin_unlock_return/i.test(field.name)).map(field => [field.name, field.value])]);
+    const baselines = new Map(pageForms.map(form => [form, JSON.stringify(values(form))]));
+
+    function saveUnlockActivity() {
+        if (!resumeKey || window.location.pathname.endsWith('/admin_elevation.php')) return;
+        const snapshot = {
+            screen: screenUrl(), expires: Date.now() + 30 * 60 * 1000,
+            forms: pageForms.map(form => ({ identity: identity(form), baseline: baselines.get(form), fields: values(form) })),
+            x: window.scrollX, y: window.scrollY, focus: document.activeElement?.id
+        };
+        try { window.sessionStorage.setItem(resumeKey, JSON.stringify(snapshot)); } catch (_) {}
+    }
+    document.addEventListener('admin-unlock-redirect', saveUnlockActivity);
+    if (resumeKey) {
+        try {
+            const saved = JSON.parse(window.sessionStorage.getItem(resumeKey) || 'null');
+            if (saved && (saved.expires < Date.now() || saved.screen === screenUrl())) {
+                window.sessionStorage.removeItem(resumeKey);
+                if (saved.expires >= Date.now() && Array.isArray(saved.forms)) {
+                    pageForms.forEach(function (form) {
+                        const draft = saved.forms.find(entry => entry.identity === identity(form)
+                            && entry.baseline === baselines.get(form));
+                        if (!draft || !Array.isArray(draft.fields)) return;
+                        const fields = controls(form);
+                        draft.fields.forEach(function (value, index) {
+                            const field = fields[index];
+                            if (!field || field.name !== value.name || field.type !== value.type) return;
+                            if (['checkbox', 'radio'].includes(field.type)) field.checked = value.checked;
+                            else if (field.type === 'select-multiple' && Array.isArray(value.selected)) {
+                                Array.from(field.options).forEach(option => { option.selected = value.selected.includes(option.value); });
+                            } else field.value = value.value;
+                        });
+                        fields.forEach(function (field) {
+                            if (field.hasAttribute('data-email-template')) return;
+                            field.dispatchEvent(new Event('input', { bubbles: true }));
+                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    });
+                    window.addEventListener('pageshow', function () {
+                        if (saved.focus) document.getElementById(saved.focus)?.focus({ preventScroll: true });
+                        if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) window.scrollTo(saved.x, saved.y);
+                    }, { once: true });
+                }
+            }
+        } catch (_) {}
+    }
 
     // Fragments are client-side state, so preserve the current tab for proactive unlocks.
     document.querySelectorAll('[data-admin-unlock-link]').forEach(function (link) {
         link.addEventListener('click', function () {
             if (window.location.pathname.endsWith('/admin_elevation.php')) return;
             const destination = new URL(link.href, window.location.href);
+            const intendedReturn = new URL(destination.searchParams.get('return') || window.location.href, window.location.href);
             destination.searchParams.set('return', window.location.pathname.split('/').pop()
-                + window.location.search + window.location.hash);
+                + window.location.search + (window.location.hash || intendedReturn.hash));
             link.href = destination.href;
+            saveUnlockActivity();
         });
     });
 
+    function requiresAdminUnlock(form, submitter) {
+        return form.matches('[data-delete-confirmation], [data-sensitive-action], [data-admin-unlock-required]')
+            || submitter?.matches('[data-admin-unlock-required]');
+    }
+
+    function submitUnlockedForm(form, submitter) {
+        approvedUnlockForms.add(form);
+        form.requestSubmit(submitter || undefined);
+        approvedUnlockForms.delete(form);
+    }
+
     async function confirmAdminUnlock(form, submitter) {
-        if (!form.matches('[data-delete-confirmation], [data-sensitive-action], [data-admin-unlock-required]')
-            && !submitter?.matches('[data-admin-unlock-required]')) return true;
+        if (!requiresAdminUnlock(form, submitter)) return true;
         if (checkingAdminUnlock.has(form)) return false;
         checkingAdminUnlock.add(form);
 
@@ -30,7 +105,16 @@
             returnUrl.hash = section.id;
         }
         const unlockUrl = new URL('admin_elevation.php', returnUrl);
-        unlockUrl.searchParams.set('return', returnUrl.pathname.split('/').pop() + returnUrl.search + returnUrl.hash);
+        const returnTo = returnUrl.pathname.split('/').pop() + returnUrl.search + returnUrl.hash;
+        unlockUrl.searchParams.set('return', returnTo);
+        // Preserve the source if the unlock expires between this check and the server's gate.
+        let source = form.querySelector('input[name="_admin_unlock_return"]');
+        if (!source) {
+            source = document.createElement('input');
+            source.type = 'hidden'; source.name = '_admin_unlock_return';
+            form.appendChild(source);
+        }
+        source.value = returnTo;
 
         try {
             const response = await fetch('admin_unlock_status.php', {
@@ -49,9 +133,30 @@
         } finally {
             checkingAdminUnlock.delete(form);
         }
+        saveUnlockActivity();
         window.location.assign(unlockUrl.href);
         return false;
     }
+
+    // Protected saves and lifecycle actions can require unlock without a confirmation dialog.
+    document.addEventListener('submit', async function (event) {
+        if (event.defaultPrevented) return;
+        const form = event.target.closest('form');
+        if (!form || !requiresAdminUnlock(form, event.submitter)) return;
+        if (approvedUnlockForms.has(form)) {
+            approvedUnlockForms.delete(form);
+            // Retain edits if the server sees expiry after a successful client check.
+            saveUnlockActivity();
+            return;
+        }
+        if (form.matches('[data-delete-confirmation], [data-sensitive-action], [data-confirm]')
+            || event.submitter?.closest('[data-confirm]')) return;
+        event.preventDefault();
+        // Pause target listeners (for example invitation busy indicators) until the check succeeds.
+        event.stopImmediatePropagation();
+        if (!await confirmAdminUnlock(form, event.submitter)) return;
+        submitUnlockedForm(form, event.submitter);
+    }, { capture: true });
 
 (function () {
     const logoutForm = document.getElementById('logout-form');
@@ -123,7 +228,7 @@
         if (!archiveAction || !actionInput) return;
         actionInput.value = archiveAction;
         form.dataset.deleteConfirmed = 'true';
-        form.requestSubmit();
+        submitUnlockedForm(form);
     });
     confirmButton.addEventListener('click', function () {
         if (!pendingForm) {
@@ -136,7 +241,7 @@
         pendingSubmitter = null;
         confirmation.close();
         form.dataset.deleteConfirmed = 'true';
-        form.requestSubmit(submitter || undefined);
+        submitUnlockedForm(form, submitter);
     });
 })();
 
@@ -208,7 +313,7 @@
         const submitter = pendingSubmitter;
         approvedForms.add(form);
         confirmation.close('confirm');
-        form.requestSubmit(submitter || undefined);
+        submitUnlockedForm(form, submitter);
         approvedForms.delete(form);
     });
 })();
@@ -293,7 +398,7 @@
         if (field) field.value = requiredPhrase;
         approvedForms.add(form);
         confirmation.close('confirm');
-        form.requestSubmit(submitter || undefined);
+        submitUnlockedForm(form, submitter);
         approvedForms.delete(form);
     }
 

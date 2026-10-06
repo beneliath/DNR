@@ -441,19 +441,62 @@ function attemptAdminElevation(mysqli $conn, $password, $code) {
     return true;
 }
 
-function safeAdminElevationReturnUrl($return_url) {
+function safeAdminElevationReturnUrl($return_url, $fallback = 'users.php') {
     $return_url = is_scalar($return_url) ? trim((string) $return_url) : '';
+    $parts = parse_url($return_url);
     if ($return_url === ''
-        || strlen($return_url) > 512
-        || str_contains($return_url, '..')
-        || str_contains($return_url, '//')
-        || str_contains($return_url, '\\')
+        || strlen($return_url) > 6000
         || preg_match('/[\x00-\x1F\x7F]/', $return_url)
-        || !preg_match('/\A[A-Za-z0-9_\/-]+\.php(?:\?[^#]*)?(?:#.*)?\z/', $return_url)
+        || $parts === false || isset($parts['scheme']) || isset($parts['host'])
+        || !preg_match('/\A[A-Za-z0-9_-]+\.php\z/', $parts['path'] ?? '')
+        || in_array($parts['path'], ['admin_lock.php', 'admin_extend.php', 'delete_user.php',
+            'reset_user_2fa.php', 'user_lifecycle.php', 'logout.php'], true)
     ) {
-        return 'users.php';
+        return $fallback;
     }
+    if ($parts['path'] === 'admin_elevation.php') return $fallback;
     return $return_url;
+}
+
+/** Preserve the originating screen even when a POST uses a separate action endpoint. */
+function adminElevationRequestReturnUrl($return_url) {
+    $fallback = safeAdminElevationReturnUrl($return_url);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+        $explicit = safeAdminElevationReturnUrl($_POST['_admin_unlock_return'] ?? null, '');
+        if ($explicit !== '') return $explicit;
+
+        $referrer = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
+        $origin = parse_url((requestUsesHttps() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? ''));
+        $directory = dirname((string) ($_SERVER['PHP_SELF'] ?? '/'));
+        if (is_array($referrer) && is_array($origin)
+            && ($referrer['scheme'] ?? '') === ($origin['scheme'] ?? '')
+            && strcasecmp($referrer['host'] ?? '', $origin['host'] ?? '') === 0
+            && ($referrer['port'] ?? (($referrer['scheme'] ?? '') === 'https' ? 443 : 80))
+                === ($origin['port'] ?? (($origin['scheme'] ?? '') === 'https' ? 443 : 80))
+            && dirname($referrer['path'] ?? '') === $directory
+        ) {
+            $source = safeAdminElevationReturnUrl(basename($referrer['path'])
+                . (isset($referrer['query']) ? '?' . $referrer['query'] : '')
+                . (isset($referrer['fragment']) ? '#' . $referrer['fragment'] : ''), '');
+            if ($source !== '') {
+                // HTTP referrers omit fragments; the route can still identify the action's section.
+                $fragment = parse_url($fallback, PHP_URL_FRAGMENT);
+                if ($fragment !== null && !str_contains($source, '#')
+                    && parse_url($source, PHP_URL_PATH) === parse_url($fallback, PHP_URL_PATH)
+                ) $source .= '#' . $fragment;
+                return $source;
+            }
+        }
+    }
+    if (basename((string) ($_SERVER['PHP_SELF'] ?? '')) === parse_url($fallback, PHP_URL_PATH)
+        && !empty($_SERVER['QUERY_STRING'])
+    ) {
+        $current = basename($_SERVER['PHP_SELF']) . '?' . $_SERVER['QUERY_STRING'];
+        $fragment = parse_url($fallback, PHP_URL_FRAGMENT);
+        if ($fragment !== null) $current .= '#' . $fragment;
+        return safeAdminElevationReturnUrl($current, $fallback);
+    }
+    return $fallback;
 }
 
 function requireRecentAdminElevation($return_url = 'users.php') {
@@ -462,7 +505,7 @@ function requireRecentAdminElevation($return_url = 'users.php') {
     }
     $_SESSION['_admin_elevation_error'] = 'Confirm your password and a fresh authentication code before using sensitive administrator actions.';
     header('Location: admin_elevation.php?' . http_build_query([
-        'return' => safeAdminElevationReturnUrl($return_url),
+        'return' => adminElevationRequestReturnUrl($return_url),
     ]));
     exit();
 }

@@ -233,7 +233,7 @@ $task_digest_day_options = [
 
     <?php if (isset($error)) echo "<p class='error'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</p>"; ?>
 
-    <form method="post" action="edit_user.php?id=<?php echo (int) $user['id']; ?>" enctype="multipart/form-data">
+    <form method="post" action="edit_user.php?id=<?php echo (int) $user['id']; ?>" enctype="multipart/form-data" data-admin-unlock-required>
         <?php echo csrfInput(); ?>
         <section class="form-section" aria-labelledby="personal-details-heading">
             <h2 id="personal-details-heading">Personal Details</h2>
