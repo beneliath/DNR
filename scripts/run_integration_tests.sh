@@ -183,13 +183,23 @@ run_integration_suite() {
         trap - EXIT HUP INT TERM
         return
     fi
+    if [ "$test_name" = 'task_notifications_integration_test.php' ]; then
+        # Fixtures use maintenance; scheduling exercises the restricted mail account.
+        compose run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            -e DNR_TEST_MAIL_DISPATCH_PASSWORD_FILE=/run/secrets/test_mail_dispatch_password \
+            -v "${PWD}/src:/var/www/html:ro" \
+            -v "${DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE:-${PWD}/secrets/mysql_mail_dispatch_password}:/run/secrets/test_mail_dispatch_password:ro" \
+            maintenance "/opt/dnr/${test_file}" </dev/null
+        return
+    fi
     if [ "$test_name" = 'notes_cache_http_integration_test.php' ] \
         || [ "$test_name" = 'notes_cache_integration_test.php' ] \
         || [ "$test_name" = 'map_retry_http_integration_test.php' ] \
         || [ "$test_name" = 'email_outbox_worker_integration_test.php' ] \
         || [ "$test_name" = 'engagement_email_integration_test.php' ] \
-        || [ "$test_name" = 'operational_retention_integration_test.php' ] \
-        || [ "$test_name" = 'task_notifications_integration_test.php' ]; then
+        || [ "$test_name" = 'operational_retention_integration_test.php' ]; then
         compose run --rm --no-deps --entrypoint php \
             -e DNR_INTEGRATION_TEST=1 \
             -e DNR_INTEGRATION_TARGET=disposable \

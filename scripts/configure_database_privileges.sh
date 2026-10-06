@@ -262,8 +262,11 @@ GRANT SELECT (
 ) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, title, status, priority, due_date, waiting_on, assigned_to, is_archived,
-    subject_type, engagement_id, organization_id, contact_id, inquiry_id
+    subject_type, engagement_id, organization_id, contact_id, inquiry_id, template_key
 ) ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${mail_dispatch_user}'@'%';
+-- Digest financial-closeout deadlines read the generated task or its template.
+GRANT SELECT (template_key, due_anchor, due_offset_days)
+    ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, organization_id, event_title, event_start_date, event_end_date,
     confirmation_status,
