@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
-        "templates/header.php": "4071cc94ab7491ae1b843456b53312fc07258f44709a7f602ed386342078e690"
+        "templates/header.php": "a4a1bbdade64fa66a559af441786ac472fa71312aa72ce329659558651375496"
       },
       "subjects": [
         "password"
@@ -1358,8 +1358,8 @@
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
         "functions.php": "b8d23c750125face609f6962ab5d5d7c3d81357c908c5653a28968f129a3b8b4",
         "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
-        "assets/js/footer.js": "cca79e927adfc78231c43b9cac6c5a98c2afbf5d9ad6b45ce8180629f99e2798",
-        "admin_elevation.php": "867c2d7251a5b186913faa33be65cb7cfc658d049cd194ba78aa525e1e047322",
+        "assets/js/footer.js": "be916da302984dffe8c3b3355a14078906b64319bd6e0c27f9c871e18ea7f675",
+        "admin_elevation.php": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672",
         "ai_coach_guidance_helpers.php": "2ae52ac22fb959b8b9110673d690ae3367e98debb2fdd384a5895bf8ce1626e2"
       },
       "subjects": [

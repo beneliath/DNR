@@ -9,6 +9,8 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 function fixture(kind, request = async () => ({ ok: true, json: async () => ({ unlocked: false }) })) {
     const documentEvents = {};
     const nodes = {};
+    const storage = new Map();
+    nodes['app-sidebar'] = { dataset: { navPreferenceUser: '17' } };
     function node(id = '') {
         return { id, dataset: {}, attrs: {}, events: {}, textContent: '', value: '', open: false, shown: 0,
             addEventListener(name, fn) { (this.events[name] ||= []).push(fn); },
@@ -59,6 +61,8 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
     } else if (kind === 'sensitive') {
         form.attrs['data-sensitive-action'] = '';
         form.dataset.sensitiveAction = 'delete-user';
+    } else if (kind === 'protected-save') {
+        form.attrs['data-admin-unlock-required'] = '';
     } else {
         button.attrs['data-confirm'] = '';
         button.dataset.confirm = 'Confirm this action?';
@@ -73,28 +77,38 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
     const requests = [];
     let submissions = 0;
     const submit = (submitter = button) => {
-        const event = { target: form, submitter, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } };
-        const handlers = [...(form.events.submit || []), ...(documentEvents.submit || [])];
-        const pending = handlers.map(handler => handler(event));
+        const event = { target: form, submitter, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; },
+            stopImmediatePropagation() { this.propagationStopped = true; } };
+        const handlers = [...(documentEvents.submit?.capture || []), ...(form.events.submit || []), ...(documentEvents.submit?.bubble || [])];
+        const pending = [];
+        for (const handler of handlers) {
+            pending.push(handler(event));
+            if (event.propagationStopped) break;
+        }
         if (!event.defaultPrevented) submissions++;
         return Promise.all(pending);
     };
     form.requestSubmit = submitter => { submit(submitter); };
+    form.appendChild = element => { form.elements[element.name] = element; };
     vm.runInNewContext(source, {
         document: {
             getElementById: id => nodes[id] || null,
+            createElement: () => node(),
             querySelectorAll: selector => selector === '[data-admin-unlock-link]' ? [nav]
                 : selector === 'form[data-delete-confirmation]' && kind === 'delete' ? [form] : [],
-            addEventListener: (name, fn) => { (documentEvents[name] ||= []).push(fn); }
+            addEventListener: (name, fn, options) => {
+                const phases = documentEvents[name] ||= { capture: [], bubble: [] };
+                phases[options?.capture ? 'capture' : 'bubble'].push(fn);
+            }
         },
-        window: { location }, URL,
+        window: { location, sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } }, URL,
         fetch: (url, options) => { requests.push({ url, options }); return request(url, options); }
     });
-    return { nodes, form, button, nav, location, requests, navigations, submit, submissions: () => submissions,
-        shown: () => Object.values(nodes).reduce((total, element) => total + element.shown, 0) };
+    return { nodes, form, button, nav, location, requests, navigations, storage, submit, submissions: () => submissions,
+        shown: () => Object.values(nodes).reduce((total, element) => total + (element.shown || 0), 0) };
 }
 
-for (const kind of ['delete', 'sensitive', 'protected-button', 'protected-form']) {
+for (const kind of ['delete', 'sensitive', 'protected-button', 'protected-form', 'protected-save']) {
     test(`${kind}: locked actions open Admin Unlock before any confirmation or mutation`, async () => {
         const f = fixture(kind);
         await f.submit();
@@ -106,15 +120,17 @@ for (const kind of ['delete', 'sensitive', 'protected-button', 'protected-form']
         const destination = new URL(f.navigations[0]);
         assert.equal(destination.pathname, '/admin_elevation.php');
         assert.equal(destination.searchParams.get('return'), 'view_engagement.php?id=42&return_to=engagements.php%3Fpage%3D2#follow-up-work');
+        assert.equal(f.form.elements._admin_unlock_return.value, destination.searchParams.get('return'));
     });
 
     test(`${kind}: an active session opens its confirmation and submits only after approval`, async () => {
         const f = fixture(kind, async () => ({ ok: true, json: async () => ({ unlocked: true, csrf_token: 'current-token' }) }));
         await f.submit();
-        assert.equal(f.shown(), 1);
-        assert.equal(f.submissions(), 0);
+        assert.equal(f.shown(), kind === 'protected-save' ? 0 : 1);
+        assert.equal(f.submissions(), kind === 'protected-save' ? 1 : 0);
         assert.equal(f.form.elements.csrf_token.value, 'current-token');
         assert.equal(f.navigations.length, 0);
+        if (kind === 'protected-save') return;
         if (kind === 'sensitive') f.nodes['sensitive-action-confirmation-input'].value = 'DELETE USER';
         await f.nodes[kind === 'delete' ? 'confirm-delete' : kind === 'sensitive' ? 'confirm-sensitive-action' : 'confirm-action'].fire('click');
         await settle();
@@ -184,6 +200,41 @@ test('proactive Admin Unlock preserves the current page, query and tab', async (
     const f = fixture('ordinary');
     await f.nav.fire('click');
     assert.equal(new URL(f.nav.href).searchParams.get('return'), 'view_engagement.php?id=42&return_to=engagements.php%3Fpage%3D2#engagement-tasks');
+});
+
+test('direct unlock links retain their activity section and current filters', async () => {
+    const f = fixture('ordinary');
+    f.location.hash = '';
+    f.nav.href = 'https://app.example/admin_elevation.php?return=view_engagement.php%23chron-log';
+    await f.nav.fire('click');
+    assert.equal(new URL(f.nav.href).searchParams.get('return'), 'view_engagement.php?id=42&return_to=engagements.php%3Fpage%3D2#chron-log');
+});
+
+test('protected invitations start their busy state only after the unlock check succeeds', async () => {
+    for (const unlocked of [false, true]) {
+        const f = fixture('protected-save', async () => ({ ok: true, json: async () => ({ unlocked, csrf_token: 'fresh-token' }) }));
+        let targetEvents = 0;
+        f.form.addEventListener('submit', event => {
+            if (targetEvents++) event.preventDefault();
+            f.button.disabled = true;
+        });
+        await f.submit();
+        assert.equal(targetEvents, unlocked ? 1 : 0);
+        assert.equal(f.submissions(), unlocked ? 1 : 0);
+        assert.equal(f.button.disabled, unlocked ? true : undefined);
+    }
+});
+
+test('activity survives expiry between client approval and the server gate without saving canceled confirmations', async () => {
+    const f = fixture('protected-form', async () => ({ ok: true, json: async () => ({ unlocked: true, csrf_token: 'fresh-token' }) }));
+    await f.submit();
+    await f.nodes['cancel-action-confirmation'].fire('click');
+    assert.equal(f.storage.size, 0);
+    await f.submit();
+    await f.nodes['confirm-action'].fire('click');
+    const snapshot = JSON.parse([...f.storage.values()][0]);
+    assert.equal(snapshot.screen, '/view_engagement.php?id=42&return_to=engagements.php%3Fpage%3D2');
+    assert.equal(f.submissions(), 1);
 });
 
 

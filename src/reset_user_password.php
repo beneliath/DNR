@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </p>
         <p>Your fresh administrator elevation is active. The target user’s two-factor authentication status will not be changed.</p>
 
-        <form method="post" action="reset_user_password.php?id=<?php echo $target_user_id; ?>" class="security-form">
+        <form method="post" action="reset_user_password.php?id=<?php echo $target_user_id; ?>" class="security-form" data-admin-unlock-required>
             <?php echo csrfInput(); ?>
 
             <label for="new_password">Temporary Password</label>

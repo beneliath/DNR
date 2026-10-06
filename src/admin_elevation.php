@@ -7,10 +7,7 @@ requireTwoFactorSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
-$return_url = safeAdminElevationReturnUrl($_POST['return'] ?? $_GET['return'] ?? 'users.php');
-if (basename((string) parse_url($return_url, PHP_URL_PATH)) === 'admin_elevation.php') {
-    $return_url = 'dashboard.php';
-}
+$return_url = safeAdminElevationReturnUrl($_POST['return'] ?? $_GET['return'] ?? 'dashboard.php', 'dashboard.php');
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && hasRecentAdminElevation()) {
     header('Location: ' . $return_url);
     exit();

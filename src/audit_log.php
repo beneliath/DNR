@@ -335,9 +335,9 @@ $admin_actions_unlocked = hasRecentAdminElevation();
 $retention_unlock_url = $retention_days === null
     ? ''
     : 'admin_elevation.php?' . http_build_query([
-        'return' => 'audit_log.php?' . http_build_query([
+        'return' => adminElevationRequestReturnUrl('audit_log.php?' . http_build_query([
             'retention_days' => $retention_days,
-        ]) . '#audit-retention',
+        ]) . '#audit-retention'),
     ]);
 
 function auditLogPageUrl($cursor, $category, $page_size, $search = '', $from = '', $to = '', $ip = '') {
@@ -451,7 +451,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <div class="audit-retention-action">
                     <?php if (!$admin_actions_unlocked): ?>
                         <p>Confirm your administrator password and a fresh authenticator or recovery code before continuing.</p>
-                        <a href="<?php echo htmlspecialchars($retention_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Unlock Pruning</a>
+                        <a href="<?php echo htmlspecialchars($retention_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary" data-admin-unlock-link>Unlock Pruning</a>
                     <?php else: ?>
                         <form method="post" action="audit_log.php" class="audit-retention-prune-form" autocomplete="off"
                               data-admin-unlock-required data-confirm="Permanently prune <?php echo $preview_count; ?> audit entries? This cannot be undone.">

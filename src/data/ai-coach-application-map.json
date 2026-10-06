@@ -412,7 +412,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "867c2d7251a5b186913faa33be65cb7cfc658d049cd194ba78aa525e1e047322",
+      "sha256": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672",
       "controls": [
         {
           "kind": "h1",
@@ -506,7 +506,7 @@
       ]
     },
     "audit_log.php": {
-      "sha256": "bb9c514bd306e41553860d0f9f0faf36bdbededc660565ab3c78259a11a8a568",
+      "sha256": "2daa4300db4b542f1d48dc1b9f62a6acda1bf0d9d6ca413c04a867470734ce25",
       "controls": [
         {
           "kind": "h1",
@@ -1657,7 +1657,7 @@
       ]
     },
     "edit_user.php": {
-      "sha256": "a448c387284541276d9ab8a8f279b16c43ce79263c6825fd7b56e9858f7bd8dd",
+      "sha256": "8f8604129db84fbeb7c3c087809e3b27d68846dd40d0e8e9d0965d8ffd567297",
       "controls": [
         {
           "kind": "a",
@@ -2429,7 +2429,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "1052d7807586369f95d1e254e63723ed16d86a9d61e496cbce2d64e58905b1b0",
+      "sha256": "82322c1810408135f97e0328f3db78bf7e77bc78b381870503326a1c54aee5f5",
       "controls": [
         {
           "kind": "h1",
@@ -2804,7 +2804,7 @@
       ]
     },
     "register.php": {
-      "sha256": "e911491e274b6c67469373069d80802beb02f98911719ae1db24103f5669cf83",
+      "sha256": "939787f97021faf18269d79e8db58d5aeae9be3afb081f788b70626938dd90e3",
       "controls": [
         {
           "kind": "a",
@@ -3411,7 +3411,7 @@
       ]
     },
     "reset_user_password.php": {
-      "sha256": "487acc9446769109d34980d4234024ee3e5979962095fe38900765c3d2302baf",
+      "sha256": "3ceb10ea881bd66f58255dc53b26fb12a01d8dd42995c2d69ee299853825fe24",
       "controls": [
         {
           "kind": "h1",
@@ -3990,7 +3990,7 @@
       ]
     },
     "users.php": {
-      "sha256": "b8841689c335345ef9d6d14b0bfcc5fae056dded6908be29324a3e3163b6aafd",
+      "sha256": "7d055d7e1219b414cf8e9980ef8bd73b6e07ffa73da85ad383e97ce4be81d197",
       "controls": [
         {
           "kind": "h1",

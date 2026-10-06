@@ -63,12 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <strong id="invite-user-access-title">Administrator Confirmation Required</strong>
                 <p>You can review this form now. Confirm your password and a fresh authentication code before entering invitation details and sending.</p>
             </div>
-            <a href="admin_elevation.php?return=register.php" class="button-secondary">Unlock Invitations</a>
+            <a href="admin_elevation.php?return=register.php" class="button-secondary" data-admin-unlock-link>Unlock Invitations</a>
         </section>
     <?php endif; ?>
 
     <div class="invite-user-layout">
-        <form method="post" action="register.php" class="invite-user-form" data-invitation-form>
+        <form method="post" action="register.php" class="invite-user-form" data-invitation-form data-admin-unlock-required>
             <?php echo csrfInput(); ?>
             <div class="invite-user-form-heading">
                 <div><span>01</span><div><h2>Account Details</h2><p>Choose the sign-in identity and the correct access level.</p></div></div>

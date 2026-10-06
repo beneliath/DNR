@@ -77,8 +77,9 @@ $role_preview_return_url = safeRolePreviewReturnUrl(
 );
 $admin_unlock_url = 'admin_elevation.php?' . http_build_query([
     'return' => $shell_current_page === 'admin_elevation.php'
-        ? safeAdminElevationReturnUrl($_GET['return'] ?? 'dashboard.php')
-        : $role_preview_return_url,
+        ? safeAdminElevationReturnUrl($_POST['return'] ?? $_GET['return'] ?? 'dashboard.php', 'dashboard.php')
+        : safeAdminElevationReturnUrl($shell_current_page
+            . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : '')),
 ]);
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
