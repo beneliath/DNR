@@ -201,6 +201,9 @@ expectTaskNotificationsFeature(
             $mailDispatchGrantSection,
             'subject_type, engagement_id, organization_id, contact_id'
         )
+        && str_contains($mailDispatchGrantSection, 'inquiry_id, template_key')
+        && str_contains($mailDispatchGrantSection, 'GRANT SELECT (template_key, due_anchor, due_offset_days)')
+        && str_contains($mailDispatchGrantSection, '.standard_event_tasks TO')
         && str_contains($mailDispatchGrantSection, 'event_start_date, event_end_date')
         && str_contains($mailDispatchGrantSection, 'confirmation_status')
         && str_contains($mailDispatchGrantSection, 'event_address_line_1')

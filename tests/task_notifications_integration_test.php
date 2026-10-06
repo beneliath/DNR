@@ -21,6 +21,32 @@ function expectTaskNotificationIntegration(bool $condition, string $message): vo
     }
 }
 
+$workerPassword = configurationSecret('DNR_TEST_MAIL_DISPATCH_PASSWORD');
+expectTaskNotificationIntegration($workerPassword !== '', 'restricted mail-worker credentials are required.');
+$worker = new mysqli(
+    (string) (getenv('DB_HOST') ?: 'db'),
+    'dnrmaildispatch',
+    $workerPassword,
+    (string) (getenv('MYSQL_DATABASE') ?: 'dnr')
+);
+$worker->set_charset('utf8mb4');
+expectTaskNotificationIntegration(
+    str_starts_with($worker->query('SELECT CURRENT_USER() AS identity')->fetch_assoc()['identity'], 'dnrmaildispatch@'),
+    'digest scheduling must exercise the real restricted worker account.'
+);
+foreach ([
+    'SELECT details FROM standard_event_tasks LIMIT 1',
+    'UPDATE standard_event_tasks SET due_offset_days = due_offset_days WHERE 1 = 0',
+] as $forbiddenQuery) {
+    $denied = false;
+    try {
+        $worker->query($forbiddenQuery);
+    } catch (mysqli_sql_exception $exception) {
+        $denied = in_array($exception->getCode(), [1142, 1143], true);
+    }
+    expectTaskNotificationIntegration($denied, 'the worker must not read template details or modify templates.');
+}
+
 putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('N', 32)));
 putenv('DNR_PUBLIC_BASE_URL=https://moed.example.test');
 putenv('DNR_REQUIRE_HTTPS=1');
@@ -113,13 +139,13 @@ try {
     $taskStatement->close();
 
     expectTaskNotificationIntegration(
-        queueDueDailyTaskDigests($conn, $instant->modify('-1 minute')) === 0,
+        queueDueDailyTaskDigests($worker, $instant->modify('-1 minute')) === 0,
         'a digest should remain pending until the user-selected local delivery time.'
     );
     expectTaskNotificationIntegration(
-        queueDueDailyTaskDigests($conn, $instant) === 1
-            && queueDueDailyTaskDigests($conn, $instant) === 0,
-        'one idempotent digest should be queued on a selected day after its delivery time.'
+        queueDueDailyTaskDigests($worker, $instant) === 1
+            && queueDueDailyTaskDigests($worker, $instant) === 0,
+        'the restricted worker should prepare closeout data and queue one idempotent scheduled digest.'
     );
 
     $queued = $conn->query(
@@ -334,6 +360,7 @@ try {
     putenv('DNR_PUBLIC_BASE_URL');
     putenv('DNR_REQUIRE_HTTPS');
     putenv('DNR_TIMEZONE');
+    $worker->close();
 }
 
 echo "Task notifications integration tests passed.\n";
