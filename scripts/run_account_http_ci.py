@@ -70,8 +70,8 @@ def main():
     from account_isolation_http_test import fixture, cleanup
     seed=fixture('dnr-web-1')
     from account_mail_http_test import php
-    for key in ['test-account','account-isolation-preview']:
-        php('dnr',f"platformCreateAccount($conn,'{key}','{key}',{seed['users']['superadmin']['id']});echo '{{}}';")
+    for key,name in [('test-account','Test Account'),('account-isolation-preview','Account Isolation Preview')]:
+        php('dnr',f"platformCreateAccount($conn,'{name}','{key}',{seed['users']['superadmin']['id']});echo '{{}}';")
     args=SimpleNamespace(primary_web='dnr-web-1',primary_db='dnr-db-1',primary_ingress='dnr-ingress-1',primary_port=8080,platform_network='moed-account-control')
     for key in ['test-account','account-isolation-preview']:provision(args,key)
     run(['docker','exec','-i','-e','DNR_ACCOUNT_CAPACITY_TEST=1',
