@@ -1,0 +1,21 @@
+[Unit]
+Description=MOED Account provisioning, lifecycle and directory worker
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+# Install only during a separately approved Account rollout. This unit is inert in Git.
+WorkingDirectory=/opt/moed
+ExecStart=/usr/bin/python3 /opt/moed/scripts/account_production.py /opt/moed/var/deployment/account-production/config.json --apply --watch
+Restart=on-failure
+RestartSec=15
+User=moed
+Group=moed
+SupplementaryGroups=docker
+UMask=0077
+NoNewPrivileges=yes
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

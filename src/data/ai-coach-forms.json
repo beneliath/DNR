@@ -12,7 +12,7 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "76296f68781c79505fe6da3068c467aa1c7240f9603a0f36af0f2b9d6177b86f"
+        "index.php": "deb62c4c97e9ee9673a0ed5776a4ab7c7627cc7724aeec940c9d498d84439ce9"
       },
       "controls": {
         "new-organization": {
@@ -320,8 +320,8 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "reimbursement_helpers.php": "6015341b0d92c392bf278e24353b8c1fbcb3d153f2e20f70506f97d85d6a7f21"
+        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
+        "reimbursement_helpers.php": "b953b13eff1681c5733e790528acc2d6fbcfa0935fdb28e5570d869596dd527f"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -500,7 +500,7 @@
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
-        "assets/js/footer.js": "be916da302984dffe8c3b3355a14078906b64319bd6e0c27f9c871e18ea7f675",
+        "assets/js/footer.js": "03b04bf3b546350aa5e1c6511e69f2b7ecf41a85276860f37dd4037e9e7d5473",
         "admin_elevation.php": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672"
       },
       "controls": {

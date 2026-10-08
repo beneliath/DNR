@@ -20,6 +20,24 @@ def run(args, **kwargs):
     return subprocess.check_output(args, text=True, **kwargs).strip()
 
 
+def account_release_configuration(root, running_environment):
+    """Fail closed if an enabled platform would lose its durable release input."""
+    path = Path(os.environ.get('DNR_ACCOUNT_PRIMARY_OVERLAY_FILE') or
+                root / 'var/deployment/account-production/primary.compose.json')
+    active = 'DNR_ACCOUNTS_ENABLED=1' in running_environment
+    if not path.is_file():
+        if active or os.environ.get('DNR_ACCOUNT_PRIMARY_OVERLAY_FILE'):
+            raise ValueError('Active Account deployment is missing its persistent overlay')
+        return None
+    canonical = root / 'var/deployment/account-production/primary.compose.json'
+    if path.resolve() != canonical.resolve():
+        raise ValueError('Release transactions require the canonical prepared Account configuration')
+    config = path.with_name('config.json')
+    if not config.is_file() or not path.with_name('control.conf').is_file():
+        raise ValueError('Prepared Account configuration is incomplete')
+    return {'config':json.loads(config.read_text()), 'overlay':json.loads(path.read_text())}
+
+
 def verify_app_replicas(service, output, expected_image_id, inspect):
     # The provenance wrapper writes a human-readable banner before Compose output.
     identifiers = [line for line in output.splitlines() if re.fullmatch('[0-9a-f]{12,64}', line)]
@@ -87,6 +105,7 @@ def main():
             return compose('ps', '-aq', service).splitlines()[-1]
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
+        account_configuration = account_release_configuration(root, inspect(container('web'))['Config']['Env'])
         storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
         def speaker_seed(action):
@@ -119,7 +138,8 @@ def main():
         record = dict(commit=expected, previous_commit=previous_commit, previous_images=previous,
                       backup=None, manifest=release, storage_encryption=storage_encryption,
                       mirrors=json.loads(Path(manifest_path).with_name('mirrors.json').read_text()),
-                      phase='preflight', outcome='running', speaker_seed_sha256=speaker_seed_sha256 or None)
+                      phase='preflight', outcome='running', speaker_seed_sha256=speaker_seed_sha256 or None,
+                      previous_account_configuration=account_configuration)
         record_path = records / (expected + '.json')
         def save(phase):
             record['phase'] = phase
@@ -149,6 +169,13 @@ def main():
             )
             save('backup-verified')
             run(['git', 'merge', '--ff-only', expected])
+            if account_configuration is not None:
+                # Still within the writer pause and the shared deployment lock.
+                # The saved operator topology persists; only qualified release
+                # images/commit change. The worker reloads this manifest per cycle.
+                run(['python3','scripts/account_production.py',
+                     str(root/'var/deployment/account-production/config.json'),
+                     '--prepare-primary','--release-manifest',str(Path(manifest_path).resolve())])
             # DDL and a possible database upgrade happen with every application writer stopped.
             compose('up', '-d', '--no-build', '--no-deps', '--wait', 'db')
             save('migrating')

@@ -12,6 +12,10 @@ if (PHP_SAPI !== 'cli') {
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/worker_health_helpers.php';
 require_once '/var/www/html/inbound_ingestion_helpers.php';
+if (accountsEnabled() && !accountIsPrimary()) {
+    fwrite(STDERR, "Only the primary service may poll the shared mailbox.\n");
+    exit(1);
+}
 
 $loop = in_array('--loop', $argv, true);
 $host = trim((string) (getenv('DNR_IMAP_HOST') ?: ''));
@@ -71,6 +75,10 @@ do {
         $client->close();
     }
 
+    if (accountMailEnabled() && accountIsPrimary()) {
+        try { $activity += deliverPlatformInboundMail($conn, $batchSize); }
+        catch (Throwable $error) { $pass_succeeded = false; applicationLog('error', 'Shared mail delivery queue unavailable'); }
+    }
     for ($index = 0; $index < $batchSize; $index++) {
         $messageId = claimInboundEmailMessage($conn);
         if ($messageId === null) {

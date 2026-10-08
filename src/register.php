@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="form-group"><label for="email">Email Address</label><input type="email" name="email" id="email" maxlength="254" autocomplete="email" value="<?php echo htmlspecialchars((string) ($_POST['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required><p class="field-help">The recipient verifies this address when accepting the invitation.</p></div>
                 <div class="form-group invite-user-role-field"><label for="role">Role</label><select name="role" id="role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
-                        <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($_POST['role'] ?? '') === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($_POST['role'] ?? '') === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(accountsEnabled() ? accountRoleLabel(['role' => $available_role]) : \Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select></div>
             </div>

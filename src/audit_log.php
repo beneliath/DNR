@@ -5,6 +5,13 @@ $conn = applicationDatabaseConnection();
 startSecureSession();
 requireAdmin();
 requireAuditLogSchema($conn);
+$accountAuditOnly = accountsEnabled() && !isSuperAdmin();
+// The primary log also holds platform events. Its retention belongs to
+// SuperAdmin; member administrators may still prune their own private log.
+$canPruneAudit = !$accountAuditOnly || !accountIsPrimary();
+$auditVisibility = $accountAuditOnly
+    ? "LEFT(event_type, 9) <> 'platform_' AND COALESCE(entity_type, '') NOT IN ('account', 'platform_accounts', 'platform_inbound_mail')"
+    : '1 = 1';
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
@@ -58,6 +65,7 @@ function auditLogPrune(mysqli $conn, $retention_days, $actor_user_id, $actor_use
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
+    if (!$canPruneAudit) { http_response_code(403); exit('SuperAdmin access is required to prune this shared audit log.'); }
     $action = \Dnr\Http\RequestInput::string($_POST, 'action');
     if ($action !== 'prune') {
         http_response_code(400);
@@ -163,7 +171,7 @@ $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['created_at', 'id']
 );
-$where_parts = [];
+$where_parts = [$auditVisibility];
 $filter_types = '';
 $filter_values = [];
 if ($category !== '') {
@@ -309,7 +317,7 @@ if ($retention_requested && $retention_days === null) {
     $retention_statement = $conn->prepare(
         'SELECT COUNT(CASE WHEN created_at < ? THEN 1 END) AS entry_count,
                 COUNT(*) AS total_entry_count
-         FROM security_audit_log'
+         FROM security_audit_log WHERE ' . $auditVisibility
     );
     if (!$retention_statement) {
         abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
@@ -398,6 +406,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         <p class="error"><?php echo htmlspecialchars($prune_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
+    <?php if ($canPruneAudit): ?>
     <p class="page-intro audit-retention-note">Audit records remain append-only during normal application use. Administrators can preview and prune expired entries below; deployment operators can use the equivalent terminal command.</p>
 
     <section class="audit-retention-card" id="audit-retention" aria-labelledby="audit-retention-title">
@@ -474,6 +483,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         <?php endif; ?>
     </section>
 
+    <?php endif; ?>
     <div class="audit-controls">
         <form method="get" action="audit_log.php" class="list-search-form audit-filter-form" role="search">
             <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">

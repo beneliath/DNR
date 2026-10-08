@@ -4,6 +4,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/database_backup_client.php';
 startSecureSession();
 requireAdmin();
+if (accountIsPrimary() && !isSuperAdmin()) { http_response_code(403); exit('Forbidden.'); }
 requireTwoFactorSchema($conn);
 requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
@@ -56,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'user_id' => $actor_id, 'auth_version' => (int) $actor['auth_version'],
                     'admin_password' => $admin_password, 'admin_code' => $admin_code,
                     'backup_password' => $backup_password,
+                    'platform_identity' => platformIdentityPayload(),
                 ], $maximum_backup_bytes);
                 $filename = 'dnr-database-' . gmdate('Ymd-His') . 'Z.dnrbackup';
                 $download_token = $_POST['download_token'] ?? null;
@@ -67,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'createdAt' => applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'M j, Y g:i:s A T'),
                     ], JSON_THROW_ON_ERROR), [
                         'expires' => time() + 600,
-                        'path' => '/',
+                        'path' => accountCookiePath(),
                         'secure' => requestUsesHttps() || applicationRequiresHttps(),
                         'httponly' => false,
                         'samesite' => 'Strict',

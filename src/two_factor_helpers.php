@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/account_helpers.php';
 
 function loadDnrComposerAutoloader() {
     static $loaded = false;
@@ -115,8 +116,9 @@ function matchingTotpStep($secret, $username, $code, $last_used_step = null, $ti
 }
 
 function fetchAuthenticationUserByUsername(mysqli $conn, $username) {
+    $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
     $stmt = $conn->prepare(
-        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled,
+        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled{$accountColumns},
                 totp_secret_encrypted, totp_confirmed_at, totp_last_used_step,
                 (login_locked_until IS NOT NULL AND login_locked_until > UTC_TIMESTAMP()) AS login_is_locked,
                 (two_factor_locked_until IS NOT NULL AND two_factor_locked_until > UTC_TIMESTAMP()) AS two_factor_is_locked
@@ -130,8 +132,9 @@ function fetchAuthenticationUserByUsername(mysqli $conn, $username) {
 }
 
 function fetchAuthenticationUserById(mysqli $conn, $user_id) {
+    $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
     $stmt = $conn->prepare(
-        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled,
+        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled{$accountColumns},
                 totp_secret_encrypted, totp_confirmed_at, totp_last_used_step,
                 (login_locked_until IS NOT NULL AND login_locked_until > UTC_TIMESTAMP()) AS login_is_locked,
                 (two_factor_locked_until IS NOT NULL AND two_factor_locked_until > UTC_TIMESTAMP()) AS two_factor_is_locked
@@ -150,6 +153,7 @@ function passwordAuthenticationIsAccepted(?array $user, bool $password_valid): b
     // distributed password-guessing bypass. Accounts without 2FA remain
     // locked and can use the verified-email password-recovery flow.
     return $user !== null
+        && empty($user['platform_identity_id'])
         && ($user['account_status'] ?? null) === 'active'
         && $password_valid
         && (empty($user['login_is_locked']) || !empty($user['two_factor_enabled']));
@@ -397,11 +401,37 @@ function adminElevationExpiresAt($maximum_age_seconds = 300, ?int $now = null): 
 function extendAdminElevation(?int $now = null): ?int {
     $expires_at = adminElevationExpiresAt(300, $now);
     if ($expires_at === null) return null;
+    if (accountsEnabled() && !accountIsPrimary() && !empty($_SESSION['_platform_identity'])) {
+        try {
+            $result = platformCall('extend_elevation', platformIdentityPayload() + [
+                'elevation_token' => $_SESSION['_platform_admin_elevation']['token'] ?? '',
+            ]);
+            $_SESSION['_platform_admin_elevation'] = $result['elevation'];
+            $_SESSION['_admin_elevation_expires_at'] = $result['elevation']['expires_at'];
+            return $_SESSION['_admin_elevation_expires_at'];
+        } catch (Throwable $error) {
+            unset($_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at'], $_SESSION['_platform_admin_elevation']);
+            return null;
+        }
+    }
     $_SESSION['_admin_elevation_expires_at'] = $expires_at + 300;
     return $_SESSION['_admin_elevation_expires_at'];
 }
 
-function attemptAdminElevation(mysqli $conn, $password, $code) {
+function attemptAdminElevation(mysqli $conn, $password, $code, bool $establishSession = true) {
+    if (accountsEnabled() && !accountIsPrimary() && !empty($_SESSION['_platform_identity'])) {
+        try {
+            $result = platformCall('elevate', platformIdentityPayload() + ['password' => $password, 'code' => $code]);
+            if (empty($result['ok'])) return false;
+            session_regenerate_id(true);
+            $_SESSION['_platform_admin_elevation'] = $result['elevation'];
+            $_SESSION['_admin_elevated_at'] = $result['elevation']['expires_at'] - 300;
+            unset($_SESSION['_admin_elevation_expires_at']);
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+            logSecurityEvent($conn, 'admin_elevation_succeeded', (int) $_SESSION['user_id'], (int) $_SESSION['user_id']);
+            return true;
+        } catch (Throwable $error) { return false; }
+    }
     $user_id = (int) ($_SESSION['user_id'] ?? 0);
     $user = $user_id > 0 ? fetchAuthenticationUserById($conn, $user_id) : null;
     if (!$user || $user['role'] !== 'admin') {
@@ -433,10 +463,12 @@ function attemptAdminElevation(mysqli $conn, $password, $code) {
     }
 
     resetAuthenticationFailures($conn, $user_id, 'two_factor');
-    session_regenerate_id(true);
-    $_SESSION['_admin_elevated_at'] = time();
-    unset($_SESSION['_admin_elevation_expires_at']);
-    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    if ($establishSession) {
+        session_regenerate_id(true);
+        $_SESSION['_admin_elevated_at'] = time();
+        unset($_SESSION['_admin_elevation_expires_at']);
+        $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    }
     logSecurityEvent($conn, 'admin_elevation_succeeded', $user_id, $user_id);
     return true;
 }
@@ -500,6 +532,12 @@ function adminElevationRequestReturnUrl($return_url) {
 }
 
 function requireRecentAdminElevation($return_url = 'users.php') {
+    // Sessions unlocked before platform grants were introduced must verify again.
+    if (accountsEnabled() && !accountIsPrimary() && !empty($_SESSION['_platform_identity'])
+        && (empty($_SESSION['_platform_admin_elevation']['token'])
+            || ($_SESSION['_platform_admin_elevation']['expires_at'] ?? 0) <= time())) {
+        unset($_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at'], $_SESSION['_platform_admin_elevation']);
+    }
     if (hasRecentAdminElevation()) {
         return;
     }

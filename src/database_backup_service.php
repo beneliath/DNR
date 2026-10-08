@@ -7,6 +7,9 @@ require_once __DIR__ . '/database_backup_helpers.php';
 
 /** Runs only in the isolated exporter, using current database authorization. */
 function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string $application_version): array {
+    if (accountsEnabled() && ($request['account_key'] ?? null) !== currentAccountKey()) {
+        throw new RuntimeException('The backup exporter does not match the current Account.', 403);
+    }
     $maximum = databaseBackupMaximumBytes();
     $backup = $encrypted = null;
     $backupConnection = null;
@@ -24,7 +27,7 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
         $locked = (int) $conn->query("SELECT GET_LOCK('dnr_database_backup_export', 0)")->fetch_row()[0] === 1;
         if (!$locked) throw new RuntimeException('Another database backup is already in progress.', 409);
         $actor = fetchAuthenticationUserById($conn, (int) ($request['user_id'] ?? 0));
-        if (!$actor || $actor['account_status'] !== 'active' || $actor['role'] !== 'admin'
+        if (!$actor || (accountIsPrimary() && empty($actor['is_superadmin'])) || $actor['account_status'] !== 'active' || $actor['role'] !== 'admin'
             || (int) $actor['auth_version'] !== (int) ($request['auth_version'] ?? 0)
             || empty($actor['two_factor_enabled']) || !empty($actor['login_is_locked'])
             || !empty($actor['two_factor_is_locked']) || !empty($actor['must_change_password'])) {
@@ -32,6 +35,13 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
         }
         $id = (int) $actor['id'];
         setDatabaseAuditContext($conn, $id, (string) $actor['username']);
+        if (!empty($actor['platform_identity_id'])) {
+            $identity = $request['platform_identity'] ?? [];
+            if (!is_array($identity) || (int) ($identity['id'] ?? 0) !== (int) $actor['platform_identity_id']
+                || empty(platformCall('elevate', $identity + ['password' => $request['admin_password'], 'code' => $request['admin_code']])['ok'])) {
+                throw new RuntimeException('Your administrator password or authentication code was not accepted.', 403);
+            }
+        } else {
         if (!\Dnr\Security\PasswordPolicy::verify($request['admin_password'], $actor['password'])) {
             recordAuthenticationFailure($conn, $id, 'password');
             logSecurityEvent($conn, 'database_backup_auth_failed', $id, $id);
@@ -46,6 +56,7 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
             logSecurityEvent($conn, 'database_backup_auth_failed', $id, $id);
             throw new RuntimeException('Your administrator password or authentication code was not accepted.', 403);
         }
+        }
         resetAuthenticationFailures($conn, $id, 'password');
         resetAuthenticationFailures($conn, $id, 'two_factor');
         // No full-schema connection exists until fresh password AND 2FA succeed.
@@ -56,6 +67,7 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
         $encrypted = encryptDatabaseBackup($backup['path'], $password, $maximum);
         if (!unlink($backup['path'])) throw new RuntimeException('Unable to remove the plaintext backup.');
         $backup = null;
+        if (!empty($actor['platform_identity_id'])) platformCall('validate', $request['platform_identity']);
         $current = fetchAuthenticationUserById($conn, $id);
         if (!$current || $current['account_status'] !== 'active' || $current['role'] !== 'admin'
             || (int) $current['auth_version'] !== (int) $actor['auth_version']) {

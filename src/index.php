@@ -345,18 +345,6 @@ try {
   ),
 )); ?>
 <body class="has-app-shell<?php echo aiCoachEnabled() ? ' has-coach' : ''; ?>">
-<?php if (aiCoachEnabled()): ?>
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-// Reserve the restored Coach width before the page content can paint.
-try {
-    const initialCoach = JSON.parse(sessionStorage.getItem('moed-coach-session') || '{}');
-    if (initialCoach.key === <?php echo json_encode(aiCoachStorageKey()); ?>
-        && initialCoach.open === true && !window.matchMedia('(max-width: 1100px)').matches) {
-        document.body.classList.add('coach-open');
-    }
-} catch (_) { /* Keep the minimized Coach layout when storage is unavailable. */ }
-</script>
-<?php endif; ?>
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container" role="main">

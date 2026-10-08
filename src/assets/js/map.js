@@ -13,7 +13,7 @@ import {
     const feedbackElement = document.getElementById('map-feedback');
     const fitButton = document.getElementById('fit-map-pins');
     if (!mapElement || !dataElement || !feedbackElement || !fitButton) return;
-    setWorkerUrl(DNR_MAPLIBRE_WORKER_URL);
+    setWorkerUrl(new URL(DNR_MAPLIBRE_WORKER_URL, import.meta.url).href);
 
     let payload;
     try {
@@ -28,11 +28,6 @@ import {
     const emptyTitle = document.getElementById('map-empty-title');
     const emptyDescription = document.getElementById('map-empty-description');
     const retryFeedback = document.getElementById('map-retry-feedback');
-    if (events.length === 0) {
-        feedbackElement.textContent = String(payload.emptyTitle || 'No Matching Engagements');
-        fitButton.disabled = true;
-        return;
-    }
     const mapProvider = payload.mapProvider && typeof payload.mapProvider === 'object'
         ? payload.mapProvider
         : {};
@@ -98,7 +93,7 @@ import {
         const pendingCount = events.filter(event => event.locationState === 'pending').length;
         const notFoundCount = events.filter(event => event.locationState === 'not_found').length;
         const failedCount = events.filter(event => event.locationState === 'failed').length;
-        const parts = [plural(pinCount, 'visible pin')];
+        const parts = [events.length === 0 ? String(payload.emptyTitle || 'No Matching Engagements') : plural(pinCount, 'visible pin')];
         if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' awaiting lookup');
         if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address', 'addresses') + ' not found');
         if (failedCount > 0) parts.push(plural(failedCount, 'lookup') + ' unavailable');
@@ -107,8 +102,6 @@ import {
         if (providerError) parts.push(providerError);
         feedbackElement.textContent = parts.join(' · ');
         fitButton.disabled = pinCount === 0;
-        const wasHidden = mapElement.hidden;
-        mapElement.hidden = pinCount === 0;
         if (emptyElement) emptyElement.hidden = pinCount > 0;
         if (pinCount === 0 && emptyTitle && emptyDescription) {
             emptyTitle.textContent = pendingCount > 0 ? 'Looking up locations' : String(payload.emptyTitle || 'No Locations on the Map Yet');
@@ -116,7 +109,6 @@ import {
                 ? 'Pins will appear here as the location lookups finish. You can keep reviewing the list below.'
                 : String(payload.emptyDescription || 'Check the addresses below or retry unresolved lookups.');
         }
-        if (wasHidden && pinCount > 0) map.resize();
     }
 
     function markerBounds() {

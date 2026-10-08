@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
 function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = false, checked = [], available = []} = {}) {
   const node = () => ({dataset: {}, events: {}, addEventListener(name, fn) { this.events[name] = fn; }});

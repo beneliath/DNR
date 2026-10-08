@@ -9,6 +9,7 @@
     const sidebar = document.getElementById('app-sidebar');
     const resumeKey = sidebar ? 'dnr.admin-unlock-return.' + sidebar.dataset.navPreferenceUser : null;
     const screenUrl = () => window.location.pathname + window.location.search;
+    const pageScroller = () => document.body.classList.contains('account-context-active') ? document.body : window;
     const pageForms = Array.from(document.querySelectorAll('main form'));
     const controls = form => Array.from(form.elements).filter(field => field.name
         && !['hidden', 'file', 'password', 'submit', 'button', 'reset'].includes(field.type)
@@ -27,16 +28,18 @@
         const snapshot = {
             screen: screenUrl(), expires: Date.now() + 30 * 60 * 1000,
             forms: pageForms.map(form => ({ identity: identity(form), baseline: baselines.get(form), fields: values(form) })),
-            x: window.scrollX, y: window.scrollY, focus: document.activeElement?.id
+            x: pageScroller() === window ? window.scrollX : document.body.scrollLeft,
+            y: pageScroller() === window ? window.scrollY : document.body.scrollTop,
+            focus: document.activeElement?.id
         };
-        try { window.sessionStorage.setItem(resumeKey, JSON.stringify(snapshot)); } catch (_) {}
+        try { window.DnrAccountContext.session.setItem(resumeKey, JSON.stringify(snapshot)); } catch (_) {}
     }
     document.addEventListener('admin-unlock-redirect', saveUnlockActivity);
     if (resumeKey) {
         try {
-            const saved = JSON.parse(window.sessionStorage.getItem(resumeKey) || 'null');
+            const saved = JSON.parse(window.DnrAccountContext.session.getItem(resumeKey) || 'null');
             if (saved && (saved.expires < Date.now() || saved.screen === screenUrl())) {
-                window.sessionStorage.removeItem(resumeKey);
+                window.DnrAccountContext.session.removeItem(resumeKey);
                 if (saved.expires >= Date.now() && Array.isArray(saved.forms)) {
                     pageForms.forEach(function (form) {
                         const draft = saved.forms.find(entry => entry.identity === identity(form)
@@ -59,7 +62,7 @@
                     });
                     window.addEventListener('pageshow', function () {
                         if (saved.focus) document.getElementById(saved.focus)?.focus({ preventScroll: true });
-                        if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) window.scrollTo(saved.x, saved.y);
+                        if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) pageScroller().scrollTo(saved.x, saved.y);
                     }, { once: true });
                 }
             }

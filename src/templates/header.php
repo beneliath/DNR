@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../application_runtime.php';
 require_once __DIR__ . '/../two_factor_helpers.php';
+require_once __DIR__ . '/../ai_coach_helpers.php';
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
@@ -27,6 +28,8 @@ $nav_groups = [
     'inbound_mail' => ['inbound_mail.php'],
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
     'reimbursements' => ['reimbursements.php', 'reimbursement_expense.php', 'reimbursement_request.php', 'reimbursement_requests.php', 'reimbursement_cost_centers.php', 'reimbursement_submit.php'],
+    'accounts' => ['accounts.php'],
+    'account_settings' => ['account_settings.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
     'admin_unlock' => ['admin_elevation.php'],
     'reimbursement_setup' => ['reimbursement_setup.php'],
@@ -62,18 +65,22 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $authenticated_user_role = (string) ($_SESSION['authenticated_role'] ?? $user_role);
+$authenticated_superadmin = authenticatedSuperAdmin();
 $admin_unlock_expires_at = !empty($_SESSION['user_id']) && $user_role === 'admin'
     ? adminElevationExpiresAt()
     : null;
 $role_preview = $authenticated_user_role === 'admin'
-    && in_array($user_role, ['editor', 'reviewer'], true)
+    && (in_array($user_role, ['editor', 'reviewer'], true)
+        || ($authenticated_superadmin && ($_SESSION['_role_preview'] ?? null) === 'admin'))
         ? $user_role
         : null;
-$role_preview_label = $role_preview === null ? '' : ucfirst($role_preview);
+$role_preview_label = $role_preview === 'admin' ? 'Administrator' : ($role_preview === null ? '' : ucfirst($role_preview));
+$role_preview_restore_role = $authenticated_superadmin ? 'superadmin' : 'admin';
+$role_preview_restore_label = $authenticated_superadmin ? 'SuperAdmin' : 'Administrator';
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
-    $user_role
+    isSuperAdmin() ? 'superadmin' : $user_role
 );
 $admin_unlock_url = 'admin_elevation.php?' . http_build_query([
     'return' => $shell_current_page === 'admin_elevation.php'
@@ -85,7 +92,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
 $shell_logo_dark = applicationBrandLogo('dark');
-$nav_preference_user = (string) ($_SESSION['user_id'] ?? $username);
+$nav_preference_user = (accountsEnabled() ? currentAccountKey() . ':' : '') . (string) ($_SESSION['user_id'] ?? $username);
 $nav_preference_cookie = 'dnr_sidebar_' . substr(hash('sha256', $nav_preference_user), 0, 12);
 $nav_saved_state = [];
 foreach (explode(',', (string) ($_COOKIE[$nav_preference_cookie] ?? '')) as $entry) {
@@ -112,8 +119,19 @@ if (!empty($_SESSION['user_id'])) {
 }
 ?>
 
-<header class="app-shell-header">
+<header class="app-shell-header"<?php if (aiCoachEnabled() && !empty($_SESSION['user_id'])): ?> data-coach-layout-key="<?php echo htmlspecialchars(aiCoachStorageKey(), ENT_QUOTES, 'UTF-8'); ?>" data-coach-page="<?php echo htmlspecialchars(aiCoachPage(), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
     <a class="skip-link" href="#app-content-start" data-skip-link>Skip to Main Content</a>
+    <?php if (isSuperAdmin()): ?>
+    <section class="account-identity-banner" aria-label="Current Account">
+        <span class="account-identity-label">
+            <strong><?php echo htmlspecialchars(currentAccountProfile()['name']); ?></strong>
+            <?php if (accountIsPrimary()): ?>
+            <span class="account-primary-badge"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8"/></svg>Primary Account</span>
+            <?php endif; ?>
+        </span>
+        <a href="accounts.php">Switch Account</a>
+    </section>
+    <?php endif; ?>
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
             <span class="visually-hidden">Open Navigation</span>
@@ -167,9 +185,9 @@ if (!empty($_SESSION['user_id'])) {
             </div>
             <form method="post" action="role_preview.php" class="role-preview-return-form">
                 <?php echo csrfInput(); ?>
-                <input type="hidden" name="role" value="admin">
+                <input type="hidden" name="role" value="<?php echo $role_preview_restore_role; ?>">
                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit">Return to Administrator</button>
+                <button type="submit">Return to <?php echo $role_preview_restore_label; ?></button>
             </form>
         </section>
     <?php endif; ?>
@@ -248,12 +266,23 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="<?php echo htmlspecialchars($admin_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="nav-link admin-nav-link<?php echo $active_nav === 'admin_unlock' ? ' active' : ''; ?>" data-admin-unlock-link<?php echo $active_nav === 'admin_unlock' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2M12 15v2"/></svg><span>Admin Unlock</span>
                         </a></li>
+                        <?php if (accountsEnabled()): ?>
+                        <li><a href="account_settings.php" class="nav-link admin-nav-link<?php echo $active_nav === 'account_settings' ? ' active' : ''; ?>"<?php echo $active_nav === 'account_settings' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Account Settings</span>
+                        </a></li>
+                        <?php if (isSuperAdmin()): ?><li><a href="accounts.php" class="nav-link admin-nav-link<?php echo $active_nav === 'accounts' ? ' active' : ''; ?>"<?php echo $active_nav === 'accounts' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Accounts</span>
+                        </a></li>
+                        <?php if (accountMailEnabled()): ?><li><a href="mail_review.php" class="nav-link admin-nav-link"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7M12 15v1"/></svg><span>Mail Review</span></a></li><?php endif; endif; ?>
+                        <?php endif; ?>
                         <li><a href="users.php" class="nav-link admin-nav-link<?php echo $active_nav === 'users' ? ' active' : ''; ?>"<?php echo $active_nav === 'users' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span>
                         </a></li>
+                        <?php if (!accountIsPrimary() || isSuperAdmin()): ?>
                         <li><a href="database_maintenance.php" class="nav-link admin-nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
                         </a></li>
+                        <?php endif; ?>
                         <li><a href="reimbursement_setup.php" class="nav-link admin-nav-link<?php echo $active_nav === 'reimbursement_setup' ? ' active' : ''; ?>"<?php echo $active_nav === 'reimbursement_setup' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Reimbursement Setup</span>
                         </a></li>
@@ -278,7 +307,10 @@ if (!empty($_SESSION['user_id'])) {
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="role-preview-fields">
                         <select name="role" id="role-preview-role" aria-labelledby="role-preview-label">
-                            <option value="admin"<?php echo $role_preview === null ? ' selected' : ''; ?>>Administrator</option>
+                            <?php if ($authenticated_superadmin): ?>
+                            <option value="superadmin"<?php echo $role_preview === null ? ' selected' : ''; ?>>SuperAdmin</option>
+                            <?php endif; ?>
+                            <option value="admin"<?php echo $role_preview === 'admin' || (!$authenticated_superadmin && $role_preview === null) ? ' selected' : ''; ?>>Administrator</option>
                             <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
                             <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>
                         </select>
@@ -308,7 +340,7 @@ if (!empty($_SESSION['user_id'])) {
         <div class="sidebar-account">
             <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open Profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
                 <img class="account-avatar" src="profile_picture.php?v=<?php echo $profile_picture_version; ?>" alt="">
-                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? ucfirst($user_role) : $role_preview_label . ' preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
+                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? (accountsEnabled() ? accountRoleLabel(['role' => $user_role, 'is_superadmin' => isSuperAdmin()]) : ucfirst($user_role)) : $role_preview_label . ' preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
             </a>
             <form method="post" action="logout.php" id="logout-form" class="sidebar-logout-form">
                 <?php echo csrfInput(); ?>
@@ -322,7 +354,7 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
+<?php if ($admin_unlock_expires_at !== null) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
-<?php if ($admin_unlock_expires_at !== null) renderScript('assets/js/admin-unlock.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

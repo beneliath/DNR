@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/email_helpers.php';
+require_once __DIR__ . '/account_helpers.php';
+require_once __DIR__ . '/account_login_helpers.php';
 
 function userAccountStatusLabel($status)
 {
@@ -34,6 +36,7 @@ function emailAddressBelongsToAnotherUser(mysqli $conn, $email, $user_id = null)
 function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_id)
 {
     $username = trim((string) $username);
+    if (str_starts_with(strtolower($username), '_platform_')) throw new InvalidArgumentException('This username is reserved.');
     $email = normalizeAccountEmail($email);
     $role = (string) $role;
     $actor_user_id = (int) $actor_user_id;
@@ -80,6 +83,7 @@ function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_i
         $stmt->execute();
         $user_id = (int) $conn->insert_id;
         $stmt->close();
+        registerAccountLogin($conn, $user_id, $username);
 
         $issued = issueUserEmailToken(
             $conn,
@@ -104,6 +108,7 @@ function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_i
             throw new RuntimeException('Unable to audit the account invitation.');
         }
         $conn->commit();
+        flushAccountDirectory();
         return [
             'user_id' => $user_id,
             'token' => $issued['token'],
@@ -119,6 +124,7 @@ function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_i
 /** @return array{token: string, email: string, username: string} */
 function renewUserInvitation(mysqli $conn, $user_id, $actor_user_id)
 {
+    requireManageableAccountUser($conn, (int) $user_id);
     $user_id = (int) $user_id;
     $actor_user_id = (int) $actor_user_id;
     $conn->begin_transaction();
@@ -157,6 +163,7 @@ function renewUserInvitation(mysqli $conn, $user_id, $actor_user_id)
             throw new RuntimeException('Unable to audit the renewed invitation.');
         }
         $conn->commit();
+        flushAccountDirectory();
         return [
             'token' => $issued['token'],
             'email' => $email,
@@ -171,6 +178,7 @@ function renewUserInvitation(mysqli $conn, $user_id, $actor_user_id)
 /** @return array{calendar_tokens: int, task_assignments: int} */
 function deactivateUserAccount(mysqli $conn, $user_id, $actor_user_id)
 {
+    requireManageableAccountUser($conn, (int) $user_id);
     $user_id = (int) $user_id;
     $actor_user_id = (int) $actor_user_id;
     if ($user_id < 1 || $user_id === $actor_user_id) {
@@ -255,6 +263,7 @@ function deactivateUserAccount(mysqli $conn, $user_id, $actor_user_id)
         }
 
         $conn->commit();
+        flushAccountDirectory();
         return ['calendar_tokens' => $calendar_count, 'task_assignments' => $task_count];
     } catch (Throwable $exception) {
         $conn->rollback();
@@ -264,6 +273,7 @@ function deactivateUserAccount(mysqli $conn, $user_id, $actor_user_id)
 
 function deleteInactiveUserAccount(mysqli $conn, $user_id, $actor_user_id): bool
 {
+    requireManageableAccountUser($conn, (int) $user_id);
     $user_id = (int) $user_id;
     $actor_user_id = (int) $actor_user_id;
     if ($user_id < 1 || $user_id === $actor_user_id) {
@@ -315,8 +325,9 @@ function deleteInactiveUserAccount(mysqli $conn, $user_id, $actor_user_id): bool
             throw new RuntimeException('The account can no longer be deleted.');
         }
         $delete->close();
-
+        removeAccountLogin($conn, $user_id);
         $conn->commit();
+        flushAccountDirectory();
         return true;
     } catch (Throwable $exception) {
         $conn->rollback();
@@ -326,6 +337,7 @@ function deleteInactiveUserAccount(mysqli $conn, $user_id, $actor_user_id): bool
 
 function activateUserAccount(mysqli $conn, $user_id, $actor_user_id)
 {
+    requireManageableAccountUser($conn, (int) $user_id);
     $user_id = (int) $user_id;
     $actor_user_id = (int) $actor_user_id;
     $conn->begin_transaction();
@@ -368,6 +380,7 @@ function activateUserAccount(mysqli $conn, $user_id, $actor_user_id)
             throw new RuntimeException('Unable to audit account activation.');
         }
         $conn->commit();
+        flushAccountDirectory();
         return true;
     } catch (Throwable $exception) {
         $conn->rollback();

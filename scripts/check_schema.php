@@ -8,6 +8,7 @@ require_once '/var/www/html/config.php';
 require_once '/var/www/html/two_factor_helpers.php';
 
 try {
+    if (accountsEnabled()) currentAccountProfile();
     require_once '/var/www/html/file_storage_maintenance_helpers.php';
     requireHealthyPersistentStorage();
     twoFactorEncryptionKey();

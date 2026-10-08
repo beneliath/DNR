@@ -128,6 +128,19 @@ mysql_admin() {
 mysql_admin <<SQL
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.schema_migrations TO '${MYSQL_USER}'@'%';
+GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.account_profile TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.platform_accounts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.platform_inbound_mail TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.platform_access_tickets TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.platform_api_nonces TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.platform_login_routes TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.platform_login_claims TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.platform_login_reservations TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.account_directory_outbox TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.platform_recovery_requests TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.account_recovery_receipts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.account_login_handoffs TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.account_service_nonces TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.users TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.stored_files TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${MYSQL_USER}'@'%';
@@ -209,11 +222,13 @@ GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${
 CREATE USER IF NOT EXISTS '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
 ALTER USER '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${backup_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${backup_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.* TO '${backup_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_password}';
 ALTER USER '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${geocoder_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${geocoder_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geocodes TO '${geocoder_user}'@'%';
 GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.notes_cache_purge_queue TO '${geocoder_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${geocoder_user}'@'%';
@@ -221,6 +236,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geo
 CREATE USER IF NOT EXISTS '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 ALTER USER '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.platform_accounts TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.platform_inbound_mail TO '${mail_ingest_user}'@'%';
 GRANT SELECT (id, username, verified_email, account_status)
     ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
@@ -248,6 +266,7 @@ GRANT INSERT ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${mail_
 CREATE USER IF NOT EXISTS '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';
 ALTER USER '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${mail_dispatch_user}'@'%';
@@ -292,6 +311,7 @@ GRANT SELECT (status)
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${maintenance_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${maintenance_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.* TO '${maintenance_user}'@'%';
 GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${maintenance_user}'@'%';
 GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_operational_mail_history TO '${maintenance_user}'@'%';

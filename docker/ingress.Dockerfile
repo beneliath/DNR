@@ -16,6 +16,9 @@ COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.con
 COPY docker/apache-ingress.conf /etc/apache2/conf-enabled/zz-dnr-ingress.conf
 COPY --chmod=0755 docker/development-ingress-entrypoint.sh /usr/local/bin/dnr-development-ingress-entrypoint
 COPY src/deployment_status.php src/deployment_notice_helpers.php /var/www/html/
+# Account ingress serves its qualified static scripts itself. A compromised PHP
+# container must not supply executable code under the shared browser origin.
+COPY src/assets/ /opt/dnr/account-assets/
 
 RUN a2enconf zz-dnr-security \
     && apachectl configtest

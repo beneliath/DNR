@@ -17,3 +17,6 @@ __pycache__/
 # Local preview recovery archives contain private application data
 /var/uiux-preview-backups/
 /var/backups/
+
+# Account-specific local deployment credentials and volumes metadata
+/var/accounts/

@@ -17,6 +17,9 @@ if (!$target_user_id || $target_user_id === $actor_user_id) {
 
 requireRecentAdminElevation('reset_user_password.php?id=' . $target_user_id);
 
+try { requireManageableAccountUser($conn, (int) $target_user_id); }
+catch (InvalidArgumentException $error) { http_response_code(403); exit(htmlspecialchars($error->getMessage())); }
+
 $target_user = fetchAuthenticationUserById($conn, $target_user_id);
 
 if (!$target_user || $target_user['account_status'] !== 'active') {

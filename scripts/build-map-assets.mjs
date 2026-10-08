@@ -18,8 +18,7 @@ await build({entryPoints: ['src/assets/js/map.js', 'src/assets/js/map-pin.js'],
         entryNames: '[name].min', chunkNames: 'map-shared-[hash].min',
         minify: true, legalComments: 'none',
         define: {
-            DNR_MAPLIBRE_WORKER_URL: JSON.stringify(`/assets/js/maplibre-worker.min.js?v=${hash}`),
-            // Page bundles explicitly set a same-origin worker URL;
-            // MapLibre's direct-browser ESM URL discovery is unused here.
-            'import.meta.url': '""'
+            // Resolve alongside the page bundle so Account paths and releases
+            // keep their own worker instead of falling back to root assets.
+            DNR_MAPLIBRE_WORKER_URL: JSON.stringify(`./maplibre-worker.min.js?v=${hash}`)
         }});

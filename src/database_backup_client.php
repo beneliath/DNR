@@ -5,6 +5,7 @@ require_once __DIR__ . '/database_backup_helpers.php';
 
 /** Receives only an encrypted archive; full-schema credentials stay in the exporter. */
 function requestEncryptedDatabaseBackup(array $request, int $maximum): array {
+    if (accountsEnabled()) $request['account_key'] = currentAccountKey();
     $url = (string) (getenv('DNR_BACKUP_SERVICE_URL') ?: 'http://backup/export.php');
     $path = tempnam(sys_get_temp_dir(), 'dnr-export-download-');
     if ($path === false) throw new RuntimeException('Unable to allocate the encrypted download.');

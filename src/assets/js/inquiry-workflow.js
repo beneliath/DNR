@@ -95,7 +95,7 @@
     const initialContacts = Array.from(contact.options);
     let restored = false;
     try {
-        const draft = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
+        const draft = JSON.parse(window.DnrAccountContext.session.getItem(draftKey) || 'null');
         if (draft && form.dataset.inquiryFormSubmitted !== 'true') {
             Object.entries(draft).forEach(function (entry) {
                 const input = form.elements.namedItem(entry[0]);
@@ -104,7 +104,7 @@
                     else input.value = entry[1];
                 }
             });
-            sessionStorage.removeItem(draftKey);
+            window.DnrAccountContext.session.removeItem(draftKey);
             restored = true;
             feedback.textContent = 'Inquiry draft restored';
         }
@@ -174,12 +174,12 @@
                         organization_name: option.dataset.organizationName
                     };
                 });
-                sessionStorage.setItem(draftKey, JSON.stringify(values));
+                window.DnrAccountContext.session.setItem(draftKey, JSON.stringify(values));
             } catch (error) {
                 event.preventDefault();
                 feedback.textContent = 'Your browser cannot preserve this draft — save the inquiry before creating another record';
             }
         });
     });
-    form.addEventListener('submit', function () { try { sessionStorage.removeItem(draftKey); } catch (error) {} });
+    form.addEventListener('submit', function () { try { window.DnrAccountContext.session.removeItem(draftKey); } catch (error) {} });
 })();

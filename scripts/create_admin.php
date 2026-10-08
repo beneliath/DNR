@@ -6,6 +6,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/config.php';
+require_once '/var/www/html/account_login_helpers.php';
 require_once __DIR__ . '/cli_input.php';
 
 $username = trim($argv[1] ?? 'admin');
@@ -41,8 +42,15 @@ $role = 'admin';
 $stmt = $conn->prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)');
 $stmt->bind_param('sss', $username, $password_hash, $role);
 
-if (!$stmt->execute()) {
-    fwrite(STDERR, "Unable to create the administrator.\n");
+try {
+    $conn->begin_transaction();
+    $stmt->execute();
+    registerAccountLogin($conn, (int) $conn->insert_id, $username);
+    $conn->commit();
+    flushAccountDirectory();
+} catch (Throwable $error) {
+    $conn->rollback();
+    fwrite(STDERR, "Unable to create the administrator. The username may be unavailable.\n");
     exit(1);
 }
 

@@ -16,7 +16,7 @@ the matching artifact; development uses the original parser when no match exists
 Create a Cache Rule named **MOED public speaker notes** with this expression:
 
 ```
-(http.host eq "moed.beneliath.com" and http.request.uri.path wildcard "/surls/*/speaker-notes.pdf" and http.request.uri.query eq "")
+(http.host eq "moed.beneliath.com" and (http.request.uri.path wildcard "/surls/*/speaker-notes.pdf" or http.request.uri.path wildcard "/a/*/surls/*/speaker-notes.pdf") and http.request.uri.query eq "")
 ```
 
 - Cache eligibility: **Eligible for cache**.
@@ -117,3 +117,5 @@ PDF. Use a dedicated presentation fixture for these checks to avoid altering
 real speaker files or polluting audience statistics. Warm-cache and cold-cache
 behavior both need validation; a single warm request does not fill every edge
 location. Keep the queued-purge worker healthy throughout presentations.
+
+Account deployments use their canonical HTTPS URL, including `/a/<label>`, for cache invalidation. The primary Account also purges the legacy root URL for each code. Members never purge root URLs. Both URLs must succeed before a job is acknowledged; partial failures retry the entire batch. Account caching remains opt-in.

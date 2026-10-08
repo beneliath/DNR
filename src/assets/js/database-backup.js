@@ -62,7 +62,7 @@
                 } catch (error) { /* Ignore invalid or unrelated completion data. */ }
                 if (result && /^dnr-database-\d{8}-\d{6}Z\.dnrbackup$/.test(result.filename)
                     && typeof result.createdAt === 'string') {
-                    document.cookie = cookieName + '=; Max-Age=0; Path=/; SameSite=Strict';
+                    document.cookie = cookieName + '=; Max-Age=0; Path=' + new URL('.', window.location.href).pathname + '; SameSite=Strict';
                     finish();
                     fields.forEach(function (field) { field.value = ''; });
                     if (lastCreated) lastCreated.textContent = result.createdAt;

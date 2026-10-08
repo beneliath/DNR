@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "Reimbursement guidance verified against current MOED 2.3.21 source and September 29, 2026 guide; existing procedures retain their individual source hashes.",
+  "verified_against": "Account branch review, October 8, 2026: six affected workflows checked against source; reviewer email location updated; unrelated procedures retain their hashes.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
-        "templates/header.php": "a4a1bbdade64fa66a559af441786ac472fa71312aa72ce329659558651375496"
+        "templates/header.php": "cd1c787dca4efc1d8645be64336ee8d7acddd5f64ed9bfcd936a07d6dd5a95a3"
       },
       "subjects": [
         "password"
@@ -1039,7 +1039,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2"
+        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896"
       },
       "subjects": [
         "reimbursement",
@@ -1068,8 +1068,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "assets/js/reimbursements.js": "641fc02bb37a9f6c37be0a9be7359b6f55f824db64e942f0ade09e31e1282fc7"
+        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
+        "assets/js/reimbursements.js": "1dd0f0b699e29fc3cfba749372947cc2d2c58b566e30835da521f9eb1f2437d5"
       },
       "subjects": [
         "reimbursement",
@@ -1221,13 +1221,13 @@
         "reviewer"
       ],
       "steps": [
-        "Open My Profile and find Personal Details.",
+        "Open My Profile. At the bottom of Personal Details, find Reimbursement Reviewer Email below the divider.",
         "Set Reimbursement Reviewer Email and save the profile. This recipient receives a Cc copy when you submit.",
         "Check the actual routing in the submission preview; this field is separate from your verified account email."
       ],
       "on_pages": {},
       "source_files": {
-        "profile.php": "22b831c6237364405da3a437f5cee83bedc3805a0d7a11902a31fcf85a19d044"
+        "profile.php": "1c24d6788d52262903194768ad57fa70acf22df12ea41b1ca63c4f1044486d38"
       },
       "subjects": [
         "reviewer",
@@ -1328,7 +1328,7 @@
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "b8d23c750125face609f6962ab5d5d7c3d81357c908c5653a28968f129a3b8b4"
+        "functions.php": "2facfdfae99bf82819a485391626111b9d9642fd2bee91378a1b3245db9e9b1d"
       }
     },
     {
@@ -1356,9 +1356,9 @@
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "b8d23c750125face609f6962ab5d5d7c3d81357c908c5653a28968f129a3b8b4",
+        "functions.php": "2facfdfae99bf82819a485391626111b9d9642fd2bee91378a1b3245db9e9b1d",
         "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
-        "assets/js/footer.js": "be916da302984dffe8c3b3355a14078906b64319bd6e0c27f9c871e18ea7f675",
+        "assets/js/footer.js": "03b04bf3b546350aa5e1c6511e69f2b7ecf41a85276860f37dd4037e9e7d5473",
         "admin_elevation.php": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672",
         "ai_coach_guidance_helpers.php": "2ae52ac22fb959b8b9110673d690ae3367e98debb2fdd384a5895bf8ce1626e2"
       },

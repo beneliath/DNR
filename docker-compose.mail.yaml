@@ -35,9 +35,17 @@ services:
         condition: service_completed_successfully
     secrets:
       - dnr_mysql_mail_ingest_password
+      - dnr_2fa_encryption_key
       - dnr_imap_password
       - dnr_inbound_routing_key
     environment:
+      DNR_ACCOUNTS_ENABLED: ${DNR_ACCOUNTS_ENABLED:-0}
+      DNR_ACCOUNT_GATEWAY_ENABLED: ${DNR_ACCOUNT_GATEWAY_ENABLED:-0}
+      DNR_ACCOUNT_MAIL_ENABLED: ${DNR_ACCOUNT_MAIL_ENABLED:-0}
+      DNR_ACCOUNT_MODE: ${DNR_ACCOUNT_MODE:-primary}
+      DNR_ACCOUNT_KEY: ${DNR_ACCOUNT_KEY:-shalom-in-messiah}
+      DNR_GATEWAY_INTERNAL_URL: ${DNR_GATEWAY_INTERNAL_URL:-}
+      DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
       DB_HOST: db
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmailingest

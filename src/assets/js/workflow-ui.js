@@ -27,20 +27,20 @@
         const user = sidebar ? sidebar.getAttribute('data-nav-preference-user') : '';
         const storageKey = 'dnr.dashboard.' + encodeURIComponent(user) + '.booking-pipeline';
         try {
-            const saved = localStorage.getItem(storageKey);
+            const saved = window.DnrAccountContext.local.getItem(storageKey);
             if (saved === 'open' || saved === 'closed') pipeline.open = saved === 'open';
         } catch (_) { /* Keep the collapsed default when browser storage is unavailable. */ }
         pipeline.addEventListener('toggle', function () {
-            try { localStorage.setItem(storageKey, pipeline.open ? 'open' : 'closed'); }
+            try { window.DnrAccountContext.local.setItem(storageKey, pipeline.open ? 'open' : 'closed'); }
             catch (_) { /* The disclosure still works without browser storage. */ }
         });
     }
     document.querySelectorAll('[data-dismiss-undo]').forEach(function (button) {
         const notice = button.closest('.task-undo-notice');
         const token = notice.querySelector('[name="undo_token"]').value;
-        try { if (sessionStorage.getItem('dismissed-task-undo') === token) notice.hidden = true; } catch (_) {}
+        try { if (window.DnrAccountContext.session.getItem('dismissed-task-undo') === token) notice.hidden = true; } catch (_) {}
         button.addEventListener('click', function () {
-            try { sessionStorage.setItem('dismissed-task-undo', token); } catch (_) {}
+            try { window.DnrAccountContext.session.setItem('dismissed-task-undo', token); } catch (_) {}
             notice.remove();
         });
     });

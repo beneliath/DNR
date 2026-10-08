@@ -145,9 +145,9 @@
     const scrollArea = panel.querySelector('.coach-scroll');
     let saved = {};
     try {
-        const value = JSON.parse(window.sessionStorage.getItem(storageName) || '{}');
+        const value = JSON.parse(window.DnrAccountContext.session.getItem(storageName) || '{}');
         if (value.key === panel.dataset.storageKey) saved = value;
-        else window.sessionStorage.removeItem(storageName);
+        else window.DnrAccountContext.session.removeItem(storageName);
     } catch (_) { /* Storage is optional. */ }
     let conversationScroll = Math.max(0, Number(saved.scrollTop) || 0);
     let messages = safeMessages(saved.messages);
@@ -169,7 +169,7 @@
 
     function persist() {
         try {
-            window.sessionStorage.setItem(storageName, JSON.stringify({ key: panel.dataset.storageKey,
+            window.DnrAccountContext.session.setItem(storageName, JSON.stringify({ key: panel.dataset.storageKey,
                 open: !panel.hidden, activeGuideId: activeGuideId, scrollTop: panel.hidden ? conversationScroll : scrollArea.scrollTop, pending: pending, workflow: workflow, submittedRecord: submittedRecord, messages: messages.slice(-12) }));
         } catch (_) { /* Do not block help if browser storage is full or disabled. */ }
     }
@@ -529,7 +529,7 @@
         }
     });
     document.querySelectorAll('a[href="logout.php"], form[action="logout.php"]').forEach(function (node) {
-        node.addEventListener(node.tagName === 'FORM' ? 'submit' : 'click', function () { try { window.sessionStorage.removeItem(storageName); } catch (_) { /* Optional. */ } });
+        node.addEventListener(node.tagName === 'FORM' ? 'submit' : 'click', function () { try { window.DnrAccountContext.session.removeItem(storageName); } catch (_) { /* Optional. */ } });
     });
     function stopRequest() {
         if (pending) coachEvent('cancel', pending.id, {}).catch(function () {});
@@ -664,7 +664,7 @@
     window.addEventListener('pageshow', function (event) {
         if (!event.persisted) return;
         let restored = {};
-        try { restored = JSON.parse(window.sessionStorage.getItem(storageName) || '{}'); } catch (_) { /* Optional storage. */ }
+        try { restored = JSON.parse(window.DnrAccountContext.session.getItem(storageName) || '{}'); } catch (_) { /* Optional storage. */ }
         if (restored.key !== panel.dataset.storageKey) { window.location.reload(); return; }
         requestNumber++;
         messages = safeMessages(restored.messages); pending = safePending(restored.pending);

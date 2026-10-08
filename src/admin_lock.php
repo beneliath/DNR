@@ -14,7 +14,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 requireValidCsrfToken();
 
-unset($_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at']);
+unset($_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at'], $_SESSION['_platform_admin_elevation']);
 releaseApplicationSessionLock();
 if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
     header('Content-Type: application/json; charset=utf-8');

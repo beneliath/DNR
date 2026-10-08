@@ -5,19 +5,33 @@ declare(strict_types=1);
 /** Only the canonical public URL without a query string can enter the CDN. */
 function notesEdgeCacheTtl(string $code, array $server): int
 {
+    $path = (string) (parse_url((string) getenv('DNR_PUBLIC_BASE_URL'), PHP_URL_PATH) ?: '');
+    $canonical = $path . '/surls/' . $code . '/speaker-notes.pdf';
+    $legacy = '/surls/' . $code . '/speaker-notes.pdf';
     if (!preg_match('/\A[a-f0-9]{16}\z/', $code)
-        || ($server['REQUEST_URI'] ?? '') !== '/surls/' . $code . '/speaker-notes.pdf'
+        || !in_array($server['REQUEST_URI'] ?? '', [$canonical, $legacy], true)
         || !in_array($server['REQUEST_METHOD'] ?? '', ['GET', 'HEAD'], true)) return 0;
     return max(0, min(300, (int) (getenv('DNR_NOTES_EDGE_CACHE_TTL') ?: 0)));
 }
 
 function notesCachePurgeUrl(string $origin, string $code): string
 {
-    if (!preg_match('/\Ahttps:\/\/[a-z0-9.-]+(?::[0-9]+)?\z/i', $origin)
+    if (!preg_match('~\Ahttps://[a-z0-9.-]+(?::[0-9]+)?(?:/a/[a-z][a-z0-9-]{2,63})?\z~i', $origin)
         || !preg_match('/\A[a-f0-9]{16}\z/', $code)) {
-        throw new InvalidArgumentException('Configure a canonical HTTPS origin and valid notes code.');
+        throw new InvalidArgumentException('Configure a canonical HTTPS Account URL and valid notes code.');
     }
     return $origin . '/surls/' . $code . '/speaker-notes.pdf';
+}
+
+/** Include the primary Account's existing audience links during transition. */
+function notesCachePurgeUrls(string $baseUrl, string $code): array
+{
+    $urls = [notesCachePurgeUrl($baseUrl, $code)];
+    if (getenv('DNR_ACCOUNT_MODE') !== 'member') {
+        $origin = preg_replace('~/a/[a-z][a-z0-9-]{2,63}$~', '', $baseUrl);
+        $urls[] = notesCachePurgeUrl($origin, $code);
+    }
+    return array_values(array_unique($urls));
 }
 
 /** Network errors are deliberately generic so credentials never enter logs. */
@@ -56,8 +70,9 @@ function processNotesCachePurges(mysqli $conn, callable $purge, string $origin):
         WHERE next_attempt_at <= UTC_TIMESTAMP(6) ORDER BY next_attempt_at, code LIMIT 30')->fetch_all(MYSQLI_ASSOC);
     if (!$jobs) return notesCachePurgeQueueHealthy($conn);
     try {
-        $urls = array_map(static fn(array $job): string => notesCachePurgeUrl($origin, $job['code']), $jobs);
-        $purge($urls);
+        $urls = [];
+        foreach ($jobs as $job) $urls = array_merge($urls, notesCachePurgeUrls($origin, $job['code']));
+        foreach (array_chunk(array_unique($urls), 30) as $batch) $purge($batch);
     } catch (Throwable $exception) {
         // Do not log API response bodies, bearer URLs, or credentials.
         foreach ($jobs as $job) {

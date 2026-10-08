@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function harness(initialEvents, mapProvider = {}) {
+function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:8080/assets/js/map.min.js') {
     class Element {
         constructor() { this.listeners = {}; this.dataset = {}; this.hidden = false; this.textContent = ''; this.disabled = false; this.children = []; }
         addEventListener(type, listener) { this.listeners[type] = listener; }
@@ -25,7 +25,6 @@ function harness(initialEvents, mapProvider = {}) {
     };
     filterForm.querySelectorAll = selector => selector === 'input, select' ? filterFields : [];
     filterForm.querySelector = selector => selector === 'button[type="submit"]' ? applyButton : null;
-    elements['engagement-map'].hidden = !initialEvents.some(event => event.locationState === 'found');
     elements['map-list-empty'].textContent = 'Every engagement matching your other filters has an address entered.';
     const rows = initialEvents.map(event => {
         const row = new Element();
@@ -84,7 +83,8 @@ function harness(initialEvents, mapProvider = {}) {
         },
         window: {setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id)},
         MapLibreMap: FakeMap, Marker, Popup, LngLatBounds: Bounds, NavigationControl: class {},
-        setWorkerUrl: () => {}, DNR_MAPLIBRE_WORKER_URL: '/assets/js/maplibre-worker.min.js?v=test',
+        setWorkerUrl: url => { mapCalls.workerUrl = url; }, DNR_MAPLIBRE_WORKER_URL: './maplibre-worker.min.js?v=test',
+        URL, moduleUrl,
         CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
         URLSearchParams,
         fetch: async (url, options) => {
@@ -96,7 +96,7 @@ function harness(initialEvents, mapProvider = {}) {
     };
     vm.createContext(context);
     vm.runInContext(fs.readFileSync('src/assets/js/map-list.js', 'utf8'), context);
-    vm.runInContext(fs.readFileSync('src/assets/js/map.js', 'utf8').replace(/^import[\s\S]*?from 'maplibre-gl';/, ''), context);
+    vm.runInContext(fs.readFileSync('src/assets/js/map.js', 'utf8').replace(/^import[\s\S]*?from 'maplibre-gl';/, '').replaceAll('import.meta.url', 'moduleUrl'), context);
     return {elements, rows, filters, filterForm, filterFields, applyButton, requests, mapCalls, markers, popups, load: () => loadCallbacks.splice(0).forEach(fn => fn()), responder: fn => { responder = fn; },
         poll: async () => { const first = timers.entries().next().value; assert.ok(first, 'A poll should be scheduled'); timers.delete(first[0]); await first[1](); }};
 }
@@ -150,11 +150,12 @@ test('pointer-opened popups leave the action unfocused while keyboard-opened pop
     assert.equal(link.href, 'view_engagement.php?id=4');
 });
 
-test('empty server results show guidance without initializing a world map or requesting lookups', () => {
+test('empty server results keep the base map and guidance visible without requesting lookups', () => {
     const h = harness([]);
-    assert.equal(h.mapCalls.created, 0);
+    assert.equal(h.mapCalls.created, 1);
     assert.equal(h.requests.length, 0);
-    assert.equal(h.elements['engagement-map'].hidden, true);
+    assert.equal(h.elements['engagement-map'].hidden, false);
+    assert.equal(h.elements['fit-map-pins'].disabled, true);
     assert.equal(h.elements['map-feedback'].textContent, 'No missing addresses');
     assert.match(h.elements['map-list-empty'].textContent, /Every engagement/);
 });
@@ -163,7 +164,8 @@ test('cached misses are not automatically retried or double counted', () => {
     const h = harness([unresolved]);
     assert.equal(h.requests.length, 0);
     assert.equal(h.elements['map-feedback'].textContent, '0 visible pins · 1 address not found');
-    assert.equal(h.elements['engagement-map'].hidden, true);
+    assert.equal(h.elements['engagement-map'].hidden, false);
+    assert.equal(h.elements['fit-map-pins'].disabled, true);
     assert.equal(h.rows[0].retry.hidden, false);
 });
 
@@ -180,7 +182,7 @@ test('explicit retry updates queue, filters, counters and map without navigating
     h.responder(async () => ({status: 200, locations: [{id: 4, status: 'found', latitude: 28.83, longitude: -82.34}]}));
     await h.poll();
     assert.equal(h.mapCalls.pins, 1);
-    assert.equal(h.mapCalls.resized, 1);
+    assert.equal(h.mapCalls.resized, 0, 'The map stays visible while waiting for pins');
     assert.equal(h.elements['engagement-map'].hidden, false);
     assert.equal(h.elements['map-empty-state'].hidden, true);
     assert.equal(h.elements['map-feedback'].textContent, '1 visible pin');
@@ -222,4 +224,11 @@ test('credits collapse after asynchronous map load, not before source attributio
     attribution.open = true;
     h.load();
     assert.equal(attribution.open, true, 'subsequent user expansion must be preserved');
+});
+
+test('map worker follows the bundle path at root and within each Account', () => {
+    for (const prefix of ['', '/a/shalom-in-messiah', '/a/test-account']) {
+        const h = harness([], {}, `http://localhost:8080${prefix}/assets/js/map.min.js?rev=123`);
+        assert.equal(h.mapCalls.workerUrl, `http://localhost:8080${prefix}/assets/js/maplibre-worker.min.js?v=test`);
+    }
 });

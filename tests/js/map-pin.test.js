@@ -4,11 +4,12 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function harness(coordinates = {latitude: null, longitude: null}) {
+function harness(coordinates = {latitude: null, longitude: null}, moduleUrl = 'http://localhost:8080/assets/js/map-pin.min.js') {
     const elements = Object.fromEntries(['pin-editor-data', 'pin-editor-map', 'pin-latitude', 'pin-longitude', 'confirm-pin', 'pin-editor-feedback']
         .map(id => [id, {value: '', checked: false, listeners: {}, querySelector() { return null; }, addEventListener(type, fn) { this.listeners[type] = fn; }}]));
     elements['pin-editor-data'].textContent = JSON.stringify(coordinates);
     const maps = [], markers = [];
+    let workerUrl;
     class FakeMap {
         constructor(options) { this.options = options; this.listeners = {}; maps.push(this); }
         addControl() {}
@@ -25,10 +26,10 @@ function harness(coordinates = {latitude: null, longitude: null}) {
         getLngLat() { return {lat: this.point[1], lng: this.point[0]}; }
     }
     const context = {document: {getElementById: id => elements[id]}, MapLibreMap: FakeMap, Marker, NavigationControl: class {},
-        setWorkerUrl: () => {}, DNR_MAPLIBRE_WORKER_URL: '/assets/js/maplibre-worker.min.js?v=test'};
+        setWorkerUrl: url => { workerUrl = url; }, DNR_MAPLIBRE_WORKER_URL: './maplibre-worker.min.js?v=test', URL, moduleUrl};
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync('src/assets/js/map-pin.js', 'utf8').replace(/^import[^\n]*\n/, ''), context);
-    return {elements, map: maps[0], markers, latitude: elements['pin-latitude'], longitude: elements['pin-longitude'], confirmation: elements['confirm-pin']};
+    vm.runInContext(fs.readFileSync('src/assets/js/map-pin.js', 'utf8').replace(/^import[^\n]*\n/, '').replaceAll('import.meta.url', 'moduleUrl'), context);
+    return {workerUrl, elements, map: maps[0], markers, latitude: elements['pin-latitude'], longitude: elements['pin-longitude'], confirmation: elements['confirm-pin']};
 }
 
 test('unknown or invalid coordinates never create an accidental zero-location pin', () => {
@@ -102,4 +103,11 @@ test('pin editor collapses credits after asynchronous source loading', () => {
     h.map.listeners.load();
     assert.equal(attribution.open, false);
     assert.equal(classes.has('maplibregl-compact-show'), false);
+});
+
+test('pin editor worker stays with the selected Account bundle', () => {
+    for (const prefix of ['', '/a/shalom-in-messiah', '/a/test-account']) {
+        const h = harness(undefined, `http://localhost:8080${prefix}/assets/js/map-pin.min.js?rev=123`);
+        assert.equal(h.workerUrl, `http://localhost:8080${prefix}/assets/js/maplibre-worker.min.js?v=test`);
+    }
 });

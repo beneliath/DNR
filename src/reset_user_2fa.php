@@ -26,6 +26,9 @@ if (!$target_user_id || $target_user_id === (int) $_SESSION['user_id']) {
     exit('Use Account Security to replace your own authenticator.');
 }
 
+try { requireManageableAccountUser($conn, (int) $target_user_id); }
+catch (InvalidArgumentException $error) { http_response_code(403); exit(htmlspecialchars($error->getMessage())); }
+
 $target_user = fetchAuthenticationUserById($conn, $target_user_id);
 if (!$target_user || $target_user['account_status'] !== 'active') {
     header('Location: users.php');

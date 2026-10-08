@@ -87,6 +87,7 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/account_mail_helpers.php
         - src/engagement_view_helpers.php
     tmpDir: /tmp/dnr-phpstan-helpers
     parallel:

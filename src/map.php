@@ -289,7 +289,7 @@ $map_payload = [
             <p id="map-empty-description"><?php echo htmlspecialchars($empty_description, ENT_QUOTES, 'UTF-8'); ?></p>
             <?php if ($location_filter !== 'all'): ?><a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>">Show All Locations</a><?php elseif ($map_events === []): ?><a class="button-secondary" href="map.php">Reset Filters</a><?php endif; ?>
         </div>
-        <div id="engagement-map" class="engagement-map"<?php echo $cached_pin_count === 0 ? ' hidden' : ''; ?> aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
+        <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
     </section>
 

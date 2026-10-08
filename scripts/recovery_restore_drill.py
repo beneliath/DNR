@@ -17,6 +17,16 @@ from deployment_backup import crypto_command, fingerprint, query, sha, stop_proc
 from online_recovery_backup import restored_database
 
 
+def make_source_readable(source):
+    # A private operator umask can make extracted Git files unreadable to the
+    # container's www-data user. Only source code is exposed in this read-only
+    # mount; the enclosing recovery workspace and separate secrets stay private.
+    for path in [source, *source.rglob('*')]:
+        if path.is_symlink():
+            raise ValueError('Source recovery cannot contain symbolic links')
+        path.chmod(0o755 if path.is_dir() or path.stat().st_mode & 0o111 else 0o644)
+
+
 def decrypt_archive(path, image, password, destination, compressed):
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     with path.open('rb') as ciphertext:
@@ -72,6 +82,7 @@ def drill(directory, password, app_image=None, database_image=None):
             config = working / 'config'; source = working / 'source'
             decrypt_archive(directory/'recovery-config.tar.gz.dnrenc', image, password, config, True)
             decrypt_archive(directory/'application-source.tar.dnrenc', image, password, source, False)
+            make_source_readable(source)
             if not (source/'src/login.php').is_file():
                 raise ValueError('Application source is incomplete')
             with restored_database(directory/'database.sql.gz.dnrenc', database, image, password, working, token, network=network) as db:
