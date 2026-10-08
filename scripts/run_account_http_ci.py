@@ -32,6 +32,9 @@ def main():
             'DNR_PRIMARY_PUBLIC_URL':'http://localhost:8080/a/shalom-in-messiah',
             'DNR_GATEWAY_INTERNAL_URL':'http://moed-primary','DNR_INBOUND_ADDRESS':'moed@beneliath.com','DNR_MAIL_FROM':'moed@beneliath.com',
             'DNR_APP_IMAGE':'dnr-app:local','DNR_DATABASE_IMAGE':'dnr-database:local','DNR_INGRESS_IMAGE':'dnr-ingress:local'}
+    # Compose inputs below contain host paths. Keep them out of the container
+    # environment, which already references mounted /run/secrets files.
+    runtime_values=values.copy()
     for role in ['ROOT','APP','BACKUP','MAINTENANCE','GEOCODER','MAIL_INGEST','MAIL_DISPATCH']:
         path=secret_dir/('mysql_'+role.lower()+'_password');private_file(path,secrets.token_hex(32));path.chmod(0o444)
         values['DNR_MYSQL_'+role+'_PASSWORD_FILE']=str(path)
@@ -48,7 +51,7 @@ def main():
     overlay={'services':{},'networks':{k:{'ipam':{'config':[{'subnet':str(v)}]}} for k,v in networks.items()}}
     overlay['networks']['account_control']={'external':True,'name':'moed-account-control'}
     for svc in ['web','downloads','backup','geocoder','mail-dispatch']:
-        overlay['services'][svc]={'environment':values.copy(),'mem_limit':'512m','cpus':1}
+        overlay['services'][svc]={'environment':runtime_values.copy(),'mem_limit':'512m','cpus':1}
     overlay['services']['db']={'mem_limit':'512m','cpus':1}
     overlay['services']['ingress']={'networks':{'account_control':{'aliases':['moed-primary']}},'mem_limit':'128m'}
     path=output/'accounts-local.compose.json';private_file(path,json.dumps(overlay))
