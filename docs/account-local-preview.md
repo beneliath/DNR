@@ -10,6 +10,12 @@ run only one worker. This is a local development worker, not a production
 provisioner. It rejects a primary ingress not bound to the expected loopback
 port. Its current log is `var/deployment/account-provisioner.log`.
 
+New local Accounts inherit the primary's Amazon map settings and read-only
+browser key mount. To update an existing member, briefly stop the local Account
+worker, run `python3 scripts/provision_local_account.py test-account --refresh-map`,
+then resume the worker. This recreates only the member's web container, preserves
+its previous Compose file, and does not run migrations or change Account data.
+
 SuperAdmins can archive, restore, and delete member Accounts from Accounts.
 Actions require CSRF protection and recent administrator verification.
 Administrator Preview Access cannot perform them. The primary Account is

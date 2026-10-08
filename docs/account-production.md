@@ -29,6 +29,11 @@ The release transaction retains the previous Account configuration in its recove
 record and refreshes the saved release commit/image manifest inside the writer
 pause, after backup verification. Start the worker with the saved `config.json`
 (as in the service template), so it reloads the qualified manifest each cycle.
+Release preparation also retains an existing primary control proxy's edge IP as
+`primary_control_edge_ip`. The generated overlay reserves that address so Docker
+cannot reassign the primary ingress's static address to the recreated proxy.
+For a new installation, this optional field can be set to a verified free IPv4
+address on the edge network, distinct from Traefik and ingress.
 
 The overlay replaces the old host-wide router rule with the explicit
 primary path and adds public legacy/common entry points. Preserve the existing
@@ -116,6 +121,60 @@ profile, relay configuration and migration scripts) is copied into the member's
 `runtime-config/` directory. The saved runtime records hashes of file contents,
 tree membership and permissions, and starts from those copies even on the first
 provisioning attempt. A retry reuses the saved runtime.
+
+### Shared Amazon map configuration
+
+All Accounts use the primary deployment's Amazon browser-map configuration.
+New member provisioning reads the primary app's effective region, style and
+maximum zoom, and mounts the same read-only browser key file into member `web`.
+The key is referenced as a Compose secret; its value is never written into the
+Account environment, runtime manifest or operator output. Other services and
+Account data/encryption keys remain separate. A missing or invalid Amazon key
+stops new preparation instead of silently selecting OpenStreetMap. A deployment
+that intentionally uses OpenStreetMap continues to work without an Amazon key.
+
+For already-provisioned Accounts, or after changing the primary map settings,
+review the configuration update with:
+
+```sh
+python3 scripts/refresh_account_map.py var/deployment/account-production/config.json --all
+```
+
+During an authorized production update, add `--apply` to update all ready and
+archived members, or use `--account test-account` for one member. This operation
+shares the deployment lock, preserves the saved release/images and frozen
+configuration, and recreates only each ready member's `web` service with
+`--no-deps`. It does not run migrations or change account data. Archived members
+remain stopped and receive the shared map on their next restore. Finish pending
+provisioning/lifecycle operations before updating all members. Repeating a
+completed update is a no-op. Key rotation uses the same host secret file for
+every Account; recreate web containers after replacing a bind-mounted key file.
+
+Each changed member retains its prior runtime and metadata in an owner-only
+`var/accounts/<label>/map-recovery-*` directory. A failed health check restores
+that pair and restarts the previous web configuration. If the process is killed
+between file writes, stop the Account worker and restore both saved files under
+the deployment lock before resuming; a checksum mismatch fails closed.
+
+### Shared MOED mailbox
+
+IMAP is collected once by the primary `mail-ingest` worker using the shared
+`moed@beneliath.com` mailbox configuration. Member deployments do not run their
+own IMAP collectors or mount the IMAP password. The primary routing queue
+delivers messages to the Account identified by a valid routing token; mail with
+missing, invalid or conflicting tokens stays in SuperAdmin Mail Review until
+explicitly routed or rejected. Sharing the mailbox does not share Account inboxes.
+
+All Account `mail-dispatch` workers use the same SMTP host, port, TLS mode,
+username and From address from the platform configuration's `smtp` section and
+mount the same `smtp_password_file` read-only. On MOED, that identity is
+`moed@beneliath.com`. Keep this platform configuration aligned with the primary
+SMTP configuration during an authorized settings change. Each Account retains
+its own outbox and routing tokens; SMTP credentials are mounted only into its
+mail-dispatch worker, never into web or unrelated workers.
+
+### Saved member release
+
 The primary is qualified against its current release independently of a member's
 saved release. If the primary advances from release A to B while a member is
 still provisioning, retry uses that member's saved release A images, migrator,
@@ -134,6 +193,7 @@ deployment notice and operator backup-input directory are explicitly recorded
 live, read-only operational mounts. Compose secrets remain separately managed
 and rotatable; they are not frozen as application configuration. A missing/changed runtime or frozen configuration is
 an operator recovery error, not permission to reconstruct or upgrade silently.
+
 Deletion also uses the saved runtime for its database backup. It requires the
 queued typed-label confirmation, an archived state, a fresh encrypted restore-verified database and
 file backup, and verified encrypted configuration. A durable deletion receipt

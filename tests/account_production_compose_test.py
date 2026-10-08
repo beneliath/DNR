@@ -26,6 +26,10 @@ def main():
     config.update(commit='a'*40,images={k:'ghcr.io/example/'+k+'@sha256:'+'b'*64 for k in ['app','database','ingress']})
     with tempfile.TemporaryDirectory(prefix='account-compose-contract-') as temporary:
         root=Path(temporary)
+        map_key=root/'amazon-map-key';map_key.write_text('v1.public.synthetic')
+        map_settings={'environment':{'DNR_MAP_PROVIDER':'amazon','DNR_MAP_AMAZON_REGION':'us-east-2',
+            'DNR_MAP_AMAZON_STYLE':'Standard','DNR_MAP_AMAZON_API_KEY_FILE':'/run/secrets/dnr_map_amazon_api_key'},
+            'secret_file':str(map_key)}
         for name in ['docker-compose.yaml','docker-compose.smtp.yaml']:(root/name).symlink_to(ROOT/name)
         config['smtp_password_file']=str(root/'smtp');(root/'smtp').write_text('synthetic')
         def mock_run(command,**kwargs):
@@ -37,6 +41,7 @@ def main():
             if 'SELECT account_key' in kwargs.get('input',''):return SimpleNamespace(stdout='test-account')
             return SimpleNamespace(stdout='')
         with patch.object(production,'ROOT',root),patch.object(production,'assert_primary'), \
+             patch.object(production,'primary_amazon_map',return_value=map_settings), \
              patch.object(production,'project_resources',return_value=[]), \
              patch.object(production,'verify_images'),patch.object(production,'ready_probe'), \
              patch.object(production,'control',return_value={'api_key':'x'*64,'name':'Synthetic'}), \
@@ -71,6 +76,25 @@ def main():
         assert frozen['services']['account-control']['extra_hosts']==['moed.beneliath.com=172.29.255.2']
         assert frozen['services']['web']['environment']['DNR_ACCOUNT_CONTROL_PROXY']=='http://account-control:8080'
         assert frozen['services']['web']['image']==config['images']['app']
+        assert frozen['services']['web']['environment']['DNR_MAP_PROVIDER']=='amazon'
+        assert frozen['secrets']['dnr_map_amazon_api_key']['file']==str(map_key)
+        for name,service in frozen['services'].items():
+            uses_map_key=any(s['source']=='dnr_map_amazon_api_key' for s in service.get('secrets',[]))
+            assert uses_map_key==(name=='web'),name
+        dispatch=frozen['services']['mail-dispatch']
+        for setting in ['host','port','encryption','username']:
+            assert dispatch['environment']['DNR_SMTP_'+setting.upper()]==str(config['smtp'][setting])
+        assert dispatch['environment']['DNR_MAIL_FROM']==config['smtp']['from']
+        assert frozen['secrets']['dnr_smtp_password']['file']==config['smtp_password_file']
+        assert 'mail-ingest' not in frozen['services']
+        assert 'dnr_imap_password' not in frozen.get('secrets',{})
+        for name,service in frozen['services'].items():
+            assert not any(k.startswith('DNR_IMAP_') for k in service.get('environment',{})),name
+            uses_smtp_key=any(s['source']=='dnr_smtp_password' for s in service.get('secrets',[]))
+            assert uses_smtp_key==(name=='mail-dispatch'),name
+        assert frozen['services']['web']['environment']['DNR_INBOUND_ADDRESS']==config['smtp']['from']
+        assert frozen['services']['web']['environment']['DNR_ACCOUNT_MAIL_ENABLED']=='1'
+        config['primary_control_edge_ip']='172.29.255.4'
         primary=root/'primary';production.prepare_primary(config,primary)
         # Supply no real secrets and no active project name; Compose parsing only.
         envfile=root/'primary.env';envfile.write_text('DNR_INGRESS_IMAGE='+config['images']['ingress']+'\n')
@@ -87,6 +111,7 @@ def main():
         assert parsed['services']['notes-cache']['environment']['DNR_PUBLIC_BASE_URL']==config['origin']+'/a/'+config['primary_key']
         assert parsed['networks']['edge']['name']==config['edge_network']
         assert relay['image']==config['images']['ingress']
+        assert relay['networks']['edge']['ipv4_address']==config['primary_control_edge_ip']
         print('PASS: real primary/member Compose parsing, full service profiles, per-service Account environment, saved lifecycle validation, frozen configuration, private networks, relay and proxy trust. No services started.')
 
 

@@ -40,14 +40,63 @@ def clean_environment():
             and k not in ('PORT', 'DEFAULT_SPEAKER')}
 
 
-def provision(args, key):
-    if not re.fullmatch(r'[a-z][a-z0-9-]{2,63}', key):
-        raise ValueError('Invalid Account key')
+def local_primary(args):
     primary = json.loads(run(['docker', 'inspect', args.primary_web], capture_output=True).stdout)[0]
     primary_ingress = json.loads(run(['docker', 'inspect', args.primary_ingress], capture_output=True).stdout)[0]
     bindings = primary_ingress['NetworkSettings']['Ports'].get('80/tcp') or []
     if not any(b['HostIp'] == '127.0.0.1' and b['HostPort'] == str(args.primary_port) for b in bindings):
         raise ValueError('Refusing a primary deployment that is not bound to the requested loopback port')
+    return primary
+
+
+def local_compose(directory, project):
+    return ['docker', 'compose', '--env-file', str(directory/'account.env'), '-p', project,
+            '-f', str(ROOT/'docker-compose.yaml'), '-f', str(ROOT/'docker-compose.dev.yaml'),
+            '-f', str(ROOT/'docker-compose.smtp.yaml'), '-f', str(directory/'compose.json'),
+            '-f', str(directory/'gateway-only.yaml')]
+
+
+def refresh_local_map(args, key):
+    """Update only an existing local member's browser map, without migrations."""
+    from account_map_configuration import primary_amazon_map, with_amazon_map
+    local_primary(args)
+    if not re.fullmatch(r'[a-z][a-z0-9-]{2,63}', key):
+        raise ValueError('Invalid Account key')
+    directory=ROOT/'var/accounts'/key
+    if directory.is_symlink(): raise ValueError('Unsafe Account directory')
+    state=json.loads((directory/'deployment.json').read_text())
+    project='moed-account-'+key
+    if state.get('mode')=='production' or state.get('project')!=project or (directory/'runtime.compose.json').exists():
+        raise ValueError('Refusing a non-local Account runtime')
+    member=json.loads(run(['docker','inspect',project+'-web-1'],capture_output=True).stdout)[0]
+    if member['Config']['Labels']['com.docker.compose.project']!=project or member['State']['Status']!='running':
+        raise ValueError('A running local member is required')
+    path=directory/'compose.json'
+    previous=path.read_text()
+    settings=primary_amazon_map({'primary_web':args.primary_web})
+    if settings is None: raise ValueError('The local primary does not use Amazon maps')
+    revised=with_amazon_map(json.loads(previous),settings)
+    if revised==json.loads(previous): return
+    private_file(directory/('compose.before-map-'+secrets.token_hex(6)+'.json'),previous)
+    command=local_compose(directory,project)
+    def start_web():
+        run(command+['up','-d','--no-build','--no-deps','--wait','--wait-timeout','120','web'],
+            cwd=ROOT,env=clean_environment(),capture_output=True)
+    try:
+        private_file(path,json.dumps(revised,indent=2))
+        run(command+['config','--quiet'],cwd=ROOT,env=clean_environment(),capture_output=True)
+        start_web()
+    except BaseException:
+        private_file(path,previous)
+        start_web()
+        raise
+    print(f'{key}: local Amazon map configuration updated',flush=True)
+
+
+def provision(args, key):
+    if not re.fullmatch(r'[a-z][a-z0-9-]{2,63}', key):
+        raise ValueError('Invalid Account key')
+    primary = local_primary(args)
     account = control(args.primary_web, 'claim', key)
     primary_key = next((v.split('=', 1)[1] for v in primary['Config']['Env'] if v.startswith('DNR_ACCOUNT_KEY=')), '')
     if not re.fullmatch(r'[a-z][a-z0-9-]{2,63}', primary_key):
@@ -131,12 +180,11 @@ def provision(args, key):
         override['services'].setdefault(service, {})['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
     # Migrations are completed while isolated; no ingress until its identity and
     # seed data have been initialized. Sidecars then use this same private DB.
+    from account_map_configuration import primary_amazon_map, with_amazon_map
+    override=with_amazon_map(override,primary_amazon_map({'primary_web':args.primary_web}))
     private_file(directory/'compose.json', json.dumps(override, indent=2))
     private_file(directory/'gateway-only.yaml', 'services:\n  ingress:\n    ports: !reset []\n')
-    compose = ['docker', 'compose', '--env-file', str(directory/'account.env'), '-p', project,
-               '-f', str(ROOT/'docker-compose.yaml'), '-f', str(ROOT/'docker-compose.dev.yaml'),
-               '-f', str(ROOT/'docker-compose.smtp.yaml'), '-f', str(directory/'compose.json'),
-               '-f', str(directory/'gateway-only.yaml')]
+    compose = local_compose(directory,project)
     def dc(*command, **kwargs): return run(compose + list(command), cwd=ROOT, env=clean_environment(), **kwargs)
     dc('up', '-d', '--no-build', 'db')
     dc('up', '-d', '--no-build', '--wait', 'db')
@@ -183,10 +231,14 @@ def main():
     parser.add_argument('--primary-port', type=int, default=8080)
     parser.add_argument('--platform-network', default='moed-account-control')
     parser.add_argument('--watch', action='store_true')
+    parser.add_argument('--refresh-map', action='store_true', help='Apply shared Amazon settings to one existing local member')
     args = parser.parse_args()
     if not args.account_key and not args.watch: parser.error('Specify an Account or --watch')
+    if args.refresh_map and (not args.account_key or args.watch): parser.error('--refresh-map requires one Account and cannot be combined with --watch')
     lock = (ROOT/'var/deployment/account-provisioner.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    if args.refresh_map:
+        refresh_local_map(args,args.account_key);return
     if args.account_key:
         provision(args, args.account_key); return
     while True:

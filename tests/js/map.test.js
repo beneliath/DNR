@@ -160,6 +160,18 @@ test('empty server results keep the base map and guidance visible without reques
     assert.match(h.elements['map-list-empty'].textContent, /Every engagement/);
 });
 
+test('an empty Account still uses the configured Amazon map', () => {
+    const styleUrl = 'https://maps.geo.us-east-2.amazonaws.com/v2/styles/Standard/descriptor?key=test';
+    const h = harness([], {type: 'amazon', styleUrl});
+    assert.equal(h.mapCalls.created, 1);
+    assert.equal(h.mapCalls.options.style, styleUrl);
+    assert.equal(h.elements['engagement-map'].dataset.mapProvider, 'amazon');
+    assert.equal(h.elements['engagement-map'].hidden, false);
+    assert.equal(h.markers.length, 0);
+    assert.equal(h.requests.length, 0);
+    assert.equal(h.elements['fit-map-pins'].disabled, true);
+});
+
 test('cached misses are not automatically retried or double counted', () => {
     const h = harness([unresolved]);
     assert.equal(h.requests.length, 0);
