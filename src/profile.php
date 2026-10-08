@@ -394,7 +394,6 @@ $task_digest_day_options = [
                     <label for="last_name">Last Name</label>
                     <input type="text" id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="<?php echo htmlspecialchars((string) ($user['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-                <div class="form-group profile-email-field"><label for="reimbursement-reviewer-email">Reimbursement Reviewer Email</label><input type="email" id="reimbursement-reviewer-email" name="reimbursement_reviewer_email" maxlength="254" value="<?php echo htmlspecialchars((string) ($user['reimbursement_reviewer_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><p class="field-help">Receives a Cc copy when you submit a reimbursement request.</p></div>
                 <div class="form-group profile-email-field">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" readonly maxlength="254" autocomplete="email" value="<?php echo htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -410,7 +409,13 @@ $task_digest_day_options = [
             </div>
             <div class="profile-account-meta">
                 <span><strong>Username</strong><?php echo htmlspecialchars((string) $user['username'], ENT_QUOTES, 'UTF-8'); ?></span>
-                <span><strong>Role</strong><?php echo htmlspecialchars(ucfirst((string) $user['role']), ENT_QUOTES, 'UTF-8'); ?></span>
+                <span><strong>Role</strong><?php echo htmlspecialchars(accountsEnabled() ? accountRoleLabel(['role' => $user['role'], 'is_superadmin' => authenticatedSuperAdmin()]) : ucfirst((string) $user['role']), ENT_QUOTES, 'UTF-8'); ?></span>
+            </div>
+            <hr class="profile-reviewer-divider">
+            <div class="form-group profile-reviewer-email">
+                <label for="reimbursement-reviewer-email">Reimbursement Reviewer Email</label>
+                <input type="email" id="reimbursement-reviewer-email" name="reimbursement_reviewer_email" maxlength="254" value="<?php echo htmlspecialchars((string) ($user['reimbursement_reviewer_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                <p class="field-help">Receives a Cc copy when you submit a reimbursement request.</p>
             </div>
         </section>
 

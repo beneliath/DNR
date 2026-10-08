@@ -57,10 +57,11 @@ if (is_array($cursor)
 $pagination = queryPagination($conn, 'FROM users WHERE 1 = 1', '', [], $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
 $current_page = $pagination['page'];
 $page_offset = $pagination['offset'];
+$accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
 $users_stmt = $conn->prepare(
     "SELECT id, username, first_name, last_name, phone, email,
             profile_picture_mime, profile_picture_updated_at,
-            role, account_status, activated_at, deactivated_at,
+            role{$accountColumns}, account_status, activated_at, deactivated_at,
             email_verified_at, two_factor_enabled,
             task_digest_enabled, task_digest_days,
             created_at, last_updated_at, last_login_at, must_change_password
@@ -188,7 +189,7 @@ $task_digest_day_options = [
                             <div class="user-account-heading">
                                 <strong class="user-display-name"><?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?></strong>
                                 <?php if ($has_personal_name): ?><span class="user-username">@<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
-                                <span>(<?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($user['role']), ENT_QUOTES, 'UTF-8'); ?>)</span>
+                                <span>(<?php echo htmlspecialchars(accountsEnabled() ? accountRoleLabel($user) : \Dnr\Domain\ReferenceData::label($user['role']), ENT_QUOTES, 'UTF-8'); ?>)</span>
                                 &mdash;
                                 <span class="account-status account-status-<?php echo htmlspecialchars($user['account_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(userAccountStatusLabel($user['account_status']), ENT_QUOTES, 'UTF-8'); ?></span>
                                 &mdash;

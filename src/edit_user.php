@@ -9,6 +9,8 @@ requireAdmin();
 // Fetch the user ID from the URL parameter
 $user_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
 if ($user_id !== null) {
+    try { requireManageableAccountUser($conn, $user_id); }
+    catch (InvalidArgumentException $error) { http_response_code(403); exit(htmlspecialchars($error->getMessage())); }
 
     // Fetch user details from the database
     $stmt = $conn->prepare(
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $task_digest_days = TASK_DIGEST_WEEKDAYS;
     }
     try {
-        if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
+        if (str_starts_with(strtolower($username), '_platform_') || $username === '' || mb_strlen($username, 'UTF-8') > 50) {
             throw new InvalidArgumentException('Username is required and must be 50 characters or fewer.');
         }
         if (!in_array($role, $valid_roles, true)) {
@@ -165,7 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!logSecurityEvent($conn, 'user_profile_updated', $user_id, (int) $_SESSION['user_id'])) {
                 throw new RuntimeException('Unable to audit the user update.');
             }
+            registerAccountLogin($conn, $user_id, $username);
             $conn->commit();
+        flushAccountDirectory();
             header("Location: users.php");
             exit();
         } catch (Throwable $exception) {
@@ -280,7 +284,7 @@ $task_digest_day_options = [
             <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
             <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
                 <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
-                    <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(accountsEnabled() ? accountRoleLabel(['role' => $available_role]) : \Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
             </select></div>
         </div>

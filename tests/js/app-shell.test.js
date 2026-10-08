@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/app-shell.js'), 'utf8');
 
 function fixture(width = 390, saved = new Map(), storageFails = false, readyState = 'complete') {

@@ -3,6 +3,16 @@
     const body = document.body;
     body.classList.add('has-app-shell');
     if (document.querySelector('[data-role-preview-banner]')) body.classList.add('role-preview-active');
+    const coachLayout = document.querySelector('[data-coach-layout-key]');
+    if (coachLayout) {
+        body.classList.add('has-coach');
+        try {
+            const saved = JSON.parse(window.DnrAccountContext.session.getItem('moed-coach-session') || '{}');
+            body.classList.toggle('coach-open', saved.key === coachLayout.dataset.coachLayoutKey
+                && saved.open === true && coachLayout.dataset.coachPage !== 'help.php'
+                && window.matchMedia('(min-width: 1101px)').matches);
+        } catch (_) { /* Coach storage is optional. */ }
+    }
 
     const sidebar = document.getElementById('app-sidebar');
     if (sidebar) {
@@ -18,17 +28,17 @@
                 return section.getAttribute('data-nav-group') + '=' + (section.open ? '1' : '0');
             }).join(',');
             document.cookie = preferenceCookie + '=' + encodeURIComponent(state)
-                + '; Path=/; Max-Age=31536000; SameSite=Lax'
+                + '; Path=' + new URL('.', window.location.href).pathname + '; Max-Age=31536000; SameSite=Lax'
                 + (window.location.protocol === 'https:' ? '; Secure' : '');
         }
         sections.forEach(function (section) {
             try {
-                const saved = localStorage.getItem(storageKey(section));
+                const saved = window.DnrAccountContext.local.getItem(storageKey(section));
                 if (saved === 'open' || saved === 'closed') section.open = saved === 'open';
             } catch (_) { /* Keep the defaults when browser storage is unavailable. */ }
             section.addEventListener('toggle', function () {
                 try {
-                    localStorage.setItem(storageKey(section), section.open ? 'open' : 'closed');
+                    window.DnrAccountContext.local.setItem(storageKey(section), section.open ? 'open' : 'closed');
                 } catch (_) { /* The section still works without browser storage. */ }
                 saveCookie();
             });
@@ -38,7 +48,7 @@
             sections.forEach(function (section) {
                 section.open = false;
                 try {
-                    localStorage.setItem(storageKey(section), 'closed');
+                    window.DnrAccountContext.local.setItem(storageKey(section), 'closed');
                 } catch (_) { /* The sections still collapse without browser storage. */ }
             });
             saveCookie();
@@ -58,6 +68,35 @@
                 collapseSections();
             });
         });
+    }
+
+    // This parser-blocking script runs before main content is parsed. Reserve
+    // the complete banner stack now, rather than moving a painted page at DOMContentLoaded.
+    const accountBanner = document.querySelector('.account-identity-banner');
+    if (accountBanner) {
+        body.classList.add('account-context-active');
+        const mobileBar = document.querySelector('.mobile-app-bar');
+        const bars = [document.querySelector('.deployment-notice-banner'), accountBanner,
+            document.querySelector('.role-preview-banner'), document.querySelector('.admin-unlock-banner')].filter(Boolean);
+        const visibleHeight = function (element) {
+            return element && !element.hidden && getComputedStyle(element).display !== 'none'
+                ? element.getBoundingClientRect().height : 0;
+        };
+        const updateAccountStack = function () {
+            let offset = visibleHeight(mobileBar);
+            bars.forEach(function (bar) {
+                bar.style.top = offset + 'px';
+                offset += visibleHeight(bar);
+            });
+            document.documentElement.style.setProperty('--account-shell-height', Math.ceil(offset) + 'px');
+        };
+        updateAccountStack();
+        const resize = new ResizeObserver(updateAccountStack);
+        bars.concat(mobileBar ? [mobileBar] : []).forEach(function (bar) { resize.observe(bar); });
+        const changes = new MutationObserver(updateAccountStack);
+        bars.forEach(function (bar) { changes.observe(bar, {attributes: true, attributeFilter: ['hidden', 'class']}); });
+        changes.observe(body, {attributes: true, attributeFilter: ['class']});
+        window.addEventListener('resize', updateAccountStack);
     }
 
     function initialize() {

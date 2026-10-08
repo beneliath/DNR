@@ -29,6 +29,7 @@ services:
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrgeocoder
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      DNR_ACCOUNT_MODE: ${DNR_ACCOUNT_MODE:-primary}
       DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
       DNR_CLOUDFLARE_ZONE_ID_FILE: /run/secrets/dnr_cloudflare_zone_id
       DNR_CLOUDFLARE_PURGE_TOKEN_FILE: /run/secrets/dnr_cloudflare_purge_token

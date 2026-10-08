@@ -2,10 +2,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/footer.js'), 'utf8');
 
-function page(storage = new Map(), { url = 'https://app.example/reimbursement_setup.php?return=dashboard.php#settings', user = '17', version = '1', baseline = 'Saved Name' } = {}) {
+function page(storage = new Map(), { url = 'https://app.example/reimbursement_setup.php?return=dashboard.php#settings', user = '17', version = '1', baseline = 'Saved Name', accountBanner = false } = {}) {
     const events = {}, windowEvents = {}, notifications = [];
     function field(name, type, value, extra = {}) {
         return Object.defineProperties({ name, type, value, checked: false,
@@ -24,6 +24,8 @@ function page(storage = new Map(), { url = 'https://app.example/reimbursement_se
     let scroll;
     const context = {
         document: {
+            body: { classList: { contains: name => accountBanner && name === 'account-context-active' },
+                scrollLeft: 0, scrollTop: 735, scrollTo(x, y) { scroll = [x, y]; } },
             activeElement: { id: 'save-settings' },
             getElementById: id => id === 'app-sidebar' ? { dataset: { navPreferenceUser: user } } : null,
             querySelectorAll: selector => selector === 'main form' ? [form] : selector === '[data-admin-unlock-link]' ? [nav] : [],
@@ -71,6 +73,16 @@ test('unlock round trips restore unsaved fields, merge choices, multiple selects
     assert.deepEqual(returned.scroll(), [0, 430]);
     assert.equal(view.storage.size, 0);
     assert.equal(page(view.storage).fields[0].value, 'Saved Name');
+});
+
+test('unlock restores the content scroll position beneath a fixed account banner', () => {
+    const view = page(new Map(), { accountBanner: true });
+    edit(view);
+    view.capture();
+    const returned = page(view.storage, { accountBanner: true });
+    returned.windowEvents.pageshow();
+    assert.equal(returned.fields[0].value, 'Unsaved Name');
+    assert.deepEqual(returned.scroll(), [0, 735]);
 });
 
 test('snapshots are isolated by tab, account and exact query, and consumed by cancel as well as success', () => {

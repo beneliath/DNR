@@ -355,3 +355,18 @@ jobs:
       - name: Clean up fixture
         if: always()
         run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down --volumes --remove-orphans
+
+  account-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Provision disposable Accounts and verify HTTP boundaries
+        env:
+          DNR_ACCOUNT_CI_DISPOSABLE: '1'
+        run: python3 scripts/run_account_http_ci.py
+      - name: Show Account test failures
+        if: failure()
+        run: |
+          docker ps -a --format '{{.Names}} {{.Status}}'
+          docker logs --tail 80 dnr-web-1

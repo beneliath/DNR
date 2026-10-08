@@ -2,7 +2,8 @@
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
-require_once __DIR__ . '/email_helpers.php';
+require_once __DIR__ . '/account_recovery_helpers.php';
+$sharedRecovery = accountGatewayEnabled() && accountIsPrimary();
 startSecureSession();
 requireTwoFactorSchema($conn);
 requireLoginRateLimitSchema($conn);
@@ -42,7 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rate_limited = !empty($rate_limits['recovery_ip']['blocked'])
                 || !empty($rate_limits['recovery_account']['blocked']);
             $user = null;
-            if (!$rate_limited && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!$rate_limited && $sharedRecovery) {
+                queueSharedPasswordRecovery($conn, is_string($_POST['username'] ?? null) ? $_POST['username'] : '', $email);
+            }
+            if (!$sharedRecovery && !$rate_limited && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $stmt = $conn->prepare(
                     "SELECT id, username, email FROM users
                      WHERE verified_email = LOWER(?) AND account_status = 'active'
@@ -190,10 +194,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="login-button">Reset Password</button>
         </form>
     <?php else: ?>
-        <?php if (!isset($requested)): ?><p class="login-help">Enter the verified email address on your active account.</p><?php endif; ?>
+        <?php if (!isset($requested)): ?><p class="login-help">Enter <?php echo $sharedRecovery ? 'your username and the' : 'the'; ?> verified email address on your active account.</p><?php endif; ?>
         <form method="post" action="recover_password.php">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="request">
+            <?php if ($sharedRecovery): ?><div class="form-group"><label for="username">Username</label><input type="text" name="username" id="username" maxlength="50" autocomplete="username" required></div><?php endif; ?>
             <div class="form-group"><label for="email">Email Address</label><input type="email" name="email" id="email" maxlength="254" autocomplete="email" required autofocus></div>
             <button type="submit" class="login-button">Send Recovery Link</button>
         </form>

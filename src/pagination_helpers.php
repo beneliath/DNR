@@ -85,7 +85,7 @@ function paginationPageSizePreference(string $key, mixed $value, int $default = 
     if (($_COOKIE[$cookie_name] ?? null) !== (string) $requested_size && !headers_sent()) {
         setcookie($cookie_name, (string) $requested_size, [
             'expires' => time() + 365 * 86400,
-            'path' => '/',
+            'path' => accountCookiePath(),
             'secure' => requestUsesHttps() || applicationRequiresHttps(),
             'httponly' => true,
             'samesite' => 'Lax',

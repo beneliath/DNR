@@ -4,7 +4,7 @@
     if (!sidebar) return;
     const prefix = 'dnr.form-draft.' + encodeURIComponent(sidebar.dataset.navPreferenceUser) + '.';
     document.querySelectorAll('[data-clear-form-draft]').forEach(function (node) {
-        try { localStorage.removeItem(prefix + node.dataset.clearFormDraft); } catch (_) {}
+        try { window.DnrAccountContext.local.removeItem(prefix + node.dataset.clearFormDraft); } catch (_) {}
     });
     document.querySelectorAll('form[data-recoverable-draft]').forEach(function (form) {
         const key = prefix + form.dataset.recoverableDraft;
@@ -27,8 +27,8 @@
         panel.replaceChildren(status,save,restore,discard,note,recovery);
         if (!existingPanel) form.prepend(panel);
         try {
-            saved=JSON.parse(localStorage.getItem(key) || 'null');
-            if (saved && (!Array.isArray(saved.fields) || saved.expires<Date.now())) { localStorage.removeItem(key); saved=null; }
+            saved=JSON.parse(window.DnrAccountContext.local.getItem(key) || 'null');
+            if (saved && (!Array.isArray(saved.fields) || saved.expires<Date.now())) { window.DnrAccountContext.local.removeItem(key); saved=null; }
         } catch (_) { saved=null; }
         function showSaved() {
             restore.hidden=discard.hidden=!saved;
@@ -43,7 +43,7 @@
             try {
                 const text=JSON.stringify(draft);
                 if(text.length>1000000) throw new Error('Draft too large');
-                localStorage.setItem(key,text); saved=draft; lastSaved=JSON.stringify(draft.fields);
+                window.DnrAccountContext.local.setItem(key,text); saved=draft; lastSaved=JSON.stringify(draft.fields);
                 showSaved(); status.textContent='Draft saved in this browser';
             } catch (_) { status.textContent='Draft could not be saved in this browser. Keep this page open or copy your changes.'; }
         }
@@ -69,7 +69,7 @@
             status.textContent=missing.length?'Draft restored where controls still exist. Recreate missing rows using the saved values below; select files again.':'Draft restored. Review the form and select files again before saving.';
             lastSaved=JSON.stringify(capture());
         });
-        discard.addEventListener('click',function () { clearTimeout(timer); try { localStorage.removeItem(key); } catch (_) {} saved=null; showSaved(); });
+        discard.addEventListener('click',function () { clearTimeout(timer); try { window.DnrAccountContext.local.removeItem(key); } catch (_) {} saved=null; showSaved(); });
         form.addEventListener('input',function (event) {
             if(panel.contains(event.target)) return;
             // Never overwrite an older draft before the user chooses to restore or discard it.

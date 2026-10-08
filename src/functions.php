@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/account_helpers.php';
+require_once __DIR__ . '/account_login_helpers.php';
 require_once __DIR__ . '/text_rendering_helpers.php';
 require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
@@ -75,6 +77,7 @@ function renderPageHead($title, array $options = []) {
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
     echo '    <link rel="icon" type="image/svg+xml" href="'
         . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    renderScript('assets/js/account-context.min.js', false);
     renderScript('assets/js/theme-init.min.js', false);
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
@@ -257,14 +260,18 @@ function startSecureSession() {
     sendApplicationSecurityHeaders();
     session_set_cookie_params([
         'lifetime' => 0,
-        'path' => '/',
+        'path' => accountCookiePath(true),
         'secure' => $is_https || applicationRequiresHttps(),
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
 
+    if (accountsEnabled()) session_name('MOED_' . substr(hash('sha256', currentAccountKey()), 0, 16));
     session_start();
     resumeApplicationSessionTransition();
+    if (accountsEnabled() && isset($_SESSION['_account_key']) && $_SESSION['_account_key'] !== currentAccountKey()) {
+        session_unset(); session_regenerate_id(true);
+    }
 
     $now = time();
     $idle_timeout = max(300, (int) (getenv('DNR_SESSION_IDLE_SECONDS') ?: 43200));
@@ -943,7 +950,7 @@ function rolePreviewRole($role) {
     }
 
     $role = (string) $role;
-    return in_array($role, ['editor', 'reviewer'], true) ? $role : null;
+    return in_array($role, ['admin', 'editor', 'reviewer'], true) ? $role : null;
 }
 
 function activeRolePreview() {
@@ -951,7 +958,8 @@ function activeRolePreview() {
         return null;
     }
 
-    return rolePreviewRole($_SESSION['_role_preview'] ?? null);
+    $role = rolePreviewRole($_SESSION['_role_preview'] ?? null);
+    return $role === 'admin' && !authenticatedSuperAdmin() ? null : $role;
 }
 
 /**
@@ -965,7 +973,10 @@ function setRolePreview($role) {
     }
 
     $role = (string) $role;
-    if ($role === 'admin') {
+    if ($role === 'superadmin' && !authenticatedSuperAdmin()) {
+        return false;
+    }
+    if ($role === 'superadmin' || ($role === 'admin' && !authenticatedSuperAdmin())) {
         unset($_SESSION['_role_preview']);
         $_SESSION['role'] = 'admin';
         return true;
@@ -995,7 +1006,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
     $return_url = trim((string) $return_url);
     $role = (string) $role;
     if ($return_url === ''
-        || !in_array($role, ['admin', 'editor', 'reviewer'], true)
+        || !in_array($role, ['superadmin', 'admin', 'editor', 'reviewer'], true)
         || preg_match('/[\x00-\x1F\x7F]/', $return_url) === 1
         || str_contains($return_url, '\\')
     ) {
@@ -1082,6 +1093,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'restore_presentations.php',
     ];
     $administrator_pages = [
+        'account_settings.php',
         'admin_elevation.php',
         'audit_log.php',
         'ai_coach_requests.php',
@@ -1100,8 +1112,12 @@ function safeRolePreviewReturnUrl($return_url, $role) {
 
     $allowed = in_array($page, $shared_pages, true)
         || ($role === 'editor' && in_array($page, $editor_pages, true))
-        || ($role === 'admin'
-            && (in_array($page, $editor_pages, true) || in_array($page, $administrator_pages, true)));
+        || (in_array($role, ['superadmin', 'admin'], true)
+            && (in_array($page, $editor_pages, true) || in_array($page, $administrator_pages, true)))
+        || ($role === 'superadmin' && in_array($page, ['accounts.php', 'mail_review.php'], true));
+    if ($page === 'database_maintenance.php' && accountIsPrimary() && $role !== 'superadmin') {
+        $allowed = false;
+    }
     if (!$allowed) {
         return $fallback;
     }
@@ -1143,9 +1159,10 @@ function requireLogin() {
     }
 
     $user_id = (int) $_SESSION['user_id'];
+    $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
     $stmt = $conn->prepare(
         'SELECT username, role, auth_version, must_change_password, account_status, two_factor_enabled,
-                first_name, last_name, profile_picture_updated_at
+                first_name, last_name, profile_picture_updated_at' . $accountColumns . '
          FROM users
          WHERE id = ?'
     );
@@ -1170,12 +1187,33 @@ function requireLogin() {
         exit();
     }
 
+    if (accountsEnabled()) {
+        currentAccountProfile(); // Fail closed on a misconfigured database/Account pairing.
+        $_SESSION['_account_key'] = currentAccountKey();
+        $_SESSION['is_superadmin'] = accountIsPrimary() && !empty($user['is_superadmin']);
+        if (!empty($user['platform_identity_id'])) {
+            try {
+                $identity = platformCall('validate', platformIdentityPayload());
+                if ((int) $identity['id'] !== (int) $user['platform_identity_id']) throw new RuntimeException('Invalid identity.');
+                $_SESSION['is_superadmin'] = true;
+                $user['username'] = $identity['username'];
+                $user['first_name'] = $identity['first_name'];
+                $user['last_name'] = $identity['last_name'];
+            } catch (Throwable $error) {
+                session_unset(); session_regenerate_id(true);
+                http_response_code(403); exit('SuperAdmin access could not be verified. Return to the primary Account.');
+            }
+            if (in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), ['profile.php', 'two_factor_settings.php', 'two_factor_recovery_codes.php'], true)) {
+                header('Location: ' . accountPrimaryPublicUrl() . '/profile.php'); exit;
+            }
+        } elseif (!empty($_SESSION['_platform_identity'])) {
+            session_unset(); session_regenerate_id(true); http_response_code(403); exit('Forbidden.');
+        }
+    }
     $_SESSION['username'] = (string) $user['username'];
     $authenticated_role = (string) $user['role'];
     $_SESSION['authenticated_role'] = $authenticated_role;
-    $preview_role = $authenticated_role === 'admin'
-        ? rolePreviewRole($_SESSION['_role_preview'] ?? null)
-        : null;
+    $preview_role = activeRolePreview();
     if ($preview_role === null) {
         unset($_SESSION['_role_preview']);
     }
@@ -1227,7 +1265,8 @@ function beginPendingAuthentication(array $user) {
         $_SESSION['auth_complete'],
         $_SESSION['two_factor_verified_at'],
         $_SESSION['must_change_password'],
-        $_SESSION['_role_preview']
+        $_SESSION['_role_preview'], $_SESSION['_platform_identity'], $_SESSION['is_superadmin'],
+        $_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at'], $_SESSION['_platform_admin_elevation']
     );
 
     $_SESSION['_pending_auth'] = [
@@ -1381,6 +1420,10 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     $_SESSION['authenticated_role'] = (string) $user['role'];
     $_SESSION['auth_version'] = (int) $user['auth_version'];
     $_SESSION['auth_complete'] = true;
+    if (accountsEnabled()) {
+        $_SESSION['_account_key'] = currentAccountKey();
+        $_SESSION['is_superadmin'] = accountIsPrimary() && !empty($user['is_superadmin']);
+    }
     $_SESSION['two_factor_verified_at'] = time();
     $_SESSION['must_change_password'] = !empty($user['must_change_password']);
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));

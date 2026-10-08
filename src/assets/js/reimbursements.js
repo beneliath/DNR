@@ -1,13 +1,13 @@
 'use strict';
 document.querySelectorAll('[data-clear-reimbursement-selection]').forEach(function (node) {
-  try { sessionStorage.removeItem(node.dataset.clearReimbursementSelection); } catch (_) { /* Storage is optional. */ }
+  try { window.DnrAccountContext.session.removeItem(node.dataset.clearReimbursementSelection); } catch (_) { /* Storage is optional. */ }
 });
 document.querySelectorAll('[data-remove-reimbursement-selection]').forEach(function (node) {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(node.dataset.selectionKey));
+    const saved = JSON.parse(window.DnrAccountContext.session.getItem(node.dataset.selectionKey));
     if (saved && Array.isArray(saved.ids)) {
       saved.ids = saved.ids.filter(function (id) { return id !== node.dataset.removeReimbursementSelection; });
-      sessionStorage.setItem(node.dataset.selectionKey, JSON.stringify(saved));
+      window.DnrAccountContext.session.setItem(node.dataset.selectionKey, JSON.stringify(saved));
     }
   } catch (_) { /* Storage is optional. */ }
 });
@@ -28,7 +28,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
   }
   function restore() {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(key));
+      const saved = JSON.parse(window.DnrAccountContext.session.getItem(key));
       metadata = saved && saved.scope === scope && saved.metadata && typeof saved.metadata === 'object' ? saved.metadata : {};
       selected = saved && saved.scope === scope && Array.isArray(saved.ids)
         ? new Set(saved.ids.filter(function (id) { return typeof id === 'string' && /^[1-9][0-9]*$/.test(id); }).slice(0, 500))
@@ -46,7 +46,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
     if (box.dataset && box.dataset.amountCents) metadata[box.value] = {amount: Number(box.dataset.amountCents), missing: box.dataset.receiptCount === '0'};
   });
   function update() {
-    try { sessionStorage.setItem(key, JSON.stringify({scope: scope, ids: Array.from(selected), metadata: metadata})); } catch (_) {}
+    try { window.DnrAccountContext.session.setItem(key, JSON.stringify({scope: scope, ids: Array.from(selected), metadata: metadata})); } catch (_) {}
     buttons.forEach(function (button) { button.disabled = selected.size === 0; });
     const visible = new Set(boxes.map(function (box) { return box.value; }));
     const offPage = Array.from(selected).filter(function (id) { return !visible.has(id); }).length;

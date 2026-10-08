@@ -100,6 +100,24 @@ command -v docker >/dev/null 2>&1 || {
 
 printf 'DNR build provenance: %.7s at %s\n' "$DNR_BUILD_COMMIT" "$DNR_BUILD_TIMESTAMP"
 cd "$project_directory"
+# Prepared once by the operator; retained across every later production release.
+# An explicitly selected missing overlay is an error, never a silent fallback.
+account_overlay=${DNR_ACCOUNT_PRIMARY_OVERLAY_FILE:-$project_directory/var/deployment/account-production/primary.compose.json}
+case "$mode" in
+    production*|prod*)
+        if [ -n "${DNR_ACCOUNT_PRIMARY_OVERLAY_FILE:-}" ] && [ ! -s "$account_overlay" ]; then
+            echo 'The configured Account overlay is missing.' >&2; exit 1
+        fi
+        if [ -s "$account_overlay" ]; then
+            if [ -s "${DNR_CLOUDFLARE_PURGE_TOKEN_FILE:-$project_directory/secrets/cloudflare_purge_token}" ]; then
+                account_cache_overlay=$(dirname "$account_overlay")/notes-cache.compose.json
+                [ -s "$account_cache_overlay" ] || { echo 'Account notes-cache overlay is missing.' >&2; exit 1; }
+                set -- -f "$account_cache_overlay" "$@"
+            fi
+            set -- -f "$account_overlay" "$@"
+        fi
+        ;;
+esac
 # A provisioned key opts this host into worldwide lookups on every deployment.
 # The secret stays in its file; only the worker receives the Compose mount.
 geocoder_provider=${DNR_GEOCODER_PROVIDER:-auto}

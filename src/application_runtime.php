@@ -33,6 +33,18 @@ function deploymentConfig(): \Dnr\Config\DeploymentConfig
     if (!$configuration instanceof \Dnr\Config\DeploymentConfig) {
         $configuration = \Dnr\Config\DeploymentConfig::load();
     }
+    // Bootstrap can request branding before the connection exists. Apply the
+    // private Account overrides only after the connection has been established.
+    if (function_exists('accountsEnabled') && accountsEnabled() && ($GLOBALS['conn'] ?? null) instanceof mysqli) {
+        static $accountConfiguration = null;
+        static $accountVersion = null;
+        $profile = currentAccountProfile();
+        if ($accountVersion !== $profile['version']) {
+            $accountConfiguration = $configuration->withAccountOverrides($profile['settings']);
+            $accountVersion = $profile['version'];
+        }
+        return $accountConfiguration;
+    }
     return $configuration;
 }
 
@@ -117,6 +129,10 @@ function applicationInboundMarkerTag(int $engagementId, string $prefix): string
 
 function applicationInboundMarker(int $engagementId): string
 {
+    if (getenv('DNR_ACCOUNTS_ENABLED') === '1' && getenv('DNR_ACCOUNT_MAIL_ENABLED') === '1') {
+        require_once __DIR__ . '/account_mail_helpers.php';
+        return accountMailMarker('E', $engagementId);
+    }
     $prefix = deploymentConfig()->string('inbound_email.emitted_marker_prefix');
     return '[' . $prefix . '#' . $engagementId . '.'
         . applicationInboundMarkerTag($engagementId, $prefix) . ']';
@@ -142,6 +158,10 @@ function applicationInquiryInboundMarkerTag(int $inquiryId, string $prefix): str
 
 function applicationInquiryInboundMarker(int $inquiryId): string
 {
+    if (getenv('DNR_ACCOUNTS_ENABLED') === '1' && getenv('DNR_ACCOUNT_MAIL_ENABLED') === '1') {
+        require_once __DIR__ . '/account_mail_helpers.php';
+        return accountMailMarker('I', $inquiryId);
+    }
     $prefix = deploymentConfig()->string('inbound_email.emitted_marker_prefix');
     return '[' . $prefix . '-I#' . $inquiryId . '.'
         . applicationInquiryInboundMarkerTag($inquiryId, $prefix) . ']';
@@ -168,6 +188,10 @@ function applicationInboundMarkerIsValid(string $prefix, int $engagementId, stri
 
 function applicationInboundMarkerExample(int $engagementId = 123): string
 {
+    if (getenv('DNR_ACCOUNTS_ENABLED') === '1' && getenv('DNR_ACCOUNT_MAIL_ENABLED') === '1') {
+        require_once __DIR__ . '/account_helpers.php';
+        return '[MOED@' . currentAccountKey() . '#E' . $engagementId . '.<signed-token>]';
+    }
     return '[' . deploymentConfig()->string('inbound_email.emitted_marker_prefix')
         . '#' . $engagementId . '.<signed-token>]';
 }

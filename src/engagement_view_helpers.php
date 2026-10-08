@@ -17,7 +17,7 @@ function engagementLifecycleFilterPreference(mixed $requested, int $userId): str
     if (($_COOKIE[$cookieName] ?? null) !== $requested && !headers_sent()) {
         setcookie($cookieName, $requested, [
             'expires' => time() + 365 * 86400,
-            'path' => '/',
+            'path' => accountCookiePath(),
             'secure' => requestUsesHttps() || applicationRequiresHttps(),
             'httponly' => true,
             'samesite' => 'Lax',

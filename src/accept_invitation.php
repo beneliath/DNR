@@ -8,9 +8,10 @@ startSecureSession();
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 header('Referrer-Policy: no-referrer');
+$invitationBase = accountsEnabled() ? accountPublicPath() . '/' : '';
 
 if (isLoggedIn()) {
-    header('Location: dashboard.php');
+    header('Location: ' . $invitationBase . 'dashboard.php');
     exit();
 }
 
@@ -98,9 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
             }
             beginPendingAuthentication($user);
             if (!empty($user['two_factor_enabled'])) {
-                header('Location: verify_2fa.php');
+                header('Location: ' . $invitationBase . 'verify_2fa.php');
             } else {
-                header('Location: setup_2fa.php');
+                header('Location: ' . $invitationBase . 'setup_2fa.php');
             }
             exit();
         } catch (InvalidArgumentException $exception) {
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
     <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($invitation): ?>
         <p class="login-help">Create a private password for <strong><?php echo htmlspecialchars($invitation['username'], ENT_QUOTES, 'UTF-8'); ?></strong>. Accepting also verifies <?php echo htmlspecialchars($invitation['token_email'], ENT_QUOTES, 'UTF-8'); ?>.</p>
-        <form method="post" action="accept_invitation.php">
+        <form method="post" action="<?php echo htmlspecialchars($invitationBase . 'accept_invitation.php', ENT_QUOTES, 'UTF-8'); ?>">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="form-group"><label for="password">Password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus></div>

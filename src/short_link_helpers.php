@@ -40,7 +40,8 @@ function shortLinkUrl(string $code): string
         || !in_array($parts['scheme'] ?? '', ['http', 'https'], true)
         || (applicationRequiresHttps() && $parts['scheme'] !== 'https')
         || isset($parts['pass']) || isset($parts['user']) || isset($parts['query'])
-        || isset($parts['fragment']) || !empty($parts['path'])) {
+        || isset($parts['fragment']) || (!empty($parts['path'])
+            && (!function_exists('accountPublicPath') || $parts['path'] !== accountPublicPath()))) {
         throw new RuntimeException('Configure DNR_PUBLIC_BASE_URL as the public MOED origin before downloading QR codes.');
     }
     return $base . '/surls/' . $code;

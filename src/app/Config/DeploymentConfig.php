@@ -180,6 +180,17 @@ final class DeploymentConfig
             . (isset($parts['port']) ? ':' . $parts['port'] : '');
     }
 
+    /** @param array<string, string> $settings */
+    public function withAccountOverrides(array $settings): self
+    {
+        $settings = array_intersect_key($settings, array_flip([
+            'DNR_CALENDAR_NAME', 'DNR_TIMEZONE', 'DNR_DEFAULT_SPEAKER',
+        ]));
+        $data = self::applyEnvironmentOverrides($this->data, $settings);
+        self::validateData($data);
+        return new self($data);
+    }
+
     /** @return array<string, mixed> */
     public function all(): array
     {

@@ -59,6 +59,12 @@ try {
         $clients[$role] = $client;
     }
     $editor = $clients['editor']; $admin = $clients['admin']; $reviewer = $clients['reviewer'];
+    $setupPage = $admin('reimbursement_setup.php');
+    $setupVersion = (int) $conn->query('SELECT version FROM reimbursement_setup WHERE id=1')->fetch_row()[0];
+    expectReimbursement($setupPage['status'] === 200
+        && str_contains($setupPage['body'], 'name="version" value="' . $setupVersion . '"')
+        && !preg_match('/(?:Warning|Notice|Fatal error):|Undefined array key/', $setupPage['body']),
+        'Setup renders its saved version without PHP diagnostics corrupting the hidden input');
     $conn->execute_query('INSERT INTO reimbursement_cost_centers (coa_number, description) VALUES (?, ?)', ['TEST-' . $suffix, 'Workflow fixture']);
     $centerId = (int) $conn->insert_id;
     $centerPage = $editor('reimbursement_cost_centers.php');

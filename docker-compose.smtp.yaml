@@ -39,6 +39,10 @@ services:
       - dnr_smtp_password
     environment:
       DB_HOST: db
+      DNR_ACCOUNTS_ENABLED: ${DNR_ACCOUNTS_ENABLED:-0}
+      DNR_ACCOUNT_MAIL_ENABLED: ${DNR_ACCOUNT_MAIL_ENABLED:-0}
+      DNR_ACCOUNT_MODE: ${DNR_ACCOUNT_MODE:-primary}
+      DNR_ACCOUNT_KEY: ${DNR_ACCOUNT_KEY:-shalom-in-messiah}
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmaildispatch
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password

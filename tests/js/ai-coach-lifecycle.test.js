@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const { webcrypto } = require('node:crypto');
 
 const script = fs.readFileSync(path.join(__dirname, '../../src/assets/js/ai-coach.js'), 'utf8');

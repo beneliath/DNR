@@ -6,13 +6,21 @@ startSecureSession();
 requireTwoFactorSchema($conn);
 requireLoginRateLimitSchema($conn);
 
+if (accountsEnabled() && !accountIsPrimary()) {
+    header('Location: ' . accountSignInUrl(), true, 303);
+    exit();
+}
+
 if (isLoggedIn()) {
-    header('Location: dashboard.php');
+    header('Location: ' . (accountGatewayEnabled() ? accountPublicPath() . '/' : '') . 'dashboard.php');
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    requireValidCsrfToken();
+    if (!validateCsrfToken($_POST['csrf_token'] ?? null)) {
+        header('Location: login.php?expired=1', true, 303);
+        exit();
+    }
 
     $username = is_string($_POST['username'] ?? null)
         ? trim($_POST['username'])
@@ -27,6 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = 'Invalid username or password, or the account is temporarily unavailable.';
     } else {
         $user = fetchAuthenticationUserByUsername($conn, $username);
+        if (!$user) {
+            $accountSignIn = platformPasswordSignIn($conn, $username, $password);
+            if ($accountSignIn !== null) {
+                clearLoginRateLimitForCurrentIp($conn, $username);
+                header('Location: ' . $accountSignIn);
+                exit();
+            }
+        }
         $dummy_password_hash = '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.';
         $password_valid = \Dnr\Security\PasswordPolicy::verify(
             $password,
@@ -40,11 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             beginPendingAuthentication($user);
 
             if (!empty($user['two_factor_enabled'])) {
-                header('Location: verify_2fa.php');
+                header('Location: ' . (accountGatewayEnabled() ? accountPublicPath() . '/' : '') . 'verify_2fa.php');
                 exit();
             }
 
-            header('Location: setup_2fa.php');
+            header('Location: ' . (accountGatewayEnabled() ? accountPublicPath() . '/' : '') . 'setup_2fa.php');
             exit();
         }
 
@@ -72,6 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $error = 'Invalid username or password, or the account is temporarily unavailable.';
     }
+}
+if (isset($_GET['expired'])) {
+    $error = 'This sign-in form expired. Please enter your credentials again.';
 }
 ?>
 <!DOCTYPE html>

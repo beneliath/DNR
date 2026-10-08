@@ -20,10 +20,10 @@ expectCalendarSubscriptionLayout(
 expectCalendarSubscriptionLayout(
     str_contains($stylesheet, '.calendar-subscription-table {')
         && str_contains($stylesheet, 'width: 100%;')
-        && str_contains($stylesheet, 'table-layout: fixed;')
+        && preg_match('/\.calendar-subscription-table\s*\{[^}]*table-layout:\s*auto;/s', $stylesheet) === 1
         && str_contains($stylesheet, 'padding: 12px clamp(14px, 2vw, 28px);')
         && str_contains($stylesheet, 'white-space: nowrap;'),
-    'subscription columns should fill the card with consistent spacing and stable single-line metadata.'
+    'subscription columns should size to their content with consistent spacing and single-line metadata.'
 );
 expectCalendarSubscriptionLayout(
     str_contains($page, '<div class="calendar-subscription-management-grid">')

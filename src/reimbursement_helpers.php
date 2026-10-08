@@ -66,7 +66,7 @@ function reimbursementOwner(mysqli $conn, int $userId): array
 function reimbursementSetup(mysqli $conn): array
 {
     $setup = $conn->query('SELECT organization_name, bookkeeper_first_name, bookkeeper_last_name,
-        bookkeeper_email, bookkeeper_phone, reviewer_email, cc_email
+        bookkeeper_email, bookkeeper_phone, reviewer_email, cc_email, version
         FROM reimbursement_setup WHERE id = 1')->fetch_assoc();
     if (!$setup) throw new RuntimeException('Reimbursement setup is unavailable.');
     return $setup;

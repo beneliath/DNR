@@ -22,6 +22,22 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_qualification_only_retains_release_without_deploying(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'download'
+            source.mkdir()
+            for name in ('manifest.json', 'mirrors.json'):
+                (source / name).write_text('{"commit":"' + 'a' * 40 + '"}')
+            with patch.object(release_s1, 'STATE_DIRECTORY', root / 'state'), \
+                    patch.object(release_s1, 'run') as run:
+                saved = release_s1.finish_qualified_release(source, 'a' * 40, True)
+                run.assert_not_called()
+                self.assertEqual((saved / 'manifest.json').read_bytes(), (source / 'manifest.json').read_bytes())
+                self.assertEqual((saved / 'mirrors.json').read_bytes(), (source / 'mirrors.json').read_bytes())
+                release_s1.finish_qualified_release(source, 'a' * 40)
+                run.assert_called_once_with(['scripts/deploy_s1.sh', 'a' * 40])
+
     def test_failed_protected_check_blocks_merge(self):
         checks = json.dumps([{
             'name': 'integration', 'state': 'FAILURE', 'bucket': 'fail',
@@ -174,7 +190,7 @@ class DeploymentBackupGate(unittest.TestCase):
                     if args[-1].endswith(':migrations/order.txt'): return '001.sql'
                     return '2026-09-05T15:51:40+02:00'
                 if args[:2]==['docker','inspect']:
-                    return json.dumps([dict(Id='image-id',Image='image-id',Config={'Image':'mysql:8.4@sha256:'+'e'*64,'Labels':{'org.opencontainers.image.revision':expected}},State={'Health':{'Status':'healthy'}})])
+                    return json.dumps([dict(Id='image-id',Image='image-id',Config={'Env':[], 'Image':'mysql:8.4@sha256:'+'e'*64,'Labels':{'org.opencontainers.image.revision':expected}},State={'Health':{'Status':'healthy'}})])
                 if args[:3]==['sh','scripts/compose_with_provenance.sh','production-ubuntu-proton-mattermost']:
                     self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]

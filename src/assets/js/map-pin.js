@@ -7,7 +7,7 @@ import {Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl} from 'mapli
     const confirmation = document.getElementById('confirm-pin');
     const feedback = document.getElementById('pin-editor-feedback');
     if (!data || !mapElement || !latitude || !longitude || !confirmation || !feedback) return;
-    setWorkerUrl(DNR_MAPLIBRE_WORKER_URL);
+    setWorkerUrl(new URL(DNR_MAPLIBRE_WORKER_URL, import.meta.url).href);
     const payload = JSON.parse(data.textContent || '{}');
     const valid = (lat, lon) => Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
     const hasCoordinates = valid(payload.latitude, payload.longitude);

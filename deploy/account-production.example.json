@@ -1,0 +1,31 @@
+{
+  "origin": "https://moed.beneliath.com",
+  "primary_key": "shalom-in-messiah",
+  "primary_web": "moed-web-1",
+  "primary_ingress": "moed-ingress-1",
+  "primary_db": "moed-db-1",
+  "primary_router": "dnr",
+  "primary_backend_subnet": "172.30.255.0/24",
+  "primary_ingress_ip": "172.30.255.254",
+  "project_prefix": "moed-account",
+  "edge_network": "moed_edge",
+  "traefik_ip": "172.29.255.2",
+  "cloudflared_ip": "172.18.0.254",
+  "entrypoint": "https",
+  "certresolver": "cloudflare",
+  "commit": "REPLACE_WITH_QUALIFIED_RELEASE_COMMIT",
+  "images": {
+    "app": "REPLACE_WITH_QUALIFIED_APP_DIGEST",
+    "database": "REPLACE_WITH_QUALIFIED_DATABASE_DIGEST",
+    "ingress": "REPLACE_WITH_QUALIFIED_INGRESS_DIGEST"
+  },
+  "smtp": {
+    "host": "REPLACE_WITH_REACHABLE_TLS_SMTP_HOST",
+    "port": "587",
+    "encryption": "starttls",
+    "username": "REPLACE_WITH_SMTP_USERNAME",
+    "from": "moed@beneliath.com"
+  },
+  "smtp_password_file": "/REPLACE/secrets/smtp_password",
+  "backup_password_file": "/REPLACE/secrets/deployment_backup_password"
+}

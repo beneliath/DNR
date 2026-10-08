@@ -38,6 +38,7 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/account_mail_helpers.php
         - src/workflow_task_helpers.php
         - src/task_bulk_helpers.php
         - src/record_creation_helpers.php

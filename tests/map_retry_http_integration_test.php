@@ -83,7 +83,7 @@ try {
     expectMapHttp(array_column($missing['events'], 'id') === [$missingId], 'A country-only record should need an address; an unresolved address should not');
     $empty = $request('map.php?date_from=2098-01-01&date_to=2098-01-02&location=needs_address');
     expectMapHttp(str_contains($empty['body'], 'No missing addresses') && str_contains($empty['body'], 'Show All Locations')
-        && str_contains($empty['body'], 'id="engagement-map" class="engagement-map" hidden'), 'Empty results should explain the filter and hide the world map');
+        && str_contains($empty['body'], 'id="engagement-map" class="engagement-map" aria-label='), 'Empty results should explain the filter and keep the base map visible');
     expectMapHttp($request('map_geocode.php', ['engagement_ids' => $engagementId, 'retry' => '1'])['status'] === 400, 'Retry must require CSRF');
     $normal = $request('map_geocode.php', $fields);
     expectMapHttp($normal['json']['locations'][0]['status'] === 'not_found', 'Refresh should preserve a cached miss');

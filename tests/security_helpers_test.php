@@ -119,7 +119,7 @@ foreach (['ai_coach_requests.php', 'ai_coach_improvements.php'] as $page) {
 }
 foreach ($role_preview_ui_pages as $page) {
     expectTrue(
-        safeRolePreviewReturnUrl($page, 'admin') === $page,
+        safeRolePreviewReturnUrl($page, 'superadmin') === $page,
         $page . ' must be classified before it can be used as a role-preview return page.'
     );
 }

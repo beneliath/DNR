@@ -6,6 +6,7 @@ use Dnr\Infrastructure\InboundMailbox;
 use Dnr\Infrastructure\ImapMessageRejectedException;
 
 require_once __DIR__ . '/inbound_email_helpers.php';
+require_once __DIR__ . '/account_mail_helpers.php';
 
 function inboundMailboxKey(string $host, int $port, string $username, string $mailbox): string
 {
@@ -129,7 +130,7 @@ function syncInboundMailbox(mysqli $conn, InboundMailbox $mailbox, string $key, 
                 if ($rejection) {
                     quarantineInboundEmailMessage($conn, $key . ':' . $validity . ':' . $uid, $rejection);
                 } elseif (!inboundImportWasRecorded($conn, $parsed['deduplication_hash'])) {
-                    if ($uid <= (int) $state['reconcile_through_uid']) {
+                    if (!accountMailEnabled() && $uid <= (int) $state['reconcile_through_uid']) {
                         $conn->execute_query(
                             'INSERT IGNORE INTO inbound_mail_reconciliation
                              (mailbox_key, uid_validity, uid, deduplication_hash, sender_address, subject, sent_at)
@@ -138,7 +139,7 @@ function syncInboundMailbox(mysqli $conn, InboundMailbox $mailbox, string $key, 
                                 $parsed['subject'], $parsed['sent_at']]
                         );
                     } else {
-                        $stored = storeInboundEmailMessage($conn, 'imap', $key . ':' . $validity . ':' . $uid, $parsed);
+                        $stored = receiveAccountInboundMail($conn, 'imap', $key . ':' . $validity . ':' . $uid, $parsed);
                         $imported = $stored['inserted'];
                     }
                 }
@@ -206,7 +207,7 @@ function reconcileInboundMailboxMessage(
             if (inboundImportWasRecorded($conn, $candidate['deduplication_hash'])) {
                 $outcome = 'duplicate';
             } elseif ($parsed !== null) {
-                $stored = storeInboundEmailMessage($conn, 'imap', $key . ':' . $validity . ':' . $uid, $parsed);
+                $stored = receiveAccountInboundMail($conn, 'imap', $key . ':' . $validity . ':' . $uid, $parsed);
                 $messageId = $stored['id'];
                 $outcome = 'imported';
                 $conn->execute_query('UPDATE inbound_mailbox_state SET last_imported_at = UTC_TIMESTAMP() WHERE mailbox_key = ?', [$key]);

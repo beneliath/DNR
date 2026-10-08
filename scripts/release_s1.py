@@ -129,6 +129,18 @@ def release_body(version, summary):
     )
 
 
+def finish_qualified_release(directory, commit, qualify_only=False):
+    if not qualify_only:
+        run(['scripts/deploy_s1.sh', commit])
+        return None
+    saved = STATE_DIRECTORY / ('qualified-' + commit)
+    saved.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for name in ('manifest.json', 'mirrors.json'):
+        shutil.copyfile(directory / name, saved / name)
+    milestone('Qualified release retained for an isolated rollout rehearsal: ' + str(saved))
+    return saved
+
+
 def open_or_update_pr(branch, title, body):
     existing = json.loads(run([
         'gh', 'pr', 'list', '--head', branch, '--base', 'main', '--state', 'open',
@@ -229,6 +241,8 @@ def parse_args(argv=None):
     parser.add_argument('--plugin-bump', choices=('minor', 'major', 'super'))
     parser.add_argument('--ci-timeout-minutes', type=int, default=90)
     parser.add_argument('--plan', action='store_true', help='Validate local configuration and print the bounded stages')
+    parser.add_argument('--qualify-only', action='store_true',
+                        help='Retain qualified images/manifest for a first-rollout rehearsal; do not deploy to s1')
     args = parser.parse_args(argv)
     if not 10 <= args.ci_timeout_minutes <= 180:
         parser.error('--ci-timeout-minutes must be between 10 and 180')
@@ -248,7 +262,7 @@ def main(argv=None):
             'bump': args.bump,
             'stages': ['AI Coach source hashes', 'notice', 'prepare', 'commit', 'publish branch', 'protected PR checks',
                        'merge', 'publish main', 'final-main CI', 'publish tag',
-                       'verified backup and s1 deployment', 'receipt'],
+                       'retain qualified release' if args.qualify_only else 'verified backup and s1 deployment', 'receipt'],
             'polling': 'internal; one progress line every five minutes',
         }, indent=2))
         return
@@ -311,17 +325,19 @@ def main(argv=None):
             stage = 'publishing release tag and mirrors'
             run(['python3', 'scripts/mirror_release.py', release_directory / 'manifest.json',
                  '--publish', '--output', mirrors])
-            stage = 'verified backup and s1 deployment'
-            run(['scripts/deploy_s1.sh', merged])
+            stage = 'retaining qualified release' if args.qualify_only else 'verified backup and s1 deployment'
+            qualified_directory = finish_qualified_release(release_directory, merged, args.qualify_only)
             mirror_state = json.loads(mirrors.read_text())
         receipt = {
-            'status': 'success', 'version': version, 'commit': merged,
+            'status': 'qualified' if args.qualify_only else 'success', 'version': version, 'commit': merged,
             'pull_request': pr['url'], 'ci_run_id': ci['databaseId'],
             'remotes': mirror_state['remotes'], 'notice_id': notice_id,
         }
+        if qualified_directory:
+            receipt['qualified_directory'] = str(qualified_directory)
         receipt_path = write_receipt(receipt)
         completed = True
-        milestone(f'Deployment verified; receipt {receipt_path}')
+        milestone(f'{"Release qualified; s1 unchanged" if args.qualify_only else "Deployment verified"}; receipt {receipt_path}')
         print(json.dumps(receipt, indent=2, sort_keys=True))
     except (ValueError, TimeoutError, subprocess.CalledProcessError) as error:
         write_receipt({'status': 'failed', 'stage': stage, 'error': str(error)})

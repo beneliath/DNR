@@ -6,6 +6,8 @@ parameters:
         - src/pagination_helpers.php
     bootstrapFiles:
         - src/functions.php
+    scanFiles:
+        - src/account_mail_helpers.php
     tmpDir: /tmp/dnr-phpstan
     parallel:
         maximumNumberOfProcesses: 1

@@ -259,8 +259,23 @@ function storeInboundEmailMessage(
     string $transport,
     string $transportKey,
     array $message,
-    ?string $gatewayAddress = null
+    ?string $gatewayAddress = null,
+    ?array $manualAssignment = null
 ): array {
+    $manualReview = false;
+    if (accountMailEnabled()) {
+        require_once __DIR__ . '/account_mail_helpers.php';
+        if ($manualAssignment !== null) {
+            if (!accountMailManualAssignmentIsValid($manualAssignment, $message, currentAccountKey(), accountMailSigningKey())) {
+                throw new RuntimeException('The manual mail destination could not be verified.');
+            }
+            $manualReview = true;
+        } elseif (localAccountMailRoute($message)['account_key'] !== currentAccountKey()) {
+            throw new RuntimeException('Incoming mail must unambiguously identify this Account.');
+        }
+    } elseif ($manualAssignment !== null) {
+        throw new RuntimeException('Account mail routing is not enabled.');
+    }
     if (!in_array($transport, ['imap', 'webhook', 'file'], true)) {
         throw new InvalidArgumentException('Invalid inbound email transport.');
     }
@@ -276,19 +291,22 @@ function storeInboundEmailMessage(
     $toJson = inboundEmailJson($message['to_addresses']);
     $ccJson = inboundEmailJson($message['cc_addresses']);
     $attachmentJson = inboundEmailJson($message['attachment_names']);
+    // Insert directly into review so a background worker can never auto-file a manual assignment.
+    $initialStatus = $manualReview ? 'review' : 'pending';
+    $reviewReason = $manualReview ? 'Manually routed to this Account. Review before filing.' : null;
     $stmt = $conn->prepare(
         'INSERT IGNORE INTO inbound_email_messages
             (transport, transport_key, deduplication_hash, rfc_message_id,
              gateway_address, sender_name, sender_address, to_addresses,
              cc_addresses, subject, sent_at, received_at, body_text,
-             attachment_names, raw_headers)
-         VALUES (?, ?, ?, NULLIF(?, \'\'), ?, NULLIF(?, \'\'), ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             attachment_names, raw_headers, status, review_reason)
+         VALUES (?, ?, ?, NULLIF(?, \'\'), ?, NULLIF(?, \'\'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare inbound email storage.');
     }
     $stmt->bind_param(
-        'sssssssssssssss',
+        'sssssssssssssssss',
         $transport,
         $transportKey,
         $message['deduplication_hash'],
@@ -303,7 +321,9 @@ function storeInboundEmailMessage(
         $message['received_at'],
         $message['body_text'],
         $attachmentJson,
-        $message['raw_headers']
+        $message['raw_headers'],
+        $initialStatus,
+        $reviewReason
     );
     if (!$stmt->execute()) {
         $error = $stmt->error;
@@ -668,6 +688,13 @@ function inboundEmailOrganizationMatches(mysqli $conn, string $address): array
  */
 function parseInboundEmailEngagementMarkers(string $text): array
 {
+    if (accountMailEnabled()) {
+        require_once __DIR__ . '/account_mail_helpers.php';
+        $route = localAccountMailRoute(['body_text' => $text]);
+        return ['ids' => $route['account_key'] === currentAccountKey()
+            ? array_values(array_unique(array_column(array_filter($route['targets'], static fn(array $target) => $target['type'] === 'E'), 'id'))) : [],
+            'invalid' => $route['reason'] !== '' && str_contains($text, '[') ? [$route['reason']] : []];
+    }
     $matches = [];
     $prefixPattern = inboundEmailMarkerPrefixPattern();
     preg_match_all('/\[(' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);
@@ -710,6 +737,13 @@ function inboundEmailMessageEngagementMarkers(array $message): array
 /** @return array{ids: list<int>, invalid: list<string>} */
 function parseInboundEmailInquiryMarkers(string $text): array
 {
+    if (accountMailEnabled()) {
+        require_once __DIR__ . '/account_mail_helpers.php';
+        $route = localAccountMailRoute(['body_text' => $text]);
+        return ['ids' => $route['account_key'] === currentAccountKey()
+            ? array_values(array_unique(array_column(array_filter($route['targets'], static fn(array $target) => $target['type'] === 'I'), 'id'))) : [],
+            'invalid' => $route['reason'] !== '' && str_contains($text, '[') ? [$route['reason']] : []];
+    }
     $matches = [];
     $prefixPattern = inboundEmailMarkerPrefixPattern();
     preg_match_all('/\[(' . $prefixPattern . ')-I#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);

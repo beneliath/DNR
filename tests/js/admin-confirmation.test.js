@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/footer.js'), 'utf8');
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
@@ -92,6 +92,7 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
     form.appendChild = element => { form.elements[element.name] = element; };
     vm.runInNewContext(source, {
         document: {
+            body: { classList: { contains: () => false } },
             getElementById: id => nodes[id] || null,
             createElement: () => node(),
             querySelectorAll: selector => selector === '[data-admin-unlock-link]' ? [nav]

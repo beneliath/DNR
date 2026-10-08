@@ -122,6 +122,16 @@ Use `major` or `super` for those project bump conventions and add
 summary becomes the commit and PR title. `--plan` validates the local branch and
 remote configuration without changing files, publishing, or contacting s1.
 
+For a first Account rollout requiring an isolated rehearsal with the exact
+qualified images, add `--qualify-only`. The runner completes protected merge,
+final-main qualification and mirror publication, retains `manifest.json` and
+`mirrors.json` under `.git/dnr-deploy/qualified-SHA`, and reports `qualified`
+without deploying. The preparation notice remains active. Complete the required
+rehearsal and prepare the reviewed Account overlay, then invoke
+`scripts/deploy_s1.sh SHA` for that same qualified main commit. Cancel the notice
+if rehearsal cannot proceed. This mode never skips deployment backup or readiness
+checks; those run when the deployment command is subsequently invoked.
+
 The runner performs the existing workflow in order and waits internally. It emits
 only milestone output every five minutes while CI is running, then writes a compact
 receipt to `.git/dnr-deploy/last-release-run.json`. It does not weaken or skip the

@@ -108,3 +108,9 @@
 20260930_link_workflow_tasks.sql
 20261001_data_management.sql
 20261005_add_book_table_receipts.sql
+20261008_add_accounts.sql
+20261008_add_account_login_directory.sql
+20261008_add_account_lifecycle.sql
+20261009_add_platform_mail_queue.sql
+20261010_add_account_directory_coordination.sql
+20261011_add_account_login_claims.sql

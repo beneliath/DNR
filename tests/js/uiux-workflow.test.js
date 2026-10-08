@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const vm = require('node:vm');
+const vm = require('./helpers/account-context.js');
 const fs = require('node:fs');
 const { receiptSummary } = require('../../src/assets/js/financial-draft.js');
 
