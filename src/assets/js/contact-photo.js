@@ -13,7 +13,23 @@
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const maximumBytes = Number(input.dataset.maxBytes || 0);
     let selectionVersion = 0;
+    let clipboardRead = 0;
     let loadingSelectedPhoto = false;
+
+    function showStatus(message) {
+        status.textContent = message;
+        status.hidden = false;
+    }
+
+    function photoError(file) {
+        if (!allowedTypes.includes(file.type)) {
+            return 'Choose a JPEG, PNG, or WebP ' + photoLabel + ' photo.';
+        }
+        if (maximumBytes > 0 && file.size > maximumBytes) {
+            return photoTitle + ' photos must be 5 MB or smaller.';
+        }
+        return '';
+    }
 
     function restoreCurrentPhoto() {
         selectionVersion += 1;
@@ -25,6 +41,7 @@
     }
 
     input.addEventListener('change', function () {
+        ++clipboardRead;
         input.setCustomValidity('');
         const file = input.files && input.files[0];
         if (!file) {
@@ -32,15 +49,9 @@
             return;
         }
 
-        if (!allowedTypes.includes(file.type)) {
-            input.setCustomValidity('Choose a JPEG, PNG, or WebP ' + photoLabel + ' photo.');
-            restoreCurrentPhoto();
-            input.reportValidity();
-            return;
-        }
-
-        if (maximumBytes > 0 && file.size > maximumBytes) {
-            input.setCustomValidity(photoTitle + ' photos must be 5 MB or smaller.');
+        const error = photoError(file);
+        if (error) {
+            input.setCustomValidity(error);
             restoreCurrentPhoto();
             input.reportValidity();
             return;
@@ -72,6 +83,77 @@
         reader.readAsDataURL(file);
     });
 
+    const pasteButton = document.querySelector('[data-contact-photo-paste]');
+    const pasteBox = document.querySelector('[data-contact-photo-paste-box]');
+    const pasteTarget = document.querySelector('[data-contact-photo-paste-target]');
+
+    function stageClipboardPhoto(files) {
+        const image = files.find(function (file) { return file.type.startsWith('image/'); });
+        if (!image) {
+            showStatus('No image found. Copy the image itself, rather than its filename or link, then paste again.');
+            return;
+        }
+        const error = photoError(image);
+        if (error) {
+            // An invalid paste must not replace a photo already selected for upload.
+            showStatus(error);
+            return;
+        }
+        try {
+            const extension = image.type === 'image/jpeg' ? 'jpg' : image.type.split('/')[1];
+            const transfer = new DataTransfer();
+            transfer.items.add(new File([image], 'contact-photo-' + Date.now() + '.' + extension, { type: image.type }));
+            input.files = transfer.files;
+        } catch (error) {
+            showStatus('Please save the image and choose the file in this browser.');
+            return;
+        }
+        pasteTarget.value = '';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    if (pasteButton && pasteBox && pasteTarget) {
+        pasteButton.addEventListener('click', async function () {
+            pasteBox.hidden = false;
+            pasteButton.setAttribute('aria-expanded', 'true');
+            pasteTarget.focus();
+            const read = ++clipboardRead;
+            const keyboardHelp = 'Press Command+V or Ctrl+V in the paste box to add your image.';
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+                showStatus(keyboardHelp);
+                return;
+            }
+            showStatus('Choose Paste in your browser’s prompt, or press Command+V / Ctrl+V in the box below.');
+            try {
+                const items = await navigator.clipboard.read();
+                if (read !== clipboardRead) return;
+                for (const item of items) {
+                    const type = item.types.find(function (value) { return allowedTypes.includes(value); });
+                    if (!type) continue;
+                    const image = await item.getType(type);
+                    if (read === clipboardRead) stageClipboardPhoto([image]);
+                    return;
+                }
+                showStatus('Copy a JPEG, PNG, or WebP image first, then paste it here.');
+            } catch (error) {
+                if (read === clipboardRead) showStatus(keyboardHelp);
+            }
+        });
+
+        input.closest('.contact-photo-field').addEventListener('paste', function (event) {
+            const clipboard = event.clipboardData;
+            let files = Array.from(clipboard ? clipboard.files || [] : []);
+            if (!files.length && clipboard) {
+                files = Array.from(clipboard.items || []).filter(function (item) { return item.kind === 'file'; })
+                    .map(function (item) { return item.getAsFile(); }).filter(Boolean);
+            }
+            if (event.target !== pasteTarget && !files.some(function (file) { return file.type.startsWith('image/'); })) return;
+            event.preventDefault();
+            ++clipboardRead;
+            stageClipboardPhoto(files);
+        });
+    }
+
     preview.addEventListener('load', function () {
         loadingSelectedPhoto = false;
     });
@@ -89,6 +171,7 @@
 
     if (removeCheckbox) {
         removeCheckbox.addEventListener('change', function () {
+            ++clipboardRead;
             if (!removeCheckbox.checked) {
                 restoreCurrentPhoto();
                 return;

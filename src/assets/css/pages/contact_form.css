@@ -1,0 +1,148 @@
+.contact-layout-form { container-type: inline-size; }
+.contact-form-overview {
+    display: grid;
+    gap: 28px;
+    align-items: start;
+    margin-bottom: 28px;
+}
+.contact-form-overview > section { min-width: 0; }
+.contact-form-overview .form-group { min-width: 0; margin-bottom: 18px; }
+.contact-form-overview .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.contact-form-overview .contact-phone-birthday-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8rem;
+    align-items: start;
+    gap: 16px;
+}
+.contact-form-overview .field-help { margin-bottom: 0; }
+.contact-birthday-field {
+    width: 8rem;
+}
+.contact-form-organization { width: 100%; max-width: 28rem; }
+html:not(.has-js) .contact-form-organization [data-relationship-search-input] { display: none; }
+html body .contact-form-organization input[data-relationship-search-input] { margin-bottom: 0; }
+.contact-form-organization [data-relationship-search-status]:empty { display: none; }
+.contact-form-organization .form-row { grid-template-columns: minmax(0, 12rem) minmax(0, 1fr); }
+.contact-form-photo .contact-photo-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    align-items: start;
+}
+.contact-photo-upload { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: start; }
+.contact-photo-upload > div { min-width: 0; }
+.contact-form-photo .contact-photo-remove { margin-top: 14px; }
+.contact-form-organization .inline-organization-creator { min-width: 0; width: 100%; box-sizing: border-box; }
+@container (min-width: 48rem) {
+    .contact-form-overview {
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        row-gap: 0;
+    }
+    .contact-form-details, .contact-form-organization {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: 2 / span 4;
+    }
+    .contact-form-details { grid-column: 1; }
+    .contact-form-organization { grid-column: 2; }
+    .contact-form-photo { grid-area: 1 / 1 / auto / -1; margin-bottom: 28px; }
+    .contact-form-photo .contact-photo-field { max-width: 34rem; }
+}
+@container (min-width: 72rem) {
+    .contact-form-overview {
+        grid-template-columns: 16rem minmax(0, 1.25fr) minmax(0, 1fr);
+        grid-template-rows: [portrait] auto
+            [identity-label] auto [identity-control] auto [identity-help] auto
+            [email-label] auto [email-control] auto [email-help] auto
+            [paste-label] auto [paste-control] auto [paste-help] auto [feedback] auto [end];
+    }
+    /* Share control rows with the photo column, including a resized paste box. */
+    .contact-form-details { grid-area: 1 / 2 / span 11; }
+    .contact-form-organization { grid-area: 1 / 3 / span 11; }
+    .contact-form-photo {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-area: 1 / 1 / span 11;
+        margin-bottom: 0;
+    }
+    .contact-form-photo .contact-photo-field {
+        grid-row: portrait / end;
+        grid-template-rows: subgrid;
+    }
+    .contact-photo-upload {
+        grid-row: portrait / email-label;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+    .contact-photo-upload > .contact-photo-preview { grid-row: portrait; margin-bottom: 20px; }
+    .contact-photo-upload > div:not(.contact-photo-preview) { display: contents; }
+    .contact-photo-upload label { grid-row: identity-label; }
+    .contact-photo-upload input[type="file"] { grid-row: identity-control; margin: 0; align-self: stretch; }
+    .contact-photo-upload .field-help { grid-row: identity-help; }
+    .contact-form-photo .contact-photo-paste-controls,
+    .contact-form-photo .contact-photo-paste-box:not([hidden]) { display: contents; }
+    .contact-form-photo [data-contact-photo-paste] { grid-row: email-control; justify-self: start; align-self: stretch; margin: 0; }
+    .contact-form-photo .contact-photo-paste-box > label { grid-row: paste-label; align-self: end; margin-top: 18px; }
+    .contact-form-photo .contact-photo-paste-box > textarea { grid-row: paste-control; margin: 0; align-self: end; }
+    .contact-form-photo .contact-photo-paste-box > .field-help { grid-row: paste-help; }
+    .contact-form-photo .contact-photo-feedback { grid-row: feedback; }
+    .contact-form-organization .inline-organization-creator { grid-row: feedback; }
+    .contact-form-details > .form-row {
+        grid-row: identity-label / email-label;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+    }
+    .contact-form-details > .form-row .form-group,
+    .contact-form-organization > .form-group:not(.contact-form-primary-organization) {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: identity-label / email-label;
+        margin-bottom: 0;
+    }
+    .contact-form-details > .form-row input,
+    .contact-form-organization > .form-group:not(.contact-form-primary-organization) input { margin: 0; align-self: stretch; }
+    .contact-form-email,
+    .contact-form-primary-organization {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: email-label / paste-label;
+        margin-bottom: 0 !important;
+    }
+    .contact-form-email > label,
+    .contact-form-primary-organization > label { margin-top: 18px; }
+    .contact-form-email > input,
+    .contact-form-primary-organization > select { margin: 0; align-self: stretch; }
+    .contact-form-details .contact-phone-birthday-row,
+    .contact-form-organization > .form-row {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: paste-label / feedback;
+        row-gap: 0;
+    }
+    .contact-phone-birthday-row > .form-group,
+    .contact-form-organization > .form-row > .form-group:not([hidden]) {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: 1 / span 3;
+        margin-bottom: 0;
+    }
+    .contact-phone-birthday-row > .form-group > label,
+    .contact-form-organization > .form-row > .form-group > label { align-self: end; margin-top: 18px; }
+    .contact-phone-birthday-row > .form-group > :is(input, .phone-input-group),
+    .contact-form-organization > .form-row > .form-group > :is(input, select) { align-self: end; margin: 0; }
+}
+@container (max-width: 28rem) {
+    .contact-form-overview .contact-phone-birthday-row { grid-template-columns: minmax(0, 1fr); }
+    .contact-form-photo .contact-photo-field { grid-template-columns: minmax(0, 1fr); }
+    .contact-photo-upload { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+    .contact-form-overview .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}

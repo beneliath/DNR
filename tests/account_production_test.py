@@ -96,6 +96,20 @@ class ProductionAccountTest(unittest.TestCase):
             self.assertEqual(json.loads((directory/'config.json').read_text())['commit'],'c'*40)
             self.assertIn('Require method CONNECT',(directory/'control.conf').read_text())
 
+    def test_release_preserves_control_edge_address_before_container_recreation(self):
+        value=config()
+        primary={'Config':{'Labels':{'com.docker.compose.project':'moed'}}}
+        relay={'NetworkSettings':{'Networks':{value['edge_network']:{'IPAddress':'172.29.255.4'}}}}
+        with patch.object(production,'inspect',side_effect=[primary,relay]), \
+             patch.object(production,'run',return_value=SimpleNamespace(stdout='relay-id\n')):
+            saved=production.retain_primary_control_address(value)
+        self.assertEqual(production.primary_overlay(saved)['services']['account-control']['networks']['edge'],
+                         {'ipv4_address':'172.29.255.4'})
+        with patch.object(production,'inspect',side_effect=AssertionError('Rediscovered a reserved address')):
+            self.assertEqual(production.retain_primary_control_address(saved),saved)
+        saved['primary_control_edge_ip']=saved['traefik_ip']
+        with self.assertRaises(ValueError):production.validate_config(saved)
+
     def test_primary_requires_qualified_cookie_and_script_policy(self):
         value=config();policy='/etc/apache2/conf-enabled/zy-dnr-account-security.conf'
         primary={'Config':{'Image':value['images']['app'],

@@ -1488,6 +1488,26 @@ span.contact-list-avatar {
   margin: 8px 0 0;
 }
 
+html:not(.has-js) .contact-photo-paste-controls,
+.contact-photo-paste-box[hidden] {
+  display: none;
+}
+
+.contact-photo-paste-controls {
+  margin-top: 12px;
+}
+
+.contact-photo-paste-box {
+  margin-top: 12px;
+  max-width: 24rem;
+}
+
+.contact-photo-paste-box textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
 .contact-photo-preview-status {
   margin: 8px 0 0;
   color: var(--text-muted);

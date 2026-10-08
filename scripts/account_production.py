@@ -25,12 +25,12 @@ from integration_environment import allocate_test_networks
 from account_lifecycle_local import inspect, project_resources, backup_configuration
 from deployment_backup import create_verified_backup, root_command, sha
 from account_ingress_security import configuration as ingress_security_configuration
+from account_map_configuration import primary_amazon_map, with_amazon_map
 
 ACTIVE_SERVICES = ['web', 'downloads', 'backup', 'ingress', 'geocoder', 'mail-dispatch',
                    'receipt-previews', 'file-monitor', 'data-maintenance', 'account-control']
 
 PRIMARY_DIRECTORY = Path('var/deployment/account-production')
-
 
 def private_file(path, content):
     temporary=path.with_name(path.name+'.'+secrets.token_hex(6)+'.tmp')
@@ -60,6 +60,10 @@ def validate_config(config):
         if not re.fullmatch(r'ghcr.io/[a-z0-9._/-]+@sha256:[a-f0-9]{64}', image): raise ValueError('Use qualified immutable release images')
     ipaddress.ip_address(config['traefik_ip'])
     ipaddress.ip_address(config['cloudflared_ip'])
+    if config.get('primary_control_edge_ip'):
+        address=ipaddress.ip_address(config['primary_control_edge_ip'])
+        if address.version!=4 or address==ipaddress.ip_address(config['traefik_ip']):
+            raise ValueError('Primary control requires a distinct IPv4 edge address')
     primary_subnet = ipaddress.ip_network(config['primary_backend_subnet'])
     if ipaddress.ip_address(config['primary_ingress_ip']) not in primary_subnet:
         raise ValueError('Primary ingress must belong to the primary backend network')
@@ -200,10 +204,13 @@ def control_proxy_service(config, configuration, image):
 def primary_overlay(config, directory=None):
     directory = directory or ROOT/PRIMARY_DIRECTORY
     environment = account_environment(config, config['primary_key'], True)
+    relay=control_proxy_service(config, directory/'control.conf', '${DNR_INGRESS_IMAGE:?Qualified ingress image required}')
+    if config.get('primary_control_edge_ip'):
+        relay['networks']={'backend':{},'edge':{'ipv4_address':config['primary_control_edge_ip']}}
     return {'networks':{'edge':{'external':True,'name':config['edge_network']}},
             'services': {**{s:{'environment':environment} for s in SERVICES},
             'mail-ingest':{'environment':environment},
-            'account-control':control_proxy_service(config, directory/'control.conf', '${DNR_INGRESS_IMAGE:?Qualified ingress image required}'),
+            'account-control':relay,
             'ingress': {'networks':{'backend':{'ipv4_address':config['primary_ingress_ip']}},
                         'volumes':[str(directory/'ingress-security.conf')+':/etc/apache2/conf-enabled/zy-dnr-account-security.conf:ro'],
                         'labels': labels(config, config['primary_key'], True)}}}
@@ -219,6 +226,24 @@ def prepare_primary(config, directory=None):
     private_file(directory/'primary.compose.json', json.dumps(primary_overlay(config, directory), indent=2))
     private_file(directory/'notes-cache.compose.json', json.dumps({'services':{'notes-cache':{
         'environment':account_environment(config, config['primary_key'], True)}}}, indent=2))
+
+
+def retain_primary_control_address(config):
+    """Keep the existing edge allocation when release images recreate the relay."""
+    if config.get('primary_control_edge_ip'):
+        return config
+    primary=inspect(config['primary_web'])
+    project=primary['Config']['Labels']['com.docker.compose.project']
+    containers=run(['docker','ps','-aq','--filter','label=com.docker.compose.project='+project,
+                    '--filter','label=com.docker.compose.service=account-control'],capture_output=True).stdout.split()
+    if not containers:
+        return config
+    if len(containers)!=1:
+        raise ValueError('Cannot identify the primary Account control relay')
+    address=inspect(containers[0])['NetworkSettings']['Networks'][config['edge_network']]['IPAddress']
+    if not address:
+        raise ValueError('Primary Account control relay has no reserved edge address')
+    return validate_config({**config,'primary_control_edge_ip':address})
 
 
 def compose(directory, project):
@@ -487,7 +512,8 @@ def prepare_member_runtime(config,key,account,directory,state):
         'volumes':[str(directory/'ingress-security.conf')+':/etc/apache2/conf-enabled/zy-dnr-account-security.conf:ro']}
     private_file(directory/'control.conf', control_proxy_configuration(config, values['DNR_BACKEND_SUBNET']))
     overlay['services']['account-control']=control_proxy_service(config, directory/'control.conf', config['images']['ingress'])
-    # No dev overlay, source bind, host port, shared DB, sessions, files or key.
+    # No dev overlay, source bind, host port, shared DB, sessions, files or Account key.
+    overlay=with_amazon_map(overlay,primary_amazon_map(config))
     private_file(directory/'compose.json',json.dumps(overlay,indent=2))
     private_file(directory/'edge.yaml','services:\n  ingress:\n    ports: !reset []\n')
     dc=compose(directory,project)
@@ -592,6 +618,7 @@ def main():
         release=json.loads(args.release_manifest.read_text())
         config=validate_config({**config,'commit':release['commit'],
                                 'images':{k:release['images'][k] for k in ['app','database','ingress']}})
+        config=retain_primary_control_address(config)
     if args.prepare_primary:
         if args.apply or args.watch: raise ValueError('Preparation cannot apply a deployment')
         prepare_primary(config)

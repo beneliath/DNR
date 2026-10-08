@@ -114,7 +114,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "4840b10a10e5b18a2511f4d4f7db7e16df196256b245d0eea3a3ee1e31dacd10",
+      "sha256": "9bd6db069ba73ff29731d03dd8bab28bd9c8d98b99718a311b4369a4e2ecb195",
       "controls": [
         {
           "kind": "a",
@@ -127,17 +127,8 @@
         },
         {
           "kind": "label",
-          "label": "Primary Organization",
-          "for": "organization_id"
-        },
-        {
-          "kind": "label",
-          "label": "Organization Name",
-          "for": "inline-organization-name"
-        },
-        {
-          "kind": "button",
-          "label": "Create and Select"
+          "label": "Contact Photo",
+          "for": "contact_photo"
         },
         {
           "kind": "label",
@@ -148,16 +139,6 @@
           "kind": "label",
           "label": "Last Name",
           "for": "contact_last_name"
-        },
-        {
-          "kind": "label",
-          "label": "Primary Role",
-          "for": "contact_role"
-        },
-        {
-          "kind": "label",
-          "label": "Other Role Description",
-          "for": "contact_role_other"
         },
         {
           "kind": "label",
@@ -176,13 +157,37 @@
         },
         {
           "kind": "label",
-          "label": "Notes",
-          "for": "contact_notes"
+          "label": "Find an Organization",
+          "for": "primary-organization-search"
         },
         {
           "kind": "label",
-          "label": "Contact Photo",
-          "for": "contact_photo"
+          "label": "Primary Organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "label",
+          "label": "Primary Role",
+          "for": "contact_role"
+        },
+        {
+          "kind": "label",
+          "label": "Other Role Description",
+          "for": "contact_role_other"
+        },
+        {
+          "kind": "label",
+          "label": "Organization Name",
+          "for": "inline-organization-name"
+        },
+        {
+          "kind": "button",
+          "label": "Create and Select"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "contact_notes"
         },
         {
           "kind": "a",
@@ -1195,7 +1200,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "dce524884686ff6865dd6bce385d1fe2060301790373bf7eef141056c0a4196f",
+      "sha256": "4fb8bba63c4a34da00f506d8e896eeab6a675b54d3e0fb670f9744013931d518",
       "controls": [
         {
           "kind": "a",
@@ -1207,9 +1212,18 @@
           "label": "Edit Contact"
         },
         {
+          "kind": "button",
+          "label": "Save Changes",
+          "name": "save_contact"
+        },
+        {
           "kind": "label",
-          "label": "Primary Organization",
-          "for": "organization_id"
+          "label": "Choose a New Picture",
+          "for": "contact_photo"
+        },
+        {
+          "kind": "label",
+          "label": "Remove Current Photo"
         },
         {
           "kind": "label",
@@ -1220,16 +1234,6 @@
           "kind": "label",
           "label": "Last Name",
           "for": "contact_last_name"
-        },
-        {
-          "kind": "label",
-          "label": "Primary Role",
-          "for": "contact_role"
-        },
-        {
-          "kind": "label",
-          "label": "Other Role Description",
-          "for": "contact_role_other"
         },
         {
           "kind": "label",
@@ -1248,17 +1252,28 @@
         },
         {
           "kind": "label",
+          "label": "Find an Organization",
+          "for": "primary-organization-search"
+        },
+        {
+          "kind": "label",
+          "label": "Primary Organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "label",
+          "label": "Primary Role",
+          "for": "contact_role"
+        },
+        {
+          "kind": "label",
+          "label": "Other Role Description",
+          "for": "contact_role_other"
+        },
+        {
+          "kind": "label",
           "label": "Notes",
           "for": "contact_notes"
-        },
-        {
-          "kind": "label",
-          "label": "Contact Photo",
-          "for": "contact_photo"
-        },
-        {
-          "kind": "label",
-          "label": "Remove Current Photo"
         },
         {
           "kind": "a",

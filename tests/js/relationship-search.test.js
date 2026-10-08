@@ -25,10 +25,15 @@ function harness(kind = 'organization', prerendered = false) {
         select.previousElementSibling = input;
         select.nextElementSibling = status;
         select.before = select.after = () => { throw new Error('Existing search controls must stay in place'); };
+        if (prerendered === 'linked') {
+            select.previousElementSibling = null;
+            select.dataset.relationshipSearchInputId = 'primary-organization-search';
+        }
     }
     const pending = [];
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/relationship-search.js'), 'utf8'), {
-        document: {body: {}, querySelectorAll: () => [select], createElement: () => new Element()},
+        document: {body: {}, querySelectorAll: () => [select], createElement: () => new Element(),
+            getElementById: id => id === 'primary-organization-search' ? input : null},
         MutationObserver: class { observe() {} }, Option: Element, URLSearchParams, AbortController,
         setTimeout(callback) { timer = callback; return 1; }, clearTimeout() {},
         fetch(url, options) { return new Promise((resolve, reject) => pending.push({url, options, resolve, reject})); },
@@ -72,6 +77,16 @@ test('contact lookup keeps a selected contact and displays bounded results with 
 
 test('server-rendered search controls are reused and remain functional', async () => {
     const h = harness('organization', true);
+    const request = h.search('Host');
+    h.pending[0].resolve({ok:true,json:async()=>({results:[{id:2,organization_name:'Host'}],has_more:false})});
+    await request;
+    assert.equal(h.select.value, '999');
+    assert.deepEqual(h.select.children.map(o=>o.value), ['', '999', '2']);
+    assert.match(h.status.textContent, /1 matching organizations/);
+});
+
+test('a search field in a separate layout row binds without moving or duplicating controls', async () => {
+    const h = harness('organization', 'linked');
     const request = h.search('Host');
     h.pending[0].resolve({ok:true,json:async()=>({results:[{id:2,organization_name:'Host'}],has_more:false})});
     await request;

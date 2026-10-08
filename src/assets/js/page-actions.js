@@ -704,7 +704,17 @@
         updateHousing();
 
         const chronEntry = document.getElementById('new-chron-entry');
-        if (chronEntry) chronEntry.addEventListener('input', function () { chronEntry.setCustomValidity(''); });
+        if (chronEntry) {
+            chronEntry.addEventListener('input', function () { chronEntry.setCustomValidity(''); });
+            // Clear action-specific validation before native form validation runs.
+            // These submit buttons can live outside the form via their form attribute.
+            document.addEventListener('click', function (event) {
+                const submitter = event.target.closest('button, input[type="submit"], input[type="image"]');
+                if (submitter && submitter.form === form && ['submit', 'image'].includes(submitter.type)) {
+                    chronEntry.setCustomValidity('');
+                }
+            }, true);
+        }
         form.addEventListener('submit', function (event) {
             if (event.submitter && event.submitter.matches('[data-add-chron-entry]') && chronEntry && !chronEntry.value.trim()) {
                 event.preventDefault();
