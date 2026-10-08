@@ -18,11 +18,20 @@ $migration = file_get_contents(
     $root . '/migrations/20260825_allow_contacts_without_organizations.sql'
 );
 $migrationOrder = file_get_contents($root . '/migrations/order.txt');
+$organizationSelectFound = preg_match(
+    '/<select\b(?=[^>]*\bname="organization_id")([^>]*)>(.*?)<\/select>/s',
+    $addContact,
+    $organizationSelect
+) === 1;
 
 expectOptionalContactOrganization(
     str_contains($addContact, '<label for="organization_id">Primary Organization</label>')
-        && str_contains($addContact, '<select name="organization_id" id="organization_id" data-organization-search>')
-        && str_contains($addContact, '>No Organization</option>')
+        && $organizationSelectFound
+        && str_contains($organizationSelect[1], 'id="organization_id"')
+        && str_contains($organizationSelect[1], 'data-organization-search')
+        && !preg_match('/\srequired(?:\s|=|$)/i', $organizationSelect[1])
+        && str_contains($organizationSelect[2], '<option value=""')
+        && str_contains($organizationSelect[2], '>No Organization</option>')
         && str_contains($addContact, 'if ($organization_id !== null)')
         && !str_contains($contactInput, 'Organization is required.'),
     'the New Contact form and server validation should accept a blank organization.'
