@@ -23,8 +23,10 @@ function reimbursementSubmissionContext(mysqli $conn, int $id, int $userId, bool
         JOIN reimbursement_cost_centers c ON c.id = e.cost_center_id
         WHERE ri.request_id = ? ORDER BY e.expense_date, e.id' . $suffix, [$id])->fetch_all(MYSQLI_ASSOC);
     if (!$items) throw new InvalidArgumentException('Add expenses before submitting this request.');
-    $receipts = $conn->execute_query('SELECT rr.id, rr.expense_id, rr.storage_key, rr.filename, rr.content_type, rr.scan_state, sf.size, sf.checksum
+    $receipts = $conn->execute_query('SELECT rr.id, rr.expense_id, rr.storage_key, rr.filename, rr.content_type, rr.scan_state, sf.size, sf.checksum,
+        rr.report_key, rr.report_status, rf.size AS report_size, rf.checksum AS report_checksum
         FROM reimbursement_receipts rr JOIN stored_files sf ON sf.storage_key = rr.storage_key
+        LEFT JOIN stored_files rf ON rf.storage_key = rr.report_key
         JOIN reimbursement_request_items ri ON ri.expense_id = rr.expense_id
         WHERE ri.request_id = ? ORDER BY rr.expense_id, rr.id' . $suffix, [$id])->fetch_all(MYSQLI_ASSOC);
     return compact('request', 'owner', 'setup', 'items', 'receipts');

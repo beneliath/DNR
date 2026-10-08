@@ -154,8 +154,7 @@ try {
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'rejected','size'=>10]]),'Rejected receipts cannot be exported');
     reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES]]);
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES + 1]]),'Oversized request rejected before rendering');
-    $pdf = new TCPDF(); $pdf->AddPage(); $pdf->Write(8, 'Synthetic reimbursement receipt');
-    $bytes = $pdf->Output('', 'S');
+    $bytes = file_get_contents(__DIR__ . '/fixtures/compressed-receipt.pdf');
     $key = storePersistentFile($conn, $bytes, 'fixture.pdf', 'application/pdf');
     $conn->execute_query('INSERT INTO reimbursement_receipts (expense_id, storage_key, filename, content_type) VALUES (?, ?, ?, ?)', [$expenseId, $key, 'fixture.pdf', 'application/pdf']);
     $receiptId = (int) $conn->insert_id;
@@ -208,9 +207,23 @@ try {
     expectReimbursement(str_contains($allOwners['body'], 'class="record-link" href="' . $expensePath . '&amp;mode=view'), 'Admin explicit All users must show other owners');
     $list = $editor('reimbursement_requests.php');
     expectReimbursement(str_contains($list['body'], '>Receipts</th>') && str_contains($list['body'], 'data-confirm-title="Delete Request?"'), 'List receipt counts and standard dialog must render');
+    $pending = $editor('download_reimbursement.php?id=' . $requestId . '&format=pdf');
+    expectReimbursement($pending['status'] === 422 && str_contains($pending['body'], 'still being prepared'), 'Downloads explain pending receipt preparation without launching a process in Apache');
+    $worker = proc_open([PHP_BINARY, '-d', 'disable_functions=exec,passthru,shell_exec,system,popen', '/opt/dnr/bin/process_receipt_previews.php'],
+        [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+    expectReimbursement(is_resource($worker) && proc_close($worker) === 0, 'Isolated receipt worker backfills an existing receipt with a thumbnail');
+    $reportKey = $conn->execute_query('SELECT report_key FROM reimbursement_receipts WHERE id=?', [$receiptId])->fetch_row()[0];
+    expectReimbursement(is_string($reportKey) && $reportKey !== $key, 'Worker creates a separate compatible receipt');
+    require_once $source . '/file_storage_maintenance_helpers.php';
+    $references = $conn->query(persistentFileReferenceSql())->fetch_all(MYSQLI_ASSOC);
+    expectReimbursement(in_array($reportKey, array_column($references, 'storage_key'), true), 'File maintenance retains report derivatives');
     foreach (['pdf' => '%PDF-', 'zip' => "PK\x03\x04"] as $format => $signature) {
         $download = $editor('download_reimbursement.php?id=' . $requestId . '&format=' . $format);
         expectReimbursement($download['status'] === 200 && str_starts_with($download['body'], $signature), strtoupper($format) . ' export must succeed');
+        if ($format === 'pdf') {
+            $reader = new \setasign\Fpdi\Tcpdf\Fpdi();
+            expectReimbursement($reader->setSourceFile(\setasign\Fpdi\PdfParser\StreamReader::createByString($download['body'])) === 5, 'Report retains both compressed receipt pages');
+        }
         if ($format === 'zip') {
             $tmp = tempnam(sys_get_temp_dir(), 'reimburse-zip-'); file_put_contents($tmp, $download['body']);
             $zip = new ZipArchive(); $zip->open($tmp);

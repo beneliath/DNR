@@ -46,8 +46,9 @@ try {
         JOIN reimbursement_cost_centers c ON c.id = e.cost_center_id
         WHERE ri.request_id = ? ORDER BY expense_date, ri.expense_id', [$id])->fetch_all(MYSQLI_ASSOC);
     if (!$items) { http_response_code(409); exit('Add an expense to this request before downloading a report or package.'); }
-    $receiptRows = $conn->execute_query('SELECT rr.*, sf.size, sf.checksum FROM reimbursement_receipts rr
+    $receiptRows = $conn->execute_query('SELECT rr.*, sf.size, sf.checksum, rf.size AS report_size, rf.checksum AS report_checksum FROM reimbursement_receipts rr
         JOIN stored_files sf ON sf.storage_key = rr.storage_key
+        LEFT JOIN stored_files rf ON rf.storage_key = rr.report_key
         JOIN reimbursement_request_items ri ON ri.expense_id = rr.expense_id
         WHERE ri.request_id = ? ORDER BY rr.expense_id, rr.id', [$id])->fetch_all(MYSQLI_ASSOC);
     reimbursementReceiptsReady($receiptRows);
@@ -78,6 +79,15 @@ try {
         header('X-Content-Type-Options: nosniff');
         readfile($temporary);
     } finally { unlink($temporary); }
+} catch (ReimbursementReceiptPdfException $e) {
+    applicationLog('error', 'Unable to export reimbursement request', ['request_id' => $id, 'error' => $e->getMessage()]);
+    if (!headers_sent()) {
+        http_response_code(422);
+        header('Content-Type: text/plain; charset=UTF-8');
+        header('Cache-Control: private, no-store');
+        header('X-Content-Type-Options: nosniff');
+        exit($e->getMessage());
+    }
 } catch (Throwable $e) {
     applicationLog('error', 'Unable to export reimbursement request', ['request_id' => $id, 'error' => $e->getMessage()]);
     if (!headers_sent()) { http_response_code(503); exit('Unable to prepare the reimbursement package.'); }

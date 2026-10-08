@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/reimbursement_helpers.php';
 
 require_once __DIR__ . '/engagement_pdf.php';
+require_once __DIR__ . '/reimbursement_pdf_receipt_helpers.php';
 
 /** Match the shared report typography without converting labels to uppercase. */
 function reimbursementPdfHeading(DnrEngagementPdf $pdf, string $label): void
@@ -94,7 +95,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
             $path = persistentFilePath($receipt['storage_key']);
             if ($receipt['content_type'] === 'application/pdf') {
                 try {
-                    $pageCount = $pdf->setSourceFile($path);
+                    $pageCount = reimbursementPdfReceiptPageCount($pdf, $receipt);
                     if ($pageCount < 1) throw new \setasign\Fpdi\FpdiException('The PDF has no pages.');
                     for ($pageNumber = 1; $pageNumber <= $pageCount; $pageNumber++) {
                         $pdf->AddPage();
@@ -110,8 +111,8 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
                         $pdf->useTemplate($template, ($pdf->GetPageWidth() - $width) / 2, $imageTop, $width);
                     }
                 } catch (\setasign\Fpdi\FpdiException $error) {
-                    throw new InvalidArgumentException('Receipt ' . reimbursementReceiptPackageFilename($receipt)
-                        . ' cannot be included in the report. Upload an unprotected PDF copy.', 0, $error);
+                    throw new ReimbursementReceiptPdfException('Receipt ' . reimbursementReceiptPackageFilename($receipt)
+                        . ' could not be included in the report. Save a new PDF copy of this receipt and replace the attachment, then try again.', 0, $error);
                 }
                 continue;
             }

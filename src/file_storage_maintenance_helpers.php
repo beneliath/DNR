@@ -15,6 +15,7 @@ function persistentFileReferenceSql(): string
         UNION SELECT storage_key FROM document_scan_jobs
         UNION SELECT storage_key FROM reimbursement_receipts
         UNION SELECT thumbnail_key FROM reimbursement_receipts WHERE thumbnail_key IS NOT NULL
+        UNION SELECT report_key FROM reimbursement_receipts WHERE report_key IS NOT NULL
         UNION SELECT attachment_key FROM reimbursement_submissions
         UNION SELECT attachment_key FROM reimbursement_email_deliveries';
 }
