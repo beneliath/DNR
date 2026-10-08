@@ -70,6 +70,12 @@ html body .record-section-links [role="tab"]:focus-visible {
 }
 .contact-affiliations legend { padding-inline: 6px; font-weight: 650; }
 .contact-affiliations > p { margin-top: 0; }
+/* Preserve the enhanced layout while deferred handlers are loading. */
+html.has-js body .contact-affiliations :is(.contact-affiliation-actions button, [data-add-affiliation])[hidden] {
+    display: inline-flex !important;
+    visibility: hidden;
+}
+html:not(.has-js) .contact-affiliations [data-relationship-search-input] { display: none; }
 .contact-affiliation-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;

@@ -7,8 +7,10 @@
         const kind = select.dataset?.contactSearch !== undefined ? 'contact' : 'organization';
         // Reuse server-rendered or cloned search controls. Cloning does not
         // copy listeners, so each new selector still needs its own binding.
-        const existingInput = select.previousElementSibling?.matches?.('[data-relationship-search-input]')
-            ? select.previousElementSibling : null;
+        const existingInput = (select.dataset?.relationshipSearchInputId
+            ? document.getElementById(select.dataset.relationshipSearchInputId) : null)
+            || (select.previousElementSibling?.matches?.('[data-relationship-search-input]')
+                ? select.previousElementSibling : null);
         const existingStatus = select.nextElementSibling?.matches?.('[data-relationship-search-status]')
             ? select.nextElementSibling : null;
         const input = existingInput || document.createElement('input');
