@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +23,27 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_resume_preserves_unpublished_version_and_rejects_published_or_wrong_versions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'VERSION').write_text('2.5.1\n')
+            args = SimpleNamespace(resume_version='2.5.1', bump='minor', plugin_bump=None)
+            def git(*command):
+                return {'origin/main:VERSION': '2.5.1', 'deployed:VERSION': '2.5.0'}.get(command[-1], '')
+            with patch.object(release_s1, 'ROOT', root), patch.object(release_s1, 'git', side_effect=git), patch.object(release_s1, 'run') as run:
+                release_s1.prepare_version(args, 'deployed')
+                run.assert_called_once_with(['scripts/prepare_release', 'check', '--base-ref', 'deployed'])
+                args.resume_version = '2.5.2'
+                with self.assertRaisesRegex(ValueError, 'same prepared version'):
+                    release_s1.prepare_version(args, 'deployed')
+                args.resume_version = '2.5.1'
+                with patch.object(release_s1, 'git', side_effect=lambda *c: 'published' if c[0] == 'ls-remote' else git(*c)):
+                    with self.assertRaisesRegex(ValueError, 'already published'):
+                        release_s1.prepare_version(args, 'deployed')
+                args.bump = 'major'
+                with self.assertRaisesRegex(ValueError, 'requested bump'):
+                    release_s1.prepare_version(args, 'deployed')
+
     def test_qualification_only_retains_release_without_deploying(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

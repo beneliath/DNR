@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/document_scanning_helpers.php';
+require_once __DIR__ . '/reimbursement_pdf_receipt_helpers.php';
 
 /** One leased receipt per iteration. No locks are held during the scanner call. */
 function processReimbursementReceiptScan(mysqli $conn): bool

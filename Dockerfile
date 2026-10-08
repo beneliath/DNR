@@ -22,7 +22,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev zlib1g-dev openssh-client util-linux poppler-utils \
+        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev zlib1g-dev openssh-client util-linux poppler-utils qpdf \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli zip \
     && a2enmod headers proxy proxy_http deflate expires rewrite \
@@ -30,7 +30,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && apt-mark auto '.*' >/dev/null \
     && apt-mark manual $dnr_saved_apt_mark \
-    && apt-mark manual openssh-client util-linux poppler-utils \
+    && apt-mark manual openssh-client util-linux poppler-utils qpdf \
     && apt-mark auto $PHPIZE_DEPS \
     && find /usr/local/lib/php/extensions -type f -name '*.so' -exec ldd '{}' ';' \
         | awk '/=>/ { library = $(NF - 1); if (index(library, "/usr/local/") == 1) next; sub("^/(usr/)?", "", library); print library }' \

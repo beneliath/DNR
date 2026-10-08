@@ -107,6 +107,32 @@ def guide_changed_since(commit):
     return result.returncode == 1 or bool(untracked_or_modified)
 
 
+def prepare_version(args, deployed):
+    if not args.resume_version:
+        command = ['scripts/prepare_release', args.bump, '--base-ref', 'origin/main']
+        if args.plugin_bump:
+            command += ['--plugin-bump', args.plugin_bump]
+        run(command)
+        return
+    # A paused release may already be merged but not tagged or deployed. Keep
+    # its version while qualifying a follow-up fix through the full PR workflow.
+    version = (ROOT / 'VERSION').read_text().strip()
+    if args.plugin_bump or version != args.resume_version or git('show', 'origin/main:VERSION') != version:
+        raise ValueError('Resume requires the same prepared version on main, without a plugin bump')
+    previous = git('show', deployed + ':VERSION')
+    parts = list(map(int, previous.split('.')))
+    index = {'super': 0, 'major': 1, 'minor': 2}[args.bump]
+    parts[index] += 1
+    for following in range(index + 1, 3):
+        parts[following] = 0
+    if version != '.'.join(map(str, parts)):
+        raise ValueError('Resume version must be the requested bump from the deployed release')
+    for remote in EXPECTED_REMOTES:
+        if git('ls-remote', '--tags', remote, 'refs/tags/v' + version):
+            raise ValueError('Cannot resume an already published version: ' + version)
+    run(['scripts/prepare_release', 'check', '--base-ref', deployed])
+
+
 def verify_guide_if_changed(commit):
     if not guide_changed_since(commit):
         milestone('Comprehensive Guide unchanged since the deployed revision')
@@ -239,6 +265,7 @@ def parse_args(argv=None):
     parser.add_argument('bump', choices=('minor', 'major', 'super'))
     parser.add_argument('--summary', required=True, help='Concise release behavior for the commit and PR')
     parser.add_argument('--plugin-bump', choices=('minor', 'major', 'super'))
+    parser.add_argument('--resume-version', help='Continue an already merged, untagged version after an interruption')
     parser.add_argument('--ci-timeout-minutes', type=int, default=90)
     parser.add_argument('--plan', action='store_true', help='Validate local configuration and print the bounded stages')
     parser.add_argument('--qualify-only', action='store_true',
@@ -248,6 +275,8 @@ def parse_args(argv=None):
         parser.error('--ci-timeout-minutes must be between 10 and 180')
     if not args.summary.strip() or '\n' in args.summary:
         parser.error('--summary must be one non-empty line')
+    if args.resume_version and not re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', args.resume_version):
+        parser.error('--resume-version must be x.y.z')
     return args
 
 
@@ -282,10 +311,7 @@ def main(argv=None):
         if not succeeds(['git', 'merge-base', '--is-ancestor', 'origin/main', 'HEAD']):
             raise ValueError('Update the release branch to include current origin/main')
         deployed = deployed_commit()
-        prepare = ['scripts/prepare_release', args.bump, '--base-ref', 'origin/main']
-        if args.plugin_bump:
-            prepare += ['--plugin-bump', args.plugin_bump]
-        run(prepare)
+        prepare_version(args, deployed)
         verify_guide_if_changed(deployed)
         run(['git', 'diff', '--check'])
         version = (ROOT / 'VERSION').read_text().strip()
