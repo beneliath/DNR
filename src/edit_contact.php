@@ -483,6 +483,8 @@ try {
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+        <!-- Enter in a contact field saves the contact, not the later Chron action. -->
+        <button type="submit" name="save_contact" value="1" hidden>Save Changes</button>
 
         <div class="form-group">
             <label for="organization_id">Primary Organization</label>

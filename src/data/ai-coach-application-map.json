@@ -1195,7 +1195,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "dce524884686ff6865dd6bce385d1fe2060301790373bf7eef141056c0a4196f",
+      "sha256": "e5d1b28ba14ced1bcce3f8801a5286606c539c9d90966edacd4d8e91dc6ea835",
       "controls": [
         {
           "kind": "a",
@@ -1205,6 +1205,11 @@
         {
           "kind": "h1",
           "label": "Edit Contact"
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes",
+          "name": "save_contact"
         },
         {
           "kind": "label",

@@ -6,22 +6,6 @@
         html body .add-contact-page input[data-relationship-search-input] {
             margin-bottom: 12px;
         }
-        .add-contact-page .contact-affiliation-row .form-group {
-            margin-bottom: 0;
-        }
-        .add-contact-page .contact-affiliation-row [data-relationship-search-status]:empty {
-            display: none;
-        }
-        .add-contact-page .contact-affiliation-row :is(select, input[data-affiliation-role]) {
-            height: 44px;
-            min-height: 44px;
-            margin-bottom: 0;
-        }
-        html body .add-contact-page .contact-affiliation-actions button {
-            height: 44px !important;
-            min-height: 44px !important;
-            margin-block: 0;
-        }
         .add-contact-heading h1 {
             font-size: clamp(1.8rem, 3vw, 2.3rem);
         }
