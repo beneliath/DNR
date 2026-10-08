@@ -33,6 +33,9 @@ def main():
     containers=[];networks=[]
     with tempfile.TemporaryDirectory(prefix=prefix) as temporary:
         directory=Path(temporary)
+        # Linux bind mounts retain mkdtemp's 0700 mode; Apache must be able
+        # to traverse this directory containing only synthetic TLS fixtures.
+        directory.chmod(0o755)
         try:
             existing=run(['docker','network','ls','-q']).split()
             subnets=allocate_test_networks(json.loads(run(['docker','network','inspect',*existing])))
