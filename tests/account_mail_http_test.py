@@ -28,7 +28,7 @@ def php(project, code, worker=False):
         encoded = base64.b64encode(password).decode()
         prefix = "putenv('MYSQL_PASSWORD_FILE'); putenv('MYSQL_USER=dnrmailingest'); putenv('MYSQL_PASSWORD='.base64_decode('" + encoded + "')); "
     result = subprocess.run(['docker', 'exec', '-i', project + '-web-1', 'php'],
-        input="<?php " + prefix + "require '/var/www/html/bootstrap.php'; require '/var/www/html/inbound_ingestion_helpers.php'; " + code,
+        input="<?php " + prefix + "require '/var/www/html/bootstrap.php'; require_once '/var/www/html/two_factor_helpers.php'; require '/var/www/html/inbound_ingestion_helpers.php'; " + code,
         text=True, capture_output=True)
     if result.returncode:
         raise RuntimeError((result.stderr + result.stdout)[:1800])
