@@ -64,19 +64,15 @@ if ($shell_current_page === 'restore_entity_chron_entries.php'
 $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
-$authenticated_user_role = (string) ($_SESSION['authenticated_role'] ?? $user_role);
 $authenticated_superadmin = authenticatedSuperAdmin();
 $admin_unlock_expires_at = !empty($_SESSION['user_id']) && $user_role === 'admin'
     ? adminElevationExpiresAt()
     : null;
-$role_preview = $authenticated_user_role === 'admin'
-    && (in_array($user_role, ['editor', 'reviewer'], true)
-        || ($authenticated_superadmin && ($_SESSION['_role_preview'] ?? null) === 'admin'))
+$role_preview = $authenticated_superadmin
+    && in_array($_SESSION['_role_preview'] ?? null, ['admin', 'editor', 'reviewer'], true)
         ? $user_role
         : null;
 $role_preview_label = $role_preview === 'admin' ? 'Administrator' : ($role_preview === null ? '' : ucfirst($role_preview));
-$role_preview_restore_role = $authenticated_superadmin ? 'superadmin' : 'admin';
-$role_preview_restore_label = $authenticated_superadmin ? 'SuperAdmin' : 'Administrator';
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
@@ -185,9 +181,9 @@ if (!empty($_SESSION['user_id'])) {
             </div>
             <form method="post" action="role_preview.php" class="role-preview-return-form">
                 <?php echo csrfInput(); ?>
-                <input type="hidden" name="role" value="<?php echo $role_preview_restore_role; ?>">
+                <input type="hidden" name="role" value="superadmin">
                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit">Return to <?php echo $role_preview_restore_label; ?></button>
+                <button type="submit">Return to SuperAdmin</button>
             </form>
         </section>
     <?php endif; ?>
@@ -286,6 +282,7 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="reimbursement_setup.php" class="nav-link admin-nav-link<?php echo $active_nav === 'reimbursement_setup' ? ' active' : ''; ?>"<?php echo $active_nav === 'reimbursement_setup' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Reimbursement Setup</span>
                         </a></li>
+                        <?php if (isSuperAdmin()): ?>
                         <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled()): ?>
                         <li><a href="ai_coach_requests.php" class="nav-link admin-nav-link<?php echo $active_nav === 'ai_coach' ? ' active' : ''; ?>"<?php echo $active_nav === 'ai_coach' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>AI Coach Requests</span>
@@ -294,12 +291,13 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="network_diagnostics.php" class="nav-link admin-nav-link<?php echo $active_nav === 'network' ? ' active' : ''; ?>"<?php echo $active_nav === 'network' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Network</span>
                         </a></li>
+                        <?php endif; ?>
                     </ul>
                 </details>
                 <?php endif; ?>
             </nav>
 
-            <?php if ($authenticated_user_role === 'admin'): ?>
+            <?php if ($authenticated_superadmin): ?>
                 <details class="role-preview-disclosure">
                 <summary id="role-preview-label">Preview Access</summary>
                 <form method="post" action="role_preview.php" class="role-preview-control">
@@ -307,10 +305,10 @@ if (!empty($_SESSION['user_id'])) {
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="role-preview-fields">
                         <select name="role" id="role-preview-role" aria-labelledby="role-preview-label">
-                            <?php if ($authenticated_superadmin): ?>
+                            <?php if ($role_preview !== 'admin'): ?>
                             <option value="superadmin"<?php echo $role_preview === null ? ' selected' : ''; ?>>SuperAdmin</option>
                             <?php endif; ?>
-                            <option value="admin"<?php echo $role_preview === 'admin' || (!$authenticated_superadmin && $role_preview === null) ? ' selected' : ''; ?>>Administrator</option>
+                            <option value="admin"<?php echo $role_preview === 'admin' ? ' selected' : ''; ?>>Administrator</option>
                             <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
                             <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>
                         </select>

@@ -935,14 +935,14 @@ function isLoggedIn() {
 
 /**
  * Return the role assigned to the signed-in account, independent of an active
- * administrator role preview.
+ * SuperAdmin role preview.
  */
 function authenticatedRole() {
     return (string) ($_SESSION['authenticated_role'] ?? $_SESSION['role'] ?? '');
 }
 
 /**
- * Normalize the only roles an administrator may preview.
+ * Normalize the only roles a SuperAdmin may preview.
  */
 function rolePreviewRole($role) {
     if (!is_scalar($role)) {
@@ -954,29 +954,25 @@ function rolePreviewRole($role) {
 }
 
 function activeRolePreview() {
-    if (authenticatedRole() !== 'admin') {
+    if (!authenticatedSuperAdmin()) {
         return null;
     }
 
-    $role = rolePreviewRole($_SESSION['_role_preview'] ?? null);
-    return $role === 'admin' && !authenticatedSuperAdmin() ? null : $role;
+    return rolePreviewRole($_SESSION['_role_preview'] ?? null);
 }
 
 /**
- * Apply or stop an administrator role preview. Authorization checks continue
+ * Apply or stop a SuperAdmin role preview. Authorization checks continue
  * to read $_SESSION['role'], so existing page and action guards exercise the
  * selected role exactly as they do for that type of account.
  */
 function setRolePreview($role) {
-    if (authenticatedRole() !== 'admin' || !is_scalar($role)) {
+    if (!authenticatedSuperAdmin() || !is_scalar($role)) {
         return false;
     }
 
     $role = (string) $role;
-    if ($role === 'superadmin' && !authenticatedSuperAdmin()) {
-        return false;
-    }
-    if ($role === 'superadmin' || ($role === 'admin' && !authenticatedSuperAdmin())) {
+    if ($role === 'superadmin') {
         unset($_SESSION['_role_preview']);
         $_SESSION['role'] = 'admin';
         return true;
@@ -1096,11 +1092,8 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'account_settings.php',
         'admin_elevation.php',
         'audit_log.php',
-        'ai_coach_requests.php',
-        'ai_coach_improvements.php',
         'database_maintenance.php',
         'edit_user.php',
-        'network_diagnostics.php',
         'reimbursement_setup.php',
         'operations.php',
         'record_merge.php',
@@ -1114,7 +1107,10 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         || ($role === 'editor' && in_array($page, $editor_pages, true))
         || (in_array($role, ['superadmin', 'admin'], true)
             && (in_array($page, $editor_pages, true) || in_array($page, $administrator_pages, true)))
-        || ($role === 'superadmin' && in_array($page, ['accounts.php', 'mail_review.php'], true));
+        || ($role === 'superadmin' && in_array($page, [
+            'accounts.php', 'mail_review.php', 'ai_coach_requests.php',
+            'ai_coach_improvements.php', 'network_diagnostics.php',
+        ], true));
     if ($page === 'database_maintenance.php' && accountIsPrimary() && $role !== 'superadmin') {
         $allowed = false;
     }

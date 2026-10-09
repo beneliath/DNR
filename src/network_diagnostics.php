@@ -6,7 +6,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/network_diagnostics_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
-requireAdmin();
+requireSuperAdmin();
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 

@@ -26,7 +26,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
 {
     $pdf = new DnrEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
     $pdf->SetCreator(applicationBrandName());
-    $pdf->SetAuthor($setup['organization_name'] !== '' ? $setup['organization_name'] : applicationBrandName());
+    $pdf->SetAuthor($setup['account_name']);
     $pdf->SetTitle('Reimbursement Request ' . $request['request_hash']);
     $pdf->setEngagementTitle('Expense Report - ' . $request['request_hash']);
     $pdf->setDocumentLabel('Expense Report', false);
@@ -43,7 +43,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
     $bookkeeperDetails = array_filter([$bookkeeper, $setup['bookkeeper_email'], formatPhoneNumberForDisplay($setup['bookkeeper_phone'])], static fn($value) => $value !== '');
     $pdf->SetFont('dejavusans', '', 10);
     $pdf->SetTextColor(102, 112, 133);
-    $pdf->MultiCell(0, 6, $setup['organization_name'], 0, 'L');
+    $pdf->MultiCell(0, 6, $setup['account_name'], 0, 'L');
     $pdf->Ln(4);
     $pdf->SetFont('dejavusans', '', 9);
     $pdf->SetTextColor(23, 32, 51);

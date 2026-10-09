@@ -5,7 +5,7 @@ require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/ai_coach_improvement_helpers.php';
 require_once __DIR__ . '/ai_coach_feedback_helpers.php';
 startSecureSession();
-requireAdmin();
+requireSuperAdmin();
 header('Cache-Control: private, no-store');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if (!in_array($method, ['GET','POST'], true)) { header('Allow: GET, POST'); http_response_code(405); exit; }

@@ -96,11 +96,12 @@ expectHeaderScope(
     'Desktop and mobile brand links should return to the daily dashboard.'
 );
 expectHeaderScope(
-    substr_count($header_markup, 'class="nav-link admin-nav-link') === 5
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 4
         && str_contains($header_markup, '<span>Admin Unlock</span>')
         && str_contains($header_markup, '<span>Users</span>')
         && str_contains($header_markup, '<span>Database</span>')
-        && str_contains($header_markup, '<span>Network</span>')
+        && !str_contains($header_markup, '<span>Network</span>')
+        && !str_contains($header_markup, '<span>AI Coach Requests</span>')
         && str_contains($header_markup, '<span>Reimbursement Setup</span>'),
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
@@ -136,13 +137,9 @@ foreach ([
 unset($_SESSION['user_id'], $request_reminder_counts);
 
 expectHeaderScope(
-    str_contains($header_markup, 'class="role-preview-control"')
-        && str_contains($header_markup, '<option value="editor">Editor</option>')
-        && str_contains($header_markup, '<option value="reviewer">Reviewer</option>')
-        && str_contains($header_markup, 'name="return_to" value="contacts.php?status=archived&amp;cursor=example"')
-        && !str_contains($header_markup, 'role-preview-help')
+    !str_contains($header_markup, 'class="role-preview-control"')
         && !str_contains($header_markup, 'data-role-preview-banner'),
-    'Administrators should be able to choose an access preview without seeing a false active-preview banner.'
+    'Ordinary administrators must not see preview controls or a preview banner.'
 );
 
 foreach (['editor', 'reviewer'] as $non_admin_role) {
@@ -160,10 +157,13 @@ foreach (['editor', 'reviewer'] as $non_admin_role) {
     );
 }
 
+putenv('DNR_ACCOUNTS_ENABLED=1');
 $_SESSION = [
     'username' => 'Test User',
     'role' => 'reviewer',
     'authenticated_role' => 'admin',
+    'is_superadmin' => true,
+    'auth_complete' => true,
     '_role_preview' => 'reviewer',
 ];
 ob_start();
@@ -174,11 +174,11 @@ expectHeaderScope(
         && str_contains($reviewer_preview_markup, '<strong>Viewing as Reviewer</strong>')
         && str_contains($reviewer_preview_markup, 'Actions still affect live data.')
         && preg_match(
-            '/class="role-preview-return-form".*name="role" value="admin".*name="return_to" value="contacts\.php\?status=archived&amp;cursor=example".*>Return to Administrator<\/button>/s',
+            '/class="role-preview-return-form".*name="role" value="superadmin".*name="return_to" value="contacts\.php\?status=archived&amp;cursor=example".*>Return to SuperAdmin<\/button>/s',
             $reviewer_preview_markup
         ) === 1
-        && str_contains($reviewer_preview_markup, '>Return to Administrator</button>'),
-    'Reviewer preview should show a persistent warning and return to the current page with Administrator access.'
+        && str_contains($reviewer_preview_markup, '>Return to SuperAdmin</button>'),
+    'Reviewer preview should show a persistent warning and return to the current page with SuperAdmin access.'
 );
 expectHeaderScope(
     !str_contains($reviewer_preview_markup, '<span>Inbox</span>')
@@ -193,6 +193,8 @@ $_SESSION = [
     'username' => 'Test User',
     'role' => 'editor',
     'authenticated_role' => 'admin',
+    'is_superadmin' => true,
+    'auth_complete' => true,
     '_role_preview' => 'editor',
 ];
 ob_start();
@@ -206,6 +208,21 @@ expectHeaderScope(
         && !str_contains($editor_preview_markup, '<span>Network</span>'),
     'Editor preview should retain Editor navigation while hiding Administrator-only areas.'
 );
+$_SESSION['role'] = $_SESSION['_role_preview'] = 'admin';
+ob_start();
+include __DIR__ . '/../src/templates/header.php';
+$admin_preview_markup = ob_get_clean();
+expectHeaderScope(
+    str_contains($admin_preview_markup, '<strong>Viewing as Administrator</strong>')
+        && str_contains($admin_preview_markup, '<span>Users</span>')
+        && str_contains($admin_preview_markup, 'class="role-preview-control"')
+        && !str_contains($admin_preview_markup, '<option value="superadmin"')
+        && str_contains($admin_preview_markup, '>Return to SuperAdmin</button>')
+        && !str_contains($admin_preview_markup, '<span>Network</span>')
+        && !str_contains($admin_preview_markup, '<span>AI Coach Requests</span>'),
+    'Administrator preview keeps account administration and the return control but hides SuperAdmin views.'
+);
+putenv('DNR_ACCOUNTS_ENABLED');
 expectHeaderScope(
     str_contains($header_markup, 'href="help.php"')
         && str_contains($header_markup, '<span>User Manual</span>'),

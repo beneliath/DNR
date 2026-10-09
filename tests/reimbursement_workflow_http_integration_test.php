@@ -63,6 +63,8 @@ try {
     $setupVersion = (int) $conn->query('SELECT version FROM reimbursement_setup WHERE id=1')->fetch_row()[0];
     expectReimbursement($setupPage['status'] === 200
         && str_contains($setupPage['body'], 'name="version" value="' . $setupVersion . '"')
+        && !str_contains($setupPage['body'], 'name="organization_name"')
+        && str_contains($setupPage['body'], 'Account Name:')
         && !preg_match('/(?:Warning|Notice|Fatal error):|Undefined array key/', $setupPage['body']),
         'Setup renders its saved version without PHP diagnostics corrupting the hidden input');
     $conn->execute_query('INSERT INTO reimbursement_cost_centers (coa_number, description) VALUES (?, ?)', ['TEST-' . $suffix, 'Workflow fixture']);
@@ -359,7 +361,7 @@ try {
     expectReimbursementRejected(fn()=>deleteReimbursementExpense($conn,$expenseId),'Submitted expense remains linked and undeletable');
     $originalPackage=$editor('download_reimbursement.php?id='.$requestId.'&format=zip');
     expectReimbursement(hash('sha256',$originalPackage['body'])===hash('sha256',$attachment['data']),'Submitted package is byte-identical to approved attachment');
-    $conn->execute_query('UPDATE reimbursement_setup SET organization_name=? WHERE id=1',['Changed after submission']);
+    $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_first_name=? WHERE id=1',['Changed after submission']);
     $conn->execute_query('UPDATE users SET first_name=? WHERE id=?',['Changed',$users['editor']]);
     expectReimbursement($editor('download_reimbursement.php?id='.$requestId.'&format=zip')['body']===$originalPackage['body'],'Settings/profile changes do not rewrite original package');
     $originalReport=$editor('download_reimbursement.php?id='.$requestId.'&format=pdf');
@@ -403,7 +405,7 @@ try {
     echo "Reimbursement workflow: {$checks} assertions passed.\n";
 } finally {
     foreach ($deliveryIds as $deliveryId) $conn->execute_query('DELETE FROM reimbursement_email_deliveries WHERE id = ?', [$deliveryId]);
-    if ($originalSetup) $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_email = ?, cc_email = ?, reviewer_email = ? WHERE id = 1', [$originalSetup['bookkeeper_email'], $originalSetup['cc_email'], $originalSetup['reviewer_email']]);
+    if ($originalSetup) $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_email = ?, cc_email = ?, reviewer_email = ?, bookkeeper_first_name = ? WHERE id = 1', [$originalSetup['bookkeeper_email'], $originalSetup['cc_email'], $originalSetup['reviewer_email'], $originalSetup['bookkeeper_first_name']]);
     foreach ($users as $user) {
         if ($conn->execute_query("SELECT id FROM reimbursement_requests WHERE user_id=? AND status='submitted' LIMIT 1",[$user])->fetch_row()) continue;
         $conn->execute_query('DELETE FROM reimbursement_requests WHERE user_id = ?', [$user]);

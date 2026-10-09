@@ -557,7 +557,7 @@
       ]
     },
     "ai_coach_improvements.php": {
-      "sha256": "a3e2e6bc14822f7347166ed3f6a00b657dad9dfac5f58329875db543c5e557d1",
+      "sha256": "9b6ebb18a29a5a953e1d71dfc3aca2279fbbec8fa25f977da3adeb48f94025cc",
       "controls": [
         {
           "kind": "h1",
@@ -2599,7 +2599,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "82322c1810408135f97e0328f3db78bf7e77bc78b381870503326a1c54aee5f5",
+      "sha256": "6cf7f6faad4cf1f0a0c54027da6ed76f48e3fa0c39604ca52a645d80b20ca098",
       "controls": [
         {
           "kind": "h1",
@@ -3360,15 +3360,16 @@
       ]
     },
     "reimbursement_setup.php": {
-      "sha256": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe",
+      "sha256": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf",
       "controls": [
         {
           "kind": "h1",
           "label": "Reimbursement Setup"
         },
         {
-          "kind": "label",
-          "label": "Organization Name"
+          "kind": "a",
+          "label": "Edit in Account Settings",
+          "href": "account_settings.php"
         },
         {
           "kind": "label",

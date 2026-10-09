@@ -14,14 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 requireValidCsrfToken();
 
-if (authenticatedRole() !== 'admin') {
+// Check identity eligibility so a SuperAdmin can also leave a restricted preview.
+if (!authenticatedSuperAdmin()) {
     http_response_code(403);
     exit('Forbidden.');
 }
 
 $requested_role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
 $requested_return_url = $_POST['return_to'] ?? 'dashboard.php';
-$assigned_role = authenticatedSuperAdmin() ? 'superadmin' : 'admin';
+$assigned_role = 'superadmin';
 $role_labels = ['superadmin' => 'SuperAdmin', 'admin' => 'Administrator', 'editor' => 'Editor', 'reviewer' => 'Reviewer'];
 $previous_role = activeRolePreview() ?? $assigned_role;
 if (!setRolePreview($requested_role)) {

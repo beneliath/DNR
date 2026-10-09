@@ -106,6 +106,14 @@ try {
     coachHttpExpect($http($statusPath)['status'] === 404, 'Current role cannot recover answers created with higher access');
     $conn->execute_query("UPDATE ai_coach_requests SET user_role='editor' WHERE id=?", [$record['id']]);
     $conn->execute_query("UPDATE users SET role='admin' WHERE id=?", [$uid]);
+    coachHttpExpect($http('ai_coach_requests.php')['status'] === 403, 'Account administrators cannot read request history');
+    coachHttpExpect($http('ai_coach_improvements.php?source=' . $record['id'])['status'] === 403, 'Account administrators cannot read requests through improvements');
+    coachHttpExpect($http('ai_coach_requests.php', ['action' => 'prepare_clear'], $csrf)['status'] === 403, 'Account administrators cannot clear requests');
+    if (!accountsEnabled()) {
+        echo "Coach HTTP inference and access checks passed; SuperAdmin review coverage requires an Account-enabled disposable server.\n";
+        return;
+    }
+    $conn->execute_query('UPDATE users SET is_superadmin=1 WHERE id=?', [$uid]);
     $list = $http('ai_coach_requests.php');
     coachHttpExpect($list['status'] === 200 && str_contains($list['body'], '<th scope="col">User</th>')
         && str_contains($list['body'], htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'))

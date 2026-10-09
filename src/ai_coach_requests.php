@@ -7,7 +7,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/ai_coach_improvement_helpers.php';
 startSecureSession();
-requireAdmin();
+requireSuperAdmin();
 header('Cache-Control: private, no-store');
 header('Pragma: no-cache');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -129,7 +129,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
         <?php endif; ?>
     </div>
     <p><a class="button-secondary" href="ai_coach_improvements.php">Guidance Improvements</a></p>
-    <p>Administrator access only. Ratings, failed answers, and slow responses enter the feedback review queue. Verified improvements are tested before reuse; ratings do not directly train the model.</p>
+    <p>SuperAdmin access only. Ratings, failed answers, and slow responses enter the feedback review queue. Verified improvements are tested before reuse; ratings do not directly train the model.</p>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo $escape($error); ?></p><?php endif; ?>
     <?php if (is_int($deletedId)): ?><p class="success" role="status">Request #<?php echo $deletedId; ?> deleted.</p><?php endif; ?>
     <?php if ($deleteConfirmation !== null): ?>

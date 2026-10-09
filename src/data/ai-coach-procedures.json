@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
-        "templates/header.php": "cd1c787dca4efc1d8645be64336ee8d7acddd5f64ed9bfcd936a07d6dd5a95a3"
+        "templates/header.php": "bdd743934cd20b49c9b0cd5bed8414c5a9f827e78fa4a2236d52ada5275f6787"
       },
       "subjects": [
         "password"
@@ -1132,7 +1132,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "66727f541733efb3ed7e315e6b9d4219ae9d8cc2bd674429b4466016b27b86db",
+        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
         "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
         "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
         "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
@@ -1190,12 +1190,12 @@
       ],
       "steps": [
         "Open Reimbursement Setup under Administration in the sidebar.",
-        "Enter the organization and bookkeeper details, Cc Email Address, and Bcc Email Address.",
+        "Enter the bookkeeper details, Cc Email Address, and Bcc Email Address. The Account Name comes from Account Settings.",
         "Unlock administrator actions and select Save Reimbursement Setup. These settings apply to future submissions; recovery sends the original approved message."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_setup.php": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe"
+        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
       },
       "subjects": [
         "reimbursement",
@@ -1328,7 +1328,7 @@
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "2facfdfae99bf82819a485391626111b9d9642fd2bee91378a1b3245db9e9b1d"
+        "functions.php": "a150e7753b8c4913db5132154cf3d4ec10acd80bd7afd0745ee958ede29b5e83"
       }
     },
     {
@@ -1356,7 +1356,7 @@
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "2facfdfae99bf82819a485391626111b9d9642fd2bee91378a1b3245db9e9b1d",
+        "functions.php": "a150e7753b8c4913db5132154cf3d4ec10acd80bd7afd0745ee958ede29b5e83",
         "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
         "assets/js/footer.js": "03b04bf3b546350aa5e1c6511e69f2b7ecf41a85276860f37dd4037e9e7d5473",
         "admin_elevation.php": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672",

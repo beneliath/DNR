@@ -321,7 +321,7 @@
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "reimbursement_helpers.php": "b953b13eff1681c5733e790528acc2d6fbcfa0935fdb28e5570d869596dd527f"
+        "reimbursement_helpers.php": "c06dafb71e99a6976f1294869d21bb6eab9bf81db092d4b5abc48e5f6a1e6d19"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -441,7 +441,7 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "66727f541733efb3ed7e315e6b9d4219ae9d8cc2bd674429b4466016b27b86db",
+        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
         "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
       },
       "controls": {
@@ -465,7 +465,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe"
+        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
       },
       "controls": {
         "reimbursement-bookkeeper": {

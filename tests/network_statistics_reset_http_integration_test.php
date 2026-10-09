@@ -71,20 +71,22 @@ try {
     expectNetworkReset($request($path, ['action' => 'reset_statistics'])['status'] === 302
         && $sampleCount() === 4, 'Anonymous requests cannot reset statistics.');
 
-    foreach (['editor', 'reviewer', 'admin'] as $role) {
+    foreach (accountsEnabled() ? ['editor', 'reviewer', 'admin', 'superadmin'] : ['editor', 'reviewer', 'admin'] as $role) {
         $name = 'network-reset-' . bin2hex(random_bytes(5));
         $password = 'NetworkReset!' . bin2hex(random_bytes(8));
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare('INSERT INTO users (username,password,role) VALUES (?,?,?)');
-        $stmt->bind_param('sss', $name, $hash, $role);
+        $assignedRole = $role === 'superadmin' ? 'admin' : $role;
+        $stmt->bind_param('sss', $name, $hash, $assignedRole);
         $stmt->execute();
         $userId = (int) $conn->insert_id;
         $userIds[] = $userId;
+        if ($role === 'superadmin') $conn->execute_query('UPDATE users SET is_superadmin=1 WHERE id=?', [$userId]);
         $secret = generateTotpSecret();
         enableTwoFactorForUser($conn, $userId, $secret, 0, 1);
         startSecureSession();
-        $_SESSION = ['user_id' => $userId, 'username' => $name, 'role' => $role,
-            'authenticated_role' => $role, 'auth_complete' => true, '_csrf_token' => bin2hex(random_bytes(32))];
+        $_SESSION = ['user_id' => $userId, 'username' => $name, 'role' => $assignedRole,
+            'authenticated_role' => $assignedRole, 'auth_complete' => true, '_csrf_token' => bin2hex(random_bytes(32))];
         completeIntegrationTestMfaSession();
         $csrf = $_SESSION['_csrf_token'];
         $sessionIds[] = session_id();
@@ -92,10 +94,10 @@ try {
         session_write_close();
         $post = ['csrf_token' => $csrf, 'action' => 'reset_statistics'];
 
-        if ($role !== 'admin') {
+        if ($role !== 'superadmin') {
             expectNetworkReset($request($path, null, $cookie)['status'] === 403
                 && $request($path, $post, $cookie)['status'] === 403 && $sampleCount() === 4,
-                'Non-admin GET and POST requests must be denied: ' . $role);
+                'Non-SuperAdmin GET and POST requests must be denied: ' . $role);
             continue;
         }
 
@@ -194,4 +196,6 @@ try {
         session_destroy();
     }
 }
-echo "Network statistics reset HTTP integration tests passed.\n";
+echo accountsEnabled()
+    ? "Network statistics reset HTTP integration tests passed.\n"
+    : "Network authorization checks passed; SuperAdmin reset coverage requires an Account-enabled disposable server.\n";
