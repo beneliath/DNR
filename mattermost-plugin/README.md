@@ -24,7 +24,7 @@ and performs all reads and writes.
 
 ## Build
 
-Go 1.26.7 or newer and Node.js with the repository's root dependencies are
+Go 1.26.9 or newer and Node.js with the repository's root dependencies are
 required. Run `npm install` from the repository root once before building the
 plugin webapp.
 
