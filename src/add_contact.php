@@ -296,48 +296,58 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 
                 <div class="contact-phone-birthday-row">
                     <div class="form-group contact-phone-field">
-                        <label for="contact_phone">Phone Number</label>
-                        <div class="phone-input-group" data-phone-input-group>
-                            <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
-                            <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                        <div class="contact-control-pair">
+                            <label for="contact_phone">Phone Number</label>
+                            <div class="phone-input-group" data-phone-input-group>
+                                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
+                                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group contact-birthday-field">
-                        <label for="contact_birthday">Birthday</label>
-                        <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
+                        <div class="contact-control-pair">
+                            <label for="contact_birthday">Birthday</label>
+                            <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
+                        </div>
                         <p class="field-help" id="contact-birthday-help">Optional; repeats annually.</p>
                     </div>
                 </div>
             </section>
             <section class="contact-form-organization" aria-label="Organization and Role">
-                <div class="form-group">
-                    <label for="primary-organization-search">Find an Organization</label>
-                    <input type="search" id="primary-organization-search" placeholder="Find an organization" aria-label="Find an organization for Primary Organization" data-relationship-search-input>
-                </div>
-                <div class="form-group contact-form-primary-organization">
-                    <label for="organization_id">Primary Organization</label>
-                    <select name="organization_id" id="organization_id" data-organization-search data-relationship-search-input-id="primary-organization-search">
-                        <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No Organization</option>
-                        <?php foreach ($contact_organization_options as $row): ?>
-                            <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="field-help" role="status" data-relationship-search-status></p>
+                <div class="contact-form-organization-selector">
+                    <div class="form-group">
+                        <label for="primary-organization-search">Find an Organization</label>
+                        <input type="search" id="primary-organization-search" placeholder="Find an organization" aria-label="Find an organization for Primary Organization" data-relationship-search-input>
+                    </div>
+                    <div class="form-group contact-form-primary-organization">
+                        <label for="organization_id">Primary Organization</label>
+                        <select name="organization_id" id="organization_id" data-organization-search data-relationship-search-input-id="primary-organization-search">
+                            <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No Organization</option>
+                            <?php foreach ($contact_organization_options as $row): ?>
+                                <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="field-help" role="status" data-relationship-search-status></p>
+                    </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group contact-role-field">
-                        <label for="contact_role" class="required">Primary Role</label>
-                        <select name="contact_role" id="contact_role" required>
-                            <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
-                                <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="contact-control-pair">
+                            <label for="contact_role" class="required">Primary Role</label>
+                            <select name="contact_role" id="contact_role" required>
+                                <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                                    <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group" id="other_role_group" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? '' : 'hidden'; ?>>
-                        <label for="contact_role_other" class="required">Other Role Description</label>
-                        <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_role_other'] ?? '') : ''; ?>">
+                        <div class="contact-control-pair">
+                            <label for="contact_role_other" class="required">Other Role Description</label>
+                            <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_role_other'] ?? '') : ''; ?>">
+                        </div>
                     </div>
                 </div>
 

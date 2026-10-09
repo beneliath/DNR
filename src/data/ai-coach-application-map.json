@@ -114,7 +114,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "9bd6db069ba73ff29731d03dd8bab28bd9c8d98b99718a311b4369a4e2ecb195",
+      "sha256": "335f5b08bffb8ab8adfb5ce6e36b981e218931572823d6e00a8b7efaa483d88d",
       "controls": [
         {
           "kind": "a",
@@ -216,7 +216,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "779a3d18e235478e377c44257f015a235f8d42d1edae61c42c8f909c31a30519",
+      "sha256": "8f0a613e9344ab2070d397b10e34dc6cca85e53e10ac53402b9e4463b7430ffd",
       "controls": [
         {
           "kind": "a",
@@ -369,6 +369,20 @@
         },
         {
           "kind": "label",
+          "label": "Contact Photo",
+          "for": "contact_photo"
+        },
+        {
+          "kind": "button",
+          "label": "Paste Image"
+        },
+        {
+          "kind": "label",
+          "label": "Paste a Photo",
+          "for": "contact_photo-paste-target"
+        },
+        {
+          "kind": "label",
           "label": "First Name",
           "id": "first_name_label",
           "for": "contact_first_name"
@@ -378,6 +392,12 @@
           "label": "Last Name",
           "id": "last_name_label",
           "for": "contact_last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "id": "email_label",
+          "for": "contact_email"
         },
         {
           "kind": "label",
@@ -402,14 +422,22 @@
         },
         {
           "kind": "label",
-          "label": "Email",
-          "id": "email_label",
-          "for": "contact_email"
+          "label": "Notes",
+          "for": "contact_notes"
         },
         {
           "kind": "label",
-          "label": "Notes",
-          "for": "contact_notes"
+          "label": "Contact Photo",
+          "for": "additional-__CONTACT_INDEX__-photo"
+        },
+        {
+          "kind": "button",
+          "label": "Paste Image"
+        },
+        {
+          "kind": "label",
+          "label": "Paste a Photo",
+          "for": "additional-__CONTACT_INDEX__-photo-paste-target"
         },
         {
           "kind": "label",
@@ -420,6 +448,11 @@
           "kind": "label",
           "label": "Last Name",
           "for": "additional-__CONTACT_INDEX__-last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "for": "additional-__CONTACT_INDEX__-email"
         },
         {
           "kind": "label",
@@ -440,11 +473,6 @@
           "kind": "label",
           "label": "Describe Other Role",
           "for": "additional-__CONTACT_INDEX__-role_other"
-        },
-        {
-          "kind": "label",
-          "label": "Email",
-          "for": "additional-__CONTACT_INDEX__-email"
         },
         {
           "kind": "label",
@@ -1200,7 +1228,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "4fb8bba63c4a34da00f506d8e896eeab6a675b54d3e0fb670f9744013931d518",
+      "sha256": "fbbc1864d16099c452b7489f2cd0fc5673518801cc9db0d8a90b8359be61e2a8",
       "controls": [
         {
           "kind": "a",
@@ -1528,7 +1556,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "147c46bb1250b69e47c30ce0520c2dd5ff225dbcffcaeee9ef0e3f42a5b323cf",
+      "sha256": "34c8635e9e07ae857e9c045a40098ed9ebced8173697f8ec642ce05a14244f31",
       "controls": [
         {
           "kind": "a",
@@ -1657,7 +1685,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "c523d2b0eceeb602fa683fe15ddc32c3cba7c1d7158c5ec6888a5f4d2639f6e6",
+      "sha256": "c47f7d7fd1aedb216f55279516c30d84d2288ff76b5e8b55e89b15d231c9bcb6",
       "controls": [
         {
           "kind": "a",
@@ -1665,8 +1693,13 @@
           "href": "speakers.php"
         },
         {
-          "kind": "h2",
-          "label": "Speaker Details"
+          "kind": "label",
+          "label": "Speaker Photo",
+          "for": "speaker_photo"
+        },
+        {
+          "kind": "label",
+          "label": "Remove Current Photo"
         },
         {
           "kind": "label",
@@ -1690,26 +1723,12 @@
         },
         {
           "kind": "h2",
-          "label": "Links",
-          "id": "speaker-links-heading"
-        },
-        {
-          "kind": "h2",
           "label": "Custom Links",
           "id": "speaker-custom-links-heading"
         },
         {
           "kind": "button",
           "label": "Add Custom Link"
-        },
-        {
-          "kind": "label",
-          "label": "Speaker Photo",
-          "for": "speaker_photo"
-        },
-        {
-          "kind": "label",
-          "label": "Remove Current Photo"
         },
         {
           "kind": "a",

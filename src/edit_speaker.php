@@ -74,9 +74,20 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($return_to, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="version" value="<?php echo htmlspecialchars((string) $form_values['version'], ENT_QUOTES, 'UTF-8'); ?>">
-        <section class="form-section">
-            <h2>Speaker Details</h2>
+        <section class="form-section" aria-label="Speaker Details">
             <div class="speaker-details-row">
+                <div class="form-group contact-photo-field">
+                    <div class="contact-photo-preview"><img src="<?php echo htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8'); ?>" alt="Current speaker photo" data-contact-photo-preview></div>
+                    <div>
+                        <label for="speaker_photo">Speaker Photo</label>
+                        <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>">
+                        <input type="file" id="speaker_photo" name="speaker_photo" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>" data-photo-label="speaker" data-contact-photo-input>
+                        <p class="field-help">JPEG, PNG, or WebP; maximum 5 MB.</p>
+                        <?php include __DIR__ . '/templates/contact_photo_paste.php'; ?>
+                        <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
+                        <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove Current Photo</label><?php endif; ?>
+                    </div>
+                </div>
                 <div class="form-field"><label for="speaker_name" class="required">Name</label><input type="text" id="speaker_name" name="name" maxlength="255" autocomplete="name" required value="<?php echo htmlspecialchars($form_values['name'], ENT_QUOTES, 'UTF-8'); ?>"></div>
                 <div class="form-field"><label for="speaker_email" class="required">Email Address</label><input type="email" id="speaker_email" name="email" maxlength="254" autocomplete="email" required value="<?php echo htmlspecialchars($form_values['email'], ENT_QUOTES, 'UTF-8'); ?>"></div>
                 <div class="form-group">
@@ -92,8 +103,7 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
                 <textarea name="bio" id="speaker_bio" rows="6" placeholder="Add a biography for this speaker."><?php echo htmlspecialchars($form_values['bio'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
             </div>
         </section>
-        <section class="form-section" aria-labelledby="speaker-links-heading">
-            <h2 id="speaker-links-heading">Links</h2>
+        <section class="form-section" aria-label="Links">
             <div class="speaker-links-grid">
                 <?php foreach (SPEAKER_URL_FIELDS as $field => $label): ?>
                     <div class="form-group">
@@ -119,17 +129,6 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
             <button type="button" class="button-secondary" data-add-custom-link>Add Custom Link</button>
             <p class="field-help" role="status" aria-live="polite" data-custom-link-status></p>
         </section>
-        <div class="form-group contact-photo-field">
-            <div class="contact-photo-preview"><img src="<?php echo htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8'); ?>" alt="Current speaker photo" data-contact-photo-preview></div>
-            <div>
-                <label for="speaker_photo">Speaker Photo</label>
-                <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>">
-                <input type="file" id="speaker_photo" name="speaker_photo" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>" data-photo-label="speaker" data-contact-photo-input>
-                <p class="field-help">JPEG, PNG, or WebP; maximum 5 MB.</p>
-                <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
-                <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove Current Photo</label><?php endif; ?>
-            </div>
-        </div>
         <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button">Save Speaker</button></div>
     </form>
 </div>

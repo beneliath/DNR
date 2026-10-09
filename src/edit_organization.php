@@ -283,6 +283,7 @@ try {
     'assets/css/modern.min.css',
     'assets/css/pages/record_workspace.min.css',
     'assets/css/pages/edit_organization.min.css',
+    'assets/css/pages/organization_form.min.css',
   ),
 )); ?>
 <body class="edit-organization-body">
@@ -311,110 +312,112 @@ try {
 
         <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea id="notes" name="notes" rows="6"><?php echo htmlspecialchars($organization['notes'] ?? ''); ?></textarea>
+            <textarea id="notes" name="notes" rows="7"><?php echo htmlspecialchars($organization['notes'] ?? ''); ?></textarea>
         </div>
 
-        <div class="form-group">
-            <label for="affiliation">Affiliation</label>
-            <input type="text" id="affiliation" name="affiliation" value="<?php echo htmlspecialchars($organization['affiliation'] ?? ''); ?>">
-        </div>
-
-        <div class="form-group">
-            <label for="distinctives">Distinctives</label>
-            <input type="text" id="distinctives" name="distinctives" value="<?php echo htmlspecialchars($organization['distinctives'] ?? ''); ?>">
-        </div>
-
-        <div class="form-group">
-            <label for="website_url">Website URL</label>
-            <input type="url" id="website_url" name="website_url" value="<?php echo htmlspecialchars($organization['website_url'] ?? ''); ?>">
-        </div>
-
-        <div class="form-group">
-            <label for="phone">Phone</label>
-            <div class="phone-input-group" data-phone-input-group>
-                <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
-                <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+        <div class="organization-profile-row">
+            <div class="form-group">
+                <label for="affiliation">Affiliation</label>
+                <input type="text" id="affiliation" name="affiliation" value="<?php echo htmlspecialchars($organization['affiliation'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label for="distinctives">Distinctives</label>
+                <input type="text" id="distinctives" name="distinctives" value="<?php echo htmlspecialchars($organization['distinctives'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label for="website_url">Website URL</label>
+                <input type="url" id="website_url" name="website_url" value="<?php echo htmlspecialchars($organization['website_url'] ?? ''); ?>">
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="fax">Fax</label>
-            <div class="phone-input-group" data-phone-input-group>
-                <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
-                <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+        <div class="organization-phone-row">
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
+                    <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                </div>
             </div>
+            <div class="form-group">
+                <label for="fax">Fax</label>
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
+                    <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+                </div>
+            </div>
+            <fieldset class="radio-group">
+                <legend>Mailing and Physical Address the Same</legend>
+                <div>
+                    <label><input type="radio" name="same_address" value="yes" <?php echo $same_address ? 'checked' : ''; ?>> Yes</label>
+                    <label><input type="radio" name="same_address" value="no" <?php echo !$same_address ? 'checked' : ''; ?>> No</label>
+                </div>
+            </fieldset>
         </div>
 
-        <fieldset class="radio-group">
-            <legend>Mailing and Physical Address the Same</legend>
-            <div>
-                <label><input type="radio" name="same_address" value="yes" <?php echo $same_address ? 'checked' : ''; ?>> Yes</label>
-                <label><input type="radio" name="same_address" value="no" <?php echo !$same_address ? 'checked' : ''; ?>> No</label>
-            </div>
-        </fieldset>
-
-        <div class="address-section" id="physical_address_section">
-            <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
-            <div class="address-grid">
-                <div class="address-full-width">
-                    <label for="physical_address_line_1">Address Line 1</label>
-                    <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['physical_address_line_1'] ?? ''); ?>">
-                </div>
-                <div class="address-full-width">
-                    <label for="physical_address_line_2">Address Line 2</label>
-                    <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['physical_address_line_2'] ?? ''); ?>">
-                </div>
-                <div>
-                    <label for="physical_city">City</label>
-                    <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city'] ?? ''); ?>">
-                </div>
-                <div data-address-region-control data-address-region-for="physical" data-region-required="false">
-                    <label for="physical_state">State / Province</label>
-                    <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state'] ?? ''); ?>" data-address-region-input>
-                </div>
-                <div>
-                    <label for="physical_zipcode">Postal Code</label>
-                    <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode'] ?? ''); ?>">
-                </div>
-                <div>
-                    <?php echo addressCountryPicker(
-                        'physical_country',
-                        $organization['physical_country'] ?: applicationDefaultCountry(),
-                        'physical'
-                    ); ?>
+        <div class="organization-address-row">
+            <div class="address-section" id="physical_address_section">
+                <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
+                <div class="address-grid">
+                    <div class="address-full-width">
+                        <label for="physical_address_line_1">Address Line 1</label>
+                        <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['physical_address_line_1'] ?? ''); ?>">
+                    </div>
+                    <div class="address-full-width">
+                        <label for="physical_address_line_2">Address Line 2</label>
+                        <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['physical_address_line_2'] ?? ''); ?>">
+                    </div>
+                    <div>
+                        <label for="physical_city">City</label>
+                        <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city'] ?? ''); ?>">
+                    </div>
+                    <div data-address-region-control data-address-region-for="physical" data-region-required="false">
+                        <label for="physical_state">State / Province</label>
+                        <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state'] ?? ''); ?>" data-address-region-input>
+                    </div>
+                    <div>
+                        <label for="physical_zipcode">Postal Code</label>
+                        <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode'] ?? ''); ?>">
+                    </div>
+                    <div class="address-full-width">
+                        <?php echo addressCountryPicker(
+                            'physical_country',
+                            $organization['physical_country'] ?: applicationDefaultCountry(),
+                            'physical'
+                        ); ?>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="address-section" id="mailing_address_section" data-address-optional<?php echo $same_address ? ' hidden' : ''; ?>>
-            <h3>Mailing Address</h3>
-            <div class="address-grid">
-                <div class="address-full-width">
-                    <label for="mailing_address_line_1">Address Line 1</label>
-                    <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['mailing_address_line_1'] ?? ''); ?>">
-                </div>
-                <div class="address-full-width">
-                    <label for="mailing_address_line_2">Address Line 2</label>
-                    <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['mailing_address_line_2'] ?? ''); ?>">
-                </div>
-                <div>
-                    <label for="mailing_city">City</label>
-                    <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city'] ?? ''); ?>">
-                </div>
-                <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
-                    <label for="mailing_state">State / Province</label>
-                    <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state'] ?? ''); ?>" data-address-region-input>
-                </div>
-                <div>
-                    <label for="mailing_zipcode">Postal Code</label>
-                    <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode'] ?? ''); ?>">
-                </div>
-                <div>
-                    <?php echo addressCountryPicker(
-                        'mailing_country',
-                        $organization['mailing_country'] ?: applicationDefaultCountry(),
-                        'mailing'
-                    ); ?>
+            <div class="address-section" id="mailing_address_section" data-address-optional<?php echo $same_address ? ' hidden' : ''; ?>>
+                <h3>Mailing Address</h3>
+                <div class="address-grid">
+                    <div class="address-full-width">
+                        <label for="mailing_address_line_1">Address Line 1</label>
+                        <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['mailing_address_line_1'] ?? ''); ?>">
+                    </div>
+                    <div class="address-full-width">
+                        <label for="mailing_address_line_2">Address Line 2</label>
+                        <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['mailing_address_line_2'] ?? ''); ?>">
+                    </div>
+                    <div>
+                        <label for="mailing_city">City</label>
+                        <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city'] ?? ''); ?>">
+                    </div>
+                    <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
+                        <label for="mailing_state">State / Province</label>
+                        <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state'] ?? ''); ?>" data-address-region-input>
+                    </div>
+                    <div>
+                        <label for="mailing_zipcode">Postal Code</label>
+                        <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode'] ?? ''); ?>">
+                    </div>
+                    <div class="address-full-width">
+                        <?php echo addressCountryPicker(
+                            'mailing_country',
+                            $organization['mailing_country'] ?: applicationDefaultCountry(),
+                            'mailing'
+                        ); ?>
+                    </div>
                 </div>
             </div>
         </div>

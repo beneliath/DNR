@@ -63,4 +63,24 @@ foreach (['bad', [['contact_id' => [], 'role_title' => 'Chair']],
     } catch (InvalidArgumentException) {
     }
 }
+$uploads = [
+    'name' => [1 => ['photo' => 'first.png'], 4 => ['photo' => 'second.jpg']],
+    'type' => [1 => ['photo' => 'image/png'], 4 => ['photo' => 'image/jpeg']],
+    'tmp_name' => [1 => ['photo' => '/tmp/first'], 4 => ['photo' => '/tmp/second']],
+    'error' => [1 => ['photo' => UPLOAD_ERR_OK], 4 => ['photo' => UPLOAD_ERR_FORM_SIZE]],
+    'size' => [1 => ['photo' => 1200], 4 => ['photo' => 6000000]],
+];
+expectContactOrganizations(organizationContactPhotoUpload($uploads, 4) === [
+    'name' => 'second.jpg', 'type' => 'image/jpeg', 'tmp_name' => '/tmp/second',
+    'error' => UPLOAD_ERR_FORM_SIZE, 'size' => 6000000,
+], 'Sparse contact indices must retain the correct photo and upload error after removing another contact.');
+expectContactOrganizations(organizationContactPhotoUpload($uploads, '1')['tmp_name'] === '/tmp/first',
+    'String contact indices must resolve the same multipart upload.');
+expectContactOrganizations(organizationContactPhotoUpload($uploads, 2) === []
+    && organizationContactPhotoUpload([], 1) === []
+    && organizationContactPhotoUpload(['name' => 'invalid', 'error' => [1 => 'invalid']], 1) === [],
+    'Missing or malformed upload rows must not select another contact\'s photo.');
+expectContactOrganizations(organizationContactPhotoUpload(['error' => [1 => ['photo' => UPLOAD_ERR_NO_FILE]]], 1)
+    === ['error' => UPLOAD_ERR_NO_FILE], 'An empty photo selection remains optional.');
+
 echo "Contact organization helper tests passed.\n";

@@ -21,6 +21,7 @@ function photoFixture(label, clipboard) {
     const status = {};
     const remove = Object.assign(node(), { checked: true });
     const field = node();
+    field.dataset = {};
     input.closest = () => field;
     const pasteButton = node();
     const pasteBox = { hidden: true };
@@ -29,11 +30,12 @@ function photoFixture(label, clipboard) {
         ["[data-contact-photo-input]", input], ["[data-contact-photo-preview]", preview],
         ["[data-contact-photo-preview-status]", status], ["[data-remove-contact-photo]", remove]
     ]);
-    if (label !== 'speaker') {
-        nodes.set('[data-contact-photo-paste]', pasteButton);
-        nodes.set('[data-contact-photo-paste-box]', pasteBox);
-        nodes.set('[data-contact-photo-paste-target]', pasteTarget);
-    }
+    nodes.set('[data-contact-photo-paste]', pasteButton);
+    nodes.set('[data-contact-photo-paste-box]', pasteBox);
+    nodes.set('[data-contact-photo-paste-target]', pasteTarget);
+    field.querySelector = selector => nodes.get(selector);
+    const fields = [field];
+    let rescan;
     class FileReader {
         addEventListener(name, callback) { this[name] = callback; }
         readAsDataURL() { this.result = "data:image/png;base64,fixture"; this.load(); }
@@ -50,7 +52,8 @@ function photoFixture(label, clipboard) {
         items = { add: file => this.files.push(file) };
     }
     vm.runInNewContext(fs.readFileSync(require.resolve("../../src/assets/js/contact-photo.js"), "utf8"), {
-        document: { querySelector: selector => nodes.get(selector) }, FileReader, File, DataTransfer,
+        document: { body: {}, querySelectorAll: () => fields }, FileReader, File, DataTransfer,
+        MutationObserver: class { constructor(callback) { rescan = callback; } observe() {} },
         navigator: { clipboard }, Event: class { constructor(type) { this.type = type; } }
     });
     function paste(files, options = {}) {
@@ -61,8 +64,40 @@ function photoFixture(label, clipboard) {
         field.events.paste(event);
         return event;
     }
-    return { input, preview, status, remove, pasteButton, pasteBox, pasteTarget, paste };
+    function addPhotoField() {
+        const added = Object.assign(node(), {dataset: {}});
+        const addedNodes = new Map([...nodes].map(([selector, value]) => [selector,
+            Object.assign(node(), value, {events: {}, ...(value.dataset ? {dataset: {...value.dataset}} : {})})]));
+        added.querySelector = selector => addedNodes.get(selector);
+        const addedInput = addedNodes.get('[data-contact-photo-input]');
+        addedInput.closest = () => added;
+        fields.push(added);
+        rescan();
+        return {input: addedInput, preview: addedNodes.get('[data-contact-photo-preview]'),
+            status: addedNodes.get('[data-contact-photo-preview-status]'), field: added,
+            pasteTarget: addedNodes.get('[data-contact-photo-paste-target]')};
+    }
+    return { input, preview, status, remove, pasteButton, pasteBox, pasteTarget, paste, addPhotoField };
 }
+
+test('new contact photo fields initialize independently without rebinding existing controls', () => {
+    const first = photoFixture();
+    first.input.files = [{type: 'image/png', size: 100}];
+    first.input.events.change();
+    const originalHandler = first.input.events.change;
+    const originalSelection = first.input.files;
+    const second = first.addPhotoField();
+    assert.equal(first.input.events.change, originalHandler);
+    second.field.events.paste({target: second.pasteTarget,
+        clipboardData: {files: [{type: 'image/jpeg', size: 200}]}, preventDefault() {}});
+    assert.equal(second.input.files[0].type, 'image/jpeg');
+    assert.match(second.input.files[0].name, /^contact-photo-\d+\.jpg$/);
+    assert.equal(first.input.files, originalSelection);
+    second.input.files = [{type: 'image/png', size: 5242881}];
+    second.input.events.change();
+    assert.equal(second.input.error, 'Contact photos must be 5 MB or smaller.');
+    assert.equal(first.input.error, '');
+});
 
 for (const label of [undefined, "speaker"]) {
     const expectedLabel = label || "contact";
@@ -112,6 +147,26 @@ test('clipboard item fallback works and unrelated text paste is left alone', () 
     assert.equal(f.paste([], { target: f.input }).prevented, undefined);
     assert.equal(f.paste([]).prevented, true);
     assert.match(f.status.textContent, /Copy the image itself/);
+});
+
+test('speaker clipboard photos support keyboard paste and the Paste Image button', async () => {
+    const image = { type: 'image/png', size: 100 };
+    const f = photoFixture('speaker', { async read() {
+        return [{ types: ['image/png'], async getType() { return image; } }];
+    } });
+    assert.equal(f.paste([image]).prevented, true);
+    assert.match(f.input.files[0].name, /^speaker-photo-\d+\.png$/);
+    assert.equal(f.preview.alt, 'Preview of selected speaker photo');
+    assert.equal(f.remove.checked, false);
+    const selection = f.input.files;
+    f.paste([{ type: 'image/png', size: 5242881 }]);
+    assert.equal(f.input.files, selection);
+    assert.equal(f.status.textContent, 'Speaker photos must be 5 MB or smaller.');
+    await f.pasteButton.events.click();
+    assert.equal(f.pasteBox.hidden, false);
+    assert.equal(f.pasteTarget.focused, true);
+    assert.match(f.input.files[0].name, /^speaker-photo-\d+\.png$/);
+    assert.match(f.status.textContent, /Save changes to apply/);
 });
 
 test('invalid and oversized clipboard images leave the selected file and preview intact', () => {
