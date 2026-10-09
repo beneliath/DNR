@@ -45,6 +45,7 @@
         bar.setAttribute('aria-label', 'File Upload Progress');
         const retry = document.createElement('button');
         retry.type = 'button';
+        retry.className = 'button-secondary';
         retry.textContent = 'Retry Save';
         retry.hidden = true;
         retry.addEventListener('click', function () { form.requestSubmit(lastSubmitter || undefined); });
@@ -109,6 +110,7 @@
             const total = inputs.reduce(function (sum, input) { return sum + input.files[0].size; }, 0);
             const added = [];
             busy = true;
+            const finishFeedback = window.DnrButtonFeedback?.begin(submitter, 'Uploading…');
             panel.hidden = false;
             bar.value = 0;
             status.textContent = 'Preparing file upload…';
@@ -158,6 +160,7 @@
                 inputs.forEach(function (input) { input.disabled = true; });
                 bar.removeAttribute('value');
                 status.textContent = 'Upload complete. Saving changes…';
+                if (submitter?.tagName === 'BUTTON') submitter.textContent = 'Saving…';
                 ready = true;
                 finalEvent = null;
                 form.requestSubmit(submitter || undefined);
@@ -167,6 +170,7 @@
                 }
                 controls.forEach(function (control) { control.disabled = true; });
             } catch (error) {
+                finishFeedback?.();
                 status.textContent = error.message;
                 retry.hidden = false;
                 bar.value = 0;

@@ -801,6 +801,7 @@
             button.addEventListener('click', async function () {
                 window.clearTimeout(feedbackTimer);
                 button.classList.remove('is-copied', 'is-copy-failed');
+                const finishFeedback = window.DnrButtonFeedback?.begin(button);
                 try {
                     await copyText(button.dataset.copyText || '');
                     button.classList.add('is-copied');
@@ -814,6 +815,8 @@
                     button.setAttribute('title', 'Copy Failed');
                     button.dataset.tooltip = 'Copy Failed';
                     if (status) status.textContent = 'The email routing marker could not be copied.';
+                } finally {
+                    finishFeedback?.();
                 }
 
                 feedbackTimer = window.setTimeout(function () {
@@ -909,12 +912,14 @@
                 const requestId = ++latestRequestId;
                 activateQrCopyFeedback(linkButton);
                 linkButton.disabled = true;
+                const finishFeedback = window.DnrButtonFeedback?.begin(linkButton);
                 try {
                     await copyText(linkButton.dataset.copyQrLink || '');
                     if (requestId === latestRequestId) qrCopyStatus(linkButton, 'QR link copied to the clipboard.', false);
                 } catch (error) {
                     if (requestId === latestRequestId) qrCopyStatus(linkButton, 'The link could not be copied. Please try again.', true);
                 } finally {
+                    finishFeedback?.();
                     linkButton.disabled = false;
                 }
                 return;
@@ -936,6 +941,7 @@
             }
 
             button.disabled = true;
+            const finishFeedback = window.DnrButtonFeedback?.begin(button);
             try {
                 const png = await qrImageAsPng(url);
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
@@ -945,6 +951,7 @@
                 if (requestId !== latestRequestId) return;
                 openQrFallback(button, url);
             } finally {
+                finishFeedback?.();
                 button.disabled = false;
             }
         });
@@ -1123,6 +1130,7 @@
                 button.addEventListener('click', async function () {
                     window.clearTimeout(feedbackTimer);
                     button.disabled = true;
+                    const finishFeedback = window.DnrButtonFeedback?.begin(button);
                     try {
                         const value = exports && exports[button.dataset.copyFormat];
                         if (typeof value !== 'string' || value === '') throw new Error('Presentation export unavailable.');
@@ -1133,6 +1141,7 @@
                         button.textContent = 'Copy Failed';
                         status.textContent = originalLabel + ' could not be copied.';
                     } finally {
+                        finishFeedback?.();
                         button.disabled = false;
                     }
                     feedbackTimer = window.setTimeout(function () { button.textContent = originalLabel; }, 1800);

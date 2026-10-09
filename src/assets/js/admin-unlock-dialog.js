@@ -13,6 +13,7 @@
     let resolvePending;
     let submitting = false;
     let revision = 0;
+    let stopChecking;
 
     function applyStatus(status) {
         if (typeof status.csrf_token !== 'string' || !status.csrf_token) throw new Error('Invalid session response');
@@ -34,6 +35,8 @@
 
     function finish(unlocked) {
         revision++;
+        stopChecking?.();
+        stopChecking = null;
         password.value = '';
         code.value = '';
         const resolve = resolvePending;
@@ -53,6 +56,8 @@
         code.value = '';
         submit.disabled = true;
         dialog.showModal();
+        const finishFeedback = window.DnrButtonFeedback?.begin(submit, 'Checking Access…');
+        stopChecking = finishFeedback;
         fetchStatus().then(status => {
             if (current !== revision) return;
             if (status.unlocked === true) { finish(true); return; }
@@ -63,6 +68,9 @@
             if (current !== revision) return;
             error.textContent = 'Unable to check administrator access. Close this dialog and try again.';
             error.hidden = false;
+        }).finally(() => {
+            finishFeedback?.();
+            if (stopChecking === finishFeedback) stopChecking = null;
         });
         return result;
     }
@@ -79,6 +87,7 @@
         submit.disabled = true;
         cancel.disabled = true;
         error.hidden = true;
+        const finishFeedback = window.DnrButtonFeedback?.begin(submit, 'Unlocking…');
         try {
             const status = await fetchStatus({ method: 'POST', body: new FormData(form) });
             if (status.unlocked === true && !status.error) finish(true);
@@ -90,6 +99,7 @@
             error.textContent = 'Unable to unlock administrator actions. Please try again.';
             error.hidden = false;
         } finally {
+            finishFeedback?.();
             password.value = '';
             code.value = '';
             submitting = false;

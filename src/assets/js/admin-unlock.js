@@ -84,6 +84,7 @@
             if (button.disabled) return;
             statusRevision++;
             const extending = event.submitter === extendButton;
+            const finishFeedback = window.DnrButtonFeedback?.begin(extending ? extendButton : button, extending ? 'Adding Time…' : 'Locking…');
             button.disabled = true;
             if (extendButton) extendButton.disabled = true;
             errorMessage.hidden = true;
@@ -110,6 +111,7 @@
                 errorMessage.textContent = extending ? 'Unable to add time. Please try again, or unlock admin actions if the timer expired.' : 'Unable to lock admin actions. Please try again.';
                 errorMessage.hidden = false;
             } finally {
+                finishFeedback?.();
                 button.disabled = false;
                 if (extendButton) extendButton.disabled = false;
             }

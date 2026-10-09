@@ -137,15 +137,15 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
                         <button type="submit" class="button-secondary" aria-label="Open <?php echo htmlspecialchars($account['name'], ENT_QUOTES, 'UTF-8'); ?>">Open Account</button>
                     </form>
                 <?php elseif ($account['state'] === 'disabled'): ?>
-                    <a class="button-secondary" href="<?php echo htmlspecialchars($manageUrl . '&confirm=restore'); ?>">Restore Account</a>
+                    <a class="button-secondary" data-admin-unlock-hint href="<?php echo htmlspecialchars($manageUrl . '&confirm=restore'); ?>">Restore Account</a>
                 <?php elseif (!empty($account['lifecycle_error'])): ?>
-                    <a class="button-secondary" href="<?php echo htmlspecialchars($manageUrl . '&confirm=retry'); ?>">Retry Action</a>
+                    <a class="button-secondary" data-admin-unlock-hint href="<?php echo htmlspecialchars($manageUrl . '&confirm=retry'); ?>">Retry Action</a>
                 <?php else: ?>
                     <span class="account-directory-wait"><?php echo $account['state'] === 'disabled' ? 'Access paused' : 'Action in progress'; ?></span>
                 <?php endif; ?>
                 <span class="account-icon-actions">
                 <?php if ($canArchive || $account['state'] === 'disabled'): ?>
-                    <a class="action-button action-icon-button <?php echo $canArchive ? 'archive-button' : 'delete-button'; ?>" href="<?php echo htmlspecialchars($manageUrl . '&confirm=' . ($canArchive ? 'archive' : 'delete')); ?>" aria-label="<?php echo $canArchive ? 'Archive ' : 'Delete '; echo htmlspecialchars($account['name'], ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>" data-tooltip="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>"><?php echo actionIconSvg($canArchive ? 'archive' : 'delete'); ?></a>
+                    <a class="action-button action-icon-button <?php echo $canArchive ? 'archive-button' : 'delete-button'; ?>" data-admin-unlock-hint href="<?php echo htmlspecialchars($manageUrl . '&confirm=' . ($canArchive ? 'archive' : 'delete')); ?>" aria-label="<?php echo $canArchive ? 'Archive ' : 'Delete '; echo htmlspecialchars($account['name'], ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>" data-tooltip="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>"><?php echo actionIconSvg($canArchive ? 'archive' : 'delete'); ?></a>
                 <?php endif; ?>
                 </span>
             </div>

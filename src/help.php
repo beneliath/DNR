@@ -54,7 +54,7 @@ $manual_access_summary = match ($manual_role) {
             <section class="manual-search-control">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
                 <input type="search" id="manual-search-input" placeholder="Try “receipts”, “financial closeout”, or “archive”" autocomplete="off" data-manual-search>
-                <button type="button" data-manual-clear hidden>Clear</button>
+                <button type="button" class="button-secondary" data-manual-clear hidden>Clear</button>
             </section>
             <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 14 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
             <section class="manual-search-results" data-manual-results hidden aria-labelledby="manual-results-title">

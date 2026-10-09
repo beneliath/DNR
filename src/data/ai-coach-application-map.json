@@ -48,7 +48,7 @@
       ]
     },
     "accounts.php": {
-      "sha256": "a821ee50e4001ca115c74a324f1cced3b204e43f1e312f84b9e46f2b9a8044b2",
+      "sha256": "a49e596493c51465fcfbb03572d67e2738d3f2c45305028141fe37682ca48f1b",
       "controls": [
         {
           "kind": "h1",
@@ -216,7 +216,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "8f0a613e9344ab2070d397b10e34dc6cca85e53e10ac53402b9e4463b7430ffd",
+      "sha256": "07211dc145fc2d96fb1af1b774a64873f719b19ca364eb118c85a7eefc4ecfb2",
       "controls": [
         {
           "kind": "a",
@@ -776,7 +776,7 @@
       ]
     },
     "compose_engagement_email.php": {
-      "sha256": "ce9db018cafdafe8399311d214a6f471664148fd0f31e858dd47b8717aa401d7",
+      "sha256": "60ed4ced1bbb9bf6c727c5707c929e0ae5e66195a185b1cef46c0b455fb7a027",
       "controls": [
         {
           "kind": "a",
@@ -2112,7 +2112,7 @@
       ]
     },
     "index.php": {
-      "sha256": "deb62c4c97e9ee9673a0ed5776a4ab7c7627cc7724aeec940c9d498d84439ce9",
+      "sha256": "44e3d4f000430025d7d7786ed2e7d2853886d6c6d155f1730ca6d9099f19d2c6",
       "controls": [
         {
           "kind": "a",
@@ -2887,7 +2887,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "a491e9b34b0048620eea9aabffa0877854d8b8b83b012afc3d3c98aeec963b24",
+      "sha256": "6161eeceba03b03a21b91c8fcbe482bd105272c63f75731e023e805b73212daf",
       "controls": [
         {
           "kind": "h1",
@@ -3978,7 +3978,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "337b30568c74a23faf76b47420b72156ff1dbef4bd01301d789e678a493610f8",
+      "sha256": "3add2c5eb9f7f52a32a1b5274f5fc2d5146f1f23d57182fd2b8859fea8433912",
       "controls": [
         {
           "kind": "h1",
@@ -4034,7 +4034,7 @@
       ]
     },
     "task_bulk.php": {
-      "sha256": "9c1c7665a26c9f6f0c21b81793249661abb38f1569a9a1a956ecaa50924fde27",
+      "sha256": "fc055d82bc45ed5129e909e0f68a572d45ddd6cd860f87f31a2fd63738164e10",
       "controls": [
         {
           "kind": "button",
@@ -4218,7 +4218,7 @@
       ]
     },
     "verify_2fa.php": {
-      "sha256": "69a264161303d623f0647d815e77da9f3ec02d28d2d275f7e818d27290fd0f3a",
+      "sha256": "aa217ae831a32e515fab3575faa740647d722cbaa2c9e3da002faea9f9551ecc",
       "controls": [
         {
           "kind": "h1",

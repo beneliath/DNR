@@ -78,7 +78,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
                         <a href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Speaker" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                         <?php if ($can_manage_speakers): ?><a href="edit_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Speaker" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a><?php endif; ?>
                         <?php if (canDeleteEntries($_SESSION['role'] ?? null)): ?>
-                            <form method="post" action="bulk_delete.php">
+                            <form method="post" action="bulk_delete.php" data-admin-unlock-required>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="action" value="review">
                                 <input type="hidden" name="entity" value="speaker">

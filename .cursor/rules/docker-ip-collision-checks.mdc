@@ -1,0 +1,15 @@
+---
+description: Check Docker IP allocation and restart safety when changing MOED networking or account provisioning
+alwaysApply: true
+---
+
+# Docker IP Collision Checks
+
+- Apply this requirement whenever changes affect Docker networks, Compose overlays, static container addresses, subnet/IPAM configuration, account provisioning, ingress/proxy connections, or deployment/startup procedures.
+- Before implementation and before an authorized deployment, compare the complete effective configuration with live network assignments on the affected host when accessible. Include other Compose projects sharing those networks, Traefik, Cloudflared, and every provisioned account.
+- Check for duplicate addresses, overlapping subnets, conflicts with the host/LAN/VPN, gateway/network/broadcast addresses, and enough free addresses for the supported account count.
+- Check static reservations against the dynamic allocation pool. An address required by a stopped container must remain unavailable to unrelated containers; inspecting only currently running containers is insufficient.
+- In particular, the configured Traefik address on `moed_edge` (default `172.29.255.2`) must never be allocated to an account-control or account-ingress container. Preserve the configured Cloudflared address on `proxy` as well.
+- Add focused regression coverage for allocation while Traefik is stopped and for multiple accounts sharing an edge network. Verify that startup order after a Docker restart or host reboot cannot create a collision, using a disposable environment or an already-authorized operational check.
+- Inspect network assignments and affected service health after an authorized change. Report what was checked and any checks that could not be performed; do not claim restart safety without evidence.
+- This instruction does not authorize production deployment, container/network disruption, or a host reboot. Follow existing deployment authorization and release requirements.

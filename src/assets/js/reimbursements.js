@@ -80,6 +80,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
   });
   selectAllButtons.forEach(function (button) {
     button.addEventListener('click', async function () {
+      const finishFeedback = window.DnrButtonFeedback?.begin(button, 'Selecting…');
       selectAllButtons.forEach(function (item) { item.disabled = true; });
       showSelectionError('');
       try {
@@ -100,7 +101,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
         boxes.forEach(function (box) { box.checked = selected.has(box.value); });
         update();
       } catch (_) { showSelectionError('Unable to select available expenses. Try again.'); }
-      finally { selectAllButtons.forEach(function (item) { item.disabled = false; }); }
+      finally { finishFeedback?.(); selectAllButtons.forEach(function (item) { item.disabled = false; }); }
     });
   });
   clearButtons.forEach(function (clear) {

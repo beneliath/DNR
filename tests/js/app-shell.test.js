@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/app-shell.js'), 'utf8');
 
-function fixture(width = 390, saved = new Map(), storageFails = false, readyState = 'complete') {
+function fixture(width = 390, saved = new Map(), storageFails = false, readyState = 'complete', coachState = null) {
     const events = {}, windowEvents = {};
     const doc = { readyState, activeElement: null, addEventListener(name, fn) { events[name] = fn; } };
     function node(name) {
@@ -21,6 +21,7 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
     const body = node('body'), header = node('header'), sidebar = node('sidebar'), toggle = node('toggle');
     const close = node('close'), last = node('last'), backdrop = node('backdrop'), main = node('main'), footer = node('footer'), skip = node('skip');
     const desktopBrand = node('desktop-brand'), mobileBrand = node('mobile-brand');
+    const coachLayout = coachState && { dataset: { coachLayoutKey: 'test-key', coachPaneKey: 'test-pane-key', coachPage: coachState.page || 'dashboard.php' } };
     desktopBrand.href = mobileBrand.href = 'dashboard.php';
     const sections = ['work', 'schedule', 'relationships', 'administration'].map(name => {
         const section = node(name);
@@ -37,21 +38,34 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
     footer.inert = true;
     doc.body = body;
     doc.getElementById = id => id === 'app-sidebar' ? sidebar : null;
-    doc.querySelector = selector => ({ '[data-nav-toggle]': toggle, '[data-nav-close]': close, '[data-nav-backdrop]': backdrop, '.app-shell-header': header, 'main, [role="main"]': main, '[data-skip-link]': skip }[selector] || null);
+    doc.querySelector = selector => ({ '[data-coach-layout-key]': coachLayout, '[data-nav-toggle]': toggle, '[data-nav-close]': close, '[data-nav-backdrop]': backdrop, '.app-shell-header': header, 'main, [role="main"]': main, '[data-skip-link]': skip }[selector] || null);
     doc.querySelectorAll = selector => selector === '.app-brand, .mobile-brand' ? [desktopBrand, mobileBrand] : [];
-    const win = { innerWidth: width, location: { assigned: null, assign(url) { this.assigned = url; } }, addEventListener(k, fn) { windowEvents[k] = fn; } };
+    const win = { innerWidth: width, sessionStorage: { getItem() { return JSON.stringify(coachState); } },
+        matchMedia() { return { matches: width >= 1101 }; },
+        location: { assigned: null, assign(url) { this.assigned = url; } }, addEventListener(k, fn) { windowEvents[k] = fn; } };
     const localStorage = {
         getItem(key) { if (storageFails) throw new Error('unavailable'); return saved.get(key) ?? null; },
         setItem(key, value) { if (storageFails) throw new Error('unavailable'); saved.set(key, value); }
     };
     vm.runInNewContext(source, { document: doc, window: win, localStorage });
-    return { sections, doc, sidebar, toggle, close, last, main, footer, skip, win, desktopBrand, mobileBrand,
+    return { sections, doc, body, sidebar, toggle, close, last, main, footer, skip, win, desktopBrand, mobileBrand,
         cookieState() { return decodeURIComponent(doc.cookie.split(';', 1)[0].split('=', 2)[1]); },
         domReady() { events.DOMContentLoaded(); },
         key(key, shiftKey = false) { const e = { key, shiftKey, prevented: false, preventDefault() { this.prevented = true; } }; events.keydown(e); return e; },
         resize(width) { win.innerWidth = width; windowEvents.resize(); }
     };
 }
+
+test('early Coach layout honors the saved choice at every width, with the manual exception', () => {
+    for (const width of [390, 1100, 1280]) {
+        for (const state of [{ key: 'test-key', open: true }, { key: 'test-key', open: false },
+            { key: 'previous-role', paneKey: 'test-pane-key', open: true },
+            { key: 'test-key', open: true, page: 'help.php' }, { key: 'another-login', open: true }]) {
+            const f = fixture(width, new Map(), false, 'loading', state);
+            assert.equal(f.body.classList.values.has('coach-open'), (state.key === 'test-key' || state.paneKey === 'test-pane-key') && state.open && state.page !== 'help.php');
+        }
+    }
+});
 
 test('mobile drawer removes closed links and contains keyboard focus while open', () => {
     const f = fixture();

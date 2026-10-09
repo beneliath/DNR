@@ -107,7 +107,7 @@ expectHoverStyle(
     'Cancel and Back controls should use the modern theme-aware hover treatment.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, '.button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover') !== false
+    strpos($modern_stylesheet, '.button-secondary, .cancel-button, .button-cancel, .back-button, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover') !== false
         && strpos($footer_template, 'class="button-secondary"') !== false
         && strpos($footer_template, 'class="archive-button"') !== false,
     'Dialog and archive/restore workflow controls should use the same pale blue interaction treatment.'

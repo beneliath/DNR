@@ -202,22 +202,6 @@ html.dark-mode body.user-manual-page .manual-callout-body {
   display: none;
 }
 
-.manual-search-control button {
-  min-height: 38px !important;
-  padding: 7px 12px !important;
-  border: 0 !important;
-  border-radius: 9px !important;
-  background: var(--surface-hover) !important;
-  color: var(--text-muted) !important;
-  font-size: .78rem !important;
-}
-
-.manual-search-control button:hover,
-.manual-search-control button:focus-visible {
-  background: var(--nav-hover-bg) !important;
-  color: var(--nav-hover-fg) !important;
-}
-
 .manual-search-hint {
   display: flex;
   justify-content: space-between;
