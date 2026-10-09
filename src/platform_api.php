@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/account_login_helpers.php';
+require_once __DIR__ . '/account_mail_helpers.php';
 header('Cache-Control: no-store');
 header('Content-Type: application/json');
 if (!accountIsPrimary() || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { http_response_code(404); exit('{}'); }
@@ -53,6 +54,7 @@ try {
         setDatabaseAuditContext($conn, (int) $identity['id'], $identity['username']);
         $response = match ($operation) {
             'validate' => $identity,
+            'mail_review_count' => ['count' => platformMailReviewCount($conn)],
             'list' => ['accounts' => array_map(static fn(array $account): array => $account + [
                 'switch_intent' => platformIssueSwitchIntent($identity, $account['account_key']),
             ], platformAccountDirectory($conn))],

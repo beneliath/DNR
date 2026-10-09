@@ -12,7 +12,7 @@ import re
 import secrets
 import subprocess
 
-from account_isolation_http_test import ROOT, Client, csrf, fixture, cleanup, preview_administrator
+from account_isolation_http_test import ROOT, Client, csrf, fixture, cleanup, preview_administrator, mail_review_badge, navigation_badge
 
 PROJECTS = {'shalom-in-messiah': 'dnr', 'test-account': 'moed-account-test-account',
             'account-isolation-preview': 'moed-account-account-isolation-preview'}
@@ -103,6 +103,8 @@ def main():
         primary.login(superuser)
         page = primary.request('mail_review.php')
         assert page[0] == 200 and marker in page[2] and 'href="mail_review.php"' in page[2]
+        needs_review = lambda: int(sql('dnr', "SELECT COUNT(*) FROM platform_inbound_mail WHERE status='review' AND payload IS NOT NULL"))
+        assert mail_review_badge(page[2]) == needs_review(), 'Badge must count only emails awaiting review'
         assert '<script>alert(1)</script>' not in page[2], 'Mail body was not escaped'
         assert 'Array to string conversion' not in page[2] and re.search(r'Page 1 of \d+ · \d+ messages', page[2]), 'Pagination was overwritten by the shared header'
         assert 'Destination Account' in page[2] and 'value="test-account"' in page[2]
@@ -155,6 +157,7 @@ def main():
             assert result[0] == 303, result[0]
         assert sql('dnr','SELECT status FROM platform_inbound_mail WHERE id='+str(review_id)) == 'rejected'
         rejected_page = primary.request('mail_review.php?status=rejected&id='+str(review_id))
+        assert mail_review_badge(rejected_page[2]) == needs_review(), 'Badge must update after routing and rejection, even on another queue tab'
         assert 'aria-label="Delete rejected message"' in rejected_page[2] and 'data-confirm="Permanently delete' in rejected_page[2]
         assert primary.request('mail_review.php', {'action':'delete','id':review_id})[0] == 400
         deleted = primary.request('mail_review.php', {'action':'delete','id':review_id,'csrf_token':csrf(rejected_page[2])})
@@ -176,9 +179,13 @@ def main():
                 dashboard = client.request('dashboard.php')[2]
                 assert 'href="mail_review.php"' not in dashboard
                 if role != 'reviewer':
+                    expected_inbox = int(sql(PROJECTS[key], "SELECT COUNT(*) FROM inbound_email_messages WHERE status='review'"))
+                    assert navigation_badge(dashboard, 'inbound_mail.php') == expected_inbox, 'Inbox badge must match only this Account’s review queue'
                     inbox = client.request('inbound_mail.php')[2]
                     for _, target, subject in messages:
                         if target != key: assert subject not in inbox, 'Inbox disclosed mail outside its Account'
+                else:
+                    assert 'href="inbound_mail.php"' not in dashboard, 'Reviewers must not see Inbox or its badge'
         print('PASS: three Accounts; token isolation; first-scan privacy; SuperAdmin manual assignment into review only; lost-response retry/deduplication; reassignment blocked after delivery begins; payload cleanup; role/CSRF/unlock enforcement; retry/reject/delete; deleted-message reimport prevention; pagination rendering.')
     finally:
         for project in PROJECTS.values():

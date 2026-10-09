@@ -18,6 +18,13 @@
     let clockOffset = Date.now() - Number(banner.dataset.serverNow) * 1000;
     let tick;
     let statusRevision = 0;
+    let renderedUnlock;
+
+    function renderControls(unlocked) {
+        document.querySelectorAll('[data-admin-unlocked-only]').forEach(node => { node.hidden = !unlocked; });
+        document.querySelectorAll('[data-admin-locked-only]').forEach(node => { node.hidden = unlocked; });
+        document.querySelectorAll('[data-admin-unlock-enable]').forEach(node => { node.disabled = !unlocked; });
+    }
 
     function measure() {
         document.body.style.setProperty('--admin-unlock-banner-height', `${banner.hidden ? 0 : banner.offsetHeight}px`);
@@ -28,9 +35,24 @@
         timer.textContent = countdown;
         banner.hidden = !countdown;
         document.body.classList.toggle('admin-unlock-active', Boolean(countdown));
+        if (renderedUnlock !== Boolean(countdown)) {
+            renderedUnlock = Boolean(countdown);
+            renderControls(renderedUnlock);
+        }
         measure();
         if (!countdown) window.clearInterval(tick);
     }
+
+    document.addEventListener('DOMContentLoaded', () => renderControls(Boolean(adminUnlockCountdown(expiresAt, (Date.now() - clockOffset) / 1000))));
+    document.addEventListener('admin-unlock-changed', event => {
+        statusRevision++;
+        const status = event.detail;
+        expiresAt = status.unlocked === true ? Number(status.expires_at) : 0;
+        clockOffset = Date.now() - Number(status.server_now) * 1000;
+        window.clearInterval(tick);
+        tick = window.setInterval(render, 250);
+        render();
+    });
 
     async function refresh() {
         render();

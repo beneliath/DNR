@@ -35,9 +35,11 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The October 5, 2026 edition applies to application version **2.4.19** and
+The October 8, 2026 edition applies to application version **2.5.3** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
+
+This release adds an Admin Unlock dialog that preserves the current page, orange outlines for locked sensitive actions, review-count badges, and aligned action columns. Platform-only views and preview controls require SuperAdmin access. Reimbursement reports and emails use the Account Name from Account Settings. Retained screenshots of the earlier unlock page and reimbursement setup are labeled with the current workflow.
 
 The financial closeout now requires Giving Received, Lodging Received, Travel Received, and Book Table Received before finalization. Drafts retain unknown amounts, confirmed zero remains explicit, and book-table amounts are included in totals and correction history. Existing finalized reports retain an unrecorded book-table amount until corrected.
 

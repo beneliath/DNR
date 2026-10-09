@@ -94,7 +94,7 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
             <input type="hidden" name="action" value="<?php echo $confirmationAction; ?>">
             <input type="hidden" name="account_key" value="<?php echo htmlspecialchars($confirmationAccount['account_key']); ?>">
             <?php if ($deleting): ?><div class="form-group"><label for="account-delete-confirmation">Type <?php echo htmlspecialchars($confirmationAccount['account_key']); ?> to confirm</label><input type="text" id="account-delete-confirmation" name="confirmation" autocomplete="off" required></div><?php endif; ?>
-            <div class="account-lifecycle-buttons"><a class="button-secondary" href="accounts.php">Cancel</a><button type="submit" class="<?php echo $deleting ? 'delete-button' : 'save-button'; ?>"><?php echo $actionLabel; ?></button></div>
+            <div class="account-lifecycle-buttons"><a class="button-secondary" href="accounts.php">Cancel</a><button type="submit" data-admin-unlock-required class="<?php echo $deleting ? 'delete-button' : 'save-button'; ?>"><?php echo $actionLabel; ?></button></div>
         </form>
     </section>
     <?php endif; ?>
@@ -143,9 +143,11 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
                 <?php else: ?>
                     <span class="account-directory-wait"><?php echo $account['state'] === 'disabled' ? 'Access paused' : 'Action in progress'; ?></span>
                 <?php endif; ?>
+                <span class="account-icon-actions">
                 <?php if ($canArchive || $account['state'] === 'disabled'): ?>
                     <a class="action-button action-icon-button <?php echo $canArchive ? 'archive-button' : 'delete-button'; ?>" href="<?php echo htmlspecialchars($manageUrl . '&confirm=' . ($canArchive ? 'archive' : 'delete')); ?>" aria-label="<?php echo $canArchive ? 'Archive ' : 'Delete '; echo htmlspecialchars($account['name'], ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>" data-tooltip="<?php echo $canArchive ? 'Archive Account' : 'Delete Account'; ?>"><?php echo actionIconSvg($canArchive ? 'archive' : 'delete'); ?></a>
                 <?php endif; ?>
+                </span>
             </div>
             <?php if (!empty($account['lifecycle_error'])): ?><p class="account-directory-error" role="status"><?php echo htmlspecialchars($account['lifecycle_error']); ?></p><?php endif; ?>
         </li>
@@ -155,6 +157,6 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
     <form method="post" action="accounts.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="create">
         <div class="form-group"><label for="name">Account Name</label><input type="text" id="name" name="name" maxlength="160" required></div>
         <div class="form-group"><label for="account_key">Address Label</label><input type="text" id="account_key" name="account_key" pattern="[a-z][a-z0-9-]{2,63}" maxlength="64" required><p class="field-help">A unique label, such as grace-community.</p></div>
-        <button type="submit" class="save-button">Create Account</button>
+        <button type="submit" class="save-button" data-admin-unlock-required>Create Account</button>
     </form></section>
 </main><?php include 'templates/footer.php'; ?></body></html>

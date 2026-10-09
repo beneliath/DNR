@@ -125,7 +125,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
     <div class="page-heading"><div><h1>AI Coach Requests</h1><p class="page-intro">Review real questions and improve step-by-step guidance.</p></div>
         <?php if ($id !== null): ?><a class="button-secondary" href="ai_coach_requests.php">All Requests</a>
         <?php elseif ($clearConfirmation === null && $pagination): ?>
-            <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><button type="submit" name="action" value="prepare_clear" class="button-delete">Clear Request Log</button></form>
+            <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><button type="submit" name="action" value="prepare_clear" class="button-delete" data-admin-unlock-hint>Clear Request Log</button></form>
         <?php endif; ?>
     </div>
     <p><a class="button-secondary" href="ai_coach_improvements.php">Guidance Improvements</a></p>
@@ -152,7 +152,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             <form method="post" action="ai_coach_requests.php">
                 <?php echo csrfInput(); ?><input type="hidden" name="clear_token" value="<?php echo $escape($clearConfirmation['token']); ?>">
                 <a class="button-secondary" href="ai_coach_requests.php">Cancel</a>
-                <button type="submit" name="action" value="clear_requests" class="button-delete"<?php echo $clearConfirmation['count'] === 0 ? ' disabled' : ''; ?>>Delete <?php echo (int) $clearConfirmation['count']; ?> entries</button>
+                <button type="submit" name="action" value="clear_requests" class="button-delete" data-admin-unlock-required<?php echo $clearConfirmation['count'] === 0 ? ' disabled' : ''; ?>>Delete <?php echo (int) $clearConfirmation['count']; ?> entries</button>
             </form>
         </section>
     <?php elseif ($detail): ?>

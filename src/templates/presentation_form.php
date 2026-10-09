@@ -116,7 +116,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         <?php if ($is_saved_presentation): ?>
                             <div class="remove-btn-container presentation-management-actions">
                                 <?php if (hasRole(['admin'])): ?>
-                                    <a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $presentation['id']; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>">Reset All Presentation Statistics</a>
+                                    <a class="button-secondary presentation-stats-reset" data-admin-unlock-required href="reset_presentation_stats.php?presentation_id=<?php echo (int) $presentation['id']; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>">Reset All Presentation Statistics</a>
                                 <?php endif; ?>
                                 <?php if (canArchiveEntries($user_role ?? '')): ?>
                                     <button type="submit" form="archive-presentation-<?php echo (int) $presentation['id']; ?>" class="archive-button">Archive</button>

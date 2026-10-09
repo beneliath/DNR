@@ -66,6 +66,19 @@ def csrf(body):
     return html.unescape(match[1])
 
 
+def navigation_badge(body, route):
+    link = re.search(r'<a href="' + re.escape(route) + r'"[^>]*>(.*?)</a>', body, re.S)
+    assert link, f'Navigation link is missing: {route}'
+    badge = re.search(r'class="nav-notification-badge"[^>]*>(\d+)</span>', link[1])
+    if badge:
+        assert int(badge[1]) > 0, f'Zero badge must be hidden: {route}'
+    return int(badge[1]) if badge else 0
+
+
+def mail_review_badge(body):
+    return navigation_badge(body, 'mail_review.php')
+
+
 def fixture(container):
     nonce = secrets.token_hex(5)
     result = subprocess.run(['docker', 'exec', '-i', '-e', 'DNR_ACCOUNT_PREVIEW_FIXTURE=1', container,
@@ -168,6 +181,7 @@ def main():
         admin = Client(primary_url); admin.login(superuser)
         directory = admin.request('accounts.php')
         assert directory[0] == 200 and 'Account Isolation Preview' in directory[2]
+        review_count = mail_review_badge(directory[2])
         preview_administrator(admin)
         directory = admin.request('accounts.php')
         assert admin.request('accounts.php', {'action': 'switch', 'account_key': args.member_key})[0] == 400, 'Switch accepted without CSRF'
@@ -177,7 +191,9 @@ def main():
         member = Client(member_url)
         route = target
         assert member.request(route)[0] == 302, 'SuperAdmin handoff failed'
-        assert member.request('dashboard.php')[0] == 200
+        member_dashboard = member.request('dashboard.php')
+        assert member_dashboard[0] == 200
+        assert mail_review_badge(member_dashboard[2]) == review_count, 'Member Account must show the shared primary Mail Review count'
         assert right['marker'] in member.request(f"view_organization.php?id={right['organization_id']}")[2]
         assert member.request(route)[0] == 403, 'Consumed handoff ticket replayed'
         preview_administrator(member)

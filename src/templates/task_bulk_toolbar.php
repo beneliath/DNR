@@ -8,6 +8,6 @@
 <label data-task-owner hidden>Owner <select name="assignee"><option value="0">Unassigned</option><?php foreach ($conn->query("SELECT id,username FROM users WHERE account_status='active' ORDER BY username") as $owner): ?><option value="<?php echo (int)$owner['id']; ?>"><?php echo htmlspecialchars($owner['username'],ENT_QUOTES,'UTF-8'); ?></option><?php endforeach; ?></select></label>
 <label data-task-date hidden>Due Date <input type="date" name="due_date"><small>Leave blank to clear</small></label>
 <span class="task-bulk-submit-actions"><button type="submit" data-task-bulk-submit>Preview Updates</button>
-<?php if (canDeleteEntries($_SESSION['role'] ?? '')): ?><button type="submit" formaction="bulk_delete.php" class="delete-button" data-task-bulk-submit>Review Deletion</button><?php endif; ?></span>
+<?php if (canDeleteEntries($_SESSION['role'] ?? '')): ?><button type="submit" formaction="bulk_delete.php" class="delete-button" data-task-bulk-submit data-admin-unlock-required>Review Deletion</button><?php endif; ?></span>
 </form>
 <?php endif; ?>

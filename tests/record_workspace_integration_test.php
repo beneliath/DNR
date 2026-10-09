@@ -169,8 +169,8 @@ try {
         && json_decode(recordHttp('admin_unlock_status.php', $sessions['other-admin-session'][0])['body'], true)['unlocked'] === true,
         'Early lock clears only the requesting session, including when both sessions belong to the same admin');
     $lockedPage = recordHttp($taskPath, $sessions['admin'][0]);
-    expectRecordHttp($lockedPage['status'] === 200 && !str_contains($lockedPage['body'], 'data-admin-unlock '),
-        'Early lock preserves login and removes the banner on subsequent pages');
+    expectRecordHttp($lockedPage['status'] === 200 && str_contains($lockedPage['body'], 'data-expires-at="0"'),
+        'Early lock preserves login and keeps the banner hidden on subsequent pages');
     $deleteAfterLock = recordHttp('tasks.php', $sessions['admin'][0], $deleteFields);
     expectRecordHttp($deleteAfterLock['status'] === 302 && str_contains($deleteAfterLock['headers'], 'Location: admin_elevation.php?')
         && $conn->query('SELECT id FROM follow_up_tasks WHERE id = ' . $taskId)->num_rows === 1,

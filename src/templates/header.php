@@ -65,7 +65,8 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $authenticated_superadmin = authenticatedSuperAdmin();
-$admin_unlock_expires_at = !empty($_SESSION['user_id']) && $user_role === 'admin'
+$admin_unlock_available = !empty($_SESSION['user_id']) && $user_role === 'admin';
+$admin_unlock_expires_at = $admin_unlock_available
     ? adminElevationExpiresAt()
     : null;
 $role_preview = $authenticated_superadmin
@@ -97,6 +98,28 @@ foreach (explode(',', (string) ($_COOKIE[$nav_preference_cookie] ?? '')) as $ent
     }
 }
 $nav_task_count = 0;
+$nav_inbox_count = 0;
+if (!empty($_SESSION['user_id']) && in_array($user_role, ['admin', 'editor'], true)
+    && ($GLOBALS['conn'] ?? null) instanceof mysqli) {
+    try {
+        $nav_inbox_count = (int) applicationDatabaseConnection()->query(
+            "SELECT COUNT(*) FROM inbound_email_messages WHERE status='review'"
+        )->fetch_row()[0];
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to load Inbox review count', ['error' => $exception->getMessage()]);
+    }
+}
+$nav_mail_review_count = 0;
+if (isSuperAdmin() && accountMailEnabled()) {
+    try {
+        require_once dirname(__DIR__) . '/account_mail_helpers.php';
+        $nav_mail_review_count = accountIsPrimary()
+            ? platformMailReviewCount(applicationDatabaseConnection())
+            : (int) (platformCall('mail_review_count', platformIdentityPayload())['count'] ?? 0);
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to load Mail Review count', ['error' => $exception->getMessage()]);
+    }
+}
 if (!empty($_SESSION['user_id'])) {
     try {
         require_once dirname(__DIR__) . '/notification_helpers.php';
@@ -153,8 +176,8 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <?php if ($admin_unlock_expires_at !== null): ?>
-        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
+    <?php if ($admin_unlock_available): ?>
+        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at ?? 0; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
             <div class="admin-unlock-copy">
                 <strong role="status">Administrator actions unlocked</strong>
                 <span>Sensitive actions are available until the timer expires.</span>
@@ -217,6 +240,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php if (in_array($user_role, ['admin', 'editor'], true)): ?>
                         <li><a href="inbound_mail.php" class="nav-link<?php echo $active_nav === 'inbound_mail' ? ' active' : ''; ?>"<?php echo $active_nav === 'inbound_mail' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 3v4M17 3v4"/></svg><span>Inbox</span>
+                            <?php if ($nav_inbox_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_inbox_count; ?> Email<?php echo $nav_inbox_count === 1 ? '' : 's'; ?> Awaiting Review"><?php echo $nav_inbox_count; ?></span><?php endif; ?>
                         </a></li>
                         <?php endif; ?>
                         <li><a href="email_templates.php" class="nav-link<?php echo $active_nav === 'email_templates' ? ' active' : ''; ?>"<?php echo $active_nav === 'email_templates' ? ' aria-current="page"' : ''; ?>>
@@ -269,7 +293,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php if (isSuperAdmin()): ?><li><a href="accounts.php" class="nav-link admin-nav-link<?php echo $active_nav === 'accounts' ? ' active' : ''; ?>"<?php echo $active_nav === 'accounts' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Accounts</span>
                         </a></li>
-                        <?php if (accountMailEnabled()): ?><li><a href="mail_review.php" class="nav-link admin-nav-link"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7M12 15v1"/></svg><span>Mail Review</span></a></li><?php endif; endif; ?>
+                        <?php if (accountMailEnabled()): ?><li><a href="mail_review.php" class="nav-link admin-nav-link"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7M12 15v1"/></svg><span>Mail Review</span><?php if ($nav_mail_review_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_mail_review_count; ?> Email<?php echo $nav_mail_review_count === 1 ? '' : 's'; ?> Awaiting Review"><?php echo $nav_mail_review_count; ?></span><?php endif; ?></a></li><?php endif; endif; ?>
                         <?php endif; ?>
                         <li><a href="users.php" class="nav-link admin-nav-link<?php echo $active_nav === 'users' ? ' active' : ''; ?>"<?php echo $active_nav === 'users' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span>
@@ -352,7 +376,7 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
-<?php if ($admin_unlock_expires_at !== null) renderScript('assets/js/admin-unlock.min.js', false); ?>
+<?php if ($admin_unlock_available) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

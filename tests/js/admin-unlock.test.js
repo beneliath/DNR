@@ -35,7 +35,7 @@ function createBrowser(serverNow = 1000, request = async () => { throw new Error
     let tick;
     let cleared = false;
     const context = {
-        document: { querySelector: () => banner,
+        document: { querySelector: () => banner, querySelectorAll: () => [],
             body: { classList: { toggle: (key, value) => value ? classes.add(key) : classes.delete(key) },
                 style: { setProperty: (key, value) => { styles[key] = value; } } },
             addEventListener: (key, callback) => { events[key] = callback; } },
@@ -162,4 +162,14 @@ test('failed extension keeps the existing deadline and shows a retry message', a
     assert.equal(page.error.hidden, false);
     assert.match(page.error.textContent, /Unable to add time/);
     assert.equal(page.extendButton.disabled, false);
+});
+
+test('a dialog unlock updates the countdown and locked-action styling without navigation', () => {
+    const page = createBrowser(1300);
+    assert.equal(page.classes.has('admin-unlock-active'), false);
+    page.events['admin-unlock-changed']({ detail: { unlocked: true, expires_at: 1600, server_now: 1300 } });
+    assert.equal(page.timer.textContent, '5:00');
+    assert.equal(page.classes.has('admin-unlock-active'), true);
+    page.advance(300000); page.tick();
+    assert.equal(page.classes.has('admin-unlock-active'), false);
 });

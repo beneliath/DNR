@@ -1365,9 +1365,9 @@
     "title": "Confirm administrator access",
     "route": "admin_elevation.php",
     "steps": [
-      "Select Admin Unlock in the sidebar, or open a protected action. Users also provides its own unlock panel.",
+      "Select Admin Unlock in the sidebar or on Users, or select a protected action, to open the verification dialog over the current page.",
       "Enter your current administrator password and a fresh authenticator or unused recovery code.",
-      "Select Unlock Sensitive Actions to return to the requested page. The five-minute unlock applies only to this signed-in session."
+      "Select Unlock Sensitive Actions to continue on the same page. The five-minute unlock applies only to this signed-in session."
     ],
     "file": "screenshots/elevation.png",
     "captured_at": "2026-09-19",
@@ -1377,7 +1377,8 @@
       893,
       426
     ],
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded.",
+    "note": "Earlier full-page view of the verification fields. In version 2.5.3, these fields appear in a dialog that preserves the current page, edits, and scroll position."
   },
   {
     "chapter": 12,
@@ -2017,10 +2018,10 @@
   {
     "chapter": 14,
     "id": "reimbursement-setup",
-    "title": "Set Organization and Shared Recipients",
+    "title": "Set Account and Shared Recipients",
     "route": "reimbursement_setup.php",
     "steps": [
-      "Administrators open Reimbursement Setup and enter Organization Name and the bookkeeper name, email, and phone.",
+      "Administrators set the Account Name in Account Settings. Reimbursement Setup displays it and lets you edit the bookkeeper name, email, and phone.",
       "Set Bcc Email Address for a hidden copy and Cc Email Address for a visible shared copy. Check the resulting recipients on each submission review.",
       "Select Save Reimbursement Setup and complete administrator confirmation when requested. Changes affect drafts and future submissions, not saved original packages."
     ],
@@ -2034,7 +2035,7 @@
       600
     ],
     "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "note": "Fictional documentation records in an earlier setup view. Version 2.5.3 replaces Organization Name with the Account Name from Account Settings. The recipient fields continue below the illustrated area."
   },
   {
     "chapter": 14,

@@ -117,6 +117,25 @@ Genesis 49:9,10 ... Revelation 5:5
     </form>
 </dialog>
 
+<?php if (!empty($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin'): ?>
+<dialog id="admin-unlock-dialog" class="confirmation-dialog" aria-labelledby="admin-unlock-title" aria-describedby="admin-unlock-description">
+    <h2 id="admin-unlock-title">Confirm Administrator Access</h2>
+    <p id="admin-unlock-description" class="dialog-supporting-text">Enter your current password and a fresh authenticator or recovery code to unlock sensitive actions for five minutes. Your current page will stay open.</p>
+    <p data-unlock-error class="dialog-inline-error" role="alert" hidden></p>
+    <form method="post" action="admin_elevation.php" autocomplete="off" data-admin-unlock-dialog-form>
+        <?php echo csrfInput(); ?>
+        <label for="unlock-password" class="confirmation-dialog-label">Administrator Password</label>
+        <input type="password" id="unlock-password" name="admin_password" class="confirmation-dialog-input" autocomplete="current-password" maxlength="72" required>
+        <label for="unlock-code" class="confirmation-dialog-label">Fresh Authenticator Code or Recovery Code</label>
+        <input type="text" id="unlock-code" name="admin_code" class="confirmation-dialog-input" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+        <div class="confirmation-dialog-actions">
+            <button type="button" class="button-secondary" data-unlock-cancel>Cancel</button>
+            <button type="submit" data-unlock-submit>Unlock Sensitive Actions</button>
+        </div>
+    </form>
+</dialog>
+<?php renderScript('assets/js/admin-unlock-dialog.min.js'); ?>
+<?php endif; ?>
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>
 <?php renderScript('assets/js/workflow-ui.min.js'); ?>

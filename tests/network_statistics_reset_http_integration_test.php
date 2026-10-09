@@ -104,8 +104,8 @@ try {
         $locked = $request($path, null, $cookie);
         expectNetworkReset($locked['status'] === 200
             && str_contains($locked['body'], 'admin_elevation.php?return=network_diagnostics.php')
-            && !str_contains($locked['body'], 'class="network-statistics-reset-form"')
-            && !str_contains($locked['body'], 'data-admin-unlock ')
+            && str_contains($locked['body'], 'class="network-statistics-reset-form" data-admin-unlock-required')
+            && str_contains($locked['body'], 'data-expires-at="0"')
             && $sampleCount() === 4, 'The locked page must offer unlocking without clearing data.');
         $gate = $request($path, $post, $cookie);
         expectNetworkReset($gate['status'] === 302

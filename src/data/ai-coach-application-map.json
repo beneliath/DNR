@@ -30,7 +30,7 @@
       ]
     },
     "account_settings.php": {
-      "sha256": "f021db652a265d4def3f5a099660b97ba7c977abbab91e42f459ec64c94579ef",
+      "sha256": "b408effce98c84e871f5aafb86d3907727f5666547a964ac979dfeecb5d9e0c4",
       "controls": [
         {
           "kind": "h1",
@@ -48,7 +48,7 @@
       ]
     },
     "accounts.php": {
-      "sha256": "cbc95ef8c622e75c58bb7e043af06a42a64819aa9809b0949e5663f4f39b9d86",
+      "sha256": "a821ee50e4001ca115c74a324f1cced3b204e43f1e312f84b9e46f2b9a8044b2",
       "controls": [
         {
           "kind": "h1",
@@ -529,7 +529,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672",
+      "sha256": "5724aa534f55f5585e5fa7e69b9c66a02e3b4c108a081420e189472984f52b4c",
       "controls": [
         {
           "kind": "h1",
@@ -623,7 +623,7 @@
       ]
     },
     "audit_log.php": {
-      "sha256": "f2dba3c8a66d7550aa93e8367361d6a7135afeb7084e38c6d3a0c559c6626dd2",
+      "sha256": "e0dc17319237b1ff4ff0c105f264fd6659b85b812d2325d02d63948ad8d42c2a",
       "controls": [
         {
           "kind": "h1",
@@ -2599,7 +2599,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "6cf7f6faad4cf1f0a0c54027da6ed76f48e3fa0c39604ca52a645d80b20ca098",
+      "sha256": "66c25480fbf498f319160555f1ef36b94bbec87c8693c9f8880a7cdebec541ea",
       "controls": [
         {
           "kind": "h1",
@@ -2611,10 +2611,6 @@
         },
         {
           "kind": "button",
-          "label": "Reset Statistics"
-        },
-        {
-          "kind": "a",
           "label": "Reset Statistics"
         },
         {
@@ -2979,7 +2975,7 @@
       ]
     },
     "register.php": {
-      "sha256": "6ff692c10d28d00595a9b2ac141090bd975cb42a4418a69d8a8b9c65bb441c0b",
+      "sha256": "84c857c9a364a7a88a3f00fccbfb257a6ca008696fbf09cfe90d0f85559386ba",
       "controls": [
         {
           "kind": "a",
@@ -3473,7 +3469,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "5321cd562a7771586b5b51ed36a2694a55a40af69a2d19344f7d5b36174ffa8e",
+      "sha256": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
       "controls": [
         {
           "kind": "h1",
@@ -3573,7 +3569,7 @@
       ]
     },
     "reset_presentation_stats.php": {
-      "sha256": "f4c25d966c5a2301a4918441bee1d03c373d0b8a17e1372fd073db753ef23230",
+      "sha256": "259bb2910ed10e4b1640b1924781c66b1e9856198a8a886050696de6144b03de",
       "controls": [
         {
           "kind": "a",
@@ -4166,7 +4162,7 @@
       ]
     },
     "users.php": {
-      "sha256": "b81e2d184882326b0b778a32fbf8af90c1c45de0da2aa05d9750885aee8dc56b",
+      "sha256": "e99a589b9cfe95464d1d90dee825f08b3b3794c92bc435bdd074ecf042b18953",
       "controls": [
         {
           "kind": "h1",
@@ -4178,17 +4174,7 @@
           "id": "admin-elevation-title"
         },
         {
-          "kind": "label",
-          "label": "Administrator Password",
-          "for": "admin_password"
-        },
-        {
-          "kind": "label",
-          "label": "Fresh Authentication Code",
-          "for": "admin_code"
-        },
-        {
-          "kind": "button",
+          "kind": "a",
           "label": "Unlock for Five Minutes"
         },
         {
