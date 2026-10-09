@@ -499,6 +499,7 @@
     function updatePrimaryOrganizationContactRequirements() {
         const firstName = document.getElementById('contact_first_name');
         const lastName = document.getElementById('contact_last_name');
+        const photo = document.getElementById('contact_photo');
         if (!firstName || !lastName) return;
         const fields = [
             [firstName, document.getElementById('first_name_label')],
@@ -508,7 +509,8 @@
             [document.getElementById('contact_email_confirm'), document.getElementById('email_confirm_label')]
         ];
         const update = function () {
-            const required = firstName.value.trim() !== '' || lastName.value.trim() !== '';
+            const required = firstName.value.trim() !== '' || lastName.value.trim() !== ''
+                || Boolean(photo && photo.files && photo.files.length);
             fields.forEach(function (entry) {
                 if (entry[0]) entry[0].required = required;
                 if (entry[1]) entry[1].classList.toggle('required', required);
@@ -516,6 +518,7 @@
         };
         firstName.addEventListener('input', update);
         lastName.addEventListener('input', update);
+        if (photo) photo.addEventListener('change', update);
         update();
     }
 

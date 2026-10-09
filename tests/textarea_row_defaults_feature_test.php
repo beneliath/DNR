@@ -43,14 +43,14 @@ $standardEventTaskForm = $read('src/templates/standard_event_task_form.php');
 expectTextareaRowDefault(
     str_contains($addContact, 'name="contact_notes" id="contact_notes" rows="6"')
         && str_contains($editContact, 'name="contact_notes" id="contact_notes" rows="6"')
-        && str_contains($addOrganization, 'name="notes" rows="6"')
+        && str_contains($addOrganization, 'name="notes" rows="7"')
         && str_contains($addOrganization, 'name="contact_notes" id="contact_notes" rows="6"')
         && str_contains($addOrganization, 'name="contacts[__CONTACT_INDEX__][notes]" rows="6"')
-        && str_contains($editOrganization, 'name="notes" rows="6"')
+        && str_contains($editOrganization, 'name="notes" rows="7"')
         && str_contains($closeEngagement, 'id="notes" name="notes" rows="6"')
         && str_contains($followUpTaskForm, 'id="task-details" name="details" rows="6"')
         && str_contains($standardEventTaskForm, 'id="standard-task-details" name="details" rows="6"'),
-    'all organization, contact, closeout, and task notes fields should default to 6 rows.'
+    'notes fields should default to 6 rows, with 7 complete rows on organization create and edit forms.'
 );
 
 $modernStyles = $read('src/assets/css/modern.css');

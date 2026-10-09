@@ -30,9 +30,9 @@
 
 .speaker-details-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(20rem, 1fr);
+    grid-template-columns: minmax(20rem, 1.5fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(18rem, 1.3fr);
     align-items: start;
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 18px;
 }
 
@@ -42,6 +42,20 @@
 }
 
 .speaker-details-row input { margin-bottom: 0; }
+
+.speaker-details-row .contact-photo-field {
+    align-items: start;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.speaker-details-row .contact-photo-preview,
+.speaker-details-row .contact-photo-preview img {
+    width: 64px;
+    height: 64px;
+}
 
 .speaker-details-row .phone-input-group { width: 100% !important; }
 html body .speaker-details-row .phone-input-group > input[data-phone-number] {
@@ -54,12 +68,11 @@ html body .speaker-details-row .phone-input-group > input[data-phone-number] {
     html body .speaker-details-row .phone-input-group > input[data-phone-number] { flex: 0 1 auto !important; }
 }
 
-@media (max-width: 1100px) {
-    .speaker-details-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .speaker-details-row > :last-child { grid-column: 1 / -1; }
+@media (max-width: 1400px) {
+    .speaker-details-row { grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
     .speaker-details-row { grid-template-columns: minmax(0, 1fr); }
 }
 

@@ -2,6 +2,20 @@
 
 declare(strict_types=1);
 
+/** Extract one contact's photo from PHP's nested multipart upload structure. */
+function organizationContactPhotoUpload(array $uploads, int|string $index): array
+{
+    $photo = [];
+    foreach (['name', 'type', 'tmp_name', 'error', 'size'] as $field) {
+        $rows = $uploads[$field] ?? null;
+        $row = is_array($rows) ? ($rows[$index] ?? null) : null;
+        if (is_array($row) && array_key_exists('photo', $row)) {
+            $photo[$field] = $row['photo'];
+        }
+    }
+    return $photo;
+}
+
 /** @return list<array{contact_id: int, role_title: string}> */
 function normalizeOrganizationExistingContacts(mixed $submitted): array
 {
