@@ -12,7 +12,7 @@ header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 
 if ($method === 'GET') {
-    requireAdmin();
+    requireSuperAdmin();
     $windowDays = networkPerformanceWindowDays($_GET['days'] ?? null);
     session_write_close();
     header('Content-Type: application/json; charset=utf-8');

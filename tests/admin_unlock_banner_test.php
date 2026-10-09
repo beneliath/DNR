@@ -28,9 +28,11 @@ foreach ($cases as $description => [$session, $expected]) {
     if (str_contains($html, 'data-admin-unlock-link') !== (($session['role'] ?? '') === 'admin')) {
         throw new RuntimeException('Only administrators should have the proactive Admin Unlock navigation link.');
     }
-    if (str_contains($html, 'data-admin-unlock ') !== $expected
-        || str_contains($html, 'assets/js/admin-unlock.min.js') !== $expected
-        || str_contains($html, 'data-admin-lock-form') !== $expected
+    $adminSession = !empty($session['user_id']) && ($session['role'] ?? '') === 'admin';
+    if (str_contains($html, 'data-admin-unlock ') !== $adminSession
+        || str_contains($html, 'assets/js/admin-unlock.min.js') !== $adminSession
+        || str_contains($html, 'data-admin-lock-form') !== $adminSession
+        || ($adminSession && str_contains($html, 'data-expires-at="0"') === $expected)
     ) {
         fwrite(STDERR, "Incorrect admin unlock banner visibility for {$description}.\n");
         exit(1);

@@ -74,9 +74,9 @@ expectActionIcon(
 $users_source = file_get_contents(__DIR__ . '/../src/users.php');
 expectActionIcon(
     str_contains($users_source, '$admin_actions_unlocked = hasRecentAdminElevation();')
-        && str_contains($users_source, '<?php if ($admin_actions_unlocked): ?>')
-        && str_contains($users_source, '$admin_actions_unlocked && (int) $user[\'id\']')
-        && str_contains($users_source, 'Editing and security controls remain hidden until elevation succeeds.'),
+        && str_contains($users_source, 'data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? \' hidden\' : \'\'; ?>')
+        && str_contains($users_source, 'data-admin-unlock-required data-admin-unlocked-only')
+        && str_contains($users_source, 'data-sensitive-action="reset-2fa" data-admin-unlocked-only'),
     'Editing and account-security controls should remain hidden until fresh administrator elevation.'
 );
 expectActionIcon(

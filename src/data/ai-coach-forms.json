@@ -58,7 +58,7 @@
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
         "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
-        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
+        "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
@@ -321,7 +321,7 @@
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "reimbursement_helpers.php": "b953b13eff1681c5733e790528acc2d6fbcfa0935fdb28e5570d869596dd527f"
+        "reimbursement_helpers.php": "c06dafb71e99a6976f1294869d21bb6eab9bf81db092d4b5abc48e5f6a1e6d19"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -390,7 +390,7 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
-        "reimbursements.php": "5321cd562a7771586b5b51ed36a2694a55a40af69a2d19344f7d5b36174ffa8e",
+        "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
         "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
@@ -441,7 +441,7 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "66727f541733efb3ed7e315e6b9d4219ae9d8cc2bd674429b4466016b27b86db",
+        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
         "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
       },
       "controls": {
@@ -465,7 +465,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe"
+        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
       },
       "controls": {
         "reimbursement-bookkeeper": {
@@ -498,10 +498,10 @@
       "source_files": {
         "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
-        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
-        "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
-        "assets/js/footer.js": "03b04bf3b546350aa5e1c6511e69f2b7ecf41a85276860f37dd4037e9e7d5473",
-        "admin_elevation.php": "38cd87bfa36f85d8619323ecf0e911cd08ec3455a6e905ce568f57f9c785a672"
+        "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
+        "templates/footer.php": "f9baad6cc5b39ad9e0efe9fb29a1abb34c12d4ab993abb229af9be08abfbb8bd",
+        "assets/js/footer.js": "259cb6cff74da45ede984f9c877af758d240e0eed6b09b251ad97f194c9f9232",
+        "admin_elevation.php": "5724aa534f55f5585e5fa7e69b9c66a02e3b4c108a081420e189472984f52b4c"
       },
       "controls": {
         "presentation-blocks": {

@@ -6,9 +6,19 @@ requireAdmin();
 requireTwoFactorSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
+$json_request = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+if ($json_request) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+}
+if (!in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'], true)) {
+    header('Allow: GET, POST');
+    http_response_code(405);
+    exit;
+}
 
 $return_url = safeAdminElevationReturnUrl($_POST['return'] ?? $_GET['return'] ?? 'dashboard.php', 'dashboard.php');
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && hasRecentAdminElevation()) {
+if (!$json_request && $_SERVER['REQUEST_METHOD'] === 'GET' && hasRecentAdminElevation()) {
     header('Location: ' . $return_url);
     exit();
 }
@@ -20,10 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = is_string($_POST['admin_password'] ?? null) ? $_POST['admin_password'] : '';
     $code = is_string($_POST['admin_code'] ?? null) ? $_POST['admin_code'] : '';
     if (attemptAdminElevation($conn, $password, $code)) {
-        header('Location: ' . $return_url);
-        exit();
+        $error = '';
+        if (!$json_request) {
+            header('Location: ' . $return_url);
+            exit();
+        }
+    } else {
+        $error = 'Your administrator password or fresh authentication code was not accepted.';
+        if ($json_request) http_response_code(422);
     }
-    $error = 'Your administrator password or fresh authentication code was not accepted.';
+}
+if ($json_request) {
+    $status = ['unlocked' => hasRecentAdminElevation(), 'expires_at' => adminElevationExpiresAt(),
+        'server_now' => microtime(true), 'csrf_token' => generateCsrfToken(), 'error' => $error];
+    releaseApplicationSessionLock();
+    echo json_encode($status);
+    exit;
 }
 ?>
 <!DOCTYPE html>

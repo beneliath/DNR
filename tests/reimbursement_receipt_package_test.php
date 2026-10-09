@@ -72,7 +72,7 @@ try {
         'request' => ['request_hash' => 'receipt-package-test', 'start_date' => '2026-01-01',
             'end_date' => '2026-09-29', 'status' => 'submitted', 'bookkeeper_note' => ''],
         'owner' => ['display_name' => 'Test Owner'],
-        'setup' => ['organization_name' => 'Test Organization', 'bookkeeper_first_name' => '',
+        'setup' => ['account_name' => 'Test Account', 'bookkeeper_first_name' => '',
             'bookkeeper_last_name' => '', 'bookkeeper_email' => '', 'bookkeeper_phone' => '', 'cc_email' => ''],
         'items' => array_map(static fn($id) => ['expense_id' => $id, 'expense_date' => '2026-09-29',
             'merchant' => 'Test Merchant', 'description' => 'Test expense', 'amount_cents' => 1234,

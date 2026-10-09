@@ -23,12 +23,12 @@ $migration = (string) file_get_contents($root . '/migrations/20260913_add_networ
 $grants = (string) file_get_contents($root . '/scripts/configure_database_privileges.sh');
 
 expectNetworkDiagnostics(
-    str_contains($page, 'requireAdmin();')
+    str_contains($page, 'requireSuperAdmin();')
         && str_contains($endpoint, "if (\$method === 'GET')")
-        && str_contains($endpoint, 'requireAdmin();')
+        && str_contains($endpoint, 'requireSuperAdmin();')
         && str_contains($endpoint, 'requireLogin();')
         && str_contains($endpoint, 'requireValidCsrfToken();'),
-    'summary reads must require an administrator and sample writes must require a signed-in CSRF-valid session.'
+    'summary reads must require a SuperAdmin and sample writes must require a signed-in CSRF-valid session.'
 );
 expectNetworkDiagnostics(
     str_contains($endpoint, 'networkPerformanceAddressFamily(requestIpAddress())')

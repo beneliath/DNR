@@ -6,7 +6,7 @@ const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/footer.js'), 'utf8');
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-function fixture(kind, request = async () => ({ ok: true, json: async () => ({ unlocked: false }) })) {
+function fixture(kind, request = async () => ({ ok: true, json: async () => ({ unlocked: false }) }), unlock) {
     const documentEvents = {};
     const nodes = {};
     const storage = new Map();
@@ -102,7 +102,7 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
                 phases[options?.capture ? 'capture' : 'bubble'].push(fn);
             }
         },
-        window: { location, sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } }, URL,
+        window: { location, DnrAdminUnlock: unlock ? { request: unlock } : undefined, sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } }, URL,
         fetch: (url, options) => { requests.push({ url, options }); return request(url, options); }
     });
     return { nodes, form, button, nav, location, requests, navigations, storage, submit, submissions: () => submissions,
@@ -140,6 +140,30 @@ for (const kind of ['delete', 'sensitive', 'protected-button', 'protected-form',
         if (kind === 'sensitive') assert.equal(f.form.elements.delete_confirmation.value, 'DELETE USER');
     });
 }
+
+test('dialog cancellation retains the page and never opens confirmation or submits', async () => {
+    const f = fixture('delete', undefined, async () => false);
+    await f.submit();
+    assert.equal(f.shown(), 0);
+    assert.equal(f.submissions(), 0);
+    assert.equal(f.navigations.length, 0);
+});
+
+test('dialog unlock resumes the pending confirmation without navigating or performing the action', async () => {
+    const f = fixture('delete', undefined, async () => true);
+    await f.submit();
+    assert.equal(f.shown(), 1);
+    assert.equal(f.submissions(), 0);
+    assert.equal(f.navigations.length, 0);
+});
+
+test('proactive dialog unlock keeps the current screen instead of saving a navigation snapshot', async () => {
+    let requested = false, prevented = false;
+    const f = fixture('ordinary', undefined, async () => { requested = true; return false; });
+    await f.nav.fire('click', { preventDefault() { prevented = true; } });
+    assert.equal(requested, true); assert.equal(prevented, true);
+    assert.equal(f.storage.size, 0); assert.equal(f.navigations.length, 0);
+});
 
 test('ordinary confirmations stay available without an admin unlock', async () => {
     const f = fixture('ordinary');

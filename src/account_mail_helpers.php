@@ -188,6 +188,13 @@ function acceptAccountInboundMail(mysqli $conn, array $payload): array {
     return ['ok' => true, 'id' => $stored['id']];
 }
 
+/** Match the Needs Review queue, excluding routed, rejected, and cleared mail. */
+function platformMailReviewCount(mysqli $conn): int {
+    if (!accountMailEnabled() || !accountIsPrimary()) return 0;
+    return (int) $conn->query("SELECT COUNT(*) FROM platform_inbound_mail
+        WHERE status='review' AND payload IS NOT NULL")->fetch_row()[0];
+}
+
 /** Queue previews never transfer message bodies to PHP. */
 function platformMailReviewRows(mysqli $conn, string $status, int $offset): array {
     return $conn->execute_query("SELECT id, review_reason, received_at,

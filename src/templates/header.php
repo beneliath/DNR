@@ -64,19 +64,16 @@ if ($shell_current_page === 'restore_entity_chron_entries.php'
 $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
-$authenticated_user_role = (string) ($_SESSION['authenticated_role'] ?? $user_role);
 $authenticated_superadmin = authenticatedSuperAdmin();
-$admin_unlock_expires_at = !empty($_SESSION['user_id']) && $user_role === 'admin'
+$admin_unlock_available = !empty($_SESSION['user_id']) && $user_role === 'admin';
+$admin_unlock_expires_at = $admin_unlock_available
     ? adminElevationExpiresAt()
     : null;
-$role_preview = $authenticated_user_role === 'admin'
-    && (in_array($user_role, ['editor', 'reviewer'], true)
-        || ($authenticated_superadmin && ($_SESSION['_role_preview'] ?? null) === 'admin'))
+$role_preview = $authenticated_superadmin
+    && in_array($_SESSION['_role_preview'] ?? null, ['admin', 'editor', 'reviewer'], true)
         ? $user_role
         : null;
 $role_preview_label = $role_preview === 'admin' ? 'Administrator' : ($role_preview === null ? '' : ucfirst($role_preview));
-$role_preview_restore_role = $authenticated_superadmin ? 'superadmin' : 'admin';
-$role_preview_restore_label = $authenticated_superadmin ? 'SuperAdmin' : 'Administrator';
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
@@ -101,6 +98,28 @@ foreach (explode(',', (string) ($_COOKIE[$nav_preference_cookie] ?? '')) as $ent
     }
 }
 $nav_task_count = 0;
+$nav_inbox_count = 0;
+if (!empty($_SESSION['user_id']) && in_array($user_role, ['admin', 'editor'], true)
+    && ($GLOBALS['conn'] ?? null) instanceof mysqli) {
+    try {
+        $nav_inbox_count = (int) applicationDatabaseConnection()->query(
+            "SELECT COUNT(*) FROM inbound_email_messages WHERE status='review'"
+        )->fetch_row()[0];
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to load Inbox review count', ['error' => $exception->getMessage()]);
+    }
+}
+$nav_mail_review_count = 0;
+if (isSuperAdmin() && accountMailEnabled()) {
+    try {
+        require_once dirname(__DIR__) . '/account_mail_helpers.php';
+        $nav_mail_review_count = accountIsPrimary()
+            ? platformMailReviewCount(applicationDatabaseConnection())
+            : (int) (platformCall('mail_review_count', platformIdentityPayload())['count'] ?? 0);
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to load Mail Review count', ['error' => $exception->getMessage()]);
+    }
+}
 if (!empty($_SESSION['user_id'])) {
     try {
         require_once dirname(__DIR__) . '/notification_helpers.php';
@@ -157,8 +176,8 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <?php if ($admin_unlock_expires_at !== null): ?>
-        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
+    <?php if ($admin_unlock_available): ?>
+        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at ?? 0; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
             <div class="admin-unlock-copy">
                 <strong role="status">Administrator actions unlocked</strong>
                 <span>Sensitive actions are available until the timer expires.</span>
@@ -185,9 +204,9 @@ if (!empty($_SESSION['user_id'])) {
             </div>
             <form method="post" action="role_preview.php" class="role-preview-return-form">
                 <?php echo csrfInput(); ?>
-                <input type="hidden" name="role" value="<?php echo $role_preview_restore_role; ?>">
+                <input type="hidden" name="role" value="superadmin">
                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit">Return to <?php echo $role_preview_restore_label; ?></button>
+                <button type="submit">Return to SuperAdmin</button>
             </form>
         </section>
     <?php endif; ?>
@@ -221,6 +240,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php if (in_array($user_role, ['admin', 'editor'], true)): ?>
                         <li><a href="inbound_mail.php" class="nav-link<?php echo $active_nav === 'inbound_mail' ? ' active' : ''; ?>"<?php echo $active_nav === 'inbound_mail' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 3v4M17 3v4"/></svg><span>Inbox</span>
+                            <?php if ($nav_inbox_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_inbox_count; ?> Email<?php echo $nav_inbox_count === 1 ? '' : 's'; ?> Awaiting Review"><?php echo $nav_inbox_count; ?></span><?php endif; ?>
                         </a></li>
                         <?php endif; ?>
                         <li><a href="email_templates.php" class="nav-link<?php echo $active_nav === 'email_templates' ? ' active' : ''; ?>"<?php echo $active_nav === 'email_templates' ? ' aria-current="page"' : ''; ?>>
@@ -273,7 +293,7 @@ if (!empty($_SESSION['user_id'])) {
                         <?php if (isSuperAdmin()): ?><li><a href="accounts.php" class="nav-link admin-nav-link<?php echo $active_nav === 'accounts' ? ' active' : ''; ?>"<?php echo $active_nav === 'accounts' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Accounts</span>
                         </a></li>
-                        <?php if (accountMailEnabled()): ?><li><a href="mail_review.php" class="nav-link admin-nav-link"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7M12 15v1"/></svg><span>Mail Review</span></a></li><?php endif; endif; ?>
+                        <?php if (accountMailEnabled()): ?><li><a href="mail_review.php" class="nav-link admin-nav-link"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7M12 15v1"/></svg><span>Mail Review</span><?php if ($nav_mail_review_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_mail_review_count; ?> Email<?php echo $nav_mail_review_count === 1 ? '' : 's'; ?> Awaiting Review"><?php echo $nav_mail_review_count; ?></span><?php endif; ?></a></li><?php endif; endif; ?>
                         <?php endif; ?>
                         <li><a href="users.php" class="nav-link admin-nav-link<?php echo $active_nav === 'users' ? ' active' : ''; ?>"<?php echo $active_nav === 'users' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span>
@@ -286,6 +306,7 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="reimbursement_setup.php" class="nav-link admin-nav-link<?php echo $active_nav === 'reimbursement_setup' ? ' active' : ''; ?>"<?php echo $active_nav === 'reimbursement_setup' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Reimbursement Setup</span>
                         </a></li>
+                        <?php if (isSuperAdmin()): ?>
                         <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled()): ?>
                         <li><a href="ai_coach_requests.php" class="nav-link admin-nav-link<?php echo $active_nav === 'ai_coach' ? ' active' : ''; ?>"<?php echo $active_nav === 'ai_coach' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>AI Coach Requests</span>
@@ -294,12 +315,13 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="network_diagnostics.php" class="nav-link admin-nav-link<?php echo $active_nav === 'network' ? ' active' : ''; ?>"<?php echo $active_nav === 'network' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Network</span>
                         </a></li>
+                        <?php endif; ?>
                     </ul>
                 </details>
                 <?php endif; ?>
             </nav>
 
-            <?php if ($authenticated_user_role === 'admin'): ?>
+            <?php if ($authenticated_superadmin): ?>
                 <details class="role-preview-disclosure">
                 <summary id="role-preview-label">Preview Access</summary>
                 <form method="post" action="role_preview.php" class="role-preview-control">
@@ -307,10 +329,10 @@ if (!empty($_SESSION['user_id'])) {
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="role-preview-fields">
                         <select name="role" id="role-preview-role" aria-labelledby="role-preview-label">
-                            <?php if ($authenticated_superadmin): ?>
+                            <?php if ($role_preview !== 'admin'): ?>
                             <option value="superadmin"<?php echo $role_preview === null ? ' selected' : ''; ?>>SuperAdmin</option>
                             <?php endif; ?>
-                            <option value="admin"<?php echo $role_preview === 'admin' || (!$authenticated_superadmin && $role_preview === null) ? ' selected' : ''; ?>>Administrator</option>
+                            <option value="admin"<?php echo $role_preview === 'admin' ? ' selected' : ''; ?>>Administrator</option>
                             <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
                             <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>
                         </select>
@@ -354,7 +376,7 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
-<?php if ($admin_unlock_expires_at !== null) renderScript('assets/js/admin-unlock.min.js', false); ?>
+<?php if ($admin_unlock_available) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

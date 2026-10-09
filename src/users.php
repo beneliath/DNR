@@ -126,24 +126,11 @@ $task_digest_day_options = [
     <div class="users-admin-grid">
         <section class="security-card admin-elevation-card" aria-labelledby="admin-elevation-title">
             <h2 id="admin-elevation-title">Sensitive Administrator Actions</h2>
-            <?php if ($admin_actions_unlocked): ?>
-                <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
-            <?php else: ?>
-                <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Editing and security controls remain hidden until elevation succeeds. Deletion buttons prompt for unlock when needed.</p>
-                <form method="post" action="users.php" class="security-form">
-                    <?php echo csrfInput(); ?>
-                    <input type="hidden" name="action" value="elevate">
-                    <div class="form-group">
-                        <label for="admin_password">Administrator Password</label>
-                        <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" maxlength="72" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="admin_code">Fresh Authentication Code</label>
-                        <input type="text" id="admin_code" name="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
-                    </div>
-                    <button type="submit" class="security-button">Unlock for Five Minutes</button>
-                </form>
-            <?php endif; ?>
+            <p class="success" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
+            <div data-admin-locked-only<?php echo $admin_actions_unlocked ? ' hidden' : ''; ?>>
+                <p>Confirm your password and a fresh authenticator or recovery code to manage sensitive user actions.</p>
+                <a href="admin_elevation.php?return=users.php" class="button-secondary" data-admin-unlock-link>Unlock for Five Minutes</a>
+            </div>
         </section>
         <div class="users-admin-actions" aria-label="User Administration Actions">
             <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
@@ -241,18 +228,15 @@ $task_digest_day_options = [
                         <?php echo $user['account_status'] === 'inactive' ? 'Deactivated' : 'Activated'; ?>: <?php $lifecycle_at = $user['account_status'] === 'inactive' ? $user['deactivated_at'] : $user['activated_at']; echo !empty($lifecycle_at) ? applicationTimestampLabel($lifecycle_at) : 'N/A'; ?>
                     </span>
                 </div>
-                <?php if ($admin_actions_unlocked || ($user['account_status'] !== 'active' && (int) $user['id'] !== $current_user_id)): ?>
                 <div class="user-actions" aria-label="Actions for <?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="user-actions-primary">
-                        <?php if ($admin_actions_unlocked): ?>
-                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button">Edit User</a>
-                        <?php endif; ?>
+                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button" data-admin-unlock-required data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Edit User</a>
 
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
-                            <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button">Reset Password</a>
+                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
+                            <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button" data-admin-unlock-required data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Reset Password</a>
                         <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
-                            <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa">
+                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
+                            <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="reset_confirmation" value="">
@@ -261,8 +245,8 @@ $task_digest_day_options = [
                         <?php endif; ?>
                     </div>
                     <div class="user-actions-lifecycle">
-                        <?php if ($admin_actions_unlocked && $user['account_status'] === 'invited'): ?>
-                            <form method="post" action="user_lifecycle.php" data-invitation-form data-admin-unlock-required>
+                        <?php if ($user['account_status'] === 'invited'): ?>
+                            <form method="post" action="user_lifecycle.php" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?> data-invitation-form data-admin-unlock-required>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="resend_invitation">
@@ -272,15 +256,15 @@ $task_digest_day_options = [
                                     Emailing a new activation link&hellip;
                                 </span>
                             </form>
-                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
-                            <form method="post" action="user_lifecycle.php">
+                        <?php elseif ($user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                            <form method="post" action="user_lifecycle.php" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="deactivate">
                                 <button type="submit" class="action-button deactivate-button" data-admin-unlock-required data-confirm-title="Deactivate User?" data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
                             </form>
-                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'inactive'): ?>
-                            <form method="post" action="user_lifecycle.php">
+                        <?php elseif ($user['account_status'] === 'inactive'): ?>
+                            <form method="post" action="user_lifecycle.php" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="activate">
@@ -297,7 +281,6 @@ $task_digest_day_options = [
                         <?php endif; ?>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         <?php } ?>
     </div>

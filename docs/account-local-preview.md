@@ -74,3 +74,12 @@ integration still require completion and review before s1 deployment.
 The local Shalom Coach catalog currently has a separate-worktree mount whose
 source contracts suppress three walkthroughs; this was diagnosed against s1,
 not disabled by Account permissions.
+
+On 2026-10-08, the existing
+`20261008_add_reimbursement_report_receipts.sql` migration was applied to the
+primary, test-account, and account-isolation-preview databases. The missing
+`report_key` column had caused Database Maintenance to fail while calculating
+file capacity. Each database and its uploaded files received an encrypted,
+restore-verified backup first; receipts are retained under
+`var/backups/rolling-improvements-receipt-schema/`. Local writers were resumed
+after each migration.

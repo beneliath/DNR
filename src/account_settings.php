@@ -64,6 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <input type="text" id="<?php echo $key; ?>" name="<?php echo $key; ?>" maxlength="255" value="<?php echo htmlspecialchars($value); ?>">
 <?php endif; ?></div>
 <?php endforeach; ?>
-<button type="submit" class="save-button">Save Settings</button></form>
+<button type="submit" class="save-button" data-admin-unlock-required>Save Settings</button></form>
 <p>Email is sent and received through moed@beneliath.com. Replies are linked to your records using their email routing markers.</p>
 </main><?php include 'templates/footer.php'; ?></body></html>

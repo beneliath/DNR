@@ -416,11 +416,8 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <h2 id="audit-retention-title">Prune Old Entries</h2>
                 <p>Keep the most recent number of days you choose and permanently delete only older entries.</p>
             </div>
-            <?php if ($admin_actions_unlocked): ?>
-                <span class="audit-retention-unlocked">Administrator Access Unlocked</span>
-            <?php else: ?>
-                <span class="audit-retention-locked">Fresh Confirmation Required to Prune</span>
-            <?php endif; ?>
+                <span class="audit-retention-unlocked" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Administrator Access Unlocked</span>
+                <span class="audit-retention-locked" data-admin-locked-only<?php echo $admin_actions_unlocked ? ' hidden' : ''; ?>>Fresh Confirmation Required to Prune</span>
         </div>
 
         <form method="get" action="audit_log.php#audit-retention" class="audit-retention-preview-form">
@@ -458,11 +455,11 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
 
             <?php if ($preview_count > 0): ?>
                 <div class="audit-retention-action">
-                    <?php if (!$admin_actions_unlocked): ?>
+                    <div data-admin-locked-only<?php echo $admin_actions_unlocked ? ' hidden' : ''; ?>>
                         <p>Confirm your administrator password and a fresh authenticator or recovery code before continuing.</p>
                         <a href="<?php echo htmlspecialchars($retention_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary" data-admin-unlock-link>Unlock Pruning</a>
-                    <?php else: ?>
-                        <form method="post" action="audit_log.php" class="audit-retention-prune-form" autocomplete="off"
+                    </div>
+                        <form method="post" action="audit_log.php" class="audit-retention-prune-form" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?> autocomplete="off"
                               data-admin-unlock-required data-confirm="Permanently prune <?php echo $preview_count; ?> audit entries? This cannot be undone.">
                             <?php echo csrfInput(); ?>
                             <input type="hidden" name="action" value="prune">
@@ -475,7 +472,6 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                                 <button type="submit" class="delete-button">Prune <?php echo number_format($preview_count); ?> Entries</button>
                             </div>
                         </form>
-                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <p class="audit-retention-empty">Nothing qualifies for pruning with this retention period.</p>

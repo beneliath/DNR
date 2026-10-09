@@ -135,7 +135,7 @@ function renderBulkDeleteToolbar(string $entity, string $return_to): void
         <span data-bulk-count role="status" aria-live="polite">0 selected</span>
         <button type="button" class="button-secondary" data-bulk-select-all>Select All Available</button>
         <button type="button" class="button-secondary" data-bulk-clear hidden>Clear Selection</button>
-        <button type="submit" class="delete-button" data-bulk-submit>Delete Selected</button>
+        <button type="submit" class="delete-button" data-bulk-submit data-admin-unlock-required>Delete Selected</button>
         <p class="bulk-delete-help">Select <?php echo htmlspecialchars($type['plural'], ENT_QUOTES, 'UTF-8'); ?> on this page. Review the selection and unlock admin actions before deleting.</p>
     </form>
     <?php

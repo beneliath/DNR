@@ -18,6 +18,7 @@ $manual_access_summary='Access depends on your role and record ownership.';
 $manual_can_manage=true; $manual_is_admin=true; $manual_task_days=7;
 $manual_marker_example='[DNR#123.<signed-token>]'; $manual_marker_template='[DNR#ID.<signed-token>]';
 function applicationGeneralWorkLabel(){ return 'General MOED work'; }
+function isSuperAdmin(){ return true; }
 ?>'''
 rendered=subprocess.run(['php'],input=context+body,text=True,capture_output=True,check=True).stdout
 root=html.fragment_fromstring(rendered,create_parent='div')

@@ -63,7 +63,8 @@ run_integration_suite() {
     test_file=$1
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
-    if [ "$test_name" = 'reimbursement_workflow_http_integration_test.php' ]; then
+    if [ "$test_name" = 'reimbursement_workflow_http_integration_test.php' ] \
+        || [ "$test_name" = 'reimbursement_account_name_integration_test.php' ]; then
         # Receipts created by the fixture must have the same filesystem identity as Apache.
         # Only this CLI fixture may launch the bounded receipt preview subprocess.
         compose exec -T -u www-data \

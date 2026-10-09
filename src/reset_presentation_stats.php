@@ -108,7 +108,7 @@ $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES |
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="reset_statistics">
             <a href="<?php echo $h($backUrl); ?>" class="button-secondary">Cancel</a>
-            <button type="submit" class="danger-button presentation-stats-reset">Reset Statistics to Zero</button>
+            <button type="submit" class="danger-button presentation-stats-reset" data-admin-unlock-required>Reset Statistics to Zero</button>
         </form>
     </section>
 </main>

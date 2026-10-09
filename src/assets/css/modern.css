@@ -138,6 +138,7 @@ html.dark-mode {
   --admin-nav-active-bg: #59301d;
   --admin-nav-active-fg: #ffd0a6;
   --admin-nav-focus: #fb923c;
+  --admin-unlock-outline: #fb923c;
   --action-view: #84adff;
   --action-view-bg: #243f73;
   --action-edit: #5eead4;
@@ -729,19 +730,49 @@ html.dark-mode .app-sidebar .nav-link.active {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--nav-hover-fg) 18%, transparent);
 }
 
-.nav-notification-badge {
-  min-width: 1.45rem;
+html body .app-sidebar .nav-notification-badge {
+  --status-pill-font-size: .82rem;
+  --status-pill-font-weight: 800;
+  --status-pill-min-height: 1.65rem;
+  --status-pill-padding: 3px 7px;
+  min-width: 1.65rem;
   margin-left: auto;
-  padding: 2px 6px;
+  padding: 3px 7px;
   border-radius: 999px;
-  background: var(--danger, #b42318);
-  color: #fff;
-  font-size: .72rem;
+  background: transparent;
+  color: #000;
+  border: 1.5px solid #000;
+  font-size: .82rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 750;
+  font-weight: 800;
   line-height: 1.35;
   text-align: center;
 }
+
+html.dark-mode body .app-sidebar .nav-notification-badge {
+  color: #fff;
+  background: transparent;
+  border: 1.5px solid #fff;
+}
+
+[data-admin-unlocked-only][hidden],
+[data-admin-locked-only][hidden] {
+  display: none !important;
+}
+
+/* Use the same protection markers as the confirmation flow. Hints cover links
+   and actions with their own unlock flow; external form buttons are explicit. */
+html body:not(.admin-unlock-active) :is(
+  :is(button, input, a):is([data-admin-unlock-required], [data-admin-unlock-hint]),
+  a[data-admin-unlock-link]:not(.nav-link),
+  form:is([data-admin-unlock-required], [data-delete-confirmation], [data-sensitive-action])
+    :is(button:not([type="button"]):not([type="reset"]), input[type="submit"], input[type="image"]):not([form])
+) {
+  outline: 2px solid var(--admin-unlock-outline, #c75b00) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgb(234 112 12 / 18%) !important;
+}
+
 
 .nav-link.active {
   background: var(--nav-active-bg) !important;
@@ -6892,3 +6923,42 @@ html body [data-task-bulk] select { width: auto; min-width: 10rem; }
 html body [data-task-bulk] .task-bulk-submit-actions { display: inline-flex; align-items: center; gap: 1.5rem; }
 
 html body button[hidden] { display: none !important; }
+
+/* Align repeated content actions by purpose, including rows with fewer controls. */
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory) {
+  --listing-view: 0px;
+  --listing-edit: 0px;
+  --listing-start: 0px;
+  --listing-complete: 0px;
+  --listing-archive: 0px;
+  --listing-restore: 0px;
+  --listing-delete: 0px;
+}
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.view-button) { --listing-view: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.edit-button) { --listing-edit: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.start-button) { --listing-start: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.complete-button) { --listing-complete: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.archive-button) { --listing-archive: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.restore-button) { --listing-restore: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.delete-button) { --listing-delete: 46px; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) {
+  display: grid !important;
+  grid-template-columns: [view] var(--listing-view, 0px) [edit] var(--listing-edit, 0px) [start] var(--listing-start, 0px) [complete] var(--listing-complete, 0px) [restore] var(--listing-restore, 0px) [archive] var(--listing-archive, 0px) [delete] var(--listing-delete, 0px);
+  gap: 0 !important;
+  width: max-content !important;
+  min-width: max-content !important;
+  justify-content: start;
+}
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > * {
+  grid-row: 1;
+  width: 40px !important;
+  margin: 0 !important;
+  justify-self: start;
+}
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.view-button, form:has(.view-button)) { grid-column: view; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.edit-button, form:has(.edit-button)) { grid-column: edit; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.start-button, form:has(.start-button)) { grid-column: start; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.complete-button, form:has(.complete-button)) { grid-column: complete; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.archive-button, form:has(.archive-button)) { grid-column: archive; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.restore-button, form:has(.restore-button)) { grid-column: restore; }
+html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) > :is(.delete-button, form:has(.delete-button)) { grid-column: delete; }

@@ -48,12 +48,15 @@ expectTrue(!canDeleteEntries('editor'), 'Editors must not permanently delete ent
 expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to archive and restore entries.');
 expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
 
+putenv('DNR_ACCOUNTS_ENABLED=1');
 $_SESSION = [
     'role' => 'admin',
     'authenticated_role' => 'admin',
+    'auth_complete' => true,
+    'is_superadmin' => true,
 ];
-expectTrue(activeRolePreview() === null, 'Administrators should begin with their assigned role.');
-expectTrue(setRolePreview('editor'), 'Administrators should be able to preview Editor access.');
+expectTrue(activeRolePreview() === null, 'SuperAdmins should begin with their assigned role.');
+expectTrue(setRolePreview('editor'), 'SuperAdmins should be able to preview Editor access.');
 expectTrue(
     authenticatedRole() === 'admin'
         && activeRolePreview() === 'editor'
@@ -61,26 +64,29 @@ expectTrue(
         && !checkRole('admin'),
     'A preview should preserve the authenticated administrator while exposing the selected effective role.'
 );
-expectTrue(setRolePreview('reviewer'), 'An administrator should be able to switch directly to Reviewer access.');
+expectTrue(setRolePreview('reviewer'), 'A SuperAdmin should be able to switch directly to Reviewer access.');
 expectTrue(
     activeRolePreview() === 'reviewer' && !hasRole(['admin', 'editor']),
     'Reviewer preview should exercise the existing read-only role checks.'
 );
 expectTrue(!setRolePreview('owner'), 'Unknown roles must not be accepted for preview.');
 expectTrue(activeRolePreview() === 'reviewer', 'A rejected preview role must not change the active role.');
-expectTrue(setRolePreview('admin'), 'An administrator should be able to stop a role preview.');
+expectTrue(setRolePreview('superadmin'), 'A SuperAdmin should be able to stop a role preview.');
 expectTrue(
     activeRolePreview() === null && checkRole('admin') && !isset($_SESSION['_role_preview']),
-    'Stopping a preview should restore Administrator access and clear the preview state.'
+    'Stopping a preview should restore SuperAdmin access and clear the preview state.'
 );
-foreach (['editor', 'reviewer'] as $non_admin_role) {
+foreach (['admin', 'editor', 'reviewer'] as $non_admin_role) {
     $_SESSION = [
         'role' => $non_admin_role,
         'authenticated_role' => $non_admin_role,
+        'auth_complete' => true,
     ];
     expectTrue(
         !setRolePreview('editor')
             && !setRolePreview('reviewer')
+            && !setRolePreview('admin')
+            && !setRolePreview('superadmin')
             && activeRolePreview() === null
             && checkRole($non_admin_role),
         ucfirst($non_admin_role) . ' accounts must not be able to start a role preview.'
@@ -112,9 +118,9 @@ foreach (glob(__DIR__ . '/../src/*.php') ?: [] as $page_path) {
 }
 expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'editor') === 'map_pin.php?id=4', 'Editors can return to the pin editor after role preview.');
 expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'reviewer') === 'dashboard.php', 'Reviewers must not be returned to the pin editor.');
-foreach (['ai_coach_requests.php', 'ai_coach_improvements.php'] as $page) {
-    foreach (['editor', 'reviewer'] as $role) {
-        expectTrue(safeRolePreviewReturnUrl($page, $role) === 'dashboard.php', 'Coach administration is not a role-preview destination for ' . $role);
+foreach (['ai_coach_requests.php', 'ai_coach_improvements.php', 'network_diagnostics.php'] as $page) {
+    foreach (['admin', 'editor', 'reviewer'] as $role) {
+        expectTrue(safeRolePreviewReturnUrl($page . '?id=1', $role) === 'dashboard.php', 'SuperAdmin pages are not a role-preview destination for ' . $role);
     }
 }
 foreach ($role_preview_ui_pages as $page) {
@@ -123,6 +129,7 @@ foreach ($role_preview_ui_pages as $page) {
         $page . ' must be classified before it can be used as a role-preview return page.'
     );
 }
+putenv('DNR_ACCOUNTS_ENABLED');
 $_SESSION = ['role' => 'editor'];
 expectTrue(
     organizationArchiveDependencyMessage(['contacts' => 2, 'engagements' => 1])

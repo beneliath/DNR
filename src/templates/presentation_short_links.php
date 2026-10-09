@@ -61,13 +61,13 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
                 <div class="presentation-qr-visits" title="All-Time Tracked Visits">Tracked visits: <strong><?php echo number_format((int) $short_link['tracked_visits']); ?></strong></div>
                 <a class="button-secondary" href="short_links.php?id=<?php echo (int) $short_link['id']; ?>" aria-label="<?php echo htmlspecialchars($label); ?> QR Code Statistics">Statistics</a>
                 <?php if (($short_link_show_link_reset_action ?? false) && hasRole(['admin'])): ?>
-                <a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;link_id=<?php echo (int) $short_link['id']; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>" aria-label="Reset <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> Link Statistics">Reset Link Statistics</a>
+                <a class="button-secondary presentation-stats-reset" data-admin-unlock-required href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;link_id=<?php echo (int) $short_link['id']; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>" aria-label="Reset <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> Link Statistics">Reset Link Statistics</a>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
     </div>
     <p>Each code is unique to this presentation. Select Combined Presentation Statistics for activity across all its codes, or Statistics on a code to review its visits and manage its destination. Speaker Notes and PPT Slidedeck codes are added after their files are uploaded. Use Copy link to copy the URL encoded in a QR code.</p>
     <?php if (($short_link_show_reset_action ?? false) && hasRole(['admin'])): ?>
-        <details class="presentation-management"><summary>Manage Presentation</summary><p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>">Reset All Presentation Statistics</a></p></details>
+        <details class="presentation-management"><summary>Manage Presentation</summary><p><a class="button-secondary presentation-stats-reset" data-admin-unlock-required href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>">Reset All Presentation Statistics</a></p></details>
     <?php endif; ?>
 </div>

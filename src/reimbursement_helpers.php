@@ -63,12 +63,23 @@ function reimbursementOwner(mysqli $conn, int $userId): array
     return $row;
 }
 
-function reimbursementSetup(mysqli $conn): array
+function reimbursementSetup(mysqli $conn, bool $lock = false): array
 {
-    $setup = $conn->query('SELECT organization_name, bookkeeper_first_name, bookkeeper_last_name,
+    $suffix = $lock ? ' FOR UPDATE' : '';
+    $setup = $conn->query('SELECT bookkeeper_first_name, bookkeeper_last_name,
         bookkeeper_email, bookkeeper_phone, reviewer_email, cc_email, version
-        FROM reimbursement_setup WHERE id = 1')->fetch_assoc();
+        FROM reimbursement_setup WHERE id = 1' . $suffix)->fetch_assoc();
     if (!$setup) throw new RuntimeException('Reimbursement setup is unavailable.');
+    // Read the current Account name without the profile cache. Submission review
+    // and its locked recheck must agree on the name printed in the package.
+    if (accountsEnabled()) {
+        $profile = $conn->execute_query('SELECT name FROM account_profile WHERE id = 1 AND account_key = ?' . $suffix,
+            [currentAccountKey()])->fetch_assoc();
+        if (!$profile) throw new RuntimeException('Account settings are unavailable.');
+        $setup['account_name'] = $profile['name'];
+    } else {
+        $setup['account_name'] = applicationBrandName();
+    }
     return $setup;
 }
 

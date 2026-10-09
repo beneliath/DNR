@@ -71,7 +71,12 @@
 
     // Fragments are client-side state, so preserve the current tab for proactive unlocks.
     document.querySelectorAll('[data-admin-unlock-link]').forEach(function (link) {
-        link.addEventListener('click', function () {
+        link.addEventListener('click', function (event) {
+            if (window.DnrAdminUnlock) {
+                event.preventDefault();
+                window.DnrAdminUnlock.request();
+                return;
+            }
             if (window.location.pathname.endsWith('/admin_elevation.php')) return;
             const destination = new URL(link.href, window.location.href);
             const intendedReturn = new URL(destination.searchParams.get('return') || window.location.href, window.location.href);
@@ -118,6 +123,11 @@
             form.appendChild(source);
         }
         source.value = returnTo;
+
+        if (window.DnrAdminUnlock) {
+            try { return await window.DnrAdminUnlock.request(); }
+            finally { checkingAdminUnlock.delete(form); }
+        }
 
         try {
             const response = await fetch('admin_unlock_status.php', {

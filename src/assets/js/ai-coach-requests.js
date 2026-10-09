@@ -26,20 +26,24 @@
         error.hidden = true;
         button.disabled = true;
         try {
-            const unlockResponse = await fetch('admin_unlock_status.php', {
-                credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
-            });
-            if (!unlockResponse.ok || unlockResponse.redirected) throw new Error('Unlock status unavailable');
-            const unlock = await unlockResponse.json();
-            if (unlock.unlocked !== true) {
-                const url = new URL('admin_elevation.php', window.location.href);
-                url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search + window.location.hash);
-                document.dispatchEvent(new Event('admin-unlock-redirect'));
-                window.location.assign(url.href);
-                return;
+            if (window.DnrAdminUnlock) {
+                if (!await window.DnrAdminUnlock.request()) return;
+            } else {
+                const unlockResponse = await fetch('admin_unlock_status.php', {
+                    credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
+                });
+                if (!unlockResponse.ok || unlockResponse.redirected) throw new Error('Unlock status unavailable');
+                const unlock = await unlockResponse.json();
+                if (unlock.unlocked !== true) {
+                    const url = new URL('admin_elevation.php', window.location.href);
+                    url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search + window.location.hash);
+                    document.dispatchEvent(new Event('admin-unlock-redirect'));
+                    window.location.assign(url.href);
+                    return;
+                }
+                const csrf = form.querySelector('input[name="csrf_token"]');
+                if (csrf && typeof unlock.csrf_token === 'string') csrf.value = unlock.csrf_token;
             }
-            const csrf = form.querySelector('input[name="csrf_token"]');
-            if (csrf && typeof unlock.csrf_token === 'string') csrf.value = unlock.csrf_token;
             const data = new FormData(form);
             data.set('action', 'prepare_clear');
             // Obtain the same expiring snapshot/token as the non-JavaScript

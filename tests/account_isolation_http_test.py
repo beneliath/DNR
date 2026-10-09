@@ -66,6 +66,19 @@ def csrf(body):
     return html.unescape(match[1])
 
 
+def navigation_badge(body, route):
+    link = re.search(r'<a href="' + re.escape(route) + r'"[^>]*>(.*?)</a>', body, re.S)
+    assert link, f'Navigation link is missing: {route}'
+    badge = re.search(r'class="nav-notification-badge"[^>]*>(\d+)</span>', link[1])
+    if badge:
+        assert int(badge[1]) > 0, f'Zero badge must be hidden: {route}'
+    return int(badge[1]) if badge else 0
+
+
+def mail_review_badge(body):
+    return navigation_badge(body, 'mail_review.php')
+
+
 def fixture(container):
     nonce = secrets.token_hex(5)
     result = subprocess.run(['docker', 'exec', '-i', '-e', 'DNR_ACCOUNT_PREVIEW_FIXTURE=1', container,
@@ -124,9 +137,12 @@ def main():
                 client = Client(base); client.login(own['users'][role]); clients[base, role] = client
                 dashboard = client.request('dashboard.php')
                 assert dashboard[0] == 200 and 'Switch Account' not in dashboard[2] and 'account-identity-banner' not in dashboard[2], f'{role} should have no switcher'
-                assert '<option value="superadmin"' not in dashboard[2], 'Ordinary users must not see SuperAdmin preview'
-                forged = client.request('role_preview.php', {'csrf_token': csrf(dashboard[2]), 'role': 'superadmin'})
-                assert forged[0] == (400 if role == 'admin' else 403), 'Preview Access escalated an ordinary user'
+                assert 'role-preview-control' not in dashboard[2], 'Ordinary users must not see Preview Access'
+                assert 'href="network_diagnostics.php"' not in dashboard[2] and 'href="ai_coach_requests.php"' not in dashboard[2]
+                for preview_role in ('superadmin', 'admin', 'editor', 'reviewer'):
+                    forged = client.request('role_preview.php', {'csrf_token': csrf(dashboard[2]), 'role': preview_role})
+                    assert forged[0] == 403, f'{role} could change Preview Access to {preview_role}'
+                assert_superadmin_views_denied(client, csrf(dashboard[2]))
                 assert client.request('accounts.php')[0] == 403, f'{role} reached platform directory'
                 assert client.request('accounts.php', {'action': 'switch', 'account_key': 'shalom-in-messiah', 'csrf_token': csrf(dashboard[2])})[0] == 403
                 for route in ('organizations.php', 'search.php?q=AccountTest', 'view_calendar.php'):
@@ -139,6 +155,12 @@ def main():
                 if role == 'admin':
                     users = client.request('users.php')
                     assert users[0] == 200 and other['users']['admin']['username'] not in users[2], 'User roster leaked'
+                    settings = client.request('account_settings.php')
+                    account_name = re.search(r'name="name"[^>]*value="([^"]+)"', settings[2])
+                    setup = client.request('reimbursement_setup.php')
+                    assert setup[0] == 200 and account_name, 'Reimbursement setup or Account name is unavailable'
+                    assert account_name[1] in setup[2] and 'Edit in Account Settings' in setup[2], 'Reimbursement setup must use Account Settings'
+                    assert 'name="organization_name"' not in setup[2], 'Reimbursement setup still has a separate organization name'
                     if base == primary_url:
                         assert client.request('database_maintenance.php')[0] == 403, 'Primary platform backup exposed'
                         assert client.request(f"edit_user.php?id={left['users']['superadmin']['id']}")[0] == 403, 'SuperAdmin identity editable by Account Admin'
@@ -159,6 +181,7 @@ def main():
         admin = Client(primary_url); admin.login(superuser)
         directory = admin.request('accounts.php')
         assert directory[0] == 200 and 'Account Isolation Preview' in directory[2]
+        review_count = mail_review_badge(directory[2])
         preview_administrator(admin)
         directory = admin.request('accounts.php')
         assert admin.request('accounts.php', {'action': 'switch', 'account_key': args.member_key})[0] == 400, 'Switch accepted without CSRF'
@@ -168,7 +191,9 @@ def main():
         member = Client(member_url)
         route = target
         assert member.request(route)[0] == 302, 'SuperAdmin handoff failed'
-        assert member.request('dashboard.php')[0] == 200
+        member_dashboard = member.request('dashboard.php')
+        assert member_dashboard[0] == 200
+        assert mail_review_badge(member_dashboard[2]) == review_count, 'Member Account must show the shared primary Mail Review count'
         assert right['marker'] in member.request(f"view_organization.php?id={right['organization_id']}")[2]
         assert member.request(route)[0] == 403, 'Consumed handoff ticket replayed'
         preview_administrator(member)
@@ -196,16 +221,52 @@ def main():
 def preview_administrator(client):
     page = client.request('accounts.php')
     assert '<option value="superadmin" selected>SuperAdmin</option>' in page[2]
-    result = client.request('role_preview.php', {'csrf_token': csrf(page[2]), 'role': 'admin', 'return_to': 'accounts.php'})
-    assert result[0] == 302 and result[1]['Location'] == 'dashboard.php'
-    preview = client.request('dashboard.php')
-    assert preview[0] == 200 and 'Viewing as Administrator' in preview[2]
-    assert 'account-identity-banner' not in preview[2] and 'href="accounts.php"' not in preview[2]
-    assert '<option value="admin" selected>Administrator</option>' in preview[2]
-    assert client.request('accounts.php')[0] == 403, 'Administrator preview retained platform authority'
-    assert client.request('account_settings.php')[0] == 200, 'Administrator preview lost account administration'
-    restored = client.request('role_preview.php', {'csrf_token': csrf(preview[2]), 'role': 'superadmin'})
-    assert restored[0] == 302 and client.request('accounts.php')[0] == 200, 'SuperAdmin restoration failed'
+    assert client.request('database_maintenance.php')[0] == 200, 'SuperAdmin Database Maintenance must load'
+    assert 'href="network_diagnostics.php"' in page[2], 'SuperAdmin is missing Network navigation'
+    for route in SUPERADMIN_VIEWS:
+        allowed_statuses = (200, 404) if '?id=' in route or '?source=' in route else (200,)
+        assert client.request(route)[0] in allowed_statuses, f'SuperAdmin cannot view {route}'
+    assert client.request('role_preview.php', {'role': 'editor'})[0] == 400, 'Preview requires CSRF'
+    for role, label, origin in [('admin', 'Administrator', 'network_diagnostics.php?days=7'),
+                                ('editor', 'Editor', 'ai_coach_requests.php'),
+                                ('reviewer', 'Reviewer', 'ai_coach_improvements.php')]:
+        result = client.request('role_preview.php', {'csrf_token': csrf(page[2]), 'role': role, 'return_to': origin})
+        assert result[0] == 302 and result[1]['Location'] == 'dashboard.php', 'Preview returned to a restricted view'
+        preview = client.request('dashboard.php')
+        assert preview[0] == 200 and f'Viewing as {label}' in preview[2]
+        assert 'account-identity-banner' not in preview[2] and 'href="accounts.php"' not in preview[2]
+        assert 'href="network_diagnostics.php"' not in preview[2] and 'href="ai_coach_requests.php"' not in preview[2]
+        assert f'<option value="{role}" selected>{label}</option>' in preview[2]
+        if role == 'admin':
+            assert '<option value="superadmin"' not in preview[2], 'Administrator preview must not offer SuperAdmin in the dropdown'
+            assert '>Return to SuperAdmin</button>' in preview[2], 'Administrator preview must retain its exit button'
+        assert client.request('accounts.php')[0] == 403, 'Preview retained platform authority'
+        assert_superadmin_views_denied(client, csrf(preview[2]))
+        assert client.request('account_settings.php')[0] == (200 if role == 'admin' else 403)
+        restored = client.request('role_preview.php', {'csrf_token': csrf(preview[2]), 'role': 'superadmin', 'return_to': origin})
+        assert restored[0] == 302 and restored[1]['Location'] == origin, 'SuperAdmin restoration failed'
+        assert client.request(origin)[0] == 200
+        page = client.request('accounts.php')
+
+
+SUPERADMIN_VIEWS = ('network_diagnostics.php', 'network_performance.php?days=7',
+                    'ai_coach_requests.php', 'ai_coach_requests.php?id=1',
+                    'ai_coach_improvements.php', 'ai_coach_improvements.php?source=1',
+                    'ai_coach_improvements.php?export=1')
+
+
+def assert_superadmin_views_denied(client, token):
+    for route in SUPERADMIN_VIEWS:
+        assert client.request(route)[0] == 403, f'Restricted view exposed: {route}'
+    for route, action in [('network_diagnostics.php', 'reset_statistics'),
+                          ('ai_coach_requests.php', 'prepare_clear'),
+                          ('ai_coach_requests.php', 'review'),
+                          ('ai_coach_improvements.php', 'save')]:
+        assert client.request(route, {'csrf_token': token, 'action': action})[0] == 403, f'Restricted write exposed: {route}'
+    sample = dict.fromkeys(('ttfb_ms', 'dom_content_loaded_ms', 'load_ms', 'image_total_ms', 'image_max_ms',
+                            'contact_image_total_ms', 'contact_image_max_ms', 'image_count', 'contact_image_count'), '0')
+    sample.update(csrf_token=token, page_path='dashboard.php')
+    assert client.request('network_performance.php', sample)[0] == 204, 'Signed-in telemetry collection was blocked'
 
 
 if __name__ == '__main__': main()

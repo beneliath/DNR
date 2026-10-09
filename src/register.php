@@ -57,15 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <?php if (!$admin_actions_unlocked): ?>
-        <section class="invite-user-access-notice" id="invite-user-access-notice" aria-labelledby="invite-user-access-title">
+        <section data-admin-locked-only<?php echo $admin_actions_unlocked ? ' hidden' : ''; ?> class="invite-user-access-notice" id="invite-user-access-notice" aria-labelledby="invite-user-access-title">
             <div>
                 <strong id="invite-user-access-title">Administrator Confirmation Required</strong>
                 <p>You can review this form now. Confirm your password and a fresh authentication code before entering invitation details and sending.</p>
             </div>
             <a href="admin_elevation.php?return=register.php" class="button-secondary" data-admin-unlock-link>Unlock Invitations</a>
         </section>
-    <?php endif; ?>
 
     <div class="invite-user-layout">
         <form method="post" action="register.php" class="invite-user-form" data-invitation-form data-admin-unlock-required>
@@ -89,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </p>
             <div class="action-buttons create-form-actions invite-user-actions">
                 <a href="users.php" class="cancel-button">Cancel</a>
-                <button type="submit" class="register-button" data-invitation-submit<?php echo !$admin_actions_unlocked ? ' disabled aria-describedby="invite-user-access-notice"' : ''; ?>>Send Invitation</button>
+                <button type="submit" class="register-button" data-invitation-submit data-admin-unlock-enable<?php echo !$admin_actions_unlocked ? ' disabled aria-describedby="invite-user-access-notice"' : ''; ?>>Send Invitation</button>
             </div>
         </form>
 

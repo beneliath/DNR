@@ -34,7 +34,12 @@ $_SESSION['is_superadmin'] = false;
 expectAccount(!setRolePreview('superadmin') && !isSuperAdmin(), 'An ordinary administrator cannot escalate through Preview Access.');
 $_SESSION['_role_preview'] = 'admin';
 expectAccount(activeRolePreview() === null, 'Revoked SuperAdmin eligibility invalidates Administrator preview state.');
-expectAccount(setRolePreview('admin') && !isset($_SESSION['_role_preview']), 'An ordinary administrator can restore their assigned access.');
+expectAccount(!setRolePreview('admin'), 'An ordinary administrator cannot change Preview Access.');
+foreach (['admin', 'editor', 'reviewer'] as $role) {
+    $_SESSION['_role_preview'] = $role;
+    expectAccount(activeRolePreview() === null && !setRolePreview($role), 'Revoked SuperAdmin eligibility invalidates every preview role.');
+}
+unset($_SESSION['_role_preview']);
 $_SESSION['is_superadmin'] = true;
 $_SESSION['role'] = 'reviewer';
 expectAccount(!isSuperAdmin(), 'Role preview must hide platform controls.');

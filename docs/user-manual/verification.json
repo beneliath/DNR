@@ -8,10 +8,10 @@
   "external_pdf_actions": 0,
   "readme_appendix": {
     "sections": 62,
-    "text_fragments_verified": 1188,
-    "attachment_bytes": 108441,
+    "text_fragments_verified": 1193,
+    "attachment_bytes": 108612,
     "attachment_matches_current_source": true,
-    "sha256": "697962f5bc49e595a00908ac6dacbfe084a1f2c4f87a3930e325ee6907c990d9"
+    "sha256": "4fd501301ac5c8031a5921c6bb3843510dedc5be2831b611fff47b420fc4fe5b"
   },
   "format": {
     "reference_text": "two columns",
@@ -28,8 +28,8 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.4.19",
-    "edition_date": "October 5, 2026",
+    "version": "2.5.3",
+    "edition_date": "October 8, 2026",
     "cover_and_metadata": "verified"
   }
 }

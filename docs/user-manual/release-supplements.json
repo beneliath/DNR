@@ -63,7 +63,7 @@
     [
       "Screen Reference: Reimbursement Setup and Profile",
       [
-        "Reimbursement Setup is administrator-only in the sidebar. Organization Name identifies the report/email organization. Bookkeeper First Name and Last Name personalize the recipient; Bookkeeper Email Address is the destination; Bookkeeper Phone Number appears in the report context. Cc Email Address adds a visible copy; Bcc Email Address adds a hidden copy. Save Reimbursement Setup requires current administrator unlock. Validation errors preserve entries. Saved settings apply to future submissions.",
+        "Reimbursement Setup is administrator-only. It shows Account Name from Account Settings, which identifies the report/email organization. Bookkeeper First Name and Last Name personalize the recipient; Bookkeeper Email Address sets the destination; Bookkeeper Phone Number appears in reports. Cc and Bcc Email Address add visible and hidden copies. Save Reimbursement Setup requires administrator unlock. Validation preserves entries; saved settings apply to future submissions.",
         "My Profile → Personal Details includes Reimbursement Reviewer Email, an optional personal Cc recipient. Save the profile to persist it. The verified account email also receives a copy. The reviewer field is independent of recovery-email verification and does not grant the reviewer application access. The app records reviewer-setting changes without exposing the address in the audit message."
       ]
     ],
@@ -125,7 +125,7 @@
     [
       "Recent Administration and Recovery Changes",
       [
-        "Network diagnostics compares remote page, image, PDF and PowerPoint response measurements, with Refresh and administrator Reset Statistics. Loading or empty measurements are not proof that an upload failed. Operations shows current deployment and ingestion health. Follow the runbook if document scanning or delivery workers are unhealthy.",
+        "Network diagnostics compares remote page, image, PDF and PowerPoint response measurements, for SuperAdmins, with Refresh and protected Reset Statistics. Loading or empty measurements are not proof that an upload failed. Operations shows current deployment and ingestion health. Follow the runbook if document scanning or delivery workers are unhealthy.",
         "Backups include uploaded files; the browser backup workflow detects capacity problems and gives an actionable error rather than silently producing a partial download. Keep backup encryption/recovery material secure and follow the application's restore validation. Sensitive deployment secrets are not fields in Reimbursement Setup.",
         "The deployment has bounded data/file maintenance, encryption-key rotation support, and optional private document scanning. These are operator services, not extra end-user buttons. Scanner requirements are configuration-dependent; pending/rejected required checks prevent protected file use. Local development may deliberately leave scanning disabled."
       ]
