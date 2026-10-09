@@ -17,7 +17,7 @@ def configuration(key, public_url, primary=False, stripped=True):
             or re.search(r'[\s"<>\\]',public_url):
         raise ValueError('Invalid canonical Account URL')
     session='MOED_'+hashlib.sha256(key.encode()).hexdigest()[:16]
-    preferences=r'dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|sidebar_[a-f0-9]{12})'
+    preferences=r'dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|download_[a-f0-9]{32}|sidebar_[a-f0-9]{12})'
     allowed='(?:'+session+'|'+preferences+')'
     assets=public_url+'/assets/'
     if primary: assets+=' '+url.scheme+'://'+url.netloc+'/assets/'
@@ -29,7 +29,8 @@ def configuration(key, public_url, primary=False, stripped=True):
         '    Options -Indexes -ExecCGI', '    AllowOverride None', '    Require all granted',
         '    <FilesMatch "(?i)\\.php(?:/|$)">', '        Require all denied', '    </FilesMatch>',
         '</Directory>',
-        # Only this Account's authentication cookie and non-auth UI preferences
+        # Only this Account's authentication cookie, non-auth UI preferences,
+        # and bounded download/backup acknowledgements
         # reach its app/download pools. Legacy and sibling credentials are removed.
     ]
     if not stripped:
@@ -52,6 +53,10 @@ def configuration(key, public_url, primary=False, stripped=True):
         if primary:
             # The primary cookie also serves the common login/recovery endpoints.
             lines.append(f'    Header {table} edit Set-Cookie "^({session}=[^;]*;(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
+            if not stripped:
+                # Legacy root pages must be able to read their non-auth download
+                # acknowledgements. Canonical Account pages keep the scoped path.
+                lines.append(f'    Header {table} edit Set-Cookie "^(dnr_(?:download|backup)_[a-f0-9]{{32}}=[^;]*;(?i:.*?Path=))[^;]*(.*)$" "$1/$2" "expr=%{{REQUEST_URI}} !~ m#^/a/#"')
     lines += [
         # This additional policy intersects the app's CSP. A compromised app
         # cannot authorize inline scripts/nonces or executable PHP responses.

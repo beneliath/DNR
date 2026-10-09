@@ -32,6 +32,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix=name+'-') as folder:
         root=Path(folder); root.chmod(0o755)
         (root/'assets').mkdir(); (root/'assets/test.js').write_text('/* trusted fixture */')
+        repository=Path(__file__).resolve().parents[1]
+        for asset in ['js/button-feedback.min.js', 'css/style.min.css', 'css/modern.min.css']:
+            (root/'assets'/Path(asset).name).write_bytes((repository/'src/assets'/asset).read_bytes())
+        (root/'download_feedback_helpers.php').write_bytes((repository/'src/download_feedback_helpers.php').read_bytes())
         (root/'assets/browser-check.js').write_text('''
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('trusted').textContent = 'PASS: trusted ingress script loaded';
@@ -47,8 +51,24 @@ if (str_contains($_SERVER['REQUEST_URI'], '/untrusted.php')) {
 if (str_contains($_SERVER['REQUEST_URI'], '/browser.php')) {
     header("Content-Security-Policy: script-src * 'unsafe-inline'");
     echo '<!doctype html><title>Account ingress security fixture</title><h1>Account ingress security fixture</h1>';
+    echo '<link rel="stylesheet" href="assets/style.min.css"><link rel="stylesheet" href="assets/modern.min.css">';
     echo '<p id="trusted">Waiting for trusted script</p><p id="inline">Checking inline script</p><p id="external">Checking backend script</p>';
+    echo '<main><h2>File button feedback</h2><p>Disposable downloads through the real account gateway policy.</p>';
+    echo '<p><a class="button-secondary" href="download_engagement_pdf.php">Download Report</a> ';
+    echo '<a class="button-secondary" href="presentation_pdf_view.php" target="_blank">View File</a></p>';
+    echo '<form action="presentation_qr_pdf_view.php" method="get" target="_blank"><input name="selected[]" value="notes:2" type="hidden"><button type="submit" class="button-primary">Prepare PDF</button></form></main>';
+    echo '<script src="assets/button-feedback.min.js"></script>';
     echo '<script src="assets/browser-check.js"></script><script>window.inlineExecuted=true;</script><script src="untrusted.php"></script>';
+    exit;
+}
+if (preg_match('~/(download_engagement_pdf|presentation_pdf_view|presentation_qr_pdf_view)\\.php~', $_SERVER['REQUEST_URI'])) {
+    require '/fixture/download_feedback_helpers.php';
+    function requestUsesHttps() { return false; }
+    header_register_callback(fn() => sendDownloadFeedback($_GET));
+    usleep(600000);
+    header('Content-Type: text/plain');
+    header('Content-Disposition: ' . (str_contains($_SERVER['REQUEST_URI'], '/download_engagement_pdf') ? 'attachment' : 'inline') . '; filename="fixture.txt"');
+    echo 'Synthetic file response. No application records.';
     exit;
 }
 header('Content-Type: application/json');
@@ -56,6 +76,9 @@ header('Set-Cookie: SIBLING=overwrite; Path=/; Domain=localhost', false);
 header('Set-Cookie: OWN=valid; Path=/; Domain=localhost; HttpOnly; SameSite=Lax', false);
 header('Set-Cookie: OWN=deleted; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0', false);
 header('Set-Cookie: dnr_rows_per_page_tasks=25; Path=/; Domain=localhost', false);
+header('Set-Cookie: dnr_download_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=started; Path=/; Domain=localhost; SameSite=Strict', false);
+header('Set-Cookie: dnr_backup_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb=created; Path=/; Domain=localhost; SameSite=Strict', false);
+header('Set-Cookie: dnr_download_not-a-valid-token=started; Path=/', false);
 header('Clear-Site-Data: "cookies", "storage"');
 header('Service-Worker-Allowed: /');
 header('Access-Control-Allow-Origin: *');
@@ -96,10 +119,15 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
             status,headers,body=request(cookie=own+'=allowed; dnr_rows_per_page_tasks=25; unknown=hidden')
             assert 'dnr_rows_per_page_tasks=25' in json.loads(body)['cookie']
             cookies=[v for k,v in headers if k.lower()=='set-cookie' and v]
-            assert len(cookies)==3,cookies
+            assert len(cookies)==5,cookies
             assert all(sibling not in v and 'Domain=' not in v for v in cookies),cookies
             assert all('Path=/a/'+key+'/' in v for v in cookies),cookies
             assert any('Max-Age=0' in v and 'Expires=' in v for v in cookies),cookies
+            assert any(v.startswith('dnr_download_'+'a'*32+'=started;') for v in cookies),cookies
+            assert not any('dnr_download_not-a-valid-token' in v for v in cookies),cookies
+            _,_,body=request(cookie=own+'=allowed; dnr_download_'+'a'*32+'=started; dnr_download_not-a-valid-token=hidden')
+            assert 'dnr_download_'+'a'*32+'=started' in json.loads(body)['cookie']
+            assert 'dnr_download_not-a-valid-token' not in json.loads(body)['cookie']
             assert not any(k.lower() in ['clear-site-data','service-worker-allowed','access-control-allow-origin'] for k,v in headers)
             policies=[v for k,v in headers if k.lower()=='content-security-policy']
             assert len(policies)==2,policies
@@ -115,9 +143,21 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
                 assert json.loads(body)['cookie']==own+'=allowed'
                 cookies=[v for k,v in headers if k.lower()=='set-cookie' and v.startswith(own+'=')]
                 assert len(cookies)==2 and all('Path=/;' in v for v in cookies),cookies
+                acknowledgements=[v for k,v in headers if k.lower()=='set-cookie' and v.startswith(('dnr_download_','dnr_backup_'))]
+                expected_path='/a/'+key+'/' if path.startswith('/a/') else '/'
+                assert len(acknowledgements)==2 and all('Path='+expected_path+';' in v for v in acknowledgements),acknowledgements
             assert sibling in json.loads(request('/a/other-account/profile.php',cookie=sibling+'=private')[2])['cookie']
             assert request('/a/test-account/assets/test.js')[2]==b'/* trusted fixture */'
-            print('PASS: cookie request/response isolation, logout, trusted assets, intersecting CSP, and primary/member path routing')
+            # Exercise the actual PHP helper through Apache for streamed and
+            # inline responses, including the GET form used for selected PDFs.
+            for prefix in ['/', '/a/'+key+'/']:
+                for endpoint in ['download_engagement_pdf.php','presentation_pdf_view.php','presentation_qr_pdf_view.php']:
+                    status,headers,body=request(prefix+endpoint+'?_download_feedback='+'d'*32)
+                    assert status==200 and b'Synthetic file response' in body
+                    acknowledgements=[v for k,v in headers if k.lower()=='set-cookie' and v]
+                    assert len(acknowledgements)==1 and acknowledgements[0].startswith('dnr_download_'+'d'*32+'=started;'),acknowledgements
+                    assert 'path='+prefix+';' in acknowledgements[0].lower(),acknowledgements
+            print('PASS: cookie isolation, scoped download acknowledgements, logout, trusted assets, intersecting CSP, and primary/member path routing')
             if options.browser_review:
                 url='http://127.0.0.1:'+str(port)+'/a/'+key
                 (root/'security.conf').write_text(configuration(key,url,True,False))

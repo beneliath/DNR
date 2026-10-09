@@ -19,7 +19,16 @@ function aiCoachEnabled(): bool
 
 function aiCoachStorageKey(): string
 {
-    return hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:' . (string) ($_SESSION['role'] ?? 'reviewer'));
+    // Keep the conversation and pane state through an admin unlock's CSRF rotation.
+    // Authentication resets this token; the role still isolates preview conversations.
+    $_SESSION['_ai_coach_storage_token'] ??= generateCsrfToken();
+    return hash('sha256', $_SESSION['_ai_coach_storage_token'] . ':conversational-workflows-v2:' . (string) ($_SESSION['role'] ?? 'reviewer'));
+}
+
+function aiCoachPaneKey(): string
+{
+    $_SESSION['_ai_coach_storage_token'] ??= generateCsrfToken();
+    return hash('sha256', $_SESSION['_ai_coach_storage_token'] . ':coach-pane-v1');
 }
 
 function aiCoachPages(): array

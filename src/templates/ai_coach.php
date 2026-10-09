@@ -8,6 +8,7 @@ $coach_key = aiCoachStorageKey();
     data-coach data-page="<?php echo htmlspecialchars($coach_page, ENT_QUOTES, 'UTF-8'); ?>"
     data-role="<?php echo htmlspecialchars((string) ($_SESSION['role'] ?? 'reviewer'), ENT_QUOTES, 'UTF-8'); ?>"
     data-storage-key="<?php echo $coach_key; ?>"
+    data-pane-key="<?php echo aiCoachPaneKey(); ?>"
     data-endpoint="ai_coach.php" data-csrf-token="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     <header class="coach-heading">
         <div><h2 id="coach-title">AI Coach</h2><p>Learn one step at a time</p></div>

@@ -92,6 +92,7 @@ function renderPageHead($title, array $options = []) {
         renderScript((string) $path, $defer);
     }
     renderScript('assets/js/form-ux.min.js');
+    renderScript('assets/js/button-feedback.min.js');
     echo '</head>' . PHP_EOL;
 }
 
@@ -303,6 +304,9 @@ function releaseApplicationSessionLock(): bool {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         return true;
     }
+
+    // Read-only pages render the Coach after releasing this lock.
+    if (aiCoachEnabled() && !empty($_SESSION['user_id'])) aiCoachStorageKey();
 
     $released = session_write_close();
     if (!$released) {
@@ -1253,6 +1257,7 @@ function requireAdmin() {
 function beginPendingAuthentication(array $user) {
     session_regenerate_id(true);
     unset(
+        $_SESSION['_ai_coach_storage_token'],
         $_SESSION['user_id'],
         $_SESSION['username'],
         $_SESSION['role'],
@@ -1304,6 +1309,7 @@ function getPendingAuthentication() {
 function beginPasswordRecovery($eligible_user = null, $attempted_username = '') {
     session_regenerate_id(true);
     unset(
+        $_SESSION['_ai_coach_storage_token'],
         $_SESSION['user_id'],
         $_SESSION['username'],
         $_SESSION['role'],
@@ -1407,7 +1413,8 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     unset(
         $_SESSION['_pending_auth'],
         $_SESSION['_two_factor_enrollment'],
-        $_SESSION['_role_preview']
+        $_SESSION['_role_preview'],
+        $_SESSION['_ai_coach_storage_token']
     );
 
     $_SESSION['user_id'] = $user_id;

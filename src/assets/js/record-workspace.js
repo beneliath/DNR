@@ -135,6 +135,7 @@
                 return;
             }
             button.disabled = true;
+            const finishFeedback = window.DnrButtonFeedback?.begin(button, 'Creating…');
             status.textContent = 'Creating organization';
             const data = new FormData();
             const csrf = form.querySelector('[name="csrf_token"]');
@@ -165,6 +166,7 @@
             } catch (error) {
                 status.textContent = error.message || 'Unable to create the organization. Your contact draft is preserved.';
             } finally {
+                finishFeedback?.();
                 button.disabled = false;
             }
         });

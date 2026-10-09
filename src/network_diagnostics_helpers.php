@@ -139,12 +139,14 @@ function resetNetworkPerformanceStatistics(mysqli $conn, int $actorId): void
 /** Observe native document responses without fetching the document a second time. */
 function registerNetworkDocumentPerformance(mysqli $conn): void
 {
+    require_once __DIR__ . '/download_feedback_helpers.php';
     if (PHP_SAPI === 'cli' || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
         return;
     }
     $readyAt = null;
     header_register_callback(static function () use (&$readyAt): void {
         $readyAt = microtime(true);
+        sendDownloadFeedback($_GET);
     });
     register_shutdown_function(static function () use ($conn, &$readyAt): void {
         $finishedAt = microtime(true);

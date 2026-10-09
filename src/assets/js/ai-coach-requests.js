@@ -25,6 +25,7 @@
         loading = true;
         error.hidden = true;
         button.disabled = true;
+        const finishFeedback = window.DnrButtonFeedback?.begin(button, 'Loading Confirmation…');
         try {
             if (window.DnrAdminUnlock) {
                 if (!await window.DnrAdminUnlock.request()) return;
@@ -72,6 +73,7 @@
             error.textContent = 'The confirmation could not be loaded. Please try again or reload the page.';
             error.hidden = false;
         } finally {
+            finishFeedback?.();
             loading = false;
             button.disabled = false;
         }

@@ -8,9 +8,10 @@
         body.classList.add('has-coach');
         try {
             const saved = JSON.parse(window.DnrAccountContext.session.getItem('moed-coach-session') || '{}');
-            body.classList.toggle('coach-open', saved.key === coachLayout.dataset.coachLayoutKey
-                && saved.open === true && coachLayout.dataset.coachPage !== 'help.php'
-                && window.matchMedia('(min-width: 1101px)').matches);
+            const sameSession = saved.key === coachLayout.dataset.coachLayoutKey
+                || (coachLayout.dataset.coachPaneKey && saved.paneKey === coachLayout.dataset.coachPaneKey);
+            body.classList.toggle('coach-open', !!sameSession
+                && saved.open === true && coachLayout.dataset.coachPage !== 'help.php');
         } catch (_) { /* Coach storage is optional. */ }
     }
 

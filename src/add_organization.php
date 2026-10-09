@@ -294,7 +294,7 @@ if (isset($_SESSION['success_message'])) {
         <?php if ($creation_return !== ''): ?><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
         <label for="existing-contact-search-fallback">Find an Existing Contact</label>
         <input id="existing-contact-search-fallback" name="contact_search" type="search" maxlength="128" value="<?php echo htmlspecialchars($contact_search, ENT_QUOTES, 'UTF-8'); ?>">
-        <button type="submit">Find Contacts</button>
+        <button type="submit" class="button-secondary">Find Contacts</button>
         <p>Search before filling the organization form. The results show up to 25 contacts.</p>
     </form></noscript>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>

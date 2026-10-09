@@ -284,7 +284,7 @@ p {
 }
 .account-directory-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto 200px;
+  grid-template-columns: 42px minmax(0, 1fr) auto max-content;
   gap: 18px;
   align-items: center;
   padding: 20px;
@@ -335,6 +335,7 @@ html body .account-directory-name h2 { margin: 0; text-align: left !important; f
 }
 .account-directory-pending { color: var(--text-muted); border-color: var(--border); background: var(--surface); }
 .account-directory-action { display: flex; align-items: center; gap: 10px; }
+.account-directory-action > * { flex-shrink: 0; }
 .account-directory-action form { margin: 0; }
 .account-directory-action .button-secondary { display: inline-flex; align-items: center; justify-content: center; width: 148px; text-decoration: none; white-space: nowrap; }
 .account-directory-wait { display: block; color: var(--text-muted); font-size: 0.82rem; text-align: center; }
@@ -345,7 +346,7 @@ html body .account-directory-name h2 { margin: 0; text-align: left !important; f
   .account-directory-row { grid-template-columns: 42px minmax(0, 1fr); gap: 10px 14px; padding: 18px; }
   .account-directory-icon { grid-row: 1 / 3; align-self: start; }
   .account-directory-status { grid-column: 2; }
-  .account-directory-action { grid-column: 2; margin-top: 4px; }
+  .account-directory-action { grid-column: 2; flex-wrap: wrap; margin-top: 4px; }
 }
 
 .container > .account-create-card {
@@ -502,28 +503,7 @@ html.dark-mode .admin-unlock-banner { background: #fb923c !important; }
 .admin-unlock-copy { display: flex; flex-direction: column; gap: 1px; }
 .admin-unlock-copy strong { color: inherit; font-size: 0.98rem; }
 .admin-unlock-lock-form { justify-self: center; margin: 0; text-align: center; }
-.admin-unlock-banner .admin-unlock-lock-button {
-  padding: 8px 14px;
-  border: 1px solid #2b1106 !important;
-  border-radius: 6px;
-  background: transparent !important;
-  color: #2b1106 !important;
-  font: inherit;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-}
-.admin-unlock-banner .admin-unlock-lock-button:hover,
-.admin-unlock-banner .admin-unlock-lock-button:focus-visible {
-  background: var(--control-hover-bg) !important;
-  border-color: var(--control-hover-border) !important;
-  color: var(--control-hover-fg) !important;
-  outline: 2px solid var(--control-hover-border);
-  outline-offset: 2px;
-  box-shadow: var(--focus-ring);
-}
-.admin-unlock-lock-button:disabled { opacity: 0.65; cursor: wait; }
+.admin-unlock-banner .admin-unlock-lock-button { white-space: nowrap; }
 [data-admin-lock-error]:not([hidden]) { display: block; margin-top: 4px; }
 .admin-unlock-countdown { display: flex; align-items: center; justify-self: end; gap: 12px; flex-shrink: 0; }
 [data-admin-unlock-timer] {
@@ -579,30 +559,6 @@ body.has-app-shell.admin-unlock-active {
 .role-preview-return-form {
   flex: 0 0 auto;
   margin: 0;
-}
-
-.role-preview-return-form button,
-.role-preview-control button {
-  min-height: 36px;
-  padding: 7px 11px;
-  border: 1px solid color-mix(in srgb, var(--warning) 65%, var(--border));
-  border-radius: 8px;
-  background: var(--surface) !important;
-  color: var(--warning) !important;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.role-preview-return-form button:hover,
-.role-preview-return-form button:focus-visible,
-.role-preview-control button:hover,
-.role-preview-control button:focus-visible {
-  border-color: var(--warning);
-  background: var(--warning-subtle) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 20%, transparent);
-  outline: 0;
 }
 
 .app-sidebar {
@@ -3340,7 +3296,7 @@ html body :is(
   .save-event-button, .save-button, .action-button:not(.action-icon-button),
   .cancel-button, .add-contact-btn, .remove-contact-btn,
   .add-presentation-btn, .remove-presentation-btn, .security-button,
-  .archive-button:not(.action-icon-button), .restore-button:not(.action-icon-button), .danger-button, .button-secondary
+  .archive-button:not(.action-icon-button), .restore-button:not(.action-icon-button), .danger-button, .button-secondary, .button-primary, .action-primary, .login-button, .back-button
 ) {
   min-height: 40px !important;
   padding: 8px 14px !important;
@@ -3368,26 +3324,26 @@ html body :is(.button-primary, .action-primary, .button-add, .save-button, .save
   font-weight: 650;
   text-decoration: none;
 }
-html body :is(.button-primary, .action-primary, .button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .add-org-button, button.security-button):not(.button-secondary):not(.action-icon-button):is(:hover, :focus-visible) {
+html body :is(.button-primary, .action-primary, .button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .add-org-button, button.security-button):not(.button-secondary):not(.action-icon-button):is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--primary-hover) !important;
   background: var(--primary-hover) !important;
   color: var(--primary-button-fg) !important;
 }
-html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button) {
+html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .back-button, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button) {
   border: 1px solid var(--border-strong) !important;
   background: var(--surface) !important;
   color: var(--text) !important;
 }
 
-html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover,
-html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):focus-visible {
+html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .back-button, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover:not(:disabled):not([aria-disabled="true"]),
+html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .back-button, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--control-hover-border) !important;
   background: var(--control-hover-bg) !important;
   color: var(--control-hover-fg) !important;
 }
 
-html body :is(.sort-button, .filter-button):hover,
-html body :is(.sort-button, .filter-button):focus-visible {
+html body :is(.sort-button, .filter-button):hover:not(:disabled):not([aria-disabled="true"]),
+html body :is(.sort-button, .filter-button):focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--control-hover-border) !important;
   background: var(--control-hover-bg) !important;
   color: var(--control-hover-fg) !important;
@@ -3395,8 +3351,8 @@ html body :is(.sort-button, .filter-button):focus-visible {
   transform: translateY(-1px);
 }
 
-html body :is(.cancel-button, .button-cancel, .back-button):hover,
-html body :is(.cancel-button, .button-cancel, .back-button):focus-visible {
+html body :is(.cancel-button, .button-cancel, .back-button):hover:not(:disabled):not([aria-disabled="true"]),
+html body :is(.cancel-button, .button-cancel, .back-button):focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--control-hover-border) !important;
   background: var(--control-hover-bg) !important;
   color: var(--control-hover-fg) !important;
@@ -3410,8 +3366,8 @@ html body .export-button {
   color: var(--accent) !important;
 }
 
-html body .export-button:hover,
-html body .export-button:focus-visible {
+html body .export-button:hover:not(:disabled):not([aria-disabled="true"]),
+html body .export-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--accent) !important;
   background: var(--accent) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent) !important;
@@ -3419,8 +3375,8 @@ html body .export-button:focus-visible {
   transform: translateY(-1px);
 }
 
-html.dark-mode body .export-button:hover,
-html.dark-mode body .export-button:focus-visible {
+html.dark-mode body .export-button:hover:not(:disabled):not([aria-disabled="true"]),
+html.dark-mode body .export-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   color: #071126 !important;
 }
 
@@ -3430,8 +3386,8 @@ html body .reset-password-button {
   color: var(--action-archive) !important;
 }
 
-html body .reset-password-button:hover,
-html body .reset-password-button:focus-visible {
+html body .reset-password-button:hover:not(:disabled):not([aria-disabled="true"]),
+html body .reset-password-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--action-archive) !important;
   background: var(--action-archive) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-archive) 22%, transparent) !important;
@@ -3439,8 +3395,8 @@ html body .reset-password-button:focus-visible {
   transform: translateY(-1px);
 }
 
-html.dark-mode body .reset-password-button:hover,
-html.dark-mode body .reset-password-button:focus-visible {
+html.dark-mode body .reset-password-button:hover:not(:disabled):not([aria-disabled="true"]),
+html.dark-mode body .reset-password-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   color: #071126 !important;
 }
 
@@ -3450,8 +3406,8 @@ html body .reset-two-factor-button {
   color: var(--action-reset-2fa) !important;
 }
 
-html body .reset-two-factor-button:hover,
-html body .reset-two-factor-button:focus-visible {
+html body .reset-two-factor-button:hover:not(:disabled):not([aria-disabled="true"]),
+html body .reset-two-factor-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--action-reset-2fa) !important;
   background: var(--action-reset-2fa) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-reset-2fa) 22%, transparent) !important;
@@ -3459,8 +3415,8 @@ html body .reset-two-factor-button:focus-visible {
   transform: translateY(-1px);
 }
 
-html.dark-mode body .reset-two-factor-button:hover,
-html.dark-mode body .reset-two-factor-button:focus-visible {
+html.dark-mode body .reset-two-factor-button:hover:not(:disabled):not([aria-disabled="true"]),
+html.dark-mode body .reset-two-factor-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   color: #071126 !important;
 }
 
@@ -3484,12 +3440,12 @@ html body .edit-button {
 }
 
 html body :is(.delete-button, .button-delete, .danger-button, .remove-contact-btn, .remove-presentation-btn) {
-  border-color: #f3c5c0 !important;
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border)) !important;
   background: var(--danger-subtle) !important;
   color: var(--danger) !important;
 }
 
-html body :is(.delete-button, .button-delete, .danger-button, .remove-contact-btn, .remove-presentation-btn):hover {
+html body :is(.delete-button, .button-delete, .danger-button, .remove-contact-btn, .remove-presentation-btn):is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--danger) !important;
   background: var(--danger) !important;
   color: #fff !important;
@@ -6923,6 +6879,55 @@ html body [data-task-bulk] select { width: auto; min-width: 10rem; }
 html body [data-task-bulk] .task-bulk-submit-actions { display: inline-flex; align-items: center; gap: 1.5rem; }
 
 html body button[hidden] { display: none !important; }
+
+/* Shared feedback for native forms, async actions, and streamed downloads. */
+html body :is(button, input[type="submit"], input[type="button"], a, [role="button"]):is(:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+  opacity: .65;
+  transform: none !important;
+}
+html body :is(button, input, a, [role="button"])[aria-busy="true"] {
+  cursor: wait !important;
+  box-shadow: var(--focus-ring) !important;
+}
+html body :is(button, a, [role="button"])[aria-busy="true"]::before {
+  display: inline-block;
+  width: .95em;
+  height: .95em;
+  flex: 0 0 .95em;
+  margin-right: .4em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -.1em;
+  content: "";
+  animation: button-feedback-spin .8s linear infinite;
+}
+html body .action-icon-button[aria-busy="true"]::before {
+  position: absolute;
+  margin: 0;
+}
+html body .action-icon-button[aria-busy="true"] :is(svg, .action-icon, img) { visibility: hidden; }
+.button-feedback-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1300;
+  max-width: min(420px, calc(100vw - 40px));
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  font-size: .875rem;
+}
+.button-feedback-notice[hidden] { display: none; }
+@keyframes button-feedback-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  html body :is(button, a, [role="button"])[aria-busy="true"]::before { animation: none; }
+}
 
 /* Align repeated content actions by purpose, including rows with fewer controls. */
 :is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory) {

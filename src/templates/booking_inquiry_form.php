@@ -45,7 +45,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                 </select>
             </div>
         </div>
-        <noscript><button type="submit" name="search_inquiry_relationships" value="1" formnovalidate>Search Organizations and Contacts</button></noscript>
+        <noscript><button type="submit" class="button-secondary" name="search_inquiry_relationships" value="1" formnovalidate>Search Organizations and Contacts</button></noscript>
         <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Contact</a></div>
         <p class="field-help" id="inquiry-relationship-status" role="status">Search by name to find a record. Up to 25 matches are shown. Choose an organization to narrow contacts. Standalone contacts can be selected when no organization is chosen. Creating a related record keeps this inquiry draft.</p>
         <div class="form-group inquiry-request-summary">

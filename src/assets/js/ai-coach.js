@@ -147,7 +147,11 @@
     try {
         const value = JSON.parse(window.DnrAccountContext.session.getItem(storageName) || '{}');
         if (value.key === panel.dataset.storageKey) saved = value;
-        else window.DnrAccountContext.session.removeItem(storageName);
+        else {
+            // Role previews may reset the conversation without changing the pane choice.
+            if (panel.dataset.paneKey && value.paneKey === panel.dataset.paneKey) saved = { open: value.open === true };
+            window.DnrAccountContext.session.removeItem(storageName);
+        }
     } catch (_) { /* Storage is optional. */ }
     let conversationScroll = Math.max(0, Number(saved.scrollTop) || 0);
     let messages = safeMessages(saved.messages);
@@ -170,6 +174,7 @@
     function persist() {
         try {
             window.DnrAccountContext.session.setItem(storageName, JSON.stringify({ key: panel.dataset.storageKey,
+                paneKey: panel.dataset.paneKey,
                 open: !panel.hidden, activeGuideId: activeGuideId, scrollTop: panel.hidden ? conversationScroll : scrollArea.scrollTop, pending: pending, workflow: workflow, submittedRecord: submittedRecord, messages: messages.slice(-12) }));
         } catch (_) { /* Do not block help if browser storage is full or disabled. */ }
     }
@@ -304,7 +309,7 @@
             window.open('assets/docs/moed-comprehensive-user-manual.pdf#page=' + source.page, '_blank', 'noopener');
             return;
         }
-        if (narrow.matches) setOpen(false, false);
+        setOpen(false, false);
         if (page === 'help.php') document.dispatchEvent(new CustomEvent('moed:manual-topic', { detail: id }));
         else window.location.assign('help.php#' + encodeURIComponent(id));
     }
@@ -350,6 +355,7 @@
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'button-secondary';
                 button.textContent = label; button.setAttribute('aria-pressed', String(message.feedback === value));
                 button.addEventListener('click', async function () {
+                    const finishFeedback = window.DnrButtonFeedback?.begin(button);
                     try {
                         const result = await coachEvent('feedback', message.id, { feedback: value, ui: uiContext() });
                         if (!result.saved) { find('status').textContent = 'This answer is no longer in the request log.'; return; }
@@ -357,6 +363,7 @@
                         feedback.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
                         find('status').textContent = 'Thank you. Your feedback was saved.'; persist();
                     } catch (_) { find('status').textContent = 'Feedback could not be saved. Please try again.'; }
+                    finally { finishFeedback?.(); }
                 });
                 feedback.append(button);
             });
@@ -473,15 +480,18 @@
         }
         const previousScroll = scrollArea.scrollTop;
         conversationScroll = previousScroll;
-        if (narrow.matches) setOpen(false, false);
         clearHighlight();
         // Flush the removed class so repeated clicks restart the attention animation.
         target.getBoundingClientRect();
         target.classList.add('coach-control-highlight');
         target.scrollIntoView({ block: 'center', behavior: 'auto' });
         // Focus and highlight only. Never click, submit, or fill a control.
-        if (!target.matches('button, input, select, textarea, a[href]')) target.setAttribute('tabindex', '-1');
-        target.focus({ preventScroll: true });
+        if (narrow.matches && !panel.hidden) {
+            find('step-note').textContent = 'The control is highlighted on the page. Minimize AI Coach to view it.';
+        } else {
+            if (!target.matches('button, input, select, textarea, a[href]')) target.setAttribute('tabindex', '-1');
+            target.focus({ preventScroll: true });
+        }
         scrollArea.scrollTop = previousScroll;
         window.requestAnimationFrame(function () {
             scrollArea.scrollTop = previousScroll;
@@ -671,11 +681,13 @@
         workflow = Object.hasOwn(workflowLabels, restored.workflow || '') ? restored.workflow : '';
         activeGuideId = typeof restored.activeGuideId === 'string' ? restored.activeGuideId : '';
         submittedRecord = typeof restored.submittedRecord === 'string' ? restored.submittedRecord : '';
+        conversationScroll = Math.max(0, Number(restored.scrollTop) || 0);
+        setOpen(page !== 'help.php' && restored.open === true, false);
         renderMessages(); updateStep(); setBusy(!!pending);
         if (pending) { controller = new AbortController(); pollPending(controller, requestNumber); }
     });
     renderMessages();
-    setOpen(page !== 'help.php' && saved.open === true && !narrow.matches, false);
+    setOpen(page !== 'help.php' && saved.open === true, false);
     if (pending) {
         controller = new AbortController();
         const number = ++requestNumber;

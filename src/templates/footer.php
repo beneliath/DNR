@@ -130,7 +130,7 @@ Genesis 49:9,10 ... Revelation 5:5
         <input type="text" id="unlock-code" name="admin_code" class="confirmation-dialog-input" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
         <div class="confirmation-dialog-actions">
             <button type="button" class="button-secondary" data-unlock-cancel>Cancel</button>
-            <button type="submit" data-unlock-submit>Unlock Sensitive Actions</button>
+            <button type="submit" class="button-primary" data-unlock-submit>Unlock Sensitive Actions</button>
         </div>
     </form>
 </dialog>

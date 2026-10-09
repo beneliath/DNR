@@ -126,6 +126,7 @@
     async function load() {
         if (loading) return;
         loading = true;
+        const finishFeedback = window.DnrButtonFeedback?.begin(refreshButton);
         if (refreshButton) {
             refreshButton.disabled = true;
             refreshButton.textContent = 'Refreshing…';
@@ -144,6 +145,7 @@
             setText('[data-network-summary-detail]', 'Reload this page after checking the application database and network telemetry endpoint.');
             setText('[data-network-status]', 'Error');
         } finally {
+            finishFeedback?.();
             results?.setAttribute('aria-busy', 'false');
             loading = false;
             if (refreshButton) {

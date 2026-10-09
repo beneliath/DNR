@@ -231,7 +231,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
 
         <section class="form-draft-panel" data-form-draft-panel>
             <p role="status">No saved draft</p>
-            <button type="button" disabled>Save Draft</button>
+            <button type="button" class="button-secondary" disabled>Save Draft</button>
             <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
         </section>
 

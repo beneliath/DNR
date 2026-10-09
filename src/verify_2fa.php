@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <form method="post" action="logout.php" class="login-cancel-form">
             <?php echo csrfInput(); ?>
-            <button type="submit" class="login-cancel-button">Cancel Login</button>
+            <button type="submit" class="login-cancel-button button-secondary">Cancel Login</button>
         </form>
         <p class="auth-assurance">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
