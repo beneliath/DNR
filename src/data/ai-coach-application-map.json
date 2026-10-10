@@ -2896,7 +2896,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "6161eeceba03b03a21b91c8fcbe482bd105272c63f75731e023e805b73212daf",
+      "sha256": "12be902ff3c349a6250b6d72274c93e15b720a94d00f44aa04d8bd3c9627ddd7",
       "controls": [
         {
           "kind": "h1",
@@ -4034,7 +4034,7 @@
       ]
     },
     "task_bulk.php": {
-      "sha256": "fc055d82bc45ed5129e909e0f68a572d45ddd6cd860f87f31a2fd63738164e10",
+      "sha256": "e55410aa89305a14ec1f51934f87a964c33afffe3f466caf348fe6c2d9e380c8",
       "controls": [
         {
           "kind": "button",

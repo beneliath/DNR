@@ -467,6 +467,11 @@ html.dark-mode .maplibregl-ctrl-attrib-button {
     flex: 1 1 180px;
   }
 
+  .map-date-window {
+    min-width: min(100%, 400px);
+    flex: 2 1 400px;
+  }
+
   .map-filter-actions {
     width: 100%;
     margin-left: 0;

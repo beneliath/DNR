@@ -74,8 +74,10 @@
     // This parser-blocking script runs before main content is parsed. Reserve
     // the complete banner stack now, rather than moving a painted page at DOMContentLoaded.
     const accountBanner = document.querySelector('.account-identity-banner');
-    if (accountBanner) {
-        body.classList.add('account-context-active');
+    if (accountBanner) body.classList.add('account-context-active');
+    if (accountBanner || document.querySelector('.role-preview-banner')
+        || document.querySelector('.admin-unlock-banner') || document.querySelector('.deployment-notice-banner')
+        || document.querySelector('.mobile-app-bar')) {
         const mobileBar = document.querySelector('.mobile-app-bar');
         const bars = [document.querySelector('.deployment-notice-banner'), accountBanner,
             document.querySelector('.role-preview-banner'), document.querySelector('.admin-unlock-banner')].filter(Boolean);
