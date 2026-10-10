@@ -159,7 +159,7 @@ def main():
                     account_name = re.search(r'name="name"[^>]*value="([^"]+)"', settings[2])
                     setup = client.request('reimbursement_setup.php')
                     assert setup[0] == 200 and account_name, 'Reimbursement setup or Account name is unavailable'
-                    account_settings_link = re.search(r'<a href="account_settings\.php"[^>]*>(.*?)</a>', setup[2], re.S)
+                    account_settings_link = re.search(r'<strong>Account Name:</strong>\s*<a href="account_settings\.php"[^>]*>(.*?)</a>', setup[2], re.S)
                     assert account_settings_link and html.unescape(account_settings_link[1]) == html.unescape(account_name[1]), 'Reimbursement setup must link the Account Name to Account Settings'
                     assert 'name="organization_name"' not in setup[2], 'Reimbursement setup still has a separate organization name'
                     if base == primary_url:
