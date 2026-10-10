@@ -88,7 +88,7 @@ function reimbursementSetupH(mixed $value): string { return htmlspecialchars((st
 <section class="reimbursement-card"><form method="post" class="reimbursement-setup-form" data-admin-unlock-required><?= csrfInput() ?>
 <input type="hidden" name="version" value="<?= reimbursementSetupH($_SERVER['REQUEST_METHOD'] === 'POST' ? (is_scalar($_POST['version'] ?? null) ? $_POST['version'] : 0) : $setup['version']) ?>">
 <div class="reimbursement-form-grid">
-<div class="reimbursement-setup-wide"><strong>Account Name:</strong> <?= reimbursementSetupH($setup['account_name']) ?><?php if (accountsEnabled()): ?> <a href="account_settings.php">Edit in Account Settings</a><?php endif; ?></div>
+<div class="reimbursement-setup-wide"><strong>Account Name:</strong> <?php if (accountsEnabled()): ?><a href="account_settings.php"><?= reimbursementSetupH($setup['account_name']) ?></a><?php else: ?><?= reimbursementSetupH($setup['account_name']) ?><?php endif; ?></div>
 <label>Bookkeeper First Name <input type="text" name="bookkeeper_first_name" autocomplete="given-name" maxlength="80" value="<?= reimbursementSetupH($setup['bookkeeper_first_name']) ?>"></label>
 <label>Bookkeeper Last Name <input type="text" name="bookkeeper_last_name" autocomplete="family-name" maxlength="80" value="<?= reimbursementSetupH($setup['bookkeeper_last_name']) ?>"></label>
 <label>Bookkeeper Email Address <input type="email" name="bookkeeper_email" autocomplete="email" maxlength="254" value="<?= reimbursementSetupH($setup['bookkeeper_email']) ?>"></label>

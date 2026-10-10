@@ -1,4 +1,28 @@
 'use strict';
+document.querySelectorAll('.reimbursement-progress').forEach(function (progress) {
+  let scheduled = false;
+  function updateStickyState() {
+    scheduled = false;
+    let top = parseFloat(window.getComputedStyle(progress).top);
+    for (let parent = progress.parentElement; parent && parent !== document.documentElement; parent = parent.parentElement) {
+      const style = window.getComputedStyle(parent);
+      if (!/^(auto|scroll|hidden|overlay)$/.test(style.overflowY)) continue;
+      if (parent !== document.scrollingElement) top += parent.getBoundingClientRect().top + parent.clientTop + (parseFloat(style.paddingTop) || 0);
+      break;
+    }
+    progress.classList.toggle('is-stuck', progress.getBoundingClientRect().top <= top + 1);
+  }
+  function scheduleUpdate() {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(updateStickyState);
+  }
+  document.addEventListener('scroll', scheduleUpdate, {passive: true, capture: true});
+  window.addEventListener('resize', scheduleUpdate);
+  window.addEventListener('pageshow', scheduleUpdate);
+  updateStickyState();
+});
+
 document.querySelectorAll('[data-clear-reimbursement-selection]').forEach(function (node) {
   try { window.DnrAccountContext.session.removeItem(node.dataset.clearReimbursementSelection); } catch (_) { /* Storage is optional. */ }
 });

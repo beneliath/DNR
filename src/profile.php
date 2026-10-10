@@ -366,7 +366,7 @@ $task_digest_day_options = [
     <form method="post" action="profile.php" enctype="multipart/form-data" class="profile-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="action" value="save">
-        <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading">
+        <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading" data-profile-picture-field>
             <div class="profile-picture-preview">
                 <img src="profile_picture.php?size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
             </div>
@@ -376,6 +376,14 @@ $task_digest_day_options = [
                 <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>">
                 <input type="file" id="profile_picture" name="profile_picture" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>" data-profile-picture-input>
                 <p class="field-help">JPEG, PNG, or WebP. Maximum file size: 5 MB.</p>
+                <div class="profile-picture-paste-controls">
+                    <button type="button" class="button-secondary" data-profile-picture-paste aria-controls="profile-picture-paste-box" aria-expanded="false">Paste Image</button>
+                    <div class="profile-picture-paste-box" id="profile-picture-paste-box" data-profile-picture-paste-box hidden>
+                        <label for="profile-picture-paste-target">Paste a Picture</label>
+                        <textarea id="profile-picture-paste-target" data-profile-picture-paste-target rows="2" placeholder="Command+V or Ctrl+V" aria-describedby="profile-picture-paste-help"></textarea>
+                        <p class="field-help" id="profile-picture-paste-help">Copy the image itself, then paste here. Save changes to apply the picture.</p>
+                    </div>
+                </div>
                 <p class="profile-picture-preview-status" hidden aria-live="polite" data-profile-picture-preview-status></p>
                 <?php if (!empty($user['profile_picture_mime'])): ?>
                     <label class="profile-picture-remove"><input type="checkbox" name="remove_profile_picture" value="1" data-remove-profile-picture> Remove Current Picture</label>

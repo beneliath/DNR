@@ -30,7 +30,7 @@
       ]
     },
     "account_settings.php": {
-      "sha256": "b408effce98c84e871f5aafb86d3907727f5666547a964ac979dfeecb5d9e0c4",
+      "sha256": "834ba110f38ece25860ded505c23dbe8706c25eeade1228f97901d2f38f443c7",
       "controls": [
         {
           "kind": "h1",
@@ -2767,7 +2767,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "1c24d6788d52262903194768ad57fa70acf22df12ea41b1ca63c4f1044486d38",
+      "sha256": "575c928c3c2d3399d7148e49c23d1bcc05f33288a6ae67b466345f46e3c7ac8a",
       "controls": [
         {
           "kind": "h1",
@@ -2782,6 +2782,15 @@
           "kind": "label",
           "label": "Choose a New Picture",
           "for": "profile_picture"
+        },
+        {
+          "kind": "button",
+          "label": "Paste Image"
+        },
+        {
+          "kind": "label",
+          "label": "Paste a Picture",
+          "for": "profile-picture-paste-target"
         },
         {
           "kind": "label",
@@ -3177,7 +3186,7 @@
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+      "sha256": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
       "controls": [
         {
           "kind": "a",
@@ -3224,10 +3233,6 @@
         {
           "kind": "a",
           "label": "Review and Submit"
-        },
-        {
-          "kind": "h2",
-          "label": "Note to the Bookkeeper"
         },
         {
           "kind": "label",
@@ -3356,16 +3361,11 @@
       ]
     },
     "reimbursement_setup.php": {
-      "sha256": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf",
+      "sha256": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724",
       "controls": [
         {
           "kind": "h1",
           "label": "Reimbursement Setup"
-        },
-        {
-          "kind": "a",
-          "label": "Edit in Account Settings",
-          "href": "account_settings.php"
         },
         {
           "kind": "label",

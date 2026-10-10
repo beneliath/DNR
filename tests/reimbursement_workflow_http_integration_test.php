@@ -291,7 +291,7 @@ try {
     $context['items'][0]['merchant'] = '<script>alert(1)</script>';
     expectReimbursement(!str_contains(reimbursementSubmissionMessage($context)['html_body'], '<script>'), 'Email escapes merchant markup');
     $notedMessage = reimbursementSubmissionMessage($context);
-    expectReimbursement(str_contains($notedMessage['body'], $note) && str_contains($notedMessage['html_body'], 'Note to the bookkeeper') && str_contains($notedMessage['html_body'], 'Call before issuing payment &lt;script&gt;'), 'Bookkeeper note appears in both email formats and HTML is escaped');
+    expectReimbursement(str_contains($notedMessage['body'], $note) && str_contains($notedMessage['html_body'], 'Note from ') && !str_contains($notedMessage['body'], 'to the bookkeeper') && !str_contains($notedMessage['html_body'], 'to the bookkeeper') && str_contains($notedMessage['html_body'], 'Call before issuing payment &lt;script&gt;'), 'General note appears in both email formats and HTML is escaped');
     $blankNoteContext = $context; $blankNoteContext['request']['bookkeeper_note'] = '';
     expectReimbursement(!str_contains(reimbursementSubmissionMessage($blankNoteContext)['body'], 'Note from '), 'Empty note does not add a note section');
     try { reimbursementSubmissionNote(str_repeat('x', 1001)); throw new RuntimeException('Oversized note accepted'); }
