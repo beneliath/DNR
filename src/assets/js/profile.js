@@ -100,6 +100,10 @@
     const preview = document.querySelector('[data-profile-picture-preview]');
     const status = document.querySelector('[data-profile-picture-preview-status]');
     const removeCheckbox = document.querySelector('[data-remove-profile-picture]');
+    const pictureField = document.querySelector('[data-profile-picture-field]');
+    const pasteButton = document.querySelector('[data-profile-picture-paste]');
+    const pasteBox = document.querySelector('[data-profile-picture-paste-box]');
+    const pasteTarget = document.querySelector('[data-profile-picture-paste-target]');
 
     if (!input || !preview || !status) return;
 
@@ -108,7 +112,23 @@
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const maximumBytes = Number(input.dataset.maxBytes || 0);
     let selectionVersion = 0;
+    let clipboardRead = 0;
     let loadingSelectedPicture = false;
+
+    function showStatus(message) {
+        status.textContent = message;
+        status.hidden = false;
+    }
+
+    function pictureError(file) {
+        if (!allowedTypes.includes(file.type)) {
+            return 'Choose a JPEG, PNG, or WebP profile picture.';
+        }
+        if (maximumBytes > 0 && file.size > maximumBytes) {
+            return 'Profile pictures must be 5 MB or smaller.';
+        }
+        return '';
+    }
 
     function restoreCurrentPicture() {
         selectionVersion += 1;
@@ -120,6 +140,7 @@
     }
 
     input.addEventListener('change', function () {
+        ++clipboardRead;
         input.setCustomValidity('');
         const file = input.files && input.files[0];
         if (!file) {
@@ -127,15 +148,9 @@
             return;
         }
 
-        if (!allowedTypes.includes(file.type)) {
-            input.setCustomValidity('Choose a JPEG, PNG, or WebP profile picture.');
-            restoreCurrentPicture();
-            input.reportValidity();
-            return;
-        }
-
-        if (maximumBytes > 0 && file.size > maximumBytes) {
-            input.setCustomValidity('Profile pictures must be 5 MB or smaller.');
+        const error = pictureError(file);
+        if (error) {
+            input.setCustomValidity(error);
             restoreCurrentPicture();
             input.reportValidity();
             return;
@@ -167,6 +182,72 @@
         reader.readAsDataURL(file);
     });
 
+    if (pictureField && pasteButton && pasteBox && pasteTarget) {
+        function stageClipboardPicture(files) {
+            const image = files.find(function (file) { return file.type.startsWith('image/'); });
+            if (!image) {
+                showStatus('No image found. Copy the image itself, rather than its filename or link, then paste again.');
+                return;
+            }
+            const error = pictureError(image);
+            if (error) {
+                showStatus(error);
+                return;
+            }
+            try {
+                const extension = image.type === 'image/jpeg' ? 'jpg' : image.type.split('/')[1];
+                const transfer = new DataTransfer();
+                transfer.items.add(new File([image], 'profile-picture-' + Date.now() + '.' + extension, { type: image.type }));
+                input.files = transfer.files;
+            } catch (error) {
+                showStatus('Please save the image and choose the file in this browser.');
+                return;
+            }
+            pasteTarget.value = '';
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        pasteButton.addEventListener('click', async function () {
+            pasteBox.hidden = false;
+            pasteButton.setAttribute('aria-expanded', 'true');
+            pasteTarget.focus();
+            const read = ++clipboardRead;
+            const keyboardHelp = 'Press Command+V or Ctrl+V in the paste box to add your image.';
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+                showStatus(keyboardHelp);
+                return;
+            }
+            showStatus('Choose Paste in your browser’s prompt, or press Command+V / Ctrl+V in the box below.');
+            try {
+                const items = await navigator.clipboard.read();
+                if (read !== clipboardRead) return;
+                for (const item of items) {
+                    const type = item.types.find(function (value) { return allowedTypes.includes(value); });
+                    if (!type) continue;
+                    const image = await item.getType(type);
+                    if (read === clipboardRead) stageClipboardPicture([image]);
+                    return;
+                }
+                showStatus('Copy a JPEG, PNG, or WebP image first, then paste it here.');
+            } catch (error) {
+                if (read === clipboardRead) showStatus(keyboardHelp);
+            }
+        });
+
+        pictureField.addEventListener('paste', function (event) {
+            const clipboard = event.clipboardData;
+            let files = Array.from(clipboard ? clipboard.files || [] : []);
+            if (!files.length && clipboard) {
+                files = Array.from(clipboard.items || []).filter(function (item) { return item.kind === 'file'; })
+                    .map(function (item) { return item.getAsFile(); }).filter(Boolean);
+            }
+            if (event.target !== pasteTarget && !files.some(function (file) { return file.type.startsWith('image/'); })) return;
+            event.preventDefault();
+            ++clipboardRead;
+            stageClipboardPicture(files);
+        });
+    }
+
     preview.addEventListener('load', function () {
         loadingSelectedPicture = false;
     });
@@ -184,6 +265,7 @@
 
     if (removeCheckbox) {
         removeCheckbox.addEventListener('change', function () {
+            ++clipboardRead;
             if (!removeCheckbox.checked) {
                 restoreCurrentPicture();
                 return;

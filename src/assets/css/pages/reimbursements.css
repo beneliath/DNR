@@ -155,6 +155,18 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 
 /* Keep this surfaced navigation opaque above the legacy dark-mode nav rule. */
 .reimbursement-page .reimbursement-progress { position: sticky; top: 12px; z-index: 20; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin: 18px 0; padding: 14px 18px; box-shadow: 0 2px 6px #0001; }
+.reimbursement-progress.is-stuck::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    pointer-events: none;
+    border: 4px solid transparent;
+    border-radius: calc(var(--radius-md) + 4px);
+    background: linear-gradient(var(--surface), var(--surface)) padding-box,
+        linear-gradient(115deg, var(--primary), var(--accent)) border-box;
+    box-shadow: 0 0 0 2px var(--surface), var(--shadow-md);
+}
 .reimbursement-progress ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
 .reimbursement-progress li { display: flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: .85rem; }
 .reimbursement-progress li[aria-current="step"] { color: var(--text); font-weight: 750; }

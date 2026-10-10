@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "Account branch review, October 8, 2026: six affected workflows checked against source; reviewer email location updated; unrelated procedures retain their hashes.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -1069,7 +1069,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "assets/js/reimbursements.js": "12b67d499cfae6142ea50a8bfdde67848815f850b68bac9968fe82b985ecda0e"
+        "assets/js/reimbursements.js": "cee6d00ecefeabf751a5bc950edd4fcd2c5aafc2945a3897425f1d951f2dc1a3"
       },
       "subjects": [
         "reimbursement",
@@ -1101,7 +1101,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
+        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e"
       },
       "subjects": [
         "reimbursement",
@@ -1125,17 +1125,17 @@
         "editor"
       ],
       "steps": [
-        "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
+        "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional brief note or comment, and select Review and Submit. That button saves the note before opening review.",
         "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every original receipt. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
+        "reimbursement_submission_helpers.php": "367e488369110a58a915f9582202f5983568266971d4f1c9169b07bd7c0abfb9",
         "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
         "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "subjects": [
@@ -1195,7 +1195,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
+        "reimbursement_setup.php": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724"
       },
       "subjects": [
         "reimbursement",
@@ -1227,7 +1227,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "profile.php": "1c24d6788d52262903194768ad57fa70acf22df12ea41b1ca63c4f1044486d38"
+        "profile.php": "575c928c3c2d3399d7148e49c23d1bcc05f33288a6ae67b466345f46e3c7ac8a"
       },
       "subjects": [
         "reviewer",

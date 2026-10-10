@@ -4,6 +4,50 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
+test('pipeline emphasis follows sticky position, responsive offsets, and history restoration', () => {
+  let position = 200, stickyTop = '12px', scrollContainerTop = 52, scrollContainerPadding = '0px';
+  const classes = new Set(), frames = [], events = {};
+  const scrollContainer = {getBoundingClientRect: () => ({top: scrollContainerTop}), clientTop: 0};
+  const progress = {
+    parentElement: scrollContainer,
+    getBoundingClientRect: () => ({top: position}),
+    classList: {toggle(name, active) { if (active) classes.add(name); else classes.delete(name); }}
+  };
+  vm.runInNewContext(source, {
+    document: {
+      querySelectorAll: selector => selector === '.reimbursement-progress' ? [progress] : [],
+      addEventListener(name, callback, options) { events[name] = callback; assert.equal(options.capture, true); }
+    },
+    window: {
+      getComputedStyle: element => element === progress ? {top: stickyTop} : {overflowY: 'auto', paddingTop: scrollContainerPadding},
+      requestAnimationFrame(callback) { frames.push(callback); },
+      addEventListener(name, callback) { events[name] = callback; }
+    }
+  });
+  assert.equal(classes.has('is-stuck'), false);
+  position = 64;
+  events.scroll(); events.scroll();
+  assert.equal(frames.length, 1);
+  frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  position = 100;
+  events.scroll(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), false);
+  position = 88; scrollContainerPadding = '24px';
+  events.scroll(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  scrollContainerPadding = '0px';
+  position = 120; stickyTop = '68px';
+  events.resize(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  scrollContainerTop = 0; position = 68;
+  events.resize(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  position = 200;
+  events.pageshow(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), false);
+});
+
 function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = false, checked = [], available = []} = {}) {
   const node = () => ({dataset: {}, events: {}, addEventListener(name, fn) { this.events[name] = fn; }});
   const boxes = ids.map(value => Object.assign(node(), {value, checked: checked.includes(value)}));

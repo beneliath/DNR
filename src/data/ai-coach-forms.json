@@ -391,7 +391,7 @@
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
         "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "controls": {
@@ -416,7 +416,7 @@
           "selector": ".reimbursement-date-range-form input[name=\"end_date\"]"
         },
         "reimbursement-bookkeeper-note": {
-          "label": "Note to the Bookkeeper",
+          "label": "Brief note or comment (optional)",
           "selector": "textarea[name=\"bookkeeper_note\"]"
         },
         "reimbursement-review-submit": {
@@ -441,8 +441,8 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
+        "reimbursement_submission_helpers.php": "367e488369110a58a915f9582202f5983568266971d4f1c9169b07bd7c0abfb9",
+        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e"
       },
       "controls": {
         "reimbursement-confirm": {
@@ -465,7 +465,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
+        "reimbursement_setup.php": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724"
       },
       "controls": {
         "reimbursement-bookkeeper": {

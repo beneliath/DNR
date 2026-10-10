@@ -32,6 +32,26 @@ html body.profile-page .profile-container > .profile-form {
     align-items: start;
 }
 
+html:not(.has-js) .profile-picture-paste-controls,
+.profile-picture-paste-box[hidden] {
+    display: none;
+}
+
+.profile-picture-paste-controls {
+    margin-bottom: 14px;
+}
+
+.profile-picture-paste-box {
+    margin-top: 12px;
+    max-width: 24rem;
+}
+
+.profile-picture-paste-box textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
 .profile-page .profile-form > .profile-actions {
     grid-column: 1 / -1;
 }
