@@ -4305,6 +4305,10 @@ input[type="radio"] {
   overflow-x: auto;
 }
 
+.record-merge-table table {
+  min-width: 640px;
+}
+
 .engagement-table,
 .organization-table,
 .contact-table,
@@ -5194,6 +5198,45 @@ html.dark-mode .login-secondary-link a {
   }
 }
 
+@media (max-width: 860px), (pointer: coarse) {
+  /* Keep viewport-fixed controls inside the page on mobile Safari. Moving the
+     scrolling body below them can leave the header outside its painted bounds. */
+  body.has-app-shell.account-context-active {
+    position: static;
+    inset: auto;
+    min-height: 100dvh;
+    overflow-y: visible;
+    padding-top: var(--account-shell-height, 64px) !important;
+  }
+
+  html:has(body.account-context-active) {
+    overflow: visible;
+  }
+
+  html:has(body.has-app-shell) {
+    scroll-padding-top: var(--account-shell-height, 64px);
+  }
+
+  html:has(body.has-app-shell.navigation-open) {
+    overflow: hidden;
+  }
+
+  /* Sidebar, authentication, and tablet fields need the same iOS focus sizing
+     as the fields in mobile record forms. */
+  html body :is(input, select, textarea):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]) {
+    font-size: max(16px, 1rem) !important;
+  }
+
+  /* WebKit can include long native option text in the page's scroll width. */
+  html body select {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 1100px) {
+  html:has(body.has-app-shell.coach-open) { overflow: hidden; }
+}
+
 @media (max-width: 860px) {
   body.has-app-shell {
     padding: 64px 0 0;
@@ -5249,6 +5292,13 @@ html.dark-mode .login-secondary-link a {
     width: min(100%, 180px);
     height: auto;
     max-height: 38px;
+  }
+
+  .mobile-app-bar :is(.mobile-menu-button, .mobile-theme-button) {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px !important;
+    min-height: 44px !important;
   }
 
   .app-sidebar {

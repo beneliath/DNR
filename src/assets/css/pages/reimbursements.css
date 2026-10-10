@@ -66,7 +66,7 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{width:1%;white-space:nowrap}
 .reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{text-align:right}
 .reimbursement-email-details{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6rem 1rem}.reimbursement-email-details dt{font-weight:650}.reimbursement-email-details dd{margin:0;overflow-wrap:anywhere}
-.reimbursement-email-preview{width:100%;min-height:300px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.reimbursement-email-preview{width:100%;min-height:300px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);overflow-x:auto;overscroll-behavior-inline:contain}
 #bookkeeper-note{display:block;width:100%;margin-top:.4rem;min-height:6rem;resize:vertical}
 .reimbursement-review-submit{margin-left:auto}
 .reimbursement-confirm{display:flex;align-items:center;gap:.6rem}.reimbursement-confirm input{width:auto;margin:0}
@@ -173,7 +173,10 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .progress-number { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border: 1px solid var(--border-strong); border-radius: 50%; }
 .reimbursement-progress [aria-current="step"] .progress-number { background: var(--primary); color: var(--primary-button-fg); border-color: var(--primary); }
 .reimbursement-progress-total { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-weight: 650; }
+@media (max-width: 860px), (pointer: coarse) {
+    .reimbursement-page .reimbursement-progress { top: calc(var(--account-shell-height, 64px) + 12px); }
+}
 @media (max-width: 720px) {
-    .reimbursement-page .reimbursement-progress { top: 68px; padding: 12px; }
+    .reimbursement-page .reimbursement-progress { padding: 12px; }
     .reimbursement-progress ol { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }

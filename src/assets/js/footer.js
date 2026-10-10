@@ -9,7 +9,8 @@
     const sidebar = document.getElementById('app-sidebar');
     const resumeKey = sidebar ? 'dnr.admin-unlock-return.' + sidebar.dataset.navPreferenceUser : null;
     const screenUrl = () => window.location.pathname + window.location.search;
-    const pageScroller = () => document.body.classList.contains('account-context-active') ? document.body : window;
+    const pageScroller = () => document.body.classList.contains('account-context-active')
+        && window.getComputedStyle(document.body).position === 'fixed' ? document.body : window;
     const pageForms = Array.from(document.querySelectorAll('main form'));
     const controls = form => Array.from(form.elements).filter(field => field.name
         && !['hidden', 'file', 'password', 'submit', 'button', 'reset'].includes(field.type)

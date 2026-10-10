@@ -767,6 +767,11 @@ html body .engagement-card-heading .edit-presentations-button {
     overflow-wrap: anywhere;
 }
 
+html body .engagement-next-action-content p.task-due {
+    max-width: 100%;
+    white-space: normal;
+}
+
 .engagement-next-action-content p.task-due-overdue {
     color: var(--danger);
 }
