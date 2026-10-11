@@ -57,7 +57,7 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
+        "view_engagement.php": "f0673510a96c4cc69e335d5fae34c04ab190ab476f229cd966273caf6f5be4e8",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
@@ -206,7 +206,7 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
+        "view_engagement.php": "f0673510a96c4cc69e335d5fae34c04ab190ab476f229cd966273caf6f5be4e8",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89"
+        "view_engagement.php": "f0673510a96c4cc69e335d5fae34c04ab190ab476f229cd966273caf6f5be4e8"
       },
       "controls": {
         "tasks-tab": {
@@ -496,7 +496,7 @@
       "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
+        "view_engagement.php": "f0673510a96c4cc69e335d5fae34c04ab190ab476f229cd966273caf6f5be4e8",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "templates/footer.php": "c4e1bd9d091f561c5de8cc01708f352f8ac29491e751a367b36775ad9a7c1334",

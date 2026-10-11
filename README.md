@@ -146,8 +146,8 @@ directly at `smtp.protonmail.ch:587` with STARTTLS. This keeps `mail-dispatch` i
 and leaves Bridge responsible only for inbound IMAP.
 
 The Ubuntu ingress also differs from the Docker Desktop deployment: it publishes no host port.
-Traefik and MOED share a dedicated `/29` network, while Cloudflared receives one stable address on
-the existing proxy network. DNR trusts those exact hops. Do not replace the exact Cloudflared
+Traefik and MOED share a dedicated `/24` network with a restricted dynamic pool, while Cloudflared
+receives one stable address on the existing proxy network. DNR trusts those exact hops. Do not replace the exact Cloudflared
 address with the entire shared proxy subnet; another container on that subnet could otherwise
 present forged Cloudflare client headers.
 
@@ -155,7 +155,8 @@ Prepare the network and merge the tracked proxy overlay with the existing Traefi
 Replace `/path/to/traefik` with that stack's directory:
 
 ```sh
-docker network create --driver bridge --subnet 172.29.255.0/29 moed_edge
+docker network create --driver bridge --subnet 172.29.255.0/24 \
+  --gateway 172.29.255.1 --ip-range 172.29.255.128/25 moed_edge
 install -m 600 deploy/traefik-moed-edge.yaml \
   /path/to/traefik/docker-compose.moed-edge.yml
 cd /path/to/traefik
@@ -167,6 +168,24 @@ Use both Traefik Compose files for every future update to that stack. The overla
 `172.29.255.2` on `moed_edge` and Cloudflared to `172.18.0.254` on `proxy`; the matching defaults are
 already in `.env.example`. If either subnet conflicts on another host, change all matching values
 together before creating the network.
+
+The dynamic pool allocates `172.29.255.128` through `172.29.255.254`. Keep Traefik, primary
+ingress (`172.29.255.3`), and any static primary control address outside that pool. This protects
+their addresses while those containers are stopped, regardless of Account startup order; a static
+Compose address alone does not reserve it during downtime. See [Docker restart allocation
+guidance](https://docs.docker.com/reference/cli/docker/network/connect/#network-implications-of-stopping-pausing-or-restarting-containers).
+
+An existing network without this IP range must be replaced during planned maintenance; rerunning
+`docker network create` will not update its IPAM configuration. Preserve connected services and
+network aliases, and recreate Traefik from both Compose files after replacing the network: a stopped
+container can retain the deleted network ID. Verify MOED and every Account route after reconnecting.
+Cloudflared must retain `172.18.0.254` on `proxy`; check that separate network's allocation policy
+before changing it.
+
+Run `python3 tests/edge_network_allocation_test.py --local-docker` to exercise multiple Account
+pairs starting before Traefik, repeated stop/start cycles, and allocation while static services are
+stopped. The test uses a disposable labelled network and an already-installed BusyBox image; it
+does not restart Docker or the host.
 
 Those commands preserve the current MOED host layout. For a separate deployment, merge
 `deploy/traefik-edge.yaml` instead and set the same `DNR_EDGE_NETWORK`, Traefik address, and
