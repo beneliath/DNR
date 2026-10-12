@@ -1161,7 +1161,7 @@ function requireLogin() {
     $user_id = (int) $_SESSION['user_id'];
     $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
     $stmt = $conn->prepare(
-        'SELECT username, role, auth_version, must_change_password, account_status, two_factor_enabled,
+        'SELECT id, username, role, auth_version, must_change_password, account_status, two_factor_enabled,
                 first_name, last_name, profile_picture_updated_at' . $accountColumns . '
          FROM users
          WHERE id = ?'
@@ -1178,8 +1178,8 @@ function requireLogin() {
     if (!$user
         || $user['account_status'] !== 'active'
         || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']
-        || empty($user['two_factor_enabled'])
-        || empty($_SESSION['two_factor_verified_at'])
+        || ((!demoPasswordOnlyAuthenticationAllowed($user) || empty($_SESSION['_demo_password_only_auth']))
+            && (empty($user['two_factor_enabled']) || empty($_SESSION['two_factor_verified_at'])))
     ) {
         session_unset();
         session_regenerate_id(true);
@@ -1265,6 +1265,7 @@ function beginPendingAuthentication(array $user) {
         $_SESSION['auth_version'],
         $_SESSION['auth_complete'],
         $_SESSION['two_factor_verified_at'],
+        $_SESSION['_demo_password_only_auth'],
         $_SESSION['must_change_password'],
         $_SESSION['_role_preview'], $_SESSION['_platform_identity'], $_SESSION['is_superadmin'],
         $_SESSION['_admin_elevated_at'], $_SESSION['_admin_elevation_expires_at'], $_SESSION['_platform_admin_elevation']
@@ -1375,7 +1376,15 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     if (($user['account_status'] ?? 'active') !== 'active') {
         throw new RuntimeException('Inactive accounts cannot complete authentication.');
     }
-    if (empty($user['two_factor_enabled']) || !$two_factor_verified) {
+    $demo_password_only = demoPasswordOnlyAuthenticationAllowed($user);
+    $pending = $_SESSION['_pending_auth'] ?? [];
+    if ($demo_password_only && ((int) ($pending['user_id'] ?? 0) !== (int) $user['id']
+        || (int) ($pending['auth_version'] ?? 0) !== (int) $user['auth_version']
+        || !is_int($pending['issued_at'] ?? null) || time() - $pending['issued_at'] < 0
+        || time() - $pending['issued_at'] > 600)) {
+        throw new RuntimeException('A recent password-verified demo identity is required.');
+    }
+    if (!$demo_password_only && (empty($user['two_factor_enabled']) || !$two_factor_verified)) {
         throw new RuntimeException('All accounts must complete two-factor authentication before signing in.');
     }
     $user_id = (int) $user['id'];
@@ -1406,7 +1415,7 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
         'entity_type' => 'users',
         'entity_id' => $user_id,
         'entity_label' => (string) $user['username'],
-        'details' => 'Two-factor authentication verified',
+        'details' => $demo_password_only ? 'Operator-approved TestAdmin password-only demo sign-in' : 'Two-factor authentication verified',
     ]);
 
     session_regenerate_id(true);
@@ -1427,7 +1436,13 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
         $_SESSION['_account_key'] = currentAccountKey();
         $_SESSION['is_superadmin'] = accountIsPrimary() && !empty($user['is_superadmin']);
     }
-    $_SESSION['two_factor_verified_at'] = time();
+    if ($demo_password_only) {
+        $_SESSION['_demo_password_only_auth'] = true;
+        unset($_SESSION['two_factor_verified_at']);
+    } else {
+        $_SESSION['two_factor_verified_at'] = time();
+        unset($_SESSION['_demo_password_only_auth']);
+    }
     $_SESSION['must_change_password'] = !empty($user['must_change_password']);
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
 }

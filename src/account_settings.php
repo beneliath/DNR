@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim(\Dnr\Http\RequestInput::string($_POST, 'name'));
         if ($name === '' || mb_strlen($name) > 160 || preg_match('/[\x00-\x1f\x7f]/', $name)) throw new InvalidArgumentException('Enter a valid Account name.');
         $settings = [];
+        if (isset($profile['settings']['demo_password_only_user_id'])) {
+            $settings['demo_password_only_user_id'] = $profile['settings']['demo_password_only_user_id'];
+        }
         foreach ($fields as $key => [$label, $default]) {
             $value = trim(\Dnr\Http\RequestInput::string($_POST, $key));
             if ($key !== 'DNR_DEFAULT_SPEAKER' && (strlen($value) > 255 || preg_match('/[\x00-\x1f\x7f]/', $value))) throw new InvalidArgumentException('Enter a valid ' . $label . '.');
