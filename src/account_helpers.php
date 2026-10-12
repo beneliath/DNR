@@ -16,6 +16,12 @@ function accountIsPrimary(): bool {
     return accountsEnabled() && (getenv('DNR_ACCOUNT_MODE') ?: 'primary') === 'primary';
 }
 
+function demoPasswordOnlyAuthenticationAllowed(array $user): bool {
+    if (!accountsEnabled() || accountIsPrimary() || currentAccountKey() !== 'test-account') return false;
+    return \Dnr\Security\DemoAuthenticationPolicy::allows($user, currentAccountProfile(),
+        currentAccountKey(), (string) getenv('DNR_ACCOUNT_MODE'), true);
+}
+
 function currentAccountKey(): string {
     $key = (string) (getenv('DNR_ACCOUNT_KEY') ?: 'shalom-in-messiah');
     if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key)) {

@@ -188,8 +188,10 @@ try {
                 <label for="backup_admin_password">Your Administrator Password</label>
                 <input type="password" name="admin_password" id="backup_admin_password" autocomplete="current-password" maxlength="72" required>
 
-                <label for="backup_admin_code">Fresh Authenticator Code or Recovery Code</label>
-                <input type="text" name="admin_code" id="backup_admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+                <?php if (empty($_SESSION['_demo_password_only_auth'])): ?>
+                    <label for="backup_admin_code">Fresh Authenticator Code or Recovery Code</label>
+                    <input type="text" name="admin_code" id="backup_admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+                <?php endif; ?>
 
                 <label for="backup_password">New Backup Encryption Password</label>
                 <input type="password" name="backup_password" id="backup_password" autocomplete="new-password" minlength="<?php echo DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES; ?>" required>

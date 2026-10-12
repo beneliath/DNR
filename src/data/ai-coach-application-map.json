@@ -30,7 +30,7 @@
       ]
     },
     "account_settings.php": {
-      "sha256": "834ba110f38ece25860ded505c23dbe8706c25eeade1228f97901d2f38f443c7",
+      "sha256": "f686f8b4aeee771ad92bced09a8cd989b5aa227ea01928fb28353951344a8a4f",
       "controls": [
         {
           "kind": "h1",
@@ -529,7 +529,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "5724aa534f55f5585e5fa7e69b9c66a02e3b4c108a081420e189472984f52b4c",
+      "sha256": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
       "controls": [
         {
           "kind": "h1",
@@ -1183,7 +1183,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "4076a50257c8c31f8be001a14fbc250094023f48732b116914d529d7520d6523",
+      "sha256": "5983e9879d69e0132bc55e5856d5f279dcaf72b06dbb678831bd003192b0ff80",
       "controls": [
         {
           "kind": "h1",
@@ -2335,7 +2335,7 @@
       ]
     },
     "login.php": {
-      "sha256": "5ed6eb8e3d48a11096d895d270b8ffd5516c3c2fae28845cbbaa5911616daf5d",
+      "sha256": "ebbffa5a2770703099f7824f8ed45f49732ba0a509e1255e6e45d05dd3c502f5",
       "controls": [
         {
           "kind": "h1",

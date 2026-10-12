@@ -55,6 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             clearLoginRateLimitForCurrentIp($conn, $username);
             beginPendingAuthentication($user);
 
+            if (demoPasswordOnlyAuthenticationAllowed($user)) {
+                completeAuthentication($conn, $user);
+                header('Location: ' . accountPublicPath() . '/' . authenticationDestination($user));
+                exit();
+            }
+
             if (!empty($user['two_factor_enabled'])) {
                 header('Location: ' . (accountGatewayEnabled() ? accountPublicPath() . '/' : '') . 'verify_2fa.php');
                 exit();

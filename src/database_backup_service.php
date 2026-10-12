@@ -29,7 +29,7 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
         $actor = fetchAuthenticationUserById($conn, (int) ($request['user_id'] ?? 0));
         if (!$actor || (accountIsPrimary() && empty($actor['is_superadmin'])) || $actor['account_status'] !== 'active' || $actor['role'] !== 'admin'
             || (int) $actor['auth_version'] !== (int) ($request['auth_version'] ?? 0)
-            || empty($actor['two_factor_enabled']) || !empty($actor['login_is_locked'])
+            || (empty($actor['two_factor_enabled']) && !demoPasswordOnlyAuthenticationAllowed($actor)) || !empty($actor['login_is_locked'])
             || !empty($actor['two_factor_is_locked']) || !empty($actor['must_change_password'])) {
             throw new RuntimeException('Your administrator password or authentication code was not accepted.', 403);
         }
@@ -48,9 +48,9 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
             throw new RuntimeException('Your administrator password or authentication code was not accepted.', 403);
         }
         $code = trim($request['admin_code']);
-        $verified = preg_match('/^[0-9]{6}$/', $code)
+        $verified = demoPasswordOnlyAuthenticationAllowed($actor) || (preg_match('/^[0-9]{6}$/', $code)
             ? verifyAndConsumeTotp($conn, $actor, $code)
-            : consumeRecoveryCode($conn, $id, $code);
+            : consumeRecoveryCode($conn, $id, $code));
         if (!$verified) {
             recordAuthenticationFailure($conn, $id, 'two_factor');
             logSecurityEvent($conn, 'database_backup_auth_failed', $id, $id);
@@ -59,7 +59,7 @@ function createAuthenticatedDatabaseExport(mysqli $conn, array $request, string 
         }
         resetAuthenticationFailures($conn, $id, 'password');
         resetAuthenticationFailures($conn, $id, 'two_factor');
-        // No full-schema connection exists until fresh password AND 2FA succeed.
+        // Fresh credentials are checked independently; only the pinned demo Admin is password-only.
         $backupConnection = databaseBackupConnection();
         $backup = createDatabaseBackup($backupConnection, $application_version, $maximum);
         $backupConnection->close();
