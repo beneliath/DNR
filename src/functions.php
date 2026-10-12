@@ -1415,7 +1415,7 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
         'entity_type' => 'users',
         'entity_id' => $user_id,
         'entity_label' => (string) $user['username'],
-        'details' => $demo_password_only ? 'Operator-approved TestAdmin password-only demo sign-in' : 'Two-factor authentication verified',
+        'details' => $demo_password_only ? 'Operator-approved Test Account password-only demo sign-in' : 'Two-factor authentication verified',
     ]);
 
     session_regenerate_id(true);

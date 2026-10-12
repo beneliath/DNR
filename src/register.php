@@ -5,6 +5,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
 requireAdmin();
+requireDemoAccountConfigurationAccess();
 $admin_actions_unlocked = hasRecentAdminElevation();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

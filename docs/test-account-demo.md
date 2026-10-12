@@ -1,14 +1,20 @@
 # Test Account demonstration data
 
 The live demonstration is at https://moed.beneliath.com/a/test-account on s1.
-`TestAdmin` is an ordinary Account Admin with `is_superadmin=0` and no platform
-identity. Its password is supplied separately. This account alone may sign in
-and confirm sensitive Admin actions with its password, without setting up MFA.
-All other users continue to require MFA. The exception is pinned to TestAdmin's
-numeric user ID in the member's private `account_profile.settings`; the fixed
-account key, member deployment mode, exact username, active status and ordinary
-Admin role must all match. Enabling MFA or changing eligibility revokes the
-password-only session. Account Settings preserves the operator-pinned setting.
+`TestAdmin`, `TestEditor`, and `TestReviewer` are ordinary Account Admin, Editor,
+and Reviewer users with no platform identity. Their passwords are supplied
+separately. Only these operator-pinned demo identities may sign in without MFA;
+all other users continue to require it. The exception checks the private numeric
+user ID, fixed account key, member mode, exact username, matching role, active
+status, and absence of both SuperAdmin privilege and enrolled MFA. Changing
+eligibility revokes the password-only session.
+
+TestAdmin sees only itself under Users. Server-side guards block other user
+profiles, password/MFA resets, lifecycle actions, bulk user deletion and invitations.
+Its username and role stay fixed while personal profile fields remain editable.
+Account Security, MFA setup/recovery codes, recovery email changes and Account
+Settings are hidden and forbidden for TestAdmin, including direct GET/POST requests.
+The operator's SuperAdmin login remains available with its existing MFA.
 
 The original synthetic fixture was anchored to October 12, 2026 and spans July
 12, 2026 through July 12, 2027, with events in every intervening month. Its hosts,
@@ -23,8 +29,9 @@ has no deliverable payload; seeding never queues SMTP messages or notifications.
 
 ## Coverage
 
-The fixture includes 19 organizations, 35 contacts, four speakers, 30 engagements,
-51 presentations, 21 inquiries, and 293 tasks. It covers:
+The fixture includes 19 organizations, 35 contacts, four speakers and 15 engagements, with a smaller presentation/checklist set.
+There are six active pipeline inquiries, eight visible inquiry records plus one
+archived example, and only three overdue tasks at the initial anchor date. It covers:
 
 - Every event type, confirmation status and lifecycle; single and multi-day
   schedules, upcoming/ongoing/completed events, a postponement linked to its
@@ -41,9 +48,9 @@ The fixture includes 19 organizations, 35 contacts, four speakers, 30 engagement
   PowerPoint deck, QR downloads and illustrative link statistics.
 - Chron histories, simulated incoming/outgoing correspondence, Mail Review and
   reply-follow-up work, without sending actual messages.
-- Four final financial reports, a corrected report with revisions, a financial
+- Three final financial reports, a corrected report with revisions, a financial
   draft, confirmed zeros and amounts still awaiting confirmation.
-- Sixteen owned expenses, fifteen generated PDF receipts, two simulated submitted
+- Eight owned expenses, seven generated PDF receipts, two simulated submitted
   reimbursement packages (one archived), a correction note, an editable draft,
   available/unreceipted expenses, and fictional reimbursement setup.
 
@@ -57,7 +64,7 @@ explicit demo refresh can replace the fictional baseline.
 ## Rebuild and refresh
 
 The saved s1 bundle is `/home/dgilmore/moed/var/demo/test-account/`. It contains
-the seed, asset generator, original generated assets and refresh operator. The
+the seed, asset generator, original generated assets, pristine reference data and refresh operator. The
 encrypted before-change and pitstop database/file snapshots live under
 `var/backups/test-account-demo-before/` and `var/backups/test-account-demo-pitstop/`.
 Their password is the existing member backup password, never a public login
@@ -84,8 +91,8 @@ The operator checks the exact member/database identity, holds the deployment
 lock, withdraws only Test Account's ingress, pauses its workers, makes a fresh
 encrypted restore-verified backup, clears only an explicit business-table
 allowlist, seeds the relative window, verifies consistency, makes a new verified
-pitstop snapshot, and resumes the saved member services. Users, passwords, MFA,
-account settings, standard templates and cost centers are preserved. A new
+pitstop snapshot, and resumes the saved member services. Users, passwords, MFA and account settings are preserved. Original demo task
+templates and cost centers are restored from the saved pristine reference fixture. A new
 foreign-key relationship from an unlisted table blocks refresh for review.
 An incomplete reset/seed leaves the member paused with its prior backup retained.
 Do not point this operator at the primary account or alter its identity guards.
@@ -103,3 +110,7 @@ TestAdmin, readable assets, and empty business tables. The seed writes all its
 business records in one transaction and fails unless every data-consistency
 count is zero. Never rerun `test_account_create_user.php` as part of a refresh;
 it creates the login once and refuses to overwrite existing credentials.
+
+Save `test_account_calendar_samples.php` alongside the seed and refresh scripts in
+the private s1 fixture bundle. Refreshes preserve all three demo logins and their
+operator-pinned authentication settings, and regenerate the calendar examples.

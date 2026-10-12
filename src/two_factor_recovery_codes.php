@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 requireLogin();
+requireDemoAccountConfigurationAccess();
 
 $codes = $_SESSION['_new_recovery_codes'] ?? null;
 $initial_login = !empty($_SESSION['_new_recovery_codes_initial_login']);

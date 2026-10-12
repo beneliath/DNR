@@ -19,6 +19,8 @@ if ($is_pending_login) {
     exit();
 }
 
+requireDemoAccountConfigurationAccess();
+
 $user = fetchAuthenticationUserById($conn, $user_id);
 if (!$user
     || $user['account_status'] !== 'active'

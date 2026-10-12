@@ -9,17 +9,37 @@ import sys
 
 KEY = 'test-account'
 PROJECT = 'moed-account-test-account'
-# A fixed allowlist; authentication, users, account identity, cost centers,
-# standard templates, settings and stored-file inventory are deliberately retained.
-TABLES = '''engagement_email_deliveries reimbursement_email_deliveries
+# A fixed allowlist; authentication, users, account identity, settings and stored-file inventory are deliberately retained.
+TABLES = '''calendar_subscriptions engagement_email_deliveries engagement_email_messages reimbursement_email_deliveries
+mattermost_post_reaction_notifications mattermost_reply_notifications
 engagement_chron_entries organization_chron_entries contact_chron_entries booking_inquiry_chron_entries
 reimbursement_submissions reimbursement_request_items reimbursement_receipts reimbursement_expenses reimbursement_requests reimbursement_events
 engagement_financial_revisions engagement_financial_drafts engagement_financial_reports
-short_link_stats short_link_stats_archive short_link_report_stats short_link_qr_images short_links
+short_link_stats short_link_stats_archive short_link_qr_images short_links
 document_scan_jobs presentation_notes presentation_slidedecks presentations
 engagement_contacts engagement_contact_history follow_up_tasks booking_inquiry_stage_history booking_inquiries
 engagement_map_pins engagement_map_geocode_queue engagement_map_geocodes engagements contact_organizations contacts organizations speakers
-record_creation_operations record_merge_journal notes_cache_purge_queue inbound_mail_reconciliation inbound_email_quarantine inbound_email_messages'''.split()
+standard_event_tasks reimbursement_cost_centers record_creation_operations record_merge_journal notes_cache_purge_queue inbound_mail_reconciliation inbound_email_quarantine inbound_email_messages'''.split()
+
+
+def reference_sql(reference):
+    allowed={
+        'standard_event_tasks': ['template_key','title','details','priority','due_anchor','due_offset_days','sort_order','is_required','is_archived'],
+        'reimbursement_cost_centers': ['coa_number','description','is_archived'],
+    }
+    if set(reference)!=set(allowed) or any(not reference[t] for t in allowed):raise ValueError('Invalid pristine reference fixture')
+    sql=''
+    for table,columns in allowed.items():
+        for row in reference[table]:
+            if set(row)!=set(columns):raise ValueError('Unexpected reference columns')
+            values=[]
+            for column in columns:
+                value=row[column]
+                if value is None:values.append('NULL')
+                elif isinstance(value,(str,int)):values.append("CONVERT(X'"+str(value).encode('utf-8').hex()+"' USING utf8mb4)")
+                else:raise ValueError('Invalid reference value')
+            sql+='INSERT INTO `'+table+'` (`'+'`,`'.join(columns)+'`) VALUES ('+','.join(values)+');\n'
+    return sql
 
 
 def main():
@@ -32,9 +52,13 @@ def main():
     args = parser.parse_args()
     root = args.root.resolve(); bundle = (args.bundle or root/'var/demo/test-account').resolve()
     seed = bundle/'test_account_seed.php'; assets=bundle/'assets'
-    if not seed.is_file() or not assets.is_dir(): raise ValueError('Missing saved demo seed/assets bundle')
+    reference_path=bundle/'reference-data.json'
+    if not reference_path.is_file(): raise ValueError('Missing pristine demo templates/cost centers')
+    reference=json.loads(reference_path.read_text())
+    calendar_seed=bundle/'test_account_calendar_samples.php'
+    if not seed.is_file() or not calendar_seed.is_file() or not assets.is_dir(): raise ValueError('Missing saved demo seed/assets bundle')
     if not args.apply:
-        print(json.dumps({'account':KEY,'replace_business_records':args.replace,'preserve':'users, credentials, MFA, account identity, settings, templates, cost centers','as_of':args.as_of or 'current America/Chicago date','steps':['identity check','deployment lock','pause Test Account writers','encrypted restore-verified backup','explicit reset if requested','date-relative seed','encrypted restore-verified pitstop snapshot','resume Test Account']},indent=2));return
+        print(json.dumps({'account':KEY,'replace_business_records':args.replace,'preserve':'users, credentials, MFA, account identity, settings; restore pristine demo templates and cost centers','as_of':args.as_of or 'current America/Chicago date','steps':['identity check','deployment lock','pause Test Account writers','encrypted restore-verified backup','explicit reset if requested','date-relative seed','encrypted restore-verified pitstop snapshot','resume Test Account']},indent=2));return
     sys.path.insert(0,str(root/'scripts'))
     from account_production import saved_compose, saved_active_services, clean_environment
     from deployment_backup import query, root_command
@@ -63,15 +87,18 @@ def main():
                 links=query(db,"SELECT TABLE_NAME,REFERENCED_TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='dnr' AND REFERENCED_TABLE_NAME IS NOT NULL")
                 unexpected=[(a,b) for a,b in (line.split('\t') for line in links.splitlines()) if b in TABLES and a not in TABLES]
                 if unexpected:raise ValueError('Review new business relationships before refresh: '+str(unexpected))
-                sql='SET FOREIGN_KEY_CHECKS=0; START TRANSACTION;\n'+''.join('DELETE FROM `'+t+'`;\n' for t in TABLES)+'COMMIT; SET FOREIGN_KEY_CHECKS=1;'
+                sql='SET FOREIGN_KEY_CHECKS=0; START TRANSACTION;\n'+''.join('DELETE FROM `'+t+'`;\n' for t in TABLES)+reference_sql(reference)+'COMMIT; SET FOREIGN_KEY_CHECKS=1;'
                 subprocess.run(root_command(db,'mysql','-uroot','dnr'),input=sql,text=True,check=True)
-            subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > /tmp/test-account-seed.php'],input=seed.read_bytes(),check=True)
+            seed_folder=subprocess.check_output(['docker','exec','--user','www-data',web,'mktemp','-d','/tmp/test-account-seed-XXXXXXXX'],text=True).strip()
+            seed_slot=seed_folder+'/test_account_seed.php'
+            subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > '+seed_slot],input=seed.read_bytes(),check=True)
+            subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > '+seed_folder+'/test_account_calendar_samples.php'],input=calendar_seed.read_bytes(),check=True)
             archive=subprocess.Popen(['tar','-cf','-','-C',str(assets),'.'],stdout=subprocess.PIPE)
             try:
                 subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','mkdir -p /tmp/test-account-demo-assets && tar --no-same-owner --no-same-permissions -xf - -C /tmp/test-account-demo-assets'],stdin=archive.stdout,check=True)
                 if archive.wait()!=0:raise ValueError('Asset staging failed')
             finally:archive.stdout.close()
-            command=['docker','exec','--user','www-data',web,'php','/tmp/test-account-seed.php','--apply','--assets=/tmp/test-account-demo-assets']
+            command=['docker','exec','--user','www-data',web,'php',seed_slot,'--apply','--assets=/tmp/test-account-demo-assets']
             if args.as_of:command+=['--as-of='+args.as_of]
             result=subprocess.check_output(command,text=True);summary=json.loads(result)
             committed=True
@@ -81,7 +108,7 @@ def main():
             print(json.dumps(receipt,indent=2))
         finally:
             if committed:
-                subprocess.run(dc+['start',*workers],check=True,stdout=subprocess.DEVNULL,env=clean_environment())
+                subprocess.run(dc+['up','-d','--no-build','--no-deps','--wait',*workers],check=True,stdout=subprocess.DEVNULL,env=clean_environment())
             else:
                 print('Test Account remains paused after an incomplete refresh. Restore the saved backup or resolve the seed error, then resume its saved services.',file=sys.stderr)
 

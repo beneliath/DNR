@@ -6,6 +6,7 @@ require_once __DIR__ . '/account_login_helpers.php';
 require_once __DIR__ . '/speaker_helpers.php';
 startSecureSession();
 requireAdmin();
+requireDemoAccountConfigurationAccess();
 if (!accountsEnabled()) { http_response_code(404); exit('Not found.'); }
 header('Cache-Control: no-store');
 $profile = currentAccountProfile();
@@ -31,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $settings = [];
         if (isset($profile['settings']['demo_password_only_user_id'])) {
             $settings['demo_password_only_user_id'] = $profile['settings']['demo_password_only_user_id'];
+        }
+        if (isset($profile['settings']['demo_password_only_user_ids'])) {
+            $settings['demo_password_only_user_ids'] = $profile['settings']['demo_password_only_user_ids'];
         }
         foreach ($fields as $key => [$label, $default]) {
             $value = trim(\Dnr\Http\RequestInput::string($_POST, $key));

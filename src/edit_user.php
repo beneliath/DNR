@@ -5,6 +5,7 @@ include 'two_factor_helpers.php';
 include 'notification_helpers.php';
 startSecureSession();
 requireAdmin();
+$demo_self_only = isRestrictedDemoSession();
 
 // Fetch the user ID from the URL parameter
 $user_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
@@ -58,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $task_digest_days = TASK_DIGEST_WEEKDAYS;
     }
     try {
+        if ($demo_self_only && ($username !== $user['username'] || $role !== $user['role'])) {
+            throw new InvalidArgumentException('The demo username and administrator role cannot be changed.');
+        }
         if (str_starts_with(strtolower($username), '_platform_') || $username === '' || mb_strlen($username, 'UTF-8') > 50) {
             throw new InvalidArgumentException('Username is required and must be 50 characters or fewer.');
         }
@@ -281,8 +285,8 @@ $task_digest_day_options = [
             </div>
         </section>
         <div class="profile-field-grid">
-            <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
-            <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
+            <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username"<?php echo $demo_self_only ? ' readonly' : ''; ?> autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
+            <div class="form-group"><label for="role">Role</label><?php if ($demo_self_only): ?><input type="hidden" name="role" value="admin"><?php endif; ?><select id="role" name="role"<?php echo $demo_self_only ? ' disabled' : ''; ?> required>
                 <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
                     <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(accountsEnabled() ? accountRoleLabel(['role' => $available_role]) : \Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
