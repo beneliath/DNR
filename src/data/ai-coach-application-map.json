@@ -30,7 +30,7 @@
       ]
     },
     "account_settings.php": {
-      "sha256": "f686f8b4aeee771ad92bced09a8cd989b5aa227ea01928fb28353951344a8a4f",
+      "sha256": "8ba4ee8b33e432cbdbb8aad649d7cfa78481207574e4296c2d9720063ba13cf5",
       "controls": [
         {
           "kind": "h1",
@@ -699,7 +699,7 @@
       ]
     },
     "bulk_delete.php": {
-      "sha256": "43a48e23a551b0f740b544d62b9d64bf98306497846ff97556ee4cf9488f4521",
+      "sha256": "89640c422f286ad47b5afbd838e398838a621ac8abb2305f5a05e60e2619e01d",
       "controls": [
         {
           "kind": "h1",
@@ -1775,7 +1775,7 @@
       ]
     },
     "edit_user.php": {
-      "sha256": "61ee22072b95aa7d0c7c8a02f6e76d3c02293fef60a9eb415720ced6649849c4",
+      "sha256": "6e1da3c359595d24ec61069ca5fd6be02227cdcf11bfe96dc200a46075368db6",
       "controls": [
         {
           "kind": "a",
@@ -2767,7 +2767,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "575c928c3c2d3399d7148e49c23d1bcc05f33288a6ae67b466345f46e3c7ac8a",
+      "sha256": "d30cca84563445aec0b1e3ab0d7237c4c0a287bc20cb41e260a3e1b944d54f54",
       "controls": [
         {
           "kind": "h1",
@@ -2984,7 +2984,7 @@
       ]
     },
     "register.php": {
-      "sha256": "84c857c9a364a7a88a3f00fccbfb257a6ca008696fbf09cfe90d0f85559386ba",
+      "sha256": "697e6e5ef98e8cb8fe9711df101269605fbe8a7e3c5a35cecd78f09cead0251e",
       "controls": [
         {
           "kind": "a",
@@ -3806,7 +3806,7 @@
       ]
     },
     "setup_2fa.php": {
-      "sha256": "f9b5e96383f55023b64f185c7c89fafe5a27691e648bb72504a10dcd7d0c32ea",
+      "sha256": "6b1e4d5023ee82146e5e625d0dabd470d2f8c28762b19cd0e04c8ec47040a64e",
       "controls": [
         {
           "kind": "label",
@@ -4086,7 +4086,7 @@
       ]
     },
     "two_factor_recovery_codes.php": {
-      "sha256": "12d6a2ae5e02758f5cdfaa696766d92f36927d94e6ab1f4a3285a529615f8d13",
+      "sha256": "494e6d93e6b44f19be463aa0c01bdd4eb55ebe074f9beb57747aafd57ef76a8b",
       "controls": [
         {
           "kind": "h1",
@@ -4100,7 +4100,7 @@
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
+      "sha256": "1190a2f5d4da71c58a696946153ae1fcdf67a7ca4fcea537b8ce6a7afb1172ea",
       "controls": [
         {
           "kind": "h1",
@@ -4162,7 +4162,7 @@
       ]
     },
     "users.php": {
-      "sha256": "e99a589b9cfe95464d1d90dee825f08b3b3794c92bc435bdd074ecf042b18953",
+      "sha256": "6aa550fc11eec7fd955842cab8f1781d011014f48b6c32c92ad1699f9f3496e1",
       "controls": [
         {
           "kind": "h1",

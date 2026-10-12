@@ -65,6 +65,7 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $authenticated_superadmin = authenticatedSuperAdmin();
+$demo_restricted = isRestrictedDemoSession();
 $admin_unlock_available = !empty($_SESSION['user_id']) && $user_role === 'admin';
 $admin_unlock_expires_at = $admin_unlock_available
     ? adminElevationExpiresAt()
@@ -287,9 +288,11 @@ if (!empty($_SESSION['user_id'])) {
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2M12 15v2"/></svg><span>Admin Unlock</span>
                         </a></li>
                         <?php if (accountsEnabled()): ?>
+                        <?php if (!$demo_restricted): ?>
                         <li><a href="account_settings.php" class="nav-link admin-nav-link<?php echo $active_nav === 'account_settings' ? ' active' : ''; ?>"<?php echo $active_nav === 'account_settings' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Account Settings</span>
                         </a></li>
+                        <?php endif; ?>
                         <?php if (isSuperAdmin()): ?><li><a href="accounts.php" class="nav-link admin-nav-link<?php echo $active_nav === 'accounts' ? ' active' : ''; ?>"<?php echo $active_nav === 'accounts' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Accounts</span>
                         </a></li>
@@ -346,9 +349,11 @@ if (!empty($_SESSION['user_id'])) {
                 <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-4.5A2 2 0 0 1 3 15V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 14h5"/></svg><span>Mattermost</span>
                 </a>
+                <?php if (!$demo_restricted): ?>
                 <a href="two_factor_settings.php" class="nav-link<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' active' : ''; ?>"<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Account Security</span>
                 </a>
+                <?php endif; ?>
                 <a href="help.php" class="nav-link<?php echo $active_nav === 'help' ? ' active' : ''; ?>"<?php echo $active_nav === 'help' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h.5a2.5 2.5 0 0 1 2.5 2.5v-15Z"/></svg><span>User Manual</span>
                 </a>

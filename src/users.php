@@ -33,6 +33,7 @@ unset($_SESSION['_admin_elevation_message'], $_SESSION['_admin_elevation_error']
 unset($_SESSION['_user_lifecycle_message'], $_SESSION['_user_lifecycle_error']);
 $admin_actions_unlocked = hasRecentAdminElevation();
 $current_user_id = (int) $_SESSION['user_id'];
+$demo_self_only = isRestrictedDemoSession();
 generateCsrfToken();
 releaseApplicationSessionLock();
 
@@ -54,7 +55,8 @@ if (is_array($cursor)
 } else {
     $cursor = null;
 }
-$pagination = queryPagination($conn, 'FROM users WHERE 1 = 1', '', [], $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
+$user_filter = $demo_self_only ? 'WHERE id = ?' : 'WHERE 1 = 1';
+$pagination = queryPagination($conn, 'FROM users ' . $user_filter, $demo_self_only ? 'i' : '', $demo_self_only ? [$current_user_id] : [], $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
 $current_page = $pagination['page'];
 $page_offset = $pagination['offset'];
 $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
@@ -65,14 +67,15 @@ $users_stmt = $conn->prepare(
             email_verified_at, two_factor_enabled,
             task_digest_enabled, task_digest_days,
             created_at, last_updated_at, last_login_at, must_change_password
-     FROM users
+     FROM users {$user_filter}
      ORDER BY username, id
      LIMIT ? OFFSET ?"
 );
 if (!$users_stmt) {
     abortApplication(503, 'The user list is temporarily unavailable.', ['error' => $conn->error]);
 }
-$users_stmt->bind_param('ii', $page_size, $page_offset);
+if ($demo_self_only) $users_stmt->bind_param('iii', $current_user_id, $page_size, $page_offset);
+else $users_stmt->bind_param('ii', $page_size, $page_offset);
 $users_stmt->execute();
 $users = $users_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $users_stmt->close();
@@ -134,11 +137,11 @@ $task_digest_day_options = [
         </section>
         <div class="users-admin-actions" aria-label="User Administration Actions">
             <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
-            <a href="register.php" class="button-add"<?php echo !$admin_actions_unlocked ? ' title="Preview the invitation form; administrator confirmation is required before sending"' : ''; ?>>+ Invite User</a>
+            <?php if (!$demo_self_only): ?><a href="register.php" class="button-add"<?php echo !$admin_actions_unlocked ? ' title="Preview the invitation form; administrator confirmation is required before sending"' : ''; ?>>+ Invite User</a><?php endif; ?>
         </div>
     </div>
 
-    <?php renderBulkDeleteToolbar('user', paginationUrl('users.php', $current_page, $page_size)); ?>
+    <?php if (!$demo_self_only) renderBulkDeleteToolbar('user', paginationUrl('users.php', $current_page, $page_size)); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, 'users.php', 'users', 'User pages'); ?>
     <div class="users-list">
         <?php foreach ($users as $user) { ?>

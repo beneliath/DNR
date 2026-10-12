@@ -1,14 +1,20 @@
 # Test Account demonstration data
 
 The live demonstration is at https://moed.beneliath.com/a/test-account on s1.
-`TestAdmin` is an ordinary Account Admin with `is_superadmin=0` and no platform
-identity. Its password is supplied separately. This account alone may sign in
-and confirm sensitive Admin actions with its password, without setting up MFA.
-All other users continue to require MFA. The exception is pinned to TestAdmin's
-numeric user ID in the member's private `account_profile.settings`; the fixed
-account key, member deployment mode, exact username, active status and ordinary
-Admin role must all match. Enabling MFA or changing eligibility revokes the
-password-only session. Account Settings preserves the operator-pinned setting.
+`TestAdmin`, `TestEditor`, and `TestReviewer` are ordinary Account Admin, Editor,
+and Reviewer users with no platform identity. Their passwords are supplied
+separately. Only these operator-pinned demo identities may sign in without MFA;
+all other users continue to require it. The exception checks the private numeric
+user ID, fixed account key, member mode, exact username, matching role, active
+status, and absence of both SuperAdmin privilege and enrolled MFA. Changing
+eligibility revokes the password-only session.
+
+TestAdmin sees only itself under Users. Server-side guards block other user
+profiles, password/MFA resets, lifecycle actions, bulk user deletion and invitations.
+Its username and role stay fixed while personal profile fields remain editable.
+Account Security, MFA setup/recovery codes, recovery email changes and Account
+Settings are hidden and forbidden for TestAdmin, including direct GET/POST requests.
+The operator's SuperAdmin login remains available with its existing MFA.
 
 The original synthetic fixture was anchored to October 12, 2026 and spans July
 12, 2026 through July 12, 2027, with events in every intervening month. Its hosts,
@@ -104,3 +110,7 @@ TestAdmin, readable assets, and empty business tables. The seed writes all its
 business records in one transaction and fails unless every data-consistency
 count is zero. Never rerun `test_account_create_user.php` as part of a refresh;
 it creates the login once and refuses to overwrite existing credentials.
+
+Save `test_account_calendar_samples.php` alongside the seed and refresh scripts in
+the private s1 fixture bundle. Refreshes preserve all three demo logins and their
+operator-pinned authentication settings, and regenerate the calendar examples.

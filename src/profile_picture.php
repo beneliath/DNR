@@ -14,7 +14,7 @@ if (isset($_GET['id'])) {
     }
     $user_id = $requested_user_id;
 }
-if ($user_id < 1 || ($user_id !== $current_user_id && !checkRole('admin'))) {
+if ($user_id < 1 || ($user_id !== $current_user_id && (!checkRole('admin') || isRestrictedDemoSession()))) {
     http_response_code(403);
     exit;
 }

@@ -10,7 +10,7 @@ import sys
 KEY = 'test-account'
 PROJECT = 'moed-account-test-account'
 # A fixed allowlist; authentication, users, account identity, settings and stored-file inventory are deliberately retained.
-TABLES = '''engagement_email_deliveries engagement_email_messages reimbursement_email_deliveries
+TABLES = '''calendar_subscriptions engagement_email_deliveries engagement_email_messages reimbursement_email_deliveries
 mattermost_post_reaction_notifications mattermost_reply_notifications
 engagement_chron_entries organization_chron_entries contact_chron_entries booking_inquiry_chron_entries
 reimbursement_submissions reimbursement_request_items reimbursement_receipts reimbursement_expenses reimbursement_requests reimbursement_events
@@ -55,7 +55,8 @@ def main():
     reference_path=bundle/'reference-data.json'
     if not reference_path.is_file(): raise ValueError('Missing pristine demo templates/cost centers')
     reference=json.loads(reference_path.read_text())
-    if not seed.is_file() or not assets.is_dir(): raise ValueError('Missing saved demo seed/assets bundle')
+    calendar_seed=bundle/'test_account_calendar_samples.php'
+    if not seed.is_file() or not calendar_seed.is_file() or not assets.is_dir(): raise ValueError('Missing saved demo seed/assets bundle')
     if not args.apply:
         print(json.dumps({'account':KEY,'replace_business_records':args.replace,'preserve':'users, credentials, MFA, account identity, settings; restore pristine demo templates and cost centers','as_of':args.as_of or 'current America/Chicago date','steps':['identity check','deployment lock','pause Test Account writers','encrypted restore-verified backup','explicit reset if requested','date-relative seed','encrypted restore-verified pitstop snapshot','resume Test Account']},indent=2));return
     sys.path.insert(0,str(root/'scripts'))
@@ -88,8 +89,10 @@ def main():
                 if unexpected:raise ValueError('Review new business relationships before refresh: '+str(unexpected))
                 sql='SET FOREIGN_KEY_CHECKS=0; START TRANSACTION;\n'+''.join('DELETE FROM `'+t+'`;\n' for t in TABLES)+reference_sql(reference)+'COMMIT; SET FOREIGN_KEY_CHECKS=1;'
                 subprocess.run(root_command(db,'mysql','-uroot','dnr'),input=sql,text=True,check=True)
-            seed_slot=subprocess.check_output(['docker','exec','--user','www-data',web,'mktemp','/tmp/test-account-seed-XXXXXXXX.php'],text=True).strip()
+            seed_folder=subprocess.check_output(['docker','exec','--user','www-data',web,'mktemp','-d','/tmp/test-account-seed-XXXXXXXX'],text=True).strip()
+            seed_slot=seed_folder+'/test_account_seed.php'
             subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > '+seed_slot],input=seed.read_bytes(),check=True)
+            subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > '+seed_folder+'/test_account_calendar_samples.php'],input=calendar_seed.read_bytes(),check=True)
             archive=subprocess.Popen(['tar','-cf','-','-C',str(assets),'.'],stdout=subprocess.PIPE)
             try:
                 subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','mkdir -p /tmp/test-account-demo-assets && tar --no-same-owner --no-same-permissions -xf - -C /tmp/test-account-demo-assets'],stdin=archive.stdout,check=True)

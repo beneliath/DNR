@@ -49,6 +49,7 @@ function bulkDeleteIds(mixed $input): array
  */
 function bulkDeleteRecords(mysqli $conn, string $entity, array $ids, int $actor_id): array
 {
+    if ($entity === 'user' && isRestrictedDemoSession()) throw new InvalidArgumentException('This demo login cannot manage other users.');
     $type = bulkDeleteType($entity);
     $ids = bulkDeleteIds($ids);
     $placeholders = implode(',', array_fill(0, count($ids), '?'));

@@ -1,6 +1,7 @@
 <?php
 /** Original fictional demo data. Refuses any deployment except Test Account. */
 declare(strict_types=1);
+require_once __DIR__ . '/test_account_calendar_samples.php';
 
 function demoMonth(DateTimeImmutable $date, int $months): DateTimeImmutable {
     $first = $date->modify('first day of this month')->modify(sprintf('%+d months', $months));
@@ -260,11 +261,12 @@ try {
     $conn->execute_query("UPDATE follow_up_tasks SET status='completed',completed_by=?,completed_at=? WHERE subject_type='engagement' AND status IN ('open','in_progress','waiting') AND due_date<?",[$uid,$asOf.' 09:00:00',$asOf]);
     $stats=$conn->query('SELECT id FROM short_links ORDER BY id LIMIT 18')->fetch_all(MYSQLI_ASSOC);
     foreach($stats as $i=>$link) demoInsert('short_link_stats',['link_id'=>$link['id'],'visit_hour'=>demoDate(-2).' 10:00:00','browser'=>['Chrome','Safari','Firefox'][$i%3],'os'=>['Windows','macOS','Android'][$i%3],'country'=>['US','CA','GB'][$i%3],'referrer'=>'demo.invalid','visits'=>5+$i*3]);
+    seedTestAccountCalendarSamples($conn,$uid,$asOf);
     $consistency=applicationDataConsistencyCounts($conn);
     if(array_sum($consistency)!==0) throw new RuntimeException('Demo consistency check failed: '.json_encode($consistency));
     $conn->commit();
     $summary=['fixture_version'=>1,'account'=>'test-account','as_of'=>$asOf,'window'=>[$start->format('Y-m-d'),$end->format('Y-m-d')],'owner'=>$username,'consistency'=>$consistency,'counts'=>[]];
-    foreach(['organizations','contacts','speakers','engagements','presentations','follow_up_tasks','booking_inquiries','engagement_financial_reports','engagement_financial_drafts','engagement_financial_revisions','reimbursement_expenses','reimbursement_requests','reimbursement_receipts','short_links','stored_files'] as $table) $summary['counts'][$table]=(int)$conn->query('SELECT COUNT(*) FROM '.$table)->fetch_row()[0];
+    foreach(['organizations','contacts','speakers','engagements','presentations','follow_up_tasks','booking_inquiries','engagement_financial_reports','engagement_financial_drafts','engagement_financial_revisions','reimbursement_expenses','reimbursement_requests','reimbursement_receipts','calendar_subscriptions','short_links','stored_files'] as $table) $summary['counts'][$table]=(int)$conn->query('SELECT COUNT(*) FROM '.$table)->fetch_row()[0];
     echo json_encode($summary,JSON_PRETTY_PRINT),"\n";
 }catch(Throwable $e){$conn->rollback();throw $e;}
 finally{$conn->query("SELECT RELEASE_LOCK('test-account-demo-seed')");}

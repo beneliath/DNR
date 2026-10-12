@@ -7,6 +7,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/account_email_change_helpers.php';
 startSecureSession();
 requireLogin();
+$demo_restricted = isRestrictedDemoSession();
 
 $user_id = (int) $_SESSION['user_id'];
 
@@ -44,6 +45,7 @@ if (!$user) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $profile_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : 'save';
+    if ($demo_restricted && $profile_action !== 'save') requireDemoAccountConfigurationAccess();
     $profile_json_request = $profile_action === 'resend_verification'
         && str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
 
@@ -494,6 +496,7 @@ $task_digest_day_options = [
             <input type="hidden" name="action" value="resend_verification">
         </form>
     <?php endif; ?>
+    <?php if (!$demo_restricted): ?>
     <section class="profile-card" aria-labelledby="recovery-email-heading">
         <h2 id="recovery-email-heading">Change Recovery Email</h2>
         <p>Your current address stays in use until the new address is verified. Verification signs out all existing sessions and pauses the daily digest.</p>
@@ -518,6 +521,7 @@ $task_digest_day_options = [
             <button type="submit" class="save-button">Verify New Email Address</button>
         </form>
     </section>
+    <?php endif; ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>
