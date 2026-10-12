@@ -23,8 +23,9 @@ has no deliverable payload; seeding never queues SMTP messages or notifications.
 
 ## Coverage
 
-The fixture includes 19 organizations, 35 contacts, four speakers, 30 engagements,
-51 presentations, 21 inquiries, and 293 tasks. It covers:
+The fixture includes 19 organizations, 35 contacts, four speakers and 15 engagements, with a smaller presentation/checklist set.
+There are six active pipeline inquiries, eight visible inquiry records plus one
+archived example, and only three overdue tasks at the initial anchor date. It covers:
 
 - Every event type, confirmation status and lifecycle; single and multi-day
   schedules, upcoming/ongoing/completed events, a postponement linked to its
@@ -41,9 +42,9 @@ The fixture includes 19 organizations, 35 contacts, four speakers, 30 engagement
   PowerPoint deck, QR downloads and illustrative link statistics.
 - Chron histories, simulated incoming/outgoing correspondence, Mail Review and
   reply-follow-up work, without sending actual messages.
-- Four final financial reports, a corrected report with revisions, a financial
+- Three final financial reports, a corrected report with revisions, a financial
   draft, confirmed zeros and amounts still awaiting confirmation.
-- Sixteen owned expenses, fifteen generated PDF receipts, two simulated submitted
+- Eight owned expenses, seven generated PDF receipts, two simulated submitted
   reimbursement packages (one archived), a correction note, an editable draft,
   available/unreceipted expenses, and fictional reimbursement setup.
 
@@ -57,7 +58,7 @@ explicit demo refresh can replace the fictional baseline.
 ## Rebuild and refresh
 
 The saved s1 bundle is `/home/dgilmore/moed/var/demo/test-account/`. It contains
-the seed, asset generator, original generated assets and refresh operator. The
+the seed, asset generator, original generated assets, pristine reference data and refresh operator. The
 encrypted before-change and pitstop database/file snapshots live under
 `var/backups/test-account-demo-before/` and `var/backups/test-account-demo-pitstop/`.
 Their password is the existing member backup password, never a public login
@@ -84,8 +85,8 @@ The operator checks the exact member/database identity, holds the deployment
 lock, withdraws only Test Account's ingress, pauses its workers, makes a fresh
 encrypted restore-verified backup, clears only an explicit business-table
 allowlist, seeds the relative window, verifies consistency, makes a new verified
-pitstop snapshot, and resumes the saved member services. Users, passwords, MFA,
-account settings, standard templates and cost centers are preserved. A new
+pitstop snapshot, and resumes the saved member services. Users, passwords, MFA and account settings are preserved. Original demo task
+templates and cost centers are restored from the saved pristine reference fixture. A new
 foreign-key relationship from an unlisted table blocks refresh for review.
 An incomplete reset/seed leaves the member paused with its prior backup retained.
 Do not point this operator at the primary account or alter its identity guards.

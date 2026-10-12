@@ -10,9 +10,8 @@ function demoSchedule(DateTimeImmutable $today): array {
     $end = demoMonth($today, 9); $dates = [];
     for ($m=-3; $m<=9; $m++) {
         $d=demoMonth($today,$m); $dates[]=$d;
-        if ($d->modify('+7 days')<=$end) $dates[]=$d->modify('+7 days');
     }
-    foreach ([-1,1,3,14,21] as $days) $dates[]=$today->modify(sprintf('%+d days',$days));
+    foreach ([-1,3] as $days) $dates[]=$today->modify(sprintf('%+d days',$days));
     usort($dates, static fn($a,$b)=>$a<=>$b);
     return $dates;
 }
@@ -124,11 +123,11 @@ try {
         'custom_links'=>[['label'=>'Study resources','url'=>'https://example.org/#study'],['label'=>'Host information','url'=>'https://example.org/#host']]],null,null,demoPortrait($i));
     $titles=['Hope and History Weekend','Scripture in Context Workshop','Community Questions Forum','Living with Purpose Conference','Biblical Roots Study Day','Faith and Friendship Gathering','Passover Learning Evening','Listening Across Generations'];
     $topics=['Reading the Prophets in Context','A Journey through the Biblical Feasts','Hope and Responsibility in Community','History, Memory, and Respectful Dialogue','Questions from the Audience','Hospitality and Practical Discipleship','The Story of Redemption','Teaching across Generations'];
-    $events=[]; $presentations=[];
+    $events=[]; $presentations=[]; $eventHosts=[];
     foreach($dates as $i=>$date) {
-        $h=$i%count($hosts);$duration=$i%3===0?2:0; $finish=min($date->modify('+'.$duration.' days'),$end); $past=$finish<$today;
+        $h=$i===14?10:$i%count($hosts);$eventHosts[$i]=$h;$duration=$i%3===0?2:0; $finish=min($date->modify('+'.$duration.' days'),$end); $past=$finish<$today;
         $state=($i===10?'postponed':($i===13?'canceled':($past && $i!==5?'completed':'active')));
-        $id=demoInsert('engagements',['organization_id'=>$orgs[$h],'event_title'=>$titles[$i%8].' - '.$hosts[$h][1],
+        $id=demoInsert('engagements',['organization_id'=>$orgs[$h],'event_title'=>($i===14?$titles[10%8].' - Rescheduled':$titles[$i%8]).' - '.$hosts[$h][1],
             'event_description'=>'Fictional '.($duration?'multi-day':'one-day').' teaching event with '.($i%2?'a host discussion':'a resource table and audience questions').'. Edit dates, contacts, presentations, travel, and financials to explore the app.',
             'event_start_date'=>$date->format('Y-m-d'),'event_end_date'=>$finish->format('Y-m-d'),
             'event_type'=>['conference','study or teaching','service','Passover Seder','other'][$i%5],'event_type_other'=>$i%5===4?'Community panel':null,
@@ -156,6 +155,7 @@ try {
         $ids=$conn->execute_query('SELECT id FROM presentations WHERE engagement_id=? ORDER BY id',[$id])->fetch_all(MYSQLI_ASSOC);$presentations[]=(int)$ids[0]['id'];
         generateEngagementFollowUpChecklist($conn,$id,$uid,$uid,false);
         if($past && $i!==5) $conn->execute_query("UPDATE follow_up_tasks SET status='completed',completed_by=?,completed_at=? WHERE engagement_id=?",[$uid,$finish->modify('+1 day')->format('Y-m-d').' 15:00:00',$id]);
+        if($i===3) demoInsert('engagement_financial_drafts',['engagement_id'=>$id,'giving_income_received'=>'450.00','travel_received'=>null,'book_table_received'=>'0.00','notes'=>'Draft example: confirm travel reimbursement and resource sales before closeout.','updated_by'=>$uid]);
         if($state==='completed') {
             if($i<4) {
                 demoInsert('engagement_financial_reports',['engagement_id'=>$id,'giving_income_received'=>(string)(600+$i*225),'travel_received'=>(string)(120+$i*17),'lodging_received'=>'0.00','book_table_received'=>$i%2?'185.50':null,'notes'=>'Fictional final closeout: receipts reconciled with host.','closed_by'=>$uid,'updated_by'=>$uid,'closed_at'=>$finish->modify('+1 day')->format('Y-m-d').' 15:00:00']);
@@ -182,29 +182,32 @@ try {
     demoInsert('follow_up_tasks',['title'=>'Choose an owner for the regional resource inventory','status'=>'open','priority'=>'normal','subject_type'=>'general','due_date'=>demoDate(5),'created_by'=>$uid]);
     demoInsert('follow_up_tasks',['title'=>'Old planning note - archived task','status'=>'completed','completed_by'=>$uid,'completed_at'=>demoDate(-10).' 09:00:00','priority'=>'low','subject_type'=>'general','assigned_to'=>$uid,'created_by'=>$uid,'is_archived'=>1,'archived_by'=>$uid,'archived_at'=>demoDate(-10).' 09:00:00']);
     $stages=['new','contacted','qualified','awaiting_details','proposal_sent','booked','declined'];
-    foreach(range(0,20) as $i) {
+    foreach([0,1,2,3,4,5,6,9,20] as $i) {
         $h=$i%16;$stage=$stages[$i%7];$preferred=demoMonth($today,1+$i%8)->modify('+'.($i%5).' days');
+        $nextDue=$i===1?-3:max(1,$i-4);
+        if($stage==='booked'){$h=$eventHosts[8];$preferred=$dates[8];}
         $next=in_array($stage,['booked','declined'],true)?null:['Call the host','Confirm audience and format','Review venue details','Send proposed dates','Follow up on the proposal'][$i%5];
         $qid=demoInsert('booking_inquiries',['title'=>['Regional Teaching Weekend','Host Training Retreat','Evening Questions Forum','Biblical History Workshop'][$i%4].' - '.$hosts[$h][1],
             'organization_id'=>$orgs[$h],'primary_contact_id'=>$contacts[$h][0],'request_summary'=>'Fictional booking request for '.(80+$i*10).' attendees. Confirm schedule, host responsibilities, and speaker availability.',
             'preferred_start_date'=>$preferred->format('Y-m-d'),'preferred_end_date'=>$preferred->format('Y-m-d'),'alternate_start_date'=>$preferred->modify('+7 days')->format('Y-m-d'),'alternate_end_date'=>$preferred->modify('+7 days')->format('Y-m-d'),
             'event_city'=>$hosts[$h][1],'event_state'=>$hosts[$h][2],'event_country'=>'United States of America','source'=>['email','phone','website','referral','mattermost','other'][$i%6],
             'source_detail'=>'Fictional demo intake','owner_user_id'=>$uid,'priority'=>['normal','high','urgent','low'][$i%4],'stage'=>$stage,
-            'next_action'=>$next,'next_action_due_date'=>$next?demoDate($i-4):null,'created_by'=>$uid,'stage_changed_by'=>$uid,
+            'next_action'=>$next,'next_action_due_date'=>$next?demoDate($nextDue):null,'created_by'=>$uid,'stage_changed_by'=>$uid,
             'decline_reason'=>$stage==='declined'?'Fictional host chose a different season':null,
-            'converted_engagement_id'=>$stage==='booked'?$events[15+$i%6]:null,'converted_by'=>$stage==='booked'?$uid:null,'converted_at'=>$stage==='booked'?demoDate(-5).' 10:00:00':null]);
+            'converted_engagement_id'=>$stage==='booked'?$events[8]:null,'converted_by'=>$stage==='booked'?$uid:null,'converted_at'=>$stage==='booked'?demoDate(-5).' 10:00:00':null]);
         insertBookingInquiryStageHistory($conn,$qid,null,'new','Fictional inquiry received.',$uid,$username);
         if($stage!=='new') insertBookingInquiryStageHistory($conn,$qid,'new',$stage,'Demo progression: reviewed the request with the host.',$uid,$username);
-        if($next) saveInquiryNextActionTask($conn,$qid,['next_action'=>$next,'next_action_due_date'=>demoDate($i-4),'owner_user_id'=>$uid,'priority'=>['normal','high','urgent','low'][$i%4]],null,$uid);
+        if($next) saveInquiryNextActionTask($conn,$qid,['next_action'=>$next,'next_action_due_date'=>demoDate($nextDue),'owner_user_id'=>$uid,'priority'=>['normal','high','urgent','low'][$i%4]],null,$uid);
         if($i===20) $conn->execute_query('UPDATE booking_inquiries SET archived_at=?,archived_by=? WHERE id=?',[demoDate(-2).' 10:00:00',$uid,$qid]);
         demoChron('inquiry',$qid,'Fictional intake conversation: audience and teaching format are a good fit. Check proposed dates and confirm the planning contact.',-12);
     }
     foreach(range(0,5) as $i) {
-        $mid=demoInsert('engagement_email_messages',['engagement_id'=>$events[9+$i],'organization_id'=>$orgs[(9+$i)%16],
+        $h=$eventHosts[9+$i];
+        $mid=demoInsert('engagement_email_messages',['engagement_id'=>$events[9+$i],'organization_id'=>$orgs[$h],
             'template_key'=>'custom','template_label'=>'Demo correspondence (simulated)','subject'=>'[DEMO] Host planning and arrival details',
             'body_text'=>"Fictional correspondence - no email was sent.\n\nPlease confirm the arrival time, resource table, and final presentation schedule. Thank you for hosting our teaching weekend.",
             'created_by'=>$uid,'created_by_username_snapshot'=>$username,'created_at'=>demoDate(-6+$i).' 10:00:00']);
-        demoInsert('engagement_email_deliveries',['message_id'=>$mid,'contact_id'=>$contacts[(9+$i)%16][0],
+        demoInsert('engagement_email_deliveries',['message_id'=>$mid,'contact_id'=>$contacts[$h][0],
             'recipient_name'=>'Fictional host','recipient_email'=>'host'.($i+1).'@example.invalid','recipient_type'=>['to','cc','bcc'][$i%3],
             'recipient_roles_json'=>'["primary_host"]','payload_ciphertext'=>null,'status'=>$i===5?'failed':'sent','attempts'=>1,
             'sent_at'=>$i===5?null:demoDate(-6+$i).' 10:01:00','last_error'=>$i===5?'Simulated demo failure; no delivery attempted':null]);
@@ -226,12 +229,12 @@ try {
         ['Test Account Demo Ministry','Harper','Stone','bookkeeper@example.invalid','+12145550180','reviewer@example.invalid','demo-copy@example.invalid']);
     $centers=$conn->query("SELECT id,description FROM reimbursement_cost_centers WHERE description IN ('Food','Lodging','Airfare','Printing/Duplication','Gas') AND is_archived=0 ORDER BY id")->fetch_all(MYSQLI_ASSOC);
     $expenses=[];
-    foreach(range(0,15) as $i) {
-        $c=$centers[$i%count($centers)]; $d=demoDate(-85+$i*5);$amount=1850+$i*1725;
+    foreach(range(0,7) as $i) {
+        $c=$centers[$i%count($centers)]; $d=demoDate([-50,-45,-30,-28,-7,-5,-1,-14][$i]);$amount=1850+$i*1725;
         $eid=demoInsert('reimbursement_expenses',['user_id'=>$uid,'expense_date'=>$d,'merchant'=>['Trailway Travel','Cedar Lantern Inn','Harvest Table Cafe','Clearprint Resources','Prairie Fuel Stop'][$i%5],
-            'description'=>'Fictional '.strtolower($c['description']).' for a teaching trip; demo expense #'.($i+1),'amount_cents'=>$amount,'cost_center_id'=>$c['id'],'is_archived'=>$i===15?1:0]);
+            'description'=>'Fictional '.strtolower($c['description']).' for a teaching trip; demo expense #'.($i+1),'amount_cents'=>$amount,'cost_center_id'=>$c['id'],'is_archived'=>$i===7?1:0]);
         $expenses[]=$eid;
-        if($i===14) continue; // One unreceipted editable expense is intentional.
+        if($i===6) continue; // One unreceipted editable expense is intentional.
         $pdf=new TCPDF();$pdf->setPrintHeader(false);$pdf->setPrintFooter(false);$pdf->AddPage();$pdf->SetFont('helvetica','',14);
         $pdf->MultiCell(0,10,"TEST ACCOUNT - FICTIONAL RECEIPT\n\nDemo expense #".($i+1)."\nDate: ".$d."\nCategory: ".$c['description']."\nTotal: $".number_format($amount/100,2)."\n\nNo real purchase or payment occurred.");
         $bytes=$pdf->Output('','S');$filename='demo-receipt-'.($i+1).'.pdf';$key=storePersistentFile($conn,$bytes,$filename,'application/pdf');
@@ -239,8 +242,8 @@ try {
         reimbursementEvent($conn,'expense',$eid,'saved','Fictional seed expense',$uid);
     }
     foreach(range(0,2) as $i) {
-        $ids=array_slice($expenses,$i*4,4);
-        $request=demoInsert('reimbursement_requests',['request_hash'=>bin2hex(random_bytes(8)),'user_id'=>$uid,'start_date'=>demoDate(-90+$i*20),'end_date'=>demoDate(-65+$i*20),'bookkeeper_note'=>'Fictional demo trip. Verify expenses, receipts, and download the package.']);
+        $ids=array_slice($expenses,$i*2,2);
+        $request=demoInsert('reimbursement_requests',['request_hash'=>bin2hex(random_bytes(8)),'user_id'=>$uid,'start_date'=>demoDate([-55,-35,-10][$i]),'end_date'=>demoDate([-40,-20,0][$i]),'bookkeeper_note'=>'Fictional demo trip. Verify expenses, receipts, and download the package.']);
         foreach($ids as $eid) demoInsert('reimbursement_request_items',['request_id'=>$request,'expense_id'=>$eid]);
         reimbursementEvent($conn,'request',$request,'draft_created','Fictional seed draft',$uid);
         if($i<2) {
@@ -249,10 +252,12 @@ try {
             submitReimbursementRequest($conn,$request,$uid,false);
             demoInsert('reimbursement_submissions',['id'=>$request,'attachment_key'=>$key]);
             $conn->execute_query('UPDATE reimbursement_requests SET owner_name_snapshot=?,submitted_at=?,is_archived=?,correction_note=?,correction_at=? WHERE id=?',
-                ['Test Account Administrator',demoDate(-60+$i*20).' 12:00:00',$i===1?1:0,$i===0?'Demo correction note: verify the lodging allocation.':'',$i===0?demoDate(-3).' 12:00:00':null,$request]);
+                ['Test Account Administrator',demoDate([-40,-20][$i]).' 12:00:00',$i===1?1:0,$i===0?'Demo correction note: verify the lodging allocation.':'',$i===0?demoDate(-3).' 12:00:00':null,$request]);
             reimbursementEvent($conn,'request',$request,'submitted','Simulated demo submission; no email was queued',$uid);
         }
     }
+    // Keep planning work done so a first visit has only three overdue examples.
+    $conn->execute_query("UPDATE follow_up_tasks SET status='completed',completed_by=?,completed_at=? WHERE subject_type='engagement' AND status IN ('open','in_progress','waiting') AND due_date<?",[$uid,$asOf.' 09:00:00',$asOf]);
     $stats=$conn->query('SELECT id FROM short_links ORDER BY id LIMIT 18')->fetch_all(MYSQLI_ASSOC);
     foreach($stats as $i=>$link) demoInsert('short_link_stats',['link_id'=>$link['id'],'visit_hour'=>demoDate(-2).' 10:00:00','browser'=>['Chrome','Safari','Firefox'][$i%3],'os'=>['Windows','macOS','Android'][$i%3],'country'=>['US','CA','GB'][$i%3],'referrer'=>'demo.invalid','visits'=>5+$i*3]);
     $consistency=applicationDataConsistencyCounts($conn);
