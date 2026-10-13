@@ -17,7 +17,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--local-preview',action='store_true',required=True);parser.parse_args()
     lock=(ROOT/'var/deployment/account-provisioner.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    left=right=None; marker='consistency'+secrets.token_hex(6); audit_ids=[]; original_profile=None
+    left=right=recovery_fixture=None; marker='consistency'+secrets.token_hex(6); audit_ids=[]; original_profile=None
     project='moed-account-test-account'
     try:
         left=fixture('dnr-web-1');right=fixture(project+'-web-1')
@@ -74,24 +74,27 @@ def main():
         sync()
         assert sql('dnr',f"SELECT account_key FROM platform_login_claims WHERE username='{race}'")=='shalom-in-messiah'
 
-        # Recovery from common login targets only the matching verified member.
+        # Common recovery still targets a matching verified user in another member.
+        recovery_project='moed-account-account-isolation-preview'
+        recovery_fixture=fixture(recovery_project+'-web-1')
+        recovery_user=recovery_fixture['users']['editor'];recovery_uid=recovery_user['id'];recovery_name=recovery_user['username']
         email=marker+'@example.invalid'
-        sql(project,f"UPDATE users SET email='{email}',email_verified_at=UTC_TIMESTAMP() WHERE id={uid}")
+        sql(recovery_project,f"UPDATE users SET email='{email}',email_verified_at=UTC_TIMESTAMP() WHERE id={recovery_uid}")
         visitor=Client('http://localhost:8080')
         def request_recovery(username,address):
             form=visitor.request('recover_password.php')
             return visitor.request('recover_password.php',{'csrf_token':csrf(form[2]),'action':'request','username':username,'email':address})
-        assert request_recovery(new,email)[0]==200
+        assert request_recovery(recovery_name,email)[0]==200
         php('dnr',"require '/var/www/html/account_recovery_helpers.php'; processSharedPasswordRecovery($conn); echo '{}';")
-        assert sql(project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={uid} AND purpose='recovery'")=='1'
+        assert sql(recovery_project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={recovery_uid} AND purpose='recovery'")=='1'
         assert sql('dnr',f"SELECT COUNT(*) FROM user_email_tokens WHERE email='{email}'")=='0'
         # Replay the delivery ID after a simulated lost response: no second mail.
-        operation=sql(project,'SELECT operation_id FROM account_recovery_receipts ORDER BY created_at DESC LIMIT 1')
-        php(project,"require '/var/www/html/account_recovery_helpers.php'; echo json_encode(acceptSharedPasswordRecovery($conn,"+"['operation_id'=>'"+operation+f"','user_id'=>{uid},'username'=>'{new}','email'=>'{email}']));")
-        assert sql(project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={uid} AND purpose='recovery'")=='1'
+        operation=sql(recovery_project,'SELECT operation_id FROM account_recovery_receipts ORDER BY created_at DESC LIMIT 1')
+        php(recovery_project,"require '/var/www/html/account_recovery_helpers.php'; echo json_encode(acceptSharedPasswordRecovery($conn,"+"['operation_id'=>'"+operation+f"','user_id'=>{recovery_uid},'username'=>'{recovery_name}','email'=>'{email}']));")
+        assert sql(recovery_project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={recovery_uid} AND purpose='recovery'")=='1'
         assert request_recovery(marker+'-missing',email)[0]==200
         php('dnr',"require '/var/www/html/account_recovery_helpers.php'; processSharedPasswordRecovery($conn); echo '{}';")
-        assert sql(project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={uid} AND purpose='recovery'")=='1'
+        assert sql(recovery_project,f"SELECT COUNT(*) FROM user_email_tokens WHERE user_id={recovery_uid} AND purpose='recovery'")=='1'
 
         # Name synchronization is replayable and ignores stale profile versions.
         original_profile=php(project,"echo json_encode($conn->query('SELECT name,version FROM account_profile WHERE id=1')->fetch_assoc());")
@@ -117,6 +120,7 @@ def main():
         sql(project,f"DELETE FROM inbound_email_messages WHERE rfc_message_id='{marker}@example.invalid'")
         if audit_ids:sql('dnr','DELETE FROM security_audit_log WHERE id IN ('+','.join(map(str,audit_ids))+')')
         cleanup('dnr-db-1',left);cleanup(project+'-db-1',right)
+        if recovery_fixture:cleanup(recovery_project+'-db-1',recovery_fixture)
 
 
 if __name__=='__main__':main()

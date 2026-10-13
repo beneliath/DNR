@@ -34,6 +34,15 @@ function requireDemoAccountConfigurationAccess(): void {
     if (isRestrictedDemoSession()) { http_response_code(403); exit('Forbidden.'); }
 }
 
+/** Account-wide restriction, independent of user role, identity, or demo MFA pins. */
+function accountSecurityAccessAllowed(): bool {
+    return !accountsEnabled() || currentAccountKey() !== 'test-account';
+}
+
+function requireAccountSecurityAccess(): void {
+    if (!accountSecurityAccessAllowed()) { http_response_code(403); exit('Forbidden.'); }
+}
+
 function currentAccountKey(): string {
     $key = (string) (getenv('DNR_ACCOUNT_KEY') ?: 'shalom-in-messiah');
     if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key)) {

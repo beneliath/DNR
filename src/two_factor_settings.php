@@ -2,8 +2,8 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
+requireAccountSecurityAccess();
 requireLogin();
-requireDemoAccountConfigurationAccess();
 requireTwoFactorSchema($conn);
 
 $user_id = (int) $_SESSION['user_id'];

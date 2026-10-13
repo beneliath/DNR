@@ -4,6 +4,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/account_email_change_helpers.php';
 startSecureSession();
+requireAccountSecurityAccess();
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 header('Referrer-Policy: no-referrer');

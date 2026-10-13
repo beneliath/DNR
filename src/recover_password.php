@@ -5,6 +5,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/account_recovery_helpers.php';
 $sharedRecovery = accountGatewayEnabled() && accountIsPrimary();
 startSecureSession();
+requireAccountSecurityAccess();
 requireTwoFactorSchema($conn);
 requireLoginRateLimitSchema($conn);
 header('Cache-Control: no-store, max-age=0');

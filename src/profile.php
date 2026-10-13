@@ -7,7 +7,7 @@ require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/account_email_change_helpers.php';
 startSecureSession();
 requireLogin();
-$demo_restricted = isRestrictedDemoSession();
+$account_security_access = accountSecurityAccessAllowed();
 
 $user_id = (int) $_SESSION['user_id'];
 
@@ -45,7 +45,7 @@ if (!$user) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $profile_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : 'save';
-    if ($demo_restricted && $profile_action !== 'save') requireDemoAccountConfigurationAccess();
+    if (!$account_security_access && $profile_action !== 'save') requireAccountSecurityAccess();
     $profile_json_request = $profile_action === 'resend_verification'
         && str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
 
@@ -484,19 +484,19 @@ $task_digest_day_options = [
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <button type="submit" class="save-button">Save Changes</button>
             </div>
-            <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
+            <?php if ($account_security_access && (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at'])))): ?>
                 <button type="submit" form="profile-resend-verification-form" class="button-secondary profile-verification-button" data-resend-verification>Resend Email Verification</button>
             <?php endif; ?>
         </div>
         <p class="profile-verification-status" data-verification-status role="status" aria-live="polite" hidden></p>
     </form>
-    <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
+    <?php if ($account_security_access && (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at'])))): ?>
         <form id="profile-resend-verification-form" method="post" action="profile.php" hidden>
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="resend_verification">
         </form>
     <?php endif; ?>
-    <?php if (!$demo_restricted): ?>
+    <?php if ($account_security_access): ?>
     <section class="profile-card" aria-labelledby="recovery-email-heading">
         <h2 id="recovery-email-heading">Change Recovery Email</h2>
         <p>Your current address stays in use until the new address is verified. Verification signs out all existing sessions and pauses the daily digest.</p>

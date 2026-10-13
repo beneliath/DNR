@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
+requireAccountSecurityAccess();
 requireTwoFactorSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
@@ -18,8 +19,6 @@ if ($is_pending_login) {
     header('Location: login.php');
     exit();
 }
-
-requireDemoAccountConfigurationAccess();
 
 $user = fetchAuthenticationUserById($conn, $user_id);
 if (!$user

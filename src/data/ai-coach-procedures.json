@@ -935,13 +935,13 @@
         "reviewer"
       ],
       "steps": [
-        "Open Account Security in the sidebar. Find Change Password.",
+        "Account Security is unavailable in Test Account, where demo credentials are managed by the operator. In other accounts, open Account Security in the sidebar and find Change Password.",
         "Enter Current Password, New Password, and Confirm New Password. Use 12 or more characters, no more than 72 UTF-8 bytes. Do not put passwords in the coach.",
         "Select Change Password. Check the confirmation; other sessions will be signed out. If MOED requests recent two-factor verification, sign in again first."
       ],
       "source_files": {
-        "two_factor_settings.php": "1190a2f5d4da71c58a696946153ae1fcdf67a7ca4fcea537b8ce6a7afb1172ea",
-        "templates/header.php": "5f4a5748e31955e9b193c91b4171223cec3ac4769d5404dd7995fd06802a26b7"
+        "two_factor_settings.php": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
+        "templates/header.php": "8ef3966012424f8d165341d7e07342b6b93df523b371a056b91e500bbb842866"
       },
       "subjects": [
         "password"
@@ -1227,7 +1227,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "profile.php": "d30cca84563445aec0b1e3ab0d7237c4c0a287bc20cb41e260a3e1b944d54f54"
+        "profile.php": "285bba870cbe5e63b0cd450d5a70377c9a5ad04554a7ca30149d7fa1ed1d538d"
       },
       "subjects": [
         "reviewer",
