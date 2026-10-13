@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
-        "templates/header.php": "f0983839c4fc041df3358ec3a8481856c08d5a484caf9029e02429ef96290f31"
+        "templates/header.php": "43d39a5e0baf35eb402beabd6546ae1cb7ca36c79a66f597650b96c6ecf08432"
       },
       "subjects": [
         "password"

@@ -1,6 +1,6 @@
 {
-  "version": "2.5.7",
-  "edition_date": "October 10, 2026",
+  "version": "2.5.13",
+  "edition_date": "October 13, 2026",
   "pages": 189,
   "screenshots": 114,
   "chapters": 14,
@@ -520,7 +520,7 @@
     "__total__": 189
   },
   "outline_entries": 397,
-  "edition_scope": "Application release 2.5.7",
+  "edition_scope": "Application release 2.5.13",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -1105,8 +1105,8 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "7c11092c29ea86736cbc2df6c0e0f18c64fee44a7c047e2a790d2f72f55d8c99",
-    "bytes": 110063,
+    "sha256": "aaa031ef738ffe600f4195bb636d5465c23c79d7b05cf95e6faccca1e2170b94",
+    "bytes": 110248,
     "start_page": 163,
     "sections": 62,
     "attachment": "README.md"

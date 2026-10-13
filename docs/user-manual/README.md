@@ -35,9 +35,15 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The October 10, 2026 edition applies to application version **2.5.7** and
+The October 13, 2026 edition applies to application version **2.5.13** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
+
+The Tasks sidebar badge now counts only the signed-in user's assigned active
+tasks that are overdue or due today, including Waiting tasks. Future-dated and
+undated tasks, completed/canceled/archived work, and shared financial closeout
+reminders are excluded. The badge is hidden at zero and capped at 99+. The
+Dashboard's My Active Tasks card continues to show all active assignments.
 
 This release adds an Admin Unlock dialog that preserves the current page, orange outlines for locked sensitive actions, review-count badges, and aligned action columns. Platform-only views and preview controls require SuperAdmin access. Reimbursement reports and emails use the Account Name from Account Settings. Retained screenshots of the earlier unlock page and reimbursement setup are labeled with the current workflow.
 
