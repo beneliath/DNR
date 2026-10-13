@@ -1,9 +1,9 @@
 {
   "document": {
     "title": "MOED Comprehensive User Manual",
-    "subject": "Illustrated application reference, version 2.5.7, updated October 10, 2026",
+    "subject": "Illustrated application reference, version 2.5.13, updated October 13, 2026",
     "path": "assets/docs/moed-comprehensive-user-manual.pdf",
-    "sha256": "a8f5a8da82a744cdc144aa72a84fab022e1919b139190a4965ab82b0256bd470",
+    "sha256": "aed6abe5fb4ab6728f911c231928f051bca70e76b6bdd530d362f686cc85acd6",
     "pages": 189,
     "index_version": 1
   },
@@ -1166,7 +1166,7 @@
       "title": "My Reminders",
       "page": 77,
       "end_page": 77,
-      "text": "The sidebar badge and Dashboard personal cards always count your own reminders. In the queue, choose Mine, Everyone, or Unassigned; every queue summary count uses that same ownership scope, search, and related-record filter."
+      "text": "The sidebar Tasks badge counts your assigned active tasks that are overdue or due today, including Waiting. It hides zero and shows 99+ above 99. Dashboard My Active Tasks also includes future and undated assignments. In the queue, choose Mine, Everyone, or Unassigned; summary counts use the same ownership scope, search, and related-record filter."
     },
     "manual-topic-work-queue-queue-views": {
       "id": "manual-topic-work-queue-queue-views",
@@ -2662,7 +2662,7 @@
       "title": "Edition and source notes",
       "page": 162,
       "end_page": 163,
-      "text": "Application version: MOED / DNR 2.5.7. Guide updated: October 10, 2026. This refresh covers application changes from 2.4.1 through 2.5.7: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. Unchanged workflows retain their previous illustrations. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
+      "text": "Application version: MOED / DNR 2.5.13. Guide updated: October 13, 2026. This refresh covers application changes from 2.4.1 through 2.5.13: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. Unchanged workflows retain their previous illustrations. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
     },
     "manual-topic-operator-appendix-readme-md": {
       "id": "manual-topic-operator-appendix-readme-md",
@@ -2670,7 +2670,7 @@
       "title": "README.md",
       "page": 163,
       "end_page": 164,
-      "text": "Complete README for application source 2.5.7 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 110,063 bytes · October 10, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 164 Application workflows - p. 168 Email and integrations - p. 172 Configuration reference - p. 178 Security and operations - p. 183 Development and contributing - p. 188 License - p. 189 Storage and delivery hardening - p. 189 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
+      "text": "Complete README for application source 2.5.13 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 110,248 bytes · October 13, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 164 Application workflows - p. 168 Email and integrations - p. 172 Configuration reference - p. 178 Security and operations - p. 183 Development and contributing - p. 188 License - p. 189 Storage and delivery hardening - p. 189 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
     },
     "manual-topic-operator-appendix-getting-started-and-deployment": {
       "id": "manual-topic-operator-appendix-getting-started-and-deployment",
@@ -2800,13 +2800,13 @@
       "end_page": 171,
       "text": "See Presentation QR Codes (docs/qr-code-system.md) for generated speaker links, public notes downloads, statistics, and country-detection configuration."
     },
-    "manual-topic-operator-appendix-financial-closeout-and-giving-history": {
-      "id": "manual-topic-operator-appendix-financial-closeout-and-giving-history",
+    "manual-topic-operator-appendix-financial-closeout-and-receipt-history": {
+      "id": "manual-topic-operator-appendix-financial-closeout-and-receipt-history",
       "chapter": "operator-appendix",
-      "title": "Financial closeout and giving history",
+      "title": "Financial closeout and receipt history",
       "page": 171,
       "end_page": 171,
-      "text": "Editors and administrators can close an active event from its detail page by finalizing the actual giving/income, lodging, and travel amounts received. These actual receipts are stored separately from the anticipated travel, lodging, and compensation fields used during planning. Before the first report can be finalized, every event task due on or before the last active presentation must be marked Completed. Tasks due after that presentation and tasks without due dates do not hold the closeout. A report can be corrected later without changing its original closer or close timestamp; concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and correction is captured by the database audit log. Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed event, and aggregate lodging and travel receipts from finalized reports only. \"Latest event\" follows the event end date, even if its report was entered later, and archived events remain part of the historical totals. The organization list also shows latest-event and lifetime giving for quick review."
+      "text": "Editors and administrators can close an active event from its detail page by finalizing the actual Giving, Lodging, Travel, and Book Table amounts received. Every category requires an explicit amount: enter zero when nothing was received; a blank draft amount remains unknown. These actual receipts are stored separately from the anticipated travel, lodging, and compensation fields used during planning. Before the first report can be finalized, every event task due on or before the last active presentation must be marked Completed. Tasks due after that presentation and tasks without due dates do not hold the closeout. A report can be corrected later without changing its original closer or close timestamp; concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and correction is captured by the database audit log. Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed event, and aggregate lodging, travel, and book-table receipts from finalized reports only. \"Latest event\" follows the event end date, even if its report was entered later, and archived events remain part of the historical totals. The organization list shows Last Receipts and Lifetime Receipts, combining all four receipt categories, for quick review."
     },
     "manual-topic-operator-appendix-map-and-venue-locations": {
       "id": "manual-topic-operator-appendix-map-and-venue-locations",

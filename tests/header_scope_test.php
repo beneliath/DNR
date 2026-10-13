@@ -107,15 +107,19 @@ expectHeaderScope(
 );
 
 foreach ([
-    ['active' => 4, 'total' => 5, 'label' => '4'],
-    ['active' => 7, 'total' => 4, 'label' => '7'],
-    ['active' => 0, 'total' => 1, 'label' => null],
-    ['active' => 120, 'total' => 5, 'label' => '99+'],
+    ['active' => 7, 'total' => 9, 'overdue' => 3, 'today' => 1, 'count' => 4, 'label' => '4'],
+    ['active' => 7, 'total' => 9, 'overdue' => 3, 'today' => 0, 'count' => 3, 'label' => '3'],
+    ['active' => 7, 'total' => 9, 'overdue' => 0, 'today' => 2, 'count' => 2, 'label' => '2'],
+    ['active' => 7, 'total' => 9, 'overdue' => 0, 'today' => 0, 'count' => 0, 'label' => null],
+    ['active' => 120, 'total' => 125, 'overdue' => 60, 'today' => 39, 'count' => 99, 'label' => '99'],
+    ['active' => 120, 'total' => 125, 'overdue' => 60, 'today' => 40, 'count' => 100, 'label' => '99+'],
 ] as $badge_case) {
     $_SESSION['user_id'] = 1;
     $request_reminder_counts = [
         'active' => $badge_case['active'],
         'total' => $badge_case['total'],
+        'dashboard_overdue' => $badge_case['overdue'],
+        'dashboard_today' => $badge_case['today'],
     ];
     ob_start();
     include __DIR__ . '/../src/templates/header.php';
@@ -129,9 +133,9 @@ foreach ([
         $badge_case['label'] === null
             ? !$has_badge
             : $has_badge
-                && $badge_match[1] === $badge_case['active'] . ' Active Tasks Assigned to You'
+                && $badge_match[1] === $badge_case['count'] . ' Overdue or Due Today Tasks Assigned to You'
                 && $badge_match[2] === $badge_case['label'],
-        'Tasks should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
+        'Tasks should count only personal overdue and due-today tasks, exclude future tasks and shared reminders, hide zero, and cap large counts.'
     );
 }
 unset($_SESSION['user_id'], $request_reminder_counts);
