@@ -3,6 +3,7 @@
 import datetime
 import fcntl
 import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -50,6 +51,37 @@ def verify_app_replicas(service, output, expected_image_id, inspect):
             raise ValueError(service + ' is running a different image')
         if state['State'].get('Health', {}).get('Status') != 'healthy':
             raise ValueError(service + ' failed its health/progress check')
+
+
+def reload_account_operators(root):
+    """Replace preflight imports from the previous checkout after the qualified fast-forward."""
+    importlib.invalidate_caches()
+    for name in ('provision_local_account', 'integration_environment', 'account_lifecycle_local',
+                 'account_ingress_security', 'account_map_configuration', 'account_production'):
+        module = sys.modules.get(name)
+        if module is None:
+            continue
+        if Path(module.__file__).resolve() != (root / 'scripts' / (name + '.py')).resolve():
+            raise ValueError('Account operator was loaded outside the deployment checkout: ' + name)
+        importlib.reload(module)
+
+
+def active_account_worker(root):
+    """Reload only an already-running, verified operator service for this checkout."""
+    command = ['systemctl', '--user']
+    try:
+        result = subprocess.run(command + ['show', 'moed-account-worker.service',
+            '--property=ActiveState,Type,ExecStart'], text=True, capture_output=True)
+    except FileNotFoundError:
+        return None
+    fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
+    if result.returncode or fields.get('ActiveState') != 'active':
+        return None
+    invocation = fields.get('ExecStart', '')
+    if fields.get('Type') != 'simple' or str(root / 'scripts/account_production.py') not in invocation \
+        or str(root / 'var/deployment/account-production/config.json') not in invocation or '--apply --watch' not in invocation:
+        raise ValueError('Active Account worker does not match this deployment')
+    return command + ['restart', 'moed-account-worker.service']
 
 
 def main():
@@ -107,6 +139,7 @@ def main():
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
         account_configuration = account_release_configuration(root, inspect(container('web'))['Config']['Env'])
+        account_worker = active_account_worker(root) if account_configuration else None
         members = discover_members(root, account_configuration['config']) if account_configuration else []
         storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
@@ -174,6 +207,7 @@ def main():
             save('backup-verified')
             run(['git', 'merge', '--ff-only', expected])
             if account_configuration is not None:
+                reload_account_operators(root)
                 # Still within the writer pause and the shared deployment lock.
                 # The saved operator topology persists; only qualified release
                 # images/commit change. The worker reloads this manifest per cycle.
@@ -225,6 +259,13 @@ def main():
                 raise ValueError('Public readiness failed')
             save('verifying-accounts')
             record['accounts'] = start_and_verify_members(members, account_configuration['config'] if account_configuration else {}, release)
+            if account_worker:
+                # The new process loads the qualified checkout. Its lifecycle
+                # cycle observes this same deployment lock before doing work.
+                run(account_worker)
+                if run(['systemctl', '--user', 'is-active', 'moed-account-worker.service']) != 'active':
+                    raise ValueError('Account worker failed to restart on the qualified checkout')
+                record['account_worker_restarted'] = True
             record['outcome'] = 'success'
             save('verified')
             (records / 'current.json').write_text(json.dumps(record, indent=2) + '\n')

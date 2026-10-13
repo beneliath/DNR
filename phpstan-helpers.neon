@@ -2,6 +2,7 @@ parameters:
     level: 5
     paths:
         - src/workflow_task_helpers.php
+        - src/test_account_demo_helpers.php
         - src/task_bulk_helpers.php
         - src/duplicate_warning_helpers.php
         - src/global_search_helpers.php

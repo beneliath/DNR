@@ -101,6 +101,12 @@ def main():
             command=['docker','exec','--user','www-data',web,'php',seed_slot,'--apply','--assets=/tmp/test-account-demo-assets']
             if args.as_of:command+=['--as-of='+args.as_of]
             result=subprocess.check_output(command,text=True);summary=json.loads(result)
+            closeout_slot=seed_folder+'/test_account_closeout_samples.php'
+            subprocess.run(['docker','exec','--user','www-data','-i',web,'sh','-c','cat > '+closeout_slot],
+                input=(root/'scripts/test_account_closeout_samples.php').read_bytes(),check=True)
+            closeout_command=['docker','exec','--user','www-data',web,'php',closeout_slot,'--apply']
+            if args.as_of:closeout_command+=['--as-of='+args.as_of]
+            summary['financial_closeout']=json.loads(subprocess.check_output(closeout_command,text=True))['closeout']
             committed=True
             snapshot=create_online_backup(db,web,password,root/'var/backups/test-account-demo-pitstop',metadata['commit'],'demo-fixture-v1')
             receipt={'seed':summary,'before_backup':before['backup_path'],'pitstop_backup':snapshot['backup_path'],'restore_verified':snapshot['restore_verified']}

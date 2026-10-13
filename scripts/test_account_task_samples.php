@@ -6,6 +6,7 @@ $options = getopt('', ['apply', 'as-of:']);
 $root = is_file(__DIR__ . '/../src/bootstrap.php') ? __DIR__ . '/../src' : '/var/www/html';
 require_once $root . '/bootstrap.php';
 require_once $root . '/follow_up_task_helpers.php';
+require_once $root . '/test_account_demo_helpers.php';
 if (!accountsEnabled() || accountIsPrimary() || currentAccountKey() !== 'test-account'
     || currentAccountProfile()['account_key'] !== 'test-account') throw new RuntimeException('Test Account member only.');
 $anchor = $options['as-of'] ?? applicationBusinessDate();
@@ -48,8 +49,9 @@ try {
             'subject_type'=>'general','engagement_id'=>null,'organization_id'=>null,'contact_id'=>null,'inquiry_id'=>null,
             'assigned_to'=>$users[$task['owner']]]),$users['TestEditor']);
     }
+    $closeout = ensureTestAccountFinancialCloseout($conn,$users['TestEditor'],$anchor);
     if ($usersBefore !== hash('sha256',serialize($conn->query('SELECT * FROM users ORDER BY id')->fetch_all(MYSQLI_ASSOC)))
         || $profileBefore !== serialize($conn->query('SELECT * FROM account_profile WHERE id=1')->fetch_assoc())) throw new RuntimeException('Users or account settings changed.');
     $conn->commit();
-    echo json_encode(['account'=>'test-account','as_of'=>$anchor,'added_task_ids'=>$ids,'tasks'=>$plan,'users_and_settings_unchanged'=>true],JSON_PRETTY_PRINT),"\n";
+    echo json_encode(['account'=>'test-account','as_of'=>$anchor,'added_task_ids'=>$ids,'tasks'=>$plan,'financial_closeout'=>$closeout,'users_and_settings_unchanged'=>true],JSON_PRETTY_PRINT),"\n";
 } catch (Throwable $error) {$conn->rollback(); throw $error;}
