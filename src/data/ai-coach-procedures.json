@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
-        "templates/header.php": "8ef3966012424f8d165341d7e07342b6b93df523b371a056b91e500bbb842866"
+        "templates/header.php": "f0983839c4fc041df3358ec3a8481856c08d5a484caf9029e02429ef96290f31"
       },
       "subjects": [
         "password"

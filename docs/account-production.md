@@ -246,6 +246,12 @@ site-specific paths/user only during an explicitly approved rollout.
 
 ## Qualification gate before s1
 
+The guarded release reloads Account operator modules after advancing the checkout
+to the qualified commit. After all Account image and readiness checks pass, it
+restarts an already-active `moed-account-worker.service` user service whose command
+matches this checkout and its saved configuration. The new worker loads the
+qualified source and respects the deployment lock before processing requests.
+
 A passing local test is not a production restore rehearsal. Use a fresh isolated
 copy of production and the exact release digests to check migration checksums,
 record/file counts, Shalom identity, normal Admin vs SuperAdmin permissions,

@@ -19,6 +19,9 @@ changes/verification are blocked in this Account. Authentication MFA challenges
 still apply to users outside the three pinned demo exceptions. Account Settings
 remains hidden and forbidden for TestAdmin, including direct GET/POST requests.
 The operator's SuperAdmin login remains available with its existing MFA.
+Mattermost is hidden in the Test Account sidebar for every user, including linked
+SuperAdmins. Direct page GET/POST and integration API access are also forbidden.
+Other Accounts retain their normal Mattermost access.
 
 The original synthetic fixture was anchored to October 12, 2026 and spans July
 12, 2026 through July 12, 2027, with events in every intervening month. Its hosts,
@@ -100,6 +103,13 @@ with `--apply` and the refresh anchor. It adds six fictional general tasks, thre
 each for the existing TestAdmin and TestReviewer identities, so TestEditor's
 All Active Tasks and My Active Tasks cards differ. This is an addition after
 the restore; it does not change the immutable snapshot or any user's access.
+The same operator ensures dashboard Financial Closeouts contains at least one
+ended event without a finalized report. If none remains, it adds a fictional
+event ending the day before the refresh anchor, assigned to TestEditor with a
+receipt draft ready to review. Existing eligible events and finalized reports
+are preserved. The standalone `scripts/test_account_closeout_samples.php --apply`
+operator supports this addition without a full refresh. Verify TestEditor can
+open the dashboard closeout link after every refresh.
 
 Read the baseline's `README.md`, `receipt.json`, `date-remap-manifest.json`, and
 `SHA256SUMS.json` before restoring. A second verified copy is at

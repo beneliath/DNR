@@ -1,4 +1,5 @@
 import copy
+import importlib
 import json
 from pathlib import Path
 import sys
@@ -11,9 +12,43 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import account_release as release
 import account_production as production
 import provision_local_account as provisioning
+from deploy_release_host import reload_account_operators, active_account_worker
 
 
 class MemberReleaseTest(unittest.TestCase):
+    def test_worker_reload_targets_only_an_active_matching_checkout_service(self):
+        root = Path('/qualified/moed')
+        for invocation, allowed in [('/qualified/moed', True), ('/another/moed', False)]:
+            result = SimpleNamespace(returncode=0, stdout='ActiveState=active\nType=simple\nExecStart={ argv[]=/usr/bin/python3 '
+                + invocation + '/scripts/account_production.py ' + invocation + '/var/deployment/account-production/config.json --apply --watch ; }\n')
+            with patch('deploy_release_host.subprocess.run', return_value=result):
+                if allowed:
+                    self.assertEqual(active_account_worker(root), ['systemctl','--user','restart','moed-account-worker.service'])
+                else:
+                    with self.assertRaisesRegex(ValueError, 'does not match'): active_account_worker(root)
+        with patch('deploy_release_host.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='ActiveState=inactive\n')):
+            self.assertIsNone(active_account_worker(root))
+
+    def test_release_reloads_previous_checkout_control_adapter_after_fast_forward(self):
+        names = ['provision_local_account', 'integration_environment', 'account_lifecycle_local',
+            'account_ingress_security', 'account_map_configuration', 'account_production']
+        with tempfile.TemporaryDirectory() as folder, patch.dict(sys.modules), patch.object(sys, 'path', list(sys.path)):
+            root = Path(folder); scripts = root / 'scripts'; scripts.mkdir()
+            for name in names:
+                sys.modules.pop(name, None)
+                source = 'from provision_local_account import control\n' if name in ['account_lifecycle_local', 'account_production'] else 'SOURCE = "previous"\n'
+                (scripts / (name + '.py')).write_text(source)
+            adapter = scripts / 'provision_local_account.py'
+            adapter.write_text('def control(container, action, key="", value=""):\n    return "previous"\n')
+            sys.path.insert(0, str(scripts))
+            previous = importlib.import_module('account_production')
+            lifecycle = importlib.import_module('account_lifecycle_local')
+            with self.assertRaises(TypeError): previous.control('web', 'probe', 'member', 'url', 'commit')
+            adapter.write_text('def control(container, action, key="", value="", expected_commit=""):\n    return "qualified:" + expected_commit\n')
+            reload_account_operators(root)
+            self.assertEqual(previous.control('web', 'probe', 'member', 'url', 'commit'), 'qualified:commit')
+            self.assertEqual(lifecycle.control('web', 'probe', 'member', 'url', 'commit'), 'qualified:commit')
+
     def fixture(self, root):
         directory = root / 'var/accounts/member-account'
         frozen = directory / 'runtime-config'

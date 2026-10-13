@@ -2553,7 +2553,7 @@
       ]
     },
     "mattermost.php": {
-      "sha256": "9ecbfd23184cfbe66b1d07d3baf9cdcc74d53834f934ac6c1cbfd06296c6c2b5",
+      "sha256": "40e7587b226dfb8573a809cccac7cbca67b00ba33c33276eaf55d896811db858",
       "controls": [
         {
           "kind": "h1",

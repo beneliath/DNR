@@ -136,6 +136,12 @@ $conn = applicationDatabaseConnection();
 $action = trim((string) ($_GET['action'] ?? 'status'));
 
 try {
+    if (!accountMattermostAccessAllowed()) {
+        mattermostApiRespond([
+            'error' => 'Mattermost is unavailable in this Account.',
+            'code' => 'account_unavailable',
+        ], 403);
+    }
     $instanceId = mattermostApiRequireService();
 
     if ($action === 'status') {

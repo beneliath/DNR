@@ -24,15 +24,19 @@ def php(code, data=None, web=TEST_WEB):
 def assert_security_denied(client, password, user_id, check_profile=True):
     page = client.request('dashboard.php')
     assert page[0] == 200 and 'href="two_factor_settings.php"' not in page[2], 'Account Security appeared in Test Account sidebar'
+    assert 'href="mattermost.php"' not in page[2], 'Mattermost appeared in Test Account sidebar'
     token = csrf(page[2])
     digest = "echo json_encode(hash('sha256',serialize($conn->execute_query('SELECT * FROM users WHERE id=?',[$input['id']])->fetch_assoc())));"
     before = php(digest, {'id': user_id})
     fields = {'csrf_token': token, 'action': 'change_password', 'password': password,
               'new_password': password + '1', 'new_password_confirmation': password + '1'}
     for route in ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php',
-                  'recover_password.php', 'verify_email.php']:
+                  'recover_password.php', 'verify_email.php', 'mattermost.php']:
         assert client.request(route)[0] == 403, 'Security GET allowed: ' + route
         assert client.request(route, fields)[0] == 403, 'Security POST allowed: ' + route
+    for action, payload in [('status', None), ('connect', {'code': 'SAMPLE'})]:
+        response = client.request('api/v1/mattermost.php?action=' + action, payload)
+        assert response[0] == 403 and json.loads(response[2])['code'] == 'account_unavailable', 'Mattermost API allowed Test Account access'
     if check_profile:
         profile = client.request('profile.php')
         assert profile[0] == 200 and 'id="recovery-email-heading"' not in profile[2], 'Recovery email controls appeared'
@@ -63,6 +67,7 @@ def main():
         dashboard = primary_client.request('dashboard.php')
         assert 'href="two_factor_settings.php"' in dashboard[2], 'Primary lost the security menu'
         assert primary_client.request('two_factor_settings.php')[0] == 200, 'Primary SuperAdmin security access regressed'
+        assert 'href="mattermost.php"' in dashboard[2] and primary_client.request('mattermost.php')[0] == 200, 'Primary Mattermost access regressed'
         switch = primary_client.request('accounts.php', {'csrf_token': csrf(dashboard[2]),
                                                        'action': 'switch', 'account_key': 'test-account'})
         assert switch[0] == 302 and '/account_signin.php?ticket=' in switch[1].get('Location', '')
@@ -76,6 +81,7 @@ def main():
             client.login(user)
             assert 'href="two_factor_settings.php"' in client.request('dashboard.php')[2], 'Other Account lost security menu'
             assert client.request('two_factor_settings.php')[0] == 200, 'Other Account security access regressed'
+            assert 'href="mattermost.php"' in client.request('dashboard.php')[2] and client.request('mattermost.php')[0] == 200, 'Other Account Mattermost access regressed'
 
         anonymous = Client('http://localhost:8080/a/test-account')
         for route in ['setup_2fa.php', 'recover_password.php', 'verify_email.php']:

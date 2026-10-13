@@ -43,6 +43,15 @@ function requireAccountSecurityAccess(): void {
     if (!accountSecurityAccessAllowed()) { http_response_code(403); exit('Forbidden.'); }
 }
 
+/** Test Account cannot link identities or use the Mattermost integration. */
+function accountMattermostAccessAllowed(): bool {
+    return !accountsEnabled() || currentAccountKey() !== 'test-account';
+}
+
+function requireAccountMattermostAccess(): void {
+    if (!accountMattermostAccessAllowed()) { http_response_code(403); exit('Forbidden.'); }
+}
+
 function currentAccountKey(): string {
     $key = (string) (getenv('DNR_ACCOUNT_KEY') ?: 'shalom-in-messiah');
     if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key)) {

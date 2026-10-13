@@ -6,6 +6,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/mattermost_integration_helpers.php';
 startSecureSession();
 requireLogin();
+requireAccountMattermostAccess();
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
