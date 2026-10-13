@@ -85,6 +85,16 @@ state, and never replay integration deliveries. Verify a fresh before-change
 backup, stage the restore/remapping in an isolated database, and validate the
 result before replacing live Test Account business records.
 
+Assign all task assignees, engagement callers, inquiry owners, reimbursement
+expense owners and reimbursement request owners to the current pinned TestEditor
+identity after a restore. Update the owner details in saved reimbursement packages
+consistently. The guarded CLI operator `scripts/test_account_set_owner.php` plans
+this by default; `--apply` performs it, and `--apply --rollback` rehearses its
+database transaction in an isolated copy with copied files. Use a fresh verified
+backup and pause Test Account writers first.
+Per-user calendar examples and historical actor attribution retain their existing
+identities. Keep the original baseline unchanged.
+
 Read the baseline's `README.md`, `receipt.json`, `date-remap-manifest.json`, and
 `SHA256SUMS.json` before restoring. A second verified copy is at
 `output/test-account/snapshots/20261013T002933Z-9522b69c/` in the local workspace.

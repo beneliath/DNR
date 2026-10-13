@@ -15,14 +15,15 @@ DB='moed-account-test-account-db-1'
 def php(code, data=None, web=WEB):
     prefix='<?php require "/var/www/html/config.php"; require_once "/var/www/html/functions.php"; require_once "/var/www/html/two_factor_helpers.php"; '
     if data is not None:prefix+='$input=json_decode('+json.dumps(json.dumps(data))+',true); '
-    result=subprocess.run(['docker','exec','-i',web,'php'],input=prefix+code,text=True,capture_output=True,check=True)
+    result=subprocess.run(['docker','exec','-i',web,'php'],input=prefix+code,text=True,capture_output=True)
+    if result.returncode:raise RuntimeError((result.stderr+result.stdout)[:1800])
     return json.loads(result.stdout)
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--local-preview',action='store_true',required=True);parser.parse_args()
     lock=(ROOT/'var/deployment/account-provisioner.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    uid=None;other=None;demo_roles=[];password=secrets.token_hex(16)
+    uid=None;other=None;protected_fixture=None;demo_roles=[];password=secrets.token_hex(16)
     try:
         created=php("if($conn->query(\"SELECT 1 FROM users WHERE username='TestAdmin'\")->num_rows)throw new RuntimeException('A pre-existing TestAdmin must not be changed by this test.'); "
             "$p=$conn->query('SELECT settings FROM account_profile WHERE id=1')->fetch_assoc()['settings']; $conn->begin_transaction(); "
@@ -31,7 +32,8 @@ def main():
             "$conn->execute_query(\"UPDATE account_profile SET settings=JSON_SET(settings,'$.demo_password_only_user_id',CAST(? AS UNSIGNED)) WHERE id=1\",[$id]); "
             "$conn->commit();flushAccountDirectory();echo json_encode(['id'=>$id,'settings'=>$p]);",{'password':password})
         uid=created['id'];member=Client('http://localhost:8080/a/test-account')
-        protected=php("$u=$conn->execute_query('SELECT * FROM users WHERE id<>? ORDER BY id LIMIT 1',[$input['id']])->fetch_assoc();echo json_encode(['id'=>(int)$u['id'],'hash'=>hash('sha256',serialize($u))]);",{'id':uid})
+        protected_fixture=fixture(WEB)
+        protected=php("$u=$conn->execute_query('SELECT * FROM users WHERE id=?',[$input['id']])->fetch_assoc();echo json_encode(['id'=>(int)$u['id'],'hash'=>hash('sha256',serialize($u))]);",{'id':protected_fixture['users']['admin']['id']})
         form=member.request('/login.php')
         bad=member.request('/login.php',{'username':'TestAdmin','password':'wrong-password','csrf_token':csrf(form[2])})
         assert 'dashboard.php' not in bad[1].get('Location',''),'Wrong password accepted'
@@ -80,6 +82,7 @@ def main():
         print('PASS: password-only sign-in/elevation; restricted Users/navigation and GET/POST denial; protected user unchanged; cross-account denial; other-user MFA; session revocation.')
     finally:
         if other:cleanup('moed-account-account-isolation-preview-db-1',other)
+        if protected_fixture:cleanup(DB,protected_fixture)
         for demo_id in demo_roles:
             php("removeAccountLogin($conn,$input['id']);flushAccountDirectory();$conn->execute_query('DELETE FROM account_login_handoffs WHERE user_id=?',[$input['id']]);$conn->execute_query('DELETE FROM users WHERE id=?',[$input['id']]);echo '{}';",{'id':demo_id})
         if uid:
