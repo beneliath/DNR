@@ -14,6 +14,7 @@ from deployment_backup import create_verified_backup
 from storage_encryption_preflight import require_encrypted_upload_storage
 from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
+from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members
 
 
 def run(args, **kwargs):
@@ -106,6 +107,7 @@ def main():
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
         account_configuration = account_release_configuration(root, inspect(container('web'))['Config']['Env'])
+        members = discover_members(root, account_configuration['config']) if account_configuration else []
         storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
         def speaker_seed(action):
@@ -160,6 +162,7 @@ def main():
             raise
         try:
             compose('stop', *application_writers())
+            pause_members(members)
             save('backing-up')
             # Standing deployment directive: finish and verify a NEW backup before
             # changing the checkout, database version, schema, or application image.
@@ -167,6 +170,7 @@ def main():
                 container('db'), previous_database_image_id, images['app'], previous_commit,
                 run(['git', 'show', previous_commit + ':VERSION']), backup_password_file, records / 'backups'
             )
+            record['account_backups'] = backup_members(members, images['app'], backup_password_file, records)
             save('backup-verified')
             run(['git', 'merge', '--ff-only', expected])
             if account_configuration is not None:
@@ -181,6 +185,8 @@ def main():
             save('migrating')
             compose('run', '--rm', '--no-deps', 'migrator')
             compose('run', '--rm', '--no-deps', 'file-migrator')
+            save('migrating-accounts')
+            apply_members(root, members, release, env['DNR_BUILD_TIMESTAMP'])
             if speaker_seed_sha256:
                 save('seeding-speaker')
                 # The import checks every profile field/photo and all presentation
@@ -217,6 +223,8 @@ def main():
             health = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', public_url + '/health.php']))
             if ready.get('status') != 'ready' or ready.get('version') != version or health.get('status') != 'ok':
                 raise ValueError('Public readiness failed')
+            save('verifying-accounts')
+            record['accounts'] = start_and_verify_members(members, account_configuration['config'] if account_configuration else {}, release)
             record['outcome'] = 'success'
             save('verified')
             (records / 'current.json').write_text(json.dumps(record, indent=2) + '\n')
@@ -226,6 +234,8 @@ def main():
             record['error'] = str(error)
             # Schema may have advanced. Do not restart old writers or attempt a MySQL downgrade.
             try: compose('stop', *application_writers())
+            except subprocess.CalledProcessError: pass
+            try: pause_members(members)
             except subprocess.CalledProcessError: pass
             save(record['phase'])
             notice.finish(notice_id, 'failed')

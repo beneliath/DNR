@@ -63,6 +63,18 @@ run_integration_suite() {
     test_file=$1
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'record_merge_privileges_integration_test.php' ]; then
+        # Key rotation supplies fixture cleanup privileges and the application key;
+        # business actions use the real web grants.
+        compose run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            -e DNR_TEST_WEB_PASSWORD_FILE=/run/secrets/test_web_password \
+            -v "${PWD}/src:/var/www/html:ro" \
+            -v "${DNR_MYSQL_APP_PASSWORD_FILE:-${PWD}/secrets/mysql_app_password}:/run/secrets/test_web_password:ro" \
+            key-rotation "/opt/dnr/${test_file}" </dev/null
+        return
+    fi
     if [ "$test_name" = 'reimbursement_workflow_http_integration_test.php' ] \
         || [ "$test_name" = 'reimbursement_account_name_integration_test.php' ]; then
         # Receipts created by the fixture must have the same filesystem identity as Apache.

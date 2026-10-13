@@ -95,6 +95,12 @@ backup and pause Test Account writers first.
 Per-user calendar examples and historical actor attribution retain their existing
 identities. Keep the original baseline unchanged.
 
+After baseline ownership normalization, run `scripts/test_account_task_samples.php`
+with `--apply` and the refresh anchor. It adds six fictional general tasks, three
+each for the existing TestAdmin and TestReviewer identities, so TestEditor's
+All Active Tasks and My Active Tasks cards differ. This is an addition after
+the restore; it does not change the immutable snapshot or any user's access.
+
 Read the baseline's `README.md`, `receipt.json`, `date-remap-manifest.json`, and
 `SHA256SUMS.json` before restoring. A second verified copy is at
 `output/test-account/snapshots/20261013T002933Z-9522b69c/` in the local workspace.

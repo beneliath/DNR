@@ -246,6 +246,7 @@ html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
         height: 111px;
         overflow-y: auto;
         align-content: start;
+        grid-auto-rows: max-content;
     }
 
     .calendar-month-scroll.is-continuous tbody tr:last-child td {
@@ -257,6 +258,101 @@ html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
         top: 0;
         z-index: 1;
     }
+}
+
+html body button.calendar-day-toggle {
+    min-height: 26px !important;
+    margin: 0;
+    padding: 0 3px !important;
+    gap: 5px;
+    border: 0;
+    border-radius: 4px !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+}
+
+html body button.calendar-day-toggle:is(:hover, :focus-visible) {
+    outline: 0;
+    background: var(--surface-hover) !important;
+    box-shadow: var(--focus-ring);
+}
+
+.calendar-day-popover {
+    position: fixed;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(480px, calc(100vw - 24px));
+    max-height: min(560px, calc(100dvh - 24px));
+    padding: 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-md);
+}
+
+.calendar-day-popover[hidden] {
+    display: none;
+}
+
+.calendar-day-popover-heading {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.calendar-day-popover-heading h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.calendar-day-popover-heading p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: .8rem;
+}
+
+html body button.calendar-day-popover-close {
+    flex: 0 0 auto;
+    min-height: 32px !important;
+    margin: 0;
+    padding: 4px 8px !important;
+    background: var(--surface-hover) !important;
+    color: var(--text) !important;
+}
+
+.calendar-day-popover-close:focus-visible {
+    outline: 0;
+    box-shadow: var(--focus-ring);
+}
+
+.calendar-day-popover-items {
+    display: grid;
+    grid-auto-rows: max-content;
+    min-height: 0;
+    gap: 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.calendar-day-popover-items :is(.calendar-item-title, .calendar-item-meta) {
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.calendar-day-popover-items .calendar-item-title {
+    font-size: .9rem;
+}
+
+.calendar-day-popover-items .calendar-item-meta {
+    font-size: .78rem;
 }
 
 .calendar-scroll-status {

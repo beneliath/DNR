@@ -38,6 +38,17 @@ expectDashboardHelper(
 );
 
 expectDashboardHelper(
+    dashboardEngagementReadinessIssues([
+        'confirmation_status' => 'confirmed',
+        'event_country' => 'US',
+        'event_city' => '  ',
+        'active_presentation_count' => 1,
+        'assigned_contact_count' => 1,
+    ]) === ['Venue address missing'],
+    'a default country with no venue location must remain an operational gap.'
+);
+
+expectDashboardHelper(
     dashboardGreetingName([
         'profile_first_name' => 'Mary Jane',
         'profile_display_name' => 'Mary Jane Watson',

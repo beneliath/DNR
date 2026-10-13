@@ -3303,7 +3303,7 @@ html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,

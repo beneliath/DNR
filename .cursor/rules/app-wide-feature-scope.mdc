@@ -1,0 +1,10 @@
+---
+description: Apply feature and behavior changes across the application unless explicitly scoped to Test Account
+alwaysApply: true
+---
+
+# Feature request scope
+
+- Treat feature and behavior requests as app-wide unless the user explicitly limits the request to Test Account or another account.
+- A demonstration login, screenshot, or Test Account example does not restrict the feature implementation to that login or account.
+- Keep explicitly requested Test Account data changes confined to Test Account; sample data does not change the scope of shared application behavior.

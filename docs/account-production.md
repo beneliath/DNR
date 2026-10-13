@@ -106,10 +106,24 @@ keys, application keys and backup passwords. There are no source bind mounts,
 public host ports, development overlays, database copies or shared file stores.
 The worker validates immutable image provenance, initializes only an empty
 private database, waits for service health and checks the Account identity over
-an authenticated HTTPS call before marking it ready. Pending operations resume
-with their saved release and configuration. An existing member release is never
+an authenticated HTTPS call before marking it ready. Activation verifies the
+actual running app, database and ingress images, plus the member's authenticated
+application commit and version against the current qualified primary release.
+Pending operations resume with their saved release and configuration only while
+that release remains current. An existing member release is never
 silently upgraded by creation retry; upgrading existing Accounts requires its
 own writer pause, fresh backup and qualified migration transaction.
+The guarded s1 release includes every ready member in the primary's save window
+and writer pause. It restore-verifies each member's encrypted database, files,
+and configuration backup before advancing the checkout. It preserves member
+topology, settings, secrets and authentication identities, refreshes frozen
+migration/grant scripts, and verifies all running services plus public and
+authenticated Account release provenance before completing the release.
+Restoring an archived Account or retrying provisioning from an older saved
+release stops before starting services or migrations. Keep that Account
+unavailable, complete its backed-up upgrade to the current qualified release,
+and then retry the requested operation. The worker preserves the recovery
+snapshot and never promotes an older deployment to ready.
 
 Provisioning saves a checksum-protected, resolved `runtime.compose.json` with the
 member's exact images, environment and service definitions, including optional
