@@ -12,8 +12,12 @@ eligibility revokes the password-only session.
 TestAdmin sees only itself under Users. Server-side guards block other user
 profiles, password/MFA resets, lifecycle actions, bulk user deletion and invitations.
 Its username and role stay fixed while personal profile fields remain editable.
-Account Security, MFA setup/recovery codes, recovery email changes and Account
-Settings are hidden and forbidden for TestAdmin, including direct GET/POST requests.
+Account Security is hidden and forbidden for every Test Account user, including
+Editor, Reviewer, ordinary Admin, and linked SuperAdmin identities. Direct GET/POST
+requests to password changes/recovery, MFA setup/recovery codes, and recovery-email
+changes/verification are blocked in this Account. Authentication MFA challenges
+still apply to users outside the three pinned demo exceptions. Account Settings
+remains hidden and forbidden for TestAdmin, including direct GET/POST requests.
 The operator's SuperAdmin login remains available with its existing MFA.
 
 The original synthetic fixture was anchored to October 12, 2026 and spans July
@@ -62,6 +66,38 @@ records retain the application's normal deletion restrictions; the operator's
 explicit demo refresh can replace the fictional baseline.
 
 ## Rebuild and refresh
+
+A request to refresh Test Account uses the approved immutable baseline at
+`/home/dgilmore/moed/var/backups/test-account-demo-baseline/20261013T002933Z-9522b69c/`,
+captured on October 12, 2026 in Chicago. Its original date anchor is `2026-10-12`.
+Use the then-current `America/Chicago` date as the new anchor and remap dates to
+span three calendar months before through nine calendar months after, clamping
+month ends and leap days. Preserve linked schedules, reimbursement snapshots and
+generated documents consistently with the remapped dates.
+
+Preserve current TestAdmin/Admin, TestEditor/Editor, and TestReviewer/Reviewer
+identities, passwords, active status, pinned 2FA exemptions, and existing access
+restrictions. Account Security stays unavailable to every user while in Test
+Account. Preserve the operator identity and current account settings/secrets;
+restore only the approved business data and assets. Keep the current shared app
+release. Never use the full snapshot to overwrite live users or authentication
+state, and never replay integration deliveries. Verify a fresh before-change
+backup, stage the restore/remapping in an isolated database, and validate the
+result before replacing live Test Account business records.
+
+Read the baseline's `README.md`, `receipt.json`, `date-remap-manifest.json`, and
+`SHA256SUMS.json` before restoring. A second verified copy is at
+`output/test-account/snapshots/20261013T002933Z-9522b69c/` in the local workspace.
+The private s1 bundle's `refresh-policy.json` identifies this approved baseline.
+The standing [baseline refresh rule](../.cursor/rules/test-account-baseline-refresh.mdc)
+applies to future requests; keep the baseline unchanged unless the user explicitly
+chooses a replacement.
+
+### Original seed regeneration (only when explicitly requested)
+
+The existing `test_account_refresh.py` rebuilds the original synthetic seed. It
+does not restore the captured baseline, so it is not the default operator for a
+Test Account refresh under the standing policy above.
 
 The saved s1 bundle is `/home/dgilmore/moed/var/demo/test-account/`. It contains
 the seed, asset generator, original generated assets, pristine reference data and refresh operator. The

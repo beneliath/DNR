@@ -14,6 +14,9 @@ function requestAccountEmailChange(
     string $password,
     string $code
 ): array {
+    if (!accountSecurityAccessAllowed()) {
+        throw new InvalidArgumentException('Account security changes are unavailable in this Account.');
+    }
     $email = normalizeAccountEmail($email);
     $user = fetchAuthenticationUserById($conn, $userId);
     if (!$user || $user['account_status'] !== 'active' || (int) $user['auth_version'] !== $authVersion) {
@@ -76,6 +79,9 @@ function requestAccountEmailChange(
 /** Verify the current address or atomically promote a pending address. */
 function verifyAccountEmail(mysqli $conn, string $token): bool
 {
+    if (!accountSecurityAccessAllowed()) {
+        throw new InvalidArgumentException('Account security changes are unavailable in this Account.');
+    }
     $conn->begin_transaction();
     try {
         $verification = findUserEmailToken($conn, 'verification', $token, true);

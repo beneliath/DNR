@@ -6,6 +6,7 @@ import secrets
 import subprocess
 from account_isolation_http_test import ROOT, Client, csrf, fixture, cleanup
 from account_creation_http_test import sql
+from account_security_http_test import assert_security_denied
 
 WEB='moed-account-test-account-web-1'
 DB='moed-account-test-account-db-1'
@@ -41,6 +42,7 @@ def main():
         assert signed[0]==302 and signed[1].get('Location')=='dashboard.php','Demo prompted for MFA enrollment/challenge'
         assert member.request(ticket)[0]==403,'Password handoff replay accepted'
         assert member.request('dashboard.php')[0]==200,'Password-only session rejected'
+        assert_security_denied(member,password,uid)
         assert member.request('users.php')[0]==200,'Ordinary Admin access missing'
         assert member.request('accounts.php')[0]==403,'Demo has platform account-directory access'
         assert member.request('/a/shalom-in-messiah/dashboard.php')[0]==302,'Demo can enter the primary Account'
@@ -52,7 +54,7 @@ def main():
         users=member.request('users.php');assert 'TestAdmin' in users[2] and 'href="edit_user.php?id='+str(protected['id'])+'"' not in users[2], 'Other user displayed'
         assert 'href="account_settings.php"' not in users[2] and 'href="two_factor_settings.php"' not in users[2] and 'href="register.php"' not in users[2], 'Restricted navigation displayed'
         token=csrf(users[2])
-        for route in ['account_settings.php','two_factor_settings.php','setup_2fa.php','two_factor_recovery_codes.php','register.php','edit_user.php?id='+str(protected['id']),'profile_picture.php?id='+str(protected['id'])]:
+        for route in ['account_settings.php','register.php','edit_user.php?id='+str(protected['id']),'profile_picture.php?id='+str(protected['id'])]:
             assert member.request(route)[0]==403, 'Restricted page accessible: '+route
             assert member.request(route,{'csrf_token':token,'action':'change_password','password':password,'new_password':password+'1','new_password_confirmation':password+'1'})[0]==403, 'Restricted POST accepted: '+route
         assert member.request('reset_user_password.php?id='+str(protected['id']))[0]==403,'Other password form accessible'
@@ -66,6 +68,7 @@ def main():
             demo_roles.append(new['id']);visitor=Client('http://localhost:8080/a/test-account');form=visitor.request('/login.php')
             login=visitor.request('/login.php',{'username':name,'password':password,'csrf_token':csrf(form[2])});assert login[0]==302
             signed=visitor.request(login[1]['Location']);assert signed[0]==302 and signed[1].get('Location')=='dashboard.php','Demo role required MFA'
+            assert_security_denied(visitor,password,new['id'])
             assert visitor.request('dashboard.php')[0]==200 and visitor.request('users.php')[0]==403 and visitor.request('accounts.php')[0]==403,'Demo role gained Admin access'
             assert visitor.request('/a/shalom-in-messiah/dashboard.php')[0]==302,'Demo role entered primary account'
             if role=='reviewer': assert visitor.request('index.php')[0] in [302,403],'Reviewer gained edit access'
