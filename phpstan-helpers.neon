@@ -47,6 +47,8 @@ parameters:
         - src/database_backup_service.php
         - src/deployment_notice_helpers.php
         - src/dashboard_helpers.php
+        - src/engagement_location_helpers.php
+        - src/account_release_helpers.php
         - src/daily_digest_email.php
         - src/engagement_export_helpers.php
         - src/presentation_export_helpers.php

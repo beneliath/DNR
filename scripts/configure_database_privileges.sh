@@ -174,7 +174,7 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.data_management_health TO '${MYSQL_USER}'@
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
-GRANT UPDATE (follow_up_task_id) ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
+GRANT UPDATE (follow_up_task_id, organization_id) ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.email_message_templates TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_cost_centers TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_expenses TO '${MYSQL_USER}'@'%';

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/task_visibility_helpers.php';
+require_once __DIR__ . '/engagement_location_helpers.php';
 
 /**
  * @param array<string, mixed> $engagement
@@ -15,21 +16,7 @@ function dashboardEngagementReadinessIssues(array $engagement): array
         $issues[] = 'Not confirmed';
     }
 
-    $has_address = false;
-    foreach ([
-        'event_address_line_1',
-        'event_address_line_2',
-        'event_city',
-        'event_state',
-        'event_zipcode',
-        'event_country',
-    ] as $address_field) {
-        if (trim((string) ($engagement[$address_field] ?? '')) !== '') {
-            $has_address = true;
-            break;
-        }
-    }
-    if (!$has_address) {
+    if (!engagementHasVenueLocation($engagement)) {
         $issues[] = 'Venue address missing';
     }
     if ((int) ($engagement['active_presentation_count'] ?? 0) < 1) {

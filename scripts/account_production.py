@@ -291,6 +291,15 @@ def saved_active_services(directory):
     return validate_active_services(document)
 
 
+def require_current_runtime(config, directory, metadata):
+    """Recovery snapshots are preserved, but stale releases cannot be activated."""
+    document = json.loads((directory/'runtime.compose.json').read_text())
+    images = {kind:document['services'][service]['image']
+              for kind,service in [('app','web'),('database','db'),('ingress','ingress')]}
+    if metadata.get('commit') != config['commit'] or images != config['images']:
+        raise ValueError('Account requires a backed-up upgrade to the current qualified release before activation')
+
+
 def validate_active_services(document):
     active = document.get('x-moed-active-services')
     if not isinstance(active, list) or not {'web','ingress'}.issubset(active) \
@@ -406,8 +415,13 @@ def verify_images(config):
 
 
 def ready_probe(config, key, public_url=None):
-    # The response is HMAC authenticated and names the private database identity.
-    control(config['primary_web'], 'probe', key, public_url or config['origin']+'/a/'+key)
+    # Check actual containers as well as the authenticated public route. A saved
+    # manifest alone does not establish what is serving the Account now.
+    for kind,service in [('app','web'),('database','db'),('ingress','ingress')]:
+        member = inspect(config['project_prefix']+'-'+key+'-'+service+'-1')
+        if member['Config']['Image'] != config['images'][kind] or not member['State']['Running']:
+            raise ValueError('Running Account service does not match the current qualified release')
+    control(config['primary_web'], 'probe', key, public_url or config['origin']+'/a/'+key, config['commit'])
 
 
 def provision(config, key):
@@ -453,12 +467,13 @@ def provision(config, key):
         private_file(statefile,json.dumps(state,indent=2))
         prepare_member_runtime(config,key,account,directory,state)
     dc=saved_compose(directory,project,state)
+    require_current_runtime(config,directory,state)
     document=json.loads(runtime.read_text())
     public_url=document['services']['web']['environment']['DNR_PUBLIC_BASE_URL']
     def call(*args): return run(dc+list(args),env=clean_environment(),cwd=ROOT,capture_output=True)
     call('up','-d','--no-build','--wait','db')
-    # A retry runs only the original member's migrator/configuration. The primary
-    # may have advanced, but no newer image or checkout enters this transaction.
+    # Retry only a snapshot qualified at the current release. An older database
+    # requires its own writer pause, verified backup and release transaction.
     call('run','--rm','--no-deps','migrator')
     sql="""SET @fresh=((SELECT account_key FROM account_profile WHERE id=1)='shalom-in-messiah'
       AND (SELECT COUNT(*) FROM users)=0 AND (SELECT COUNT(*) FROM organizations)=0 AND (SELECT COUNT(*) FROM engagements)=0);
@@ -542,6 +557,7 @@ def lifecycle(config,account):
         if containers: run(['docker','stop',*containers],capture_output=True)
         # Stopping ingress withdraws its route from Traefik. Stored volumes survive archive.
     if state=='restoring':
+        require_current_runtime(config,directory,metadata)
         run(dc+['up','-d','--no-build','--no-deps','--wait','db'],env=clean_environment(),capture_output=True)
         run(root_command(project+'-db-1','mysql','-uroot','dnr'),input='UPDATE users SET auth_version=auth_version+1; DELETE FROM account_login_handoffs;',capture_output=True)
         # Restart only the saved services. In particular, do not run migrator or

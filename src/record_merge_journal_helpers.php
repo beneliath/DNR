@@ -23,10 +23,23 @@ function mergeJournalSnapshot(mysqli $conn, string $kind, int $source, int $targ
     $snapshot=[$table=>$conn->execute_query("SELECT * FROM {$table} WHERE id IN (?,?) OR merged_into_id IN (?,?) ORDER BY id FOR UPDATE",[$source,$target,$source,$target])->fetch_all(MYSQLI_ASSOC)];
     foreach (mergeJournalRelations($kind) as $relation=>$column) {
         $order=match($relation) {'contact_organizations'=>'contact_id,organization_id', 'engagement_contacts'=>'engagement_id,contact_id,contact_role', default=>'id'};
-        $snapshot[$relation]=$conn->execute_query("SELECT * FROM {$relation} WHERE {$column} IN (?,?) ORDER BY {$order} LIMIT 10001 FOR UPDATE",[$source,$target])->fetch_all(MYSQLI_ASSOC);
+        // Email delivery payloads remain private to the dispatch worker. Only
+        // the live reference moves during a merge; sending history stays intact.
+        $columns = mergeJournalEmailReferenceColumns($relation);
+        $selection = $columns === [] ? '*' : implode(',', $columns);
+        $snapshot[$relation]=$conn->execute_query("SELECT {$selection} FROM {$relation} WHERE {$column} IN (?,?) ORDER BY {$order} LIMIT 10001 FOR UPDATE",[$source,$target])->fetch_all(MYSQLI_ASSOC);
         if(count($snapshot[$relation])>10000) throw new InvalidArgumentException('This merge exceeds the reviewable relationship limit. Contact an administrator.');
     }
     return $snapshot;
+}
+
+function mergeJournalEmailReferenceColumns(string $table): array
+{
+    return match ($table) {
+        'engagement_email_deliveries' => ['id', 'contact_id'],
+        'engagement_email_messages' => ['id', 'organization_id'],
+        default => [],
+    };
 }
 
 function journalRecordMerge(mysqli $conn, string $kind, int $source, int $target, int $actor, array $before): void
@@ -40,6 +53,13 @@ function journalRecordMerge(mysqli $conn, string $kind, int $source, int $target
 /** Updates rows in place: child FKs, files and completed financial reports never cascade. */
 function restoreMergeJournalRow(mysqli $conn, string $table, array $row): void
 {
+    $referenceColumns = mergeJournalEmailReferenceColumns($table);
+    if ($referenceColumns !== []) {
+        // Also supports older journals that included the full email row.
+        $column = $referenceColumns[1];
+        $conn->execute_query("UPDATE {$table} SET {$column}=? WHERE id=?", [$row[$column], $row['id']]);
+        return;
+    }
     $keys=match($table) {'contact_organizations'=>['contact_id','organization_id'], 'engagement_contacts'=>['engagement_id','contact_id','contact_role'], default=>['id']};
     $values=array_diff_key($row,array_flip([...$keys,'normalized_email']));
     // A restored record has a new edit version; never revive an old concurrency token.
@@ -59,6 +79,15 @@ function undoRecordMerge(mysqli $conn, int $journalId, int $actor): void
         $kind=$journal['entity_type']; $source=(int)$journal['source_id']; $target=(int)$journal['target_id'];
         $saved=unserialize(ApplicationKey::open($journal['snapshot_ciphertext']),['allowed_classes'=>false]);
         if(!is_array($saved) || !is_array($saved['before']??null) || !is_array($saved['after']??null)) throw new RuntimeException('Invalid merge journal.');
+        foreach (mergeJournalRelations($kind) as $relation => $column) {
+            $columns = mergeJournalEmailReferenceColumns($relation);
+            if ($columns !== [] && isset($saved['after'][$relation])) {
+                $saved['after'][$relation] = array_map(
+                    static fn(array $row): array => array_intersect_key($row, array_flip($columns)),
+                    $saved['after'][$relation]
+                );
+            }
+        }
         $current=mergeJournalSnapshot($conn,$kind,$source,$target);
         if($current!==$saved['after']) throw new InvalidArgumentException('Records or relationships changed after this merge. Undo would overwrite later work; review the records manually.');
         $table=mergeRecordTable($kind);

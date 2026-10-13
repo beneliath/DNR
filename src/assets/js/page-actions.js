@@ -466,6 +466,14 @@
                     options[targetIndex].focus();
                 }
             });
+            select.addEventListener('change', function () {
+                const configuration = regionData[state.currentCountry];
+                if (!configuration) return;
+                const choice = choiceForValue(configuration, select.value);
+                state.values[state.currentCountry] = choice ? choice.code : '';
+                updatePickerLabel(state, configuration, choice);
+                clearRegionError(state);
+            });
             select.addEventListener('invalid', function (event) {
                 event.preventDefault();
                 const configuration = regionData[state.currentCountry];

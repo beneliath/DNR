@@ -60,7 +60,10 @@ class ProductionAccountTest(unittest.TestCase):
                 with self.assertRaises(ValueError):production.lifecycle(config(),{'account_key':'shalom-in-messiah','state':state})
 
     def test_failed_identity_probe_cannot_mark_ready(self):
-        with patch.object(production,'control',side_effect=RuntimeError('identity mismatch')) as control:
+        members=[{'Config':{'Image':config()['images'][kind]},'State':{'Running':True}}
+                 for kind in ['app','database','ingress']]
+        with patch.object(production,'inspect',side_effect=members), \
+             patch.object(production,'control',side_effect=RuntimeError('identity mismatch')) as control:
             with self.assertRaises(RuntimeError):production.ready_probe(config(),'test-account')
             self.assertEqual(control.call_args.args[1],'probe')
 
@@ -133,33 +136,41 @@ class ProductionAccountTest(unittest.TestCase):
                     else:
                         with self.assertRaises(ValueError):production.assert_primary(value)
 
-    def test_restore_uses_frozen_runtime_without_migrations_after_primary_upgrade(self):
+    def test_restore_requires_current_release_before_starting_saved_services(self):
         value=config()
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);directory=root/'var/accounts/test-account';directory.mkdir(parents=True)
-            old={'services':{s:{'image':'old-'+s} for s in ['web','db','ingress']},'x-moed-active-services':['web','ingress'], 'x-moed-frozen-configuration':{}}
-            (directory/'runtime.compose.json').write_text(json.dumps(old))
-            metadata={'mode':'production','project':'moed-account-test-account','commit':'1'*40,
-                      'runtime_sha256':production.sha(directory/'runtime.compose.json')}
-            (directory/'deployment.json').write_text(json.dumps(metadata))
-            def control(*args):
-                return [{'account_key':'test-account','state':'restoring'}] if args[1]=='lifecycle' else None
-            with patch.object(production,'ROOT',root),patch.object(production,'assert_primary'), \
-                 patch.object(production,'verify_images') as verify,patch.object(production,'ready_probe'), \
-                 patch.object(production,'control',side_effect=control), \
-                 patch.object(production,'run',return_value=SimpleNamespace(stdout='')) as run:
-                production.lifecycle(value,{'account_key':'test-account','state':'restoring'})
-            self.assertEqual(verify.call_args.args[0]['commit'],'1'*40)
-            starts=[call.args[0] for call in run.call_args_list if 'up' in call.args[0]]
-            self.assertEqual(len(starts),2)
-            self.assertEqual(starts[-1][-2:],['web','ingress'])
-            for command in starts:
-                self.assertIn('--no-deps',command)
-                self.assertIn(str(directory/'runtime.compose.json'),command)
-                self.assertNotIn(str(root/'docker-compose.yaml'),command)
-                self.assertNotIn('migrator',command)
-            (directory/'runtime.compose.json').write_text('{}')
-            with self.assertRaises(ValueError):production.saved_compose(directory,metadata['project'],metadata)
+        for stale in [False, True]:
+            with self.subTest(stale=stale), tempfile.TemporaryDirectory() as folder:
+                root=Path(folder);directory=root/'var/accounts/test-account';directory.mkdir(parents=True)
+                document={'services':{s:{'image':value['images'][k]} for k,s in [('app','web'),('database','db'),('ingress','ingress')]},
+                          'x-moed-active-services':['web','ingress'], 'x-moed-frozen-configuration':{}}
+                runtime=directory/'runtime.compose.json';runtime.write_text(json.dumps(document))
+                metadata={'mode':'production','project':'moed-account-test-account','commit':'1'*40 if stale else value['commit'],
+                          'runtime_sha256':production.sha(runtime)}
+                (directory/'deployment.json').write_text(json.dumps(metadata))
+                def control(*args):
+                    return [{'account_key':'test-account','state':'restoring'}] if args[1]=='lifecycle' else None
+                with patch.object(production,'ROOT',root),patch.object(production,'assert_primary'), \
+                     patch.object(production,'verify_images'),patch.object(production,'ready_probe') as probe, \
+                     patch.object(production,'control',side_effect=control) as controller, \
+                     patch.object(production,'run',return_value=SimpleNamespace(stdout='')) as run:
+                    if stale:
+                        with self.assertRaisesRegex(ValueError, 'backed-up upgrade'):
+                            production.lifecycle(value,{'account_key':'test-account','state':'restoring'})
+                        run.assert_not_called();probe.assert_not_called()
+                        self.assertFalse(any(c.args[1]=='lifecycle_complete' for c in controller.call_args_list))
+                    else:
+                        production.lifecycle(value,{'account_key':'test-account','state':'restoring'})
+                        starts=[c.args[0] for c in run.call_args_list if 'up' in c.args[0]]
+                        self.assertEqual(len(starts),2)
+                        self.assertEqual(starts[-1][-2:],['web','ingress'])
+                        for command in starts:
+                            self.assertIn('--no-deps',command)
+                            self.assertIn(str(runtime),command)
+                            self.assertNotIn('migrator',command)
+                        self.assertEqual(controller.call_args.args[1:3],('lifecycle_complete','test-account'))
+                self.assertEqual(json.loads((directory/'deployment.json').read_text()),metadata)
+                runtime.write_text('{}')
+                with self.assertRaises(ValueError):production.saved_compose(directory,metadata['project'],metadata)
 
     def test_configuration_survives_checkout_change_and_detects_tampering(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -188,34 +199,59 @@ class ProductionAccountTest(unittest.TestCase):
                 with self.assertRaises(ValueError):production.save_runtime(directory,'synthetic',{})
             self.assertFalse((directory/'runtime.compose.json').exists())
 
-    def test_resume_provisioning_keeps_old_runtime_after_primary_upgrade(self):
+    def test_resume_provisioning_requires_current_release_and_preserves_snapshot(self):
         value=config()
-        for checksum_saved in [True,False]:
-            with self.subTest(checksum_saved=checksum_saved), tempfile.TemporaryDirectory() as folder:
+        for checksum_saved,stale in [(True,False),(False,False),(True,True),(False,True)]:
+            with self.subTest(checksum_saved=checksum_saved,stale=stale), tempfile.TemporaryDirectory() as folder:
                 root=Path(folder);directory=root/'var/accounts/test-account';directory.mkdir(parents=True)
-                document={'services':{s:{'image':'old-'+s} for s in ['web','db','ingress','migrator']},
+                document={'services':{s:{'image':value['images'][k]} for k,s in [('app','web'),('database','db'),('ingress','ingress'),('database','migrator')]},
                           'x-moed-active-services':['web','ingress'],'x-moed-frozen-configuration':{}}
-                document['services']['web']['environment']={'DNR_PUBLIC_BASE_URL':config()['origin']+'/a/test-account'}
+                document['services']['web']['environment']={'DNR_PUBLIC_BASE_URL':value['origin']+'/a/test-account'}
                 runtime=directory/'runtime.compose.json';runtime.write_text(json.dumps(document))
-                state={'mode':'production','account_key':'test-account','project':'moed-account-test-account','commit':'1'*40}
+                original=runtime.read_bytes()
+                commit='1'*40 if stale else value['commit']
+                state={'mode':'production','account_key':'test-account','project':'moed-account-test-account','commit':commit}
                 if checksum_saved:state['runtime_sha256']=production.sha(runtime)
                 (directory/'deployment.json').write_text(json.dumps(state))
                 def run(command,**kwargs):
                     return SimpleNamespace(stdout='test-account' if 'SELECT account_key' in kwargs.get('input','') else '')
-                with patch.object(production,'ROOT',root),patch.object(production,'assert_primary') as primary, \
-                     patch.object(production,'verify_images') as verify,patch.object(production,'ready_probe'), \
+                with patch.object(production,'ROOT',root),patch.object(production,'assert_primary'), \
+                     patch.object(production,'verify_images'),patch.object(production,'ready_probe') as probe, \
                      patch.object(production,'project_resources',return_value=[]), \
                      patch.object(production,'prepare_member_runtime',side_effect=AssertionError('Rebuilt saved release')), \
                      patch.object(production,'control',return_value={'name':'Synthetic'}) as control, \
                      patch.object(production,'run',side_effect=run) as commands:
-                    production.provision(value,'test-account')
-                primary.assert_called_once_with(value)
-                self.assertTrue(all(c.args[0]['commit']=='1'*40 for c in verify.call_args_list))
-                for call in commands.call_args_list:
-                    if call.args[0][:2]==['docker','compose']:
-                        self.assertIn(str(runtime),call.args[0])
-                self.assertEqual(json.loads((directory/'deployment.json').read_text())['commit'],'1'*40)
-                self.assertEqual(control.call_args.args[1:3],('ready','test-account'))
+                    if stale:
+                        with self.assertRaisesRegex(ValueError, 'backed-up upgrade'):
+                            production.provision(value,'test-account')
+                        commands.assert_not_called();probe.assert_not_called()
+                        self.assertFalse(any(c.args[1]=='ready' for c in control.call_args_list))
+                    else:
+                        production.provision(value,'test-account')
+                        self.assertEqual(control.call_args.args[1:3],('ready','test-account'))
+                        for call in commands.call_args_list:
+                            if call.args[0][:2]==['docker','compose']:
+                                self.assertIn(str(runtime),call.args[0])
+                self.assertEqual(json.loads((directory/'deployment.json').read_text())['commit'],commit)
+                self.assertEqual(runtime.read_bytes(),original)
+
+    def test_activation_checks_running_images_and_authenticated_release(self):
+        value=config()
+        members=[{'Config':{'Image':value['images'][k]},'State':{'Running':True}}
+                 for k in ['app','database','ingress']]
+        with patch.object(production,'inspect',side_effect=members),patch.object(production,'control') as control:
+            production.ready_probe(value,'test-account')
+            self.assertEqual(control.call_args.args, (value['primary_web'],'probe','test-account',
+                             value['origin']+'/a/test-account',value['commit']))
+        for kind in range(3):
+            for failure in ['image','stopped']:
+                with self.subTest(kind=kind,failure=failure):
+                    changed=copy.deepcopy(members)
+                    if failure=='image':changed[kind]['Config']['Image']='old-image'
+                    else:changed[kind]['State']['Running']=False
+                    with patch.object(production,'inspect',side_effect=changed),patch.object(production,'control') as control:
+                        with self.assertRaises(ValueError):production.ready_probe(value,'test-account')
+                        control.assert_not_called()
 
     def test_pre_runtime_retry_requires_no_existing_resources_and_preserves_secrets(self):
         value=config()

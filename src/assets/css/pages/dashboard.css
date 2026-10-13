@@ -311,6 +311,23 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     box-shadow: inset 4px 0 0 var(--task-today-row-accent);
 }
 
+.dashboard-page :is(.dashboard-record-list, .dashboard-attention-list) > li {
+    box-sizing: border-box;
+    min-height: var(--dashboard-row-height, 0px);
+}
+
+.dashboard-page .dashboard-row-window {
+    max-height: var(--dashboard-row-window-height, 400px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+}
+
+.dashboard-page .dashboard-row-window:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
 .dashboard-record-main {
     display: flex;
     min-width: 0;

@@ -50,12 +50,16 @@
         save.addEventListener('click',persist);
         restore.addEventListener('click',function () {
             if(!saved || saved.version!==versions()) return;
-            const available=controls(); const consumed=new Set(); const missing=[];
-            available.forEach(el => { if (el.type === 'checkbox') el.checked = false; });
-            saved.fields.forEach(function (value) {
-                const el=available.find((el,index)=>!consumed.has(index) && el.name===value.name && el.type===value.type && (!['checkbox','radio'].includes(el.type) || el.value===value.value));
+            const consumed=new Set(); const missing=[];
+            controls().forEach(el => { if (el.type === 'checkbox') el.checked = false; });
+            // Countries rebuild region choices and can switch between a select
+            // and a text input. Restore them first, then find the live controls.
+            const isCountry = value => Array.from(form.elements).some(el => el.name===value.name && el.hasAttribute('data-address-country-native'));
+            const fields = saved.fields.filter(isCountry).concat(saved.fields.filter(value => !isCountry(value)));
+            fields.forEach(function (value) {
+                const el=controls().find(el=>!consumed.has(el) && el.name===value.name && el.type===value.type && (!['checkbox','radio'].includes(el.type) || el.value===value.value));
                 if(!el) { missing.push(value); return; }
-                consumed.add(available.indexOf(el));
+                consumed.add(el);
                 if(el.tagName==='SELECT' && !Array.from(el.options).some(o=>o.value===value.value)) { missing.push(value); return; }
                 if(['checkbox','radio'].includes(el.type)) el.checked=value.checked; else el.value=value.value;
                 // Applying a template would overwrite the restored body and recipient choices.

@@ -496,11 +496,13 @@ reported on return to the original list and filters. Permanent deletion cannot b
 
 See [Presentation QR Codes](docs/qr-code-system.md) for generated speaker links, public notes downloads, statistics, and country-detection configuration.
 
-### Financial closeout and giving history
+### Financial closeout and receipt history
 
 Editors and administrators can close an active event from its detail page by finalizing the actual
-giving/income, lodging, and travel amounts received. These actual receipts are stored separately
-from the anticipated travel, lodging, and compensation fields used during planning. Before the first
+Giving, Lodging, Travel, and Book Table amounts received. Every category requires an explicit
+amount: enter zero when nothing was received; a blank draft amount remains unknown. These actual
+receipts are stored separately from the anticipated travel, lodging, and compensation fields used
+during planning. Before the first
 report can be finalized, every event task due on or before the last active presentation must be
 marked Completed. Tasks due after that presentation and tasks without due dates do not hold the
 closeout. A report can be corrected later without changing its original closer or close timestamp;
@@ -508,9 +510,10 @@ concurrent corrections are rejected rather than silently overwriting newer figur
 correction is captured by the database audit log.
 
 Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
-event, and aggregate lodging and travel receipts from finalized reports only. “Latest event” follows
-the event end date, even if its report was entered later, and archived events remain part of the
-historical totals. The organization list also shows latest-event and lifetime giving for quick review.
+event, and aggregate lodging, travel, and book-table receipts from finalized reports only.
+“Latest event” follows the event end date, even if its report was entered later, and archived events remain part of the
+historical totals. The organization list shows **Last Receipts** and **Lifetime Receipts**, combining
+all four receipt categories, for quick review.
 
 ### Map and venue locations
 

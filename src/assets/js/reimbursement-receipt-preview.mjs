@@ -2,8 +2,8 @@ const previews = document.querySelectorAll('[data-pdf-receipt-preview]');
 
 if (previews.length) {
     let pdfjsPromise;
-    function loadPdfJs() { return pdfjsPromise ||= import('./vendor/pdfjs-6.3.289/pdf.min.mjs').then((pdfjs) => {
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-6.3.289/pdf.worker.min.mjs', import.meta.url).href;
+    function loadPdfJs() { return pdfjsPromise ||= import('./vendor/pdfjs-6.4.299/pdf.min.mjs').then((pdfjs) => {
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs-6.4.299/pdf.worker.min.mjs', import.meta.url).href;
         return pdfjs;
     }); }
 

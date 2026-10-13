@@ -122,6 +122,14 @@ def main():
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
             if sys.argv[1:] == ['data-management']:
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TARGET=disposable', '-e', 'DNR_INTEGRATION_TEST=1',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+                    '-e', 'DNR_TEST_WEB_PASSWORD_FILE=/run/secrets/test_web_password',
+                    '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    '-v', values['DNR_MYSQL_APP_PASSWORD_FILE']+':/run/secrets/test_web_password:ro',
+                    'key-rotation', '/opt/dnr/tests/record_merge_privileges_integration_test.php'],
+                    cwd=ROOT, env=env, check=True)
                 for suite in ('data_management_integration_test.php', 'review_improvements_integration_test.php',
                               'contact_organizations_integration_test.php','data_maintenance_integration_test.php','financial_tracking_integration_test.php'):
                     subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
