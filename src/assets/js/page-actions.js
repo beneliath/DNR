@@ -1353,6 +1353,20 @@
         });
     }
 
+    function initializeDashboardHighlights() {
+        document.querySelectorAll('[data-dashboard-highlight]').forEach(function (card) {
+            card.addEventListener('click', function (event) {
+                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                const panel = document.getElementById(card.dataset.dashboardHighlight);
+                if (!panel) return;
+                panel.classList.remove('dashboard-panel-highlight');
+                // Flush the removed class so each click restarts the outline animation.
+                panel.getBoundingClientRect();
+                panel.classList.add('dashboard-panel-highlight');
+            });
+        });
+    }
+
     function initializeStatusMessages() {
         document.querySelectorAll('.error:not([role]), .dialog-inline-error:not([role])').forEach(function (message) {
             message.setAttribute('role', 'alert');
@@ -1411,6 +1425,7 @@
         initializeInvitationSubmission();
         initializeInquiryTabs();
         initializeDisclosurePopovers();
+        initializeDashboardHighlights();
         const success = document.querySelector('.success');
         if (success && document.querySelector('.engagement-form')) {
             const reduceMotion = window.matchMedia

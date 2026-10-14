@@ -16,6 +16,26 @@ html.dark-mode .dashboard-page {
     --dashboard-mail-bg: #463b78;
 }
 
+.dashboard-panel-highlight {
+    outline: 3px solid var(--accent);
+    outline-offset: 5px;
+    scroll-margin-block: 100px;
+    animation: dashboard-panel-blink 900ms ease-in-out 3;
+}
+
+@keyframes dashboard-panel-blink {
+    0%, 100% { outline-offset: 5px; }
+    50% { outline-offset: 10px; outline-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-panel-highlight { animation: none; }
+}
+
+@media (forced-colors: active) {
+    .dashboard-panel-highlight { outline-color: Highlight; }
+}
+
 .dashboard-heading {
     margin-bottom: 0;
 }
