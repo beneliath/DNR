@@ -185,6 +185,11 @@ verified download with `python3 scripts/manual/build.py --install`, and rerun
 and include the updated asset manifest in the release so the download's cache
 identity matches its contents. The builder uses Arial when installed and Helvetica otherwise.
 
+Regenerate the AI Coach index after installing a changed PDF with
+`python3 scripts/ai_help/index_comprehensive_manual.py`, and include
+`src/data/ai-coach-comprehensive-manual.json` in the release. The Coach checks
+the PDF checksum before using this index for guidance and page citations.
+
 When the root README changes, refresh its Markdown snapshot before building.
 Use Node with `marked` installed; set `MARKED_MODULE` to its module path if needed:
 

@@ -1,9 +1,9 @@
 {
   "document": {
     "title": "MOED Comprehensive User Manual",
-    "subject": "Illustrated application reference, version 2.5.13, updated October 13, 2026",
+    "subject": "Illustrated application reference, version 2.5.14, updated October 13, 2026",
     "path": "assets/docs/moed-comprehensive-user-manual.pdf",
-    "sha256": "aed6abe5fb4ab6728f911c231928f051bca70e76b6bdd530d362f686cc85acd6",
+    "sha256": "87d3b2f1f7621ecbf3ad5350a27f06c527c339c00973d721724079c39d7a17c3",
     "pages": 189,
     "index_version": 1
   },
@@ -1272,13 +1272,13 @@
       "end_page": 84,
       "text": "Figure 62. Schedule a standard task for existing engagements. Actual preview screen; fictional records. 01 Enter the reusable title and notes above the Scheduling section. Choose priority, date anchor, day offset, and display order. 02 Administrators can check Also add this task to all active, open engagements before Add standard task. Editors can maintain definitions but cannot use bulk generation. 03 This adds the task to unarchived engagements with an Active lifecycle and open financial closeout. Copies use the date rule and go to the active Caller, or to the administrator if none is assigned. 04 On a saved definition, administrators can use Add to Active, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication. Screenshot context: The option is selected for illustration; the form was not submitted. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 96)"
     },
-    "manual-topic-work-queue-confirm-task-completion": {
-      "id": "manual-topic-work-queue-confirm-task-completion",
+    "manual-topic-work-queue-complete-a-task-and-review-the-result": {
+      "id": "manual-topic-work-queue-complete-a-task-and-review-the-result",
       "chapter": "work-queue",
-      "title": "Confirm task completion",
+      "title": "Complete a Task and Review the Result",
       "page": 85,
       "end_page": 85,
-      "text": "Figure 63. Confirm task completion. Actual preview screen; fictional records. 01 Select the check-mark Complete task action in the queue or a related record's task list. 02 Read Complete Task? and select Complete Task only when the work is finished. 03 Cancel or press Esc to return without changing the task. Screenshot context: The confirmation was canceled; no task was completed during capture. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 96)"
+      "text": "Figure 63. Complete a Task and Review the Result. Actual preview screen; fictional records. 01 Select the check-mark Complete task action only when the work is finished. 02 If Complete Task? appears, confirm the named task with Complete Task, or use Cancel or Esc to leave it unchanged. 03 Review the completion notice and the Completed or Closed list. When the notice offers Undo, use it promptly to restore the previous status. Screenshot context: The completed list shows a fictional preview task. No task is completed by the capture utility. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 96)"
     },
     "manual-topic-work-queue-restore-a-task-with-its-original-status": {
       "id": "manual-topic-work-queue-restore-a-task-with-its-original-status",
@@ -1902,7 +1902,7 @@
       "title": "Set Your Personal Reimbursement Reviewer",
       "page": 122,
       "end_page": 122,
-      "text": "Figure 90. Set Your Personal Reimbursement Reviewer. Actual preview screen; fictional records. 01 Open My Profile from the sidebar and find Personal Details. 02 Enter Reimbursement Reviewer Email. This address receives a Cc copy of requests you submit and is separate from your account email. 03 Select Save Changes below the profile panels. Verify the actual recipients again before submitting a reimbursement. Screenshot context: Personal Details crop from the current profile screen, with fictional example.org addresses. Related chapters: Roles and access (p. 11) / Profile and security (p. 124) / Administration (p. 138)"
+      "text": "Figure 90. Set Your Personal Reimbursement Reviewer. Actual preview screen; fictional records. 01 Open My Profile from the sidebar and find Personal Details. 02 Enter Reimbursement Reviewer Email. This address receives a Cc copy of requests you submit and is separate from your account email. 03 Select Save Changes below the profile panels. Verify the actual recipients again before submitting a reimbursement. Screenshot context: Personal Details section from the current profile screen, with fictional example.org addresses. Related chapters: Roles and access (p. 11) / Profile and security (p. 124) / Administration (p. 138)"
     },
     "manual-topic-reimbursements-pdf-receipt-pages-within-the-report": {
       "id": "manual-topic-reimbursements-pdf-receipt-pages-within-the-report",
@@ -2350,7 +2350,7 @@
       "title": "Confirm or cancel the batch",
       "page": 146,
       "end_page": 146,
-      "text": "Figure 103. Confirm or cancel the batch. Actual preview screen; fictional records. 01 The Are you sure? dialog appears after the review, including when you use Enter in the confirmation field. 02 Select Delete permanently only when ready. Cancel closes the dialog without deleting accounts. 03 Read the result counts on the user list. Deletion checks administrator access and the current unlock deadline again. Screenshot context: Enter was verified to open this dialog. The batch was canceled; no accounts were deleted. Related chapters: Roles and access (p. 11) / Profile and security (p. 124) / Troubleshooting (p. 157) / Reimbursements (p. 105)"
+      "text": "Figure 103. Confirm or cancel the batch. Actual preview screen; fictional records. 01 On the review page, check the selected users and type DELETE USERS in the confirmation field. 02 Choose permanent deletion only when ready. If a final confirmation dialog appears, Cancel or Esc returns without deleting accounts. 03 Read the result counts on the user list. Deletion checks administrator access and the current unlock deadline again. Screenshot context: The confirmation phrase is entered for illustration. The request was not submitted and no accounts were deleted. Related chapters: Roles and access (p. 11) / Profile and security (p. 124) / Troubleshooting (p. 157) / Reimbursements (p. 105)"
     },
     "manual-topic-administration-invite-a-new-user": {
       "id": "manual-topic-administration-invite-a-new-user",
@@ -2662,7 +2662,7 @@
       "title": "Edition and source notes",
       "page": 162,
       "end_page": 163,
-      "text": "Application version: MOED / DNR 2.5.13. Guide updated: October 13, 2026. This refresh covers application changes from 2.4.1 through 2.5.13: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. Unchanged workflows retain their previous illustrations. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
+      "text": "Application version: MOED / DNR 2.5.14. Guide updated: October 13, 2026. This refresh covers application changes from 2.4.1 through 2.5.14: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. All illustrated workflows use fresh high-resolution captures from the current application source. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
     },
     "manual-topic-operator-appendix-readme-md": {
       "id": "manual-topic-operator-appendix-readme-md",
@@ -2670,7 +2670,7 @@
       "title": "README.md",
       "page": 163,
       "end_page": 164,
-      "text": "Complete README for application source 2.5.13 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 110,248 bytes · October 13, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 164 Application workflows - p. 168 Email and integrations - p. 172 Configuration reference - p. 178 Security and operations - p. 183 Development and contributing - p. 188 License - p. 189 Storage and delivery hardening - p. 189 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
+      "text": "Complete README for application source 2.5.14 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 110,248 bytes · October 13, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 164 Application workflows - p. 168 Email and integrations - p. 172 Configuration reference - p. 178 Security and operations - p. 183 Development and contributing - p. 188 License - p. 189 Storage and delivery hardening - p. 189 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
     },
     "manual-topic-operator-appendix-getting-started-and-deployment": {
       "id": "manual-topic-operator-appendix-getting-started-and-deployment",
