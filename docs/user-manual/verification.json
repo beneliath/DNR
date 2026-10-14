@@ -28,8 +28,16 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.5.13",
+    "version": "2.5.14",
     "edition_date": "October 13, 2026",
     "cover_and_metadata": "verified"
+  },
+  "screenshot_quality": {
+    "native_png_figures": 114,
+    "lossless_embedded_figures": 114,
+    "minimum_effective_dpi": 300.0,
+    "source_pixels": "identical to included capture pixels",
+    "resampling": false,
+    "sharpening": false
   }
 }

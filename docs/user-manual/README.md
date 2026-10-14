@@ -9,9 +9,13 @@ Reference text, the topic finder, and the README use two columns. Walkthrough
 screenshots span the columns for legibility, with their numbered instructions in
 two columns underneath. The cover draws the paths from `src/assets/dnr-logo.svg`
 as native PDF vectors and omits the light asset's white background path.
-Screenshots retain the original browser image; optional `crop` bounds in
+Screenshots retain the original browser pixels; optional `crop` bounds in
 `screenshots.json` frame complete rows and form sections inside the PDF without
-resampling the source. The PDF keeps only the copyright line wherever a captured
+resampling the source. The builder embeds only the included pixels using lossless
+PDF compression. The builder requires actual PNG image data and keeps captures
+unsharpened. Source files remain intact. Use fresh captures at native high
+resolution; enlarging old images cannot recover lost detail.
+The PDF keeps only the copyright line wherever a captured
 application footer appears. `omitted_regions` excludes decorative footer content
 while preserving the sidebar and its profile controls in full-shell views.
 Reference tables and paragraphs with long unbreakable references span the full
@@ -32,6 +36,11 @@ The downloadable copy is `src/assets/docs/moed-comprehensive-user-manual.pdf`.
 The local authoring output is `output/pdf/moed-comprehensive-user-manual.pdf`.
 `build-report.json` records page locations and `verification.json` records the
 checks performed against the finished PDF.
+
+All 114 figures were recaptured on October 13, 2026. Browser views use native
+3x-resolution PNGs; the generated receipt-report page is rendered at 300 DPI.
+The PDF limits image enlargement to retain at least 300 effective DPI and
+verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
@@ -206,11 +215,16 @@ birthday, user, and manually confirmed map pin. Pass the seed's ID JSON as its
 first argument. These scripts are CLI-only and never send mail.
 
 For a manual refresh, use CUA to sign in, navigate, and save screenshots with the
-viewports and crops described in `screenshots.json`. Export each
+viewports and crops described in `screenshots.json`. Prefer lossless PNG captures
+at three device pixels per CSS pixel; do not resize or convert them to JPEG.
+Crop and omitted-region coordinates refer to source image pixels, so update them
+when replacing a capture at a different resolution. Check the actual image format
+instead of relying on its extension. Export each
 `[data-manual-section]` element’s id, h2 text, inner HTML, and keywords to
 `online-chapters.json`. Do not capture entered passwords or authentication codes.
 
-The existing CLI capture utility can also be run by an operator with
+The existing CLI capture utility waits for fonts and captures lossless PNGs at
+3x device resolution without enlarging the CSS viewport. It can be run with
 `node scripts/manual/capture.cjs`, supplying:
 
 - `PLAYWRIGHT_MODULE`: installed Playwright module path, if not on Node's path.
@@ -222,6 +236,21 @@ The existing CLI capture utility can also be run by an operator with
 - `DNR_MANUAL_FIXTURE_JSON`: local seed result JSON.
 - `DNR_MANUAL_EXTRA_JSON`: local augmentation result JSON.
 - Optional `DNR_MANUAL_ONLY`: comma-separated screenshot IDs to refresh.
+- Optional `DNR_MANUAL_WORK_DIR`: ignored directory for page snapshots and capture results.
+- Optional `DNR_MANUAL_OUTPUT_DIR`: staging directory for PNGs and an updated manifest;
+  omit to update the checked-in guide sources.
+- Optional `DNR_MANUAL_SLIDEDECK_FILE`: sample PowerPoint for the unsaved replacement view.
+
+The fixture ID JSON retains `org`, `contact`, `speaker`, `event`, `task`, `inquiry`,
+and `mail`. The augmentation JSON supplies `past_event`, `target_user`, `link`,
+`presentation`, and IDs for the newer figures: `expenses` (an array), `request`,
+`submitted`, `duplicate_org`, `archived_inquiry`, `template`, and `standard`.
+Prepare their fictional states in the disposable preview before capturing.
+The utility reads the existing manifest to preserve titles and instructions,
+captures separate anonymous sign-in views, and blocks business-changing POSTs.
+Authentication and selection-review POSTs are allowed. It replaces old crop
+bounds with the new capture's native pixel dimensions and records its viewport
+and CSS clip separately. Review every replacement before rebuilding the PDF.
 
 Keep credentials, session cookies, enrollment keys, and raw captured page HTML
 out of Git. Captures submit only account authentication when needed; they
