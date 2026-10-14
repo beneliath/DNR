@@ -482,7 +482,7 @@
       "patterns": [
         "\\b(?:complete|finish)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}(?:follow up\\s+)?task\\b|\\bmark\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}task (?:as )?(?:complete|done)\\b"
       ],
-      "topic": "manual-topic-work-queue-confirm-task-completion",
+      "topic": "manual-topic-work-queue-complete-a-task-and-review-the-result",
       "roles": [
         "admin",
         "editor"

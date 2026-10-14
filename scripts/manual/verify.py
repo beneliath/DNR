@@ -4,6 +4,7 @@ import hashlib, importlib.util, json, re
 import pdfplumber
 from pathlib import Path
 from pypdf import PdfReader
+from PIL import Image
 
 ROOT=Path(__file__).resolve().parents[2]
 reader=PdfReader(ROOT/'output/pdf/moed-comprehensive-user-manual.pdf')
@@ -41,9 +42,29 @@ def check_outline(entries):
             assert 0<=number<len(pages)
             outline_count+=1
 check_outline(reader.outline)
+figure_pages={}
 for number,shot in enumerate(shots,1):
     index=report['destinations']['shot-'+shot['id']]-1
-    assert len(pages[index].images)>0,('Missing screenshot',shot['id'])
+    figure_pages[index+1]=shot
+    images=pages[index].images
+    assert len(images)==1,('Expected one screenshot',shot['id'])
+    with Image.open(ROOT/'docs/user-manual'/shot['file']) as source:
+        assert source.format=='PNG',('Screenshot is not a native PNG',shot['id'])
+        expected=source.convert('RGB')
+        if 'crop' in shot:
+            x,y,w,h=shot['crop'];expected=expected.crop((x,y,x+w,y+h))
+        else:x=y=0
+        for omitted in shot.get('omitted_regions',[]):
+            ox,oy,ow,oh=omitted['box'];expected.paste(omitted['fill'],(ox-x,oy-y,ox+ow-x,oy+oh-y))
+        embedded=images[0].image.convert('RGB')
+        assert embedded.size==expected.size,('Screenshot was resampled',shot['id'])
+        assert hashlib.sha256(embedded.tobytes()).digest()==hashlib.sha256(expected.tobytes()).digest(),('Screenshot pixels changed',shot['id'])
+    for ref in pages[index]['/Resources']['/XObject'].values():
+        obj=ref.get_object()
+        if obj.get('/Subtype')=='/Image':
+            filters=obj.get('/Filter',[])
+            if isinstance(filters,str):filters=[filters]
+            assert '/FlateDecode' in filters and '/DCTDecode' not in filters,('Screenshot compression is lossy',shot['id'])
     assert 'Figure ' in texts[index],('Figure caption missing',shot['id'])
     assert report['destinations']['end-shot-'+shot['id']]==index+1,('Split walkthrough',shot['id'])
 all_text='\n'.join(texts)
@@ -118,8 +139,14 @@ assert len(pages[0].images)==0, 'The cover logo must remain vector, not a raster
 assert sum(operator==b'c' for _,operator in pages[0].get_contents().operations)>100, 'SVG logo vector paths missing'
 reverse_pages=0
 sparse_pages_checked=0
+figure_dpis=[]
 with pdfplumber.open(ROOT/'output/pdf/moed-comprehensive-user-manual.pdf') as document:
     for number,page in enumerate(document.pages,1):
+        if number in figure_pages:
+            for image in page.images:
+                dpi=min(image['srcsize'][0]*72/(image['x1']-image['x0']),image['srcsize'][1]*72/(image['y1']-image['y0']))
+                assert dpi>=299.99,('Screenshot below 300 DPI',figure_pages[number]['id'],dpi)
+                figure_dpis.append(dpi)
         layout=report['page_layouts'][str(number)]
         if layout in ('columns','mixed','readme-columns','readme-mixed','readme-wide'):
             body=page.crop((manual.M,42,manual.W-manual.M,740)).extract_text() or ''
@@ -148,5 +175,8 @@ result['format']={'reference_text':'two columns','walkthrough_instructions':'two
 result['format'].update({'full_width_reference_blocks':len(report['full_width_blocks']),'automatic_word_breaks':0})
 result['format'].update({'sparse_reference_pages_checked':sparse_pages_checked,'stray_continuation_pages':0,'paragraph_widows_and_orphans':'disabled','screenshot_footer_policy':report['screenshot_footer_policy']})
 result['release']={'version':manual.VERSION,'edition_date':manual.EDITION_DATE,'cover_and_metadata':'verified'}
+result['screenshot_quality']={'native_png_figures':len(shots),'lossless_embedded_figures':len(figure_dpis),
+    'minimum_effective_dpi':round(min(figure_dpis),2),'source_pixels':'identical to included capture pixels',
+    'resampling':False,'sharpening':False}
 (ROOT/'docs/user-manual/verification.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))

@@ -1,5 +1,5 @@
 {
-  "version": "2.5.13",
+  "version": "2.5.14",
   "edition_date": "October 13, 2026",
   "pages": 189,
   "screenshots": 114,
@@ -520,7 +520,7 @@
     "__total__": 189
   },
   "outline_entries": 397,
-  "edition_scope": "Application release 2.5.13",
+  "edition_scope": "Application release 2.5.14",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -1090,14 +1090,13 @@
   ],
   "automatic_word_breaks": 0,
   "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted",
-  "footer_adjusted_figures": [
-    "dark",
-    "roles",
-    "inquiry-action",
-    "organizations",
-    "email-message",
-    "setup"
-  ],
+  "screenshot_quality": {
+    "embedding": "lossless Flate compression at original cropped pixel dimensions",
+    "native_png_processing": "no sharpening or resampling",
+    "minimum_effective_dpi": 300,
+    "future_capture_device_scale_factor": 3
+  },
+  "footer_adjusted_figures": [],
   "cover_logo": {
     "source": "src/assets/dnr-logo.svg",
     "rendering": "native PDF vector paths",
