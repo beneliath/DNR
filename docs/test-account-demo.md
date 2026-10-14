@@ -119,6 +119,53 @@ The standing [baseline refresh rule](../.cursor/rules/test-account-baseline-refr
 applies to future requests; keep the baseline unchanged unless the user explicitly
 chooses a replacement.
 
+### Daily baseline refresh on s1
+
+The s1 user crontab runs the approved baseline restore every morning at **02:00
+America/Chicago**. It follows CST/CDT automatically. Debian cron runs the skipped
+02:00 job shortly after the spring-forward change and avoids duplicate fixed-time
+runs during clock changes. The managed block is `MOED TEST ACCOUNT BASELINE REFRESH`;
+other cron entries remain intact.
+
+The installed runner is
+`/home/dgilmore/.local/lib/moed-test-account-refresh/v1/test_account_baseline_refresh.py`.
+It restores the immutable October 12 baseline, using that morning's Chicago date
+and a window from three calendar months before through nine after. Monthly events
+clamp month ends and leap days; event durations, presentation offsets, linked task
+deadlines, inquiry next actions, historical timestamps, receipts and submitted
+reimbursement packages are remapped consistently. It normalizes ownership to
+TestEditor, adds the six team tasks, and ensures an available Financial Closeout.
+
+Each run first restores/remaps/validates in a network-isolated disposable database.
+Only after that passes does it pause Test Account's ingress and workers, make a
+fresh encrypted restore-verified backup, and transactionally replace the explicit
+business-table allowlist. Users, passwords, MFA pins, account settings, calendar
+subscriptions, secrets and the shared app release are preserved. Pending business
+deliveries/queues referring to discarded tester data are cleared, never replayed.
+It verifies data/assets and the demo policy and makes a verified final snapshot
+before resuming the saved services without recreating containers.
+
+The job shares the deployment lock and has its own overlap lock. A busy deployment,
+changed schema or member encryption keys, failed validation/backup, or less than
+2 GiB free disk causes it to fail safely. Schema/key changes require qualification
+of the restore operator before daily refresh can resume; it never downgrades the
+application. If replacement has started and a later check fails, it leaves Test
+Account paused for operator recovery and retains its before-change backup.
+
+State, receipts and the saved original crontab are private under
+`/home/dgilmore/.local/state/moed-test-account-refresh/`. Inspect `status.json`,
+`latest-receipt.json` and `run.log`; a failed scheduled run also emits a
+`moed-test-account-refresh` error to the system journal. Backups remain under
+`var/backups/test-account-demo-before/` and `test-account-demo-pitstop/`.
+
+Run the installed runner without `--apply` for a rehearsal, optionally with
+`--as-of=YYYY-MM-DD` to verify another date. This does not replace live data.
+`scripts/install_test_account_refresh_schedule.py` requires a successful rehearsal
+of the exact installed bundle and live app within 24 hours, verifies the host's
+Chicago timezone and running cron service, saves the original crontab, and rejects
+duplicate managed blocks. To disable the schedule, remove only its managed block
+from `dgilmore`'s crontab.
+
 ### Original seed regeneration (only when explicitly requested)
 
 The existing `test_account_refresh.py` rebuilds the original synthetic seed. It
