@@ -155,7 +155,7 @@ $task_status_labels = followUpTaskStatuses();
             <span><small>Booking Inquiries</small><strong><?php echo $booking_inquiry_count; ?></strong></span>
         </a>
         <?php if ($financial_closeout_count > 0): ?>
-            <a class="summary-card dashboard-summary-card summary-review" href="#financial-closeouts">
+            <a class="summary-card dashboard-summary-card summary-review" href="#financial-closeouts" data-dashboard-highlight="financial-closeouts">
                 <span class="summary-icon" aria-hidden="true">$</span>
                 <span><small>Financial Closeouts</small><strong><?php echo $financial_closeout_count; ?></strong></span>
             </a>
