@@ -9,6 +9,14 @@ foreach (['javascript:alert(1)', "https://example.com/\r\nX:hi", 'https://user:p
     try { shortLinkTarget($target); throw new RuntimeException('Unsafe target accepted'); } catch (InvalidArgumentException $expected) {}
 }
 expectShortLink(shortLinkTarget('https://example.com/books?a=1&b=2#title') === 'https://example.com/books?a=1&b=2#title', 'Target query and fragment preserved');
+foreach (['/surls/0123456789abcdef', '/short_link.php?code=0123456789abcdef',
+    '/a/shalom-in-messiah/surls/0123456789abcdef', '/a/test-account/surls/0123456789abcdef',
+    '/a/test-account/short_link.php?code=0123456789abcdef'] as $path) {
+    try { shortLinkTarget('https://moed.example.com' . $path); throw new RuntimeException('MOED redirect loop target accepted: ' . $path); }
+    catch (InvalidArgumentException $expected) {}
+}
+expectShortLink(shortLinkTarget('https://example.com/a/test-account/surls/books') === 'https://example.com/a/test-account/surls/books', 'Other sites may use similar paths.');
+expectShortLink(shortLinkTarget('https://moed.example.com/a/test-account/view_engagement.php?id=9') === 'https://moed.example.com/a/test-account/view_engagement.php?id=9', 'Normal account pages are not short-link loops.');
 expectShortLink(shortLinkStatsDates('2026-02-01', '2026-02-28') === ['2026-02-01 00:00:00', '2026-03-01 00:00:00'], 'Inclusive UTC end date');
 foreach ([['2026-02-30','2026-03-01'], ['2026-03-02','2026-03-01'], ['2020-01-01','2026-01-01']] as [$from,$to]) {
     try { shortLinkStatsDates($from,$to); throw new RuntimeException('Bad dates accepted'); } catch (InvalidArgumentException $expected) {}

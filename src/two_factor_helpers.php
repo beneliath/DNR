@@ -501,7 +501,8 @@ function adminElevationRequestReturnUrl($return_url) {
 
         $referrer = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
         $origin = parse_url((requestUsesHttps() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? ''));
-        $directory = dirname((string) ($_SERVER['PHP_SELF'] ?? '/'));
+        // The account proxy strips the public prefix from PHP_SELF, but not from referrers.
+        $directory = accountPublicPath() ?: dirname((string) ($_SERVER['PHP_SELF'] ?? '/'));
         if (is_array($referrer) && is_array($origin)
             && ($referrer['scheme'] ?? '') === ($origin['scheme'] ?? '')
             && strcasecmp($referrer['host'] ?? '', $origin['host'] ?? '') === 0

@@ -60,7 +60,7 @@ function shortLinkTarget(string $value): string
     // Avoid cycles through our resolver, which would inflate counts and never reach a destination.
     $origin = parse_url((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
     if (is_array($origin) && strtolower($parts['host'] ?? '') === strtolower($origin['host'] ?? '')
-        && (str_starts_with($parts['path'] ?? '', '/surls/') || ($parts['path'] ?? '') === '/short_link.php')) {
+        && preg_match('~\A(?:/a/[a-z][a-z0-9-]{2,63})?/(?:surls(?:/|\z)|short_link\.php(?:/|\z))~', $parts['path'] ?? '')) {
         throw new InvalidArgumentException('Choose the final destination, not another MOED short link.');
     }
     return $value;
