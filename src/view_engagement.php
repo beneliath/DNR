@@ -450,8 +450,8 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     <button type="button" role="tab" id="engagement-activity-tab" aria-controls="chron-log" aria-selected="true">Activity <span><?php echo $chron_entry_count; ?></span></button>
                     <button type="button" role="tab" id="engagement-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($engagement_email_messages) === 10 ? '10+' : count($engagement_email_messages); ?></span></button>
                     <button type="button" role="tab" id="engagement-tasks-tab" aria-controls="engagement-tasks" aria-selected="false">Tasks <span><?php echo count($context_tasks); ?></span></button>
-                    <button type="button" role="tab" id="engagement-presentations-tab" aria-controls="engagement-presentations" aria-selected="false">Presentations</button>
-                    <button type="button" role="tab" id="engagement-contacts-tab" aria-controls="engagement-contacts" aria-selected="false">Contacts</button>
+                    <button type="button" role="tab" id="engagement-presentations-tab" aria-controls="engagement-presentations" aria-selected="false">Presentations <span><?php echo count($presentations); ?></span></button>
+                    <button type="button" role="tab" id="engagement-contacts-tab" aria-controls="engagement-contacts" aria-selected="false">Contacts <span><?php echo count($contacts); ?></span></button>
                     <button type="button" role="tab" id="engagement-logistics-tab" aria-controls="engagement-logistics" aria-selected="false">Logistics</button>
                     <button type="button" role="tab" id="engagement-financials-tab" aria-controls="financial-closeout" aria-selected="false">Financials</button>
                 </div>
