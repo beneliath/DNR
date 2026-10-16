@@ -145,12 +145,26 @@ deliveries/queues referring to discarded tester data are cleared, never replayed
 It verifies data/assets and the demo policy and makes a verified final snapshot
 before resuming the saved services without recreating containers.
 
-The job shares the deployment lock and has its own overlap lock. A busy deployment,
-changed schema or member encryption keys, failed validation/backup, or less than
-2 GiB free disk causes it to fail safely. Schema/key changes require qualification
-of the restore operator before daily refresh can resume; it never downgrades the
+The job shares the deployment lock and has its own overlap lock. It applies new
+migrations using Test Account's current frozen release migration files and runner
+only inside its owned, network-isolated disposable restore. The migrated ledger
+and column definitions must match live Test Account before data remapping and
+replacement; the live schema and migration ledger are never changed by a refresh.
+It preserves migration-added business defaults, including the mileage reimbursement
+account. Changed/missing baseline migrations, incomplete migrations, incompatible
+schemas or member encryption keys, a busy deployment, failed validation/backup,
+or less than 2 GiB free disk cause it to fail safely. It never downgrades the
 application. If replacement has started and a later check fails, it leaves Test
 Account paused for operator recovery and retains its before-change backup.
+
+Every schema change must include any necessary refresh-operator adjustments and
+an isolated baseline restore rehearsal against the target qualified release.
+Verify migration order/checksums, the resulting schema, migration-added business
+defaults, remapped data/assets, and preserved identities/settings before declaring
+the release ready. Keep the installed nightly operator aligned and recheck it
+against the deployed schema before the next scheduled run. This compatibility
+check does not itself request an additional live refresh; retain all safety gates
+and leave the approved baseline and other accounts unchanged.
 
 State, receipts and the saved original crontab are private under
 `/home/dgilmore/.local/state/moed-test-account-refresh/`. Inspect `status.json`,
