@@ -201,13 +201,24 @@ def control_proxy_service(config, configuration, image):
                            'interval':'10s','timeout':'3s','retries':3}}
 
 
+def backend_ipam(subnet, ingress_ip):
+    """Keep the static ingress address outside Docker's dynamic allocation pool."""
+    network = ipaddress.ip_network(subnet)
+    reserved = ipaddress.ip_address(ingress_ip)
+    if network.version != 4 or reserved not in network or network.prefixlen > 28:
+        raise ValueError('Backend requires an IPv4 subnet with room for reserved ingress and services')
+    pool = next(part for part in network.subnets(prefixlen_diff=1) if reserved not in part)
+    return {'subnet': str(network), 'ip_range': str(pool)}
+
+
 def primary_overlay(config, directory=None):
     directory = directory or ROOT/PRIMARY_DIRECTORY
     environment = account_environment(config, config['primary_key'], True)
     relay=control_proxy_service(config, directory/'control.conf', '${DNR_INGRESS_IMAGE:?Qualified ingress image required}')
     if config.get('primary_control_edge_ip'):
         relay['networks']={'backend':{},'edge':{'ipv4_address':config['primary_control_edge_ip']}}
-    return {'networks':{'edge':{'external':True,'name':config['edge_network']}},
+    return {'networks':{'edge':{'external':True,'name':config['edge_network']},
+            'backend':{'ipam':{'config':[backend_ipam(config['primary_backend_subnet'], config['primary_ingress_ip'])]}}},
             'services': {**{s:{'environment':environment} for s in SERVICES},
             'mail-ingest':{'environment':environment},
             'account-control':relay,
@@ -521,7 +532,9 @@ def prepare_member_runtime(config,key,account,directory,state):
     member_environment['DNR_PLATFORM_API_KEY_FILE'] = '/run/secrets/platform_api_key'
     for service in SERVICES:
         overlay['services'][service]={'environment':member_environment,'secrets':['platform_api_key']}
-    for name,subnet in state['networks'].items(): overlay['networks'][name]={'ipam':{'config':[{'subnet':subnet}]}}
+    for name,subnet in state['networks'].items():
+        ipam = backend_ipam(subnet, values['DNR_INGRESS_PROXY_IP']) if name == 'backend' else {'subnet':subnet}
+        overlay['networks'][name]={'ipam':{'config':[ipam]}}
     private_file(directory/'ingress-security.conf',ingress_security_configuration(key,values['DNR_PUBLIC_BASE_URL']))
     overlay['services']['ingress']={'networks':{'edge':{}},'labels':labels(config,key),
         'volumes':[str(directory/'ingress-security.conf')+':/etc/apache2/conf-enabled/zy-dnr-account-security.conf:ro']}
