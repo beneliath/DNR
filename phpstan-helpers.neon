@@ -16,6 +16,7 @@ parameters:
         - src/reimbursement_admin_helpers.php
         - src/reimbursement_workflow_helpers.php
         - src/reimbursement_helpers.php
+        - src/reimbursement_mileage_helpers.php
         - src/record_merge_journal_helpers.php
         - src/record_merge_helpers.php
         - src/ai_coach_helpers.php

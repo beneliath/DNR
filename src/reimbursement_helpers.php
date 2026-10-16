@@ -6,6 +6,7 @@ require_once __DIR__ . '/persistent_file_helpers.php';
 require_once __DIR__ . '/document_scanning_helpers.php';
 require_once __DIR__ . '/reimbursement_workflow_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
+require_once __DIR__ . '/reimbursement_mileage_helpers.php';
 
 function reimbursementSubmissionNote(mixed $value): string
 {
@@ -67,7 +68,7 @@ function reimbursementSetup(mysqli $conn, bool $lock = false): array
 {
     $suffix = $lock ? ' FOR UPDATE' : '';
     $setup = $conn->query('SELECT bookkeeper_first_name, bookkeeper_last_name,
-        bookkeeper_email, bookkeeper_phone, reviewer_email, cc_email, version
+        bookkeeper_email, bookkeeper_phone, reviewer_email, cc_email, mileage_rate, version
         FROM reimbursement_setup WHERE id = 1' . $suffix)->fetch_assoc();
     if (!$setup) throw new RuntimeException('Reimbursement setup is unavailable.');
     // Read the current Account name without the profile cache. Submission review
@@ -136,11 +137,13 @@ function reimbursementUploadFiles(array $upload): array
 function saveReimbursementExpense(mysqli $conn, int $userId, array $input, array $files, ?int $id): int
 {
     $date = reimbursementDate($input['expense_date'] ?? null, 'expense date');
-    $merchant = trim((string) ($input['merchant'] ?? ''));
-    $description = trim((string) ($input['description'] ?? ''));
-    $amount = reimbursementAmountCents($input['amount'] ?? '');
+    $type = $input['expense_type'] ?? 'expense';
+    if (!in_array($type, ['expense', 'mileage'], true)) throw new InvalidArgumentException('Choose a valid expense type.');
+    $merchant = is_string($input['merchant'] ?? null) ? trim($input['merchant']) : '';
+    $description = is_string($input['description'] ?? null) ? trim($input['description']) : '';
+    $amount = $type === 'mileage' ? 0 : reimbursementAmountCents($input['amount'] ?? '');
     $costCenter = filter_var($input['cost_center_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-    if ($merchant === '' || mb_strlen($merchant) > 160 || mb_strlen($description) > 500) {
+    if ($type === 'expense' && ($merchant === '' || mb_strlen($merchant) > 160 || mb_strlen($description) > 500)) {
         throw new InvalidArgumentException('Enter a merchant or payee (160 characters or fewer) and a description of 500 characters or fewer.');
     }
     $token=$input['operation_token'] ?? null;
@@ -154,11 +157,31 @@ function saveReimbursementExpense(mysqli $conn, int $userId, array $input, array
         }
         $expense = $id !== null ? lockEditableReimbursementExpense($conn, $id, $userId) : null;
         if ($expense && isset($input['version']) && (int)$input['version'] !== (int)$expense['version']) throw new InvalidArgumentException('This expense changed in another tab. Your entered values are preserved below. Open a fresh view to compare before saving again.');
+        if ($expense && $expense['expense_type'] !== $type) throw new InvalidArgumentException('The expense type cannot be changed.');
+        $mileage = null;
+        if ($type === 'mileage') {
+            $rate = $expense ? $expense['mileage_rate'] : $conn->query('SELECT mileage_rate FROM reimbursement_setup WHERE id=1 FOR SHARE')->fetch_row()[0];
+            if (isset($input['mileage_rate']) && reimbursementMileageRate($input['mileage_rate']) !== $rate) {
+                throw new InvalidArgumentException('The reimbursement rate changed. Reload this form to review the updated amount before saving.');
+            }
+            $mileage = reimbursementMileageDetails($input, $rate);
+            if ($mileage['odometer_end'] === null && ($expense['status'] ?? null) === 'draft') {
+                throw new InvalidArgumentException('Remove this mileage entry from its draft request before clearing the Ending Odometer Reading.');
+            }
+            $merchant = $mileage['merchant'];
+            $description = $mileage['description'];
+            $amount = $mileage['amount_cents'];
+            // Resolve the designated account server-side; posted account IDs are ignored.
+            $mileageCenter = $conn->execute_query('SELECT id FROM reimbursement_cost_centers WHERE coa_number = ? FOR SHARE', ['6110'])->fetch_row();
+            $costCenter = $mileageCenter ? (int) $mileageCenter[0] : null;
+        }
         $stored=$id ? $conn->execute_query('SELECT COUNT(*) AS count, COALESCE(SUM(f.size),0) AS bytes FROM reimbursement_receipts rr JOIN stored_files f ON f.storage_key=rr.storage_key WHERE rr.expense_id=?',[$id])->fetch_assoc() : ['count'=>0,'bytes'=>0];
         if ((int)$stored['count']+count($files)>REIMBURSEMENT_MAX_RECEIPTS || (int)$stored['bytes']+array_sum(array_column($files,'size'))>REIMBURSEMENT_MAX_EXPENSE_BYTES) throw new InvalidArgumentException('An expense can hold at most 20 receipts totaling 15 MB. Remove unused files or reduce image sizes.');
         $center = $costCenter ? $conn->execute_query('SELECT is_archived FROM reimbursement_cost_centers WHERE id = ? FOR SHARE', [$costCenter])->fetch_assoc() : null;
         if (!$center || ((int) $center['is_archived'] && (int) ($expense['cost_center_id'] ?? 0) !== $costCenter)) {
-            throw new InvalidArgumentException('Choose an active account. You may keep the archived account already assigned to this expense.');
+            throw new InvalidArgumentException($type === 'mileage'
+                ? 'Mileage account 6110 is unavailable. Ask an administrator to add or restore 6110 · Mileage Reimbursement in Chart of Accounts.'
+                : 'Choose an active account. You may keep the archived account already assigned to this expense.');
         }
         if ($id !== null) {
             if ($expense['status'] === 'draft') {
@@ -174,6 +197,10 @@ function saveReimbursementExpense(mysqli $conn, int $userId, array $input, array
             $conn->execute_query('INSERT INTO reimbursement_expenses (user_id, expense_date, merchant, description, amount_cents, cost_center_id, operation_token) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [$userId, $date, $merchant, $description, $amount, $costCenter, $token]);
             $id = (int) $conn->insert_id;
+        }
+        if ($mileage !== null) {
+            $conn->execute_query("UPDATE reimbursement_expenses SET expense_type='mileage', origin_location=?, destination_location=?, odometer_start=?, odometer_end=?, mileage_rate=? WHERE id=?",
+                [$mileage['origin_location'], $mileage['destination_location'], $mileage['odometer_start'], $mileage['odometer_end'], $mileage['mileage_rate'], $id]);
         }
         foreach ($files as $file) {
             $key = storePersistentFileFromPath($conn, $file['path'], $file['filename'], $file['mime'], $file['size'], $file['sha256']);
@@ -196,7 +223,7 @@ function lockEditableReimbursementExpense(mysqli $conn, int $id, int $userId): a
 {
     $linked=$conn->execute_query('SELECT request_id FROM reimbursement_request_items WHERE expense_id=?',[$id])->fetch_row();
     if ($linked) $conn->execute_query('SELECT id FROM reimbursement_requests WHERE id=? FOR UPDATE',[(int)$linked[0]]);
-    $expense = $conn->execute_query('SELECT e.id, e.version, e.cost_center_id, e.is_archived AS expense_archived, r.status, r.is_archived
+    $expense = $conn->execute_query('SELECT e.id, e.version, e.cost_center_id, e.expense_type, e.mileage_rate, e.is_archived AS expense_archived, r.status, r.is_archived
         FROM reimbursement_expenses e
         LEFT JOIN reimbursement_request_items ri ON ri.expense_id = e.id
         LEFT JOIN reimbursement_requests r ON r.id = ri.request_id
@@ -276,9 +303,10 @@ function createReimbursementRequest(mysqli $conn, int $userId, string $start, st
         $requestId = (int) $conn->insert_id;
         sort($ids,SORT_NUMERIC);
         foreach ($ids as $id) {
-            $expense = $conn->execute_query('SELECT id FROM reimbursement_expenses WHERE id = ? AND user_id = ? AND is_archived = 0 AND expense_date BETWEEN ? AND ? FOR UPDATE',
-                [$id, $userId, $start, $end])->fetch_row();
+            $expense = $conn->execute_query('SELECT id, expense_type, odometer_end FROM reimbursement_expenses WHERE id = ? AND user_id = ? AND is_archived = 0 AND expense_date BETWEEN ? AND ? FOR UPDATE',
+                [$id, $userId, $start, $end])->fetch_assoc();
             if (!$expense) throw new InvalidArgumentException('An expense is outside the request date range or does not belong to you.');
+            requireCompleteReimbursementExpense($expense);
             if ($conn->execute_query('SELECT expense_id FROM reimbursement_request_items WHERE expense_id = ?', [$id])->fetch_row()) {
                 throw new InvalidArgumentException('An expense already belongs to a reimbursement request.');
             }
@@ -299,13 +327,14 @@ function submitReimbursementRequest(mysqli $conn, int $id, int $userId, bool $ma
     try {
         $request = $conn->execute_query('SELECT * FROM reimbursement_requests WHERE id = ? AND user_id = ? FOR UPDATE', [$id, $userId])->fetch_assoc();
         if (!$request || $request['status'] !== 'draft' || (int) $request['is_archived']) throw new InvalidArgumentException('Restore the draft before submitting it.');
-        $items = $conn->execute_query('SELECT ri.expense_id, e.expense_date, e.merchant, e.description, e.amount_cents,
+        $items = $conn->execute_query('SELECT ri.expense_id, e.expense_date, e.merchant, e.description, e.amount_cents, e.expense_type, e.odometer_end,
             c.coa_number, c.description AS coa_description FROM reimbursement_request_items ri
             JOIN reimbursement_expenses e ON e.id = ri.expense_id
             JOIN reimbursement_cost_centers c ON c.id = e.cost_center_id
             WHERE ri.request_id = ? ORDER BY e.id FOR UPDATE', [$id])->fetch_all(MYSQLI_ASSOC);
         if (!$items) throw new InvalidArgumentException('Add expenses before submitting a request.');
         foreach ($items as $item) {
+            requireCompleteReimbursementExpense($item);
             if ($item['expense_date'] < $request['start_date'] || $item['expense_date'] > $request['end_date']) {
                 throw new InvalidArgumentException('An expense is outside this request date range.');
             }

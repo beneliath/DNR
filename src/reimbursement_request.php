@@ -94,8 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $lockedRequest = $conn->execute_query('SELECT status, is_archived,start_date,end_date FROM reimbursement_requests WHERE id = ? AND user_id = ? FOR UPDATE', [$id, $userId])->fetch_assoc();
                 if (!$lockedRequest || $lockedRequest['status'] !== 'draft' || (int) $lockedRequest['is_archived']) throw new InvalidArgumentException('Restore the draft before editing it.');
-                if (!$conn->execute_query('SELECT id FROM reimbursement_expenses WHERE id = ? AND user_id = ? AND is_archived = 0 AND expense_date BETWEEN ? AND ? FOR UPDATE',
-                    [$expenseId, $userId, $lockedRequest['start_date'], $lockedRequest['end_date']])->fetch_row()) throw new InvalidArgumentException('Expense is outside this request date range.');
+                $expenseToAdd = $conn->execute_query('SELECT id, expense_type, odometer_end FROM reimbursement_expenses WHERE id = ? AND user_id = ? AND is_archived = 0 AND expense_date BETWEEN ? AND ? FOR UPDATE',
+                    [$expenseId, $userId, $lockedRequest['start_date'], $lockedRequest['end_date']])->fetch_assoc();
+                if (!$expenseToAdd) throw new InvalidArgumentException('Expense is outside this request date range.');
+                requireCompleteReimbursementExpense($expenseToAdd);
                 $conn->execute_query('INSERT INTO reimbursement_request_items (request_id, expense_id) VALUES (?, ?)', [$id, $expenseId]);
                 reimbursementEvent($conn,'request',$id,'draft_updated');
                 $conn->commit();
@@ -118,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $items = $conn->execute_query('SELECT ri.expense_id, COALESCE(ri.expense_date, e.expense_date) AS expense_date,
     COALESCE(ri.merchant, e.merchant) AS merchant, COALESCE(ri.description, e.description) AS description,
     COALESCE(ri.amount_cents, e.amount_cents) AS amount_cents,
+        e.expense_type, e.origin_location, e.destination_location, e.odometer_start, e.odometer_end, e.mileage_rate,
     COALESCE(ri.coa_number, c.coa_number) AS coa_number,
     COALESCE(ri.coa_description, c.description) AS coa_description
     FROM reimbursement_request_items ri JOIN reimbursement_expenses e ON e.id = ri.expense_id
@@ -132,7 +135,7 @@ foreach ($conn->execute_query('SELECT rr.id, rr.expense_id, rr.filename, rr.cont
 $total = array_sum(array_map(static fn($row) => (int) $row['amount_cents'], $items));
 $available = $canEditDraft ? $conn->execute_query('SELECT e.id, e.expense_date, e.merchant, e.amount_cents FROM reimbursement_expenses e
     LEFT JOIN reimbursement_request_items ri ON ri.expense_id = e.id
-    WHERE e.user_id = ? AND e.is_archived = 0 AND e.expense_date BETWEEN ? AND ? AND ri.expense_id IS NULL
+    WHERE e.user_id = ? AND e.is_archived = 0 AND e.expense_date BETWEEN ? AND ? AND ri.expense_id IS NULL AND ' . REIMBURSEMENT_COMPLETE_EXPENSE_SQL . '
     ORDER BY e.expense_date, e.id LIMIT 500', [$userId, $request['start_date'], $request['end_date']])->fetch_all(MYSQLI_ASSOC) : [];
 $owner = reimbursementOwner($conn, (int) $request['user_id']);
 if (!empty($request['owner_name_snapshot'])) $owner['display_name']=$request['owner_name_snapshot'];
@@ -169,7 +172,7 @@ else echo 'Accepted by SMTP for all recipients. This does not confirm reading or
 <?php if ($available): ?><section class="reimbursement-card reimbursement-add-expense"><h2>Add an Expense in This Date Range</h2><form method="post" class="reimbursement-inline-form"><?= csrfInput() ?><input type="hidden" name="action" value="add"><label>Available Expense <select name="expense_id" required><option value="">Choose an Expense</option><?php foreach ($available as $expense): ?><option value="<?= (int) $expense['id'] ?>"><?= reimbursementRequestH($expense['expense_date'] . ' · ' . $expense['merchant'] . ' · ' . reimbursementMoney((int) $expense['amount_cents'])) ?></option><?php endforeach; ?></select></label><button type="submit" class="button-secondary">Add Expense</button></form></section><?php endif; ?>
 </div><?php endif; ?>
 <section class="reimbursement-card" id="request-expenses"><h2>Expenses</h2><p class="field-help">Receipt filenames match the files in the receipts/ folder of the package ZIP.</p><div class="reimbursement-table-wrap"><table class="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Merchant / Payee</th><th scope="col">Account</th><th scope="col">Receipt Files</th><th scope="col">Amount</th><?php if ($canEditDraft): ?><th scope="col">Action</th><?php endif; ?></tr></thead><tbody>
-<?php foreach ($items as $item): ?><tr><td><?= reimbursementRequestH($item['expense_date']) ?></td><td><a href="reimbursement_expense.php?id=<?= (int) $item['expense_id'] ?>&amp;mode=view&amp;return=<?= rawurlencode('reimbursement_request.php?id='.$id) ?>"><?= reimbursementRequestH($item['merchant']) ?></a><?php if ($item['description']): ?><small><?= reimbursementRequestH($item['description']) ?></small><?php endif; ?></td><td><?= reimbursementRequestH($item['coa_number'] . ' · ' . $item['coa_description']) ?></td><td style="overflow-wrap:anywhere"><?= implode('<br>', array_map('reimbursementRequestH', $receiptFilesByExpense[(int) $item['expense_id']] ?? ['No Receipt Attached'])) ?></td><td><?= reimbursementMoney((int) $item['amount_cents']) ?></td><?php if ($canEditDraft): ?><td><form method="post"><?= csrfInput() ?><input type="hidden" name="action" value="remove"><input type="hidden" name="expense_id" value="<?= (int) $item['expense_id'] ?>"><button type="submit" class="button-secondary">Remove</button></form></td><?php endif; ?></tr><?php endforeach; ?>
+<?php foreach ($items as $item): ?><tr><td><?= reimbursementRequestH($item['expense_date']) ?></td><td><a href="reimbursement_expense.php?id=<?= (int) $item['expense_id'] ?>&amp;mode=view&amp;return=<?= rawurlencode('reimbursement_request.php?id='.$id) ?>"><?= reimbursementRequestH($item['merchant']) ?></a><?php if ($item['description']): ?><small><?= reimbursementRequestH(reimbursementExpenseDescription($item)) ?></small><?php endif; ?></td><td><?= reimbursementRequestH($item['coa_number'] . ' · ' . $item['coa_description']) ?></td><td style="overflow-wrap:anywhere"><?= implode('<br>', array_map('reimbursementRequestH', $receiptFilesByExpense[(int) $item['expense_id']] ?? [($item['expense_type'] ?? 'expense') === 'mileage' ? 'Mileage Log (No Receipt Required)' : 'No Receipt Attached'])) ?></td><td><?= reimbursementMoney((int) $item['amount_cents']) ?></td><?php if ($canEditDraft): ?><td><form method="post"><?= csrfInput() ?><input type="hidden" name="action" value="remove"><input type="hidden" name="expense_id" value="<?= (int) $item['expense_id'] ?>"><button type="submit" class="button-secondary">Remove</button></form></td><?php endif; ?></tr><?php endforeach; ?>
 <?php if (!$items): ?><tr><td colspan="<?= $canEditDraft ? 6 : 5 ?>">No expenses in this request.</td></tr><?php endif; ?>
 </tbody><tfoot><tr><th colspan="4" scope="row">Total Amount Due</th><th><?= reimbursementMoney($total) ?></th><?php if ($canEditDraft): ?><th></th><?php endif; ?></tr></tfoot></table></div></section>
 

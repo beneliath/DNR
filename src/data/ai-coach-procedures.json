@@ -1039,7 +1039,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896"
+        "reimbursement_expense.php": "bc0a02086a447b1091dadbcaa5ea027cb79dbfebb415f22a43e2ee0cc2d283b0"
       },
       "subjects": [
         "reimbursement",
@@ -1068,8 +1068,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "assets/js/reimbursements.js": "cee6d00ecefeabf751a5bc950edd4fcd2c5aafc2945a3897425f1d951f2dc1a3"
+        "reimbursement_expense.php": "bc0a02086a447b1091dadbcaa5ea027cb79dbfebb415f22a43e2ee0cc2d283b0",
+        "assets/js/reimbursements.js": "ca89248af1a40c73473b1a699d9d52dd1ca65e75a12a25184fab05bb7260090e"
       },
       "subjects": [
         "reimbursement",
@@ -1094,14 +1094,14 @@
         "editor"
       ],
       "steps": [
-        "Open Reimbursements and select your active available expenses individually or use Select All Available for the current filters. Check the selected total and missing receipts.",
+        "Open Reimbursements and select your active Available expenses individually or use Select All Available for the current filters. Mileage remains Incomplete until an Ending Odometer Reading is saved. Check the selected total and missing receipts.",
         "Use Dates for New Request to adjust the request range if needed. These are separate from browsing filters.",
         "Select Create Draft Request from Selected Expenses, then review the draft. Draft creation does not send email."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
-        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e"
+        "reimbursements.php": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af"
       },
       "subjects": [
         "reimbursement",
@@ -1132,10 +1132,10 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "367e488369110a58a915f9582202f5983568266971d4f1c9169b07bd7c0abfb9",
+        "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
         "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
         "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
-        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "subjects": [
@@ -1190,12 +1190,12 @@
       ],
       "steps": [
         "Open Reimbursement Setup under Administration in the sidebar.",
-        "Enter the bookkeeper details, Cc Email Address, and Bcc Email Address. The Account Name comes from Account Settings.",
+        "Enter the bookkeeper details, Cc Email Address, Bcc Email Address, and Reimbursement Per Mile (USD). Mileage rate changes apply to new entries; saved mileage retains its rate. The Account Name comes from Account Settings.",
         "Unlock administrator actions and select Save Reimbursement Setup. These settings apply to future submissions; recovery sends the original approved message."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_setup.php": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724"
+        "reimbursement_setup.php": "591fe015476b87fee8194e335ed73a31d8c0bcaa898e0672ce9442846403756b"
       },
       "subjects": [
         "reimbursement",

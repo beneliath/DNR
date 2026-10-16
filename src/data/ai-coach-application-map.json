@@ -3095,7 +3095,7 @@
       ]
     },
     "reimbursement_expense.php": {
-      "sha256": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
+      "sha256": "bc0a02086a447b1091dadbcaa5ea027cb79dbfebb415f22a43e2ee0cc2d283b0",
       "controls": [
         {
           "kind": "a",
@@ -3109,12 +3109,12 @@
         },
         {
           "kind": "a",
-          "label": "Requests",
-          "href": "reimbursement_requests.php"
+          "label": "+ Add Mileage"
         },
         {
           "kind": "a",
-          "label": "Edit Expense"
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
         },
         {
           "kind": "a",
@@ -3168,10 +3168,6 @@
           "label": "Drop Receipts Here or click to choose \u00b7 JPEG, PNG, WebP, PDF \u00b7 up to 15 MB each Select Save expense to upload."
         },
         {
-          "kind": "button",
-          "label": "Save Expense"
-        },
-        {
           "kind": "h2",
           "label": "Receipts ()"
         },
@@ -3182,11 +3178,24 @@
         {
           "kind": "button",
           "label": "Delete Expense"
+        },
+        {
+          "kind": "h2",
+          "label": "Mileage Saved \u2014 Fuel Reimbursement Reminder",
+          "id": "mileage-reminder-title"
+        },
+        {
+          "kind": "a",
+          "label": "IRS Travel, Gift, and Car Expenses Guidance"
+        },
+        {
+          "kind": "button",
+          "label": "Understood"
         }
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
+      "sha256": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
       "controls": [
         {
           "kind": "a",
@@ -3361,7 +3370,7 @@
       ]
     },
     "reimbursement_setup.php": {
-      "sha256": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724",
+      "sha256": "591fe015476b87fee8194e335ed73a31d8c0bcaa898e0672ce9442846403756b",
       "controls": [
         {
           "kind": "h1",
@@ -3391,6 +3400,14 @@
         {
           "kind": "label",
           "label": "Cc Email Address"
+        },
+        {
+          "kind": "label",
+          "label": "Reimbursement Per Mile (USD)"
+        },
+        {
+          "kind": "a",
+          "label": "IRS Standard Mileage Rates"
         },
         {
           "kind": "button",
@@ -3469,7 +3486,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
+      "sha256": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
       "controls": [
         {
           "kind": "h1",
@@ -3479,6 +3496,10 @@
           "kind": "a",
           "label": "+ Add Expense",
           "href": "reimbursement_expense.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ Add Mileage"
         },
         {
           "kind": "a",
