@@ -128,7 +128,6 @@ $task_status_labels = followUpTaskStatuses();
             <p class="page-intro">Your day at a glance · <?php echo htmlspecialchars($business_date_label, ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
         <div class="page-heading-actions">
-            <a href="tasks.php?view=my" class="button-secondary">Open My Tasks</a>
             <?php if ($can_manage): ?>
                 <a href="add_inquiry.php" class="button-secondary">+ New Inquiry</a>
                 <a href="add_task.php?return_to=dashboard.php" class="button-secondary">+ New Task</a>
@@ -260,9 +259,6 @@ $task_status_labels = followUpTaskStatuses();
 
     <div class="dashboard-attention-heading">
         <div><h2>Needs Attention</h2><p>Shared team priorities · readiness, routing, and closeouts.</p></div>
-        <?php if ($can_manage && $inbound_review_count > 0): ?>
-            <a href="inbound_mail.php?status=review" class="dashboard-mail-alert"><?php echo $inbound_review_count; ?> inbound message<?php echo $inbound_review_count === 1 ? '' : 's'; ?> awaiting routing review</a>
-        <?php endif; ?>
     </div>
 
     <div class="dashboard-attention-grid">

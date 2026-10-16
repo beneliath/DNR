@@ -16,7 +16,8 @@ test('field errors preserve help associations and avoid duplicate error referenc
 });
 
 test('validation summary uses visible labels before accessible fallbacks', () => {
-    assert.equal(fieldLabel(field({ 'aria-label': 'Fallback' }, [{ textContent: 'Event dates *' }])), 'Event dates');
+    const label = { cloneNode() { return { textContent: 'Event dates *', querySelectorAll() { return []; } }; } };
+    assert.equal(fieldLabel(field({ 'aria-label': 'Fallback' }, [label])), 'Event dates');
     assert.equal(fieldLabel(field({ 'aria-label': 'Country' })), 'Country');
     assert.equal(fieldLabel(field()), 'This field');
 });
