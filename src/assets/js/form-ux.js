@@ -11,8 +11,25 @@
 
     function fieldLabel(field) {
         return Array.from(field.labels || []).map(function (label) {
-            return label.textContent.trim().replace(/\s*\*\s*$/, '');
+            const textOnly = label.cloneNode(true);
+            textOnly.querySelectorAll('input, select, textarea, button, small, .field-help, .form-field-error, [role="status"], [aria-hidden="true"]').forEach(function (content) {
+                content.remove();
+            });
+            return textOnly.textContent.replace(/\s+/g, ' ').trim().replace(/[\s*:]+$/, '');
         }).filter(Boolean).join(' ') || field.getAttribute('aria-label') || 'This field';
+    }
+
+    function fieldValidationMessage(field) {
+        if (!field.validity.valueMissing || field.validity.customError) return field.validationMessage;
+        if (field.dataset.requiredMessage) return field.dataset.requiredMessage;
+        if (field.tagName === 'SELECT') {
+            const prompt = field.querySelector('option[value=""]')?.textContent.replace(/\s+/g, ' ').trim();
+            if (!field.multiple && prompt && prompt.length <= 80 && /^(choose|select)\b/i.test(prompt)) {
+                return prompt.replace(/[.!…]+$/, '');
+            }
+            return field.multiple ? 'Choose at least one option' : 'Choose an option';
+        }
+        return field.validationMessage;
     }
 
     function focusFirstError(summary) {
@@ -103,7 +120,7 @@
                 fields.forEach(function (field) {
                     if (field.disabled || field.validity.valid) return;
                     clearFieldError(field);
-                    const message = field.validationMessage;
+                    const message = fieldValidationMessage(field);
                     const label = fieldLabel(field);
                     const inline = doc.createElement('span');
                     inline.className = 'form-field-error';
@@ -167,7 +184,7 @@
         doc.querySelectorAll('.success:not([role])').forEach(function (message) { message.setAttribute('role', 'status'); });
     }
 
-    if (typeof module === 'object' && module.exports) module.exports = { connectFieldError, fieldLabel, focusFirstError, initialize };
+    if (typeof module === 'object' && module.exports) module.exports = { connectFieldError, fieldLabel, fieldValidationMessage, focusFirstError, initialize };
     if (typeof document === 'undefined') return;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { initialize(document, window); });
     else initialize(document, window);

@@ -70,8 +70,8 @@ $whereSql = implode(' AND ', $where);
 $stats = shortLinkStats($conn, $whereSql, $start, $end);
 $report = shortLinkReportData($stats, $start, $end);
 $isSingleLink = isset($filters['id']);
-$reportTitle = $isSingleLink ? 'QR Code Statistics' : (isset($filters['presentation_id']) ? 'Presentation Statistics' : (isset($filters['engagement_id']) ? 'Event Statistics' : (isset($filters['speaker_id']) ? 'Speaker Statistics' : 'QR Codes & Statistics')));
-$showPresentationLinks = $reportTitle !== 'Speaker Statistics';
+$reportTitle = $isSingleLink ? 'QR Code Statistics' : (isset($filters['presentation_id']) ? 'Presentation Statistics' : (isset($filters['engagement_id']) ? 'Event Statistics' : (isset($filters['speaker_id']) ? 'Speaker Engagement' : 'QR Codes & Statistics')));
+$showPresentationLinks = $reportTitle !== 'Speaker Engagement';
 $page = $isSingleLink ? 1 : max(1, min(1000000, (int) (\Dnr\Http\RequestInput::positiveInt($_GET, 'page') ?? 1)));
 $offset = ($page - 1) * 50;
 $linkCount = (int) $conn->query("SELECT COUNT(*) AS total FROM short_links l WHERE $whereSql")->fetch_assoc()['total'];
@@ -127,13 +127,13 @@ if ($activeLink !== null) {
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container short-links-page">
-    <?php if ($reportTitle === 'Speaker Statistics'): ?>
+    <?php if ($reportTitle === 'Speaker Engagement'): ?>
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href="speakers.php">Speakers</a><span aria-hidden="true">/</span>
             <?php if ($context !== ''): ?>
                 <a href="view_speaker.php?id=<?php echo (int) $filters['speaker_id']; ?>"><?php echo $h($context); ?></a><span aria-hidden="true">/</span>
             <?php endif; ?>
-            <span aria-current="page">Speaker Statistics</span>
+            <span aria-current="page">Speaker Engagement</span>
         </nav>
     <?php elseif ($activeLink !== null): ?>
         <nav class="breadcrumb" aria-label="Breadcrumb">

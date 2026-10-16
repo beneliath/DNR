@@ -606,6 +606,12 @@ body.has-app-shell.admin-unlock-active {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  scroll-behavior: auto;
+}
+
+/* Reveal navigation only at its restored position, including on a cold load. */
+html.has-js .sidebar-scroll-area:not([data-nav-scroll-ready]) {
+  visibility: hidden;
 }
 
 .sidebar-scroll-area > * {
@@ -1301,6 +1307,9 @@ html body .container > .profile-form {
   margin-inline: 0;
 }
 .account-settings-form .form-group { min-width: 0; }
+.account-settings-form .form-group:last-of-type {
+  margin-bottom: clamp(20px, 4vw, 32px);
+}
 .account-settings-form :is(input:not([type="hidden"]), select) {
   width: 100%;
   min-width: 0;
@@ -4633,7 +4642,6 @@ html body .register-button[disabled] {
   .nav-notification-badge,
   .task-reminder-badge strong,
   .dashboard-health-list strong,
-  .dashboard-mail-alert,
   .inquiry-kanban-column > header > div > strong,
   .inquiry-tab-list button span,
   .conversion-task-section summary span

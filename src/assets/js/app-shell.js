@@ -45,6 +45,25 @@
             });
         });
         saveCookie();
+        const scrollArea = sidebar.querySelector('.sidebar-scroll-area');
+        const scrollKey = 'dnr.sidebar.' + encodeURIComponent(preferenceUser) + '.scroll';
+        function saveScrollPosition() {
+            if (!scrollArea) return;
+            try {
+                window.DnrAccountContext.session.setItem(scrollKey, String(scrollArea.scrollTop));
+            } catch (_) { /* Navigation still works when browser storage is unavailable. */ }
+        }
+        if (scrollArea) {
+            // Restore after the saved disclosure state, before the page is painted.
+            try {
+                const saved = window.DnrAccountContext.session.getItem(scrollKey);
+                const position = Number(saved);
+                if (saved !== null && Number.isFinite(position) && position >= 0) scrollArea.scrollTop = position;
+            } catch (_) { /* Keep the default scroll position without browser storage. */ }
+            scrollArea.setAttribute('data-nav-scroll-ready', '');
+            scrollArea.addEventListener('scroll', saveScrollPosition, { passive: true });
+            window.addEventListener('pagehide', saveScrollPosition);
+        }
         function collapseSections() {
             sections.forEach(function (section) {
                 section.open = false;
@@ -55,7 +74,10 @@
             saveCookie();
         }
         sidebar.addEventListener('click', function (event) {
-            if (event.target.closest('.site-navigation a[href]')) saveCookie();
+            if (event.target.closest('.site-navigation a[href]')) {
+                saveCookie();
+                saveScrollPosition();
+            }
         });
         document.querySelectorAll('.app-brand, .mobile-brand').forEach(function (brand) {
             brand.addEventListener('click', function (event) {

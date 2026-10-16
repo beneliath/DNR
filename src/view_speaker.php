@@ -31,7 +31,7 @@ unset($_SESSION['speaker_message']);
             <a class="button-secondary speaker-heading-edit" href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_speaker.php?id=' . $speaker_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>">Edit Speaker</a>
         <?php endif; ?>
         <?php if (hasRole(['admin', 'editor', 'reviewer'])): ?>
-            <a class="button-secondary speaker-heading-statistics" href="short_links.php?speaker_id=<?php echo (int) $speaker['id']; ?>">Statistics</a>
+            <a class="button-secondary speaker-heading-statistics" href="short_links.php?speaker_id=<?php echo (int) $speaker['id']; ?>">Engagement</a>
         <?php endif; ?>
     </div>
     <div class="contact-overview-grid">

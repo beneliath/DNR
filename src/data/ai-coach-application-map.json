@@ -1061,15 +1061,11 @@
       ]
     },
     "dashboard.php": {
-      "sha256": "487db7b4e4f757a5880d45800e37f1977bbb4286ea83da3e116af5415072c31d",
+      "sha256": "dfc6d1c415b60a0ac6d25808c9a5c7fca4c381ade277ff7fc59feddcc845f068",
       "controls": [
         {
           "kind": "h1",
           "label": "Good day,"
-        },
-        {
-          "kind": "a",
-          "label": "Open My Tasks"
         },
         {
           "kind": "a",
@@ -1131,10 +1127,6 @@
         {
           "kind": "h2",
           "label": "Needs Attention"
-        },
-        {
-          "kind": "a",
-          "label": "inbound message awaiting routing review"
         },
         {
           "kind": "h3",
@@ -1915,7 +1907,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "dd639720bc92086cc1ee714b2fcfd740dfa616a7b6ea807aaf66f2de43717719",
+      "sha256": "f42bbcb9cd777c953382e6adb001a0286f65c1e95e5d1874d66003c00b9918f2",
       "controls": [
         {
           "kind": "a",
@@ -3095,7 +3087,7 @@
       ]
     },
     "reimbursement_expense.php": {
-      "sha256": "1ba1f04e2e3f397b6b6c9acd22472a6741d3f30d0d64b54e75b3d5f72ff691be",
+      "sha256": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
       "controls": [
         {
           "kind": "a",
@@ -3867,7 +3859,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "55e16f5ce632a34388fcf61c6b7e442f38a1fc1d5fbb79871b2eb8ac7523563f",
+      "sha256": "8c68c821178cd03b4b2e6546cf3165f74dc25b751c470894382d69cef7172863",
       "controls": [
         {
           "kind": "a",
@@ -4797,7 +4789,7 @@
       ]
     },
     "view_speaker.php": {
-      "sha256": "ce90766c9b04f0c3b46ffe11ecfc9274ecf1a947ab4f3cee92e718a2ed79f60c",
+      "sha256": "b35029b56cb342e1d6501bf039d4bb873772f5a75ba9684a6f4deaa7ff9bf438",
       "controls": [
         {
           "kind": "a",
@@ -4806,7 +4798,7 @@
         },
         {
           "kind": "a",
-          "label": "Statistics"
+          "label": "Engagement"
         },
         {
           "kind": "h2",

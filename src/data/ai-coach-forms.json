@@ -320,7 +320,7 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "1ba1f04e2e3f397b6b6c9acd22472a6741d3f30d0d64b54e75b3d5f72ff691be",
+        "reimbursement_expense.php": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
         "reimbursement_helpers.php": "570810247327dde6e7c0225551a59fe0711767062be9a119e542f5cdc53268c7",
         "reimbursement_mileage_helpers.php": "7ff237356b6d01130d33ba0436865d42fb575507b1c9ba9ce611114057353ac2",
         "templates/reimbursement_mileage_fields.php": "74e9c58a7a289d1fb8382f9f8612ce3aa400149302b83ed90f1eddea65cbb8dc"

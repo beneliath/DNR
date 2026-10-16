@@ -491,25 +491,6 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     font-size: .77rem;
 }
 
-.dashboard-mail-alert {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 11px;
-    border: 1px solid color-mix(in srgb, var(--dashboard-mail-color) 45%, var(--border));
-    border-radius: 999px;
-    background: var(--dashboard-mail-bg);
-    color: var(--dashboard-mail-color);
-    font-size: .72rem;
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.dashboard-mail-alert:hover,
-.dashboard-mail-alert:focus-visible {
-    border-color: var(--dashboard-mail-color);
-    color: var(--dashboard-mail-color);
-}
-
 .dashboard-attention-list > li {
     padding: 15px 22px;
     border-bottom: 1px solid var(--border);
