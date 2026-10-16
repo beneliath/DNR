@@ -160,7 +160,7 @@ $amountValue = isset($expense['amount']) ? (string) $expense['amount'] : ($id ? 
 <?php if ($expenseEvents): ?><section class="reimbursement-card"><details><summary>Expense History</summary><ul><?php foreach ($expenseEvents as $event): ?><li><?= reimbursementExpenseH($event['created_at'].' UTC · '.($event['username'] ?? 'System').' · '.ucwords(str_replace('_',' ',$event['action']))) ?><?php if ($event['detail'] !== ''): ?> · <small><?= reimbursementExpenseH($event['detail']) ?></small><?php endif; ?></li><?php endforeach; ?></ul></details></section><?php endif; ?>
 <?php if ($showMileageReminder): ?>
 <dialog class="confirmation-dialog" data-mileage-saved aria-labelledby="mileage-reminder-title" aria-describedby="mileage-reminder-text">
-<h2 id="mileage-reminder-title">Mileage Saved — Fuel Reimbursement Reminder</h2>
+<h2 id="mileage-reminder-title">Mileage Saved: Fuel Reimbursement Reminder</h2>
 <p id="mileage-reminder-text"><?= reimbursementExpenseH(reimbursementMileageReminder()) ?></p>
 <p><a href="https://www.irs.gov/publications/p463" target="_blank" rel="noopener">IRS Travel, Gift, and Car Expenses Guidance</a></p>
 <form method="dialog"><button type="submit" class="save-button" autofocus>Understood</button></form>
