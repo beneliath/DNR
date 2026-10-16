@@ -35,6 +35,14 @@ cannot reassign the primary ingress's static address to the recreated proxy.
 For a new installation, this optional field can be set to a verified free IPv4
 address on the edge network, distinct from Traefik and ingress.
 
+Generated primary and member backend networks restrict Docker's dynamic IP pool
+to the half of the subnet that excludes the static ingress address. This protects
+the reservation while ingress is stopped. Existing networks require a controlled
+network recreation to adopt the pool; changing a Compose file alone is insufficient.
+The shared `proxy` network must likewise exclude Cloudflared's static address from
+its dynamic pool. Preserve current addresses, aliases, volumes, images and settings
+during that maintenance, and verify service health before the application release.
+
 The overlay replaces the old host-wide router rule with the explicit
 primary path and adds public legacy/common entry points. Preserve the existing
 primary services, volumes, secrets, database, encryption keys and image settings.

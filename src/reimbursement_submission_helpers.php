@@ -17,11 +17,13 @@ function reimbursementSubmissionContext(mysqli $conn, int $id, int $userId, bool
     $owner['display_name'] = trim($owner['first_name'] . ' ' . $owner['last_name']) ?: $owner['username'];
     $setup = reimbursementSetup($conn, $lock);
     $items = $conn->execute_query('SELECT e.id AS expense_id, e.expense_date, e.merchant, e.description, e.amount_cents,
+        e.expense_type, e.origin_location, e.destination_location, e.odometer_start, e.odometer_end, e.mileage_rate,
         c.coa_number, c.description AS coa_description
         FROM reimbursement_request_items ri JOIN reimbursement_expenses e ON e.id = ri.expense_id
         JOIN reimbursement_cost_centers c ON c.id = e.cost_center_id
         WHERE ri.request_id = ? ORDER BY e.expense_date, e.id' . $suffix, [$id])->fetch_all(MYSQLI_ASSOC);
     if (!$items) throw new InvalidArgumentException('Add expenses before submitting this request.');
+    foreach ($items as $item) requireCompleteReimbursementExpense($item);
     $receipts = $conn->execute_query('SELECT rr.id, rr.expense_id, rr.storage_key, rr.filename, rr.content_type, rr.scan_state, sf.size, sf.checksum,
         rr.report_key, rr.report_status, rf.size AS report_size, rf.checksum AS report_checksum
         FROM reimbursement_receipts rr JOIN stored_files sf ON sf.storage_key = rr.storage_key
@@ -95,7 +97,7 @@ function reimbursementExpenseCsv(array $items, array $receipts): string
             [$year, $month, $day] = explode('-', reimbursementDate($item['expense_date'], 'expense date'));
             $rows[] = [
                 (int) $month . '/' . (int) $day . '/' . $year, reimbursementCsvText($item['merchant']),
-                reimbursementCsvText($item['coa_number']), reimbursementCsvText($item['description']),
+                reimbursementCsvText($item['coa_number']), reimbursementCsvText(reimbursementExpenseDescription($item)),
                 sprintf('$%d.%02d', intdiv($cents, 100), $cents % 100),
                 implode('; ', $namesByExpense[(int) $item['expense_id']] ?? []),
             ];
@@ -202,10 +204,12 @@ function reimbursementSubmissionMessage(array $context, bool $forDelivery = fals
     foreach ($context['items'] as $item) {
         $amount = reimbursementMoney((int) $item['amount_cents']);
         $receiptNames = $receiptsByExpense[(int) $item['expense_id']] ?? [];
-        $receiptText = $receiptNames ? implode('; ', $receiptNames) : 'No Receipt Attached';
-        $receiptHtml = $receiptNames ? implode('<br>', array_map($h, $receiptNames)) : 'No Receipt Attached';
-        $body .= $item['expense_date'] . ' | ' . $item['merchant'] . ' | ' . $item['coa_number'] . ' | ' . $amount . "\nReceipt Files: " . $receiptText . "\n";
-        $rows .= '<tr><td nowrap style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($item['expense_date']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['merchant']) . '<br><span style="display:block;font-size:12px;overflow-wrap:anywhere;word-break:break-word"><strong>Receipt Files:</strong><br>' . $receiptHtml . '</span></td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['coa_number'] . ' · ' . $item['coa_description']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($amount) . '</td></tr>';
+        $noReceipt = ($item['expense_type'] ?? 'expense') === 'mileage' ? 'Mileage Log (No Receipt Required)' : 'No Receipt Attached';
+        $receiptText = $receiptNames ? implode('; ', $receiptNames) : $noReceipt;
+        $receiptHtml = $receiptNames ? implode('<br>', array_map($h, $receiptNames)) : $noReceipt;
+        $mileageDetail = ($item['expense_type'] ?? 'expense') === 'mileage' ? reimbursementExpenseDescription($item) : '';
+        $body .= $item['expense_date'] . ' | ' . $item['merchant'] . ' | ' . $item['coa_number'] . ' | ' . $amount . ( $mileageDetail !== '' ? "\n" . $mileageDetail : '' ) . "\nReceipt Files: " . $receiptText . "\n";
+        $rows .= '<tr><td nowrap style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($item['expense_date']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['merchant']) . ($mileageDetail !== '' ? '<br>' . nl2br($h($mileageDetail)) : '') . '<br><span style="display:block;font-size:12px;overflow-wrap:anywhere;word-break:break-word"><strong>Receipt Files:</strong><br>' . $receiptHtml . '</span></td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['coa_number'] . ' · ' . $item['coa_description']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($amount) . '</td></tr>';
     }
     $body .= "\nAttached: {$filename} (ZIP containing the expense report PDF, CSV, and all original receipts).\nThe CSV has one row per expense; its receipt filenames match the files in the ZIP receipts/ folder.\n\nThank you,\n{$name}\n";
     $body .= "\n" . emailAsciiFooterText() . "\n";

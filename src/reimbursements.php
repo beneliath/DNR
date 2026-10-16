@@ -11,7 +11,7 @@ $conn = applicationDatabaseConnection();
 $userId = (int) $_SESSION['user_id'];
 $canViewAll = hasRole(['admin']);
 $showArchived = ($_GET['show'] ?? '') === 'archived';
-$stateLabels = ['all' => 'All', 'available' => 'Available', 'draft' => 'Draft', 'submitted' => 'Submitted'];
+$stateLabels = ['all' => 'All', 'incomplete' => 'Incomplete', 'available' => 'Available', 'draft' => 'Draft', 'submitted' => 'Submitted'];
 $state = is_string($_GET['state'] ?? null) && isset($stateLabels[$_GET['state']]) ? $_GET['state'] : 'all';
 $canSelect = $canManage && !$showArchived;
 $returnUrl = 'reimbursements.php?' . http_build_query(array_intersect_key($_GET,
@@ -91,26 +91,29 @@ $fromSql = ' FROM reimbursement_expenses e
     LEFT JOIN reimbursement_requests r ON r.id = ri.request_id';
 $whereSql = ' WHERE (e.user_id = ? OR ? = 1) AND e.expense_date BETWEEN ? AND ? AND e.is_archived = ?';
 $queryParams = [$ownerFilterId, $showAllOwners, $start, $end, (int) $showArchived];
+$expenseStateSql = "CASE WHEN NOT " . REIMBURSEMENT_COMPLETE_EXPENSE_SQL . " THEN 'incomplete' ELSE COALESCE(r.status, 'available') END";
 if ($search !== '') {
     $whereSql .= " AND (LOCATE(LOWER(?), LOWER(e.merchant)) > 0
         OR LOCATE(LOWER(?), LOWER(e.description)) > 0
         OR LOCATE(LOWER(?), LOWER(COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username))) > 0
         OR LOCATE(LOWER(?), LOWER(c.coa_number)) > 0
         OR LOCATE(LOWER(?), LOWER(c.description)) > 0
-        OR LOCATE(LOWER(?), LOWER(COALESCE(r.status, 'available'))) > 0)";
+        OR LOCATE(LOWER(?), LOWER({$expenseStateSql})) > 0)";
     array_push($queryParams, ...array_fill(0, 6, $search));
 }
 if ($state === 'available') {
-    $whereSql .= ' AND ri.request_id IS NULL';
+    $whereSql .= ' AND ri.request_id IS NULL AND ' . REIMBURSEMENT_COMPLETE_EXPENSE_SQL;
+} elseif ($state === 'incomplete') {
+    $whereSql .= ' AND NOT ' . REIMBURSEMENT_COMPLETE_EXPENSE_SQL;
 } elseif ($state !== 'all') {
     $whereSql .= ' AND r.status = ?';
     $queryParams[] = $state;
 }
 if (($_GET['action'] ?? '') === 'available_expenses') {
     if (!$canSelect || $error !== '') { http_response_code(403); exit(); }
-    $available = $conn->execute_query('SELECT e.id, e.amount_cents,
+    $available = $conn->execute_query('SELECT e.id, e.expense_type, e.amount_cents,
         (SELECT COUNT(*) FROM reimbursement_receipts x WHERE x.expense_id = e.id) AS receipt_count
-        ' . $fromSql . $whereSql . ' AND e.user_id = ? AND ri.request_id IS NULL
+        ' . $fromSql . $whereSql . ' AND e.user_id = ? AND ri.request_id IS NULL AND ' . REIMBURSEMENT_COMPLETE_EXPENSE_SQL . '
         ORDER BY e.id LIMIT 501', array_merge($queryParams, [$userId]))->fetch_all(MYSQLI_ASSOC);
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: no-store');
@@ -123,7 +126,7 @@ $orderSql = match ($sortBy) {
     'owner' => "owner_name {$sortDirection}",
     'amount' => "e.amount_cents {$sortDirection}",
     'cost_center' => "c.coa_number {$sortDirection}, c.description {$sortDirection}",
-    'status' => "CASE WHEN r.status = 'draft' THEN 1 WHEN r.status = 'submitted' THEN 2 ELSE 0 END {$sortDirection}",
+    'status' => "FIELD({$expenseStateSql}, 'incomplete', 'available', 'draft', 'submitted') {$sortDirection}",
     default => "e.expense_date {$sortDirection}",
 };
 $expenseTotal = (int) $conn->execute_query('SELECT COUNT(*)' . $fromSql . $whereSql, $queryParams)->fetch_row()[0];
@@ -136,7 +139,7 @@ $sortUrl = static function (string $column) use ($listParams, $sortBy, $sortDir,
     $direction = $column === $sortBy ? ($sortDir === 'asc' ? 'desc' : 'asc') : $sortDefaults[$column];
     return 'reimbursements.php?' . http_build_query(array_merge($listParams, ['sort_by' => $column, 'sort_dir' => $direction]));
 };
-$expenses = $conn->execute_query('SELECT e.id, e.user_id, e.expense_date, e.merchant, e.description, e.amount_cents,
+$expenses = $conn->execute_query('SELECT e.id, e.user_id, e.expense_type, e.odometer_end, e.expense_date, e.merchant, e.description, e.amount_cents,
     COALESCE(NULLIF(TRIM(CONCAT_WS(\' \', u.first_name, u.last_name)), \'\'), u.username) AS owner_name,
     COALESCE(ri.coa_number,c.coa_number) AS coa_number, COALESCE(ri.coa_description,c.description) AS coa_description, ri.request_id, r.request_hash, r.status AS request_status, r.is_archived AS request_archived,
     (SELECT COUNT(*) FROM reimbursement_receipts x WHERE x.expense_id = e.id) AS receipt_count
@@ -150,7 +153,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
 <main class="container reimbursement-page">
     <?php if ($selectionRemoved): ?><span hidden data-remove-reimbursement-selection="<?= $selectionRemoved ?>" data-selection-key="reimbursement-selection-<?= $userId ?>"></span><?php endif; ?>
     <div class="page-heading"><div><h1>Reimbursements</h1><p class="page-intro">Record expenses and receipts, then prepare a dated request for the bookkeeper.</p></div>
-    <div class="page-heading-actions"><?php if ($canManage): ?><a class="button-add" href="reimbursement_expense.php">+ Add Expense</a><?php endif; ?><a class="button-secondary" href="reimbursement_requests.php">Requests</a><?php if (hasRole(['admin','editor'])): ?><a class="button-secondary" href="reimbursement_cost_centers.php">Chart of Accounts</a><?php endif; ?></div></div>
+    <div class="page-heading-actions"><?php if ($canManage): ?><a class="button-add" href="reimbursement_expense.php">+ Add Expense</a><a class="button-add" href="reimbursement_expense.php?type=mileage">+ Add Mileage</a><?php endif; ?><a class="button-secondary" href="reimbursement_requests.php">Requests</a><?php if (hasRole(['admin','editor'])): ?><a class="button-secondary" href="reimbursement_cost_centers.php">Chart of Accounts</a><?php endif; ?></div></div>
     <?php $flowStep = 1; include __DIR__ . '/templates/reimbursement_progress.php'; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementH($error) ?></p><?php endif; ?>
     <?php if ($message !== ''): ?><p class="success" role="status"><?= reimbursementH($message) ?></p><?php endif; ?>
@@ -187,17 +190,18 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
             <div class="reimbursement-table-wrap"><table class="data-table reimbursement-expense-table"><thead><tr><th scope="col">Include</th><th scope="col">Date</th><th scope="col">Merchant / Payee</th><th scope="col">Owner</th><th scope="col">Account</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">State</th><th scope="col">Actions</th></tr></thead><tbody>
                 <?php foreach ($expenses as $expense):
                     $expenseId = (int) $expense['id'];
+                    $incompleteMileage = reimbursementMileageIncomplete($expense);
                     $canEditExpense = $canSelect && (int) $expense['user_id'] === $userId && $expense['request_status'] !== 'submitted' && !(int) $expense['request_archived'];
                     $canArchiveExpense = $canManage && (int) $expense['user_id'] === $userId && $expense['request_id'] === null;
                     $canDeleteExpense = $canViewAll && $expense['request_id'] === null;
                 ?><tr<?= $expense['request_status'] === 'submitted' ? ' class="reimbursement-row-submitted"' : '' ?> data-selection-expense="<?= (int) $expense['id'] ?>">
-                    <td><?php if ($canSelect && $expense['request_id'] === null && (int) $expense['user_id'] === $userId): ?><input type="checkbox" data-amount-cents="<?= (int)$expense['amount_cents'] ?>" data-receipt-count="<?= (int)$expense['receipt_count'] ?>" name="expense_ids[]" value="<?= (int) $expense['id'] ?>" <?= in_array((string) $expense['id'], array_map('strval', is_array($_POST['expense_ids'] ?? null) ? $_POST['expense_ids'] : []), true) ? ' checked' : '' ?> aria-label="Include <?= reimbursementH($expense['merchant']) ?> on <?= reimbursementH($expense['expense_date']) ?>"><?php else: ?>—<?php endif; ?></td>
+                    <td><?php if ($canSelect && !$incompleteMileage && $expense['request_id'] === null && (int) $expense['user_id'] === $userId): ?><input type="checkbox" data-amount-cents="<?= (int)$expense['amount_cents'] ?>" data-receipt-count="<?= (int)$expense['receipt_count'] ?>" data-expense-type="<?= reimbursementH($expense['expense_type']) ?>" name="expense_ids[]" value="<?= (int) $expense['id'] ?>" <?= in_array((string) $expense['id'], array_map('strval', is_array($_POST['expense_ids'] ?? null) ? $_POST['expense_ids'] : []), true) ? ' checked' : '' ?> aria-label="Include <?= reimbursementH($expense['merchant']) ?> on <?= reimbursementH($expense['expense_date']) ?>"><?php else: ?>—<?php endif; ?></td>
                     <td><?= reimbursementH($expense['expense_date']) ?></td>
                     <td><a class="record-link" href="reimbursement_expense.php?id=<?= (int) $expense['id'] ?>&amp;mode=view&amp;return=<?= rawurlencode($listUrl . '&page=' . $pagination['page']) ?>"><?= reimbursementH($expense['merchant']) ?></a><?php if ($expense['description'] !== ''): ?><small><?= reimbursementH($expense['description']) ?></small><?php endif; ?><details class="reimbursement-mobile-details"><summary>Expense Details</summary><p>Owner: <?= reimbursementH($expense['owner_name']) ?><br>Account: <?= reimbursementH($expense['coa_number'].' · '.$expense['coa_description']) ?><br>Receipts: <?= (int)$expense['receipt_count'] ?></p><a href="reimbursement_expense.php?id=<?= $expenseId ?>&amp;mode=view&amp;return=<?= rawurlencode($listUrl . '&page=' . $pagination['page']) ?>">View Receipts and Details</a></details></td>
                     <td><?= reimbursementH($expense['owner_name']) ?></td>
                     <td><?= reimbursementH($expense['coa_number'] . ' · ' . $expense['coa_description']) ?></td>
-                    <td><?= (int) $expense['receipt_count'] ?></td><td><?= reimbursementMoney((int) $expense['amount_cents']) ?></td>
-                    <td><?php if ($expense['request_id']): ?><a href="reimbursement_request.php?id=<?= (int) $expense['request_id'] ?>"><?= reimbursementH(ucfirst((string) $expense['request_status'])) ?></a><?php else: ?>Available<?php endif; ?></td>
+                    <td><?= (int) $expense['receipt_count'] ?></td><td><?= $incompleteMileage ? 'Pending' : reimbursementMoney((int) $expense['amount_cents']) ?></td>
+                    <td><?php if ($expense['request_id']): ?><a href="reimbursement_request.php?id=<?= (int) $expense['request_id'] ?>"><?= reimbursementH(ucfirst((string) $expense['request_status'])) ?></a><?php elseif ($incompleteMileage): ?>Incomplete<small>Ending Odometer Required</small><?php else: ?>Available<?php endif; ?></td>
                     <td><div class="reimbursement-row-actions">
                         <a href="reimbursement_expense.php?id=<?= $expenseId ?>&amp;mode=view" class="action-button action-icon-button view-button" aria-label="View Expense <?= reimbursementH($expense['merchant']) ?>" title="View" data-tooltip="View"><?= actionIconSvg('view') ?></a>
                         <?php if ($canEditExpense): ?><a href="reimbursement_expense.php?id=<?= $expenseId ?>&amp;mode=edit&amp;return=<?= rawurlencode($listUrl . '&page=' . $pagination['page']) ?>" class="action-button action-icon-button edit-button" aria-label="Edit Expense <?= reimbursementH($expense['merchant']) ?>" title="Edit" data-tooltip="Edit"><?= actionIconSvg('edit') ?></a><?php endif; ?>

@@ -318,10 +318,12 @@
         "editor"
       ],
       "entry": "Reimbursements → + Add Expense",
-      "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
+      "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "reimbursement_helpers.php": "c06dafb71e99a6976f1294869d21bb6eab9bf81db092d4b5abc48e5f6a1e6d19"
+        "reimbursement_expense.php": "1ba1f04e2e3f397b6b6c9acd22472a6741d3f30d0d64b54e75b3d5f72ff691be",
+        "reimbursement_helpers.php": "570810247327dde6e7c0225551a59fe0711767062be9a119e542f5cdc53268c7",
+        "reimbursement_mileage_helpers.php": "7ff237356b6d01130d33ba0436865d42fb575507b1c9ba9ce611114057353ac2",
+        "templates/reimbursement_mileage_fields.php": "74e9c58a7a289d1fb8382f9f8612ce3aa400149302b83ed90f1eddea65cbb8dc"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -388,10 +390,10 @@
         "editor"
       ],
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
-      "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
+      "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
-        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e",
+        "reimbursements.php": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "controls": {
@@ -441,8 +443,8 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "367e488369110a58a915f9582202f5983568266971d4f1c9169b07bd7c0abfb9",
-        "reimbursement_request.php": "f4a836dff6d530a95ca503fc9858645c2e9f9b1601d6b472d26e7adb1070ef7e"
+        "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af"
       },
       "controls": {
         "reimbursement-confirm": {
@@ -465,7 +467,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "80dc13f8eb69eca0350793d47e4d9f1b0238798cc62d232666bd92fe75dd5724"
+        "reimbursement_setup.php": "591fe015476b87fee8194e335ed73a31d8c0bcaa898e0672ce9442846403756b"
       },
       "controls": {
         "reimbursement-bookkeeper": {
@@ -479,6 +481,10 @@
         "reimbursement-bcc": {
           "label": "Bcc Email Address",
           "selector": "input[name=\"reviewer_email\"]"
+        },
+        "reimbursement-mileage-rate": {
+          "label": "Reimbursement Per Mile (USD)",
+          "selector": "input[name=\"mileage_rate\"]"
         }
       }
     },

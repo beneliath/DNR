@@ -19,6 +19,15 @@ def config():
 
 
 class ProductionAccountTest(unittest.TestCase):
+    def test_backend_dynamic_pool_excludes_stopped_ingress_address(self):
+        import ipaddress
+        for subnet, ingress in [('172.30.255.0/24', '172.30.255.254'), ('10.252.133.0/24', '10.252.133.254'), ('10.252.4.0/24', '10.252.4.2')]:
+            result = production.backend_ipam(subnet, ingress)
+            pool = ipaddress.ip_network(result['ip_range'])
+            self.assertEqual(result['subnet'], subnet)
+            self.assertNotIn(ipaddress.ip_address(ingress), pool)
+            self.assertGreaterEqual(pool.num_addresses, 128)
+
     def test_refuse_unqualified_releases_and_plaintext(self):
         for field,value in [('origin','http://moed.example.com'),('origin','https://moed.example.com/a/primary'),('primary_key','../primary'),('commit','main')]:
             candidate=config();candidate[field]=value

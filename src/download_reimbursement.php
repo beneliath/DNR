@@ -40,6 +40,7 @@ try {
         COALESCE(ri.merchant, e.merchant) AS merchant,
         COALESCE(ri.description, e.description) AS description,
         COALESCE(ri.amount_cents, e.amount_cents) AS amount_cents,
+        e.expense_type, e.origin_location, e.destination_location, e.odometer_start, e.odometer_end, e.mileage_rate,
         COALESCE(ri.coa_number, c.coa_number) AS coa_number,
         COALESCE(ri.coa_description, c.description) AS coa_description
         FROM reimbursement_request_items ri JOIN reimbursement_expenses e ON e.id = ri.expense_id
