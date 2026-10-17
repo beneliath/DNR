@@ -74,7 +74,9 @@ def main():
            if not k.startswith(('DNR_', 'MYSQL_', 'COMPOSE_')) and k not in ('PORT', 'DEFAULT_SPEAKER')}
     with tempfile.TemporaryDirectory(prefix='dnr-test-') as temporary:
         folder = Path(temporary)
-        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost', 'DNR_REQUIRE_HTTPS': '0'}
+        # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
+        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost',
+                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0'}
         for name in ('ROOT', 'APP', 'BACKUP', 'MAINTENANCE', 'GEOCODER', 'MAIL_INGEST', 'MAIL_DISPATCH'):
             path = folder / ('mysql_' + name.lower())
             path.write_text(secrets.token_hex(32)); path.chmod(0o444)
@@ -116,7 +118,6 @@ def main():
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
         if sys.argv[1:] == ['audience']:
-            override['services']['web']['environment']['DNR_PRIMARY_PUBLIC_URL'] = 'https://message-monkey.example.test'
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
