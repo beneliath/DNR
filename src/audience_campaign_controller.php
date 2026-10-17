@@ -126,7 +126,7 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
     $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id WHERE t.audience_id=? AND t.deleted_at IS NULL $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->format('Y-m-d'),$plannerStart->format('Y-m-d')]);
     $plannerEmails=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);
 }
-$deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];
+$deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
 $deliveryAvailable=$store->deliverySetupAvailable();$deliveryDomains=[];$deliveryAddresses=[];$deliverySender=null;$deliverySenderJob=null;$deliveryDomain=null;$deliveryDevelopmentCode='';$deliveryProbe=null;$senderReadiness=null;
 if($view==='delivery'){
     if(!$canManage){http_response_code(403);exit('Email delivery setup requires an editor or administrator.');}
@@ -135,6 +135,7 @@ if($view==='delivery'){
         $mailActivity=$store->all('SELECT kind,actor_label,state,attempts,next_attempt_at,error_message,created_at FROM marketing_service_mail WHERE audience_id=? ORDER BY id DESC LIMIT 25',[$audienceId]);
         if(!$store->sesAvailable())$mailUsage=$store->all("SELECT lane,COUNT(*) daily,SUM(created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)) hourly FROM marketing_relay_usage WHERE audience_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY lane",[$audienceId]);
         $eventSummary=$store->one("SELECT COUNT(*) n,MAX(created_at) latest FROM marketing_message_events WHERE audience_id=? AND source='provider'",[$audienceId]);
+        if($store->sesAvailable())$sesInboxCounts=$store->one("SELECT SUM(state IN ('queued','processing')) pending,SUM(state='failed') failed FROM marketing_ses_inbox WHERE audience_id=?",[$audienceId])??[];
     }
     if($deliveryAvailable&&!$store->sesAvailable()){
         $deliveryDomains=$store->all('SELECT d.*,(SELECT COUNT(*) FROM marketing_sending_addresses s WHERE s.domain_id=d.id AND s.audience_id=d.audience_id AND s.deleted_at IS NULL AND s.verified_at IS NOT NULL AND s.verified_transport=\'smtp\') verified_count FROM marketing_sending_domains d WHERE d.audience_id=? AND d.deleted_at IS NULL ORDER BY domain,id',[$audienceId]);

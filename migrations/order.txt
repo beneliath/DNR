@@ -129,3 +129,4 @@
 20261016_add_marketing_dispatch.sql
 20261016_complete_marketing_delivery.sql
 20261016_add_marketing_ses.sql
+20261017_queue_marketing_sns_events.sql

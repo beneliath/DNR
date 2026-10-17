@@ -7,6 +7,24 @@ foreach(['marketing_sending_domains','marketing_sending_addresses','marketing_de
 $ses=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();$sealed=$db->query('SELECT credential_ciphertext FROM marketing_ses_credentials WHERE audience_id=1')->fetch_assoc()['credential_ciphertext'];
 if(str_contains($sealed,str_repeat('s',40))||audienceSesCredentials($db,1)['secret']!==str_repeat('s',40))throw new RuntimeException('Worker credential isolation failed.');
 try{$db->query("UPDATE marketing_ses_credentials SET credential_ciphertext='' WHERE audience_id=1");throw new RuntimeException('Worker can replace credentials.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
+require_once '/var/www/html/audience_store.php';require_once '/var/www/html/audience_ses_inbox.php';
+$queued=$db->query("SELECT * FROM marketing_ses_inbox WHERE state='queued' ORDER BY id")->fetch_all(MYSQLI_ASSOC);
+if(count($queued)!==4)throw new RuntimeException('Signed SNS queue fixtures missing.');
+$fixture=json_decode(\Dnr\Security\ApplicationKey::open($queued[0]['payload_ciphertext']),true);
+$certificate=$fixture['envelope']['FixtureCertificate'];$failOnce=true;$confirmations=0;
+$fetchCertificate=static function(string $url)use($certificate,&$failOnce):string{if($failOnce){$failOnce=false;throw new RuntimeException('SECRET network diagnostic');}return $certificate;};
+$confirmSubscription=static function($store,$message,$settings)use(&$confirmations):string{$request=audienceSnsConfirmationRequest($message,$settings);if($request['TopicArn']!==$settings['topic_arn']||$request['AuthenticateOnUnsubscribe']!=='true')throw new RuntimeException('Confirmation lost its authenticated scope.');$confirmations++;return $settings['topic_arn'].':bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';};
+if(processAudienceSnsInbox($db,25,$fetchCertificate,$confirmSubscription)!==4)throw new RuntimeException('Mail role cannot process queued SNS envelopes.');
+$retry=$db->execute_query('SELECT * FROM marketing_ses_inbox WHERE id=?',[$queued[0]['id']])->fetch_assoc();
+if($retry['state']!=='queued'||!$retry['payload_ciphertext']||str_contains($retry['error_message'],'SECRET'))throw new RuntimeException('Transient SNS failure lost its envelope or exposed provider details.');
+$counts=$db->query('SELECT state,COUNT(*) n FROM marketing_ses_inbox GROUP BY state')->fetch_all(MYSQLI_ASSOC);$counts=array_column($counts,'n','state');
+if((int)($counts['done']??0)!==2||(int)($counts['rejected']??0)!==1)throw new RuntimeException('Signed receipts and forged envelope were not separated.');
+foreach(array_slice($queued,1,2)as$notification){$payload=json_decode(\Dnr\Security\ApplicationKey::open($notification['payload_ciphertext']),true)['envelope'];$event=json_decode($payload['Message'],true);$email=$event['mail']['destination'][0];$actual=$db->execute_query('SELECT email_status FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc()['email_status'];if($actual!==($event['eventType']==='Bounce'?'cleaned':'unsubscribed'))throw new RuntimeException('Queued bounce or complaint did not suppress marketing.');}
+$db->execute_query('UPDATE marketing_ses_inbox SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$queued[0]['id']]);
+if(processAudienceSnsInbox($db,1,$fetchCertificate,$confirmSubscription)!==1||$confirmations!==1)throw new RuntimeException('Durable confirmation retry failed.');
+if((int)$db->query("SELECT COUNT(*) n FROM marketing_ses_inbox WHERE payload_ciphertext<>''")->fetch_assoc()['n']!==0)throw new RuntimeException('Completed SNS tokens were retained.');
+if(!str_ends_with($db->query('SELECT subscription_arn FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['subscription_arn'],':bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'))throw new RuntimeException('Authenticated subscription receipt was not retained.');
+echo "SNS durable retry, signed confirmation, forged-envelope rejection, suppression and mail-role isolation passed.\n";
 $fakeSes=new class{
  public array $sent=[];public ?Throwable $failure=null;
  public function getAccount(array $args):array{return ['SendingEnabled'=>true,'ProductionAccessEnabled'=>true,'SendQuota'=>['Max24HourSend'=>1000,'MaxSendRate'=>10,'SentLast24Hours'=>0]];}
