@@ -176,7 +176,7 @@ expectMattermost(
         && str_contains($webapp, 'registerSidebarChannelLinkLabelComponent')
         && str_contains($webapp, 'shortMOEDSidebarChannelDisplayName(displayName)')
         && str_contains($webapp, "classList.add('moed-sidebar-label-active')")
-        && str_contains($sidebarLabel, '[MOED#${match[1]}]')
+        && str_contains($sidebarLabel, 'export function shortMOEDSidebarChannelDisplayName(')
         && str_contains($documentation, 'compact `[MOED#17]`')
         && str_contains($documentation, 'web, desktop, and mobile')
         && str_contains($documentation, 'continue to show and copy the full')
