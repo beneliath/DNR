@@ -1,11 +1,21 @@
 <?php
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
 $s3start=$checks;$s3path='audience.php?view=delivery';$s3post=static fn(array $data)=>$admin($s3path,['csrf_token'=>$csrf]+$data);
-foreach([$admin,$editor]as$client){$page=$client($s3path);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Amazon SES')&&!preg_match('/Warning:|Fatal error:/',$page['body']),'SES connection renders');}
+$page=$admin($s3path);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Amazon SES')&&!preg_match('/Warning:|Fatal error:/',$page['body']),'Administrator SES connection renders');
+foreach(['editor'=>$editor,'reviewer'=>$reviewer]as$role=>$client){
+    foreach(['','relay','domains','limits','activity','events','unknown']as$tab){
+        $denied=$client($s3path.($tab!==''?'&tab='.$tab:''));
+        audienceHttpExpect($denied['status']===403&&!str_contains($denied['body'],'ses-key')&&!str_contains($denied['body'],'audience_ses_events.php'),$role.' cannot read delivery tab '.$tab);
+    }
+    audienceHttpExpect($client($s3path.'&api=workspace_search')['status']===403,$role.' cannot bypass delivery access through an API selector');
+    audienceHttpExpect($client($s3path.'&audience=1')['status']===403,$role.' cannot bypass delivery access through a legacy audience selector');
+    foreach(['delivery_ses_operation','delivery_policy','delivery_request']as$action)audienceHttpExpect($client('audience.php?view=campaigns',['csrf_token'=>$role==='editor'?$token:$reviewToken,'action'=>$action,'operation'=>'disconnect'])['status']===403,$role.' cannot post '.$action.' through another view');
+    foreach(['campaigns','settings']as$view){$navigation=$client('audience.php?view='.$view);audienceHttpExpect($navigation['status']===200&&!str_contains($navigation['body'],'view=delivery'),$role.' navigation omits admin-only delivery links');}
+}
+audienceHttpExpect(str_contains($admin('audience.php?view=campaigns')['body'],'view=delivery'),'Administrator navigation retains delivery settings');
 $credentialInputs=static function(string $html):array{$document=new DOMDocument();@$document->loadHTML($html);$xpath=new DOMXPath($document);return [$xpath->query('//*[@id="ses-key"]')->item(0),$xpath->query('//*[@id="ses-secret"]')->item(0)];};
 [$newKey,$newSecret]=$credentialInputs($admin($s3path)['body']);
 audienceHttpExpect($newKey instanceof DOMElement&&$newSecret instanceof DOMElement&&$newKey->getAttribute('placeholder')===''&&$newSecret->getAttribute('placeholder')==='','Unconfigured credentials do not imply that keys are saved');
-audienceHttpExpect($reviewer($s3path)['status']===403,'Reviewer delivery configuration denied');
 $sesInput=['action'=>'delivery_ses_save','version'=>1,'region'=>'us-east-1','from_email'=>'sender@community.example','configuration_set'=>'message-monkey','topic_arn'=>'arn:aws:sns:us-east-1:123456789012:message-monkey','access_key_id'=>'AKIA'.str_repeat('A',16),'secret_access_key'=>str_repeat('s',40)];
 audienceHttpExpect($editor($s3path,['csrf_token'=>$token]+$sesInput)['status']===403,'Editor cannot configure account credentials');
 audienceHttpExpect($admin($s3path,['csrf_token'=>'invalid']+$sesInput)['status']===400,'SES setup requires CSRF');

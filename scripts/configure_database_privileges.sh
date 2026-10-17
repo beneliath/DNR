@@ -166,6 +166,12 @@ GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_deliver
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_recipients TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_email_optouts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_contacts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_collection_resources TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_collection_revisions TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_collection_responses TO '${MYSQL_USER}'@'%';
+GRANT UPDATE (contact_id,payload_ciphertext) ON \`${MYSQL_DATABASE}\`.marketing_collection_responses TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_collection_visits TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_collection_limits TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_tags TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_contact_tags TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_segments TO '${MYSQL_USER}'@'%';

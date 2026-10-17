@@ -78,7 +78,9 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         catch(Throwable $e){applicationLog('error','Email design operation failed',['error'=>$e->getMessage()]);if($jsonRequest)$respond(['error'=>'Unable to save. Your edits are still here. Try again.'],500);$error='Unable to save. Try again.';}
     }
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
-    $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY updated_at DESC,id DESC',[$audienceId]);
+    $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL',[$audienceId]);
+    // Embedded photographs must not become MySQL filesort payloads.
+    usort($templates,static fn($a,$b)=>[$b['updated_at'],(int)$b['id']]<=>[$a['updated_at'],(int)$a['id']]);
     if($view==='designer'){
         if(!$canManage){http_response_code(403);exit('The designer requires an editor or administrator.');}
         try{$record=$kind==='template'?$store->emailTemplate($id):$store->campaign($id);if($kind==='campaign'&&($record['status']!=='draft'||$record['campaign_type']!=='regular'))throw new InvalidArgumentException('Only regular email drafts can use the visual designer.');$variantDesign=$kind==='template'?$record['design']:$store->campaignDesign($record,$variant);}
@@ -93,7 +95,10 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         return;
     }
     $tab=in_array($_GET['tab']??'', ['built-in','saved','recent'],true)?$_GET['tab']:'built-in';
-    $recentDesigns=$store->all("SELECT id,name,draft_json,updated_at FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' AND campaign_type='regular' ORDER BY sent_at DESC LIMIT 50",[$audienceId]);
+    $recentIds=array_column($store->all("SELECT id FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' AND campaign_type='regular' ORDER BY sent_at DESC,id DESC LIMIT 50",[$audienceId]),'id');
+    $recentById=[];$recentDesigns=[];
+    if($recentIds)foreach($store->all('SELECT id,name,draft_json,updated_at FROM marketing_campaigns WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($recentIds),'?')).')',[$audienceId,...$recentIds])as$recent)$recentById[$recent['id']]=$recent;
+    foreach($recentIds as$recentId)if(isset($recentById[$recentId]))$recentDesigns[]=$recentById[$recentId];
     $canExport=$canManage;$tags=[];$groups=[];$fields=[];$catalog=[];$segments=[];$filters=audienceListFilters([]);$rules=['match'=>'all','rules'=>[]];$segment=null;$job=null;$editorRecovery=null;$pageTitle='Email Templates';
     releaseApplicationSessionLock();
     ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Templates'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php

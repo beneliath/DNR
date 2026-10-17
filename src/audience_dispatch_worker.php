@@ -17,8 +17,9 @@ function audienceDeliverCampaignMessage(array $message,?mysqli $budgetDb=null):s
 /** Dispatch-time authorization is independent of the web application's review receipt. */
 function audienceDispatchWorkerReady(mysqli $db,int $audience,array $snapshot,?callable $resolver=null):void
 {
+    if(!empty($snapshot['draft']['experiment']))audienceExperimentVariants($snapshot['draft']);
     if(audienceSesInstalled($db))audienceSesWorkerReady($db,$audience,$snapshot['draft']['from_email'],$snapshot['ses']??[],null,$resolver);
-    else throw new DomainException('Configure this account’s SES connection before marketing delivery.');
+    else throw new DomainException('Configure this account’s SES connection before MessageMonkey delivery.');
     if(trim((string)($snapshot['identity']['LIST:ADDRESS']??''))==='')throw new DomainException('The mailing address is missing.');
     audienceDispatchBase($snapshot['base']);
 }

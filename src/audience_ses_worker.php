@@ -14,7 +14,7 @@ function audienceSesFailure(Throwable $e):string
 }
 function audienceSesWorkerReady(mysqli $db,int $audience,string $from,?array $binding=null,?callable $factory=null,?callable $resolve=null):array
 {
-    if(!audienceSesInstalled($db))throw new DomainException('Install and configure SES before sending marketing email.');
+    if(!audienceSesInstalled($db))throw new DomainException('Install and configure SES before sending audience email.');
     $s=$db->execute_query('SELECT * FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc();
     if($s&&$s['enabled']&&$s['check_state']==='ready'&&strtotime(($s['checked_at']??'1970-01-01').' UTC')<time()-900){audienceSesCheck($db,$audience,$factory,$resolve);$s=$db->execute_query('SELECT * FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc();}
     if(!$s||audienceSesReasons($s,$from)||($binding!==null&&audienceSesBinding($s)!==$binding))throw new DomainException('Review the SES sender, connection and delivery events before sending.');
@@ -41,7 +41,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         $correlation=bin2hex(random_bytes(32));
         $headers=empty($m['unsubscribe'])?[]:['List-Unsubscribe'=>'<'.$m['unsubscribe'].'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'];
         $raw=smtpMessageData($m['from_email'],$m['from_name'],$m['email'],$m['subject'],$m['text'],'',$m['html']??null,null,$m['message_id'],[],$headers,$m['to_name']??'');
-        if(strlen($raw)>9_500_000)throw new DomainException('The rendered marketing email is too large.');
+        if(strlen($raw)>9_500_000)throw new DomainException('The rendered audience email is too large.');
         if($lane==='campaign'){
             $db->execute_query("UPDATE marketing_campaign_recipients SET provider='ses',provider_account_id=?,provider_region=?,ses_correlation=? WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$s['aws_account_id'],$s['region'],$correlation,$m['native_recipient_id'],$m['claim_token']]);if($db->affected_rows!==1)throw new DomainException('The delivery claim changed.');
         }

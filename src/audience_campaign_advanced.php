@@ -20,7 +20,8 @@ function audienceCampaignDateRange(string $preset, ?DateTimeImmutable $today=nul
 function audienceCampaignType(array $row):string
 {
     $draft=$row['draft']??audienceJson($row['draft_json']??'{}');
-    return $draft['experiment']['kind']??$row['campaign_type'];
+    $kind=$draft['experiment']['kind']??null;
+    return $kind===null?$row['campaign_type']:($kind==='ab'?'ab':'unsupported');
 }
 function audienceCampaignGoals():array
 {
@@ -43,19 +44,19 @@ function audienceCampaignPlannerRange(string $date,string $scale):array
     $end=match($scale){'month'=>$focus->modify('last day of this month')->modify('sunday this week'),'week'=>$start->modify('+6 days'),default=>$start};
     return [$start,$end];
 }
-function audienceCampaignExperiment(array $input,string $kind='multivariate'):array
+function audienceCampaignExperiment(array $input,string $kind='ab'):array
 {
-    if(!in_array($kind,['ab','multivariate'],true))throw new InvalidArgumentException('Choose an A/B or multivariate test.');
+    if($kind!=='ab')throw new InvalidArgumentException('Choose an A/B test.');
     $raw=$input['variables']??[];if(!is_array($raw))throw new InvalidArgumentException('Choose test variables.');
     $variables=[];$combinations=1;
     foreach(['subject','from','content','time']as$key){
         if(isset($input['enabled_variables'])&&(!is_array($input['enabled_variables'])||!in_array($key,$input['enabled_variables'],true)))continue;
         if(!isset($raw[$key])||!is_array($raw[$key])||!$raw[$key])continue;
-        if(count($raw[$key])<2||count($raw[$key])>8)throw new InvalidArgumentException('Each test variable needs two to eight variations.');
+        if(count($raw[$key])<2||count($raw[$key])>3)throw new InvalidArgumentException('Choose two or three variations of one variable.');
         $values=[];foreach($raw[$key]as$value){$value=audienceText(['value'=>$value],'value',$key==='subject'?200:100);if($key==='time')audienceCampaignDate($value,true);if($key!=='content'&&$value==='')throw new InvalidArgumentException('Complete each test variation.');$values[]=$key==='content'?'Variation '.(count($values)+1):$value;}
         if($key!=='content'&&count(array_unique($values))!==count($values))throw new InvalidArgumentException('Test variations must be different.');$variables[$key]=$values;$combinations*=count($values);
     }
-    if(!$variables||count($variables)>($kind==='ab'?1:3)||$combinations>($kind==='ab'?3:8))throw new InvalidArgumentException($kind==='ab'?'A/B tests use one variable and up to three variations.':'Test up to three variables and eight combinations.');
+    if(count($variables)!==1||$combinations>3)throw new InvalidArgumentException('A/B tests use one variable and up to three variations.');
     $percent=filter_var($input['test_percent']??100,FILTER_VALIDATE_INT);$hours=filter_var($input['test_hours']??4,FILTER_VALIDATE_INT);$winner=audienceText($input,'winner')?:'clicks';
     if($percent===false||$percent<10||$percent>100||$hours===false||$hours<1||$hours>168||!in_array($winner,['opens','clicks','manual'],true))throw new InvalidArgumentException('Choose a valid test size, duration and winner method.');
     if(isset($variables['time'])&&$percent!==100)throw new InvalidArgumentException('Send-time tests must include 100% of recipients.');
@@ -99,7 +100,7 @@ trait AudienceCampaignAdvanced
     }
     public function campaignDesign(array $row,int $variant=0):?array
     {
-        if($variant<0||$variant>7||($variant>0&&$variant>=count($row['draft']['experiment']['variables']['content']??[])))throw new InvalidArgumentException('This content variation is unavailable.');
+        if($variant<0||$variant>2||($variant>0&&$variant>=count($row['draft']['experiment']['variables']['content']??[])))throw new InvalidArgumentException('This content variation is unavailable.');
         return $variant>0?($row['draft']['design_variants'][$variant]??$row['draft']['design']??null):($row['draft']['design']??null);
     }
     public function campaignMergeTags():array
@@ -143,7 +144,7 @@ trait AudienceCampaignAdvanced
     }
     public function saveCampaignPlan(array $input,int $id,int $version):int
     {
-        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a marketing goal.');
+        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a campaign goal.');
         $data=['goal'=>$goal,'start'=>audienceCampaignDate(audienceText($input,'start')),'end'=>audienceCampaignDate(audienceText($input,'end')),'notes'=>audienceText($input,'notes',4000),'tracking'=>audienceCampaignTracking($input)];if($data['end']<$data['start'])throw new InvalidArgumentException('End date must follow start date.');
         return $this->transaction(function()use($id,$version,$name,$data){if($id){$old=$this->campaignPlan($id,true);if((int)$old['version']!==$version)throw new InvalidArgumentException('This plan changed. Reload before saving.');$this->write('UPDATE marketing_campaign_plans SET name=?,data_json=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel,$this->audienceId,$id]);}else{$this->write('INSERT INTO marketing_campaign_plans(audience_id,name,data_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;});
     }

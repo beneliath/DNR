@@ -14,6 +14,7 @@ const APPLICATION_ENCRYPTED_COLUMNS = [
     'record_merge_journal' => 'snapshot_ciphertext',
     'marketing_ses_credentials' => 'credential_ciphertext',
     'marketing_ses_inbox' => 'payload_ciphertext',
+    'marketing_collection_responses' => 'payload_ciphertext',
     'marketing_campaign_deliveries' => 'snapshot_ciphertext',
     'marketing_campaign_recipients' => 'context_ciphertext',
     'marketing_service_mail' => 'payload_ciphertext',

@@ -13,3 +13,25 @@
 
 .email-designer .audience-account-tools{gap:8px;margin-left:8px}.email-designer .audience-notifications{top:64px}
 @media(max-width:700px){.email-designer .designer-title{width:auto;flex:1}.email-designer .designer-top-actions{order:3}.email-designer .audience-account-tools{margin-left:auto}.email-designer .designer-topbar{min-height:110px}.email-designer .designer-title strong{max-width:180px}.email-designer .audience-notifications{top:64px}}
+
+/* Keep email thumbnails and cards compact on wide displays. */
+.template-gallery:not(.template-list){grid-template-columns:repeat(auto-fill,minmax(250px,300px));justify-content:start}
+@media(max-width:700px){.template-gallery:not(.template-list){grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),300px))}}
+
+.template-gallery:not(.template-list){align-items:stretch}
+.template-gallery:not(.template-list) .template-thumbnail{height:auto;min-height:80px}
+.template-thumbnail iframe{display:block;max-width:none;transform-origin:top left}
+.template-gallery:not(.template-list) .template-card{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:0}
+.template-gallery:not(.template-list) .template-thumbnail{position:relative;background:#fff;border-bottom:0;border-top:1px solid var(--audience-border);border-radius:0 0 14px 14px}
+.template-gallery:not(.template-list) .template-thumbnail iframe{position:absolute;top:0;left:0}
+.template-gallery:not(.template-list) .template-card-info{display:grid;grid-row:span 2;grid-template-rows:subgrid;row-gap:0;padding-bottom:24px}
+.template-gallery:not(.template-list) .template-card-info p{margin-top:0;margin-bottom:0}
+.template-gallery:not(.template-list) .template-card-info small{grid-row:2;margin-top:24px}
+.template-gallery:not(.template-list) .template-card-actions{align-items:end}
+.template-list .template-thumbnail{order:-1}
+.template-gallery .template-card{border:1px solid #005f69}
+.template-gallery:not(.template-list) .template-card-info,.template-gallery:not(.template-list) .template-card-actions{background:#f4f4f4;color:#24292d}
+.template-gallery:not(.template-list) .template-card-info{border-radius:14px 14px 0 0}
+.template-gallery:not(.template-list) .template-card-info h3{color:#24292d}
+.template-gallery:not(.template-list) .template-card-info p,.template-gallery:not(.template-list) .template-card-info small{color:#5e686d}
+.template-gallery .template-card[hidden]{display:none}

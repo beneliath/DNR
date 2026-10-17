@@ -12,6 +12,8 @@ require_once __DIR__ . '/audience_delivery_setup.php';
 require_once __DIR__ . '/audience_dispatch.php';
 require_once __DIR__ . '/audience_delivery_runtime.php';
 require_once __DIR__ . '/audience_ses.php';
+require_once __DIR__ . '/audience_search.php';
+require_once __DIR__ . '/audience_collection.php';
 
 final class AudienceStore
 {
@@ -25,6 +27,7 @@ final class AudienceStore
     use AudienceDispatch;
     use AudienceDeliveryRuntime;
     use AudienceSesSetup;
+    use AudienceCollection;
     private int $transactionDepth = 0;
     public function __construct(public readonly mysqli $db, public readonly int $audienceId, public readonly int $actorId, public readonly string $actorLabel)
     {
@@ -303,6 +306,7 @@ final class AudienceStore
                 $this->write('INSERT IGNORE INTO marketing_deleted_emails (audience_id,email_hash) VALUES (?,?)',[$this->audienceId,hash('sha256',$person['email'])]);
                 $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_notes WHERE contact_id=?',[$id]);
                 $this->write("UPDATE marketing_contact_events SET details_json=JSON_OBJECT('redacted',true) WHERE contact_id=?",[$id]);
+                if($this->collectionAvailable()&&$this->one('SELECT id FROM marketing_collection_responses WHERE audience_id=? AND contact_id=? LIMIT 1',[$this->audienceId,$id]))$this->write('UPDATE marketing_collection_responses SET contact_id=NULL,payload_ciphertext=? WHERE audience_id=? AND contact_id=?',[\Dnr\Security\ApplicationKey::seal('{"redacted":true}'),$this->audienceId,$id]);
                 $this->write("UPDATE marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id SET i.payload_json=JSON_OBJECT(),i.result_json=NULL,i.error_message='Connection data removed',i.state='skipped' WHERE j.audience_id=? AND (i.contact_id=? OR LOCATE(?,LOWER(i.payload_json))>0 OR LOCATE(?,LOWER(COALESCE(i.result_json,'')))>0)",[$this->audienceId,$id,$person['email'],$person['email']]);
                 $this->write("UPDATE marketing_contacts SET email=?,first_name='',last_name='',source='',notes='',custom_json=JSON_OBJECT(),language='',timezone='',email_status='unsubscribed',is_archived=1,deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE id=?",['deleted-'.$id.'@invalid.example',$id]);$this->event($id,'person_deleted');return;
             }

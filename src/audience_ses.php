@@ -93,7 +93,7 @@ trait AudienceSesSetup
             if($operation==='check'){$this->write("UPDATE marketing_ses_settings SET check_state='queued',version=version+1 WHERE audience_id=? AND enabled=1 AND check_state<>'checking'",[$this->audienceId]);}
             elseif($operation==='disconnect'){$this->write("UPDATE marketing_ses_settings SET enabled=0,access_key_tail='',generation=?,check_state='unconfigured',checked_at=NULL,production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,subscription_arn='',last_event_at=NULL,error_message='',result_json=JSON_OBJECT(),version=version+1 WHERE audience_id=?",[bin2hex(random_bytes(16)),$this->audienceId]);$this->write("UPDATE marketing_ses_credentials SET credential_ciphertext='' WHERE audience_id=?",[$this->audienceId]);}
             else throw new InvalidArgumentException('Unknown SES operation.');
-            if(function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_ses_'.$operation,'actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_audience','entity_id'=>$this->audienceId,'details'=>'Marketing delivery connection operation.']);
+            if(function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_ses_'.$operation,'actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_audience','entity_id'=>$this->audienceId,'details'=>'MessageMonkey delivery connection operation.']);
         });
     }
 }

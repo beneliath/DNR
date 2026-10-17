@@ -229,7 +229,7 @@ try{
 
     // Remaining Stage 2: revisions, comments, reusable content, import, personalization.
     $advancedId=$campaignStore->createCampaign(['name'=>'Advanced designer fixture','campaign_type'=>'regular']);$advancedPath='audience.php?view=designer&id='.$advancedId;
-    $advanced=audienceDesignStarters()['welcome']['design'];$advanced['rows'][0]['columns'][0][0]['text']='Hello *|FNAME|*';
+    $advanced=audienceDesignStarters()['welcome']['design'];$advanced['rows'][0]['columns'][0][0]['type']='heading';$advanced['rows'][0]['columns'][0][0]['text']='Hello *|FNAME|*';
     $post=['csrf_token'=>$token,'action'=>'design_save','version'=>1,'design'=>json_encode($advanced)];
     audienceHttpExpect($editor($advancedPath,$post)['status']===200,'Advanced design initial save');
     $advanced['rows'][0]['columns'][0][0]['text']='Second version';$second=$editor($advancedPath,array_replace($post,['version'=>2,'design'=>json_encode($advanced)]));audienceHttpExpect($second['status']===200,'Advanced design second save');
@@ -287,5 +287,7 @@ try{
     require __DIR__.'/audience_content_http.php';
     require __DIR__.'/audience_delivery_setup_http.php';
     require __DIR__.'/audience_dispatch_http.php';
+    require __DIR__.'/audience_search_http.php';
+    require __DIR__.'/audience_collection_http.php';
     echo "Audience HTTP integration passed ($checks checks): permissions, CSRF, profiles, management screens, segmentation, import wizard, detached worker, exports and isolation.\n";
 }finally{foreach($cookies as$cookie)@unlink($cookie);}

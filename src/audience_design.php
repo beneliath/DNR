@@ -48,16 +48,36 @@ function audienceDesignStarters(): array
         'important-update'=>['Important update','Announce',1,'An update for our community.'],
         'gratitude'=>['You made a difference','Thank you',2,'Look what we accomplished together.'],
         'getting-started'=>['Getting started','Welcome',3,'Your first steps start here.'],
-        'service-introduction'=>['Meet our services','Sell services',2,'Find the right support for you.'],
-        'consultation'=>['Let’s talk','Sell services',1,'Start a conversation with our team.'],
-        'product-spotlight'=>['Product spotlight','Sell products',1,'Discover something new.'],
-        'collection'=>['Featured collection','Sell products',3,'A few things we think you will love.'],
-        'account-notice'=>['Account notice','Transactional',1,'Your account update.'],
     ];
     foreach($layouts as$key=>[$name,$category,$columns,$headline]){
-        $features=[];for($i=1;$i<=$columns;$i++)$features[]=[ $block('image',''),$block('heading','Highlight '.$i,['headingLevel'=>2]),$block('text','Share a useful detail, a new idea, or a story that matters to your readers.'),$block('button','Explore more',['url'=>'https://example.com']) ];
+        $features=[];for($i=1;$i<=$columns;$i++)$features[]=[ $block('heading','Highlight '.$i,['headingLevel'=>2]),$block('text','Share a useful detail, a new idea, or a story that matters to your readers.'),$block('button','Explore more',['url'=>'https://example.com']) ];
         $starters[$key]=['name'=>$name,'category'=>$category,'design'=>audienceDesign(['schema'=>1,'rows'=>[['name'=>'Header','columns'=>[[$block('heading',$headline,['align'=>'center']),$block('text','Hello *|FNAME|*, make this message your own.')]]],['name'=>'Featured content','columns'=>$features]]])];
     }
+    $banners=[
+        'newsletter'=>['neve-tzedek-market','People browsing an outdoor market in Neve Tzedek'],
+        'welcome'=>['jaffa-steps','A visitor on the stone steps of Old Jaffa'],
+        'event'=>['tel-aviv-market','People browsing the colorful Nachalat Binyamin market'],
+        'announcement'=>['haifa-harbor','A panoramic view of Haifa and its harbor'],
+        'thanks'=>['negev-sunset','Sunset over Ein Yorkeam in the Negev Desert'],
+        'news-roundup'=>['jerusalem-street','People walking through the Old City of Jerusalem'],
+        'monthly-digest'=>['negev-landscape','Layered desert mountains in the Negev'],
+        'editorial'=>['safed-gate','A green decorative gate in Safed'],
+        'save-the-date'=>['tel-aviv-beach','People enjoying the beach in Tel Aviv'],
+        'event-agenda'=>['ein-gedi-hikers','Hikers exploring the cliffs and trails of Ein Gedi'],
+        'new-chapter'=>['eilat-coast','The blue shoreline and coastal buildings of Eilat'],
+        'important-update'=>['galilee-boat','The Sea of Galilee and distant hills viewed from a boat'],
+        'gratitude'=>['ein-gedi-waterfall','A waterfall flowing through the rocky oasis of Ein Gedi'],
+        'getting-started'=>['galilee-palm','Palm fronds framing fields and the Sea of Galilee'],
+    ];
+    foreach($starters as$key=>&$starter){
+        if($key==='blank')continue;
+        [$banner,$alt]=$banners[$key];
+        $bytes=file_get_contents(__DIR__.'/assets/template-art/'.$banner.'.jpg');
+        if($bytes===false)throw new RuntimeException('A bundled template banner is unavailable.');
+        $design=$starter['design'];
+        array_unshift($design['rows'],['id'=>'starter-banner-'.$key,'name'=>'Banner','columns'=>[[$block('image','',['id'=>'starter-banner-image-'.$key,'image'=>'data:image/jpeg;base64,'.base64_encode($bytes),'alt'=>$alt,'padding'=>0])]]]);
+        $starter['design']=audienceDesign($design);
+    }unset($starter);
     return $starters;
 }
 /** Render table-based email HTML, escaping every authored value. Footer is always retained. */

@@ -37,6 +37,10 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     $html=null;
     if($snapshot['type']==='plain-text')$text=audienceDesignMerge((string)$draft['text'],$context,false);
     else{$html=audienceDesignHtml($draft['design'],$context);$text=audienceDesignPlainText($draft['design'],$context);}
+    if(function_exists('audienceCollectionMerge')){
+        $text=audienceCollectionMerge($text,$snapshot,$token,false);
+        if($html!==null)$html=audienceCollectionMerge($html,$snapshot,$token,true);
+    }
     $footer="\n\n".$context['LIST:COMPANY']."\n".$context['LIST:ADDRESS']."\nUpdate your preferences: ".$context['UPDATE_PROFILE']."\nUnsubscribe: ".$context['UNSUB'];
     $text.=$footer;
     if($html!==null&&(!str_contains($html,htmlspecialchars($link,ENT_QUOTES,'UTF-8'))||!str_contains($html,htmlspecialchars($context['LIST:ADDRESS'],ENT_QUOTES,'UTF-8'))))$html.='<div style="padding:24px;font-size:12px;text-align:center">'.nl2br(htmlspecialchars($footer,ENT_QUOTES,'UTF-8')).'</div>';
@@ -88,7 +92,9 @@ trait AudienceDispatch
         audienceDispatchDue($draft['send_time']??[]);
         $settings=audienceJson($audience['settings_json']);$ready=$this->sendingReadiness($draft['from_email'],$settings);
         if(!$ready['ready'])throw new InvalidArgumentException(implode(' ',$ready['reasons']));
-        return ['ses'=>audienceSesBinding($this->sesSettings()),'variants'=>audienceExperimentVariants($draft),'draft'=>$draft,'type'=>$row['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'base'=>audienceDispatchBase($base)];
+        $collectionLinks=[];
+        if($this->collectionAvailable())foreach($this->all("SELECT public_key,kind FROM marketing_collection_resources WHERE audience_id=? AND kind IN ('survey','preferences') AND state='published' AND deleted_at IS NULL",[$this->audienceId])as$r)$collectionLinks[$r['public_key']]=$r['kind'];
+        return ['ses'=>audienceSesBinding($this->sesSettings()),'collection_links'=>$collectionLinks,'variants'=>audienceExperimentVariants($draft),'draft'=>$draft,'type'=>$row['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'base'=>audienceDispatchBase($base)];
     }
     /** Proof binds the visible review to content, sender settings and exact recipient identities. */
     public function reviewCampaignDispatch(int $id,array $audience,string $base):array

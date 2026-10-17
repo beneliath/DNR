@@ -14,10 +14,11 @@ $reject(fn()=>audienceCampaignDate('2026-10-16T25:00',true),'Impossible times re
 $holidays=audienceCampaignHolidays(2026);$expect(($holidays['2026-11-26']??'')==='Thanksgiving','Movable holiday');
 $expect(isset($holidays['2026-07-04']),'Fixed holiday');
 $ab=audienceCampaignExperiment(['variables'=>['subject'=>['One','Two']]],'ab');$expect($ab['combinations']===2,'A/B pair');
-$multi=audienceCampaignExperiment(['variables'=>['subject'=>['One','Two'],'from'=>['A','B'],'content'=>['','']]],'multivariate');$expect($multi['combinations']===8,'Eight multivariate combinations');
+$three=audienceCampaignExperiment(['variables'=>['from'=>['One','Two','Three']]]);$expect($three['combinations']===3,'A/B supports three variations');
 $reject(fn()=>audienceCampaignExperiment(['variables'=>['subject'=>['Same','Same']]],'ab'),'Duplicate test values rejected');
 $reject(fn()=>audienceCampaignExperiment(['variables'=>['subject'=>['A','B'],'from'=>['A','B']]],'ab'),'A/B only one variable');
-$reject(fn()=>audienceCampaignExperiment(['variables'=>['subject'=>['A','B','C'],'from'=>['A','B','C']]],'multivariate'),'More than eight combinations rejected');
+$reject(fn()=>audienceCampaignExperiment(['variables'=>['subject'=>['A','B','C','D']]]),'More than three variations rejected');
+$reject(fn()=>audienceCampaignExperiment(['variables'=>['subject'=>['A','B']]],'unsupported'),'Unsupported test kind rejected');
 $reject(fn()=>audienceCampaignExperiment(['variables'=>['time'=>['2026-10-20T09:00','2026-10-20T12:00']],'test_percent'=>'50']),'Send time uses full recipient group');
 $expect(!isset(audienceRuleCatalog([],[],[])['is_vip']),'VIP is not an available segment condition');
 $expect(!str_contains(audienceConnectionOrder('is_vip','asc',[]),'is_vip'),'VIP sorting unavailable');

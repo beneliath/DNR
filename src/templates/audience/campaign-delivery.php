@@ -7,7 +7,7 @@ $dispatchForm=static function(string $action,array $extra=[])use($csrf,$id){echo
 <?php if($view==='campaign-send'): ?>
 <div class="campaign-send-layout"><section class="campaign-send-review">
 <h2>Review your email</h2><p>Take a moment to check the details before you <?= $schedule?'schedule':'send' ?> your email.</p>
-<?php if($dispatchError): ?><div role="alert" class="audience-notice error"><strong>Before you send</strong><p><?= $h($dispatchError) ?></p><a href="<?= $h($url(['view'=>'delivery'])) ?>">Manage email delivery</a></div><?php endif; ?>
+<?php if($dispatchError): ?><div role="alert" class="audience-notice error"><strong>Before you send</strong><p><?= $h($dispatchError) ?></p><?php if($canDelete): ?><a href="<?= $h($url(['view'=>'delivery'])) ?>">Manage email delivery</a><?php else: ?><p>Ask an administrator to review email delivery setup.</p><?php endif; ?></div><?php endif; ?>
 <dl class="campaign-send-details">
 <div><dt>To</dt><dd><strong><?= $dispatchReview?number_format($dispatchReview['count']).' recipients':'Review eligible recipients' ?></strong><span><?= $h($audience['name']) ?></span><small>Only subscribed, active connections. Exclusions and opt-outs take priority.</small></dd></div>
 <div><dt>From</dt><dd><strong><?= $h($draft['from_name']??'Not set') ?></strong><span><?= $h($draft['from_email']??'') ?></span></dd></div>
@@ -32,7 +32,7 @@ $headline=match($state){'scheduled'=>'Your email is scheduled','sending'=>'Your 
 ?>
 <section class="campaign-delivery-card"><div class="campaign-delivery-heading"><div><span class="campaign-status"><?= $h(ucfirst($state)) ?></span><h2><?= $headline ?></h2><p><?= $h($campaign['name']) ?></p></div><a class="audience-button" href="<?= $h($url(['view'=>'campaign-delivery','id'=>$id])) ?>">Refresh status</a></div>
 <dl class="campaign-delivery-summary"><div><dt>Delivery time</dt><dd><?= $h($when->format('M j, Y, g:i A')) ?><small><?= $h($delivery['timezone']) ?> · <?= $h($delivery['due_at']) ?> UTC</small></dd></div><div><dt>Audience</dt><dd><?= $h($audience['name']) ?><small><?= number_format((int)$delivery['recipient_count']) ?> confirmed recipients</small></dd></div></dl>
-<?php if($delivery['error_message']): ?><div class="audience-notice error" role="alert"><?= $h($delivery['error_message']) ?> <a href="<?= $h($url(['view'=>'delivery'])) ?>">Email delivery setup</a></div><?php endif; ?>
+<?php if($delivery['error_message']): ?><div class="audience-notice error" role="alert"><?= $h($delivery['error_message']) ?> <?php if($canDelete): ?><a href="<?= $h($url(['view'=>'delivery'])) ?>">Email delivery setup</a><?php else: ?>Ask an administrator to review email delivery setup.<?php endif; ?></div><?php endif; ?>
 <progress max="<?= max(1,$total) ?>" value="<?= $finished ?>" aria-label="Campaign processing progress"></progress><p><?= number_format($finished) ?> of <?= number_format($total) ?> processed</p>
 <div class="campaign-delivery-metrics"><?php foreach(['accepted'=>'Accepted by SES','queued'=>'Waiting','suppressed'=>'Suppressed','failed'=>'Failed','uncertain'=>'Uncertain','cancelled'=>'Cancelled','development'=>'Development only']as$key=>$label): if($key==='development'&&empty($counts[$key]))continue; ?><div><strong><?= number_format((int)($counts[$key]??0)) ?></strong><span><?= $label ?></span></div><?php endforeach; ?></div>
 <?php if(!empty($counts['uncertain'])): ?><p class="audience-notice error">Some messages have no confirmed SES receipt. They will not be retried automatically because they may already have been accepted.</p><?php endif; ?>

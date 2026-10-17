@@ -2,9 +2,125 @@
 
 Original reference branch: `codex/mailchimp-clone`
 
-Current Stage 3 closeout branch: `codex/ses-endpoint-layout`
+Stage 3 closeout branch: `codex/ses-endpoint-layout`
+
+Current local follow-up branch: `codex/mailchimp-cloning-continued`
 
 Reference review: October 16, 2026
+
+## Local follow-up — October 17, 2026
+
+Based on deployed release 2.5.25. These changes are available through the local
+development bind mount and rebuilt assets; they have not been released to s1.
+
+- Connections use **Status** for the former marketing-status column and its
+  corresponding form/export labels.
+- MessageMonkey navigation uses the reference normal/active SVG pairs, served
+  locally and tinted for both themes. Provenance and hashes are recorded in
+  [the icon source ledger](audience-nav-icon-sources.json). Hover and keyboard
+  focus change the icon/background without underlining links. Current main and
+  submenu rows retain their highlight without a selection outline; a selected child owns
+  selection while its section is expanded. The main MOED sidebar is unchanged.
+- Supported email types are regular, plain-text and A/B. A/B configuration and
+  dispatch accept one variable with two or three variations; unsupported kinds
+  and combined-variable snapshots are rejected before delivery.
+- Brand Preview grows to its content, including image/font loads and width
+  changes. Only this preview permits same-origin measurement; sandboxed script
+  execution remains disabled. Other preview sandboxes are unchanged.
+
+Verification: changed PHP syntax, route PHPStan, generated assets, 27 campaign
+validation checks and 18 delivery-runtime checks passed. The isolated database
+suite initially passed Stage 1b storage, 82 campaign completion HTTP checks, 46
+Content/Brand HTTP checks and 28 SES setup HTTP checks, then stopped because the
+older local test image lacked `Aws\Sns\MessageValidator`. The image and full
+qualification were subsequently refreshed as recorded below.
+Reference-template checks covered icon hover/focus/selection, selected submenu
+geometry in both themes, and collapsed icons. The running authenticated localhost
+Brand Kit was refreshed and visually verified with the saved logo and the
+content-sized preview. No account data or external mail was changed by these checks.
+
+The first disposable database startup failed when Docker's virtual disk was
+full. Removing 1.847 GB of regenerable build cache left approximately 643 MB free
+(99% used). Subsequent tests used labelled disposable memory-backed volumes with
+the normal storage safeguards enabled; those resources were removed afterward.
+Existing application data, volumes and release images were retained.
+
+### Docker capacity and qualification closeout — October 17, 2026
+
+- Increased Docker Desktop's disk limit from 61,035 MiB to 131,072 MiB through
+  its resource settings and applied the required engine restart. The resulting
+  filesystem has approximately 65 GiB free (47% used).
+- Compared metadata before and after: all 120 pre-existing containers and 57
+  volumes remain present, mounted storage is unchanged, and all 62 previously
+  running containers resumed. MOED services with health checks are healthy. A
+  read-only audience check still reports 10,884 Connections: 7,203 subscribed,
+  1,854 unsubscribed, 1,825 cleaned and two non-subscribed.
+- No Docker network configuration changed. All static assignments were retained;
+  no duplicate assigned/reserved addresses or overlapping Docker subnets were
+  found before or after the engine restart. This verifies the performed restart,
+  not every possible stopped-container allocation or startup order on the
+  pre-existing networks.
+- Rebuilt `dnr-app:local` from the current Dockerfile and lockfile. Qualified
+  image ID: `sha256:9772134b8338c8fd00196e008768593d55225bca17f76d859617aeb2c63166b3`.
+  The image includes both the SNS signature validator and SES v2 client.
+- The standard disposable Audience integration command completed successfully
+  using the rebuilt image and ordinary disposable disk volumes. Results include
+  Stage 1b storage, 82 campaign completion checks, 46 Content/Brand checks, 28 SES
+  setup checks, 18 signed-event/storage checks, 58 delivery completion checks,
+  94 campaign dispatch checks and 444 Audience HTTP integration checks. Restricted
+  worker checks passed for durable SNS retry/confirmation, forged-envelope
+  rejection, suppression, quotas/throttling, ambiguity/no replay, credential/API
+  access and mail-role isolation. Encrypted-credential rotation, account binding,
+  empty rows and key retirement also passed. No external email was sent. The
+  helper removed only its own labelled test resources; pre-existing volumes were
+  verified again afterward.
+- Removed the persistent selection outline from both main and submenu rows at
+  the user's request, retaining the background highlight and normal keyboard
+  focus indicator. Generated assets pass validation. Browser inspection of the
+  current template confirms a selected submenu has a colored background with
+  no border, outline or box shadow. Docker's restart expired the previous local
+  browser session; viewing the authenticated page again requires signing in.
+
+The local capacity/dependency blockers are resolved. Later-stage implementation
+can proceed independently of AWS approval. Stage 3 live SES qualification still
+requires production access and separately authorized controlled recipient sends.
+
+### Workspace search dialog — October 17, 2026
+
+Clicking the centered header search opens a rounded, modal search dialog modeled
+on the current Mailchimp search surface. It contains the search input and submit
+button, Close control, filter pills, recent searches and recent campaigns with
+status badges and last-edited dates. Popular integrations, the Integrations
+filter and the vendor feedback footer are omitted. The dialog follows the
+workspace theme and wraps its filters on narrow screens.
+
+The read-only search endpoint covers active Connections by name/email, campaign
+names, existing workspace pages, permitted quick actions and existing help
+links. It uses the authenticated account's canonical audience, excludes deleted
+records and archived Connections, bounds result sizes and returns uncached JSON.
+Reviewer results omit editor-only quick actions and import/delivery pages.
+Later-stage pages are not represented as available search destinations. Recent
+search terms remain in browser storage under the existing account/user/audience
+key, with at most five entries; opening or typing does not change account data.
+
+Implementation: `src/audience_search.php`, the early API branch in
+`src/audience.php`, `src/templates/audience/search.php`, the shared workspace
+header and the Audience JavaScript/CSS bundles. Browser checks covered real
+authenticated localhost page results plus fictional populated campaigns in both
+themes, a 390px frame, filter selection, recent-search replay, unavailable-result
+handling, modal keyboard containment, Close and Escape with focus restoration.
+Keyboard checks used the unextended in-app browser; the authenticated Firefox
+page also confirmed the working search, suggestions and Close focus restoration.
+
+The local development bind mount serves this change; no production release or
+external email is part of this follow-up. Qualification passed PHP syntax,
+route PHPStan, generated-asset validation and the full disposable Audience
+suite, including 29 new search HTTP checks and 473 total Audience HTTP checks.
+Search checks cover authentication, account/audience isolation, role restrictions,
+deleted/archived exclusions, literal query handling, safe JSON, bounded recent
+campaigns, invalid input, the campaign-list query limit and absence of data writes.
+The worker, SES/SNS, suppression, no-replay, quota and credential checks also
+passed; only the helper's own labelled disposable resources were removed.
 
 ## Product decisions
 
@@ -68,7 +184,7 @@ against official documentation; it is not verified by a navigation label alone.
 | 4 | Forms, hosted/embedded/popup signup, double opt-in, surveys and preference center | Public submission, verification, abuse controls, tagging and reporting; reference workflow comparisons |
 | 5 | Automation map, templates, triggers, splits, waits, actions, pause/resume and reports | Deterministic event execution and replay, suppression at each send, visible queue/history |
 | 6 | Audience inbox and reply history | Inbound reply routing, thread association, permissions and reply reconciliation |
-| 7 | Full analytics, A/B and multivariate campaigns, comparison reports, conversion attribution and optimization | Reproducible metric calculations, event provenance, experiment assignment and bot filtering |
+| 7 | Full analytics, A/B campaigns, comparison reports, conversion attribution and optimization | Reproducible metric calculations, event provenance, experiment assignment and bot filtering |
 | 8 | Content expansion and AI assistance | Asset management, permissions and user-reviewed generated content |
 
 Some stages can overlap after their data dependencies are stable. These are
@@ -336,7 +452,7 @@ Campaign management is available at `audience.php?view=campaigns`. This qualifie
 
 Read-only inspection of the signed-in Mailchimp account on October 16, 2026: `/campaigns`, List and Calendar, Type/Status/Sort controls, folder search/create dialog, date filter, draft overflow menu, Create overlay, and an existing draft checklist. No source campaigns were created, changed, replicated or sent. Existing user-owned Mailchimp tab was preserved.
 
-The native management UI follows the observed layout and labels. Known differences remain: Arial/Helvetica fallback rather than the proprietary reference font; MOED branding and single audience; regular/plain-text creation only; no multivariate creation, public browser preview, team draft-sharing, holiday overlays, date presets or Campaign Manager plans yet. Calendar dates are UTC. The full visual designer/templates, design revision history, tracking settings, personalization, multi-target/exclusion controls, and preview/test-email tools remain subsequent Stage 2 work. Delivery verification, scheduling and sending remain Stage 3. Email templates and Send are explicitly unavailable, rather than pretending to complete those operations.
+The native management UI follows the observed layout and labels. Known differences remain: Arial/Helvetica fallback rather than the proprietary reference font; MOED branding and single audience; regular/plain-text creation only; public browser preview, team draft-sharing, holiday overlays, date presets or Campaign Manager plans yet. Calendar dates are UTC. The full visual designer/templates, design revision history, tracking settings, personalization, multi-target/exclusion controls, and preview/test-email tools remain subsequent Stage 2 work. Delivery verification, scheduling and sending remain Stage 3. Email templates and Send are explicitly unavailable, rather than pretending to complete those operations.
 
 ### Qualification and local migration
 
@@ -463,7 +579,7 @@ Production was not deployed.
 ### Stage 2 campaign work identified for the completion pass
 
 The following gaps were recorded before Stage 2d and are now addressed below:
-Campaign Manager plans; A/B/multivariate drafts; date presets and calendar holiday
+Campaign Manager plans; A/B drafts; date presets and calendar holiday
 overlays; advanced recipient inclusion/exclusion and personalized To; subject
 merge-tag pickers; tracking settings; send-time/resend configuration; public
 browser versions/archives and social-card metadata; team draft sharing; and
@@ -483,7 +599,7 @@ folders and pagination were compared read-only against Mailchimp Content Studio.
 No Mailchimp campaign, template, asset or setting was created, changed or sent.
 
 Campaign completion includes date presets/holiday calendar; regular/plain-text/
-A/B/multivariate creation; up to three A/B/eight multivariate combinations; separate
+A/B creation; up to three A/B variations; separate
 content variations and histories; advanced recipient inclusion/exclusion and
 personalized To; subject merge tags; five tracking flags; send-time/trigger/
 optimization/Timewarp and resend preferences; social-card metadata; authenticated
@@ -739,7 +855,7 @@ Implemented:
   resolve outgoing email links/images independently of login sessions.
 
 Connections now defaults, in order, to **Email Address, First Name, Last Name,
-Tags, Email Marketing, Source, Date Added**, with Date Added descending. Last
+Tags, Status, Source, Date Added**, with Date Added descending. Last
 Changed remains available in Columns. The former default visibility set is
 upgraded even when its order was rearranged; other customized visibility is kept.
 The server's first render and saved-preference JavaScript agree on the defaults.
@@ -859,7 +975,7 @@ an arbitrary-recipient marketing bypass or another transactional service.
 - Send-time optimization uses observed non-bot audience click hours only after
   at least 100 distinct recipients have recent evidence; otherwise it explicitly
   uses the selected time. This native heuristic is not Mailchimp’s proprietary model.
-- A/B/multivariate dispatch freezes combinations and deterministic, disjoint test
+- A/B dispatch freezes combinations and deterministic, disjoint test
   and hold-out cohorts. Independent HTML content variants render separately.
   Manual or observed open/click-rate winners release only the confirmed hold-out;
   automatic ties use the first combination. Reports separate test-phase results.
@@ -1058,3 +1174,287 @@ Only after those results and the requested production release are recorded shoul
 Stage 3 be marked fully qualified. SE01–SE15 remain `partial`, `approximate` and
 `parity_qualified=no`; they do not represent a completion percentage. Public forms,
 automation execution and later-stage product areas are outside this closeout.
+
+## Stage 4 — native collection and local qualification, October 17, 2026
+
+Current branch: `codex/mailchimp-cloning-continued`, based on release 2.5.25.
+This work is running at localhost through the existing development mounts and
+Stage 4 local images. It has not been released to s1. Native non-live behavior is
+qualified; the stage is not certified as complete Mailchimp feature/pixel parity.
+FO01–FO12, LP01–LP08 and SU01–SU07 remain `partial`, `approximate` and
+`parity_qualified=no`, with concrete remaining differences in the feature matrix.
+
+### Reference and interface
+
+Read-only reference inspection covered Forms index/search/type/status/actions,
+its three-choice creation dialog and settings, the current fullscreen hosted
+signup editor, landing-page name/Continue-to-builder setup, six survey starter
+categories, and an existing populated survey report with question tabs, charts,
+filters, exports and response tagging. No reference record was created, saved,
+published or sent. Continuing into a new landing-page builder would have created
+reference data, so that workflow was not falsely recorded as inspected.
+
+The local Forms page uses the inset table, compact filters with aligned 36px controls, two-column starter
+cards in Popup/Basic subscribe/Embedded/Landing order, and the inspected chooser.
+The fullscreen collection editor has the locally served reference vector rail,
+property panels, canvas, desktop/mobile preview, Save draft, publish review,
+Undo/Redo and an account-scoped Content Studio picker/upload. Icon provenance is
+in `docs/audience-collection-icon-sources.json`. Reference artwork is represented
+by native schematic previews. MOED branding, increased text readability, both
+themes, roles and keyboard focus remain intentional adaptations.
+
+Browser checks used the real authenticated local Forms, settings, landing-page
+setup, Surveys and subscriber-preference routes without adding fabricated
+records to the imported audience. Fictional renderings of the shared templates
+covered populated editors, both themes, keyboard navigation, Undo/Redo and
+responsive layout. A 390-pixel framed viewport had no horizontal page overflow;
+its narrow preview expanded to its content. The desktop preview measured
+743px high with equal root client/scroll heights and equal 721px client/scroll
+widths. A fractional CSS pixel initially left a scrollbar despite rounded DOM
+heights; sizing now rounds the actual root box upward. Width/font/image changes
+also trigger fitting. Undo initialization now snapshots normalized control state
+so restoration retains Redo and the visible field order. Outline selection and
+creation-route sidebar highlights were checked after correction.
+
+### Persisted collection behavior
+
+- Six native kinds: hosted signup, embedded signup, popup, landing page, survey
+  and subscriber preferences. Management enforces the existing account/audience
+  context, editor/admin policy, CSRF and optimistic versions. Publish creates an
+  immutable public revision; saved drafts stay private. Pause stops public
+  collection. Replicate creates a private copy; remove is recoverable through
+  Trash and restore returns to a private draft. Removed results remain available
+  only to authorized account users.
+- Typed audience fields, requiredness, groups, tags, translations, messages and
+  brand styles use the existing audience data model. New forms use audience-wide
+  defaults; already-published forms keep their saved revision until republished.
+  The latest published hosted form supplies native unsubscribe/confirmation
+  appearance while preserving those routes' security and one-click behavior.
+- Signup requires explicit unchecked permission and records exact revision,
+  text, additional choices, source and time. Existing profiles/interests are not
+  overwritten anonymously. Existing opt-outs need confirmation; cleaned,
+  deleted and archived records remain protected. Double opt-in reuses the
+  native delivered/accepted, single-use challenge lifecycle. When mail readiness
+  is unavailable it creates neither a pending subscription nor a mail job.
+- Public collection uses account/resource/revision/recipient/visitor-bound
+  sealed proofs, minimum dwell, expiry, honeypot, short-lived IP/email throttles
+  and idempotent receipt nonces. GET requests do not subscribe or vote. Survey
+  contact-info answers are neither permission nor verified identity. Responses
+  are encrypted, included in application key rotation/retirement, and redacted
+  when their associated Connection is deleted.
+- Published preference centers require a native private recipient token and
+  reuse `savePublicPreferences`; fields/groups outside the published form's
+  scope and subscription opt-out state are preserved. Native preference links
+  redirect to the latest published center.
+- Manual embedded/popup scripts use exact HTTPS website-origin allowlists.
+  Popup rules cover page prefixes, exclusions, device, delay/scroll/desktop exit,
+  dismissal frequency, up to three stable variations and mini-quiz outcomes.
+  Country rules accept only the existing trusted Cloudflare proxy chain and
+  fail closed for unknown geography. No Cloudflare setting was changed.
+  Installation timestamps are observed requests, not comprehensive install proof.
+- Landing pages have three native starters, ordered typed sections, drag/drop
+  plus keyboard move controls, safe image upload/library selection, metadata,
+  favicon, opaque MOED-hosted URL, preview/publication and actual response/visit
+  reports. Reports describe permission requests/responses rather than claiming
+  confirmed subscriptions.
+- Surveys have six native starter categories and typed radio, checkbox, 1–10
+  range, text, email, structured contact information and content blocks. Results
+  keep published revisions separate; counts and percentages use answered-question
+  denominators. Date/revision/question/answer filters, response drilldown,
+  verified-Connection-only tagging, formula-safe CSV, SVG chart and print outputs
+  operate on actual data. Decryption is streamed in bounded batches.
+- `SURVEY` and one-question `POLL` merge links are bound into campaign snapshots
+  to the current audience's published survey and private recipient. GET only
+  preselects an answer; POST records it. Duplicate verified recipients/browser
+  visitors are controlled, and test-email links disable submissions.
+
+### Qualification and local rollout
+
+The disposable Audience suite passed **550 total HTTP checks**, including **77
+new collection checks**, alongside Stage 1b storage, campaign completion,
+Content/Brand, SES setup, signed-event, delivery and dispatch coverage. Tests
+covered public draft isolation, permissions/CSRF, account isolation, publication,
+pause/removal/restore, single/double opt-in, consent/opt-out preservation,
+confirmation acceptance/replay, proof expiry/dwell/throttles/idempotence,
+embedded origins, preference tokens, response attribution, survey/poll snapshots,
+report filters/exports, Content Studio image wrappers and response redaction.
+Restricted worker/provider controls and encryption-key rotation, account binding
+and retirement passed. All email used disposable adapters; no external email was
+sent. The helper removed only its labelled disposable resources.
+
+Ingress HTTP fixtures passed the narrow collection-frame exception, protected
+route frame denial, static-script CSP and visitor-cookie scoping. The global
+Apache X-Frame-Options exception applies only to the exact public collection
+endpoint. Ingress retains a `self`/HTTPS framing ceiling for that route, intersected
+with the application's published origin allowlist; all other routes deny framing.
+No broad security bypass or networking change was made.
+
+Route PHPStan, PHP/JavaScript syntax and generated assets passed. The final
+browser-only Undo/resize corrections and template/layout refinements were
+followed by focused syntax, generated-asset, UI-label and actual-browser checks;
+they do not represent additional HTTP checks beyond 550.
+
+Local migration `20261017_add_marketing_collection.sql` ran only after local
+writers were paused and a fresh encrypted recovery backup was restored and
+verified. **All 122 pre-existing protected table counts/checksums were unchanged**;
+persistent storage identities and every pre-existing Docker volume were retained.
+Only local web/ingress were replaced, both became healthy, and writers resumed.
+All 40 recorded network assignments were checked; no network configuration was
+changed. Production was not touched. Release remains 2.5.25 for this unreleased
+local development work.
+
+Recovery receipt: `var/deployment/stage4-local-receipt.json`.
+Backup: `var/backups/stage4-local/20261017T145713Z-30afc4f3/receipt.json`.
+Encrypted backup SHA-256:
+`15b2ae020e55a38c5f02508fb8c16f6558d0b41edfae76b5f03cc9c74afcb05a`.
+Local evidence:
+`/private/tmp/message-monkey-stage4-integration.log`,
+`/private/tmp/message-monkey-stage4-phpstan.log`,
+`/private/tmp/message-monkey-stage4-ingress-test.log`,
+`/private/tmp/message-monkey-stage4-local-update.log` and
+`/private/tmp/message-monkey-stage4-preview/`.
+Temporary evidence is not a permanent release artifact.
+
+### Remaining acceptance
+
+Local completion now includes public-label/message translation, RTL language
+support, safe hosted system-page HTML layouts, confirmed-subscription conversion
+attribution, and the survey question/option/tagging workflow described below.
+Exact pixel parity with every current popup/landing/survey editor is not certified.
+Custom HTML retains the protected native form and messages; arbitrary scripts and
+form destinations are excluded. Production host-site popup behavior and actual
+Cloudflare country headers still need deployment-specific qualification, separate
+from AWS approval.
+
+Real confirmation/resubscription inbox delivery and survey-link email delivery
+still require AWS production access and explicit approval of controlled test
+recipients. Stage 3 live SES qualification remains open. A production release of
+these changes requires the established separate release/deployment workflow;
+this local rollout does not authorize publishing forms or sending to the imported
+audience. The hourly AWS monitor remains active and quiet while unchanged.
+
+### Brand Preview browser regression corrected
+
+A local designer-asset rebuild had omitted `--bundle`, leaving an ES-module
+import in a file loaded by `renderPageHead` as a classic script. The browser
+rejected the entire asset, so Brand Preview remained an empty `about:blank`
+frame. Rebuilding with the existing package build command
+(`--bundle --minify --legal-comments=none`) and refreshing the asset manifest
+restored the actual saved local logo, email content and footer. The existing
+content-sized Brand Preview also gained a fractional-height safety margin and
+explicit no-scroll iframe behavior. No brand settings or account data changed.
+
+A new classic-browser-script parse regression test failed against the broken
+asset and passed after rebuilding. All three workspace bundles and two existing
+designer model tests pass. The new collection bundle is included in the normal
+`build:js` command. Actual authenticated Brand Preview was inspected again;
+its loaded frame grew to the rendered content and the inner document reported
+equal client/scroll dimensions. Screenshot:
+`/private/tmp/message-monkey-stage4-preview/local-brand-preview-restored.png`.
+
+### Survey catalogue, terminology and scoped autocomplete follow-ups
+
+The local survey starter gallery now follows the supplied Mailchimp reference:
+two wide columns, blue category pills, 24px titles, 24px card spacing and a
+divider beneath the section heading. Small screens use one column. The category
+previously labelled “Marketing effectiveness” is now “Effectiveness”; shared
+MessageMonkey interface copy uses subscription, audience email or campaign
+wording as appropriate. Internal delivery lanes and historical consent evidence
+retain their existing identifiers and values.
+
+At the user's request, the built-in email catalogue omits Product spotlight,
+Featured collection, Meet our services, Let’s talk and Account notice. Sell
+products, Sell services and Transactional are absent from both category controls.
+Both post-purchase survey starters are removed from the gallery and creation
+chooser. Existing authored designs and published resources are preserved.
+
+MessageMonkey disables generic browser form history, including its search
+controls and dynamically created editor fields. List-search suggestions are
+generated solely from authorized MessageMonkey records already loaded for the
+current view: connections, campaigns, folders, templates, files, tags, segments,
+plans and collection resources. They are escaped, deduplicated and capped at
+100; an empty view supplies no suggestions. No suggestions are read from MOED
+form history, generic query parameters or a shared cache. Global search retains
+its existing account/user/audience-scoped MessageMonkey recent searches and
+permission-scoped results. Explicit credential autocomplete hints are retained.
+
+Focused validation covers the retained catalogue and usable survey starters,
+suggestion isolation/escaping/bounds, email rendering, delivery/dispatch checks,
+classic-script bundles, PHP syntax, generated assets and label punctuation.
+Authenticated localhost checks confirm the four retained survey cards, the six
+email category controls, the 15 retained email starters, and empty-survey versus
+actual-template suggestions. These are local UI changes, not a production
+deployment or a claim that all remaining Stage 4 acceptance gaps are closed.
+
+### Local completion and template/photo follow-ups
+
+The survey editor now separates Questions, Design and Details, following the
+read-only inspection of an existing Mailchimp survey editor. Question options
+have individual inputs, add/remove and Enter/Backspace controls. Dropdown,
+requiredness, Other answers, duplicate/delete and answer tagging are supported.
+Only a recipient identified by the private campaign capability can receive
+answer-based tags; entering an email address in a survey is not proof of identity.
+Details includes an optional UTC closing time enforced again on submission.
+
+Translate it exposes public field labels and validation/system copy, with ISO
+language codes and RTL layout. Hosted forms also have safe structural HTML source
+for signup, thank-you, confirmation and unsubscribe pages. A native content slot,
+or protected form and message slots, preserves consent, submission proof, native
+destinations and disabled preview behavior. Active content is removed and authored
+styles use nonce-authorized CSS. This is not unrestricted JavaScript editing.
+
+Landing reports distinguish visits, submissions, distinct subscribers and confirmed
+double opt-ins. A conversion is recorded only when subscription actually completes.
+Double opt-in is bound to its challenge and exact resource/revision, with only
+scoped attribution IDs retained in the consent event after the worker erases the
+email payload. Pending requests, existing subscribers and replayed confirmations
+do not inflate conversion counts. Date/revision and audience scope are retained.
+
+The email catalogue uses cards capped at 300px. Title, category and action now
+appear above the email and align across each row. Preview panes expand to their
+full content and add white space beneath shorter emails. Cards have dark teal
+perimeter borders and light gray headers, with white preview space. List view
+retains compact thumbnails. The blank starter remains blank.
+
+All fourteen designed starters now use different photos of people and places in
+Israel, replacing the earlier generated artwork and general photos. Source,
+creator, location, license and image hashes are recorded in
+`src/assets/template-art/sources.json`. Photos are bundled locally and copied into
+new designs, without runtime image requests to the source site. Per the user's
+request, the same fourteen images were added privately to local Shalom in Messiah
+Content → My files (IDs 1–14), using native validation and an atomic, idempotent
+import; no production data was changed. All fourteen images were seen loading in
+the authenticated local gallery.
+
+Real photo payloads exposed MySQL filesort memory exhaustion in Content, campaign
+and saved/recent template lists. Content and campaign lists now sort a bounded page
+of IDs before loading large image documents. File-size ordering and saved templates
+use lightweight PHP metadata comparisons. This preserves file/name/size ordering
+without increasing database buffers. Qualification includes realistic photos under a
+deliberately small sort buffer, as well as existing permissions and isolation.
+
+Connections now displays three tags plus a profile overflow link when there are
+more. Source is absent from the default columns but remains selectable; previous
+default layouts upgrade while customized column order is retained. Pagination
+labels, selectors, counts and navigation share a centered row on desktop, with a
+responsive fallback. The actual authenticated localhost table and its three-tag
+overflow were checked without exposing connection details in qualification receipts.
+
+Final isolated qualification passed 92 collection checks and 568 total HTTP checks,
+plus SNS durable receipt/confirmation/forgery/suppression, quota/worker privileges
+and credential-rotation suites. No external email was sent. Routes PHPStan, PHP
+syntax, 54 catalogue checks, 20 collection customization checks, 59 email-design
+checks, 42 advanced-designer checks, five browser-bundle/model checks, asset-cache
+identity, generated-asset integrity and label checks passed. Only the separately
+labelled disposable test project's volumes/networks were cleaned up; existing
+account databases and volumes were preserved.
+
+Browser evidence includes the actual localhost card/gallery pages and fictional
+editor fixtures for Questions/Design/Details, translation, Advanced, keyboard option
+editing and undo. Static fixtures do not claim persistence or live public delivery.
+The HTTP suite separately exercises draft preview and native submission paths.
+Evidence is under `/private/tmp/message-monkey-stage4-completion-*.log`,
+`/private/tmp/message-monkey-israel-template-cards.png` and
+`/private/tmp/message-monkey-israel-my-files.png`. This remains unreleased local
+development; Stage 3 live email qualification and deployment-specific checks remain
+separate acceptance gates.

@@ -17,7 +17,7 @@ def configuration(key, public_url, primary=False, stripped=True):
             or re.search(r'[\s"<>\\]',public_url):
         raise ValueError('Invalid canonical Account URL')
     session='MOED_'+hashlib.sha256(key.encode()).hexdigest()[:16]
-    preferences=r'dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|download_[a-f0-9]{32}|sidebar_[a-f0-9]{12})'
+    preferences=r'dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|download_[a-f0-9]{32}|sidebar_[a-f0-9]{12}|collection_[a-f0-9]{12})'
     allowed='(?:'+session+'|'+preferences+')'
     assets=public_url+'/assets/'
     if primary: assets+=' '+url.scheme+'://'+url.netloc+'/assets/'
@@ -60,7 +60,12 @@ def configuration(key, public_url, primary=False, stripped=True):
     lines += [
         # This additional policy intersects the app's CSP. A compromised app
         # cannot authorize inline scripts/nonces or executable PHP responses.
-        f'    Header always add Content-Security-Policy "script-src {assets}; script-src-attr \'none\'; worker-src {assets} blob:; object-src \'none\'; base-uri \'none\'; frame-ancestors \'none\'"',
+        f'    Header always add Content-Security-Policy "script-src {assets}; script-src-attr \'none\'; worker-src {assets} blob:; object-src \'none\'; base-uri \'none\'"',
+        # Only the script-free public collection route may be embedded. Its
+        # application CSP intersects this HTTPS-only ceiling with an explicit
+        # per-resource website allowlist. Authentication routes stay unframeable.
+        f'    Header always add Content-Security-Policy "frame-ancestors \'none\'" "expr=%{{REQUEST_URI}} !~ m#^/(?:a/{key}/)?audience_collect_public[.]php$#"',
+        f'    Header always add Content-Security-Policy "frame-ancestors \'self\' https:" "expr=%{{REQUEST_URI}} =~ m#^/(?:a/{key}/)?audience_collect_public[.]php$#"',
         '</Location>' if stripped else '</LocationMatch>',
     ]
     return '\n'.join(lines)+'\n'

@@ -26,9 +26,9 @@ function audienceFieldControl(array $field,mixed $value):void{
 // Reference navigation help, adapted only for Connections wording and omitted channels.
 function audienceTooltip(string $label):string {
     $help=[
-        'Home'=>'View a snapshot of your recent marketing performance and audience growth.',
+        'Home'=>'View a snapshot of your recent campaign performance and audience growth.',
         'Campaigns'=>'View and manage your emails and landing pages.',
-        'Automations'=>'Map out a marketing automation flow that delivers a unique experience to each of your connections.',
+        'Automations'=>'Map out an email automation flow that delivers a unique experience to each of your connections.',
         'Forms'=>'Build signup forms, landing pages, and popups to collect connections.',
         'Audience'=>'View a list of all the connections in your audience.',
         'Tags'=>'Tag your connections to organize them however you need to.',
@@ -42,26 +42,29 @@ function audienceTooltip(string $label):string {
     return ' data-audience-tooltip="'.htmlspecialchars($help[$label]??$label,ENT_QUOTES,'UTF-8').'"';
 }
 $baseForm=[];
-$isCampaignView=in_array($view,['campaigns','campaign','templates','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','delivery'],true);$isContentView=in_array($view,['content','brand'],true);
+$isCollectionView=in_array($view,['forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'],true);
+$collectionKind=$resource['kind']??($view==='collection-create'?($creationKind??''):null);
+$isFormsView=($view==='collection-create'&&!in_array($creationKind??'',['survey','landing','preferences'],true))||in_array($view,['forms','form-settings'],true)||($isCollectionView&&isset($resource)&&in_array($resource['kind'],['hosted','embedded','popup'],true));
+$isCampaignView=$view==='landing-pages'||($isCollectionView&&$collectionKind==='landing')||in_array($view,['campaigns','campaign','templates','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','delivery'],true);$isContentView=in_array($view,['content','brand'],true);
 ?>
-<body class="audience-app" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <a class="audience-skip" href="#audience-content">Skip to main content</a>
 <header class="audience-topbar">
     <div class="audience-brand"><span class="audience-logo-wrap"><?php readfile(__DIR__.'/../../assets/audience-logo.svg'); ?></span><span>MOED MessageMonkey</span></div>
-    <form action="audience.php" class="audience-global-search" role="search"><?php audienceInputs($baseForm); ?><label for="global-search" class="sr-only">Search connections</label><span aria-hidden="true">⌕</span><input id="global-search" name="q" placeholder="Search..." value="<?= $h($filters['q']) ?>"></form>
+    <button type="button" class="audience-global-search" data-global-search-open aria-label="Search MessageMonkey" aria-haspopup="dialog" aria-controls="audience-search"><?php audienceNavIcon('search'); ?><span>Search...</span></button>
     <?php include __DIR__.'/account-tools.php'; ?>
 </header>
-<aside id="audience-sidebar" class="audience-sidebar" aria-label="Marketing navigation">
-    <?php if($canManage): ?><a aria-label="Create" class="audience-create" href="<?= $h($url(['view'=>'campaigns','create'=>1])) ?>"<?= in_array($view,['campaigns','campaign'],true)?' data-open-dialog="campaign-create"':'' ?>><?php audienceNavIcon('rename'); ?><span>Create</span></a><?php endif; ?>
+<aside id="audience-sidebar" class="audience-sidebar" aria-label="MessageMonkey navigation">
+    <?php if($canManage): ?><a aria-label="Create" class="audience-create" href="<?= $h($url(['view'=>'campaigns','create'=>1])) ?>"<?= in_array($view,['campaigns','campaign'],true)?' data-open-dialog="campaign-create"':'' ?>><?php audienceSidebarIcon('create'); ?><span>Create</span></a><?php endif; ?>
     <nav>
-        <?php foreach(['Home'=>'home','Campaigns'=>'mail','Automations'=>'flow','Forms'=>'form']as$label=>$icon): ?><?php if($label==='Campaigns'): ?><a aria-label="Campaigns" class="audience-nav-item<?= $isCampaignView?' selected':'' ?>" href="<?= $h($url(['view'=>'campaigns'])) ?>"<?= $isCampaignView?' aria-current="page"':'' ?><?= audienceTooltip('Campaigns') ?>><?php audienceNavIcon('mail'); ?><span>Campaigns</span></a><?php if($isCampaignView): ?><div class="audience-subnav campaign-subnav"><a href="<?= $h($url(['view'=>'campaign-manager'])) ?>"<?= in_array($view,['campaign-manager','campaign-plan'],true)?' aria-current="page"':'' ?>>Campaign Manager</a><a href="<?= $h($url(['view'=>'templates'])) ?>"<?= $view==='templates'?' aria-current="page"':'' ?>>Email templates</a><?php if($canManage): ?><a href="<?= $h($url(['view'=>'delivery'])) ?>"<?= $view==='delivery'?' aria-current="page"':'' ?>>Email delivery</a><?php endif; ?></div><?php endif; ?><?php continue; endif; ?><span class="audience-nav-item unavailable" aria-label="<?= $h($label) ?>" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?php audienceNavIcon($icon); ?><span><?= $label ?></span></span><?php endforeach; ?>
-        <a aria-label="Audience" class="audience-nav-item<?= !$isCampaignView&&!$isContentView?' selected':'' ?>"<?= audienceTooltip('Audience') ?> href="<?= $h($url()) ?>"<?= in_array($view,['contacts','contact'],true)?' aria-current="page"':'' ?>><?php audienceNavIcon('audience'); ?><span>Audience</span></a>
-        <div class="audience-subnav"<?= $isCampaignView||$isContentView?' hidden':'' ?>>
+        <?php foreach(['Home'=>'home','Campaigns'=>'campaigns','Automations'=>'automations','Forms'=>'forms']as$label=>$icon): ?><?php if($label==='Forms'): ?><a aria-label="Forms" class="audience-nav-item<?= $isFormsView?' selected':'' ?>" href="<?= $h($url(['view'=>'forms'])) ?>"<?= $isFormsView?' aria-current="page"':'' ?><?= audienceTooltip('Forms') ?>><?php audienceSidebarIcon('forms'); ?><span>Forms</span></a><?php continue; endif; ?><?php if($label==='Campaigns'): ?><a aria-label="Campaigns" class="audience-nav-item<?= $isCampaignView?' selected':'' ?>" href="<?= $h($url(['view'=>'campaigns'])) ?>"<?= $isCampaignView?' aria-current="page"':'' ?><?= audienceTooltip('Campaigns') ?>><?php audienceSidebarIcon('campaigns'); ?><span>Campaigns</span></a><?php if($isCampaignView): ?><div class="audience-subnav campaign-subnav"><a href="<?= $h($url(['view'=>'landing-pages'])) ?>"<?= $view==='landing-pages'||($isCollectionView&&$collectionKind==='landing')?' aria-current="page"':'' ?>>Landing pages</a><a href="<?= $h($url(['view'=>'campaign-manager'])) ?>"<?= in_array($view,['campaign-manager','campaign-plan'],true)?' aria-current="page"':'' ?>>Campaign Manager</a><a href="<?= $h($url(['view'=>'templates'])) ?>"<?= $view==='templates'?' aria-current="page"':'' ?>>Email templates</a><?php if($canDelete): ?><a href="<?= $h($url(['view'=>'delivery'])) ?>"<?= $view==='delivery'?' aria-current="page"':'' ?>>Email delivery</a><?php endif; ?></div><?php endif; ?><?php continue; endif; ?><span class="audience-nav-item unavailable" aria-label="<?= $h($label) ?>" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?php audienceSidebarIcon($icon); ?><span><?= $label ?></span></span><?php endforeach; ?>
+        <a aria-label="Audience" class="audience-nav-item<?= !$isCampaignView&&!$isContentView&&!$isFormsView?' selected':'' ?>"<?= audienceTooltip('Audience') ?> href="<?= $h($url()) ?>"<?= in_array($view,['contacts','contact'],true)?' aria-current="page"':'' ?>><?php audienceSidebarIcon('audience'); ?><span>Audience</span></a>
+        <div class="audience-subnav"<?= $isCampaignView||$isContentView||$isFormsView?' hidden':'' ?>>
             <?php foreach(['tags'=>'Tags','segments'=>'Segments']as$key=>$label): ?><a href="<?= $h($url(['view'=>$key])) ?>"<?= audienceTooltip($label) ?><?= $view===$key?' aria-current="page"':'' ?>><?= $label ?></a><?php endforeach; ?>
-            <?php foreach(['Surveys','Subscriber preferences','Inbox']as$label): ?><span class="unavailable" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?= $label ?></span><?php endforeach; ?>
+            <?php foreach(['surveys'=>'Surveys','preferences'=>'Subscriber preferences']as$key=>$label): ?><a href="<?= $h($url(['view'=>$key])) ?>"<?= $view===$key||($isCollectionView&&$collectionKind===($key==='surveys'?'survey':'preferences'))?' aria-current="page"':'' ?><?= audienceTooltip($label) ?>><?= $label ?></a><?php endforeach; ?><?php foreach(['Inbox']as$label): ?><span class="unavailable" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?= $label ?></span><?php endforeach; ?>
         </div>
-        <a class="audience-nav-item<?= in_array($view,['content','brand'],true)?' selected':'' ?>" href="<?= $h($url(['view'=>'content'])) ?>" aria-label="Content"<?= audienceTooltip('Content') ?>><?php audienceNavIcon('content'); ?><span>Content</span></a><?php if(in_array($view,['content','brand'],true)): ?><div class="audience-subnav"><a href="<?= $h($url(['view'=>'content'])) ?>"<?= $view==='content'?' aria-current="page"':'' ?>>My files</a><a href="<?= $h($url(['view'=>'brand'])) ?>"<?= $view==='brand'?' aria-current="page"':'' ?>>Brand Kit</a></div><?php endif; ?><?php foreach(['Analytics'=>'chart']as$label=>$icon): ?><span class="audience-nav-item unavailable" aria-label="<?= $h($label) ?>" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?php audienceNavIcon($icon); ?><span><?= $label ?></span></span><?php endforeach; ?>
+        <a class="audience-nav-item<?= in_array($view,['content','brand'],true)?' selected':'' ?>" href="<?= $h($url(['view'=>'content'])) ?>" aria-label="Content"<?= audienceTooltip('Content') ?>><?php audienceSidebarIcon('content-studio'); ?><span>Content</span></a><?php if(in_array($view,['content','brand'],true)): ?><div class="audience-subnav"><a href="<?= $h($url(['view'=>'content'])) ?>"<?= $view==='content'?' aria-current="page"':'' ?>>My files</a><a href="<?= $h($url(['view'=>'brand'])) ?>"<?= $view==='brand'?' aria-current="page"':'' ?>>Brand Kit</a></div><?php endif; ?><?php foreach(['Analytics'=>'analytics']as$label=>$icon): ?><span class="audience-nav-item unavailable" aria-label="<?= $h($label) ?>" aria-disabled="true" tabindex="0"<?= audienceTooltip($label) ?>><?php audienceSidebarIcon($icon); ?><span><?= $label ?></span></span><?php endforeach; ?>
     </nav>
     <div class="audience-sidebar-footer"><a class="audience-return" href="dashboard.php" aria-label="Return to MOED dashboard" data-audience-tooltip="Return to MOED dashboard"><span aria-hidden="true">←</span><span class="audience-return-label">Return to MOED dashboard</span></a>
     <button type="button" class="audience-sidebar-toggle" data-sidebar-toggle aria-controls="audience-sidebar" aria-expanded="true" aria-label="Minimize navigation" title="Minimize navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 5h6v14H4z" fill="var(--audience-primary)"/><path d="M10 4v16" stroke="currentColor" stroke-width="2"/></svg></button></div>
@@ -70,7 +73,8 @@ $isCampaignView=in_array($view,['campaigns','campaign','templates','campaign-man
     <div class="audience-page-heading">
         <div><h1><?= $h($pageTitle) ?></h1></div>
         <div class="audience-actions">
-        <?php if($view==='campaigns'&&$canManage): ?><button popovertarget="campaign-page-actions">Actions <?php audienceNavIcon('chevron'); ?></button><div popover id="campaign-page-actions" role="menu" aria-label="Campaign page actions" class="audience-action-menu"><button role="menuitem" data-campaign-folder='{"id":0,"version":0,"name":""}'>Create folder</button></div><button class="primary" data-open-dialog="campaign-create">Create</button>
+        <?php if($isCollectionView): require __DIR__.'/collection-actions.php'; ?>
+        <?php elseif($view==='campaigns'&&$canManage): ?><button popovertarget="campaign-page-actions">Actions <?php audienceNavIcon('chevron'); ?></button><div popover id="campaign-page-actions" role="menu" aria-label="Campaign page actions" class="audience-action-menu"><button role="menuitem" data-campaign-folder='{"id":0,"version":0,"name":""}'>Create folder</button></div><button class="primary" data-open-dialog="campaign-create">Create</button>
         <?php elseif($view==='templates'&&$canManage): ?><button type="button" data-template-legacy>Create a legacy template</button><button type="button" data-template-import>Code your own</button><form method="post"><?= $csrf ?><?php audienceInputs(['action'=>'template_create','starter'=>'blank']); ?><button class="primary">Create from scratch</button></form>
         <?php elseif(in_array($view,['campaign-manager','campaign-plan'],true)&&$canManage): ?><button data-open-dialog="campaign-plan-editor"><?= $view==='campaign-plan'?'Campaign settings':'Create campaign' ?></button><button class="primary" data-touchpoint-new>Add touchpoint</button>
         <?php elseif($view==='campaign'): ?><button type="button" data-open-dialog="campaign-tracking" aria-label="Settings and tracking">Settings &amp; Tracking</button><button type="button" data-open-dialog="campaign-team-share">Share</button><a class="audience-button" href="<?= $h($url(['view'=>'campaigns'])) ?>">Finish later</a><?php if($campaign['status']==='draft'&&($canSend??false)): ?><a class="audience-button primary" href="<?= $h($url(['view'=>'campaign-send','id'=>$id])) ?>"><?= ($campaign['draft']['send_time']['mode']??'now')==='schedule'?'Schedule':'Send' ?></a><?php elseif(!empty($delivery)): ?><a class="audience-button primary" href="<?= $h($url(['view'=>'campaign-delivery','id'=>$id])) ?>">View delivery</a><?php endif; ?>
@@ -96,16 +100,27 @@ $isCampaignView=in_array($view,['campaigns','campaign','templates','campaign-man
     <div class="audience-page-body">
     <?php if($message!==''): ?><p class="audience-notice success" role="status"><?= $h($message) ?></p><?php endif; ?>
     <?php if($error!==''): ?><p class="audience-notice error" role="alert" tabindex="-1" data-operation-error><?= $h($error) ?></p><?php endif; ?>
-    <?php include __DIR__.'/'.match($view){'templates'=>'email-templates.php','campaigns','campaign'=>'campaigns.php','campaign-manager','campaign-plan'=>'campaign-manager.php','campaign-review'=>'campaign-review.php','campaign-send','campaign-delivery'=>'campaign-delivery.php','content','brand'=>'content.php','delivery'=>'delivery-setup.php','contact'=>'person.php','tags','groups','fields','settings'=>'manage.php','segments'=>'segments.php','import','jobs','job'=>'imports.php',default=>'people.php'}; ?>
+    <?php include __DIR__.'/'.match($view){'forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'=>'collection.php','templates'=>'email-templates.php','campaigns','campaign'=>'campaigns.php','campaign-manager','campaign-plan'=>'campaign-manager.php','campaign-review'=>'campaign-review.php','campaign-send','campaign-delivery'=>'campaign-delivery.php','content','brand'=>'content.php','delivery'=>'delivery-setup.php','contact'=>'person.php','tags','groups','fields','settings'=>'manage.php','segments'=>'segments.php','import','jobs','job'=>'imports.php',default=>'people.php'}; ?>
     </div>
 </main>
-<?php if($canManage&&!$isCampaignView&&!$isContentView)include __DIR__.'/dialogs.php'; ?>
+<?php include __DIR__.'/search.php'; ?>
+<?php if($canManage&&!$isCampaignView&&!$isContentView&&!$isCollectionView)include __DIR__.'/dialogs.php'; ?>
 <?php if($canManage&&$view==='contacts'): $personModal=true; ?>
 <dialog id="add-person" class="audience-wide-dialog" aria-labelledby="add-person-title"><div class="dialog-heading"><h2 id="add-person-title">Add a connection</h2><button type="button" data-close-dialog aria-label="Close">×</button></div><?php include __DIR__.'/person-form.php'; ?></dialog>
 <?php endif; ?>
 <script type="application/json" id="audience-config"><?= json_encode(['recovery'=>$editorRecovery??null,'audience'=>$audienceId,'url'=>$url(),'catalog'=>$catalog,'operators'=>array_combine(['text','number','date','choice','membership','set','event'],array_map('audienceRuleOperators',['text','number','date','choice','membership','set','event'])),'rules'=>$rules,'segment'=>$segment,'csrf'=>generateCsrfToken(),'job'=>$job?array_intersect_key($job,array_flip(['id','state','total','processed','job_type'])):null],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
 </body>
 <?php
+/** Sidebar icons use the reference normal/active pairs; action icons stay independent. */
+function audienceSidebarIcon(string $name): void
+{
+    $icons = ['create', 'home', 'campaigns', 'automations', 'forms', 'audience', 'content-studio', 'analytics'];
+    if (!in_array($name, $icons, true)) {
+        throw new InvalidArgumentException('Unknown sidebar icon.');
+    }
+    echo '<span class="audience-sidebar-icon" data-sidebar-icon="' . $name . '" aria-hidden="true"></span>';
+}
+
 function audienceNavIcon(string $name): void
 {
     $paths = [

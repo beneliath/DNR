@@ -1,4 +1,4 @@
-<?php foreach(['marketing'=>'Marketing status','details'=>'Edit connection details','groups'=>'Edit Groups','settings'=>'Edit settings'] as $section=>$editorTitle):
+<?php foreach(['marketing'=>'Subscription status','details'=>'Edit connection details','groups'=>'Edit Groups','settings'=>'Edit settings'] as $section=>$editorTitle):
 $editorContact=$contact;
 $editorError=$error!==''&&($_POST['action']??'')==='save_profile_section'&&($_POST['section']??'')===$section;
 if($editorError){
@@ -15,7 +15,7 @@ if($editorError){
         <div class="person-editor-body">
         <?php if($section==='marketing'): ?>
             <h3>Email</h3><label for="marketing-email">Email address</label><input id="marketing-email" name="email" type="email" maxlength="254" required value="<?= $h($editorContact['email']) ?>">
-            <label class="audience-check person-consent"><input type="checkbox" name="email_consent" value="1"<?= ($editorError?!empty($_POST['email_consent']):$contact['email_status']==='subscribed')?' checked':'' ?>><span><strong>Email marketing consent</strong><span class="audience-help">This connection granted explicit consent to receive marketing-related emails</span></span></label>
+            <label class="audience-check person-consent"><input type="checkbox" name="email_consent" value="1"<?= ($editorError?!empty($_POST['email_consent']):$contact['email_status']==='subscribed')?' checked':'' ?>><span><strong>Email subscription consent</strong><span class="audience-help">This connection granted explicit consent to receive emails from this audience</span></span></label>
             <label for="marketing-consent">Permission record</label><textarea id="marketing-consent" name="consent_note" maxlength="1000" rows="3"><?= $h($editorError&&is_string($_POST['consent_note']??null)?$_POST['consent_note']:'') ?></textarea><p class="audience-help">For a new subscription or changed subscribed address, record when and how this connection gave permission.</p>
         <?php elseif($section==='details'): ?>
             <?php foreach(['first_name'=>'First Name','last_name'=>'Last Name'] as$key=>$label): ?><label for="details-<?= $key ?>"><?= $label ?></label><input id="details-<?= $key ?>" name="<?= $key ?>" maxlength="100" value="<?= $h($editorContact[$key]) ?>"><?php endforeach; ?>

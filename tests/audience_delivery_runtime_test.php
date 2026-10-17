@@ -13,7 +13,10 @@ $expect(audienceRecipientDue($send,'Asia/Tokyo',$now)==='2026-10-20 00:00:00','L
 $gap=$send;$gap['local']='2027-03-14 02:30';$gap['utc']='2027-03-14 08:30:00';$expect(audienceRecipientDue($gap,'America/Chicago',$now)==='2027-03-14 08:30:00','Missing recipient local time shifts forward');
 $repeat=$send;$repeat['local']='2026-11-01 01:30';$repeat['utc']='2026-11-01 06:30:00';$expect(audienceRecipientDue($repeat,'America/Chicago',$now)==='2026-11-01 06:30:00','Repeated recipient hour sends only first occurrence');
 $reject(fn()=>audienceRecipientDue(array_replace($send,['utc'=>gmdate('Y-m-d H:i:s',$now+3600)]),'UTC',$now));
-$d=['subject'=>'Default','from_name'=>'Team','design'=>null,'experiment'=>['variables'=>['subject'=>['A','B'],'from'=>['One','Two']]]];$v=audienceExperimentVariants($d);$expect(count($v)===4&&$v[2]['subject']==='B'&&$v[2]['from_name']==='One','Cartesian variations are deterministic');
+$d=['subject'=>'Default','from_name'=>'Team','design'=>null,'experiment'=>['kind'=>'ab','variables'=>['subject'=>['A','B','C']]]];$v=audienceExperimentVariants($d);$expect(count($v)===3&&$v[2]['subject']==='C'&&$v[2]['from_name']==='Team','A/B variations preserve the untested sender');
+$invalid=$d;$invalid['experiment']['variables']['from']=['One','Two'];$reject(fn()=>audienceExperimentVariants($invalid));
+$invalid=$d;$invalid['experiment']['kind']='unsupported';$reject(fn()=>audienceExperimentVariants($invalid));
+$invalid=$d;$invalid['experiment']['variables']['subject'][]='D';$reject(fn()=>audienceExperimentVariants($invalid));
 $s=['base'=>'https://public.example/a/community','tracking_key'=>str_repeat('a',64),'draft'=>['tracking'=>['clicks'=>true,'plain_clicks'=>true,'opens'=>true]]];[$html,$text]=audienceTrackMessage($s,'<a href="https://example.test/?a=1&amp;b=2">Link</a></body>','https://example.test/',str_repeat('b',64));
 $expect(str_contains($html,'audience_track.php?')&&str_contains($html,'width="1"')&&str_contains($text,'sig='),'Signed links and pixel render');
 $s['test']=true;[$h,$t]=audienceTrackMessage($s,'original','text','token');$expect($h==='original'&&$t==='text','Test messages never track');

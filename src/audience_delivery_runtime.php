@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_mail_budget.php';
+require_once __DIR__.'/audience_campaign_advanced.php';
 
 function audienceTestRecipients(string $input):array
 {
@@ -9,9 +10,13 @@ function audienceTestRecipients(string $input):array
 }
 function audienceExperimentVariants(array $draft):array
 {
-    $variants=[['subject'=>$draft['subject'],'from_name'=>$draft['from_name'],'design'=>$draft['design']??null,'local'=>null,'content'=>0]];
-    foreach($draft['experiment']['variables']??[]as$key=>$values){$next=[];foreach($variants as$variant)foreach($values as$i=>$value){$copy=$variant;switch($key){case 'subject':$copy['subject']=$value;break;case 'from':$copy['from_name']=$value;break;case 'content':$copy['content']=$i;$copy['design']=$i?($draft['design_variants'][$i]??$draft['design']):$draft['design'];break;case 'time':$copy['local']=$value;break;}$next[]=$copy;}$variants=$next;}
-    if(count($variants)>8)throw new InvalidArgumentException('Use at most eight experimental combinations.');return $variants;
+    $base=['subject'=>$draft['subject'],'from_name'=>$draft['from_name'],'design'=>$draft['design']??null,'local'=>null,'content'=>0];
+    if(empty($draft['experiment']))return [$base];
+    $saved=$draft['experiment'];
+    $experiment=audienceCampaignExperiment(['variables'=>$saved['variables']??[],'test_percent'=>$saved['percent']??100,'test_hours'=>$saved['hours']??4,'winner'=>$saved['winner']??'clicks'],$saved['kind']??'ab');
+    $key=array_key_first($experiment['variables']);$variants=[];
+    foreach($experiment['variables'][$key]as$i=>$value){$copy=$base;switch($key){case 'subject':$copy['subject']=$value;break;case 'from':$copy['from_name']=$value;break;case 'content':$copy['content']=$i;$copy['design']=$i?($draft['design_variants'][$i]??$draft['design']):$draft['design'];break;case 'time':$copy['local']=$value;break;}$variants[]=$copy;}
+    return $variants;
 }
 function audienceRecipientDue(array $send,string $zone,?int $now=null):string
 {
@@ -86,39 +91,46 @@ trait AudienceDeliveryRuntime
         $phase=$testOnly?" AND r.phase='test'":"";
         return $this->all("SELECT r.variant_key,COUNT(DISTINCT r.id) messages,COUNT(DISTINCT CASE WHEN r.state='accepted' THEN r.id END) accepted,COUNT(DISTINCT CASE WHEN e.event_type='open' AND COALESCE(JSON_EXTRACT(e.details_json,'$.bot'),false)=false THEN r.id END) opens,COUNT(DISTINCT CASE WHEN e.event_type='click' AND COALESCE(JSON_EXTRACT(e.details_json,'$.bot'),false)=false THEN r.id END) clicks,COUNT(DISTINCT CASE WHEN e.event_type='delivered' THEN r.id END) delivered,COUNT(DISTINCT CASE WHEN e.event_type IN ('hard-bounce','soft-bounce') THEN r.id END) bounced,COUNT(DISTINCT CASE WHEN e.event_type='complaint' THEN r.id END) complaints,COUNT(DISTINCT CASE WHEN e.event_type='delay' THEN r.id END) AS `delayed`,COUNT(DISTINCT CASE WHEN e.event_type='rejected' THEN r.id END) AS `rejected`,COUNT(DISTINCT CASE WHEN ce.id IS NOT NULL THEN r.id END) unsubscribed FROM marketing_campaign_recipients r LEFT JOIN marketing_message_events e ON e.recipient_id=r.id LEFT JOIN marketing_contact_events ce ON ce.contact_id=r.contact_id AND ce.event_type='status' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR) WHERE r.audience_id=? AND r.delivery_id=? $phase GROUP BY r.variant_key ORDER BY r.variant_key",[$this->audienceId,$delivery]);
     }
-    public function requestSubscriptionConfirmation(int $personId,string $base):void
+    public function requestSubscriptionConfirmation(int $personId,string $base,array $collection=[]):void
     {
-        $this->transaction(function()use($personId,$base){
+        $this->transaction(function()use($personId,$base,$collection){
             $ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('Configure SES in Email delivery before requesting a confirmation.');
             $person=$this->person($personId,true);if($person['is_archived']||$person['email_status']==='cleaned')throw new InvalidArgumentException('This address is not eligible for a subscription confirmation.');
             $recent=(int)$this->one('SELECT COUNT(*) n FROM marketing_consent_challenges WHERE audience_id=? AND contact_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)',[$this->audienceId,$personId])['n'];if($recent>=3)throw new InvalidArgumentException('A confirmation has already been requested. Check your inbox or try again tomorrow.');
             $last=$this->one('SELECT created_at FROM marketing_consent_challenges WHERE audience_id=? AND contact_id=? ORDER BY id DESC LIMIT 1',[$this->audienceId,$personId]);if($last&&strtotime($last['created_at'].' UTC')>time()-60)throw new InvalidArgumentException('Wait one minute before requesting another confirmation.');
-            $token=bin2hex(random_bytes(32));$operation=hash('sha256',$token);$url=audienceDispatchBase($base).'/audience_subscription.php?confirm='.$token;$message=['email'=>$person['email'],'subject'=>'Confirm your email subscription','text'=>"Confirm that you want to receive marketing emails from this audience:\n\n".$url."\n\nThis link expires in 24 hours. Nothing changes until you confirm. If you did not request this, ignore this email.",'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],'ses_binding'=>audienceSesBinding($ses),'to_name'=>'','message_id'=>'<confirm-'.substr($operation,0,40).'@message-monkey.invalid>'];
+            $token=bin2hex(random_bytes(32));$operation=hash('sha256',$token);$url=audienceDispatchBase($base).'/audience_subscription.php?confirm='.$token;$message=['email'=>$person['email'],'subject'=>'Confirm your email subscription','text'=>"Confirm that you want to receive emails from this audience:\n\n".$url."\n\nThis link expires in 24 hours. Nothing changes until you confirm. If you did not request this, ignore this email.",'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],'ses_binding'=>audienceSesBinding($ses),'to_name'=>'','message_id'=>'<confirm-'.substr($operation,0,40).'@message-monkey.invalid>'];
             $this->write("INSERT INTO marketing_service_mail(audience_id,contact_id,kind,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,?,'confirmation',?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$personId,$operation,\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR)),$message['message_id']]);$mail=(int)$this->db->insert_id;
             $this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE audience_id=? AND contact_id=? AND used_at IS NULL',[$this->audienceId,$personId]);
             $this->write('INSERT INTO marketing_consent_challenges(audience_id,contact_id,email_hash,token_hash,service_mail_id,expires_at) VALUES (?,?,?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))',[$this->audienceId,$personId,audienceDispatchEmailHash($person['email']),hash('sha256',$token),$mail]);
+            $challengeId=(int)$this->db->insert_id;
+            // Mail payloads are erased after delivery; retain only the scoped attribution IDs.
+            if($collection){$context=$this->collectionConversionContext($collection)+['challenge_id'=>$challengeId];$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','collection-confirmation',?)",[$personId,json_encode($context,JSON_THROW_ON_ERROR)]);}
         });
     }
     public function confirmSubscription(string $token):bool
     {
         if(!preg_match('/^[a-f0-9]{64}$/D',$token))return false;
         return $this->transaction(function()use($token){
-            $challenge=$this->one("SELECT q.*,m.state mail_state FROM marketing_consent_challenges q JOIN marketing_service_mail m ON m.id=q.service_mail_id WHERE q.audience_id=? AND q.token_hash=? FOR UPDATE",[$this->audienceId,hash('sha256',$token)]);
+            $challenge=$this->one("SELECT q.*,m.state mail_state FROM marketing_consent_challenges q JOIN marketing_service_mail m ON m.id=q.service_mail_id AND m.audience_id=q.audience_id AND m.contact_id=q.contact_id WHERE q.audience_id=? AND q.token_hash=? FOR UPDATE",[$this->audienceId,hash('sha256',$token)]);
             if(!$challenge||$challenge['used_at']||strtotime($challenge['expires_at'].' UTC')<=time()||$challenge['mail_state']!=='accepted')return false;
             $person=$this->person((int)$challenge['contact_id'],true);if($person['is_archived']||$person['email_status']==='cleaned'||!hash_equals($challenge['email_hash'],audienceDispatchEmailHash($person['email'])))return false;
             if($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]))return false;
             $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);$this->write('DELETE FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]);$this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE id=?',[$challenge['id']]);
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','subscription-confirmed',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'],JSON_THROW_ON_ERROR)]);return true;
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','subscription-confirmed',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'],JSON_THROW_ON_ERROR)]);
+            $attribution=$this->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-confirmation' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.challenge_id'))=? ORDER BY id DESC LIMIT 1",[$person['id'],(string)$challenge['id']]);
+            if($person['email_status']!=='subscribed'&&$attribution&&$this->collectionAvailable())$this->recordCollectionConversion((int)$person['id'],audienceJson($attribution['details_json']),'double');
+            return true;
         });
     }
-    public function savePublicPreferences(int $personId,int $version,array $input):void
+    public function savePublicPreferences(int $personId,int $version,array $input,?array $scope=null):void
     {
-        $this->transaction(function()use($personId,$version,$input){
+        $this->transaction(function()use($personId,$version,$input,$scope){
             $person=$this->person($personId,true);if($person['is_archived'])throw new InvalidArgumentException('These preferences are unavailable.');if((int)$person['version']!==$version)throw new InvalidArgumentException('Your preferences changed. Reload before saving.');
-            $custom=$person['custom'];$values=is_array($input['custom']??null)?$input['custom']:[];foreach($this->fields()as$f)if($f['is_public'])$custom[$f['id']]=audienceFieldValue($f,$values[$f['id']]??'');
-            $public=[];$groups=[];foreach($this->groups()as$g)if($g['display_type']!=='hidden'){foreach($g['options']as$o)$public[]=(int)$o['id'];$groups[]=$g;}
+            $custom=$person['custom'];$values=is_array($input['custom']??null)?$input['custom']:[];foreach($this->fields()as$f)if($f['is_public']&&($scope===null||in_array('custom:'.$f['id'],$scope['fields'],true)))$custom[$f['id']]=audienceFieldValue($f,$values[$f['id']]??'');
+            $public=[];$groups=[];foreach($this->groups()as$g)if($g['display_type']!=='hidden'&&($scope===null||in_array((int)$g['id'],$scope['group_ids'],true))){foreach($g['options']as$o)$public[]=(int)$o['id'];$groups[]=$g;}
             $chosen=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]))]);if(array_diff($chosen,$public))throw new InvalidArgumentException('Choose valid interests.');
             foreach($groups as$g)if(in_array($g['display_type'],['radio','dropdown'],true)&&count(array_intersect($chosen,array_column($g['options'],'id')))>1)throw new InvalidArgumentException('Choose one interest for '.$g['name'].'.');
+            if($scope!==null){foreach(['first_name','last_name']as$key)if(!in_array($key,$scope['fields'],true))$input[$key]=$person[$key];$input['timezone']=$person['timezone'];}
             $zone=audienceText($input,'timezone',80);if($zone!==''&&!in_array($zone,DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Choose a valid time zone.');
             $this->write('UPDATE marketing_contacts SET first_name=?,last_name=?,custom_json=?,timezone=?,version=version+1 WHERE audience_id=? AND id=?',[audienceText($input,'first_name',100),audienceText($input,'last_name',100),json_encode((object)$custom,JSON_THROW_ON_ERROR),$zone,$this->audienceId,$personId]);
             foreach($public as$option)$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$personId,$option]);foreach($chosen as$option)$this->write('INSERT INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$personId,$option]);

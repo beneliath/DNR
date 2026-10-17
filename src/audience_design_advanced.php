@@ -18,7 +18,7 @@ function audienceDesignUrl(string $url,bool $image=false):bool
 {
     if($url==='')return true;
     if($image)return preg_match('~^https://[^\s<>"\x00-\x1f]+$~iD',$url)===1;
-    return preg_match('~^(https://[^\s<>"\x00-\x1f]+|mailto:[^\s<>"\x00-\x1f]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]{0,79}|\*\|(?:UNSUB|UPDATE_PROFILE|ARCHIVE)\|\*)$~iD',$url)===1;
+    return preg_match('~^(https://[^\s<>"\x00-\x1f]+|mailto:[^\s<>"\x00-\x1f]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]{0,79}|\*\|(?:UNSUB|UPDATE_PROFILE|ARCHIVE|SURVEY:[a-f0-9]{64}|POLL:[a-f0-9]{64}:[0-9]{1,2})\|\*)$~iD',$url)===1;
 }
 function audienceDesignImage(mixed $image):string
 {
