@@ -12,6 +12,12 @@ const APPLICATION_ENCRYPTED_COLUMNS = [
     'reimbursement_email_deliveries' => 'payload_ciphertext',
     'reimbursement_submissions' => 'snapshot_ciphertext',
     'record_merge_journal' => 'snapshot_ciphertext',
+    'marketing_ses_credentials' => 'credential_ciphertext',
+    'marketing_campaign_deliveries' => 'snapshot_ciphertext',
+    'marketing_campaign_recipients' => 'context_ciphertext',
+    'marketing_service_mail' => 'payload_ciphertext',
+    'marketing_delivery_setup_jobs' => 'payload_ciphertext',
+    'marketing_delivery_policy' => 'event_key_ciphertext',
 ];
 
 /** Repeat with next_id; rerunning an applied batch is harmless. Never log plaintext. */
@@ -20,10 +26,11 @@ function rotateApplicationKeyBatch(mysqli $conn, string $table, int $after = 0, 
     if (!ApplicationKey::versioned()) throw new RuntimeException('Configure a versioned keyring before re-encryption.');
     $column = APPLICATION_ENCRYPTED_COLUMNS[$table] ?? null;
     if ($column === null || $after < 0) throw new InvalidArgumentException('Choose a supported encrypted table and cursor.');
+    $primary=in_array($table,['marketing_ses_credentials','marketing_delivery_policy'],true)?'audience_id':'id';
     $conn->begin_transaction();
     try {
-        $rows = $conn->execute_query("SELECT id, {$column} AS payload FROM {$table}
-            WHERE id > ? AND {$column} IS NOT NULL ORDER BY id LIMIT ? FOR UPDATE",
+        $rows = $conn->execute_query("SELECT {$primary} AS id, {$column} AS payload FROM {$table}
+            WHERE {$primary} > ? AND {$column} IS NOT NULL AND {$column}<>'' ORDER BY {$primary} LIMIT ? FOR UPDATE",
             [$after, max(1, min(500, $limit))])->fetch_all(MYSQLI_ASSOC);
         $changed = 0;
         foreach ($rows as $row) {
@@ -32,7 +39,7 @@ function rotateApplicationKeyBatch(mysqli $conn, string $table, int $after = 0, 
             $plaintext = ApplicationKey::open($payload); // Authenticate even a current-key payload.
             if (!str_starts_with($payload, 'dnr1:' . ApplicationKey::activeId() . ':')) {
                 $changed++;
-                if ($apply) $conn->execute_query("UPDATE {$table} SET {$column}=? WHERE id=?", [ApplicationKey::seal($plaintext), $after]);
+                if ($apply) $conn->execute_query("UPDATE {$table} SET {$column}=? WHERE {$primary}=?", [ApplicationKey::seal($plaintext), $after]);
             }
             sodium_memzero($plaintext);
         }
@@ -49,7 +56,8 @@ function applicationKeyRetirementCheck(mysqli $conn, string $id): array
     if (preg_match('/\A[a-zA-Z][a-zA-Z0-9_-]{0,47}\z/', $id) !== 1) throw new InvalidArgumentException('Invalid key identifier.');
     $counts = [];
     foreach (APPLICATION_ENCRYPTED_COLUMNS as $table => $column) {
-        $counts[$table] = (int) $conn->execute_query("SELECT COUNT(*) FROM {$table} WHERE {$column} IS NOT NULL
+        if(str_starts_with($table,'marketing_')&&(int)$conn->execute_query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?',[$table])->fetch_row()[0]===0)continue;
+        $counts[$table] = (int) $conn->execute_query("SELECT COUNT(*) FROM {$table} WHERE {$column} IS NOT NULL AND {$column}<>''
             AND (LEFT({$column}, ?) = ? OR (LEFT({$column}, 5) <> 'dnr1:' AND ? = ?))",
             [strlen('dnr1:' . $id . ':'), 'dnr1:' . $id . ':', $id, ApplicationKey::legacyId()])->fetch_row()[0];
     }

@@ -18,6 +18,8 @@
         "ext-openssl": "*",
         "ext-sodium": "*",
         "ext-zip": "*",
+        "aws/aws-php-sns-message-validator": "^1.0",
+        "aws/aws-sdk-php": "^3.0",
         "endroid/qr-code": "^6.0",
         "giggsey/libphonenumber-for-php": "^9.0",
         "matomo/device-detector": "^6.5",

@@ -25,6 +25,7 @@ $nav_groups = [
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php', 'short_links.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
+    'audience' => ['audience.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
     'reimbursements' => ['reimbursements.php', 'reimbursement_expense.php', 'reimbursement_request.php', 'reimbursement_requests.php', 'reimbursement_cost_centers.php', 'reimbursement_submit.php'],
@@ -278,6 +279,9 @@ if (!empty($_SESSION['user_id'])) {
                     </a></li>
                         <li><a href="speakers.php" class="nav-link<?php echo $active_nav === 'speakers' ? ' active' : ''; ?>"<?php echo $active_nav === 'speakers' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Speakers</span>
+                    </a></li>
+                        <li><a href="audience.php" class="nav-link<?php echo $active_nav === 'audience' ? ' active' : ''; ?>"<?php echo $active_nav === 'audience' ? ' aria-current="page"' : ''; ?>>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="8" r="2"/><path d="M2 21v-5a6 6 0 0 1 12 0v5M15 13a5 5 0 0 1 7 4v4"/></svg><span>Audience</span>
                     </a></li>
                     </ul>
                 </details>

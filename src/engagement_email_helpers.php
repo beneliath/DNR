@@ -1003,6 +1003,7 @@ function failQueuedEngagementEmail(
     bool $permanent = false,
     ?string $claimToken = null
 ): void {
+    if (audienceDeferOperationalMail($conn, 'engagement_email_deliveries', $deliveryId, $claimToken, $exception)) return;
     if ($exception instanceof SmtpUncertainDeliveryException) {
         markEmailDeliveryUncertain($conn, 'engagement_email_deliveries', $deliveryId, $claimToken);
         return;

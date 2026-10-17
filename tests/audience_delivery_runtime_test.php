@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../src/audience_store.php';
+$checks=0;$expect=static function(bool $ok,string $why)use(&$checks){if(!$ok)throw new RuntimeException($why);$checks++;};
+$reject=static function(callable $call)use($expect){try{$call();}catch(InvalidArgumentException){$expect(true,'Rejected');return;}throw new RuntimeException('Expected rejection.');};
+$expect(audienceTestRecipients('A@example.test, a@example.test; b@example.test')===['a@example.test','b@example.test'],'Test recipients deduplicate');
+$reject(fn()=>audienceTestRecipients("a@example.test\nBcc: victim@example.test"));$reject(fn()=>audienceTestRecipients(''));
+$p=['hourly_budget'=>500,'daily_budget'=>5000,'hourly_reserve'=>100,'daily_reserve'=>500,'interval_seconds'=>3,'bulk_approved'=>'1'];
+$expect(audienceMailPolicyReady(audienceMailPolicyInput($p)),'Paid allocation validates');
+$expect(!audienceMailPolicyReady([]),'No invented paid default');$reject(fn()=>audienceMailPolicyInput(array_replace($p,['daily_budget'=>100])));$reject(fn()=>audienceMailPolicyInput(array_replace($p,['hourly_reserve'=>500])));
+$now=strtotime('2026-10-16 12:00 UTC');$send=['mode'=>'schedule','delivery'=>'timewarp','timezone'=>'America/Chicago','local'=>'2026-10-20 09:00','utc'=>'2026-10-20 14:00:00'];
+$expect(audienceRecipientDue($send,'Asia/Tokyo',$now)==='2026-10-20 00:00:00','Local delivery uses recipient timezone');$expect(audienceRecipientDue($send,'Unknown/Zone',$now)==='2026-10-20 14:00:00','Unknown zones use account selection');
+$gap=$send;$gap['local']='2027-03-14 02:30';$gap['utc']='2027-03-14 08:30:00';$expect(audienceRecipientDue($gap,'America/Chicago',$now)==='2027-03-14 08:30:00','Missing recipient local time shifts forward');
+$repeat=$send;$repeat['local']='2026-11-01 01:30';$repeat['utc']='2026-11-01 06:30:00';$expect(audienceRecipientDue($repeat,'America/Chicago',$now)==='2026-11-01 06:30:00','Repeated recipient hour sends only first occurrence');
+$reject(fn()=>audienceRecipientDue(array_replace($send,['utc'=>gmdate('Y-m-d H:i:s',$now+3600)]),'UTC',$now));
+$d=['subject'=>'Default','from_name'=>'Team','design'=>null,'experiment'=>['variables'=>['subject'=>['A','B'],'from'=>['One','Two']]]];$v=audienceExperimentVariants($d);$expect(count($v)===4&&$v[2]['subject']==='B'&&$v[2]['from_name']==='One','Cartesian variations are deterministic');
+$s=['base'=>'https://public.example/a/community','tracking_key'=>str_repeat('a',64),'draft'=>['tracking'=>['clicks'=>true,'plain_clicks'=>true,'opens'=>true]]];[$html,$text]=audienceTrackMessage($s,'<a href="https://example.test/?a=1&amp;b=2">Link</a></body>','https://example.test/',str_repeat('b',64));
+$expect(str_contains($html,'audience_track.php?')&&str_contains($html,'width="1"')&&str_contains($text,'sig='),'Signed links and pixel render');
+$s['test']=true;[$h,$t]=audienceTrackMessage($s,'original','text','token');$expect($h==='original'&&$t==='text','Test messages never track');
+echo "Delivery runtime: $checks checks passed.\n";
