@@ -15,6 +15,8 @@ require_once '/var/www/html/engagement_email_helpers.php';
 require_once '/var/www/html/reimbursement_email_helpers.php';
 require_once '/var/www/html/audience_delivery_worker.php';
 require_once '/var/www/html/audience_dispatch_worker.php';
+require_once '/var/www/html/audience_store.php';
+require_once '/var/www/html/audience_ses_inbox.php';
 $reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
 $limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
 
@@ -96,6 +98,7 @@ do {
     if (!$reimbursementsOnly) {
         try {
             // Marketing setup checks use this account’s encrypted SES credentials; operational mail stays on SMTP.
+            $processed += processAudienceSnsInbox($conn);
             $processed += processAudienceSesSetup($conn, 1);
         } catch (Throwable $exception) {
             $pass_succeeded = false;

@@ -6,7 +6,7 @@ const AUDIENCE_SES_REGIONS=['us-east-1','us-east-2','us-west-1','us-west-2','ca-
 function audienceSesInstalled(mysqli $db):bool
 {
     $table=(int)$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_ses_settings'")->fetch_assoc()['n'];
-    return $table===1&&(int)($db->query('SELECT runtime_version FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['runtime_version']??0)===1;
+    return $table===1&&(int)($db->query('SELECT runtime_version FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['runtime_version']??0)===2;
 }
 function audienceSesInput(array $input):array
 {
@@ -34,8 +34,8 @@ function audienceSesReasons(array $s,string $from):array
 /** No ambient credentials, profiles, arbitrary endpoints or automatic send retries. */
 function audienceSesClient(string $service,array $settings,array $credentials):object
 {
-    $options=['version'=>$service==='ses'?'2019-09-27':'2011-06-15','region'=>$settings['region'],'credentials'=>$credentials,'retries'=>0,'http'=>['timeout'=>20,'connect_timeout'=>5,'allow_redirects'=>false]];
-    return $service==='ses'?new \Aws\SesV2\SesV2Client($options):new \Aws\Sts\StsClient($options);
+    $options=['version'=>match($service){'ses'=>'2019-09-27','sns'=>'2010-03-31',default=>'2011-06-15'},'region'=>$settings['region'],'credentials'=>$credentials,'retries'=>0,'http'=>['timeout'=>20,'connect_timeout'=>5,'allow_redirects'=>false,'proxy'=>'']];
+    return match($service){'ses'=>new \Aws\SesV2\SesV2Client($options),'sns'=>new \Aws\Sns\SnsClient($options),'sts'=>new \Aws\Sts\StsClient($options),default=>throw new InvalidArgumentException('Unsupported AWS service.')};
 }
 function audienceSesCredentials(mysqli $db,int $audience):array
 {
