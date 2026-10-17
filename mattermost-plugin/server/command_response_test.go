@@ -57,7 +57,7 @@ func TestPrivateEventPayloadPreservesRoutingMarker(t *testing.T) {
 		model.CommandResponseTypeEphemeral,
 		postTypeEvent,
 		"Event",
-		apiEngagement{ID: 42, Title: "Private event", EmailRoutingMarker: "[MOED#42]"},
+		apiEngagement{ID: 42, Title: "Private event", EmailRoutingMarker: "[MOED@shalom-in-messiah#E42.ABCDEFGHIJKLMNOPQRSTUV]"},
 	)
 	payloadJSON, ok := command.Props["moed"].(string)
 	if !ok {
@@ -67,7 +67,7 @@ func TestPrivateEventPayloadPreservesRoutingMarker(t *testing.T) {
 	if err := json.Unmarshal([]byte(payloadJSON), &event); err != nil {
 		t.Fatalf("decode private event payload: %v", err)
 	}
-	if event.EmailRoutingMarker != "[MOED#42]" {
+	if event.EmailRoutingMarker != "[MOED@shalom-in-messiah#E42.ABCDEFGHIJKLMNOPQRSTUV]" {
 		t.Fatalf("routing marker was not preserved: %q", event.EmailRoutingMarker)
 	}
 }
