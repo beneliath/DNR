@@ -1036,6 +1036,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
     }
 
     $shared_pages = [
+        'audience.php',
         'search.php',
         'speakers.php',
         'short_links.php',

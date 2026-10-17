@@ -4,12 +4,12 @@ if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='dis
 $c2start=$checks;$c2audience=$campaignStore->one('SELECT * FROM marketing_audiences WHERE id=1');
 $c2reject=static function(callable $call,string $message):void{try{$call();}catch(InvalidArgumentException){audienceHttpExpect(true,$message);return;}throw new RuntimeException($message);};
 $c2create=static function(string $type,string $name)use($editor,$token):int{$response=$editor('audience.php?view=campaigns',['csrf_token'=>$token,'action'=>'campaign_create','campaign_type'=>$type,'name'=>$name]);audienceHttpExpect($response['status']===302,'Create '.$type);preg_match('/id=(\d+)/',$response['headers'],$m);return (int)$m[1];};
-$c2id=$c2create('ab','Completion A/B fixture');$c2url='audience.php?view=campaign&id='.$c2id;
+$c2id=$c2create('regular','Completion regular fixture');$c2url='audience.php?view=campaign&id='.$c2id;
 $c2section=static function(string $section,array $values=[])use($editor,$token,$campaignStore,$c2id,$c2url):array{return $editor($c2url,['csrf_token'=>$token,'action'=>'campaign_section','id'=>$c2id,'version'=>$campaignStore->campaign($c2id)['version'],'section'=>$section]+$values);};
-audienceHttpExpect(audienceCampaignType($campaignStore->campaign($c2id))==='ab','A/B type survives storage');
+audienceHttpExpect(audienceCampaignType($campaignStore->campaign($c2id))==='regular','Regular email type survives storage');
 $c2plain=$c2create('plain-text','Completion plain-text fixture');
 $c2reject(fn()=>$campaignStore->createCampaign(['name'=>'Unsupported fixture','campaign_type'=>'unsupported']),'Unsupported email type rejected');
-foreach(['ab'=>'Completion A/B fixture','plain-text'=>'Completion plain-text fixture']as$type=>$name){$r=$editor('audience.php?view=campaigns&type='.$type);audienceHttpExpect($r['status']===200&&str_contains($r['body'],$name),'Effective campaign type filter '.$type);}
+foreach(['regular'=>'Completion regular fixture','plain-text'=>'Completion plain-text fixture']as$type=>$name){$r=$editor('audience.php?view=campaigns&type='.$type);audienceHttpExpect($r['status']===200&&str_contains($r['body'],$name),'Effective campaign type filter '.$type);}
 audienceHttpExpect($c2section('tracking',['opens'=>'1','plain_clicks'=>'1','inbox'=>'1'])['status']===302,'Tracking preferences save');
 $c2draft=$campaignStore->campaign($c2id)['draft'];audienceHttpExpect($c2draft['tracking']['opens']&&!$c2draft['tracking']['clicks']&&$c2draft['tracking']['inbox'],'Tracking values persist');
 $c2tag=$campaignStore->ensureTag('Completion recipients');$c2exclude=$campaignStore->ensureTag('Completion exclusion');
@@ -31,20 +31,13 @@ audienceHttpExpect($c2section('resend',['enabled'=>'1','days'=>'3','time'=>'09:0
 $c2invalidResend=$c2section('resend',['enabled'=>'1','days'=>'40','time'=>'09:00','segment'=>'non-openers','resend_subject'=>'Keep this entry']);audienceHttpExpect(str_contains($c2invalidResend['body'],'data-reopen-dialog')&&str_contains($c2invalidResend['body'],'Keep this entry'),'Invalid resend keeps form values');
 audienceHttpExpect($c2section('social',['enabled'=>'1','card_title'=>'Public fixture title','card_description'=>'A public description','card_image'=>''])['status']===302,'Social card metadata saves');
 audienceHttpExpect(str_contains($c2section('social',['enabled'=>'1','card_title'=>'*|FNAME|*'])['body'],'cannot contain merge tags'),'Social card merge tag rejected');
-$c2invalidExperiment=['experiment_kind'=>'ab','enabled_variables'=>['subject','content'],'variables'=>['subject'=>['First subject','Second subject'],'content'=>['','']],'test_percent'=>'50','test_hours'=>'6','winner'=>'clicks'];
-$c2previousExperiment=$campaignStore->campaign($c2id)['draft']['experiment'];$c2invalidResponse=$c2section('experiment',$c2invalidExperiment);
-audienceHttpExpect(str_contains($c2invalidResponse['body'],'A/B tests use one variable')&&$campaignStore->campaign($c2id)['draft']['experiment']===$c2previousExperiment,'A/B rejects simultaneous test variables without changing the saved experiment');
-$c2experiment=['experiment_kind'=>'ab','enabled_variables'=>['content'],'variables'=>['content'=>['','']],'test_percent'=>'50','test_hours'=>'6','winner'=>'clicks'];
-audienceHttpExpect($c2section('experiment',$c2experiment)['status']===302,'A/B content configuration saves');
-audienceHttpExpect($campaignStore->campaign($c2id)['draft']['experiment']['combinations']===2,'Correct A/B variation count');
+$c2reject(fn()=>$campaignStore->createCampaign(['name'=>'Disabled experiment','campaign_type'=>'ab']),'A/B creation is rejected server-side');
+$c2invalidResponse=$c2section('experiment',['experiment_kind'=>'ab']);audienceHttpExpect(str_contains($c2invalidResponse['body'],'not available in MessageMonkey')&&empty($campaignStore->campaign($c2id)['draft']['experiment']),'Direct experiment configuration is rejected without mutation');
 $c2design=audienceDesignStarters()['blank']['design'];$c2design['rows'][0]['columns'][0][0]['text']='Base version';
 $c2designUrl='audience.php?view=designer&id='.$c2id;
 $c2saveDesign=static function(int $variant,array $design)use($editor,$token,$campaignStore,$c2id,$c2designUrl):array{return $editor($c2designUrl.'&variant='.$variant,['csrf_token'=>$token,'action'=>'design_save','version'=>$campaignStore->campaign($c2id)['version'],'design'=>json_encode($design)]);};
-audienceHttpExpect($c2saveDesign(0,$c2design)['status']===200,'Base design saves');$c2variant=$c2design;$c2variant['rows'][0]['columns'][0][0]['text']='Variation two';
-audienceHttpExpect($c2saveDesign(1,$c2variant)['status']===200,'Independent content variation saves');
-$c2row=$campaignStore->campaign($c2id);audienceHttpExpect($campaignStore->campaignDesign($c2row,0)['rows'][0]['columns'][0][0]['text']==='Base version'&&$campaignStore->campaignDesign($c2row,1)['rows'][0]['columns'][0][0]['text']==='Variation two','Content variations do not overwrite each other');
-$c2history0=$campaignStore->designRevisions('campaign',$c2id,0);$c2history1=$campaignStore->designRevisions('campaign',$c2id,1);audienceHttpExpect(count($c2history0)===1&&count($c2history1)===1,'Variant history is isolated');
-audienceHttpExpect($editor($c2designUrl.'&variant=1',['csrf_token'=>$token,'action'=>'design_restore','version'=>$c2row['version'],'revision_id'=>$c2history0[0]['id']])['status']===422,'Cross-variation restore denied');
+audienceHttpExpect($c2saveDesign(0,$c2design)['status']===200,'Base design saves');
+audienceHttpExpect($editor($c2designUrl.'&variant=1')['status']===404,'Experimental content variants are unavailable');
 audienceHttpExpect($editor($c2designUrl.'&variant=7')['status']===404,'Unavailable variation denied');
 audienceHttpExpect($editor($c2designUrl.'&variant=01')['status']===404,'Ambiguous variation identifier denied');
 $c2review='audience.php?view=campaign-review&id='.$c2id;

@@ -643,6 +643,44 @@
         }
       ]
     },
+    "audience_inbox_contact.php": {
+      "sha256": "dce4d4f06e93e3f70cc8de18effff91b734d3f9107bde800631ef5f590b934d8",
+      "controls": [
+        {
+          "kind": "label",
+          "label": "Name"
+        },
+        {
+          "kind": "label",
+          "label": "Email address"
+        },
+        {
+          "kind": "label",
+          "label": "Subject"
+        },
+        {
+          "kind": "label",
+          "label": "Message"
+        },
+        {
+          "kind": "label",
+          "label": "Website"
+        }
+      ]
+    },
+    "audience_inbox_optout.php": {
+      "sha256": "b1105a4f78027c77d8ffffcc1062c604173292150ed65f0ce00dd15ff7b7182d",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "One-to-one email preferences"
+        },
+        {
+          "kind": "button",
+          "label": "Stop one-to-one messages"
+        }
+      ]
+    },
     "audience_subscription.php": {
       "sha256": "5001679397571350f859885ec32714b52084d014b48e07ffced190c9bcc4cc15",
       "controls": [

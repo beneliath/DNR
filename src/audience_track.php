@@ -10,5 +10,6 @@ $snapshot=json_decode(\Dnr\Security\ApplicationKey::open($recipient['snapshot_ci
 $url='';if(!$open){$url=base64_decode(strtr($encoded,'-_','+/'),true);if($url===false||!filter_var($url,FILTER_VALIDATE_URL)||!str_starts_with($url,'https://')||preg_match('/[\r\n]/',$url)){http_response_code(400);exit;}}
 $agent=(string)($_SERVER['HTTP_USER_AGENT']??'');$bot=preg_match('/bot|crawler|spider|scanner|headless|preview|curl|python|wget/i',$agent)===1;
 $key=hash('sha256',$token.':'.($open?'open':$encoded).':'.gmdate('Y-m-d H:i').':'.hash('sha256',$agent.($_SERVER['REMOTE_ADDR']??'')));
-$store=new AudienceStore($db,1,0,'Email link');$store->recordDeliveryEvent((int)$recipient['id'],$open?'open':'click',$key,'browser',gmdate('Y-m-d H:i:s'),['bot'=>$bot,'link_hash'=>$open?'':hash('sha256',$url)]);
+$evidence=audienceAnalyticsClientEvidence($agent,audienceCollectionCountry($_SERVER),$url);
+$store=new AudienceStore($db,1,0,'Email link');$store->recordDeliveryEvent((int)$recipient['id'],$open?'open':'click',$key,'browser',gmdate('Y-m-d H:i:s'),['bot'=>$bot,'link_hash'=>$open?'':hash('sha256',$url)]+$evidence);
 if($open){header('Content-Type: image/gif');echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');}else{header('Location: '.$url,true,302);}

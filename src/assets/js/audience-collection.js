@@ -18,6 +18,7 @@
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
     let model = structuredClone(config.document);
+    model.variants = [];
     const frame = document.querySelector('[data-collection-preview]');
     const status = document.querySelector('[data-collection-preview-status]');
     const hidden = form.querySelector('[data-collection-document]');

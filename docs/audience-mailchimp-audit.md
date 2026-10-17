@@ -29,10 +29,10 @@ be converted into a percentage of product completion. **No row is qualified as
 full parity by this audit.** The separate Stage 1 baseline gate has passed; full-vendor parity and capabilities
 that need later stages remain open.
 
-The matrix contains **218 rows across 19 areas**: 196 included requirements,
-6 platform/qualification mappings, and 16 explicit omissions. Implementation
-classification is 50 missing, 145 partial, 5 intentional adaptations, 2 unresolved
-and 16 excluded. The evidence ledger covers 26 live surfaces and 93 official
+The matrix contains **218 rows across 19 areas**: 195 included requirements,
+6 platform/qualification mappings, and 17 explicit omissions. Implementation
+classification is 20 missing, 173 partial, 6 intentional adaptations, 2 unresolved
+and 17 excluded. The evidence ledger covers 26 live surfaces and 93 official
 sources. These are coverage counts, not claims that every underlying action was
 executed or every vendor feature was discoverable in this account.
 
@@ -236,7 +236,7 @@ uncertain.
 | 4 | System/hosted/embedded/popup forms, preference center, surveys/polls and **campaign landing pages**; native publication, collection and reporting |
 | 5 | Flow authoring/templates, native triggers/rules/actions, execution/reentry/exits, pause/resume, migration/compatibility decisions for classic automations and per-node reports |
 | 6 | Inbox sources, inbound routing, threading/labels/notes, compose/reply/templates, notifications and permissions |
-| 7 | Full email/audience/form/flow analytics, custom/comparison reports, native funnel outcomes, experiments, send-time optimization, benchmarks and bot controls |
+| 7 | MessageMonkey Home dashboard; full email/audience/form/flow analytics, custom/comparison reports, native funnel outcomes, send-time optimization, benchmarks and bot controls |
 | 8 | AI content assistance and analytics assistance with source-backed account results; remaining optimization/creative tooling |
 
 Stage numbers communicate dependency groups, not a promise that features can be
@@ -749,3 +749,47 @@ unused local draft was returned to Trash without activation or enrollment; theme
 and temporary viewport settings were restored. The minor release request targets
 shared version 2.6.1 through the normal verified-backup and readiness workflow.
 Real flow email and inbox acceptance remain gated by AWS production approval.
+
+
+Stage 6 native implementation is qualified locally on
+`codex/mailchimp-cloning-continued3`; see the Stage 6 record in
+`audience-mailchimp-parity.md`. Sources and notifications start disconnected/off.
+Live gateway receipt and AWS-dependent reply/attachment/notification/SNS round trips
+remain gated. The native acceptance evidence does not claim full vendor parity or
+a production release. Home and full Analytics belong to Stage 7; Stage 8 content
+assistance is intended to reuse MOED's existing Ollama engine on shunbun through
+the established authenticated tunnel, without changing that engine during Stage 6.
+
+
+### Stage 6 receiving and Stage 7 dashboard work — October 17, 2026
+
+The current record is in [the Stage 7 qualification notes](audience-mailchimp-parity.md#stage-7-home-and-email-dashboard--october-17-2026).
+The restricted native receiving pipeline is qualified with signed routes, durable
+mailbox discovery/checkpoint storage, MIME attachments, replay protection and
+rejection cases. The existing production Proton gateway was read with IMAP PEEK.
+One explicitly approved self-addressed operational SMTP email arrived with its
+signed plus address, body and attachment intact, but Proton asserted `unverified`.
+It therefore does not qualify positive automatic Inbox association. Stage 6 is
+not deployed in production; a receiving-verified message through that release
+remains an operational prerequisite. Sources and all live sending remain off.
+
+Stage 7 now has separate Home and Email dashboard layouts, reference date
+popovers/calendars, previous-period comparisons, message/type/bot filters,
+independent metric/interval charts, a native observational funnel, scoped CSV
+and report links. Local fictional data covers current, preceding 30-day and
+preceding 90-day periods. A/B testing is now excluded everywhere, including popup
+variations; records are retained but configuration and execution are blocked.
+The full isolated suite passes 768 Audience checks, including 36 Analytics checks,
+plus 13 restricted gateway checks. Custom reports, historical growth/source
+analytics, advanced drilldowns and full vendor parity remain open Stage 7 work.
+
+#### Stage 7 native closeout, October 17, 2026
+
+The remaining non-AWS scope is qualified locally: audience join/source/transition
+analytics, recipient/link/client drilldowns and sandboxed immutable click maps,
+custom saved/shared reports and detailed exports, cross-form/flow comparisons,
+and native historical/content/timing insights. See the appended Stage 7 closeout
+in `audience-mailchimp-parity.md` for 831 Audience/99 analytics checks and the
+phone/tablet/light/dark evidence. No production deployment or real sending was
+performed. A/B stays excluded. Provider round trips and unavailable historical or
+external evidence are explicitly separated from locally qualified native work.

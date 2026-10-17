@@ -291,5 +291,7 @@ try{
     require __DIR__.'/audience_collection_http.php';
     require __DIR__.'/audience_flow_http.php';
     require __DIR__.'/audience_filters_http.php';
+    require __DIR__.'/audience_inbox_http.php';
+    require __DIR__.'/audience_analytics_http.php';
     echo "Audience HTTP integration passed ($checks checks): permissions, CSRF, profiles, management screens, segmentation, import wizard, detached worker, exports and isolation.\n";
 }finally{foreach($cookies as$cookie)@unlink($cookie);}

@@ -149,10 +149,7 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     foreach (['paths','exclude_paths'] as $key) foreach (array_slice(is_array($p[$key]??null)?$p[$key]:[],0,20) as $path) {
         $path=audienceCollectionText($path,300); if ($path!=='' && $path[0]!=='/') throw new InvalidArgumentException('Page paths must begin with /.'); if ($path!=='') $d['popup'][$key][]=$path;
     }
-    foreach (array_slice(is_array($input['variants']??null)?$input['variants']:[],0,2) as $v) {
-        if (!is_array($v)) throw new InvalidArgumentException('Invalid form variation.');
-        $d['variants'][]=['title'=>audienceCollectionText($v['title']??'',200),'intro'=>audienceCollectionText($v['intro']??'',5000),'button'=>audienceCollectionText($v['button']??'',80)];
-    }
+    if(!empty($input['variants']))throw new InvalidArgumentException('A/B testing is not available in MessageMonkey.');
     foreach (array_slice(is_array($input['quiz']??null)?$input['quiz']:[],0,10) as $q) {
         if (!is_array($q)) throw new InvalidArgumentException('Invalid quiz choice.');
         $d['quiz'][]=['label'=>audienceCollectionText($q['label']??'',200),'outcome'=>audienceCollectionText($q['outcome']??'',1000)];
@@ -297,6 +294,8 @@ trait AudienceCollection
             }
             $sealed=\Dnr\Security\ApplicationKey::seal(json_encode($answers,JSON_THROW_ON_ERROR));
             $this->write('INSERT INTO marketing_collection_responses(audience_id,resource_id,revision_id,receipt_hash,visitor_hash,contact_id,payload_ciphertext,variant_key) VALUES (?,?,?,?,?,?,?,?)',[$this->audienceId,$r['id'],$r['published_revision'],$hash,$p['visitor'],$contact['id']??null,$sealed,$p['variant']]);
+            $response=(int)$this->db->insert_id;
+            if($r['kind']==='survey')$this->inboxSurveyResponse($r,$answers,$contact,$response);
             return ['confirmed'=>$confirmation,'duplicate'=>false];
         });
     }

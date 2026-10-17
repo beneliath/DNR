@@ -1,0 +1,13 @@
+<?php
+declare(strict_types=1);
+if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
+require_once '/var/www/html/bootstrap.php';require_once '/var/www/html/inbound_email_helpers.php';require_once '/var/www/html/audience_inbox_runtime.php';
+$db=applicationDatabaseConnection();$user=$db->query('SELECT CURRENT_USER() u')->fetch_assoc()['u'];if(!str_starts_with($user,'dnrmailingest@'))throw new RuntimeException('Dedicated ingestion role required.');
+$thread=$db->query("SELECT t.id,t.sender_email,r.id route_id FROM marketing_inbox_threads t JOIN marketing_inbox_routes r ON r.audience_id=t.audience_id AND r.source='thread' AND r.reference_id=t.id WHERE t.audience_id=1 AND t.sender_email='inbox-person@example.test' AND t.contact_id IS NOT NULL ORDER BY t.id LIMIT 1")->fetch_assoc();if(!$thread)throw new RuntimeException('Inbox association fixture missing.');
+$address=audienceInboxAddress(inboundEmailGatewayAddress(),currentAccountKey(),(int)$thread['route_id'],accountMailSigningKey());
+putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.inbox.test');
+$raw="Authentication-Results: mx.inbox.test; dmarc=pass header.from=example.test\r\nFrom: Inbox <inbox-person@example.test>\r\nTo: $address\r\nMessage-ID: <restricted-ingest@example.test>\r\nSubject: Restricted gateway\r\nContent-Type: text/plain\r\n\r\nRestricted gateway reply";
+$stored=storeInboundEmailMessage($db,'file','restricted-inbox',parseInboundEmail($raw),inboundEmailGatewayAddress());if(processInboundEmailMessage($db,$stored['id'])!=='processed')throw new RuntimeException('Restricted ingestion could not route a thread reply.');
+$message=$db->query("SELECT thread_id FROM marketing_inbox_messages WHERE audience_id=1 AND rfc_message_id='<restricted-ingest@example.test>'")->fetch_assoc();if((int)($message['thread_id']??0)!==(int)$thread['id'])throw new RuntimeException('Restricted ingestion did not retain the exact thread.');
+foreach(["UPDATE marketing_inbox_settings SET gateway_confirmed=1 WHERE 1=0","SELECT credential_ciphertext FROM marketing_ses_credentials","INSERT INTO marketing_service_mail(audience_id,kind,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (1,'inbox',REPEAT('a',64),'forbidden','<bad@example.test>',UTC_TIMESTAMP(),UTC_TIMESTAMP())"]as$sql){try{$db->query($sql);throw new RuntimeException('Ingest worker gained sending or configuration authority.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}}
+echo "Inbox restricted ingestion and no-sending/no-credential-write separation passed.\n";

@@ -94,6 +94,8 @@ def main():
             values['DNR_' + kind + '_IMAGE'] = os.environ.get('DNR_TEST_' + kind + '_IMAGE', project + '-' + kind.lower())
         if scanning_only:
             values['DNR_DOCUMENT_SCANNING'] = '1'
+        if sys.argv[1:] == ['audience']:
+            values['DNR_INBOUND_ADDRESS'] = 'inbox@receiving.example.test'
         envfile = folder / 'test.env'
         envfile.write_text(''.join(k + '=' + v + '\n' for k, v in values.items()))
         services = ('web', 'downloads', 'document-scans', 'document-scanner', 'data-maintenance', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'key-rotation', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
@@ -142,6 +144,16 @@ def main():
                     '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
                     '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
                     'web', '/opt/dnr/tests/audience_delivery_worker_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_ingest_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_gateway_test.php'], cwd=ROOT, env=env, check=True)
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'MYSQL_USER=dnrmaintenance', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_maintenance_password',

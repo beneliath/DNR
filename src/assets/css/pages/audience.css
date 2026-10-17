@@ -70,19 +70,47 @@ html.dark-mode {
 /* Slightly smaller interface text; email designs retain their own typography. */
 body.audience-app{--audience-font-scale:.925;margin:0;color:var(--audience-text);background:var(--audience-canvas);font:calc(16px * var(--audience-font-scale, 1))/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif}
 body.audience-app.campaign-public,#email-canvas{--audience-font-scale:1}
-/* MessageMonkey uses its own shell, but shares MOED's live deployment notice. */
+/* Shared MOED banners sit above MessageMonkey's independent navigation shell. */
+body.audience-app{--audience-account-banner-height:0px;--audience-preview-banner-height:0px;--audience-shell-offset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height) + var(--audience-preview-banner-height));padding-top:var(--audience-shell-offset)}
+body.audience-app:has(.account-identity-banner){--audience-account-banner-height:52px}
+body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68px}
+.audience-app .account-identity-banner{position:fixed;inset:var(--deployment-banner-height,0px) 0 auto;z-index:84;display:flex;min-height:52px;align-items:center;justify-content:space-between;gap:12px;padding:10px 24px;border-bottom:1px solid #0f766e;background:#e7f6f3;color:#134e4a}
+.audience-app .account-identity-label{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.audience-app .account-identity-banner strong{min-width:0;overflow-wrap:anywhere}
+.audience-app .account-identity-banner a{flex-shrink:0;color:#115e59;text-decoration:underline}
+.audience-app .account-identity-switch-form{flex-shrink:0;margin:0;justify-self:end;white-space:nowrap}
+.audience-app .account-identity-switch{min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:#115e59;font:inherit;text-decoration:underline;cursor:pointer}
+.audience-app .account-identity-switch:is(:hover,:focus-visible){background:transparent;color:#0f766e}
+.audience-app .account-primary-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid color-mix(in srgb,#9a3f00 45%,#dfe4ec);border-radius:999px;color:#9a3f00;background:#fff0e5;font-size:.7rem;font-weight:650;line-height:1.4;white-space:nowrap}
+.audience-app .account-primary-badge svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.audience-app .role-preview-banner{position:fixed;inset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height)) 0 auto;z-index:85;display:flex;min-height:68px;align-items:center;justify-content:space-between;gap:20px;padding:10px 24px;border-bottom:1px solid color-mix(in srgb,#9a5b05 55%,#dfe4ec);background:#fff3d8;color:#172033;box-shadow:0 1px 2px #1018280a,0 1px 4px #1018280d}
+.audience-app .role-preview-banner-copy{display:flex;min-width:0;flex-direction:column;gap:1px}
+.audience-app .role-preview-banner-copy strong{color:#9a5b05;font-size:.98rem}
+.audience-app .role-preview-banner-copy span{color:#667085;font-size:.82rem}
+.audience-app .role-preview-return-form{flex:0 0 auto;margin:0}
+.audience-app .role-preview-return-form button{white-space:normal}
+html.dark-mode .audience-app .account-identity-banner{background:#153a3a;border-bottom-color:#174b47;color:#9ae9e3}
+html.dark-mode .audience-app .account-identity-banner a{color:#99f6e4}
+html.dark-mode .audience-app .account-identity-switch{color:#99f6e4}
+html.dark-mode .audience-app .account-primary-badge{border-color:color-mix(in srgb,#f4a261 45%,#303b49);color:#f4a261;background:#4a2717}
+html.dark-mode .audience-app .role-preview-banner{background:#3c2d16;color:#f3f6fb;border-bottom-color:color-mix(in srgb,#f5bd68 55%,#303b49)}
+html.dark-mode .audience-app .role-preview-banner-copy strong{color:#f5bd68}
+html.dark-mode .audience-app .role-preview-banner-copy span{color:#b5becc}
 .audience-app .deployment-notice-banner{position:fixed;inset:0 0 auto;z-index:87;display:flex;flex-direction:column;justify-content:center;min-height:68px;padding:10px 24px;border-bottom:1px solid #991b1b;background:#b91c1c;color:#fff;font-size:calc(14px * var(--audience-font-scale, 1));line-height:1.5;text-align:left}
 .audience-app .deployment-notice-banner[hidden]{display:none!important}
 .audience-app .deployment-notice-heading{display:flex;flex-wrap:wrap;gap:.4em;font-size:calc(16px * var(--audience-font-scale, 1))}
 .audience-app .deployment-notice-heading strong{color:inherit}
 .audience-app [data-deployment-timer]{font-weight:700;font-variant-numeric:tabular-nums}
 html.dark-mode .audience-app .deployment-notice-banner{background:#dc2626;border-bottom-color:#f87171}
-body.audience-app.deployment-notice-active{padding-top:var(--deployment-banner-height)}
-.audience-app.deployment-notice-active .audience-topbar{top:var(--deployment-banner-height)}
-.audience-app.deployment-notice-active .audience-sidebar{top:calc(68px + var(--deployment-banner-height))}
-.audience-app.deployment-notice-active .audience-notifications{top:calc(62px + var(--deployment-banner-height));max-height:calc(100dvh - 90px - var(--deployment-banner-height))}
-body.audience-app.email-designer.deployment-notice-active .designer-workspace{height:calc(100vh - 72px - var(--deployment-banner-height))}
-@media(max-width:700px){.audience-app .deployment-notice-banner{padding:9px 14px}body.audience-app.email-designer.deployment-notice-active .designer-workspace{height:calc(100vh - 110px - var(--deployment-banner-height))}}
+.audience-app .audience-topbar{top:var(--audience-shell-offset)}
+.audience-app .audience-sidebar{top:calc(68px + var(--audience-shell-offset))}
+.audience-app .audience-notifications{top:calc(62px + var(--audience-shell-offset));max-height:calc(100dvh - 90px - var(--audience-shell-offset))}
+body.audience-app.email-designer .designer-workspace{height:calc(100vh - 72px - var(--audience-shell-offset))}
+body.audience-app.email-designer .audience-notifications{top:calc(64px + var(--audience-shell-offset))}
+body.audience-app.audience-collection-editor-mode .audience-page-heading{top:var(--audience-shell-offset)}
+body.audience-app.audience-collection-editor-mode .collection-controls{top:calc(126px + var(--audience-shell-offset));max-height:calc(100vh - 128px - var(--audience-shell-offset))}
+@media(max-width:860px){.audience-app .account-identity-banner{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:0;gap:2px 10px;padding:5px 14px;font-size:.875rem;line-height:1.3}.audience-app .account-identity-label{display:contents}.audience-app .account-identity-banner strong{justify-self:start}.audience-app .account-identity-banner:has(.account-primary-badge) strong{grid-column:1/-1}.audience-app .account-identity-banner .account-primary-badge{justify-self:start;padding-block:2px}.audience-app .account-identity-banner a{justify-self:end;white-space:nowrap}.audience-app .role-preview-banner{min-height:84px;gap:10px;padding:9px 14px}.audience-app .role-preview-banner-copy span{max-width:48ch;font-size:.74rem}.audience-app .role-preview-return-form button{max-width:128px;line-height:1.2}}
+@media(max-width:700px){.audience-app .deployment-notice-banner{padding:9px 14px}body.audience-app.email-designer .designer-workspace{height:calc(100vh - 110px - var(--audience-shell-offset))}}
 a{color:var(--audience-link);text-decoration:none}
 a:hover{text-decoration:underline}
 button,input,select,textarea{font:inherit}
@@ -873,3 +901,13 @@ dialog.campaign-create-dialog{width:100vw;max-width:100vw;height:100dvh;max-heig
 @media(max-width:760px){.audience-active-filters{align-items:flex-start;flex-direction:column}.audience-filter-actions{width:100%}.segment-status-scope select{min-width:0;width:100%}}
 .audience-more-tags{display:inline-block;color:var(--audience-text);white-space:nowrap;padding:1px 4px;text-decoration:none}.audience-more-tags:hover{text-decoration:none;color:var(--audience-primary)}
 [data-audience-results][aria-busy=true]{opacity:.6}
+
+/* Shared MessageMonkey theme control, immediately before Notifications. */
+.audience-app .audience-account-tools .audience-theme-trigger{display:inline-flex;align-items:center;justify-content:center;width:36px;height:40px;min-width:36px;padding:8px;border:0;background:transparent;color:var(--audience-text);border-radius:6px;box-shadow:none;cursor:pointer}
+.audience-account-tools .audience-theme-trigger:hover{background:var(--audience-hover)}
+.audience-theme-trigger svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.audience-theme-trigger .audience-theme-sun,html.dark-mode .audience-theme-trigger .audience-theme-moon{display:none}
+html.dark-mode .audience-theme-trigger .audience-theme-sun{display:block}
+.audience-theme-trigger:focus-visible{outline:2px solid var(--audience-accent,#007c89);outline-offset:2px}
+/* Initial dialog focus is announced on the heading without a control-like border. */
+#campaign-create-title:focus{outline:none}

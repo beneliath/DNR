@@ -75,7 +75,6 @@ $role_preview = $authenticated_superadmin
     && in_array($_SESSION['_role_preview'] ?? null, ['admin', 'editor', 'reviewer'], true)
         ? $user_role
         : null;
-$role_preview_label = $role_preview === 'admin' ? 'Administrator' : ($role_preview === null ? '' : ucfirst($role_preview));
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
@@ -143,17 +142,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <header class="app-shell-header"<?php if (aiCoachEnabled() && !empty($_SESSION['user_id'])): ?> data-coach-layout-key="<?php echo htmlspecialchars(aiCoachStorageKey(), ENT_QUOTES, 'UTF-8'); ?>" data-coach-pane-key="<?php echo aiCoachPaneKey(); ?>" data-coach-page="<?php echo htmlspecialchars(aiCoachPage(), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
     <a class="skip-link" href="#app-content-start" data-skip-link>Skip to Main Content</a>
-    <?php if (isSuperAdmin()): ?>
-    <section class="account-identity-banner" aria-label="Current Account">
-        <span class="account-identity-label">
-            <strong><?php echo htmlspecialchars(currentAccountProfile()['name']); ?></strong>
-            <?php if (accountIsPrimary()): ?>
-            <span class="account-primary-badge"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8"/></svg>Primary Account</span>
-            <?php endif; ?>
-        </span>
-        <a href="accounts.php">Switch Account</a>
-    </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/account-identity-banner.php'; ?>
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
             <span class="visually-hidden">Open Navigation</span>
@@ -191,20 +180,7 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <?php if ($role_preview !== null): ?>
-        <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator Role Preview">
-            <div class="role-preview-banner-copy">
-                <strong>Viewing as <?php echo htmlspecialchars($role_preview_label, ENT_QUOTES, 'UTF-8'); ?></strong>
-                <span>Navigation and permissions reflect this role. Actions still affect live data.</span>
-            </div>
-            <form method="post" action="role_preview.php" class="role-preview-return-form">
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="role" value="superadmin">
-                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="button-secondary">Return to SuperAdmin</button>
-            </form>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/role-preview-banner.php'; ?>
 
     <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars($nav_preference_user, ENT_QUOTES, 'UTF-8'); ?>" data-nav-preference-cookie="<?php echo htmlspecialchars($nav_preference_cookie, ENT_QUOTES, 'UTF-8'); ?>">
         <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close Navigation</button>

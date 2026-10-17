@@ -15,6 +15,8 @@ require_once __DIR__ . '/audience_ses.php';
 require_once __DIR__ . '/audience_search.php';
 require_once __DIR__ . '/audience_collection.php';
 require_once __DIR__ . '/audience_flow_store.php';
+require_once __DIR__ . '/audience_inbox_store.php';
+require_once __DIR__ . '/audience_analytics.php';
 
 final class AudienceStore
 {
@@ -30,6 +32,8 @@ final class AudienceStore
     use AudienceSesSetup;
     use AudienceCollection;
     use AudienceFlows;
+    use AudienceInbox;
+    use AudienceAnalytics;
     private int $transactionDepth = 0;
     public function __construct(public readonly mysqli $db, public readonly int $audienceId, public readonly int $actorId, public readonly string $actorLabel)
     {
@@ -312,7 +316,7 @@ final class AudienceStore
             }
             if(in_array($action,['archive','restore','unsubscribe'],true)){
                 [$column,$value]=match($action){'archive'=>['is_archived',1],'restore'=>['is_archived',0],default=>['email_status',$person['email_status']==='cleaned'?'cleaned':'unsubscribed']};
-                $this->write("UPDATE marketing_contacts SET $column=?,version=version+1 WHERE id=?",[$value,$id]);$this->event($id,match($action){'archive'=>'contact_archived','restore'=>'contact_restored',default=>'subscription_changed'},['action'=>$action]);return;
+                $this->write("UPDATE marketing_contacts SET $column=?,version=version+1 WHERE id=?",[$value,$id]);$details=['action'=>$action];if($action==='unsubscribe')$details+=['from'=>$person['email_status'],'to'=>$value];$this->event($id,match($action){'archive'=>'contact_archived','restore'=>'contact_restored',default=>'subscription_changed'},$details);return;
             }
             if(in_array($action,['tag','untag'],true)){
                 $tag=(int)($params['tag_id']??0);if(!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?',[$tag,$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');

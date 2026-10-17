@@ -1,15 +1,16 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/account_helpers.php';
+require_once __DIR__ . '/audience_inbox_routing.php';
 
 function accountMailMarkerTag(string $key, string $type, int $id, string $secret): string {
-    if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key) || !in_array($type, ['E', 'I'], true)
+    if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key) || !in_array($type, ['E', 'I', 'M'], true)
         || $id < 1 || $id > 2147483647 || strlen($secret) < 32) throw new InvalidArgumentException('Invalid mail marker.');
     return rtrim(strtr(base64_encode(substr(hash_hmac('sha256', "moed-account-mail-v1\0$key\0$type\0$id", $secret, true), 0, 16)), '+/', '-_'), '=');
 }
 
 function accountMailSigningKey(): string {
-    return accountIsPrimary() ? \Dnr\Security\InboundRoutingKey::bytes() : configurationSecret('DNR_PLATFORM_API_KEY');
+    return (!accountsEnabled() || accountIsPrimary()) ? \Dnr\Security\InboundRoutingKey::bytes() : configurationSecret('DNR_PLATFORM_API_KEY');
 }
 
 function accountMailMarker(string $type, int $id): string {
@@ -29,7 +30,7 @@ function resolveAccountMailMarkers(string $text, callable $keyLookup, bool $allo
         $offset = $position + strlen($start[0][0]);
         $candidate = substr($text, $position, 128);
         if (strcasecmp($start[0][0], '[MOED@') === 0) {
-            if (!preg_match('/\A\[(?i:MOED)@([a-z][a-z0-9-]{2,63})#([EI])([1-9][0-9]{0,9})\.([A-Za-z0-9_-]{22})\]/', $candidate, $parts)
+            if (!preg_match('/\A\[(?i:MOED)@([a-z][a-z0-9-]{2,63})#([EIM])([1-9][0-9]{0,9})\.([A-Za-z0-9_-]{22})\]/', $candidate, $parts)
                 || (int) $parts[3] > 2147483647) { $invalid = true; break; }
             [, $key, $type, $id, $tag] = $parts;
             $secret = $keyLookup($key);
@@ -63,14 +64,20 @@ function accountMailMessageText(array $message): string {
 }
 
 function localAccountMailRoute(array $message): array {
-    return resolveAccountMailMarkers(accountMailMessageText($message),
+    $addressMarkers=audienceInboxAddressMarkers($message,static fn(string $digest)=>hash_equals(substr(hash('sha256',currentAccountKey()),0,12),$digest)?currentAccountKey():null);
+    return resolveAccountMailMarkers(accountMailMessageText($message).$addressMarkers,
         static fn(string $key) => $key === currentAccountKey() ? accountMailSigningKey() : null, accountIsPrimary());
 }
 
 function platformMailRoute(mysqli $conn, array $message): array {
     if (!accountIsPrimary()) throw new RuntimeException('Shared mail routing requires the primary service.');
     $keys = [];
-    return resolveAccountMailMarkers(accountMailMessageText($message), static function (string $key) use ($conn, &$keys) {
+    $addressMarkers=audienceInboxAddressMarkers($message,static function(string $digest)use($conn):?string{
+        if(hash_equals(substr(hash('sha256',currentAccountKey()),0,12),$digest))return currentAccountKey();
+        $matches=$conn->execute_query("SELECT account_key FROM platform_accounts WHERE state='ready' AND LEFT(SHA2(account_key,256),12)=? LIMIT 2",[$digest])->fetch_all(MYSQLI_ASSOC);
+        return count($matches)===1?$matches[0]['account_key']:null;
+    });
+    return resolveAccountMailMarkers(accountMailMessageText($message).$addressMarkers, static function (string $key) use ($conn, &$keys) {
         if ($key === currentAccountKey()) return accountMailSigningKey();
         if (!array_key_exists($key, $keys)) {
             $row = $conn->execute_query("SELECT api_key_encrypted FROM platform_accounts WHERE account_key=? AND state='ready'", [$key])->fetch_assoc();
