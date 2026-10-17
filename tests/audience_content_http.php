@@ -64,4 +64,15 @@ $coBadImage=$editor($coPath,array_replace($coSave,['image'=>'data:image/svg+xml;
 $coTmp=tempnam(sys_get_temp_dir(),'content-upload-');try{file_put_contents($coTmp,base64_decode(explode(',',$coImage)[1]));$coMultipart=$coSave;unset($coMultipart['image']);$coMultipart['folder']='';$coMultipart['image_file']=new CURLFile($coTmp,'image/png','fixture.png');audienceHttpExpect($editor($coPath,$coMultipart,true)['status']===302,'Multipart image upload validates and saves');}finally{unlink($coTmp);}
 $coCode=$campaignStore->brandedDesign($codeDoc,$campaignStore->contentSettings()['settings']['brand']);$coCodeAgain=$campaignStore->brandedDesign($coCode,$campaignStore->contentSettings()['settings']['brand']);audienceHttpExpect(substr_count($coCodeAgain['code'],'data-moed-brand')===1&&str_contains($coCodeAgain['code'],'@font-face'),'Brand application to custom HTML is idempotent and embeds uploaded font');
 $coWidthDesign=audienceDesignStarters()['newsletter']['design'];$coWidthDesign['styles']['width']=720;audienceHttpExpect($campaignStore->brandedDesign($coWidthDesign,$campaignStore->contentSettings()['settings']['brand'])['styles']['width']===720,'Brand application preserves unrelated template layout');
+// Realistic photo payloads must not enter MySQL's sorting buffer.
+$photoAssets=json_decode(file_get_contents($source.'/assets/template-art/sources.json'),true,64,JSON_THROW_ON_ERROR)['assets'];$photoIds=[];
+foreach(array_slice($photoAssets,0,4)as$i=>$photo)$photoIds[]=$campaignStore->saveContentItem(['name'=>'Large photo fixture '.($i+1),'image'=>'data:image/jpeg;base64,'.base64_encode(file_get_contents($source.'/assets/template-art/'.$photo['file']))]);
+$priorSortBuffer=(int)$conn->query('SELECT @@SESSION.sort_buffer_size n')->fetch_assoc()['n'];$conn->query('SET SESSION sort_buffer_size=32768');
+$photoPage=$campaignStore->contentList(['search'=>'Large photo fixture','sort'=>'name','direction'=>'asc']);
+audienceHttpExpect(array_map('intval',array_column($photoPage['items'],'id'))===$photoIds,'Large images retain exact name order with a small sort buffer');
+$photoPage=$campaignStore->contentList(['search'=>'Large photo fixture','sort'=>'size','direction'=>'desc']);$photoSizes=array_column(array_column($photoPage['items'],'data'),'bytes');$expectedSizes=$photoSizes;rsort($expectedSizes,SORT_NUMERIC);
+audienceHttpExpect($photoSizes===$expectedSizes&&count($photoSizes)===4,'Large images sort by file size without sorting their full payloads');
+$conn->query('SET SESSION sort_buffer_size='.$priorSortBuffer);
+$photoHttp=$editor($coPath.'&search=Large+photo+fixture');
+audienceHttpExpect($photoHttp['status']===200&&str_contains($photoHttp['body'],'Large photo fixture 4'),'Populated photo library renders over HTTP');
 echo 'Content and Brand HTTP: '.($checks-$coStart)." additional checks passed.\n";

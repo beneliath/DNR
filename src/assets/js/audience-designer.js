@@ -3,11 +3,51 @@ import { normalizeEmailDesignMaps } from './audience-design-model.mjs';
   'use strict';
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
-  const el = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
+  const el = (tag, text, cls) => { const n = document.createElement(tag); if (['form', 'input', 'textarea'].includes(tag)) n.setAttribute('autocomplete', 'off'); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
   const button = (text, action, cls) => { const b = el('button', text, cls); b.type = 'button'; b.addEventListener('click', action); return b; };
   $$('[data-design-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   const frameHtml = (frame, html) => { frame.srcdoc = html; };
-  $$('[data-email-preview]').forEach(frame=>frameHtml(frame,frame.dataset.emailPreview));
+  $$('[data-email-preview]').forEach(frame=>{
+    if(frame.hasAttribute('data-template-preview')){
+      let observer;
+      const fit=()=>{try{
+        const doc=frame.contentDocument;if(!doc?.body)return;
+        const style=frame.contentWindow.getComputedStyle(doc.body);
+        const height=Math.ceil(Math.max(doc.body.scrollHeight,doc.body.getBoundingClientRect().height)+(parseFloat(style.marginTop)||0)+(parseFloat(style.marginBottom)||0))+2;
+        const box=frame.parentElement,list=frame.closest('.template-gallery')?.classList.contains('template-list');
+        const scale=Math.min(1,box.clientWidth/600,list?100/height:1);
+        frame.style.height=height+'px';frame.style.transform=`scale(${scale})`;
+        box.style.minHeight=list?'':Math.ceil(height*scale)+2+'px';
+      }catch(_){/* A protected preview remains inert. */}};
+      frame.addEventListener('load',()=>{observer?.disconnect();const doc=frame.contentDocument;if(!doc?.body)return;observer=new ResizeObserver(()=>requestAnimationFrame(fit));observer.observe(doc.body);doc.addEventListener('load',fit,true);doc.fonts?.ready.then(fit);fit();});
+      let width=0;new ResizeObserver(()=>{const next=frame.parentElement.clientWidth;if(next!==width){width=next;requestAnimationFrame(fit);}}).observe(frame.parentElement);
+      $$('[data-template-layout]').forEach(button=>button.addEventListener('click',()=>requestAnimationFrame(fit)));
+      frame.setAttribute('scrolling','no');
+    }
+    if (frame.hasAttribute('data-preview-autosize')) {
+      let observer, pending = false;
+      frame.addEventListener('load', () => {
+        observer?.disconnect();
+        const doc = frame.contentDocument;
+        if (!doc?.body) return;
+        const resize = () => {
+          pending = false;
+          const body = frame.contentWindow.getComputedStyle(doc.body), border = getComputedStyle(frame);
+          const height = Math.ceil(Math.max(doc.body.scrollHeight, doc.body.getBoundingClientRect().height)
+            + (parseFloat(body.marginTop) || 0) + (parseFloat(body.marginBottom) || 0)
+            + (parseFloat(border.borderTopWidth) || 0) + (parseFloat(border.borderBottomWidth) || 0)) + 2;
+          if (height > 0 && frame.style.height !== `${height}px`) frame.style.height = `${height}px`;
+        };
+        const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(resize); } };
+        observer = new ResizeObserver(schedule);
+        observer.observe(doc.body);
+        doc.addEventListener('load', schedule, true);
+        doc.fonts?.ready.then(schedule);
+        schedule();
+      });
+    }
+    frameHtml(frame,frame.dataset.emailPreview);
+  });
   const gallery = $('#template-gallery');
   if (gallery) {
     let category = 'All', galleryPage=1;
@@ -278,7 +318,7 @@ import { normalizeEmailDesignMaps } from './audience-design-model.mjs';
   const openCode=run(async()=>{closeMenus();const data=await request('design_source',{design:JSON.stringify(design)});$('#design-code-source').value=data.source;$('#design-code-warnings').replaceChildren();$('#design-code-dialog').showModal();});
   $('#design-code-check').onclick=run(async()=>{const data=await request('design_code_validate',{code:$('#design-code-source').value});const host=$('#design-code-warnings');host.replaceChildren();(data.warnings.length?data.warnings:['Validation complete. Scripts cannot run in the preview.']).forEach(w=>host.append(el('p',w)));Object.keys(data.regions).forEach(name=>host.append(el('p','Editable region: '+name)));});
   $('#design-code-apply').onclick=run(async()=>{const code=$('#design-code-source').value;await request('design_code_validate',{code});const apply=()=>{mutate(()=>{design.mode='code';design.code=code;design.areas={};selected=null;panel='add';});$('#design-code-dialog').close();};if(design.mode!=='code')confirmDesignAction('Switch to code?','This replaces the visual layout with custom HTML. The previous visual version remains available in Undo and saved history.',apply);else apply();});
-  $('#design-link-dialog form').onsubmit=e=>{e.preventDefault();const url=$('#design-link-dialog input').value;if(!/^(https:\/\/[^\s<>"]+|mailto:[^\s<>"]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]*|\*\|(UNSUB|UPDATE_PROFILE|ARCHIVE)\|\*)$/i.test(url)){error('Use an HTTPS, email, telephone, or anchor link.');return;}const rich=$('.designer-rich-text');if(rich&&richRange){rich.focus();const selection=window.getSelection();selection.removeAllRanges();selection.addRange(richRange);document.execCommand('createLink',false,$('#design-link-dialog input').value);}$('#design-link-dialog').close();};
+  $('#design-link-dialog form').onsubmit=e=>{e.preventDefault();const url=$('#design-link-dialog input').value;if(!/^(https:\/\/[^\s<>"]+|mailto:[^\s<>"]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]*|\*\|(UNSUB|UPDATE_PROFILE|ARCHIVE|SURVEY:[a-f0-9]{64}|POLL:[a-f0-9]{64}:[0-9]{1,2})\|\*)$/i.test(url)){error('Use an HTTPS, email, telephone, or anchor link.');return;}const rich=$('.designer-rich-text');if(rich&&richRange){rich.focus();const selection=window.getSelection();selection.removeAllRanges();selection.addRange(richRange);document.execCommand('createLink',false,$('#design-link-dialog input').value);}$('#design-link-dialog').close();};
   $('#design-link-remove').onclick=()=>{const rich=$('.designer-rich-text');if(rich&&richRange){rich.focus();const selection=window.getSelection();selection.removeAllRanges();selection.addRange(richRange);document.execCommand('unlink',false,null);}$('#design-link-dialog').close();};
   function openCrop(target){cropTarget=target;cropImage=new Image();cropImage.onload=()=>{['crop-zoom','crop-x','crop-y'].forEach(id=>$('#'+id).value=id==='crop-zoom'?'1':'50');$('#crop-aspect').value='original';drawCrop();$('#design-crop-dialog').showModal();};cropImage.src=target.image;}
   function cropDimensions(){const aspect=$('#crop-aspect').value==='original'?cropImage.naturalWidth/cropImage.naturalHeight:Number($('#crop-aspect').value),zoom=Number($('#crop-zoom').value);let width=cropImage.naturalWidth,height=width/aspect;if(height>cropImage.naturalHeight){height=cropImage.naturalHeight;width=height*aspect;}width/=zoom;height/=zoom;return {x:(cropImage.naturalWidth-width)*Number($('#crop-x').value)/100,y:(cropImage.naturalHeight-height)*Number($('#crop-y').value)/100,width,height,aspect};}

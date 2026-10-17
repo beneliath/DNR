@@ -15,7 +15,7 @@ function audienceDeliverSetupMessage(string $kind,?array $message,?mysqli $budge
         if($kind==='verify'){
             if(!$message||!filter_var($message['email']??'',FILTER_VALIDATE_EMAIL)||!preg_match('/^[A-F0-9]{12}$/D',$message['code']??''))throw new InvalidArgumentException('Invalid sender verification payload.');
             $subject='Verify your MessageMonkey sending address';
-            $body="Verify access to this email address for MOED MessageMonkey.\n\nVerification code: ".$message['code']."\n\nEnter this code in Email delivery → Verify a Domain. This code expires in 24 hours and can be used once. If you did not request this email, ignore it.\n\nVerifying this address does not subscribe it to marketing email.";
+            $body="Verify access to this email address for MOED MessageMonkey.\n\nVerification code: ".$message['code']."\n\nEnter this code in Email delivery → Verify a Domain. This code expires in 24 hours and can be used once. If you did not request this email, ignore it.\n\nVerifying this address does not subscribe it to audience email.";
             $session->send($message['email'],$subject,$body);
         }elseif($kind!=='probe')throw new InvalidArgumentException('Invalid setup operation.');
         $receipt['ready']=true;return $receipt;

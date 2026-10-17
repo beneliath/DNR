@@ -39,11 +39,11 @@ trait AudienceCampaigns
     public function createCampaign(array $input): int
     {
         $name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter an internal email name.');
-        $type=audienceText($input,'campaign_type');if(!in_array($type,['regular','plain-text','ab','multivariate'],true))throw new InvalidArgumentException('Choose a supported email type.');
+        $type=audienceText($input,'campaign_type');if(!in_array($type,['regular','plain-text','ab'],true))throw new InvalidArgumentException('Choose a supported email type.');
         $target=audienceText($input,'target',40);
         return $this->transaction(function()use($name,$type,$target){
-            $draft=[];if(in_array($type,['ab','multivariate'],true))$draft['experiment']=['kind'=>$type,'variables'=>[]];if($target!==''){$draft+=['target'=>$target,'exclude_tag'=>0,'recipients_saved'=>true];$this->campaignTarget($draft);}
-            $this->write('INSERT INTO marketing_campaigns(audience_id,name,campaign_type,draft_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,in_array($type,['ab','multivariate'],true)?'regular':$type,json_encode((object)$draft,JSON_THROW_ON_ERROR),$this->actorLabel]);
+            $draft=[];if($type==='ab')$draft['experiment']=['kind'=>$type,'variables'=>[]];if($target!==''){$draft+=['target'=>$target,'exclude_tag'=>0,'recipients_saved'=>true];$this->campaignTarget($draft);}
+            $this->write('INSERT INTO marketing_campaigns(audience_id,name,campaign_type,draft_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,$type==='ab'?'regular':$type,json_encode((object)$draft,JSON_THROW_ON_ERROR),$this->actorLabel]);
             return (int)$this->db->insert_id;
         });
     }
@@ -89,7 +89,7 @@ trait AudienceCampaigns
 function audienceCampaignFilters(array $input): array
 {
     $filters=[];foreach(['search','type','status','folder','date_field','start','end','sort','direction','layout','month','date_preset','holidays']as$key)$filters[$key]=audienceText($input,$key,$key==='search'?100:40);
-    foreach(['type'=>['','regular','plain-text','ab','multivariate'],'status'=>['','draft','ongoing','scheduled','completed'],'date_field'=>['updated_at','created_at','sent_at'],'sort'=>['updated_at','created_at','sent_at','name'],'direction'=>['desc','asc'],'layout'=>['list','calendar']]as$key=>$allowed)if(!in_array($filters[$key],$allowed,true))$filters[$key]=$allowed[0];
+    foreach(['type'=>['','regular','plain-text','ab'],'status'=>['','draft','ongoing','scheduled','completed'],'date_field'=>['updated_at','created_at','sent_at'],'sort'=>['updated_at','created_at','sent_at','name'],'direction'=>['desc','asc'],'layout'=>['list','calendar']]as$key=>$allowed)if(!in_array($filters[$key],$allowed,true))$filters[$key]=$allowed[0];
     if(!array_key_exists($filters['date_preset'],audienceCampaignDatePresets()))$filters['date_preset']='';
     $filters['holidays']=$filters['holidays']==='1'?'1':'0';
     if($filters['date_preset']!==''&&$filters['date_preset']!=='custom')[$filters['start'],$filters['end']]=audienceCampaignDateRange($filters['date_preset']);

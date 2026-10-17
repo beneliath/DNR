@@ -29,7 +29,7 @@ if($isPost){
             if(!$store->deliverySetupAvailable())throw new InvalidArgumentException('Email delivery setup is not installed yet.');
         }
         if(in_array($action,['campaign_dispatch_confirm','campaign_delivery_operation','campaign_runtime_operation','campaign_test'],true)&&!$canSend){http_response_code(403);exit('Sending requires an unrestricted editor or administrator.');}
-        if($store->sesAvailable()&&str_starts_with($action,'delivery_')&&!in_array($action,['delivery_ses_save','delivery_ses_operation'],true))throw new InvalidArgumentException('Marketing delivery now uses this account’s SES API connection.');
+        if($store->sesAvailable()&&str_starts_with($action,'delivery_')&&!in_array($action,['delivery_ses_save','delivery_ses_operation'],true))throw new InvalidArgumentException('MessageMonkey delivery now uses this account’s SES API connection.');
         switch($action){
             case 'delivery_ses_save':$store->saveSesSettings($version,$_POST);$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES settings saved. A connection check is queued; no email is sent by this check.';break;
             case 'delivery_ses_operation':$store->sesOperation($version,audienceText($_POST,'operation'));$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES connection updated.';break;
@@ -92,7 +92,10 @@ $recentCampaigns=$canManage?$store->all('SELECT id,name,version,status FROM mark
 $campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
 $campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/25)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
 $dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id ORDER BY d.id DESC LIMIT 1) delivery_count":"";
-$campaignRows=$store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT 25 OFFSET ?",[...$campaignParams,($campaignPage-1)*25]);
+$campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT 25 OFFSET ?",[...$campaignParams,($campaignPage-1)*25]),'id');
+$campaignRowsById=[];$campaignRows=[];
+if($campaignRowIds)foreach($store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds])as$campaignRow)$campaignRowsById[$campaignRow['id']]=$campaignRow;
+foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRowId]))$campaignRows[]=$campaignRowsById[$campaignRowId];
 $campaignSnapshot=[];
 if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)as$row)$campaignSnapshot[$row['id']]=(int)$row['version'];
 $month=new DateTimeImmutable($campaignFilters['month'].'-01',new DateTimeZone('UTC'));

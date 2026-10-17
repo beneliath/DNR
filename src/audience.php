@@ -17,12 +17,23 @@ if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['audience'])){
 }
 unset($_SESSION['marketing_audience']);
 $store=new AudienceStore($db,$audienceId,$actor,$displayName);
-$view=\Dnr\Http\RequestInput::enum($_GET,'view',['contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer'],'contacts');
+if(($_GET['api']??null)==='workspace_search'){
+    releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
+    if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');$result=['error'=>'Search requires a GET request.'];}
+    else try{$result=audienceWorkspaceSearch($store,$_GET,$canManage);}catch(InvalidArgumentException $e){http_response_code(400);$result=['error'=>$e->getMessage()];}
+    echo json_encode($result,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);exit;
+}
+$view=\Dnr\Http\RequestInput::enum($_GET,'view',['contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'],'contacts');
 if(!$canManage&&in_array($view,['import','jobs','job'],true)){http_response_code(403);exit('Import and export require an editor or administrator.');}
 $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
 $redirect=$url(['view'=>$view]);
+if(in_array($view,['forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'],true)){
+    require __DIR__.'/audience_collection_controller.php';
+    renderAudienceCollectionWorkspace($store,$audience,$view,$id,$message,$error,$canManage,$canDelete,$displayName,$actor);
+    exit;
+}
 if(in_array($view,['templates','designer'],true)){require __DIR__.'/audience_design_controller.php';renderAudienceDesignWorkspace($store,$audience,$view,$id,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
 if(in_array($view,['campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery'],true)||(is_string($_POST['action']??null)&&(str_starts_with($_POST['action'],'campaign_')||str_starts_with($_POST['action'],'delivery_')))){require __DIR__.'/audience_campaign_controller.php';renderAudienceCampaignWorkspace($store,$audience,$view,$id,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
 $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();

@@ -130,8 +130,20 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
             assert 'dnr_download_not-a-valid-token' not in json.loads(body)['cookie']
             assert not any(k.lower() in ['clear-site-data','service-worker-allowed','access-control-allow-origin'] for k,v in headers)
             policies=[v for k,v in headers if k.lower()=='content-security-policy']
-            assert len(policies)==2,policies
+            assert len(policies)==3,policies
             assert any("script-src http://localhost/a/test-account/assets/;" in p and "script-src-attr 'none'" in p for p in policies),policies
+            assert any("frame-ancestors 'none'" in p for p in policies),policies
+            status,collection_headers,_=request('/audience_collect_public.php?key=fixture')
+            collection_policies=[v for k,v in collection_headers if k.lower()=='content-security-policy']
+            assert status==200 and any("frame-ancestors 'self' https:" in p for p in collection_policies),collection_policies
+            assert not any("frame-ancestors 'none'" in p for p in collection_policies),collection_policies
+            assert not any(k.lower()=='x-frame-options' and v=='DENY' for k,v in collection_headers),collection_headers
+            for protected in ['/login.php','/audience_subscription.php','/other/audience_collect_public.php','/audience_collect_public.php/extra']:
+                _,protected_headers,_=request(protected)
+                assert any(k.lower()=='content-security-policy' and "frame-ancestors 'none'" in v for k,v in protected_headers),protected
+            _,_,collection_cookie=request(cookie=own+'=allowed; dnr_collection_'+'a'*12+'=visitor; dnr_collection_invalid=blocked')
+            assert 'dnr_collection_'+'a'*12+'=visitor' in json.loads(collection_cookie)['cookie']
+            assert 'dnr_collection_invalid' not in json.loads(collection_cookie)['cookie']
             assert request('/assets/test.js')[2]==b'/* trusted fixture */'
             assert request('/assets/denied.php')[0]==403
             # Local primary ingress sees the complete URL. It must filter common

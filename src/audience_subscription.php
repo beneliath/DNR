@@ -11,6 +11,13 @@ $token=\Dnr\Http\RequestInput::string($_GET,'token');
 if(!preg_match('/^[a-f0-9]{64}$/D',$token)){http_response_code(404);exit('This subscription link is unavailable.');}
 $recipient=$db->execute_query('SELECT r.*,d.snapshot_ciphertext FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id WHERE r.token_hash=? AND r.audience_id=1',[hash('sha256',$token)])->fetch_assoc();
 if(!$recipient){http_response_code(404);exit('This subscription link is unavailable.');}
+if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['preferences'])){
+    $preferenceStore=new AudienceStore($db,1,0,'Email recipient');
+    if($preferenceStore->collectionAvailable()){
+        $center=$db->query("SELECT public_key FROM marketing_collection_resources WHERE audience_id=1 AND kind='preferences' AND state='published' AND deleted_at IS NULL ORDER BY id DESC LIMIT 1")->fetch_assoc();
+        if($center){header('Location: audience_collect_public.php?key='.$center['public_key'].'&recipient='.$token);exit;}
+    }
+}
 $done=false;$preferenceMessage='';$preferenceError='';$preferenceAction=audienceText($_POST,'preference_action');$publicStore=new AudienceStore($db,1,0,'Email recipient');
 if($_SERVER['REQUEST_METHOD']==='POST'&&in_array($preferenceAction,['save','confirm'],true)){
     startSecureSession();requireValidCsrfToken();
@@ -32,11 +39,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&in_array($preferenceAction,['save','conf
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$preferences=isset($_GET['preferences']);if($preferences)startSecureSession();
 $html=null;
 if(isset($_GET['email'])&&!$done){$snapshot=json_decode(\Dnr\Security\ApplicationKey::open($recipient['snapshot_ciphertext']),true,64,JSON_THROW_ON_ERROR);$sealed=json_decode(\Dnr\Security\ApplicationKey::open($recipient['context_ciphertext']),true,64,JSON_THROW_ON_ERROR);if(($recipient['phase']??'')==='resend')$snapshot['is_resend']=true;unset($snapshot['tracking_key']);$message=audienceDispatchMessage($snapshot,$sealed['context'],$token,$recipient['message_id'],(string)($recipient['variant_key']??'0'));$html=$message['html']??'<pre>'.$h($message['text']).'</pre>';}
+if($html===null&&!$preferences&&($system=audienceCollectionSystem($publicStore,'unsubscribe'))){
+    require_once __DIR__.'/audience_collection_render.php';$nonce=contentSecurityPolicyNonce();
+    header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; img-src 'self' data: https:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+    echo audienceCollectionHtml($system,[],[],'?token='.$token,'',[],'',$done?$system['done']:'');exit;
+}
 ?><!doctype html><html lang="en">
 <?php renderPageHead($done?'Unsubscribed':($html!==null?'Email':($preferences?'Email Preferences':'Unsubscribe')),['styles'=>['assets/css/pages/audience.min.css']]); ?>
 <body class="audience-app campaign-public"><main>
 <?php if($html!==null): ?><header><h1>Your email</h1><nav aria-label="Subscription"><a href="?token=<?= $h($token) ?>&amp;preferences=1">Email preferences</a> · <a href="?token=<?= $h($token) ?>">Unsubscribe</a></nav></header><iframe title="Your email" sandbox="" referrerpolicy="no-referrer" srcdoc="<?= $h(audienceDesignPreviewSource($html,contentSecurityPolicyNonce())) ?>"></iframe>
-<?php elseif($done): ?><h1>You’re unsubscribed</h1><p>You will no longer receive marketing emails from this audience.</p>
+<?php elseif($done): ?><h1>You’re unsubscribed</h1><p>You will no longer receive emails from this audience.</p>
 <?php elseif($preferences): require __DIR__.'/templates/audience/subscription-preferences.php'; ?>
-<?php else: ?><h1>Unsubscribe from emails?</h1><p>You can stop marketing emails from this audience at any time.</p><form method="post"><input type="hidden" name="unsubscribe" value="1"><button class="primary">Unsubscribe</button></form><p class="audience-help">This change applies to the address that received this email.</p><?php endif; ?>
+<?php else: ?><h1>Unsubscribe from emails?</h1><p>You can stop emails from this audience at any time.</p><form method="post"><input type="hidden" name="unsubscribe" value="1"><button class="primary">Unsubscribe</button></form><p class="audience-help">This change applies to the address that received this email.</p><?php endif; ?>
 </main></body></html>

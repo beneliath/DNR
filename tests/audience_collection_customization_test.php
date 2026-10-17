@@ -1,0 +1,38 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../src/audience_store.php';
+require_once __DIR__.'/../src/audience_collection_render.php';
+function contentSecurityPolicyNonce():string{return 'collectionTestNonce123456';}
+$checks=0;
+$expect=static function(bool $ok,string $label)use(&$checks):void{if(!$ok)throw new RuntimeException($label);++$checks;};
+$reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Invalid document rejected');return;}throw new RuntimeException('Expected rejection');};
+$doc=audienceCollectionDefaults('hosted');
+$doc['language']='he';$doc['messages']['error_title']='בדקו את התשובה';$doc['messages']['invalid']='נא למלא את השדות';
+$doc['advanced']=['enabled'=>true,'pages'=>['signup'=>'<section style="padding:20px" onclick="bad()"><script>bad()</script><h2>{{title}}</h2>{{message}}{{form}}</section>']];
+$canonical=audienceCollectionDocument($doc,'hosted',[],[],[]);
+$expect(!str_contains($canonical['advanced']['pages']['signup'],'script')&&!str_contains($canonical['advanced']['pages']['signup'],'onclick'),'Advanced source strips active content');
+$resource=['kind'=>'hosted','document'=>$canonical];
+$html=audienceCollectionHtml($resource,[],[],'/native-action','sealed-proof',[],'Original internal validation');
+$expect(str_contains($html,'dir="rtl"')&&str_contains($html,'בדקו את התשובה'),'Language and translated error heading reach the public page');
+$expect(str_contains($html,'נא למלא את השדות')&&!str_contains($html,'Original internal validation'),'Public error copy is editable without leaking internal errors');
+$expect(str_contains($html,'sealed-proof')&&str_contains($html,'action="/native-action"')&&str_contains($html,'name="permission"'),'Custom layouts retain native proof, destination and explicit permission');
+$expect(!str_contains($html,' style="')&&str_contains($html,'padding:20px'),'Custom CSS is nonce authorized');
+$preview=audienceCollectionHtml($resource,[],[],'','',[],'','',null,true);
+$expect(str_contains($preview,'<button disabled>'),'Custom preview cannot submit');
+foreach(['{{form}}','{{content}}{{form}}{{message}}','<img alt="{{content}}" src="https://example.test/a.png">','<script>{{content}}</script>']as$source)$reject(fn()=>audienceCollectionAdvancedHtml($source));
+$expect(audienceCollectionAdvancedHtml('<a href="javascript:bad()">Bad</a>{{content}}')==='Bad{{content}}','Unsafe links cannot escape the native page');
+$reject(fn()=>audienceCollectionDocument(array_replace($doc,['advanced'=>['pages'=>['signup'=>str_repeat('x',60001)]]]),'hosted',[],[],[]));
+$survey=audienceCollectionDefaults('survey');$survey['questions']=[['id'=>'choice','label'=>'Choose','type'=>'dropdown','required'=>true,'options'=>['One','Two'],'other'=>true,'answer_tags'=>['One'=>[7]]]];
+$survey=audienceCollectionDocument($survey,'survey',[],[],[['id'=>7]]);
+$expect(audienceCollectionAnswers($survey,['answers'=>['choice'=>'One']])===['choice'=>'One'],'Dropdown choices validate');
+$expect(audienceCollectionAnswers($survey,['answers'=>['choice'=>'__message_monkey_other__'],'answers_other'=>['choice'=>'An alternative']])===['choice'=>'Other: An alternative'],'Other choices require and retain typed answers');
+$reject(fn()=>audienceCollectionAnswers($survey,['answers'=>['choice'=>'forged']]));
+$reject(fn()=>audienceCollectionAnswers($survey,['answers'=>['choice'=>'__message_monkey_other__']]));
+$reject(fn()=>audienceCollectionDocument($survey,'survey',[],[],[]));
+$survey['messages']['choose']='Choisissez';$survey['messages']['other']='Autre';
+$surveyHtml=audienceCollectionHtml(['kind'=>'survey','document'=>$survey],[],[],'','');
+$expect(str_contains($surveyHtml,'Choisissez')&&str_contains($surveyHtml,'Autre'),'Dropdown and Other option labels use translations');
+$checkbox=$survey;$checkbox['questions'][0]['type']='checkboxes';
+$expect(audienceCollectionAnswers($checkbox,['answers'=>['choice'=>['One','__message_monkey_other__']],'answers_other'=>['choice'=>'Something else']])===['choice'=>['One','Other: Something else']],'Checkbox Other preserves both authored and typed choices');
+$reject(fn()=>audienceCollectionDocument(array_replace($survey,['close_at'=>'2026-02-30T12:00']),'survey',[],[],[['id'=>7]]));
+echo "Collection customization: $checks checks passed.\n";

@@ -2,18 +2,20 @@
 
 Reference reviewed October 16, 2026, on `codex/mailchimp-clone`.
 Stage 3 non-live closeout updated October 17, 2026, on `codex/ses-endpoint-layout`.
+Local navigation, supported email types and Brand Preview follow-up: October 17, 2026, on `codex/mailchimp-cloning-continued`.
+Stage 4 native collection implementation and local qualification: October 17, 2026, on the same branch.
 
 ## Finding
 
-**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. The SES adapter, queues, scheduling, suppression, native analytics and signed SNS inbox are implemented and qualified without external mail. The shared production implementation is deployed through 2.5.23; the primary account’s sender/domain and SNS subscription are connected. The latest UI refinements are qualified locally and await a separate production release. Final live sending qualification remains open pending AWS production access. Operational MOED email keeps its existing SMTP setup.
+**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. The SES adapter, queues, scheduling, suppression, native analytics and signed SNS inbox are implemented and qualified without external mail. The shared production implementation is deployed through 2.5.25; the primary account’s sender/domain and SNS subscription are connected. The current branch’s navigation, email-type and Brand Preview refinements are local changes awaiting a separate production release. Final live sending qualification remains open pending AWS production access. Operational MOED email keeps its existing SMTP setup.
 
 **The native Stage 1 and Stage 2 implementation and qualification are complete;
 full Mailchimp feature and pixel-level UI/UX parity remain unqualified.** Connections, profiles, tags,
 groups, custom fields, import/export jobs and nested segmentation are functional.
-Stage 2 includes campaign management, Campaign Manager plans, A/B/multivariate
+Stage 2 includes campaign management, Campaign Manager plans, A/B
 drafts, visual/code designers, templates and native Content Library/Brand Kit.
 Reference layouts and interactions were reviewed; exact vendor typography,
-artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. The primary domain and public authenticated SNS path have been activated; controlled inbox/signing/client, live receipt, scheduling and quota qualification remain outstanding; public forms, landing pages, automation execution, inbox and engagement analytics remain later work. The implementation record documents
+artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. The primary domain and public authenticated SNS path have been activated; controlled inbox/signing/client, live receipt, scheduling and quota qualification remain outstanding. Stage 4 native hosted/embedded/popup forms, landing pages, surveys/polls and authenticated preference centers are implemented and qualified locally without external mail. Exact reference-editor parity, confirmed-subscription conversion attribution and live confirmation-email acceptance remain open. Automation execution, inbox and engagement analytics remain later work. The implementation record documents
 verification, local import reconciliation and the passed Stage 1 UI/UX gate.
 See [the qualification record](audience-mailchimp-parity.md#stage-1-uiux-qualification--october-16-2026)
 for tested states, evidence and remaining product differences.
@@ -26,10 +28,10 @@ be converted into a percentage of product completion. **No row is qualified as
 full parity by this audit.** The separate Stage 1 baseline gate has passed; full-vendor parity and capabilities
 that need later stages remain open.
 
-The matrix contains **219 rows across 19 areas**: 197 included requirements,
+The matrix contains **218 rows across 19 areas**: 196 included requirements,
 6 platform/qualification mappings, and 16 explicit omissions. Implementation
-classification is 91 missing, 104 partial, 5 intentional adaptations, 3 unresolved
-and 16 excluded. The evidence ledger covers 25 live surfaces and 94 official
+classification is 50 missing, 145 partial, 5 intentional adaptations, 2 unresolved
+and 16 excluded. The evidence ledger covers 26 live surfaces and 93 official
 sources. These are coverage counts, not claims that every underlying action was
 executed or every vendor feature was discoverable in this account.
 
@@ -55,7 +57,7 @@ containing account data are not copied into this repository.
 | Integrations | Omitted, along with capabilities requiring a connected external app or platform |
 | Connected dependencies | Omit social publishing, ads, store sync, abandoned-cart/product/revenue features, connected media apps, third-party workflow actions and third-party tracking |
 | Native collection | Keep manual embed/popup snippets and MOED-hosted forms; these do not require a connected-app account |
-| Native content | Keep ordinary social links and public-link metadata, public RSS ingestion, file upload, manual brand settings and native AI assistance |
+| Native content | Keep ordinary social links and public-link metadata, file upload, manual brand settings and native AI assistance |
 | Infrastructure | Delivery, inbound mail, storage and an eventual AI engine are implementation dependencies; do not expose Mailchimp/third-party connector setup as product parity |
 | Brand/platform | MOED identity, its authentication/account context and shared authorization remain; do not mimic a paid Mailchimp subscription or offer Mailchimp support |
 | Appearance | Light and dark modes follow MOED's sidebar preference; this is an explicit user-requested adaptation of the reference appearance |
@@ -93,7 +95,7 @@ browser accessibility tree; this is not a saved pixel-comparison baseline.
 
 | ID | Screen / route | Observed surface and limit |
 | --- | --- | --- |
-| UI01 | Global shell and Create overlay | Header, search, account/help/notifications, expandable navigation; Create categories and regular-email entry. No creation submitted |
+| UI01 | Global shell and Create overlay | Header, search, account/help/notifications, expandable navigation; Create categories and regular-email entry. Search dialog rechecked October 17: filter pills, recent searches and campaign rows. No creation submitted |
 | UI02 | `/campaigns` list | List/Calendar, type/status/folder/date filters, sorting, checkboxes, row details/analytics/actions; sent row menu including resend/report/replicate |
 | UI03 | Campaign calendar | Month navigation, Today, type/status/folder/holiday filters, optimize-dates option |
 | UI04 | Existing draft checklist | Name, settings/tracking, To, From, Subject, Send time, Content, preview/test, plain text, social cards, automatic resend and public campaign link. No values changed |
@@ -104,7 +106,7 @@ browser accessibility tree; this is not a saved pixel-comparison baseline.
 | UI09 | `/audience/settings/` | Audience identity/ID, fields, sender/footer/notifications/archive defaults; notice that form defaults moved to Forms settings |
 | UI10 | `/audience/segments` and create dialog | Saved/search/sort/actions, suggested segments; nested AND/OR dialog, logic, condition picker, duplicate/delete/review/use. No segment saved |
 | UI11 | `/forms` and Create form dialog | Search/type/status/table/actions; Popup, Embedded, Signup landing page choices; legacy popup marked unsupported with migration action |
-| UI12 | Forms settings | System signup/preferences/unsubscribe forms, edit/copy links, opt-in/GDPR/reCAPTCHA controls, advanced code; new signup-editor entry present, editor not inspected |
+| UI12 | Forms settings | System signup/preferences/unsubscribe forms, edit/copy links, opt-in/GDPR/reCAPTCHA controls, advanced code; current fullscreen hosted editor inspected read-only October 17, including its vector rail/design/setup/share controls |
 | UI13 | Surveys list | Recent/all, create/results/actions and starter categories |
 | UI14 | Existing survey results | Question tabs, chart/table, date controls, chart/export/print, response drilldown and tagging entry points. No export or tagging performed |
 | UI15 | Audience Inbox | Standalone header, Compose, Sources, Labels, notifications, templates, search, To Do/Done/Trash/All; empty onboarding |
@@ -166,8 +168,11 @@ Remaining high-impact gaps:
 1. Stage 1 People/data-management UI/UX qualification passed: 87 HTTP checks and
    84 desktop/mobile/theme rendering checks, with keyboard/editor/menu corrections.
    The documented product differences remain; this does not qualify full Mailchimp parity.
-2. Create offers regular/plain-text/A/B/multivariate email drafts and recent reuse.
-   Header search is centered and covers Connections. Home, flow, form, inbox and
+2. Create offers regular/plain-text/A/B email drafts and recent reuse.
+   Centered header search opens a categorized dialog for Connections, campaigns,
+   available workspace pages, permitted quick actions and existing help links.
+   It includes browser-local recent searches and recent campaigns; integrations
+   and vendor feedback are omitted. Home, flow, form, inbox and
    analytics workspaces remain later-stage work; campaign and content workspaces
    are qualified for Stage 2.
 3. Profile engagement insights, ratings and email/form/survey/flow activity require
@@ -228,7 +233,7 @@ uncertain.
 | 2 | Campaign list/calendar/organization, checklist, templates, current and legacy design support, native content library/Brand Kit, personalization, preview/test UI, draft/revision persistence |
 | 3 | Provider decision, domain/sender setup, queues/scheduling/resend, suppression, confirmation/unsubscribe/preferences foundation, delivery events and basic truthful reports; MOED-triggered transactional lane |
 | 4 | System/hosted/embedded/popup forms, preference center, surveys/polls and **campaign landing pages**; native publication, collection and reporting |
-| 5 | Flow authoring/templates, native triggers/rules/actions, execution/reentry/exits, pause/resume, migration/compatibility decisions for classic/RSS automations and per-node reports |
+| 5 | Flow authoring/templates, native triggers/rules/actions, execution/reentry/exits, pause/resume, migration/compatibility decisions for classic automations and per-node reports |
 | 6 | Inbox sources, inbound routing, threading/labels/notes, compose/reply/templates, notifications and permissions |
 | 7 | Full email/audience/form/flow analytics, custom/comparison reports, native funnel outcomes, experiments, send-time optimization, benchmarks and bot controls |
 | 8 | AI content assistance and analytics assistance with source-backed account results; remaining optimization/creative tooling |
@@ -287,7 +292,7 @@ the observed UI. Acceptance conditions also include MOED engineering decisions.
 - **S30** — [Recipient time zones](https://mailchimp.com/help/use-timewarp/)
 - **S31** — [Resend to non-openers](https://mailchimp.com/help/resend-an-unopened-campaign/)
 - **S32** — [Plain text campaigns](https://mailchimp.com/help/create-a-plain-text-campaign/)
-- **S33** — [Multivariate tests](https://mailchimp.com/help/create-multivariate-tests/)
+- **S33** — [A/B tests](https://mailchimp.com/help/about-ab-tests/)
 - **S34** — [Email builder generations](https://mailchimp.com/help/about-mailchimps-email-builders/)
 - **S35** — [Current email builder](https://mailchimp.com/help/design-an-email-new-builder/)
 - **S36** — [Section manager](https://mailchimp.com/help/use-section-manager-new-builder/)
@@ -323,7 +328,6 @@ the observed UI. Acceptance conditions also include MOED engineering decisions.
 - **S66** — [Flow group actions](https://mailchimp.com/help/use-group-ungroup-actions/)
 - **S67** — [Flow reports](https://mailchimp.com/help/about-customer-journey-reports/)
 - **S68** — [Classic automation migration](https://mailchimp.com/help/change-classic-automation-customer-journey/)
-- **S69** — [RSS emails](https://mailchimp.com/help/share-your-blog-posts-with-mailchimp/)
 - **S70** — [Report overview](https://mailchimp.com/help/getting-started-reports/)
 - **S71** — [Reporting index](https://mailchimp.com/help/reports/)
 - **S72** — [Email campaign report](https://mailchimp.com/help/about-email-campaign-reports/)
@@ -464,7 +468,7 @@ qualification, bounce/complaint event ingestion, full preferences and
 confirmation/resubscription, automatic resends/experiments, recipient-local time,
 optimization and additional native transactional workflows remain outside this
 slice. Open/click tracking is explicitly unavailable in the send review. The
-requested Connections column defaults now include Email Marketing and omit
+requested Connections column defaults now include Status and omit
 Last Changed; Date Added defaults to descending.
 
 ### Stage 3c — delivery lifecycle and paid Proton qualification
@@ -638,3 +642,27 @@ Primary references reviewed: [SES pricing](https://aws.amazon.com/ses/pricing/),
 [event destinations](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_CreateConfigurationSetEventDestination.html),
 [SNS signature verification](https://docs.aws.amazon.com/sns/latest/dg/sns-verify-signature-of-message.html),
 and [metric limitations](https://docs.aws.amazon.com/ses/latest/dg/faqs-metrics.html).
+
+### Stage 4 — native collection, October 17, 2026
+
+FO01–FO12, LP01–LP08 and SU01–SU07 now have native local implementations and
+isolated qualification. The [Stage 4 implementation record](audience-mailchimp-parity.md#stage-4--native-collection-and-local-qualification-october-17-2026)
+describes the reference inspection, isolated HTTP qualification,
+encrypted-response and opt-in lifecycle, narrowly scoped public embedding,
+restore-verified local migration and remaining acceptance. Existing imported
+records and storage were preserved. Production remains at the prior release.
+
+The local completion pass adds safe hosted system-page HTML, editable public
+labels/messages and RTL, challenge-bound confirmed-signup attribution, survey
+dropdown/Other/option controls, recipient-only answer tagging and scheduled closure.
+Template cards now have aligned controls above full-content previews, gray headers,
+teal borders and fourteen distinct licensed Israel photos. The same photos are
+available privately in local Shalom in Messiah Content → My files. Realistic image
+payload qualification also covers sorting without loading image documents into
+MySQL's sort buffer. See the implementation record for evidence and test counts.
+
+The feature-matrix rows remain `partial`/`approximate` for vendor parity: exact
+popup/landing/editor pixels and production host/edge behavior are not certified.
+Controlled confirmation-email acceptance still awaits AWS approval. Native forms
+retain immutable published revisions and protected consent actions. The signed-in
+reference account was inspected without changing its records.

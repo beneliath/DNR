@@ -5,13 +5,13 @@
         <section class="audience-panel subtle person-marketing-card">
             <h2 class="person-identity"><?= $h($contact['email']) ?></h2>
             <p class="audience-help">Created on <?= $h(audienceProfileDate($contact['created_at'])) ?></p><hr>
-            <div class="section-title"><h3>Marketing status <button type="button" class="marketing-info" popovertarget="marketing-status-help" aria-label="What do these statuses mean?">i</button></h3><?php if($canManage): ?><button class="text-button" data-open-dialog="edit-marketing">Edit</button><?php endif; ?></div>
+            <div class="section-title"><h3>Subscription status <button type="button" class="marketing-info" popovertarget="marketing-status-help" aria-label="What do these statuses mean?">i</button></h3><?php if($canManage): ?><button class="text-button" data-open-dialog="edit-marketing">Edit</button><?php endif; ?></div>
             <dl class="person-status-address"><dt>Email</dt><dd><?= $h($contact['email']) ?></dd></dl>
             <details class="person-marketing-details">
                 <summary><?php audienceNavIcon('chevron'); ?><strong>Email</strong><span class="audience-status <?= $h($contact['email_status']) ?>"><?= $h(ucfirst($contact['email_status'])) ?></span></summary>
                 <dl><dt><?= $h($marketingDetails['label']) ?></dt><dd><?php if($marketingDetails['date']!==''): ?><time datetime="<?= $h($marketingDetails['datetime']) ?>" title="<?= $h($marketingDetails['note']) ?>"><?= $h($marketingDetails['date']) ?></time><?php else: ?>Not recorded<?php endif; ?></dd><dt>Source</dt><dd><?= $h($marketingDetails['source'])?:'Not recorded' ?></dd></dl>
             </details>
-            <?php if($contact['is_archived']): ?><p class="audience-notice">Archived · excluded from marketing</p><?php endif; ?>
+            <?php if($contact['is_archived']): ?><p class="audience-notice">Archived · excluded from campaigns</p><?php endif; ?>
         </section>
         <section class="audience-panel subtle person-details-card"><div class="section-title"><h3>Connection details</h3><?php if($canManage): ?><button class="text-button" data-open-dialog="edit-details">Edit</button><?php endif; ?></div><dl><dt>First Name</dt><dd><?= $h($contact['first_name'])?:'—' ?></dd><dt>Last Name</dt><dd><?= $h($contact['last_name'])?:'—' ?></dd><?php foreach($fields as$field): $v=$contact['custom'][$field['id']]??''; ?><dt><?= $h($field['label']) ?></dt><dd><?= $h(is_array($v)?implode(', ',$v):$v)?:'—' ?></dd><?php endforeach; ?></dl></section>
         <section class="audience-panel subtle person-tags-card">
@@ -24,7 +24,7 @@
             </div>
         </section>
         <?php if($canManage): ?><div id="person-add-tag" class="audience-filter-panel person-tag-picker" popover="auto" role="dialog" aria-label="Add a tag" data-filter-panel>
-            <label class="filter-search"><?php audienceNavIcon('search'); ?><input type="search" placeholder="Search tags" aria-label="Search available tags" data-filter-search></label>
+            <label class="filter-search"><?php audienceNavIcon('search'); ?><input type="search" autocomplete="off" placeholder="Search tags" aria-label="Search available tags" data-filter-search></label>
             <div class="filter-choice-scroll"><?php foreach($tags as$tag): if(in_array((int)$tag['id'],$contact['tag_ids'],true))continue; ?><form method="post" data-filter-choice><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'person_action','operation'=>'tag','id'=>$id,'version'=>$contact['version'],'tag_id'=>$tag['id']]); ?><button type="submit"><?= $h($tag['name']) ?></button></form><?php endforeach; ?><p class="filter-empty" data-filter-empty hidden>No matching tags</p></div>
             <form method="post" class="person-create-tag"><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'create_person_tag','id'=>$id,'version'=>$contact['version']]); ?><label for="person-new-tag">Create a new tag</label><input id="person-new-tag" name="name" maxlength="100" required placeholder="Tag name"><button class="primary" type="submit">Create and add</button></form>
         </div><?php endif; ?>
@@ -45,6 +45,6 @@
         <?php else: ?><h2>Insights</h2><div class="audience-empty"><h3>No email engagement yet</h3><p>Email engagement and ratings will appear when campaign delivery and reporting are available. Audience membership and permission history are available in Overview.</p></div><?php endif; ?>
     </section>
 </div>
-<div id="marketing-status-help" class="audience-filter-panel person-status-help" popover="auto" role="dialog" aria-label="Marketing status information"><h3>Email marketing status</h3><dl><dt>Subscribed</dt><dd>Gave permission to receive marketing email.</dd><dt>Unsubscribed</dt><dd>Opted out of marketing email.</dd><dt>Non-subscribed</dt><dd>Has not given permission to receive marketing email.</dd><dt>Pending</dt><dd>Has not yet confirmed their subscription.</dd><dt>Cleaned</dt><dd>The address is suppressed after delivery problems.</dd></dl></div>
+<div id="marketing-status-help" class="audience-filter-panel person-status-help" popover="auto" role="dialog" aria-label="Subscription status information"><h3>Status</h3><dl><dt>Subscribed</dt><dd>Gave permission to receive audience email.</dd><dt>Unsubscribed</dt><dd>Opted out of audience email.</dd><dt>Non-subscribed</dt><dd>Has not given permission to receive audience email.</dd><dt>Pending</dt><dd>Has not yet confirmed their subscription.</dd><dt>Cleaned</dt><dd>The address is suppressed after delivery problems.</dd></dl></div>
 <?php if($canManage): ?><?php include __DIR__.'/profile-editors.php'; ?><dialog id="person-action"><form method="post"><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'person_action','id'=>$id,'version'=>$contact['version'],'operation'=>'archive']); ?><div class="dialog-heading"><h2 data-person-action-title>Update connection</h2><button type="button" data-close-dialog aria-label="Close">×</button></div><p data-person-action-description></p><div data-person-delete-confirm hidden><label for="person-delete-word">Type DELETE to permanently remove personal data</label><input id="person-delete-word" name="confirm_text" autocomplete="off"></div><button class="primary" data-person-action-submit>Confirm</button><button type="button" data-close-dialog>Cancel</button></form></dialog><?php endif; ?>
 <?php endif; ?>

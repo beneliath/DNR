@@ -22,7 +22,15 @@ trait AudienceContent
         if(in_array($type,['image','section'],true)){$where.=' AND item_type=?';$params[]=$type;}
         if($folder!==''){$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder')),'')=?";$params[]=$folder==='unfiled'?'':$folder;}
         $total=(int)$this->one("SELECT COUNT(*) n FROM marketing_design_library WHERE $where",$params)['n'];$page=max(1,min(max(1,(int)ceil($total/$pageSize)),(int)($input['page']??1)));$order=$sort==='size'?"COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.bytes')) AS UNSIGNED),0)":$sort;
-        $items=$this->all("SELECT * FROM marketing_design_library WHERE $where ORDER BY $order $direction,id $direction LIMIT $pageSize OFFSET ?",[...$params,($page-1)*$pageSize]);foreach($items as&$item)$item['data']=audienceJson($item['data_json']);unset($item);
+        // Sort the bounded ID page before fetching large embedded image documents.
+        if($sort==='size'){
+            // MySQL includes the JSON argument in filesort even when only IDs are selected.
+            $sizes=$this->all("SELECT id,$order byte_size FROM marketing_design_library WHERE $where",$params);
+            usort($sizes,static fn($a,$b)=>($direction==='asc'?1:-1)*([(int)$a['byte_size'],(int)$a['id']]<=>[(int)$b['byte_size'],(int)$b['id']]));
+            $ids=array_column(array_slice($sizes,($page-1)*$pageSize,$pageSize),'id');
+        }else $ids=array_column($this->all("SELECT id FROM marketing_design_library WHERE $where ORDER BY $order $direction,id $direction LIMIT $pageSize OFFSET ?",[...$params,($page-1)*$pageSize]),'id');
+        $byId=[];if($ids)foreach($this->all('SELECT * FROM marketing_design_library WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($ids),'?')).')',[$this->audienceId,...$ids])as$item){$item['data']=audienceJson($item['data_json']);$byId[$item['id']]=$item;}
+        $items=[];foreach($ids as$id)if(isset($byId[$id]))$items[]=$byId[$id];
         return ['items'=>$items,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/$pageSize)),'per_page'=>$pageSize,'search'=>$search,'folder'=>$folder,'type'=>$type,'sort'=>$sort,'direction'=>$direction,'trash'=>$trash,'layout'=>($input['layout']??'')==='list'?'list':'grid'];
     }
     public function saveContentItem(array $input,int $id=0,int $version=0):int

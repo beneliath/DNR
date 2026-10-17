@@ -1,0 +1,26 @@
+{
+  "source": "Mailchimp live basic subscribe editor, Editor navigation; observed read-only 2026-10-17",
+  "source_url": "https://us3.admin.mailchimp.com/forms/signup-form/lumina-editor?listId=231949",
+  "assets": {
+    "elements": {
+      "path": "src/assets/icons/collection-editor/elements.svg",
+      "sha256": "80b5f74f9b1379ef5e17a2d14c20bc8729a55ba63edbc7394b42a5d13cd4e236"
+    },
+    "outline": {
+      "path": "src/assets/icons/collection-editor/outline.svg",
+      "sha256": "2bcd53073b7e4edc1bab1e2b537460dd314af40d654daad0c4e2d2b9d613575e"
+    },
+    "design": {
+      "path": "src/assets/icons/collection-editor/design.svg",
+      "sha256": "0d097dc9bb3cb3e057fd463a0d7cb73da0149c0a65198db52c1f60a71c4739ff"
+    },
+    "setup": {
+      "path": "src/assets/icons/collection-editor/setup.svg",
+      "sha256": "808aa68b67c98878c070abec278ff4cdd36a2aff46ddbc5df0ad7c441dc43041"
+    },
+    "publish": {
+      "path": "src/assets/icons/collection-editor/publish.svg",
+      "sha256": "306e90714ca5bfc53e0a35b6dcbe842f7803876c4d4b8a6f64707fa9dcaec1fe"
+    }
+  }
+}
