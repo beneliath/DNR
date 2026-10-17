@@ -573,6 +573,11 @@ The SES API implementation is now qualified locally (2026-10-16):
   Blank fields retain the saved credentials; disconnect removes them. Setup
   operations are audited without secrets. Key rotation covers SES credentials
   and the retained campaign/service ciphertext.
+- All Email delivery tabs require the administrator role for read access, as
+  well as setup actions. Editors and reviewers receive HTTP 403 on direct URLs,
+  including alternate API and legacy audience selectors. Their navigation,
+  campaign setup links and workspace search omit the restricted destination.
+  Existing Test Account and restricted-demo configuration protections remain.
 - Campaigns, reusable-template/designer tests and marketing subscription
   confirmations use SES v2 SendEmail. Operational mail keeps its existing SMTP
   settings and transport. Marketing never falls back to SMTP or ambient AWS

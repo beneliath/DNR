@@ -132,7 +132,6 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
 $deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
 $deliveryAvailable=$store->deliverySetupAvailable();$deliveryDomains=[];$deliveryAddresses=[];$deliverySender=null;$deliverySenderJob=null;$deliveryDomain=null;$deliveryDevelopmentCode='';$deliveryProbe=null;$senderReadiness=null;
 if($view==='delivery'){
-    if(!$canManage){http_response_code(403);exit('Email delivery setup requires an editor or administrator.');}
     if($runtimeInstalled){
         if(!$store->sesAvailable()&&$canConfigureDelivery)foreach(['email_outbox'=>'Account access','notification_outbox'=>'Task notifications','engagement_email_deliveries'=>'Engagement correspondence','reimbursement_email_deliveries'=>'Reimbursement submissions']as$table=>$label)$operationalQueues[$label]=$store->all("SELECT status,COUNT(*) n,MIN(CASE WHEN status IN ('pending','retry') THEN next_attempt_at END) next_attempt FROM $table WHERE created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY status");
         $mailActivity=$store->all('SELECT kind,actor_label,state,attempts,next_attempt_at,error_message,created_at FROM marketing_service_mail WHERE audience_id=? ORDER BY id DESC LIMIT 25',[$audienceId]);

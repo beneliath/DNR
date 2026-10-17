@@ -40,6 +40,8 @@ audienceHttpExpect(count($searchItems($searchRead('SES','help'),'help'))===2,'Ex
 audienceHttpExpect(count($searchItems($searchRead('','actions'),'actions'))>0,'Editors can find permitted quick actions');
 audienceHttpExpect($searchItems($searchRead('','actions',$reviewer),'actions')===[],'Reviewer search does not expose editor quick actions');
 $searchReviewerPages=$searchItems($searchRead('','pages',$reviewer),'pages');audienceHttpExpect(!in_array('audience.php?view=import',array_column($searchReviewerPages,'href'),true)&&!in_array('audience.php?view=delivery',array_column($searchReviewerPages,'href'),true),'Reviewer pages omit restricted import and delivery destinations');
+$searchEditorPages=array_column($searchItems($searchRead('','pages',$editor),'pages'),'href');audienceHttpExpect(in_array('audience.php?view=import',$searchEditorPages,true)&&!in_array('audience.php?view=delivery',$searchEditorPages,true),'Editor search retains import and omits administrator-only delivery');
+audienceHttpExpect(in_array('audience.php?view=delivery',array_column($searchItems($searchRead('Email delivery','pages',$admin),'pages'),'href'),true),'Administrator search retains delivery settings');
 audienceHttpExpect(count($searchItems($searchRead($searchTerm,'campaigns',$reviewer),'campaigns'))===1,'Reviewers retain authorized read-only campaign search');
 foreach(['api=workspace_search&q%5B%5D=bad','api=workspace_search&category=invalid','api=workspace_search&q='.str_repeat('x',201)] as $invalidSearch)audienceHttpExpect($editor('audience.php?'.$invalidSearch)['status']===400,'Invalid search input is rejected');
 audienceHttpExpect($editor('audience.php?api=workspace_search',['q'=>$searchTerm])['status']===405,'Search endpoint is read-only GET');

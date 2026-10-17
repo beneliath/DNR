@@ -23,7 +23,7 @@ function audienceSearchCategories(): array
 }
 
 /** Only existing destinations are searchable; editor actions remain permission-scoped. */
-function audienceSearchCatalog(bool $canManage): array
+function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): array
 {
     $pages=[];
     foreach(['contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Audience fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
@@ -31,10 +31,11 @@ function audienceSearchCatalog(bool $canManage): array
     }
     foreach(['forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     if($canManage) {
-        foreach(['delivery'=>'Email delivery','import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
+        foreach(['import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
             $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
         }
     }
+    if($canAccessDelivery)$pages[]=['title'=>'Email delivery','description'=>'MessageMonkey workspace','href'=>'audience.php?view=delivery','icon'=>'page'];
     $actions=$canManage?[
         ['title'=>'Add a connection','description'=>'Add one person to your audience.','href'=>'audience.php?view=contact','icon'=>'action'],
         ['title'=>'Import connections','description'=>'Upload a file or paste connections.','href'=>'audience.php?view=import','icon'=>'action'],
@@ -50,7 +51,7 @@ function audienceSearchCatalog(bool $canManage): array
 }
 
 /** Bounded, read-only search of the current account's canonical audience. */
-function audienceWorkspaceSearch(AudienceStore $store,array $input,bool $canManage): array
+function audienceWorkspaceSearch(AudienceStore $store,array $input,bool $canManage,bool $canAccessDelivery=false): array
 {
     $query=audienceText($input,'q',200);$category=audienceText($input,'category',30);
     $labels=audienceSearchCategories();
@@ -75,7 +76,7 @@ function audienceWorkspaceSearch(AudienceStore $store,array $input,bool $canMana
         $groups[]=['key'=>'campaigns','label'=>$query===''?'Recent campaigns':$labels['campaigns'],'items'=>$items,'more'=>mb_strlen($query)<=100?'audience.php?view=campaigns&search='.rawurlencode($query):null];
     }
     if($query!==''||$category!=='') {
-        foreach(audienceSearchCatalog($canManage) as $key=>$items) {
+        foreach(audienceSearchCatalog($canManage,$canAccessDelivery) as $key=>$items) {
             if(!$wanted($key))continue;
             $items=array_values(array_filter($items,static fn(array $item):bool=>$query===''||mb_stripos($item['title'].' '.$item['description'],$query)!==false));
             $groups[]=['key'=>$key,'label'=>$labels[$key],'items'=>$items];
