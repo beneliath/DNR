@@ -1668,3 +1668,10 @@ screenshots include `evidence/stage5-mobile-dark-preview.png`,
 under that directory. The requested minor deployment advances 2.6.0 to 2.6.1 through
 the protected release runner, verified backups and shared-account readiness gates.
 It does not authorize flow activation or live sending qualification.
+
+The first protected integration run exposed a fixture dependency: the group-trigger
+check had relied on a group created by the standalone Stage 1b suite. It now creates
+its own scoped group. The complete repository integration order then passed in a
+fresh disposable environment, including all 66 flow and 684 Audience checks, before
+retrying the same 2.6.1 release. No runtime behavior or release version changed for
+that correction.
