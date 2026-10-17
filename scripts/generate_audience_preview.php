@@ -108,6 +108,10 @@ if(str_starts_with($argv[1]??'','ses-')){
  $view='delivery';$pageTitle='Email delivery';$sesInstalled=true;$canConfigureDelivery=true;$campaignRecovery=null;$runtimeInstalled=true;
  $_GET['tab']=substr($argv[1],4);$mailActivity=[];
  $sesSettings=['version'=>1,'check_state'=>'unconfigured','enabled'=>0,'region'=>'us-east-1','from_email'=>'hello@community.example','configuration_set'=>'message-monkey','topic_arn'=>'arn:aws:sns:us-east-1:123456789012:message-monkey','aws_account_id'=>'123456789012','access_key_tail'=>'','checked_at'=>null,'error_message'=>'','result_json'=>'{}','production_access'=>0,'sending_enabled'=>0,'max_daily'=>0,'max_rate'=>0,'sent_last_day'=>0,'quota_checked_at'=>null,'subscription_arn'=>'','last_event_at'=>null];
+ $sesInboxCounts=[];
+ if(($argv[2]??'')==='configured'){
+  $sesSettings=array_replace($sesSettings,['enabled'=>1,'check_state'=>'attention','access_key_tail'=>'DEMO','checked_at'=>'2026-10-17 10:00:00','error_message'=>'SES is in the sandbox. Request production access.','sending_enabled'=>1,'max_daily'=>200,'max_rate'=>1,'subscription_arn'=>$sesSettings['topic_arn'].':aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','last_event_at'=>'2026-10-17 10:00:00','result_json'=>json_encode(['domain'=>'community.example','domain_verified'=>true,'dkim'=>['Status'=>'SUCCESS'],'dmarc'=>true,'mail_from'=>['MailFromDomain'=>'bounce.community.example']])]);
+ }
 }
 if(in_array($argv[1]??'', ['campaign-send','campaign-send-now','campaign-send-blocked','campaign-delivery','campaign-delivery-paused','campaign-delivery-completed','campaign-delivery-cancelled'],true)){
  $view=str_starts_with($argv[1],'campaign-send')?'campaign-send':'campaign-delivery';$id=1;$pageTitle='Community newsletter';$campaignRecovery=null;$campaignComments=[];$publication=null;$campaignMergeTags=[];
@@ -120,5 +124,8 @@ if(in_array($argv[1]??'', ['campaign-send','campaign-send-now','campaign-send-bl
  $deliveryCounts=$state==='completed'?['accepted'=>7180,'suppressed'=>20,'failed'=>2,'uncertain'=>1]:['queued'=>7203];$deliveryRows=[];
  if($state==='completed')foreach(['accepted','suppressed','failed','uncertain']as$i=>$status)$deliveryRows[]=['id'=>$i+1,'contact_id'=>$i+1,'state'=>$status,'attempts'=>1,'accepted_at'=>$status==='accepted'?'2026-10-20 14:00:06':null,'error_message'=>$status==='uncertain'?'SMTP acceptance could not be confirmed. This recipient will not be retried automatically.':''];
 }
-echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Audience preview — fictional connections</title><script src="theme-init.min.js"></script><link rel="stylesheet" href="audience.min.css"><script src="audience.min.js" defer></script><link rel="stylesheet" href="audience-designer.min.css"><script src="audience-designer.min.js" defer></script></head>';
-include __DIR__.'/../src/templates/audience/'.(($argv[1]??'')==='designer'?'designer.php':'workspace.php');echo '</html>';
+$previewTheme=in_array($argv[3]??'',['light','dark'],true)?$argv[3]:null;
+echo '<!DOCTYPE html><html lang="en"'.($previewTheme==='dark'?' class="dark-mode"':'').'><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Audience preview — fictional connections</title>'.($previewTheme===null?'<script src="theme-init.min.js"></script>':'').'<link rel="stylesheet" href="audience.min.css"><script src="audience.min.js" defer></script><link rel="stylesheet" href="audience-designer.min.css"><script src="audience-designer.min.js" defer></script></head>';
+include __DIR__.'/../src/templates/audience/'.(($argv[1]??'')==='designer'?'designer.php':'workspace.php');
+if($previewTheme!==null)echo '<script>document.addEventListener("DOMContentLoaded",function(){const sync=function(){document.documentElement.classList.toggle("dark-mode",'.json_encode($previewTheme==='dark').');};sync();window.addEventListener("pageshow",sync);});</script>';
+echo '</html>';

@@ -722,3 +722,7 @@ dialog.campaign-create-dialog{width:100vw;max-width:100vw;height:100dvh;max-heig
 .ses-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-block:24px}.ses-field-grid label,.ses-connection-form>details label{display:block;margin-bottom:8px;font-weight:600}.ses-field-grid input,.ses-field-grid select,.ses-connection-form textarea{width:100%;max-width:100%;box-sizing:border-box}.ses-connection-form .audience-actions,.ses-connection-actions{margin-top:24px}.ses-policy{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.875rem;padding:20px;background:var(--audience-surface,#f6f8f9)}.ses-long-value{overflow-wrap:anywhere;min-width:0}@media(max-width:700px){.ses-field-grid{grid-template-columns:1fr}}
 
 .ses-field-grid input,.ses-field-grid select{min-height:44px}
+
+.ses-event-details dt:first-child{padding-top:10px}.ses-event-details #ses-receiver{display:block;width:100%;min-width:0;max-width:100%}.ses-event-details .audience-help{margin:8px 0 0}
+
+.delivery-page .ses-domain-guidance{margin-block:24px}

@@ -1,10 +1,11 @@
 # Mailchimp → MOED MessageMonkey parity audit
 
-Reviewed October 16, 2026, on `codex/mailchimp-clone`.
+Reference reviewed October 16, 2026, on `codex/mailchimp-clone`.
+Stage 3 non-live closeout updated October 17, 2026, on `codex/ses-endpoint-layout`.
 
 ## Finding
 
-**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. SES integration is not implemented yet; the SMTP qualification below is foundation evidence from the previous provider decision. Operational MOED email keeps its existing SMTP setup.
+**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. The SES adapter, queues, scheduling, suppression, native analytics and signed SNS inbox are implemented and qualified without external mail. The shared production implementation is deployed through 2.5.23; the primary account’s sender/domain and SNS subscription are connected. The latest UI refinements are qualified locally and await a separate production release. Final live sending qualification remains open pending AWS production access. Operational MOED email keeps its existing SMTP setup.
 
 **The native Stage 1 and Stage 2 implementation and qualification are complete;
 full Mailchimp feature and pixel-level UI/UX parity remain unqualified.** Connections, profiles, tags,
@@ -12,7 +13,7 @@ groups, custom fields, import/export jobs and nested segmentation are functional
 Stage 2 includes campaign management, Campaign Manager plans, A/B/multivariate
 drafts, visual/code designers, templates and native Content Library/Brand Kit.
 Reference layouts and interactions were reviewed; exact vendor typography,
-artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. Paid-account capacity, real sender activation, inbox/client qualification and a connected authenticated event producer remain outstanding; public forms, landing pages, automation execution, inbox and engagement analytics remain later work. The implementation record documents
+artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. The primary domain and public authenticated SNS path have been activated; controlled inbox/signing/client, live receipt, scheduling and quota qualification remain outstanding; public forms, landing pages, automation execution, inbox and engagement analytics remain later work. The implementation record documents
 verification, local import reconciliation and the passed Stage 1 UI/UX gate.
 See [the qualification record](audience-mailchimp-parity.md#stage-1-uiux-qualification--october-16-2026)
 for tested states, evidence and remaining product differences.
@@ -47,7 +48,7 @@ containing account data are not copied into this repository.
 | Connections | User-facing records are Connections; preserve MOED Organization Contacts as separate records |
 | VIP | Remove designation, columns, actions, import/export mappings, segment and dynamic-content conditions at the user’s request |
 | Ownership | Native MOED data and execution; Mailchimp is the reference, not the backend |
-| Email delivery | Included; user selected MOED’s existing SMTP relay. Sender/domain setup and worker probes are implemented; campaign dispatch remains Stage 3 work. |
+| Email delivery | Amazon SES Essentials v2 API for MessageMonkey marketing, with each account’s own credentials and quotas. Native delivery/scheduling and isolated qualification are complete; AWS approval and controlled live qualification remain open. Operational SMTP stays separate. |
 | Website builder | Omitted, including site navigation, store/appointment/site-building workflows |
 | Campaign landing pages | Included, with signup, publication, hosted URLs and native reports |
 | SMS | Omitted everywhere, including consent fields, filters, templates, flows and metrics |
@@ -470,7 +471,7 @@ Last Changed; Date Added defaults to descending.
 
 The SMTP delivery foundation and isolated qualification are complete for the
 previous Stage 3 provider scope. The subsequent SES decision below supersedes
-that provider choice; SES integration is not implemented or qualified yet. The paid Proton account and user-confirmed marketing approval are retained;
+that provider choice; SES is implemented in the following section. The paid Proton account and user-confirmed marketing approval are historical evidence;
 no Free-plan quota is applied. Numeric allocations remain unset because the public
 paid-plan documentation does not specify them.
 
@@ -603,17 +604,30 @@ Migration and runtime receipts are under `var/backups/audience-ses/`. The fresh
 pre-migration backup was restore-verified. Connection dates, subscription statuses
 and tag memberships retain their exact prior fingerprint.
 
-**Live AWS activation remains open.** No real SES credentials were entered, no AWS
-resources or billing plan were changed, and no SES message was sent. Each account
-must choose Essentials in AWS, obtain regional production access, authenticate its
-domain, create its configuration set/SNS destination and HTTPS subscription, then
-save a dedicated IAM key through Email delivery. Follow with AWS mailbox-simulator
-bounce/complaint tests and an explicitly authorized inbox/DKIM/DMARC test before a
-real campaign. The UI includes scoped IAM guidance and the account’s HTTPS event
-endpoint. Public reachability/proxy rules and AWS-side topic permissions still
-require activation checks. Separate IAM keys sharing one AWS account also share
-regional quotas/billing/reputation; use separate AWS accounts when independent
-allowances are required. No production rollout is implied by this local update.
+**Current activation checkpoint — October 17, 2026.** The primary account now has
+saved, scoped IAM API credentials, a verified SES domain and DKIM, published DMARC,
+a custom MAIL FROM domain, and a configured SNS destination. The public HTTPS
+subscription is confirmed in AWS and MessageMonkey; its signed envelope was
+processed by the mail worker. Versions 2.5.22 and 2.5.23 were deployed and verified
+across active s1 accounts. This establishes the subscription path, not delivery of
+an actual marketing message.
+
+The production-access request was submitted. AWS’s initial API status `DENIED`
+was clarified by its console and automated support response as **More information
+needed**, rather than a final decision. The user-approved reply describing volume,
+explicit opt-in, unsubscribe and event handling has been posted. An hourly monitor
+waits for approval or a new actionable response. No external marketing email was
+sent during this closeout. See the [Stage 3d record](audience-mailchimp-parity.md#stage-3d--non-live-closeout-and-ses-activation-2026-10-17)
+for refreshed tests, local migration evidence and the bounded live acceptance plan.
+
+**Non-live implementation and qualification are complete; overall Stage 3 remains
+open.** The remaining release of local UI refinements requires a separate explicit
+s1 deployment request. Final controlled inbox/authentication, simulator events,
+provider-backed scheduling/quota pacing and report reconciliation require AWS
+approval under MessageMonkey’s current readiness policy. Each other MOED account
+must activate its own SES configuration; sharing the application release does not
+copy credentials or grant sender access. Exact Mailchimp pixel/client parity is
+not certified, and SES account setup is an intentional native adaptation.
 
 Primary references reviewed: [SES pricing](https://aws.amazon.com/ses/pricing/),
 [SES v2 SendEmail](https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html),
