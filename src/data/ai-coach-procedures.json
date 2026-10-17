@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
-        "templates/header.php": "43d39a5e0baf35eb402beabd6546ae1cb7ca36c79a66f597650b96c6ecf08432"
+        "templates/header.php": "a5d54a4f30df296ba2c1af0ca1c50051d4139cd8756d20734e2d3d4f9327c223"
       },
       "subjects": [
         "password"
@@ -1133,8 +1133,8 @@
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
         "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
-        "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
-        "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
+        "reimbursement_email_helpers.php": "04515a01f172e3f10d6c302a5d2ee71d50ca75b9d58335922a1b0aae3439520e",
+        "email_helpers.php": "7490d2b7229e5e4e5ef4cccb2882b194d51c089b3ddacc141ed422c011c0876b",
         "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
@@ -1328,7 +1328,7 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "18dd22716e156f15efc57544273fc2cc7b9a2adb0c9d283b9f3865f2dd6dec41"
+        "functions.php": "0ad168642c05e8cbc3281f87a4bc5545f47d9b43b92799f81ffb24625535d028"
       }
     },
     {
@@ -1356,7 +1356,7 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "18dd22716e156f15efc57544273fc2cc7b9a2adb0c9d283b9f3865f2dd6dec41",
+        "functions.php": "0ad168642c05e8cbc3281f87a4bc5545f47d9b43b92799f81ffb24625535d028",
         "templates/footer.php": "dbcc6a269783493381a7f988daa67cfff893c69e8cf3d6b3e3af95c5efbcdb9b",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",

@@ -165,9 +165,12 @@ function sendApplicationSecurityHeaders() {
     $map_page = in_array($page, ['map.php', 'map_pin.php'], true);
     $inline_styles = $map_page || $page === 'reimbursement_submit.php';
     $style_source = $inline_styles ? "'self' 'unsafe-inline'" : "'self'";
+    // Audience email previews use nonce-authorized CSS in script-disabled preview frames.
+    if (in_array($page, ['audience.php', 'audience_campaign_public.php'], true)) $style_source .= " 'nonce-{$nonce}'";
     $style_attribute_source = $inline_styles ? "'unsafe-inline'" : "'none'";
     $map_tile_source = deploymentConfig()->tileCspSource();
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: blob: {$map_tile_source}; font-src 'self'; connect-src 'self' {$map_tile_source}; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    $font_source = in_array($page, ['audience.php', 'audience_campaign_public.php'], true) ? "'self' data:" : "'self'";
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: blob: {$map_tile_source}; font-src {$font_source}; connect-src 'self' {$map_tile_source}; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');

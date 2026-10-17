@@ -183,6 +183,7 @@ function failQueuedReimbursementEmail(
     bool $permanent = false,
     ?string $claimToken = null
 ): void {
+    if (audienceDeferOperationalMail($conn, 'reimbursement_email_deliveries', $deliveryId, $claimToken, $exception)) return;
     if ($exception instanceof SmtpUncertainDeliveryException) {
         markEmailDeliveryUncertain($conn, 'reimbursement_email_deliveries', $deliveryId, $claimToken);
         return;

@@ -88,6 +88,7 @@ function smtpFakeRelayRun($server, string $scenario): array
             throw new RuntimeException('The fake relay did not receive its first connection.');
         }
         $result['connections']++;
+        if($scenario==='greeting-quota'){smtpFakeRelayWrite($first,'421 Hourly external limit reached');fclose($first);return $result;}
         smtpFakeRelayHandshake($first);
 
         if ($scenario === 'reuse') {
@@ -102,7 +103,7 @@ function smtpFakeRelayRun($server, string $scenario): array
             return $result;
         }
 
-        if (in_array($scenario, ['html', 'recipient-headers', 'attachment', 'inline-image'], true)) {
+        if (in_array($scenario, ['html', 'recipient-headers', 'attachment', 'inline-image', 'marketing-headers'], true)) {
             $result['message_data'] = smtpFakeRelayEnvelope($first, true);
             $result['messages']++;
             smtpFakeRelayExpect($first, 'QUIT');
@@ -147,10 +148,10 @@ function smtpFakeRelayRun($server, string $scenario): array
             return $result;
         }
 
-        if ($scenario === 'post-data-permanent') {
+        if (in_array($scenario, ['post-data-permanent','post-data-quota'], true)) {
             smtpFakeRelayEnvelope($first, false);
             $result['messages']++;
-            smtpFakeRelayWrite($first, '554 message content rejected');
+            smtpFakeRelayWrite($first, $scenario === 'post-data-quota' ? '550 daily sending quota reached' : '554 message content rejected');
             fclose($first);
             $unexpected = @stream_socket_accept($server, 2);
             if (is_resource($unexpected)) {
@@ -160,15 +161,15 @@ function smtpFakeRelayRun($server, string $scenario): array
             return $result;
         }
 
-        if (in_array($scenario, ['temporary-rejection', 'permanent-rejection'], true)) {
+        if (in_array($scenario, ['temporary-rejection', 'permanent-rejection', 'daily-quota'], true)) {
             smtpFakeRelayExpect($first, 'MAIL FROM:<sender@example.test>');
             smtpFakeRelayWrite($first, '250 sender accepted');
             smtpFakeRelayExpect($first, 'RCPT TO:<recipient@example.test>');
             smtpFakeRelayWrite(
                 $first,
-                $scenario === 'temporary-rejection'
+                $scenario === 'daily-quota' ? '451 daily sending limit reached' : ($scenario === 'temporary-rejection'
                     ? '451 temporary relay failure'
-                    : '550 no such recipient'
+                    : '550 no such recipient')
             );
             fclose($first);
             $unexpected = @stream_socket_accept($server, 2);
@@ -250,7 +251,13 @@ function runSmtpSessionScenario(string $scenario): ?array
     $clientError = null;
     $clientType = null;
     try {
-        deliverApplicationEmailWithSession(
+        if ($scenario === 'marketing-headers') {
+            $session = new SmtpSession();
+            $session->send('recipient@example.test', 'Marketing subject', 'Marketing body',
+                messageId: '<stable-delivery-id@dnr.invalid>',
+                listHeaders: ['List-Unsubscribe' => '<https://public.example/unsubscribe>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'],
+                fromName: 'Community team', recipientName: 'Jamie');
+        } else deliverApplicationEmailWithSession(
             $session,
             'recipient@example.test',
             'First message',
@@ -322,6 +329,13 @@ expectSmtpSessionProtocol(
 );
 
 $typed = runSmtpSessionScenario('recipient-headers');
+$marketing = runSmtpSessionScenario('marketing-headers');
+$marketingWire = $marketing['message_data'] ?? '';
+expectSmtpSessionProtocol($marketing['client_error'] === null && $marketing['messages'] === 1
+    && str_contains($marketingWire, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click')
+    && str_contains($marketingWire, 'To: =?UTF-8?B?SmFtaWU=?= <recipient@example.test>')
+    && str_contains($marketingWire, 'From: =?UTF-8?B?' . base64_encode('Community team') . '?='),
+    'Marketing sends preserve the reviewed From name, personalized To and one-click headers on the wire.');
 $typedData = $typed['message_data'] ?? '';
 expectSmtpSessionProtocol(str_contains($typedData, 'Message-ID: <stable-delivery-id@dnr.invalid>'), 'A stable Message-ID is retained in the wire message.');
 expectSmtpSessionProtocol($typed !== null && $typed['child_status'] === 0
@@ -388,6 +402,9 @@ expectSmtpSessionProtocol(
     'a dead reused session should reconnect and replay once when no DATA body was transferred.'
 );
 
+foreach(['greeting-quota','daily-quota','post-data-quota']as$quotaScenario){$quota=runSmtpSessionScenario($quotaScenario);expectSmtpSessionProtocol($quota!==null&&$quota['child_status']===0&&$quota['client_type']===MailBudgetDeferredException::class&&$quota['connections']===1,'Known provider quota rejection must defer without reconnect or replay.');}
+foreach(['451 hourly sending limit reached'=>3600,'550 daily quota reached'=>86400,'550 temporarily banned for spam'=>172800]as$response=>$seconds){$stream=fopen('php://temp','r+');fwrite($stream,$response."\r\n");rewind($stream);try{smtpReadResponse($stream,[250]);throw new RuntimeException('Expected quota rejection.');}catch(SmtpResponseException $e){expectSmtpSessionProtocol(abs(strtotime($e->providerRetryAt().' UTC')-time()-$seconds)<3,'Provider pause duration classification');}fclose($stream);}
+$mailbox=fopen('php://temp','r+');fwrite($mailbox,"552 5.2.2 mailbox quota exceeded\r\n");rewind($mailbox);try{smtpReadResponse($mailbox,[250]);throw new RuntimeException('Expected mailbox rejection.');}catch(SmtpResponseException $e){expectSmtpSessionProtocol($e->providerRetryAt()===null,'A recipient mailbox quota must not pause the whole Proton account.');}fclose($mailbox);
 $postData = runSmtpSessionScenario('post-data-failure');
 expectSmtpSessionProtocol(
     $postData !== null

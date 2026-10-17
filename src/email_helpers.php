@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/email_delivery_claim_helpers.php';
+require_once __DIR__ . '/audience_mail_budget.php';
 require_once __DIR__ . '/email_inline_image_helpers.php';
 
 require_once __DIR__ . '/application_runtime.php';
@@ -514,6 +515,7 @@ function failQueuedAccountEmail(
     bool $permanent = false,
     ?string $claimToken = null
 ): void {
+    if (audienceDeferOperationalMail($conn, 'email_outbox', $outboxId, $claimToken, $exception)) return;
     if ($exception instanceof SmtpUncertainDeliveryException) {
         markEmailDeliveryUncertain($conn, 'email_outbox', $outboxId, $claimToken);
         return;
@@ -553,13 +555,15 @@ function mailConfigurationSecret($name)
 
 final class SmtpResponseException extends RuntimeException
 {
-    public function __construct(private readonly int $statusCode)
+    public function __construct(private readonly int $statusCode, private readonly ?string $providerRetryAt = null)
     {
         parent::__construct(
             'SMTP server rejected a mail-delivery step with status ' . $statusCode . '.',
             $statusCode
         );
     }
+
+    public function providerRetryAt(): ?string { return $this->providerRetryAt; }
 
     public function statusCode(): int
     {
@@ -582,7 +586,12 @@ function smtpReadResponse($stream, array $accepted_codes)
     }
     $code = (int) substr($response, 0, 3);
     if (!in_array($code, $accepted_codes, true)) {
-        throw new SmtpResponseException($code);
+        $retryAt = null;
+        if (preg_match('/(?:hourly|daily).{0,40}(?:limit|quota)|sending.{0,30}(?:limit|quota)|rate.?limit|too many (?:messages|emails|recipients)|temporarily.{0,30}bann/i', $response)) {
+            $delay = preg_match('/spam|bann/i', $response) ? 172800 : (preg_match('/daily|day/i', $response) ? 86400 : 3600);
+            $retryAt = gmdate('Y-m-d H:i:s', time() + $delay);
+        }
+        throw new SmtpResponseException($code, $retryAt);
     }
     return $response;
 }
@@ -765,8 +774,13 @@ function smtpTlsStreamContext($host)
 }
 
 /** Build the same complete MIME message for preflight and actual SMTP delivery. */
-function smtpMessageData(string $from, string $fromName, string $recipient, string $subject, string $body, string $replyTo = '', ?string $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = []): string
+function smtpMessageData(string $from, string $fromName, string $recipient, string $subject, string $body, string $replyTo = '', ?string $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [], array $listHeaders = [], ?string $recipientName = null): string
 {
+    foreach ($listHeaders as $key => $value) {
+        if (!in_array($key, ['List-Unsubscribe', 'List-Unsubscribe-Post'], true) || !is_string($value) || preg_match('/[\r\n\x00-\x1f]/', $value)) throw new InvalidArgumentException('Invalid list email header.');
+    }
+    if ($recipientName !== null && preg_match('/[\r\n]/', $recipientName)) throw new InvalidArgumentException('Invalid recipient name.');
+    $listLines = []; foreach ($listHeaders as $key => $value) $listLines[] = $key . ': ' . $value;
     $messageId ??= '<' . bin2hex(random_bytes(24)) . '@dnr.invalid>';
     $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
     $encoded_name = '=?UTF-8?B?' . base64_encode($fromName) . '?=';
@@ -774,7 +788,8 @@ function smtpMessageData(string $from, string $fromName, string $recipient, stri
     $content = smtpMessageContent($body, $htmlBody, $attachments);
     $message = smtpNormalizeLineEndings(implode("\n", [
         'From: ' . $encoded_name . ' <' . $from . '>',
-        ...smtpRecipientHeaders($recipient, $visibleRecipients),
+        ...($recipientName !== null && $recipientName !== '' && $visibleRecipients === null ? ['To: =?UTF-8?B?' . base64_encode($recipientName) . '?= <' . normalizeAccountEmail($recipient) . '>'] : smtpRecipientHeaders($recipient, $visibleRecipients)),
+        ...$listLines,
         ...($replyToHeader !== '' ? [$replyToHeader] : []),
         'Subject: ' . $encoded_subject,
         'Message-ID: ' . $messageId,
@@ -797,7 +812,7 @@ final class SmtpSession
     private string $from;
     private string $fromName;
 
-    public function __construct()
+    public function __construct(private readonly ?mysqli $budgetDb = null, private readonly string $budgetLane = 'operational')
     {
         $this->from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
         $this->fromName = deploymentConfig()->string('brand.mail_name');
@@ -851,11 +866,21 @@ final class SmtpSession
             }
         } catch (Throwable $exception) {
             $this->disconnect(false);
+            if ($exception instanceof SmtpResponseException) $this->deferProviderLimit($exception);
             throw $exception;
         }
     }
 
-    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = []): bool
+    private function deferProviderLimit(SmtpResponseException $exception): void
+    {
+        if ($exception->providerRetryAt() === null) return;
+        if ($this->budgetDb !== null && audienceMailPolicyAvailable($this->budgetDb)) {
+            $this->budgetDb->execute_query('UPDATE marketing_delivery_policy SET blocked_until=GREATEST(COALESCE(blocked_until,UTC_TIMESTAMP()),?),block_reason=? WHERE audience_id=1', [$exception->providerRetryAt(), 'The SMTP provider requested a sending pause.']);
+        }
+        throw new MailBudgetDeferredException($exception->providerRetryAt(), 'The SMTP provider requested a sending pause.');
+    }
+
+    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [], array $listHeaders = [], ?string $fromName = null, ?string $recipientName = null): bool
     {
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
@@ -865,7 +890,8 @@ final class SmtpSession
         if ($replyTo !== '') {
             $replyTo = normalizeAccountEmail($replyTo);
         }
-        if (preg_match('/[\r\n]/', $this->fromName . (string) $subject . $replyTo) === 1) {
+        $fromName ??= $this->fromName;
+        if (preg_match('/[\r\n]/', $fromName . (string) $subject . $replyTo) === 1) {
             throw new InvalidArgumentException('Mail headers contain invalid characters.');
         }
 
@@ -874,15 +900,17 @@ final class SmtpSession
             throw new InvalidArgumentException('Invalid SMTP Message-ID.');
         }
         $stream = $this->stream;
-        $message = smtpMessageData($this->from, $this->fromName, $recipient, (string) $subject, (string) $body,
-            $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
+        $message = smtpMessageData($this->from, $fromName, $recipient, (string) $subject, (string) $body,
+            $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments, $listHeaders, $recipientName);
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
+        if ($this->budgetDb !== null) audienceReserveMail($this->budgetDb, $messageId, $this->budgetLane);
         try {
             smtpCommand($stream, 'MAIL FROM:<' . $this->from . '>', [250]);
             smtpCommand($stream, 'RCPT TO:<' . $recipient . '>', [250, 251]);
             smtpCommand($stream, 'DATA', [354]);
         } catch (SmtpResponseException $exception) {
             $this->disconnect(false);
+            $this->deferProviderLimit($exception);
             if (in_array($exception->statusCode(), [0, 421], true)) {
                 throw new SmtpPreDataException(
                     $exception->getMessage(),
@@ -918,6 +946,7 @@ final class SmtpSession
             smtpReadResponse($stream, [250]);
         } catch (SmtpResponseException $exception) {
             $this->disconnect(false);
+            $this->deferProviderLimit($exception);
             if ($exception->statusCode() >= 500 && $exception->statusCode() <= 599) {
                 throw new DomainException(
                     $exception->getMessage(),
@@ -998,14 +1027,15 @@ function deliverApplicationEmailWithSession(
     $htmlBody = null,
     ?array $visibleRecipients = null,
     ?string $messageId = null,
-    array $attachments = []
+    array $attachments = [],
+    ?mysqli $budgetDb = null
 ): bool {
     if (accountMailTransport() === 'log') {
         return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
     }
     $reconnected = false;
     while (true) {
-        $session ??= new SmtpSession();
+        $session ??= new SmtpSession($budgetDb);
         try {
             return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
         } catch (SmtpPreDataException $exception) {

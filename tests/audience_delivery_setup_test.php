@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../src/audience_store.php';
+$checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};$reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Rejected invalid input');return;}throw new RuntimeException('Expected rejection');};
+$expect(audienceSendingAddress(' Hello@Example.org ')==='hello@example.org','Sender normalization');
+foreach(['a@gmail.com',"test@example.org\r\nBcc: other@example.org",'bad-address','admin@localhost']as$email)$reject(fn()=>audienceSendingAddress($email));
+$records=audienceSendingRecords('example.org',[['selector'=>'relay1','type'=>'CNAME','value'=>'relay1.provider.example.']]);$expect($records[0]['host']==='relay1._domainkey.example.org','Provider selector domain scoped');
+foreach([[['selector'=>'../bad','type'=>'CNAME','value'=>'a.example.org']],[['selector'=>'one','type'=>'CNAME','value'=>'127.0.0.1']],[['selector'=>'one','type'=>'TXT','value'=>'v=DKIM1; p=']],[['selector'=>'one','type'=>'CNAME','value'=>'a.example.org'],['selector'=>'one','type'=>'CNAME','value'=>'b.example.org']]]as$input)$reject(fn()=>audienceSendingRecords('example.org',$input));
+$dkimFixtureKey=openssl_pkey_get_details(openssl_pkey_new(['private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_RSA]))['key'];$key='v=DKIM1; k=rsa; p='.preg_replace('/-----[^-]+-----|\s+/','',$dkimFixtureKey);
+$lookup=static function(string $host,string $type)use($key):array{return match($host){'relay1._domainkey.example.org'=>['relay1.provider.example'],'relay1.provider.example'=>[$key],'_dmarc.example.org'=>['v=DMARC1; p=reject; rua=mailto:dmarc@example.org'],'example.org'=>['v=spf1 include:provider.example -all'],default=>[]};};
+$checksDns=audienceSendingCheckDns('example.org',$records,$lookup);$expect($checksDns['complete']&&$checksDns['spf'],'CNAME target key and DMARC required');
+$expect(!audienceSendingCheckDns('example.org',$records,static fn()=>[])['complete'],'Missing records never authenticate');
+$expect(!audienceSendingDmarc(['v=DMARC1; p=none','v=DMARC1; p=reject']),'Multiple policies fail');
+$expect(!audienceSendingDmarc(['v=DMARC1; rua=mailto:dmarc@example.org']),'Policy is required');
+$expect(audienceSendingDmarc(['v=DMARC1; p=quarantine']),'Quarantine accepted');
+$expect(audienceSendingDkimKey($key),'RSA public key is parseable');
+$expect(!audienceSendingDkimKey('v=DKIM1; p='.base64_encode(str_repeat('x',64))),'Random bytes are not a DKIM RSA key');
+$expect(!audienceSendingDkimKey($key.'; p=duplicate'),'Duplicate DKIM key tags rejected');
+$expect(!audienceSendingDmarc(['v=DMARC1; p=none; p=reject']),'Duplicate policy tags fail');
+echo "Delivery setup validation: $checks checks passed.\n";

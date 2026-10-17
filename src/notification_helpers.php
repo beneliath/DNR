@@ -802,6 +802,7 @@ function failQueuedNotificationEmail(
     bool $permanent = false,
     ?string $claimToken = null
 ): void {
+    if (audienceDeferOperationalMail($conn, 'notification_outbox', $outboxId, $claimToken, $exception)) return;
     if ($exception instanceof SmtpUncertainDeliveryException) {
         markEmailDeliveryUncertain($conn, 'notification_outbox', $outboxId, $claimToken);
         return;

@@ -1,0 +1,25 @@
+<?php
+if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
+$s3start=$checks;$s3path='audience.php?view=delivery';$s3post=static fn(array $data)=>$admin($s3path,['csrf_token'=>$csrf]+$data);
+foreach([$admin,$editor]as$client){$page=$client($s3path);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Amazon SES')&&!preg_match('/Warning:|Fatal error:/',$page['body']),'SES connection renders');}
+audienceHttpExpect($reviewer($s3path)['status']===403,'Reviewer delivery configuration denied');
+$sesInput=['action'=>'delivery_ses_save','version'=>1,'region'=>'us-east-1','from_email'=>'sender@community.example','configuration_set'=>'message-monkey','topic_arn'=>'arn:aws:sns:us-east-1:123456789012:message-monkey','access_key_id'=>'AKIA'.str_repeat('A',16),'secret_access_key'=>str_repeat('s',40)];
+audienceHttpExpect($editor($s3path,['csrf_token'=>$token]+$sesInput)['status']===403,'Editor cannot configure account credentials');
+audienceHttpExpect($admin($s3path,['csrf_token'=>'invalid']+$sesInput)['status']===400,'SES setup requires CSRF');
+audienceHttpExpect(!$campaignStore->sendingReadiness('sender@community.example',[])['ready'],'Unconfigured connection blocks sending');
+audienceHttpExpect($s3post($sesInput)['status']===302,'Admin saves encrypted SES credentials');$ses=$campaignStore->sesSettings();
+audienceHttpExpect($ses['access_key_tail']==='AAAA'&&!str_contains(json_encode($ses),str_repeat('s',40))&&$ses['check_state']==='queued','Only masked credential metadata is readable');
+$credentialRead=false;try{$conn->query('SELECT credential_ciphertext FROM marketing_ses_credentials');}catch(mysqli_sql_exception $e){$credentialRead=in_array($e->getCode(),[1142,1143],true);}audienceHttpExpect($credentialRead,'Web database role cannot read SES credentials');
+$bad=$s3post($sesInput);audienceHttpExpect($bad['status']===200&&str_contains($bad['body'],'changed')&&!str_contains($bad['body'],str_repeat('s',40))&&!str_contains($bad['body'],'AKIA'.str_repeat('A',16)),'Stale setup rejected without re-echoing secrets');
+$sesInput['version']=$ses['version'];$sesInput['access_key_id']='';$sesInput['secret_access_key']='';audienceHttpExpect($s3post($sesInput)['status']===302&&$campaignStore->sesSettings()['access_key_tail']==='AAAA','Blank credential fields retain saved credentials');
+$ses=$campaignStore->sesSettings();audienceHttpExpect($s3post(['action'=>'delivery_ses_operation','version'=>$ses['version'],'operation'=>'disconnect'])['status']===302&&!$campaignStore->sesSettings()['enabled'],'Disconnect disables this account’s marketing connection');
+$sesInput['version']=$campaignStore->sesSettings()['version'];audienceHttpExpect(str_contains($s3post($sesInput)['body'],'Enter this MOED account'),'Disconnected credentials cannot be reused');
+$sesInput['access_key_id']='AKIA'.str_repeat('A',16);$sesInput['secret_access_key']=str_repeat('s',40);audienceHttpExpect($s3post($sesInput)['status']===302,'Reconnect saves a fresh account-bound secret');
+foreach(['relay','domains','limits','activity','events']as$tab){$p=$admin($s3path.'&tab='.$tab);audienceHttpExpect($p['status']===200&&!preg_match('/Warning:|Fatal error:/',$p['body']),'SES tab '.$tab.' renders');}
+audienceHttpExpect(str_contains($admin($s3path.'&tab=events')['body'],'audience_ses_events.php'),'Account HTTPS SNS receiver displayed');
+audienceHttpExpect($s3post(['action'=>'delivery_probe'])['status']===200,'Retired SMTP marketing setup action cannot queue mail');
+$ses=$campaignStore->sesSettings();$conn->execute_query("UPDATE marketing_ses_settings SET check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=100000,max_rate=1000,subscription_arn=CONCAT(topic_arn,':aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') WHERE audience_id=1");
+audienceHttpExpect($campaignStore->sendingReadiness('sender@community.example',['mailing_address'=>'123 Fixture Road'])['ready'],'Verified SES metadata and event subscription permit review');
+audienceHttpExpect(!$campaignStore->sendingReadiness('other@community.example',['mailing_address'=>'123 Fixture Road'])['ready'],'Different From address blocked');
+audienceHttpExpect(!$campaignStore->sendingReadiness('sender@community.example',[])['ready'],'Postal address still required');
+echo 'SES setup HTTP: '.($checks-$s3start)." checks passed.\n";

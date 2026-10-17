@@ -1,0 +1,67 @@
+<?php
+// Runs only as part of the authenticated disposable qualification suite.
+if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable'||!isset($campaignStore,$editor,$reviewer))exit("Disposable suite required.\n");
+$coStart=$checks;$coPath='audience.php?view=content';$coBrand='audience.php?view=brand';
+$coSettingsVersion=static fn()=>$campaignStore->contentSettings()['version'];
+$coImage='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=';
+foreach([$coPath,$coBrand]as$p){$r=$editor($p);audienceHttpExpect($r['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$r['body']),'Content screen without PHP warnings '.$p);}
+audienceHttpExpect($editor($coPath,['csrf_token'=>'invalid','action'=>'content_folder','operation'=>'create','name'=>'Denied'])['status']===400,'Content CSRF enforced');
+audienceHttpExpect($reviewer($coPath,['csrf_token'=>$reviewToken,'action'=>'content_save','name'=>'Denied','image'=>$coImage])['status']===403,'Reviewer content changes denied');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'create','name'=>'Completion files','version'=>$coSettingsVersion()])['status']===302,'Content folder creates');
+$coSave=['csrf_token'=>$token,'action'=>'content_save','name'=>'Completion image','image'=>$coImage,'alt'=>'A fixture image','link'=>'https://example.test/image','folder'=>'Completion files'];
+$r=$editor($coPath,$coSave);audienceHttpExpect($r['status']===302,'Private content upload saves');preg_match('/item=(\d+)/',$r['headers'],$m);$coId=(int)$m[1];$coItem=$campaignStore->designLibraryItem($coId);$coPublic='audience_asset.php?key='.$coItem['data']['public_key'];
+audienceHttpExpect($coItem['data']['width']===1&&$coItem['data']['bytes']>0&&$coItem['data']['url']==='https://example.test/image','File metadata persisted');
+audienceHttpExpect($reviewer($coPath.'&item='.$coId)['status']===200&&$c2anon($coPublic)['status']===404,'Private image available in authenticated library only');
+$r=$editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'published'=>'1']));audienceHttpExpect($r['status']===200&&str_contains($r['body'],'Confirm that you may publish'),'Public image requires rights confirmation');
+audienceHttpExpect(!$campaignStore->designLibraryItem($coId)['data']['published'],'Failed publish keeps asset private');
+audienceHttpExpect($editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'published'=>'1','rights_confirmed'=>'1']))['status']===302,'Explicit image publication saves');
+$r=$c2anon($coPublic);audienceHttpExpect($r['status']===200&&str_contains(strtolower($r['headers']),'content-type: image/png')&&$r['body']===base64_decode(explode(',',$coImage)[1]),'Public image serves exact validated bytes');
+audienceHttpExpect(str_contains(strtolower($r['headers']),'cache-control: no-store')&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Public image security and revocation headers');
+audienceHttpExpect($editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'name'=>'Stale file']))['status']===200&&$campaignStore->designLibraryItem($coId)['name']==='Completion image','Stale asset edit rejected');
+$coForeign=$otherStore->saveContentItem(['name'=>'Foreign asset','image'=>$coImage,'published'=>'1','rights_confirmed'=>'1']);$coForeignItem=$otherStore->designLibraryItem($coForeign);
+audienceHttpExpect($editor($coPath.'&item='.$coForeign)['status']===404&&$c2anon('audience_asset.php?key='.$coForeignItem['data']['public_key'])['status']===404,'Foreign asset cannot cross canonical audience boundary');
+$coCurrent=$campaignStore->designLibraryItem($coId);$coVersion=$coCurrent['version'];
+$c2reject(fn()=>$campaignStore->contentOperation('delete',[$coId,$coForeign],[$coId=>$coVersion,$coForeign=>1]),'Bulk content ownership enforced');
+audienceHttpExpect($campaignStore->designLibraryItem($coId)['version']===$coVersion,'Bulk content failure rolls back all items');
+audienceHttpExpect($campaignStore->contentList(['search'=>'Completion image','folder'=>'Completion files','type'=>'image','sort'=>'size','per_page'=>10])['total']===1,'Content filters and size sort compose');
+for($i=0;$i<11;$i++)$campaignStore->saveDesignLibrary('image','Paging content '.sprintf('%02d',$i),['image'=>$coImage]);
+$coList=$campaignStore->contentList(['search'=>'Paging content','per_page'=>10,'page'=>2,'sort'=>'name','direction'=>'asc']);audienceHttpExpect(count($coList['items'])===1&&$coList['total']===11&&$coList['pages']===2,'Content pagination has stable second page');
+$coTemplate=$campaignStore->createEmailTemplate('Brand completion template',audienceDesignStarters()['newsletter']['design']);$coBefore=$campaignStore->emailTemplate($coTemplate);$coDesign=$coBefore['design'];$coDesign['rows'][0]['columns'][0][0]['image']=$coImage;
+$campaignStore->saveEmailDesign('template',$coTemplate,$coBefore['version'],$coDesign);$coSnapshot=$campaignStore->emailTemplate($coTemplate)['design'];
+audienceHttpExpect($campaignStore->contentUsage($campaignStore->designLibraryItem($coId))>=1,'Image usage finds independent template snapshots');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_operation','operation'=>'delete','selected'=>[$coId],'versions'=>[$coId=>$coVersion]])['status']===302,'Content moves to recoverable Trash');
+audienceHttpExpect($c2anon($coPublic)['status']===404&&$campaignStore->contentList(['trash'=>'1','search'=>'Completion image'])['total']===1,'Trashed image revoked publicly and visible in Trash');
+$coTrashed=$campaignStore->one('SELECT version FROM marketing_design_library WHERE id=?',[$coId]);
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_operation','operation'=>'restore','selected'=>[$coId],'versions'=>[$coId=>$coTrashed['version']]])['status']===302,'Trashed image restores');
+audienceHttpExpect($c2anon($coPublic)['status']===404&&$campaignStore->emailTemplate($coTemplate)['design']===$coSnapshot,'Restore remains private and snapshots unchanged');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'rename','name'=>'Completion files','new_name'=>'Renamed files','version'=>$coSettingsVersion()])['status']===302&&$campaignStore->designLibraryItem($coId)['data']['folder']==='Renamed files','Folder rename updates membership');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'delete','name'=>'Renamed files','version'=>$coSettingsVersion()])['status']===302&&$campaignStore->designLibraryItem($coId)['data']['folder']==='','Folder deletion unfiles and preserves images');
+$coBrandInput=['csrf_token'=>$token,'action'=>'brand_save','version'=>$coSettingsVersion(),'font'=>'Georgia','background'=>'#fafafa','text'=>'#222222','link'=>'#006973','button'=>'#006973','buttonText'=>'#ffffff','body'=>'#ffffff','buttonRadius'=>12,'fontSize'=>18,'logo'=>$coImage,'secondary_logo'=>$coImage];
+audienceHttpExpect($editor($coBrand,$coBrandInput)['status']===302,'Brand settings save without changing other audience settings');
+$coSavedBrand=$campaignStore->contentSettings()['settings']['brand'];audienceHttpExpect($coSavedBrand['styles']['font']==='Georgia'&&$coSavedBrand['styles']['buttonRadius']===12&&$coSavedBrand['logo']===$coImage,'Brand font colors button radius logos persist');
+audienceHttpExpect($reviewer($coBrand,array_replace($coBrandInput,['csrf_token'=>$reviewToken,'version'=>$coSettingsVersion()]))['status']===403,'Reviewer Brand Kit mutation denied');
+audienceHttpExpect($editor($coBrand,$coBrandInput)['status']===200,'Stale Brand Kit save rejected');
+$coFont='data:font/woff2;base64,'.base64_encode(file_get_contents($source.'/assets/fonts/rubik-latin-700.woff2'));
+$coFontInput=array_replace($coBrandInput,['version'=>$coSettingsVersion(),'web_font'=>$coFont]);
+audienceHttpExpect(str_contains($editor($coBrand,$coFontInput)['body'],'Confirm your license'),'Embedded font requires license confirmation');
+audienceHttpExpect($editor($coBrand,$coFontInput+['font_license'=>'1'])['status']===302,'Licensed embedded font saves');
+$coSelectedInput=array_replace($coBrandInput,['version'=>$coSettingsVersion(),'logo_library'=>$coId,'secondary_logo_library'=>$coId]);
+audienceHttpExpect($editor($coBrand,$coSelectedInput)['status']===302&&$campaignStore->contentSettings()['settings']['brand']['logo']===$coImage,'Brand logo can select an owned saved image');
+// Restore the licensed font before applying the kit.
+$campaignStore->saveBrand($coFontInput+['font_license'=>'1'],$coSettingsVersion());
+$coTemplateNow=$campaignStore->emailTemplate($coTemplate);$coRevisions=count($campaignStore->designRevisions('template',$coTemplate));
+audienceHttpExpect($editor($coBrand,['csrf_token'=>$token,'action'=>'brand_apply','template_id'=>$coTemplate,'version'=>$coTemplateNow['version'],'include_logo'=>'1'])['status']===302,'Brand applies explicitly to owned template');
+$coBranded=$campaignStore->emailTemplate($coTemplate)['design'];audienceHttpExpect($coBranded['rows'][0]['name']==='Brand logo'&&$coBranded['styles']['font']==='Georgia'&&$coBranded['styles']['webFont']===$coFont,'Brand applied to template styles and logo');
+audienceHttpExpect(count($campaignStore->designRevisions('template',$coTemplate))===$coRevisions+1,'Brand apply retains revision history');
+audienceHttpExpect(str_contains(audienceDesignHtml($coBranded),'@font-face')&&str_contains(audienceDesignHtml($coBranded),'MOEDBrandFont'),'Email HTML embeds controlled font with fallback');
+audienceHttpExpect($editor($coBrand,['csrf_token'=>$token,'action'=>'brand_apply','template_id'=>$foreignTemplate,'version'=>1])['status']===200,'Foreign template cannot receive Brand Kit');
+$coProfile=$campaignStore->person($pid);$coProtected=array_intersect_key($coProfile,array_flip(['email_status','tag_ids','group_ids']));$coProfilePath='audience.php?view=contact&id='.$pid.'&tab=settings';
+$r=$editor($coProfilePath);audienceHttpExpect(str_contains($r['body'],'<select id="settings-language" name="language">')&&str_contains($r['body'],'<select id="settings-timezone" name="timezone">'),'Settings fields are selection boxes');
+audienceHttpExpect($editor($coProfilePath,['csrf_token'=>$token,'action'=>'save_profile_section','section'=>'settings','id'=>$pid,'version'=>$coProfile['version'],'language'=>'es','timezone'=>'Europe/Madrid'])['status']===302,'Dropdown settings persist');
+$coUpdated=$campaignStore->person($pid);audienceHttpExpect($coUpdated['language']==='es'&&$coUpdated['timezone']==='Europe/Madrid'&&array_intersect_key($coUpdated,$coProtected)===$coProtected,'Settings preserve subscription and tag/group memberships');
+$r=$editor($coProfilePath);audienceHttpExpect(str_contains($r['body'],'value="es" selected')&&str_contains($r['body'],'value="Europe/Madrid" selected'),'Saved dropdown values remain selected');
+$coBadImage=$editor($coPath,array_replace($coSave,['image'=>'data:image/svg+xml;base64,PHN2Zz4=']));audienceHttpExpect($coBadImage['status']===200&&str_contains($coBadImage['body'],'Upload a PNG'),'Unsupported image format rejected');
+$coTmp=tempnam(sys_get_temp_dir(),'content-upload-');try{file_put_contents($coTmp,base64_decode(explode(',',$coImage)[1]));$coMultipart=$coSave;unset($coMultipart['image']);$coMultipart['folder']='';$coMultipart['image_file']=new CURLFile($coTmp,'image/png','fixture.png');audienceHttpExpect($editor($coPath,$coMultipart,true)['status']===302,'Multipart image upload validates and saves');}finally{unlink($coTmp);}
+$coCode=$campaignStore->brandedDesign($codeDoc,$campaignStore->contentSettings()['settings']['brand']);$coCodeAgain=$campaignStore->brandedDesign($coCode,$campaignStore->contentSettings()['settings']['brand']);audienceHttpExpect(substr_count($coCodeAgain['code'],'data-moed-brand')===1&&str_contains($coCodeAgain['code'],'@font-face'),'Brand application to custom HTML is idempotent and embeds uploaded font');
+$coWidthDesign=audienceDesignStarters()['newsletter']['design'];$coWidthDesign['styles']['width']=720;audienceHttpExpect($campaignStore->brandedDesign($coWidthDesign,$campaignStore->contentSettings()['settings']['brand'])['styles']['width']===720,'Brand application preserves unrelated template layout');
+echo 'Content and Brand HTTP: '.($checks-$coStart)." additional checks passed.\n";
