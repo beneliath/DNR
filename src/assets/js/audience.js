@@ -2,6 +2,16 @@
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    $$('[data-audience-logo]').forEach(logo => {
+        const dashboard = event => {
+            if (!event.ctrlKey || (event.type === 'click' && event.button !== 0)) return;
+            event.preventDefault();
+            window.location.assign(logo.dataset.dashboardUrl);
+        };
+        logo.addEventListener('click', dashboard);
+        // macOS emits contextmenu instead of click for Control-click.
+        logo.addEventListener('contextmenu', dashboard);
+    });
     // Never reuse browser form history from the rest of MOED. Explicit credential hints remain intact.
     $$('form:not([autocomplete]), input:not([autocomplete]), textarea:not([autocomplete])').forEach(control => control.setAttribute('autocomplete', 'off'));
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -52,7 +62,7 @@
     const button = (text, action, label = text) => el('button', {type: 'button', onclick: action, 'aria-label': label}, text);
     const setValue = (form, name, value) => { const control = form?.elements.namedItem(name); if (control) control.value = value ?? ''; };
     const hidden = (name, value) => el('input', {type: 'hidden', name, value});
-    $$('[data-open-dialog]').forEach(b => b.addEventListener('click', event => { event.preventDefault(); show(b.dataset.openDialog); }));
+    $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', event => { event.preventDefault(); show(b.dataset.openDialog); }));
     document.addEventListener('invalid', event => {
         let details = event.target.closest('details');
         while (details) { details.open = true; details = details.parentElement.closest('details'); }
@@ -133,7 +143,7 @@
         searchDialog.addEventListener('close', () => { clearTimeout(timer); request?.abort(); ++sequence; results.removeAttribute('aria-busy'); searchTrigger.focus(); });
         searchDialog.addEventListener('click', event => { const r = searchDialog.getBoundingClientRect(); if (event.target === searchDialog && (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)) searchDialog.close(); });
     }
-    $$('[data-auto-submit]').forEach(input => input.addEventListener('change', () => input.form.requestSubmit()));
+    $$('[data-auto-submit]').filter(input => !input.closest('[data-audience-results]')).forEach(input => input.addEventListener('change', () => input.form.requestSubmit()));
     const definitionSelection = $('[data-definition-selection]');
     if (definitionSelection) {
         const items = $$('[data-definition-item]'), all = $('[data-definition-all]', definitionSelection);
@@ -177,7 +187,52 @@
         options.forEach(choice => { choice.hidden = !choice.textContent.toLowerCase().includes(input.value.toLowerCase()); });
         $('[data-filter-empty]', panel).hidden = options.some(choice => !choice.hidden) || !options.length;
     }));
-    $$('[data-instant-filter]').forEach(input => input.addEventListener('change', () => input.form.requestSubmit()));
+    const filterForm = $('.audience-filter-popovers'), peopleResults = $('[data-audience-results]'), filterSummary = $('[data-audience-filter-summary]');
+    let filterRequest, filterSequence = 0, filterSearchTimer, filterPending = Promise.resolve(true), refreshPeopleColumns = () => {};
+    const refreshFilters = () => {
+        clearTimeout(filterSearchTimer); filterSearchTimer = undefined; const sequence = ++filterSequence; filterRequest?.abort(); filterRequest = new AbortController();
+        const url = new URL(config.url, location.href), data = new FormData(filterForm);
+        for (const [key,value] of data) if (!['open_filter','filter_query'].includes(key)) url.searchParams.append(key,String(value));
+        peopleResults.inert = true; peopleResults.setAttribute('aria-busy','true'); $('[data-filter-error]').hidden = true;
+        filterPending = (async () => {
+            try {
+                const response = await fetch(url,{credentials:'same-origin',headers:{Accept:'text/html'},cache:'no-store',signal:filterRequest.signal});
+                if (!response.ok) throw new Error('Unable to update these filters. Try again.');
+                const page = new DOMParser().parseFromString(await response.text(),'text/html');
+                if (sequence !== filterSequence) return false;
+                const nextResults = $('[data-audience-results]',page), nextConfig = $('#audience-config',page), nextSummary = $('[data-audience-filter-summary]',page);
+                if (!nextResults || !nextConfig || !nextSummary) throw new Error('Sign in again, then reload this page to update filters.');
+                const problem = $('[data-operation-error]',page); if (problem) throw new Error(problem.textContent.trim());
+                const parsed = JSON.parse(nextConfig.textContent), columnsTrigger = $('[popovertarget="columns"]',peopleResults);
+                if (columnsTrigger) $('[popovertarget="columns"]',nextResults)?.replaceWith(columnsTrigger);
+                peopleResults.replaceChildren(...nextResults.childNodes); filterSummary.replaceChildren(...nextSummary.childNodes);
+                Object.assign(config,parsed); $('#audience-config').textContent = nextConfig.textContent;
+                for (const selector of ['#bulk-people-form','#save-current-segment form','#filter-campaign form']) {
+                    const form = $(selector), next = $(selector,page); if (!form || !next) continue;
+                    $$('input[type="hidden"]',form).forEach(input => input.remove());
+                    form.append(...$$('input[type="hidden"]',next).map(input => input.cloneNode(true)));
+                }
+                $$('[data-instant-filter]',filterForm).forEach(input => { const next = $$('[data-instant-filter]',page).find(other => other.name === input.name && other.value === input.value); if (next) input.checked = next.checked; });
+                $$('[popovertarget]',filterForm).forEach(trigger => {
+                    const next = $$('[popovertarget]',page).find(other => other.getAttribute('popovertarget') === trigger.getAttribute('popovertarget'));
+                    if (next) { trigger.replaceChildren(...Array.from(next.childNodes).map(node => node.cloneNode(true))); trigger.className = next.className; }
+                });
+                const suggestions = $('#connection-search-options'), nextSuggestions = $('#connection-search-options',page); if (suggestions && nextSuggestions) suggestions.replaceChildren(...nextSuggestions.childNodes);
+                allMatching = false; selectedBoxes = $$('[data-person-select]'); updateSelection(); refreshPeopleColumns();
+                window.dispatchEvent(new Event('resize'));
+                history.replaceState(null,'',url); return true;
+            } catch (error) {
+                if (error.name === 'AbortError' || sequence !== filterSequence) return false;
+                const notice = $('[data-filter-error]'); notice.textContent = error.message; notice.hidden = false; return false;
+            } finally { if (sequence === filterSequence) { peopleResults.inert = false; peopleResults.removeAttribute('aria-busy'); } }
+        })();
+        return filterPending;
+    };
+    const currentFiltersReady = () => filterSearchTimer ? refreshFilters() : filterPending;
+    $$('[data-instant-filter]').forEach(input => input.addEventListener('change',refreshFilters));
+    filterForm?.addEventListener('submit',event => { event.preventDefault(); refreshFilters(); });
+    $('#contact-search')?.addEventListener('input',() => { clearTimeout(filterSearchTimer); filterSearchTimer = setTimeout(refreshFilters,300); });
+    $('#contact-search')?.addEventListener('search',refreshFilters);
     document.addEventListener('click', event => {
         $$('details.audience-menu[open], details.audience-filter[open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
     });
@@ -241,6 +296,7 @@
                 const items = choices(), index = items.indexOf(document.activeElement);
                 event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
             });
+            if (panel.hasAttribute('data-reopen-filter')) { panel.showPopover(); $('[data-filter-search]',panel)?.dispatchEvent(new Event('input')); }
         }
         if (panel.getAttribute('role') !== 'menu') return;
         const items = () => $$('[role="menuitem"], [role="menuitemradio"]', panel);
@@ -296,6 +352,7 @@
                 }
             }
         };
+        refreshPeopleColumns = renderColumns;
         let stopColumnDrag;
         panel.addEventListener('beforetoggle', event => {
             stopColumnDrag?.();
@@ -358,7 +415,7 @@
         restoreDraft(); renderColumns();
     }
 
-    const selectedBoxes = $$('[data-person-select]');
+    let selectedBoxes = $$('[data-person-select]');
     let allMatching = false;
     const updateSelection = () => {
         const ids = selectedBoxes.filter(input => input.checked).map(input => input.value);
@@ -375,12 +432,18 @@
             setValue(form, 'selection_scope', allMatching || (!active && selector === '#people-export') ? 'all' : 'selected');
             $(target, form).replaceChildren(...(allMatching ? [] : ids.map(id => hidden('selected[]', id))));
         }
-        if ($('[data-export-label]')) $('[data-export-label]').textContent = active ? '↓ Export selection' : '↓ Export connections';
+        if ($('[data-export-label]')) $('[data-export-label]').textContent = active ? '↓ Export selection' : ($('[data-export-label]').dataset.exportBaseLabel || '↓ Export connections');
     };
-    selectedBoxes.forEach(input => input.addEventListener('change', () => { allMatching = false; updateSelection(); }));
-    $('[data-select-page]')?.addEventListener('change', event => { allMatching = false; selectedBoxes.forEach(input => { input.checked = event.target.checked; }); updateSelection(); });
-    $('[data-select-matches]')?.addEventListener('click', () => { allMatching = true; selectedBoxes.forEach(input => { input.checked = true; }); updateSelection(); });
-    $('[data-clear-selection]')?.addEventListener('click', () => { allMatching = false; selectedBoxes.forEach(input => { input.checked = false; }); updateSelection(); });
+    peopleResults?.addEventListener('change',event => {
+        if (event.target.matches('[data-auto-submit]')) { event.target.form.requestSubmit(); return; }
+        if (!event.target.matches('[data-person-select], [data-select-page]')) return;
+        allMatching = false; if (event.target.matches('[data-select-page]')) selectedBoxes.forEach(input => { input.checked = event.target.checked; }); updateSelection();
+    });
+    peopleResults?.addEventListener('click',event => {
+        const action = event.target.closest('[data-select-matches], [data-clear-selection], [data-open-dialog]'); if (!action) return;
+        if (action.dataset.openDialog) { show(action.dataset.openDialog); return; }
+        allMatching = action.hasAttribute('data-select-matches'); selectedBoxes.forEach(input => { input.checked = allMatching; }); updateSelection();
+    });
     const descriptions = {
         archive: 'Archive connections to exclude them from campaigns while retaining their profiles and permission history.',
         restore: 'Unarchive connections. Their existing email subscription status is preserved.',
@@ -474,6 +537,12 @@
 
     const ruleRoot = $('[data-rule-root]');
     let tree = {match: 'all', rules: []};
+    const segmentTree = () => {
+        const scope = $('[data-segment-status]')?.value || '';
+        if (!scope) return tree;
+        const conditions = tree.rules.length ? (tree.match === 'all' ? tree.rules : [tree]) : [];
+        return {match:'all',rules:[{field:'email_status',operator:'is',value:scope},...conditions]};
+    };
     const defaultRule = () => ({field: 'email_status', operator: 'is', value: 'subscribed'});
     const clearPreview = () => { if ($('[data-segment-results]')) $('[data-segment-results]').hidden = true; if ($('[data-segment-error]')) $('[data-segment-error]').hidden = true; };
     const ruleDepth = group => 1 + Math.max(0, ...group.rules.filter(rule => Array.isArray(rule.rules)).map(ruleDepth));
@@ -589,17 +658,25 @@
     const openSegment = (model = {}) => {
         const form = $('#segment-form'); if (!form) return;
         ['id', 'version', 'name'].forEach(key => setValue(form, key, model[key] || (key === 'name' ? '' : 0)));
+        if ($('[data-segment-status]')) $('[data-segment-status]').value = '';
         tree = clone(model.rules || {match: 'all', rules: [defaultRule()]});
         renderRules(); show('segment-builder');
     };
     $$('[data-segment-new]').forEach(b => b.addEventListener('click', () => openSegment()));
-    $$('[data-segment-current]').forEach(b => b.addEventListener('click', () => openSegment({...config.segment, rules: config.rules})));
+    const openCurrentSegment = async () => { if (await currentFiltersReady()) openSegment({...config.segment,rules:config.currentRules || config.rules}); };
+    $$('[data-segment-current]').filter(b => !b.closest('[data-audience-filter-summary]')).forEach(b => b.addEventListener('click',openCurrentSegment));
+    filterSummary?.addEventListener('click',async event => {
+        const action = event.target.closest('[data-segment-current], [data-open-dialog]'); if (!action) return;
+        if (action.hasAttribute('data-segment-current')) { openCurrentSegment(); return; }
+        if (await currentFiltersReady()) show(action.dataset.openDialog);
+    });
     $$('[data-segment-edit], [data-segment-copy]').forEach(b => b.addEventListener('click', () => {
         const model = JSON.parse(b.dataset.segmentEdit || b.dataset.segmentCopy);
         if (b.hasAttribute('data-segment-copy')) { model.id = 0; model.version = 0; model.name = `${model.name} (copy)`.slice(0, 100); }
         openSegment(model);
     }));
-    $('#segment-form')?.addEventListener('submit', () => setValue($('#segment-form'), 'rules', JSON.stringify(tree)));
+    $('[data-segment-status]')?.addEventListener('change',clearPreview);
+    $('#segment-form')?.addEventListener('submit', () => setValue($('#segment-form'), 'rules', JSON.stringify(segmentTree())));
     const audienceUrl = params => { const url = new URL(config.url, location.href); for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value)); return url.href; };
     const request = async (url, options) => {
         const response = await fetch(url, {credentials: 'same-origin', ...options});
@@ -609,7 +686,7 @@
     $('[data-segment-preview]')?.addEventListener('click', async event => {
         const trigger = event.currentTarget; trigger.disabled = true; clearPreview();
         try {
-            const data = new FormData($('#segment-form')); data.set('action', 'preview_segment'); data.set('rules', JSON.stringify(tree));
+            const data = new FormData($('#segment-form')); data.set('action', 'preview_segment'); data.set('rules', JSON.stringify(segmentTree()));
             const result = await request(config.url, {method: 'POST', body: data}), panel = $('[data-segment-results]');
             panel.replaceChildren(el('h3', {}, `${Number(result.count).toLocaleString()} matching connections`));
             if (result.people.length) {
@@ -620,7 +697,7 @@
         finally { trigger.disabled = false; }
     });
     $('[data-segment-apply]')?.addEventListener('click', () => {
-        const url = new URL(config.url, location.href); url.searchParams.set('rules', JSON.stringify(tree)); location.assign(url);
+        const url = new URL(config.url, location.href); for (const [key,value] of Object.entries(config.listContext || {})) url.searchParams.set(key,String(value)); url.searchParams.set('rules', JSON.stringify(segmentTree())); location.assign(url);
     });
 
     if (config.job && ['queued', 'processing'].includes(config.job.state) && $('[data-job-panel]')) {

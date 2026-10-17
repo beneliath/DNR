@@ -14,6 +14,7 @@ require_once __DIR__ . '/audience_delivery_runtime.php';
 require_once __DIR__ . '/audience_ses.php';
 require_once __DIR__ . '/audience_search.php';
 require_once __DIR__ . '/audience_collection.php';
+require_once __DIR__ . '/audience_flow_store.php';
 
 final class AudienceStore
 {
@@ -28,6 +29,7 @@ final class AudienceStore
     use AudienceDeliveryRuntime;
     use AudienceSesSetup;
     use AudienceCollection;
+    use AudienceFlows;
     private int $transactionDepth = 0;
     public function __construct(public readonly mysqli $db, public readonly int $audienceId, public readonly int $actorId, public readonly string $actorLabel)
     {
@@ -80,12 +82,8 @@ final class AudienceStore
         $sql = '1=1'; $params = [];
         if (($filters['archived'] ?? '0') !== 'all') { $sql .= ' AND c.is_archived=?'; $params[] = (int)($filters['archived'] ?? 0); }
         if (($filters['q'] ?? '') !== '') { $sql .= " AND (LOCATE(?,c.email)>0 OR LOCATE(?,CONCAT(c.first_name,' ',c.last_name))>0)"; array_push($params,$filters['q'],$filters['q']); }
-        foreach (['status'=>'email_status','source'=>'source'] as $key=>$column) {
-            $values=$filters[$key]??[]; if (!is_array($values)) $values=$values===''?[]:[$values];
-            if ($values) { $sql .= ' AND c.'.$column.' IN ('.implode(',',array_fill(0,count($values),'?')).')'; array_push($params,...$values); }
-        }
-        if (!empty($filters['tags'])) { $sql .= ' AND EXISTS (SELECT 1 FROM marketing_contact_tags mt WHERE mt.contact_id=c.id AND mt.tag_id IN ('.implode(',',array_fill(0,count($filters['tags']),'?')).'))'; array_push($params,...$filters['tags']); }
-        [$advanced,$values] = audienceCompileRules($rules,$this->catalog());
+        foreach(['status','source']as$key)if(isset($filters[$key])&&!is_array($filters[$key]))$filters[$key]=$filters[$key]===''?[]:[$filters[$key]];
+        [$advanced,$values] = audienceCompileRules(audienceActiveRules($filters,$rules,false),$this->catalog());
         return ['c.audience_id=? AND c.deleted_at IS NULL AND (' . $sql . ') AND (' . $advanced . ')',[$this->audienceId,...$params,...$values]];
     }
     public function selectedWhere(array $input, array $filters, array $rules): array
@@ -133,10 +131,11 @@ final class AudienceStore
             foreach ($tagIds as $tag) $this->write('INSERT INTO marketing_contact_tags (contact_id,tag_id) VALUES (?,?)',[$id,$tag]);
             $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);
             foreach ($groupIds as $group) $this->write('INSERT INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$group]);
-            $this->event($id,$previous?'contact_updated':'contact_added',['email'=>$data['email'],'status'=>$data['email_status'],'consent_note'=>$data['consent_note']]);
+            $changed=[];foreach(['first_name','last_name','language','timezone']as$key)if(!$previous||($previous[$key]??'')!==($key==='language'?$language:($key==='timezone'?$timezone:$data[$key])))$changed[]=$key;foreach($custom as$key=>$value)if(!$previous||($previous['custom'][$key]??'')!==$value)$changed[]=(string)$key;
+            $this->event($id,$previous?'contact_updated':'contact_added',['email'=>$data['email'],'status'=>$data['email_status'],'consent_note'=>$data['consent_note'],'changed_fields'=>$changed]);
             if ($previous && $previous['email_status']!==$data['email_status']) $this->event($id,'subscription_changed',['from'=>$previous['email_status'],'to'=>$data['email_status'],'consent_note'=>$data['consent_note']]);
-            if ($tagIds !== ($previous['tag_ids']??[])) $this->event($id,'tags_changed',['tag_ids'=>$tagIds]);
-            if ($groupIds !== ($previous['group_ids']??[])) $this->event($id,'groups_changed',['group_ids'=>$groupIds]);
+            if ($tagIds !== ($previous['tag_ids']??[])) $this->event($id,'tags_changed',['tag_ids'=>$tagIds,'added'=>array_values(array_diff($tagIds,$previous['tag_ids']??[])),'removed'=>array_values(array_diff($previous['tag_ids']??[],$tagIds))]);
+            if ($groupIds !== ($previous['group_ids']??[])) $this->event($id,'groups_changed',['group_ids'=>$groupIds,'added'=>array_values(array_diff($groupIds,$previous['group_ids']??[])),'removed'=>array_values(array_diff($previous['group_ids']??[],$groupIds))]);
             return $id;
         });
     }
@@ -171,13 +170,14 @@ final class AudienceStore
                 $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);
                 foreach ($ids as $option) $this->write('INSERT INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$id,$option]);
                 $this->write('UPDATE marketing_contacts SET version=version+1 WHERE id=? AND audience_id=?',[$id,$this->audienceId]);
-                $event='groups_changed';$detail+=['group_ids'=>$ids];
+                $event='groups_changed';$detail+=['group_ids'=>$ids,'added'=>array_values(array_diff($ids,$person['group_ids'])),'removed'=>array_values(array_diff($person['group_ids'],$ids))];
             } elseif ($section==='settings') {
                 $language=audienceText($input,'language',12);$timezone=audienceText($input,'timezone',80);
                 if ($language!==''&&!preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/D',$language)) throw new InvalidArgumentException('Use a language code such as en or en-US.');
                 if ($timezone!==''&&!in_array($timezone,DateTimeZone::listIdentifiers(),true)) throw new InvalidArgumentException('Choose a valid time zone.');
                 $this->write('UPDATE marketing_contacts SET language=?,timezone=?,version=version+1 WHERE id=? AND audience_id=?',[$language,$timezone,$id,$this->audienceId]);
             } else throw new InvalidArgumentException('Unknown profile section.');
+            if($event==='contact_updated'){$fresh=$this->person($id);$changed=[];foreach(['first_name','last_name','language','timezone']as$key)if($person[$key]!==$fresh[$key])$changed[]=$key;foreach($fresh['custom']as$key=>$value)if(($person['custom'][$key]??'')!==$value)$changed[]=(string)$key;$detail['changed_fields']=$changed;}
             $this->event($id,$event,$detail);
         });
     }
@@ -316,10 +316,10 @@ final class AudienceStore
             }
             if(in_array($action,['tag','untag'],true)){
                 $tag=(int)($params['tag_id']??0);if(!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?',[$tag,$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
-                if($action==='tag')$this->write('INSERT IGNORE INTO marketing_contact_tags (contact_id,tag_id) VALUES (?,?)',[$id,$tag]);else $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=? AND tag_id=?',[$id,$tag]);$this->event($id,'tags_changed',['action'=>$action,'tag_id'=>$tag]);
+                if($action==='tag')$this->write('INSERT IGNORE INTO marketing_contact_tags (contact_id,tag_id) VALUES (?,?)',[$id,$tag]);else $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=? AND tag_id=?',[$id,$tag]);$this->event($id,'tags_changed',['action'=>$action,'tag_id'=>$tag,'added'=>$action==='tag'&&!in_array($tag,$person['tag_ids'],true)?[$tag]:[],'removed'=>$action==='untag'&&in_array($tag,$person['tag_ids'],true)?[$tag]:[]]);
             }elseif(in_array($action,['group','ungroup'],true)){
                 $option=(int)($params['option_id']??0);$group=$this->one('SELECT o.category_id,g.display_type FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?',[$option,$this->audienceId]);if(!$group)throw new InvalidArgumentException('Choose an available group.');
-                if($action==='group'){if(in_array($group['display_type'],['radio','dropdown'],true))$this->write('DELETE cg FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id WHERE cg.contact_id=? AND o.category_id=?',[$id,$group['category_id']]);$this->write('INSERT IGNORE INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$option]);}else $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$id,$option]);$this->event($id,'groups_changed',['action'=>$action,'option_id'=>$option]);
+                if($action==='group'){if(in_array($group['display_type'],['radio','dropdown'],true))$this->write('DELETE cg FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id WHERE cg.contact_id=? AND o.category_id=?',[$id,$group['category_id']]);$this->write('INSERT IGNORE INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$option]);}else $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$id,$option]);$this->event($id,'groups_changed',['action'=>$action,'option_id'=>$option,'added'=>array_values(array_diff($this->person($id)['group_ids'],$person['group_ids'])),'removed'=>array_values(array_diff($person['group_ids'],$this->person($id)['group_ids']))]);
             }else throw new InvalidArgumentException('Choose a supported connections action.');
             $this->write('UPDATE marketing_contacts SET version=version+1 WHERE id=?',[$id]);
         });

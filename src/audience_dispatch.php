@@ -116,7 +116,7 @@ trait AudienceDispatch
         try{return $this->transaction(function()use($id,$version,$receipt,$base){
             $row=$this->campaign($id,true);
             // A repeated confirmed request returns the same durable operation.
-            $prior=$this->one('SELECT id FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? AND confirmed_version=?',[$this->audienceId,$id,$version]);if($prior)return (int)$prior['id'];
+            $prior=$this->one('SELECT id FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? AND confirmed_version=? AND flow_run_id=0',[$this->audienceId,$id,$version]);if($prior)return (int)$prior['id'];
             if((int)$row['version']!==$version)throw new InvalidArgumentException('This campaign changed. Review it again before sending.');
             $freshAudience=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);
             $review=$this->reviewCampaignDispatch($id,$freshAudience,$base);
@@ -148,7 +148,7 @@ trait AudienceDispatch
     }
     public function campaignDelivery(int $campaign):?array
     {
-        return $this->one('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? ORDER BY id DESC LIMIT 1',[$this->audienceId,$campaign]);
+        return $this->one('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? AND flow_run_id=0 ORDER BY id DESC LIMIT 1',[$this->audienceId,$campaign]);
     }
     public function campaignDeliveryCounts(int $delivery):array
     {

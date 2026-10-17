@@ -16,6 +16,7 @@ require_once '/var/www/html/reimbursement_email_helpers.php';
 require_once '/var/www/html/audience_delivery_worker.php';
 require_once '/var/www/html/audience_dispatch_worker.php';
 require_once '/var/www/html/audience_store.php';
+require_once '/var/www/html/audience_flow_runtime.php';
 require_once '/var/www/html/audience_ses_inbox.php';
 $reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
 $limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
@@ -320,6 +321,7 @@ do {
     // Account and operational mail keeps priority over each bounded marketing batch.
     if (!$reimbursementsOnly) {
         try {
+            $processed += processAudienceFlows($conn, 25);
             $processed += processAudienceServiceMail($conn, 5);
             $processed += processAudienceCampaignDelivery($conn, 5);
         } catch (Throwable $exception) {

@@ -1,0 +1,37 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../src/audience_store.php';
+$checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
+$reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArgumentException){$expect(true,'Invalid flow rejected');return;}throw new RuntimeException('Expected a flow validation error.');};
+foreach(audienceFlowTemplates()as$key=>$template){$d=audienceFlowDocument(audienceFlowDefault($key));$expect($d['trigger']['type']===$template['trigger']&&count($d['nodes'])===count($template['steps']),'Every flow starter has a valid native graph');}
+$binding=['region'=>'us-east-2','from_email'=>'sender@example.test','configuration_set'=>'native','topic_arn'=>'arn:fixture','aws_account_id'=>'123456789012'];
+$expect(audienceSesBinding($binding)===audienceSesBinding(array_reverse($binding,true)),'JSON key ordering cannot change an SES binding');
+$changedBinding=$binding;$changedBinding['region']='us-east-1';$expect(audienceSesBinding($binding)!==audienceSesBinding($changedBinding),'Binding equality still rejects changed SES scope');
+$d=audienceFlowDefault('series');$d['nodes'][0]['next']='missing';$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault('series');$d['nodes'][2]['next']='step1';$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault('series');$d['nodes'][1]['id']='step1';$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault();$d['trigger']['type']='external';$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault();$d['settings']['timezone']='Bad/Zone';$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault();$d['settings']['weekdays']=[];$reject(fn()=>audienceFlowDocument($d));
+$d=audienceFlowDefault();$d['settings']['after']='22:00';$d['settings']['before']='06:00';$reject(fn()=>audienceFlowDocument($d));
+$s=audienceFlowDefault()['settings'];$s['after']='09:00';$s['before']='17:00';$s['weekdays']=[1,2,3,4,5];
+$expect(gmdate('Y-m-d H:i',audienceFlowWindow($s,'America/Chicago',strtotime('2026-10-16 12:00 UTC')))==='2026-10-16 14:00','Window moves an early email to local morning');
+$expect(gmdate('Y-m-d H:i',audienceFlowWindow($s,'America/Chicago',strtotime('2026-10-17 12:00 UTC')))==='2026-10-19 14:00','Weekend waits until Monday');
+$expect(gmdate('Y-m-d H:i',audienceFlowWindow($s,'Asia/Jerusalem',strtotime('2026-10-16 01:00 UTC')))==='2026-10-16 06:00','Recipient time zone controls local delivery');
+$s['weekdays']=[1,2,3,4,5,6,7];$s['after']='02:30';$s['before']='17:00';
+$expect(gmdate('Y-m-d H:i',audienceFlowWindow($s,'America/Chicago',strtotime('2026-03-08 06:00 UTC')))==='2026-03-08 08:30','DST gap advances to the first valid local occurrence');
+$expect(audienceFlowEventMatches(['type'=>'tag','id'=>7],['type'=>'tags_changed','details'=>['added'=>[7],'removed'=>[]]]),'Actual added tag matches');
+$expect(!audienceFlowEventMatches(['type'=>'tag','id'=>7],['type'=>'tags_changed','details'=>['added'=>[],'tag_ids'=>[7]]]),'No-op or already-present tag does not trigger');
+$expect(!audienceFlowEventMatches(['type'=>'profile','field'=>''],['type'=>'contact_updated','details'=>['changed_fields'=>[]]]),'No-op profile save cannot trigger an any-field flow');
+$expect(audienceFlowEventMatches(['type'=>'profile','field'=>''],['type'=>'contact_updated','details'=>['changed_fields'=>['first_name']]]),'An actual profile change triggers an any-field flow');
+$expect(audienceFlowEventMatches(['type'=>'untag','id'=>7],['type'=>'tags_changed','details'=>['removed'=>[7]]]),'Removed tag matches independently');
+$expect(audienceFlowEventMatches(['type'=>'signup'],['type'=>'subscription-confirmed','details'=>['to'=>'subscribed']]),'Delivered confirmation triggers signup');
+$expect(!audienceFlowEventMatches(['type'=>'signup'],['type'=>'contact_added','details'=>['status'=>'pending']]),'Pending signup does not trigger subscribed flow');
+$expect(!audienceFlowEventMatches(['type'=>'open','id'=>3],['type'=>'open','details'=>['campaign_id'=>3,'bot'=>true]]),'Bot observations are excluded');
+$expect(!audienceFlowEventMatches(['type'=>'click','id'=>3],['type'=>'click','details'=>['campaign_id'=>4]]),'Email trigger remains campaign-scoped');
+$expect(audienceFlowEventMatches(['type'=>'flow','id'=>9],['type'=>'flow_completed','details'=>['flow_id'=>9]]),'Flow completion uses native identity');
+$classic=audienceFlowClassicDocument(['trigger'=>['type'=>'signup'],'emails'=>[['campaign_id'=>1,'delay_seconds'=>60],['campaign_id'=>2,'delay_seconds'=>0]]]);
+$expect($classic['classic']&&count($classic['nodes'])===3&&$classic['nodes'][1]['next']==='step3','Classic ordered delays convert to a connected draft');
+$reject(fn()=>audienceFlowClassicDocument(['trigger'=>['type'=>'external'],'emails'=>[['campaign_id'=>1]]]));
+$reject(fn()=>audienceFlowClassicDocument(['trigger'=>['type'=>'signup'],'emails'=>[['campaign_id'=>1,'unsupported'=>true]]]));
+echo "Flow document checks passed: $checks\n";

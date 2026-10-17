@@ -17,7 +17,7 @@ function audienceSesWorkerReady(mysqli $db,int $audience,string $from,?array $bi
     if(!audienceSesInstalled($db))throw new DomainException('Install and configure SES before sending audience email.');
     $s=$db->execute_query('SELECT * FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc();
     if($s&&$s['enabled']&&$s['check_state']==='ready'&&strtotime(($s['checked_at']??'1970-01-01').' UTC')<time()-900){audienceSesCheck($db,$audience,$factory,$resolve);$s=$db->execute_query('SELECT * FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc();}
-    if(!$s||audienceSesReasons($s,$from)||($binding!==null&&audienceSesBinding($s)!==$binding))throw new DomainException('Review the SES sender, connection and delivery events before sending.');
+    if(!$s||audienceSesReasons($s,$from)||($binding!==null&&audienceSesBinding($s)!==audienceSesBinding($binding)))throw new DomainException('Review the SES sender, connection and delivery events before sending.');
     return $s;
 }
 function audienceSesDeferred(string $reason,int $seconds=60):never{throw new MailBudgetDeferredException(gmdate('Y-m-d H:i:s',time()+$seconds),$reason);}

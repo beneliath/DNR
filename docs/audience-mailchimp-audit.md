@@ -4,10 +4,11 @@ Reference reviewed October 16, 2026, on `codex/mailchimp-clone`.
 Stage 3 non-live closeout updated October 17, 2026, on `codex/ses-endpoint-layout`.
 Local navigation, supported email types and Brand Preview follow-up: October 17, 2026, on `codex/mailchimp-cloning-continued`.
 Stage 4 native collection implementation and local qualification: October 17, 2026, on the same branch.
+Stage 5 native automation implementation and local qualification: October 17, 2026, on `codex/mailchimp-cloning-continued2`.
 
 ## Finding
 
-**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. The SES adapter, queues, scheduling, suppression, native analytics and signed SNS inbox are implemented and qualified without external mail. The shared production implementation is deployed through 2.5.25; the primary account’s sender/domain and SNS subscription are connected. The current branch’s navigation, email-type and Brand Preview refinements are local changes awaiting a separate production release. Final live sending qualification remains open pending AWS production access. Operational MOED email keeps its existing SMTP setup.
+**Current provider decision:** Amazon SES Essentials API for MessageMonkey marketing only, with credentials configured separately by each MOED account. The SES adapter, queues, scheduling, suppression, native analytics and signed SNS inbox are implemented and qualified without external mail. The shared production implementation is deployed through 2.6.0; the primary account’s sender/domain and SNS subscription are connected. Stage 5 automation flows and typography/logo refinements are qualified for the requested shared 2.6.1 release; deployment completion is tracked by the release runner receipt. Final live sending qualification remains open pending AWS production access. Operational MOED email keeps its existing SMTP setup.
 
 **The native Stage 1 and Stage 2 implementation and qualification are complete;
 full Mailchimp feature and pixel-level UI/UX parity remain unqualified.** Connections, profiles, tags,
@@ -15,7 +16,7 @@ groups, custom fields, import/export jobs and nested segmentation are functional
 Stage 2 includes campaign management, Campaign Manager plans, A/B
 drafts, visual/code designers, templates and native Content Library/Brand Kit.
 Reference layouts and interactions were reviewed; exact vendor typography,
-artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. The primary domain and public authenticated SNS path have been activated; controlled inbox/signing/client, live receipt, scheduling and quota qualification remain outstanding. Stage 4 native hosted/embedded/popup forms, landing pages, surveys/polls and authenticated preference centers are implemented and qualified locally without external mail. Exact reference-editor parity, confirmed-subscription conversion attribution and live confirmation-email acceptance remain open. Automation execution, inbox and engagement analytics remain later work. The implementation record documents
+artwork and the complete current new-builder workflow remain approximate. Stage 3 native delivery setup, sending/scheduling, tests, preferences/confirmation, observed tracking, authenticated event ingestion, experiments, resends and operational mail mapping are implemented and qualified locally. The primary domain and public authenticated SNS path have been activated; controlled inbox/signing/client, live receipt, scheduling and quota qualification remain outstanding. Stage 4 native hosted/embedded/popup forms, landing pages, surveys/polls and authenticated preference centers are implemented and qualified locally without external mail. Exact reference-editor parity, confirmed-subscription conversion attribution and live confirmation-email acceptance remain open. Stage 5 native automation authoring and non-live execution are implemented and qualified locally. Live flow email acceptance and exact populated reference-editor parity remain open. Inbox and full engagement analytics remain later work. The implementation record documents
 verification, local import reconciliation and the passed Stage 1 UI/UX gate.
 See [the qualification record](audience-mailchimp-parity.md#stage-1-uiux-qualification--october-16-2026)
 for tested states, evidence and remaining product differences.
@@ -655,7 +656,7 @@ isolated qualification. The [Stage 4 implementation record](audience-mailchimp-p
 describes the reference inspection, isolated HTTP qualification,
 encrypted-response and opt-in lifecycle, narrowly scoped public embedding,
 restore-verified local migration and remaining acceptance. Existing imported
-records and storage were preserved. Production remains at the prior release.
+records and storage were preserved. Stage 4 subsequently shipped in shared release 2.6.0.
 
 The local completion pass adds safe hosted system-page HTML, editable public
 labels/messages and RTL, challenge-bound confirmed-signup attribution, survey
@@ -671,3 +672,80 @@ popup/landing/editor pixels and production host/edge behavior are not certified.
 Controlled confirmation-email acceptance still awaits AWS approval. Native forms
 retain immutable published revisions and protected consent actions. The signed-in
 reference account was inspected without changing its records.
+
+
+### Stage 5 — native automation flows, October 17, 2026
+
+FL01–FL14 now have native local implementations or an explicit classic-compatibility
+adaptation. The [Stage 5 qualification record](audience-mailchimp-parity.md#stage-5--native-automation-flows-october-17-2026)
+describes immutable flow revisions, durable event cursors and effects, native
+triggers, time windows, conditional/percentage paths, suppression-aware email
+queues, data actions, pause/resume, reports and conversion boundaries.
+
+The final disposable environment passed **64 flow checks and 661 total Audience
+HTTP checks**, including restricted-worker privileges, native delivery no-replay,
+credential rotation/binding and previous-stage regressions. Document/DAG/DST/event
+checks, the full Composer suite, 316 JavaScript checks, route analysis and generated
+assets passed. Actual local browser checks covered gallery filtering/full-page
+preview, draft creation/naming, map insertion/inspector, keyboard save while a
+field stays focused, persistence on return, undo/redo, zoom, reports, scoped
+connection-picker empty state, and recoverable remove/restore. The temporary local
+draft was returned to Trash; it was never activated or enrolled.
+
+A fresh encrypted database/files backup was restore-verified before the local
+migration. All 126 pre-existing application tables and existing delivery rows were
+verified unchanged; existing volumes and network assignments were retained.
+All four affected local service health checks passed after writers resumed.
+Production and AWS settings were untouched. The receipt is retained privately at
+`var/deployment/stage5-local-receipt.json` with its backup path and checksum.
+
+Native non-live Stage 5 work is qualified. Feature rows remain `partial` and
+`approximate` for vendor parity: the reference account provided empty lists,
+gallery and template-preview surfaces, but no populated flow editor/report was
+available for a pixel comparison. Email nodes intentionally reuse native saved
+emails and their settings/designer rather than an inline vendor composer.
+Live flow email, receipt/inbox behavior and client rendering remain gated by
+Stage 3 AWS production approval and controlled live qualification. Mobile/dark
+Stage 5 responsive/theme acceptance was subsequently completed as recorded below.
+
+### Audience toolbar follow-up — October 17, 2026
+
+The [toolbar qualification record](audience-mailchimp-parity.md#audience-toolbar-follow-up--october-17-2026)
+documents the deeper read-only reference inspection and native implementation.
+Status/tag/source menus now remain open for multiple selections while results
+refresh in place. Chips, advanced editing, preview, saved segments and filtered
+campaign drafts share validated criteria. Source categories retain original
+provenance; three visible tags use an exact `+ N` overflow link. The headline
+excludes pending/cleaned records while preserving all stored connections and a
+separate cleaned shortcut.
+
+The isolated suite passed 21 new toolbar checks and 682 total Audience HTTP
+checks, plus 10 pure composition checks, full Composer, 316 JavaScript checks,
+route analysis and generated assets. Actual local browser verification covered
+multiple checked options without losing the open menu/search, criteria handoff,
+selection/columns/export controls and the overflow count. No local segment or
+campaign was created and no connection subscription changed. The approved CSV
+comparison identified two later unsubscribes and two missing cleaned addresses;
+a remaining one-record Mailchimp CSV/header discrepancy is unresolved.
+
+Native combined name/email search, bounded criteria and account permissions remain
+intentional adaptations. Vendor-only fields, exact pixels and mobile/dark browser
+acceptance remain partial. This follow-up changed local source/assets only.
+
+### Stage 5 responsive/reference closeout — October 17, 2026
+
+The [responsive closeout](audience-mailchimp-parity.md#stage-5-responsive-and-reference-closeout--october-17-2026)
+records 56 native browser combinations across seven flow screens, four viewport
+widths and both themes, plus keyboard/dialog checks. Mobile editor margins and
+tablet heading controls were corrected; preview breadcrumbs, back navigation,
+spacing and node accents were refined against the current signed-in reference.
+Mailchimp's populated editor/report remained unavailable, so exact pixels are not
+certified. No vendor flow was created or changed.
+
+The final isolated suite passed 66 flow checks and 684 total Audience HTTP checks,
+including explicit activation rejection without SES production access. Pure flow
+checks, 316 JavaScript checks, route analysis and generated assets passed. The
+unused local draft was returned to Trash without activation or enrollment; theme
+and temporary viewport settings were restored. The minor release request targets
+shared version 2.6.1 through the normal verified-backup and readiness workflow.
+Real flow email and inbox acceptance remain gated by AWS production approval.

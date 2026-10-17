@@ -284,6 +284,7 @@ trait AudienceCollection
                 if (!$contact && $this->one('SELECT id FROM marketing_collection_responses WHERE audience_id=? AND resource_id=? AND visitor_hash=?',[$this->audienceId,$r['id'],$p['visitor']])) return ['confirmed'=>false,'duplicate'=>true];
                 if($contact)foreach($d['questions']as$question)foreach($question['answer_tags']??[]as$answer=>$tagIds)if(in_array((string)$answer,array_map('strval',(array)($answers[$question['id']]??[])),true))foreach($tagIds as$tag){
                     $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) SELECT ?,id FROM marketing_tags WHERE audience_id=? AND id=?',[$contact['id'],$this->audienceId,$tag]);
+                    if($this->db->affected_rows>0)$this->event((int)$contact['id'],'tags_changed',['added'=>[(int)$tag],'removed'=>[],'source'=>'Survey answer']);
                     $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Survey recipient','recipient','survey-answer-tag',?)",[$contact['id'],json_encode(['resource_id'=>(int)$r['id'],'question_id'=>$question['id'],'tag_id'=>(int)$tag],JSON_THROW_ON_ERROR)]);
                 }
             } elseif ($r['kind']==='preferences') {

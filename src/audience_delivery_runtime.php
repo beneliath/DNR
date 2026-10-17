@@ -134,7 +134,9 @@ trait AudienceDeliveryRuntime
             $zone=audienceText($input,'timezone',80);if($zone!==''&&!in_array($zone,DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Choose a valid time zone.');
             $this->write('UPDATE marketing_contacts SET first_name=?,last_name=?,custom_json=?,timezone=?,version=version+1 WHERE audience_id=? AND id=?',[audienceText($input,'first_name',100),audienceText($input,'last_name',100),json_encode((object)$custom,JSON_THROW_ON_ERROR),$zone,$this->audienceId,$personId]);
             foreach($public as$option)$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$personId,$option]);foreach($chosen as$option)$this->write('INSERT INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$personId,$option]);
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','preferences',JSON_OBJECT('source','Private email preferences'))",[$personId]);
+            $changed=[];foreach(['first_name','last_name']as$key)if($person[$key]!==audienceText($input,$key,100))$changed[]=$key;if($person['timezone']!==$zone)$changed[]='timezone';foreach($custom as$key=>$value)if(($person['custom'][$key]??'')!==$value)$changed[]=(string)$key;
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','preferences',?)",[$personId,json_encode(['source'=>'Private email preferences','changed_fields'=>$changed],JSON_THROW_ON_ERROR)]);
+            $beforeGroups=$person['group_ids'];$afterGroups=$this->person($personId)['group_ids'];if($beforeGroups!==$afterGroups)$this->event($personId,'groups_changed',['added'=>array_values(array_diff($afterGroups,$beforeGroups)),'removed'=>array_values(array_diff($beforeGroups,$afterGroups))]);
         });
     }
     public function recordDeliveryEvent(int $recipientId,string $type,string $key,string $source,string $at,array $details=[]):bool

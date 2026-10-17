@@ -18,7 +18,7 @@ function audienceSesInput(array $input):array
 }
 function audienceSesBinding(array $s):array
 {
-    return array_intersect_key($s,array_flip(['region','from_email','configuration_set','topic_arn','aws_account_id']));
+    $binding=[];foreach(['region','from_email','configuration_set','topic_arn','aws_account_id']as$key)if(array_key_exists($key,$s))$binding[$key]=$s[$key];return $binding;
 }
 function audienceSesReasons(array $s,string $from):array
 {
