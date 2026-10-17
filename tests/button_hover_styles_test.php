@@ -206,6 +206,19 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
 
+    // This renderer produces branded, script-free public forms and iframe
+    // previews, not a MOED shell page. Its rendered control contract is also
+    // exercised by audience_collection_customization_test.php.
+    if (basename($page_path) === 'audience_collection_render.php') {
+        expectHoverStyle(
+            str_contains($page_source, 'button:hover,.button:hover')
+                && str_contains($page_source, 'button:focus-visible,a:focus-visible')
+                && str_contains($page_source, '<style nonce='),
+            'Public collection controls must keep branded hover, keyboard focus and nonce-scoped styles.'
+        );
+        continue;
+    }
+
     expectHoverStyle(
         strpos($page_source, "templates/header.php") !== false
             || strpos($page_source, 'renderPageHead(') !== false,
