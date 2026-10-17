@@ -2,26 +2,40 @@ package main
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
-var moedChannelMarkerPrefix = regexp.MustCompile(`^\s*\[MOED#[0-9]+(?:\.[A-Za-z0-9_-]{22})?\]\s*`)
-var signedMOEDChannelMarker = regexp.MustCompile(`^\[MOED#([0-9]+)\.[A-Za-z0-9_-]{22}\]$`)
+var moedChannelMarkerPrefix = regexp.MustCompile(`^\s*\[MOED(?:@[a-z][a-z0-9-]{2,63}#E|#)[1-9][0-9]{0,9}(?:\.[A-Za-z0-9_-]{22})?\]\s*`)
+var signedMOEDChannelMarker = regexp.MustCompile(`^\[MOED(?:@([a-z][a-z0-9-]{2,63})#E|#)([1-9][0-9]{0,9})\.[A-Za-z0-9_-]{22}\]$`)
+
+// MOED verifies the signature. Here we recognize engagement markers from both
+// routing generations, using the account mail API's positive 31-bit ID range.
+func signedMOEDChannelMarkerID(marker string) string {
+	match := signedMOEDChannelMarker.FindStringSubmatch(strings.TrimSpace(marker))
+	if len(match) != 3 {
+		return ""
+	}
+	if _, err := strconv.ParseUint(match[2], 10, 31); err != nil {
+		return ""
+	}
+	return match[2]
+}
 
 func isSignedMOEDChannelMarker(marker string) bool {
-	return signedMOEDChannelMarker.MatchString(strings.TrimSpace(marker))
+	return signedMOEDChannelMarkerID(marker) != ""
 }
 
 func compactMOEDChannelMarker(marker string) string {
 	trimmed := strings.TrimSpace(marker)
-	match := signedMOEDChannelMarker.FindStringSubmatch(trimmed)
-	if len(match) != 2 {
+	id := signedMOEDChannelMarkerID(trimmed)
+	if id == "" {
 		return trimmed
 	}
-	return "[MOED#" + match[1] + "]"
+	return "[MOED#" + id + "]"
 }
 
 func stripMOEDChannelMarker(displayName string) string {
