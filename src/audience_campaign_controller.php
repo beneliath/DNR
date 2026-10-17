@@ -6,6 +6,8 @@ $dispatchInstalled=$store->campaignDispatchAvailable();$runtimeInstalled=$store-
 $audienceId=$store->audienceId;$isPost=$_SERVER['REQUEST_METHOD']==='POST';$canExport=$canManage;
 $h=static fn($value):string=>htmlspecialchars(is_scalar($value)?(string)$value:'',ENT_QUOTES,'UTF-8');
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
+$contentUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>'content']+array_intersect_key($_GET,array_flip(['search','folder','type','sort','direction','layout','trash','per_page'])),$changes));
+$campaignJson=static fn($value)=>$h(json_encode($value,JSON_THROW_ON_ERROR));
 $view=in_array($view,['campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery'],true)?$view:'campaigns';
 $campaignFilters=audienceCampaignFilters([]);
 try{$campaignFilters=audienceCampaignFilters($_GET);}catch(InvalidArgumentException $e){$error=$e->getMessage();}
@@ -162,6 +164,7 @@ $publication=$campaign?$store->campaignPublication((int)$campaign['id']):null;
 $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$id):[];
 $campaignMergeTags=$store->campaignMergeTags();
 $sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
+$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc'],$changes));
 $pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'All campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>

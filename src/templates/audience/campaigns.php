@@ -1,7 +1,6 @@
 <?php
 $campaignTypes=['regular'=>'Regular email','plain-text'=>'Plain-text email','ab'=>'A/B test','multivariate'=>'Multivariate test'];
 $campaignDate=static fn($value)=>$value?gmdate('D, M d, h:i A',strtotime($value)).' UTC':'—';
-$campaignJson=static fn($value)=>$h(json_encode($value,JSON_THROW_ON_ERROR));
 $campaignForm=static function(string $action,array $extra=[])use($csrf){echo $csrf;audienceInputs(['action'=>$action]+$extra);};
 ?>
 <?php if($view==='campaigns'): ?>

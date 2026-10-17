@@ -22,6 +22,10 @@ $inboundEmailHelpers = file_get_contents($root . '/src/inbound_email_helpers.php
 $smtpWebSection = explode("\n  mail-dispatch:", $smtp, 2)[0];
 $baseWebSection = explode("\nservices:", $compose, 2)[0];
 $webGrantSection = explode("CREATE USER IF NOT EXISTS '\${geocoder_user}'", $grants, 2)[0];
+$webNotificationGrants = array_values(array_filter(
+    explode("\n", $webGrantSection),
+    static fn(string $line): bool => str_contains($line, '.notification_outbox TO')
+));
 $backupGrantSection = explode(
     "CREATE USER IF NOT EXISTS '\${geocoder_user}'",
     explode("CREATE USER IF NOT EXISTS '\${backup_user}'", $grants, 2)[1] ?? '',
@@ -77,14 +81,15 @@ expectServiceDatabaseIsolation(
     'only the outbound-mail worker should receive the SMTP password secret.'
 );
 expectServiceDatabaseIsolation(
-    str_contains($grants, 'GRANT SELECT (token_id, status, claim_token)')
+    str_contains($grants, 'GRANT SELECT (token_id, status, claim_token, next_attempt_at, created_at)')
         && str_contains($grants, 'task_digest_enabled')
         && str_contains($grants, '.follow_up_tasks')
         && !str_contains($grants, 'GRANT SELECT, INSERT, UPDATE, DELETE ON `${MYSQL_DATABASE}`.email_outbox TO'),
     'the web account should not read encrypted payloads, and the mail worker should receive only scoped reminder data and user state.'
 );
 expectServiceDatabaseIsolation(
-    !str_contains($webGrantSection, '.notification_outbox')
+    count($webNotificationGrants) === 1
+        && str_starts_with(trim($webNotificationGrants[0]), 'GRANT SELECT (status,next_attempt_at,created_at) ON ')
         && str_contains($grants, 'GRANT SELECT, INSERT, UPDATE ON')
         && str_contains($grants, '.notification_outbox TO')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%';"),

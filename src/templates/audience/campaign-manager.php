@@ -1,5 +1,4 @@
 <?php
-$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc'],$changes));
 $planValues=($campaignRecovery['action']??'')==='campaign_plan_save'?$campaignRecovery:($plan?['name'=>$plan['name']]+$plan['data']:[]);
 $touchpointValues=($campaignRecovery['action']??'')==='campaign_touchpoint_save'?$campaignRecovery:[];
 if(($campaignRecovery['action']??'')==='campaign_plan_save')$planValues['tracking']=audienceCampaignTracking($campaignRecovery);

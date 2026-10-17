@@ -121,7 +121,7 @@ return [
     "assets/js/app-shell.js" => "adba499ffb63",
     "assets/js/app-shell.min.js" => "b45017114210",
     "assets/js/audience-design-model.mjs" => "93424b05d8dd",
-    "assets/js/audience-designer.js" => "bb65919a96d5",
+    "assets/js/audience-designer.js" => "1dcf0219310e",
     "assets/js/audience-designer.min.js" => "26c43d1af522",
     "assets/js/audience.js" => "01896d8722a6",
     "assets/js/audience.min.js" => "d7790f5a9a7e",
