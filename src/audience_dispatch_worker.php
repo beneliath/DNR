@@ -8,6 +8,7 @@ require_once __DIR__.'/audience_delivery_runtime.php';
 require_once __DIR__.'/audience_delivery_lifecycle.php';
 
 require_once __DIR__.'/audience_ses_worker.php';
+require_once __DIR__.'/audience_flow_runtime.php';
 function audienceDeliverCampaignMessage(array $message,?mysqli $budgetDb=null):string
 {
     if(!$budgetDb)throw new DomainException('An account database is required for SES delivery.');
@@ -31,20 +32,26 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
     $exists=$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_campaign_deliveries'")->fetch_assoc();if((int)$exists['n']!==1)return 0;
     $deliver??=static fn($m)=>audienceDeliverCampaignMessage($m,$db);$processed=0;$runtime=audienceMailPolicyAvailable($db);if(!$runtime)return 0;processAudienceLifecycle($db);
     $db->query("UPDATE marketing_campaign_recipients SET state=IF(delivery_started_at IS NULL,IF(attempts<3,'queued','failed'),'uncertain'),error_message='The worker stopped before recording a final receipt.',claim_token=NULL WHERE audience_id=1 AND state='processing' AND started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 10 MINUTE)");
+    $flowClause=audienceFlowsInstalled($db)?" AND (flow_run_id=0 OR EXISTS(SELECT 1 FROM marketing_flow_runs fr JOIN marketing_flows f ON f.id=fr.flow_id AND f.audience_id=fr.audience_id WHERE fr.id=flow_run_id AND fr.audience_id=1 AND fr.state='active' AND f.state='running' AND f.deleted_at IS NULL AND NOT JSON_CONTAINS(f.paused_nodes_json,JSON_QUOTE(flow_node))))":'';
     for($i=0;$i<max(1,min(100,$limit));$i++){
-        $job=$db->query("SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND state IN ('scheduled','sending') AND due_at<=UTC_TIMESTAMP() AND (EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state='queued' AND r.phase<>'hold' AND r.next_attempt_at<=UTC_TIMESTAMP()) OR NOT EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state IN ('queued','processing'))) ORDER BY due_at,id LIMIT 1")->fetch_assoc();if(!$job)break;
-        $lock=audienceDispatchLock($db,1,(int)$job['campaign_id']);
+        $job=$db->query("SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND state IN ('scheduled','sending') AND due_at<=UTC_TIMESTAMP() AND (EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state='queued' AND r.phase<>'hold' AND r.next_attempt_at<=UTC_TIMESTAMP()) OR NOT EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state IN ('queued','processing'))) ".$flowClause." ORDER BY due_at,id LIMIT 1")->fetch_assoc();if(!$job)break;
+        $flowLock=null;$lock=audienceDispatchLock($db,1,(int)$job['campaign_id']);
         try{
             $job=$db->execute_query('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND id=?',[$job['id']])->fetch_assoc();
             if(!in_array($job['state'],['scheduled','sending'],true))continue;
+            if(!empty($job['flow_run_id'])){
+                $flowRun=$db->execute_query('SELECT flow_id FROM marketing_flow_runs WHERE audience_id=1 AND id=?',[$job['flow_run_id']])->fetch_assoc();if(!$flowRun)continue;
+                $flowLock='mm-flow-1-'.$flowRun['flow_id'];if((int)$db->execute_query('SELECT GET_LOCK(?,10) acquired',[$flowLock])->fetch_assoc()['acquired']!==1){$flowLock=null;continue;}
+                if(!audienceFlowDeliveryAllowed($db,$job))continue;
+            }
             $campaign=$db->execute_query('SELECT status,deleted_at FROM marketing_campaigns WHERE audience_id=1 AND id=?',[$job['campaign_id']])->fetch_assoc();
             try{
-                if(!$campaign||$campaign['deleted_at']||!in_array($campaign['status'],['scheduled','sending'],true))throw new DomainException('Campaign delivery is no longer active.');
+                if(empty($job['flow_run_id'])&&(!$campaign||$campaign['deleted_at']||!in_array($campaign['status'],['scheduled','sending'],true)))throw new DomainException('Campaign delivery is no longer active.');
                 $snapshot=json_decode(\Dnr\Security\ApplicationKey::open($job['snapshot_ciphertext']),true,64,JSON_THROW_ON_ERROR);
                 audienceDispatchWorkerReady($db,1,$snapshot,$resolver);
             }catch(Throwable){
                 $db->execute_query("UPDATE marketing_campaign_deliveries SET state='paused',error_message='Sender, domain or campaign readiness needs attention. Review Email delivery setup before resuming.',version=version+1 WHERE id=?",[$job['id']]);
-                $db->execute_query("UPDATE marketing_campaigns SET status='paused',version=version+1 WHERE audience_id=1 AND id=?",[$job['campaign_id']]);continue;
+                if(empty($job['flow_run_id']))$db->execute_query("UPDATE marketing_campaigns SET status='paused',version=version+1 WHERE audience_id=1 AND id=?",[$job['campaign_id']]);else $db->execute_query("UPDATE marketing_flow_runs SET state='failed',error_message='Email delivery setup needs attention. Review the existing delivery receipt before restarting.' WHERE audience_id=1 AND id=?",[$job['flow_run_id']]);continue;
             }
             $db->begin_transaction();
             try{
@@ -59,7 +66,7 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
                 try{
                     $development=(int)$db->execute_query("SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=? AND state='development'",[$job['id']])->fetch_assoc()['n'];
                     $db->execute_query("UPDATE marketing_campaign_deliveries SET state='completed',completed_at=UTC_TIMESTAMP(),version=version+1 WHERE id=?",[$job['id']]);
-                    $db->execute_query("UPDATE marketing_campaigns SET status=?,sent_at=IF(?=0,UTC_TIMESTAMP(),NULL),version=version+1 WHERE audience_id=1 AND id=?",[$development?'paused':'sent',$development,$job['campaign_id']]);$db->commit();
+                    if(empty($job['flow_run_id']))$db->execute_query("UPDATE marketing_campaigns SET status=?,sent_at=IF(?=0,UTC_TIMESTAMP(),NULL),version=version+1 WHERE audience_id=1 AND id=?",[$development?'paused':'sent',$development,$job['campaign_id']]);$db->commit();
                 }catch(Throwable $e){$db->rollback();throw $e;}continue;
             }
             $state='failed';$error='';$started=false;$deferred=false;$retry=gmdate('Y-m-d H:i:s',time()+120);
@@ -81,8 +88,8 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
             $db->execute_query("UPDATE marketing_campaign_recipients SET state=?,error_message=?,accepted_at=IF(?='accepted',UTC_TIMESTAMP(),NULL),next_attempt_at=?,attempts=attempts-?,claim_token=NULL WHERE id=? AND claim_token=? AND state='processing'",[$state,$error,$state,$retry,$deferred?1:0,$recipient['id'],$claim]);
             if($db->affected_rows!==1)throw new RuntimeException('Unable to record campaign delivery receipt.');
             $db->execute_query("UPDATE marketing_campaign_deliveries SET version=version+IF(state='scheduled',1,0),state='sending' WHERE id=?",[$job['id']]);
-            $db->execute_query("UPDATE marketing_campaigns SET status='sending' WHERE audience_id=1 AND id=? AND status='scheduled'",[$job['campaign_id']]);$processed++;
-        }finally{$db->execute_query('SELECT RELEASE_LOCK(?)',[$lock]);}
+            if(empty($job['flow_run_id']))$db->execute_query("UPDATE marketing_campaigns SET status='sending' WHERE audience_id=1 AND id=? AND status='scheduled'",[$job['campaign_id']]);$processed++;
+        }finally{if($flowLock!==null)$db->execute_query('SELECT RELEASE_LOCK(?)',[$flowLock]);$db->execute_query('SELECT RELEASE_LOCK(?)',[$lock]);}
     }
     return $processed;
 }

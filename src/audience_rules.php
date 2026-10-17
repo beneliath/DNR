@@ -70,6 +70,9 @@ function audienceRuleCatalog(array $fields, array $tags, array $groups): array
 {
     $catalog = [];
     foreach (['email' => 'Email address', 'first_name' => 'First name', 'last_name' => 'Last name', 'source' => 'Signup source', 'language' => 'Language', 'timezone' => 'Time zone'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'text', 'section' => 'Connection information'];
+    $catalog['full_name']=['label'=>'Full name','kind'=>'text','section'=>'Connection information'];
+    $catalog['source']['label']='Signup source detail';
+    $catalog['signup_source']=['label'=>'Signup source','kind'=>'choice','options'=>audienceSignupSourceLabels(),'section'=>'How your connections were acquired'];
     $catalog['email_status'] = ['label' => 'Email subscription status', 'kind' => 'choice', 'options' => array_combine(AUDIENCE_STATUSES, AUDIENCE_STATUSES), 'section' => 'Email'];
     $catalog['is_archived'] = ['label' => 'Archived', 'kind' => 'choice', 'options' => ['1' => 'Archived', '0' => 'Active'], 'section' => 'Connection information'];
     foreach (['created_at' => 'Date added', 'updated_at' => 'Information changed'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'date', 'section' => 'How your connections were acquired'];
@@ -133,7 +136,7 @@ function audienceCompileRules(array $tree, array $catalog): array
             if ($op === 'before' || $op === 'after') { if (!audienceValidDate($value)) throw new InvalidArgumentException('Enter a valid date.'); $sql .= ' AND DATE(ev.created_at) ' . ($op === 'before' ? '<' : '>') . ' ?'; $params[] = $value; }
             return ($op === 'never' ? 'NOT ' : '') . "EXISTS ($sql)";
         }
-        $expr = str_starts_with($key, 'custom:') ? "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.custom_json, '$.\"" . (int) substr($key, 7) . "\"')), '')" : 'c.' . $key;
+        $expr = match($key){'full_name'=>"CONCAT(c.first_name,' ',c.last_name)",'signup_source'=>audienceSignupSourceExpression(),default=>str_starts_with($key, 'custom:') ? "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.custom_json, '$.\"" . (int) substr($key, 7) . "\"')), '')" : 'c.' . $key};
         if ($op === 'empty' || $op === 'not_empty') return ($op === 'not_empty' ? 'NOT ' : '') . "(COALESCE($expr,'') IN ('','[]','null'))";
         if ($kind === 'set') { $params[] = json_encode($value, JSON_THROW_ON_ERROR); return ($op === 'not_contains' ? 'NOT ' : '') . "JSON_CONTAINS(COALESCE(NULLIF($expr,''),'[]'), ?)"; }
         if ($kind === 'choice' && !array_key_exists($value, $field['options'])) throw new InvalidArgumentException('Choose a listed value.');
@@ -176,4 +179,32 @@ function audienceListFilters(array $input): array
     if(!in_array($result['archived'],['0','1','all'],true))throw new InvalidArgumentException('Choose active or archived connections.');
     foreach(['status','source']as$key){$raw=$input[$key]??[];if(is_string($raw))$raw=$raw===''?[]:[$raw];if(!is_array($raw)||count($raw)>100)throw new InvalidArgumentException('Invalid filter.');$result[$key]=[];foreach($raw as$v){$v=audienceText(['value'=>$v],'value');if($key==='status'&&!in_array($v,AUDIENCE_STATUSES,true))throw new InvalidArgumentException('Invalid subscription status.');$result[$key][]=$v;}}
     return $result;
+}
+
+function audienceSignupSourceLabels(): array
+{
+    return ['api'=>'API','manual'=>'Manual entry','embed'=>'Embedded form','hosted'=>'Hosted signup form','import'=>'Import','landing'=>'Landing page','popup'=>'Popup form','survey'=>'Survey','mobile'=>'Mobile app','other'=>'Other','unknown'=>'Unknown'];
+}
+
+/** Classify actual stored provenance without replacing its original detail. */
+function audienceSignupSourceExpression(): string
+{
+    return "(CASE WHEN LOWER(TRIM(COALESCE(c.source,''))) IN ('','mailchimp export') THEN 'unknown' WHEN LOWER(c.source) REGEXP '^api|webhook' THEN 'api' WHEN LOWER(c.source) REGEXP 'import|csv|file upload' THEN 'import' WHEN LOWER(c.source) REGEXP 'admin add|manual' THEN 'manual' WHEN LOWER(c.source) LIKE '%embed%' THEN 'embed' WHEN LOWER(c.source) LIKE '%landing%' THEN 'landing' WHEN LOWER(c.source) REGEXP 'pop.?up' THEN 'popup' WHEN LOWER(c.source) LIKE '%survey%' THEN 'survey' WHEN LOWER(c.source) REGEXP 'ios|android|mobile' THEN 'mobile' WHEN LOWER(c.source) REGEXP 'hosted|signup form|sign-up form' THEN 'hosted' ELSE 'other' END)";
+}
+
+/** Quick filters and the advanced editor must describe the same population. */
+function audienceActiveRules(array $filters,array $advanced=['match'=>'all','rules'=>[]],bool $search=true): array
+{
+    $parts=[];
+    foreach(['status'=>'email_status','source'=>'source']as$key=>$field){
+        $choices=[];foreach(array_values(array_unique($filters[$key]??[]))as$value){
+            $bucket=$key==='source'&&str_starts_with($value,'type:');$choices[]=['field'=>$bucket?'signup_source':$field,'operator'=>'is','value'=>$bucket?substr($value,5):$value];
+        }
+        if($choices)$parts[]=count($choices)===1?$choices[0]:['match'=>'any','rules'=>$choices];
+    }
+    if(!empty($filters['tags']))$parts[]=['field'=>'tags','operator'=>'any','value'=>$filters['tags']];
+    if($search&&($filters['q']??'')!=='')$parts[]=['match'=>'any','rules'=>[['field'=>'email','operator'=>'contains','value'=>$filters['q']],['field'=>'full_name','operator'=>'contains','value'=>$filters['q']]]];
+    if(!$parts)return $advanced;
+    if(!empty($advanced['rules'])){if(($advanced['match']??'')==='all')array_push($parts,...$advanced['rules']);else $parts[]=$advanced;}
+    return ['match'=>'all','rules'=>$parts];
 }

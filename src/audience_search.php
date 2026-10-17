@@ -19,7 +19,7 @@ function audienceSearchOptions(array $values): string
 
 function audienceSearchCategories(): array
 {
-    return ['connections'=>'Connections','campaigns'=>'Campaigns','pages'=>'Pages','actions'=>'Quick actions','help'=>'Help articles'];
+    return ['connections'=>'Connections','campaigns'=>'Campaigns','flows'=>'Flows','pages'=>'Pages','actions'=>'Quick actions','help'=>'Help articles'];
 }
 
 /** Only existing destinations are searchable; editor actions remain permission-scoped. */
@@ -29,7 +29,7 @@ function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): a
     foreach(['contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Audience fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
         $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     }
-    foreach(['forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
+    foreach(['automations'=>'Automations','flow-templates'=>'Flow templates','forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     if($canManage) {
         foreach(['import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
             $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
@@ -40,6 +40,7 @@ function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): a
         ['title'=>'Add a connection','description'=>'Add one person to your audience.','href'=>'audience.php?view=contact','icon'=>'action'],
         ['title'=>'Import connections','description'=>'Upload a file or paste connections.','href'=>'audience.php?view=import','icon'=>'action'],
         ['title'=>'Create an email','description'=>'Start a regular, plain-text or A/B email.','href'=>'audience.php?view=campaigns&create=1','icon'=>'action'],
+        ['title'=>'Build a flow','description'=>'Create a native automation flow.','href'=>'audience.php?view=automations&create=1','icon'=>'action'],
         ['title'=>'Manage tags','description'=>'Organize your audience with tags.','href'=>'audience.php?view=tags','icon'=>'action'],
         ['title'=>'Manage segments','description'=>'Find connections that meet your criteria.','href'=>'audience.php?view=segments','icon'=>'action'],
     ]:[];
@@ -65,6 +66,10 @@ function audienceWorkspaceSearch(AudienceStore $store,array $input,bool $canMana
             $items[]=['title'=>$person['email'],'description'=>($name!==''?$name.' · ':'').ucfirst($person['email_status']),'href'=>'audience.php?view=contact&id='.(int)$person['id'],'icon'=>'person'];
         }
         $groups[]=['key'=>'connections','label'=>$labels['connections'],'items'=>$items,'more'=>'audience.php?q='.rawurlencode($query)];
+    }
+    if($wanted('flows')&&($query!==''||$category==='flows')&&$store->flowAvailable()){
+        $rows=$store->all('SELECT id,name,state,updated_at FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL'.($query!==''?' AND LOCATE(?,name)>0':'').' ORDER BY updated_at DESC,id DESC LIMIT 10',$query!==''?[$store->audienceId,$query]:[$store->audienceId]);
+        $groups[]=['key'=>'flows','label'=>'Flows','items'=>array_map(static fn($row)=>['title'=>$row['name'],'description'=>'Automation flow','status'=>$row['state'],'updated_at'=>$row['updated_at'],'href'=>'audience.php?view=flow&id='.(int)$row['id'],'icon'=>'action'],$rows)];
     }
     if($wanted('campaigns')) {
         $rows=$store->all("SELECT id,name,campaign_type,status,updated_at,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.experiment.kind')) experiment_kind FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL".($query!==''?' AND LOCATE(?,name)>0':'').' ORDER BY updated_at DESC,id DESC LIMIT '.($query===''?'5':'10'),$query!==''?[$store->audienceId,$query]:[$store->audienceId]);

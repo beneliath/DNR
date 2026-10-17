@@ -94,6 +94,7 @@ trait AudienceCampaignAdvanced
         $root=['match'=>'all','rules'=>[]];$includeRules=[];
         foreach($include as$value){if(!is_string($value))throw new InvalidArgumentException('Choose valid recipients.');$includeRules[]=$this->campaignTargetRule($value);}
         if($includeRules)$root['rules'][]=['match'=>'any','rules'=>$includeRules];
+        if(isset($draft['recipient_rules'])){if(!is_array($draft['recipient_rules']))throw new InvalidArgumentException('The audience filters are invalid.');if(!empty($draft['recipient_rules']['rules']))$root['rules'][]=$draft['recipient_rules'];}
         [$where,$params]=$this->where(['status'=>['subscribed']],$root);
         foreach($exclude as$value){if(!is_string($value))throw new InvalidArgumentException('Choose valid exclusions.');$rule=$this->campaignTargetRule($value);[$excluded,$values]=$this->where(['status'=>['subscribed']],isset($rule['field'])?['match'=>'all','rules'=>[$rule]]:$rule);$where.=' AND NOT ('.$excluded.')';array_push($params,...$values);}
         return [$where,$params];
@@ -112,6 +113,7 @@ trait AudienceCampaignAdvanced
         $draft=$row['draft'];
         switch($section){
             case 'to':
+                if(empty($input['keep_audience_filters']))unset($draft['recipient_rules']);
                 if(isset($input['include'])||isset($input['exclude'])||isset($input['advanced_recipients'])){$draft['include']=is_array($input['include']??null)?$input['include']:[];$draft['exclude']=is_array($input['exclude']??null)?$input['exclude']:[];foreach(['include','exclude']as$key)if(isset($input[$key])&&!is_array($input[$key]))throw new InvalidArgumentException('Choose valid recipient tags or segments.');$draft['target']='all';$draft['exclude_tag']=0;}
                 else{$draft['target']=audienceText($input,'target',40);$draft['exclude_tag']=(int)audienceText($input,'exclude_tag',12);unset($draft['include'],$draft['exclude']);}
                 $this->campaignRecipients($draft);$draft['personalize_to']=($input['personalize_to']??'')==='1';$draft['to_merge']=audienceText($input,'to_merge',50)?:'FNAME';if(!isset($this->campaignMergeTags()[$draft['to_merge']]))throw new InvalidArgumentException('Choose an available To merge tag.');$draft['recipients_saved']=true;break;

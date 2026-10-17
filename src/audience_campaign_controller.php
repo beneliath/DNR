@@ -91,7 +91,7 @@ $recentCampaigns=$canManage?$store->all('SELECT id,name,version,status FROM mark
 [$campaignWhere,$campaignParams]=audienceCampaignWhere($audienceId,$campaignFilters);
 $campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
 $campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/25)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
-$dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id ORDER BY d.id DESC LIMIT 1) delivery_count":"";
+$dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
 $campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT 25 OFFSET ?",[...$campaignParams,($campaignPage-1)*25]),'id');
 $campaignRowsById=[];$campaignRows=[];
 if($campaignRowIds)foreach($store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds])as$campaignRow)$campaignRowsById[$campaignRow['id']]=$campaignRow;
@@ -101,7 +101,7 @@ if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version F
 $month=new DateTimeImmutable($campaignFilters['month'].'-01',new DateTimeZone('UTC'));
 $calendarStart=$month->modify('monday this week');$calendarEnd=$month->modify('last day of this month')->modify('sunday this week');
 $calendarRows=[];
-$calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
+$calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
 if($campaignFilters['layout']==='calendar'){
     $calendarRows=$store->all("SELECT c.id,c.name,c.status,DATE($calendarDate) calendar_date FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_date,c.id",[...$campaignParams,$calendarStart->format('Y-m-d'),$calendarEnd->modify('+1 day')->format('Y-m-d')]);
 }

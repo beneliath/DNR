@@ -41,8 +41,10 @@ trait AudienceCampaigns
         $name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter an internal email name.');
         $type=audienceText($input,'campaign_type');if(!in_array($type,['regular','plain-text','ab'],true))throw new InvalidArgumentException('Choose a supported email type.');
         $target=audienceText($input,'target',40);
-        return $this->transaction(function()use($name,$type,$target){
+        $filteredRules=null;if(($input['filtered_rules']??'')!==''){try{$filteredRules=json_decode(audienceText($input,'filtered_rules',50000),true,48,JSON_THROW_ON_ERROR);}catch(JsonException){throw new InvalidArgumentException('The audience filters are invalid.');}if(!is_array($filteredRules))throw new InvalidArgumentException('The audience filters are invalid.');audienceCompileRules($filteredRules,$this->catalog());}
+        return $this->transaction(function()use($name,$type,$target,$filteredRules){
             $draft=[];if($type==='ab')$draft['experiment']=['kind'=>$type,'variables'=>[]];if($target!==''){$draft+=['target'=>$target,'exclude_tag'=>0,'recipients_saved'=>true];$this->campaignTarget($draft);}
+            if($filteredRules!==null){$draft['recipient_rules']=$filteredRules;$draft['recipients_saved']=true;$this->campaignTarget($draft);}
             $this->write('INSERT INTO marketing_campaigns(audience_id,name,campaign_type,draft_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,$type==='ab'?'regular':$type,json_encode((object)$draft,JSON_THROW_ON_ERROR),$this->actorLabel]);
             return (int)$this->db->insert_id;
         });

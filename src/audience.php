@@ -5,7 +5,7 @@ require_once __DIR__.'/two_factor_helpers.php';
 require_once __DIR__.'/audience_store.php';
 $db=applicationDatabaseConnection();startSecureSession();requireLogin();
 $canManage=hasRole(['admin','editor']);$canExport=$canManage;$canDelete=hasRole(['admin']);
-$view=\Dnr\Http\RequestInput::enum($_GET,'view',['contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'],'contacts');
+$view=\Dnr\Http\RequestInput::enum($_GET,'view',['contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report'],'contacts');
 if(!$canDelete&&($view==='delivery'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'delivery_')))){http_response_code(403);exit('Email delivery requires an administrator.');}
 $h=static fn($value):string=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 $actor=(int)$_SESSION['user_id'];$displayName=mb_substr((string)($_SESSION['profile_display_name']??$_SESSION['username']??'Account'),0,100);
@@ -30,6 +30,7 @@ $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
 $redirect=$url(['view'=>$view]);
+if(in_array($view,['automations','flow','flow-templates','flow-report'],true)||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'flow_'))){require __DIR__.'/audience_flow_controller.php';renderAudienceFlowWorkspace($store,$audience,$view,$id,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
 if(in_array($view,['forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'],true)){
     require __DIR__.'/audience_collection_controller.php';
     renderAudienceCollectionWorkspace($store,$audience,$view,$id,$message,$error,$canManage,$canDelete,$displayName,$actor);
@@ -45,7 +46,7 @@ try{
     $rulesText=audienceText($isPost?$_POST:$_GET,'rules',50000);if($rulesText!=='')$rules=audienceJson($rulesText);
     $segmentId=\Dnr\Http\RequestInput::positiveInt($_GET,'segment')??0;
     if($segmentId){$segment=$store->one('SELECT * FROM marketing_segments WHERE id=? AND audience_id=?',[$segmentId,$audienceId]);if(!$segment)throw new InvalidArgumentException('That segment is unavailable.');if($rulesText==='')$rules=audienceLegacyRules(audienceJson($segment['filters_json']),$tags);}
-    audienceCompileRules($rules,$store->catalog());
+    audienceCompileRules(audienceActiveRules($filters,$rules),$store->catalog());
 }catch(InvalidArgumentException $e){$error=$e->getMessage();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);}
 
 if($isPost){
@@ -81,7 +82,7 @@ if($isPost){
             case 'delete_group':$store->deleteGroup($id,$version);$redirect=$url(['view'=>'groups']);$message='Group deleted. Its connections were kept.';break;
             case 'save_field':$store->saveField($_POST,$id,$version);$redirect=$url(['view'=>'fields']);$message='Audience field saved.';break;
             case 'delete_field':if(!$canDelete)throw new InvalidArgumentException('Only administrators can delete fields and their values.');$store->deleteField($id,$version);$redirect=$url(['view'=>'fields']);$message='Field and its stored values removed.';break;
-            case 'save_segment':$store->saveSegment(audienceText($_POST,'name'),$rules,$id,$version);$redirect=$url(['view'=>'segments']);$message='Segment saved.';break;
+            case 'save_segment':$savedSegment=$store->saveSegment(audienceText($_POST,'name'),$rules,$id,$version);$redirect=($_POST['return_to']??'')==='contacts'?$url(['segment'=>$savedSegment,'archived'=>$filters['archived']]):$url(['view'=>'segments']);$message='Segment saved.';break;
             case 'delete_segment':$store->write('DELETE FROM marketing_segments WHERE id=? AND audience_id=? AND version=?',[$id,$audienceId,$version]);if($db->affected_rows!==1)throw new InvalidArgumentException('This segment changed. Reload before deleting.');$redirect=$url(['view'=>'segments']);$message='Segment deleted.';break;
             case 'rename_segment':$original=$store->one('SELECT * FROM marketing_segments WHERE id=? AND audience_id=?',[$id,$audienceId]);if(!$original)throw new InvalidArgumentException('Segment unavailable.');$store->saveSegment(audienceText($_POST,'name'),audienceLegacyRules(audienceJson($original['filters_json']),$tags),$id,$version);$redirect=$url(['view'=>'segments']);$message='Segment renamed.';break;
             case 'duplicate_segment':$original=$store->one('SELECT * FROM marketing_segments WHERE id=? AND audience_id=?',[$id,$audienceId]);if(!$original)throw new InvalidArgumentException('Segment unavailable.');$store->saveSegment(audienceText($_POST,'name'),audienceLegacyRules(audienceJson($original['filters_json']),$tags),0,0);$redirect=$url(['view'=>'segments']);$message='Segment copied.';break;
@@ -135,15 +136,15 @@ if(($_GET['export']??'')==='person'){
 }
 $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDER BY name,id',[$audienceId]);
-$sources=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);
-$counts=$store->one("SELECT COUNT(*) total,COALESCE(SUM(email_status='subscribed'),0) subscribed FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL AND is_archived=0",[$audienceId]);
+$sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
+$counts=$store->one("SELECT COUNT(*) records,COALESCE(SUM(email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(email_status='subscribed'),0) subscribed,COALESCE(SUM(email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL AND is_archived=0",[$audienceId]);
 [$where,$params]=$store->where($filters,$rules);$total=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
 $pageSize=(int)($_GET['per_page']??25);if(!in_array($pageSize,[10,25,50,100],true))$pageSize=25;$page=max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
 $sort=audienceText($_GET,'sort')?:'created_at';$sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];foreach($fields as$field)if($field['field_type']==='date')$sortColumns[]='custom:'.(int)$field['id'];if(!in_array($sort,$sortColumns,true))$sort='created_at';$direction=($_GET['direction']??'desc')==='asc'?'asc':'desc';
 $connectionOrder=audienceConnectionOrder($sort,$direction,$fields);
 $rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);$rowTags=[];$rowGroups=[];
 foreach($rows as$row){$rowTags[$row['id']]=$store->all('SELECT t.id,t.name FROM marketing_tags t JOIN marketing_contact_tags ct ON ct.tag_id=t.id WHERE ct.contact_id=? AND t.audience_id=? ORDER BY t.name',[$row['id'],$audienceId]);$rowGroups[$row['id']]=$store->all('SELECT o.name,g.id category_id,g.name category FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id JOIN marketing_contact_groups cg ON cg.option_id=o.id WHERE cg.contact_id=? AND g.audience_id=? ORDER BY g.name,o.position',[$row['id'],$audienceId]);}
-$query=$filters+['rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];
+$query=$filters+['rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];if($segment)$query['segment']=(int)$segment['id'];
 $contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'','timezone'=>'','is_archived'=>0,'consent_note'=>''];
 $events=[];$notes=[];$eventTotal=0;$eventPage=max(1,(int)($_GET['activity_page']??1));$tab=\Dnr\Http\RequestInput::enum($_GET,'tab',['overview','insights','notes','settings'],'overview');
 if($view==='contact'&&$id){try{$contact=array_replace($contact,$store->person($id));$eventFilter=audienceText($_GET,'activity_type');$days=(int)($_GET['activity_days']??30);if(!in_array($days,[0,7,30,90,365],true))$days=30;$activityYear=(int)($_GET['activity_year']??0);$activityRange=audienceText($_GET,'activity_range');if(preg_match('/^year:(20[0-9]{2})$/D',$activityRange,$rangeMatch))$activityYear=(int)$rangeMatch[1];elseif(in_array($activityRange,['30','90','0'],true)){$days=(int)$activityRange;$activityYear=0;}if($activityYear<2000||$activityYear>(int)gmdate('Y'))$activityYear=0;$activityYears=array_map('intval',array_column($store->all('SELECT DISTINCT YEAR(created_at) year FROM marketing_contact_events WHERE contact_id=? ORDER BY year',[$id]),'year'));$eventWhere='contact_id=?';$eventParams=[$id];if($eventFilter!==''){$eventWhere.=' AND event_type=?';$eventParams[]=$eventFilter;}if($activityYear){$eventWhere.=' AND created_at>=? AND created_at<?';$eventParams[]=$activityYear.'-01-01 00:00:00';$eventParams[]=($activityYear+1).'-01-01 00:00:00';}elseif($days){$eventWhere.=' AND created_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY)';$eventParams[]=$days;}$eventTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_contact_events WHERE $eventWhere",$eventParams)['n'];$events=$store->all("SELECT * FROM marketing_contact_events WHERE $eventWhere ORDER BY id DESC LIMIT 25 OFFSET ?",[...$eventParams,($eventPage-1)*25]);$notes=$store->all('SELECT * FROM marketing_notes WHERE contact_id=? ORDER BY id DESC',[$id]);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}

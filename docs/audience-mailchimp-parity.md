@@ -4,7 +4,7 @@ Original reference branch: `codex/mailchimp-clone`
 
 Stage 3 closeout branch: `codex/ses-endpoint-layout`
 
-Current local follow-up branch: `codex/mailchimp-cloning-continued`
+Current local follow-up branch: `codex/mailchimp-cloning-continued2`
 
 Reference review: October 16, 2026
 
@@ -1458,3 +1458,213 @@ Evidence is under `/private/tmp/message-monkey-stage4-completion-*.log`,
 `/private/tmp/message-monkey-israel-my-files.png`. This remains unreleased local
 development; Stage 3 live email qualification and deployment-specific checks remain
 separate acceptance gates.
+
+
+## Stage 5 — native automation flows, October 17, 2026
+
+Based on shared release **2.6.0**, on `codex/mailchimp-cloning-continued2`.
+This work is local development. Production rollout and real SES acceptance are
+separate gates; authoring a flow never sends email.
+
+The current reference All flows empty state, flow-template gallery and welcome
+preview map were inspected read-only on October 17. Official source contracts
+were rechecked against Mailchimp’s current create/edit, trigger, classic and
+report guides. No reference flow was saved, activated or edited. The account had
+no populated flow editor available for inspection, so exact editor pixel parity
+is not claimed. Native triggers/actions use MessageMonkey data; connected stores,
+external apps, SMS and webhooks remain excluded. Visible labels retain Connections
+and avoid commerce-oriented terminology.
+
+Implemented scope:
+
+- All flows/classic tabs, scoped search/status filters, lifecycle/replication/trash,
+  template topic/channel filters and preview prerequisites/maps.
+- Connected visual map, step inspector, branch routing, drag insertion, zoom/pan,
+  settings, autosave/recovery and undo/redo. Maps are bounded acyclic graphs with
+  stable step keys; repeat entry is an explicit flow setting.
+- Native subscribed-signup, profile-field, tag/group add/remove, date/birthday/
+  signup-anniversary, observed non-bot email engagement, verified survey response
+  and flow-completion triggers. Anonymous response addresses never identify a
+  connection. Date scanning skips missing values and deduplicates local occurrences;
+  February 29 anniversaries use February 28 in non-leap years.
+- Scoped entry and exit condition trees, cooldown/repeat and maximum residence,
+  recipient time-zone fallback, weekday/time windows, durable delays, wait-until,
+  wait-for-event/timeout and conditional/deterministic percentage paths.
+- Email actions freeze a native saved email’s content/sender/tracking into the
+  activated revision. They enqueue one private recipient through the existing
+  encrypted delivery/suppression/quota/signing pipeline. Later source-email edits
+  cannot replace a frozen email. Real setup/production readiness still gates
+  activation of email flows.
+- Tag/untag, group/ungroup, typed audience-field updates, unsubscribe, archive
+  and exit actions are transactional. No flow can silently grant email consent.
+- Pause/resume and individual step pause preserve existing positions. Elapsed
+  delays continue while paused; a resumed person keeps their original activated
+  revision, while new entries use the latest revision. Removing a flow cancels
+  waiting actions; restore creates a private draft.
+- Per-step waiting/completion/skip/failure reports, scoped execution histories and
+  formula-safe CSV export. Recorded effects are not replayed. Explicit retry is
+  limited to failed data steps; email receipts, especially uncertain acceptance,
+  must be reviewed separately.
+- Classic compatibility is deliberate: native tag-triggered emails and a documented
+  ordered native email/delay JSON format convert to reviewed drafts. Vendor queues,
+  past execution history and connected actions are not fabricated or imported.
+
+Schema: `20261017_add_marketing_flows.sql`. The existing mail worker gains only
+native flow execution, audience data-action and queue rights; it cannot activate
+flows, change their authoring documents, replace AWS credentials or replace a
+connection’s email identity. Shared MOED business data stays outside these rights.
+
+Follow-up shell preferences on this branch: monkey-logo click returns to Audience;
+Control-click returns to the MOED dashboard, including macOS context-menu behavior.
+Interface fonts are 7.5% smaller than their previous size, tooltip text is about
+12px, and authored email typography is independent.
+
+Qualification completed for the native non-live scope:
+
+- **64 flow HTTP/execution checks; 661 total Audience HTTP checks** in a disposable
+  database, followed by native SNS/SES, quota/ambiguity/no-replay, restricted-worker
+  and encrypted credential rotation/binding checks. Fake transport only; no real
+  message was sent. The disposable project removed only its own resources.
+- **34 document/DAG/time-window/event checks**, full `composer test`, **316 JavaScript
+  tests**, generated assets/classic bundle parsing, shared label punctuation and
+  PHPStan routes passed. Environment-dependent standalone integration tests in
+  Composer retain their documented skips; the Audience suite above ran against
+  actual disposable HTTP/database services.
+- Actual authenticated localhost browser: list/empty state, template filtering and
+  full-page preview, create/rename, plus/palette insertion and inspector editing,
+  keyboard save before field blur, saved map persistence on return, undo/redo,
+  zoom/reset, report/connection-picker empty state and remove/restore. Browser
+  errors were empty and desktop document width matched its viewport (1265px).
+  A private qualification draft was returned to Trash; no connection was enrolled
+  and no flow activated. Screenshots are retained under
+  `var/deployment/evidence/stage5-{map,automations}-local.png`.
+- Local migration installed after a fresh encrypted database/files backup passed
+  restore verification. **126 existing application tables**, zero pre-existing
+  delivery rows and persistent volume identities remained unchanged. Forty
+  Docker networks were checked for collisions/reservations with no assignment
+  changes. Local web/ingress/database/mail-dispatch returned healthy. A stale
+  individual-file privilege-script mount was worked around with a private
+  temporary copy of the qualified script, which was removed afterward; the
+  database was not recreated or restarted. See the retained private receipt
+  `var/deployment/stage5-local-receipt.json` for backup location/checksum.
+
+Browser qualification found and corrected keyboard-save tracking while text
+remained focused, save-title refresh, and Trash access after removing the final
+active-list draft. No-op profile saves/data actions, tags and groups cannot create
+spurious entry events. Frozen SES binding comparison normalizes JSON key order
+while still enforcing the same account, Region and settings.
+
+Production rollout is tracked separately by the release runner receipt. Controlled
+live flow sending/receipts/inbox/client rendering remains gated by AWS approval.
+Email authoring links to the existing native campaign designer and settings rather
+than duplicating an inline vendor editor. The subsequent qualification below
+closes mobile/dark layout acceptance; exact populated reference-editor/report
+pixels remain unavailable for comparison and are not certified.
+
+### Audience toolbar follow-up — October 17, 2026
+
+Read-only inspection of the signed-in reference Contacts page covered quick
+status/tag/source selections, saved-segment search, removable chips, count
+shortcuts, the advanced editor and the overflow destinations. The reference keeps
+checkbox menus open while updating results; values within each filter type use
+OR, with AND between types. Tags use any-of membership. Edit filters receives
+the full current criteria, including multi-value conditions. The reference source
+picker groups acquisition types rather than displaying every raw integration name.
+
+The native toolbar now keeps its existing popover, checkboxes, focus and search
+text mounted while a read-only GET refreshes the result list and filter summary.
+Superseded requests cannot replace newer results. Loading results are inert;
+request/session errors are visible. Selection resets after a filter change, while
+column preferences, page/all-match selection and export controls remain usable.
+Three tag chips remain visible with an exact `+ N` profile link for the rest.
+
+Quick filters, advanced editing, preview, saved segments and filtered campaign
+drafts share one validated criteria tree. Save as segment retains the whole
+selection; draft recipient counts independently enforce current subscription and
+archive eligibility. Native name/email search remains available in combination
+with filters, an intentional extension to the observed reference interaction.
+Source categories derive from stored provenance; original source strings remain
+unchanged. Legacy raw-source URLs still work, and the four original missing-source
+fallback records appear under Unknown.
+
+The unfiltered headline now excludes pending and cleaned records, with a separate
+cleaned shortcut. The underlying list retains all records. The original local
+snapshot remains **10,884 records: 7,203 subscribed, 1,854 unsubscribed, two
+non-subscribed and 1,825 cleaned**, yielding a **9,059** non-cleaned/non-pending
+headline. No connection or subscription record was altered. An explicitly
+approved fresh Mailchimp export comparison found two later unsubscribes and two
+absent formerly cleaned addresses. Its CSV yields 9,059 active contacts and 7,201
+subscribers, while its refreshed header shows 9,058 and 7,200. That remaining
+one-record vendor discrepancy is unresolved; the CSV was not imported. Only
+aggregate comparison evidence is retained in the private qualification report.
+
+Qualification:
+
+- **21 additional toolbar HTTP/storage checks; 682 total Audience HTTP checks**,
+  including previous flow, collection, delivery and account-isolation coverage.
+  Fake transport only; the disposable environment removed only its own resources.
+- **10 pure filter-composition checks**, full Composer suite, **316 JavaScript
+  tests**, route analysis, generated assets, classic bundle parsing and shared
+  label-punctuation checks passed. Optional unrelated standalone integration
+  tests retain their documented environment skips.
+- Authenticated localhost browser verified two checked statuses and two checked
+  tags without closing the menus or losing the typed tag search, full criteria
+  in the advanced editor and unchanged membership after Apply, live search/clear,
+  columns, page/all-match selection, save-segment and campaign-draft dialogs,
+  grouped sources and exact `+ 4` overflow. Dialogs were cancelled; no real local
+  segment or campaign was created. Console errors were empty. Cropped non-PII
+  screenshots are retained as
+  `var/deployment/evidence/audience-multiple-statuses-local.png` and
+  `var/deployment/evidence/audience-tag-overflow-local.png`.
+
+These source/asset changes use the existing local bind mounts. No additional
+migration, restart, deployment, subscription reconciliation or real sending was
+performed. Exact vendor pixels, every vendor-only advanced predicate and
+mobile/dark browser acceptance are not claimed by this focused follow-up.
+
+### Stage 5 responsive and reference closeout — October 17, 2026
+
+The final native browser matrix covered list, classic compatibility, gallery,
+welcome preview, editor, settings and report at **320, 390, 768 and 1280 CSS-pixel
+viewport widths**, in both light and dark modes: **56 combinations**. An editor
+margin mismatch and tablet heading actions initially overflowed; the final fixes
+match the workspace padding breakpoints and wrap heading controls within their
+available space. Final layouts had no document-width overflow or PHP error text.
+Canvas and wide tables retain their own intentional scroll regions. Native mobile
+keyboard zoom/reset worked, and Escape closed the activation review and returned
+focus to Continue. The incomplete email review kept Turn flow on disabled. Real
+device touch input and every assistive-technology/browser combination are not
+claimed by viewport-based browser qualification.
+
+The signed-in Mailchimp flow home, creation details, gallery and welcome preview
+were inspected read-only again. Preview breadcrumbs/back navigation now sit in the
+native page header, and intro/map spacing and action-node accent follow the
+observed preview more closely. Native names, one canonical audience, omitted
+connected/commerce/SMS capabilities and MOED theme controls remain deliberate
+adaptations. No reference flow was created, saved or activated. The reference
+account still had no populated editor or report; the current official
+[editing guide](https://mailchimp.com/help/edit-customer-journey-map/) and
+[report guide](https://mailchimp.com/help/about-customer-journey-reports/) were used
+for behavior comparison. Exact unavailable reference pixels are not certified.
+
+Final isolated qualification passed **66 flow HTTP/execution checks and 684 total
+Audience HTTP checks**, including two new regression assertions that a complete
+email flow cannot activate without SES production access and creates no executable
+revision on rejection. Native suppression, receipt ambiguity/no replay, worker
+permissions and credential rotation/binding also passed. The initial rerun used a
+stale cached ingress image and failed the existing frame-ancestor check; rebuilding
+the disposable images from current source resolved it. Only the isolated test
+project's resources were removed. Existing databases and volumes were retained.
+The **34 pure flow checks**, **316 JavaScript tests**, route analysis, PHP syntax,
+generated assets and label-punctuation checks passed. AI Coach source hashes match;
+the Comprehensive Guide sources/PDF are unchanged from the deployed 2.6.0 base.
+
+The private local responsive draft (ID 2) was returned to Trash without activation,
+enrollment or email. Browser console errors were empty, the original light theme
+and viewport override were restored, and temporary tabs were closed. Aggregate
+browser evidence is retained at `var/deployment/stage5-responsive-qualification.json`;
+screenshots include `evidence/stage5-mobile-dark-preview.png`,
+`evidence/stage5-desktop-dark-preview.png` and `evidence/stage5-mobile-dark-review.png`
+under that directory. The requested minor deployment advances 2.6.0 to 2.6.1 through
+the protected release runner, verified backups and shared-account readiness gates.
+It does not authorize flow activation or live sending qualification.

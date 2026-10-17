@@ -37,7 +37,7 @@ $factory=static fn($service,$settings,$credentials)=>$service==='ses'?$fakeSes:n
 $db->query("UPDATE marketing_ses_settings SET check_state='queued' WHERE audience_id=1");
 if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1)throw new RuntimeException('SES check worker could not claim setup.');
 if($db->query('SELECT check_state FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['check_state']!=='ready')throw new RuntimeException('SES check failed.');
-try{$db->query('SELECT first_name FROM marketing_contacts LIMIT 1');throw new RuntimeException('Mail role has unexpected marketing contact access.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
+try{$db->query("UPDATE marketing_contacts SET email='forbidden@example.test' WHERE 1=0");throw new RuntimeException('Mail role can replace connection identity.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
 $db->query('SELECT id,audience_id,email,email_status,is_archived,deleted_at FROM marketing_contacts LIMIT 0');
 $sent=processAudienceCampaignDelivery($db,10,static fn($m)=>audienceSesDeliver($db,$m,'campaign',$factory));if($sent!==1)throw new RuntimeException('Dedicated role could not process a fictional campaign.');
 if(count($fakeSes->sent)!==1)throw new RuntimeException('SES campaign send was replayed.');
@@ -67,3 +67,11 @@ $future=gmdate('Y-m-d H:i:s',time()+3600);audienceDeferOperationalMail($db,'noti
 $noticeRow=$db->execute_query('SELECT * FROM notification_outbox WHERE id=?',[$notice])->fetch_assoc();if($noticeRow['status']!=='retry'||(int)$noticeRow['attempts']!==7||$noticeRow['payload_ciphertext']!=='encrypted-fixture'||$noticeRow['claim_token']!==null||$noticeRow['delivery_started_at']!==null||$noticeRow['next_attempt_at']!==$future)throw new RuntimeException('Quota deferral lost an operational message or consumed retries.');
 echo "Shared paid allocation, reserves, interval and provider pause checks passed.\n";
 echo "SES credential, API envelope, setup and campaign worker privileges passed; no external message sent.\n";
+
+// A data-only flow must execute with the dedicated role, without credential-write authority.
+$flowWorker = new AudienceStore($db,1,0,'Worker qualification');
+processAudienceFlows($db,20);
+$flowFixture=$db->query("SELECT r.state,c.first_name FROM marketing_flow_runs r JOIN marketing_flows f ON f.id=r.flow_id JOIN marketing_contacts c ON c.id=r.contact_id WHERE f.name='Restricted worker flow' ORDER BY r.id DESC LIMIT 1")->fetch_assoc();
+if(!$flowFixture||$flowFixture['state']!=='completed'||$flowFixture['first_name']!=='Worker qualified')throw new RuntimeException('Dedicated role could not execute a native flow action.');
+try{$db->query("UPDATE marketing_flows SET state='running' WHERE 1=0");throw new RuntimeException('Mail worker can activate authoring state.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
+echo "Flow execution and authoring privilege separation passed.\n";
