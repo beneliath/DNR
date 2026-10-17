@@ -1,6 +1,8 @@
 # Audience: Mailchimp interface and feature parity
 
-Branch: `codex/mailchimp-clone`
+Original reference branch: `codex/mailchimp-clone`
+
+Current Stage 3 closeout branch: `codex/ses-endpoint-layout`
 
 Reference review: October 16, 2026
 
@@ -926,6 +928,133 @@ See the [current implementation and activation gates](audience-mailchimp-audit.m
 - Qualification logs: `/private/tmp/message-monkey-ses-integration-qualified.log`,
   `/private/tmp/message-monkey-ses-phpstan.log` and
   `/private/tmp/message-monkey-ses-migrate.log`.
-- Live AWS credentials, verified sender and production-access activation, public
-  SNS reachability, simulator events and controlled inbox checks remain open.
-  This local development update is not a production release.
+- The initial local checkpoint did not activate live AWS resources. The later
+  Stage 3d checkpoint below supersedes that activation status; simulator events
+  and controlled inbox checks remain open.
+
+## Stage 3d — non-live closeout and SES activation (2026-10-17)
+
+**Non-live Stage 3 implementation and qualification are complete. Overall Stage 3
+is still open for the controlled live acceptance below.** This checkpoint uses
+`codex/ses-endpoint-layout`, based on release 2.5.23 at
+`7255e8d40aee53d5411da7f1a32b7ce66def7f35`. The latest UI changes are local;
+they have not been deployed to s1 and require an explicit production release
+request. No external email was sent during this closeout.
+
+### Pending UI fixes completed
+
+- The read-only HTTPS endpoint fills the available value column and aligns with
+  SNS topic, Subscription and Last verified event. Its reachability help is
+  associated with the input. Long topic/subscription values wrap within the card.
+- Both credential inputs show `•••••••• (saved)` only when saved credential
+  metadata exists. They remain empty password inputs: neither the access-key ID
+  nor the secret is read back into HTML. Leaving the form unchanged preserves
+  the saved credentials; disconnect removes both saved indicators. The shared
+  instructions are associated with both fields for assistive technology.
+- The domain DNS guidance has 24px above and below it, separating the identity
+  details, instructions and action. The source stylesheet, minified bundle and
+  asset manifest agree.
+- Sixteen explicit observations cover unconfigured setup, saved/sandbox setup,
+  authenticated domain and confirmed-event screens at 1280×800 and 390×844 in
+  light and dark themes. There is no outer horizontal overflow or PHP warning.
+  The endpoint is 727px wide on desktop and 313px on mobile, aligned with all
+  three values; DNS margins are 24px in both themes/sizes. The responsive setup
+  stacks fields without clipping their controls.
+- Screenshots use fictional `community.example` data rendered from the real
+  templates with `scripts/generate_audience_preview.php`; explicit fixture themes
+  do not modify the browser’s saved preferences. These are visual evidence,
+  separate from the authenticated integration checks and the real local app.
+  This refines the existing Mailchimp-style shell, cards, labels and spacing;
+  SES setup remains a native adaptation, with no claim of exact pixel parity.
+
+### Refreshed qualification and local installation
+
+- The disposable suite passed **442 authenticated HTTP checks**, including
+  **28 SES setup** and **18 signed event/storage checks**. Four added checks cover
+  unconfigured/saved/disconnected credential indicators and accessible help; the
+  unchanged-form test submits the actual rendered empty values. The suite also
+  exercises campaign completion (80), Content/Brand (46), delivery completion
+  (58), campaign dispatch (94), permissions, CSRF, imports/exports and isolation.
+  These are included counts, not additional checks to add to 442.
+- Actual restricted worker roles passed durable SNS inbox retry, real RSA
+  signature verification, signed confirmation, forged-event rejection, account
+  and recipient binding, receipt ordering, bounce/complaint suppression, SES
+  quota/throttle/rejection/ambiguous outcome/no-replay, shared budgets/reserves,
+  and encrypted credential rotation/retirement. Stage 1b storage also passed.
+  All sends used disposable adapters; these are not AWS delivery receipts.
+- Pure suites passed: **40 SES validation/signature/SDK**, **22 campaign
+  dispatch**, **15 delivery runtime**, **19 delivery setup**, **26 campaign
+  completion**, the restricted-account campaign guard, and **two designer JS
+  model tests**. Full routes PHPStan level 5, changed PHP syntax, generated asset
+  hashes, AI Coach bundle hashes and whitespace checks passed.
+- The local main app was missing the already-qualified SNS inbox migration.
+  Before applying `20261017_queue_marketing_sns_events.sql`, writers were paused
+  and a fresh encrypted backup was restored and verified. The migration receipt
+  records **120 protected application tables unchanged**, including all 10,884
+  Connections and 21 tags; dates, subscription status and tag memberships were
+  preserved. Local web, downloads and mail-dispatch are healthy. No Docker
+  networking or production data changed.
+- Backup receipt:
+  `var/backups/audience-stage3-closeout/local-migration-receipt.json`.
+  Encrypted backup SHA-256:
+  `5241e996e2acc597beeaf794190523925db721ba71c9a5c4f4e1b381b67d4a67`.
+  The live local URL serves the sign-in page in the browser’s current session;
+  authenticated behavior was verified by the disposable HTTP suite, not by
+  claiming a signed-in local visual session.
+
+Evidence for this run:
+`/private/tmp/message-monkey-stage3-offline-integration.log`,
+`/private/tmp/message-monkey-stage3-offline-routes.log`,
+`/private/tmp/message-monkey-stage3-offline-js.log`,
+`/private/tmp/message-monkey-stage3-local-closeout.log`, and
+`/private/tmp/message-monkey-stage3-qualified-preview/layout-results.json` with
+the sixteen adjacent screenshots. Temporary logs/screenshots are local evidence,
+not release artifacts or permanent backups.
+
+### Production activation and remaining acceptance
+
+The shared s1 implementation was deployed through
+[2.5.22 / PR 234](https://github.com/beneliath/DNR/pull/234) and
+[2.5.23 / PR 235](https://github.com/beneliath/DNR/pull/235). The primary account has
+scoped API credentials, verified `shalominmessiah.com`, DKIM success, DMARC,
+`bounce.shalominmessiah.com`, the `message-monkey` configuration set and a confirmed
+`message-monkey-events` subscription in Ohio (`us-east-2`). Its signed confirmation
+was processed by the mail worker. This proves subscription confirmation, not
+campaign delivery, bounce or complaint receipt processing from a real SES send.
+Each other MOED account still supplies and activates its own SES configuration.
+
+AWS Support case `179223179900041` requested more information after the initial
+production-access request. The user-approved reply was posted, describing about
+20,000 newsletter emails monthly, affirmative opt-in and one-click unsubscribe.
+The existing hourly monitor remains responsible for notifying on approval or
+new actionable information. The initial API `DENIED` status must not be presented
+as a final refusal while the support case requests clarification.
+
+Once approval is observed, use this bounded acceptance sequence, with a separate
+explicit authorization for the test recipients and sends:
+
+1. Refresh the primary account’s readiness and verify production access, sending
+   status, exact identity/configuration-set/topic and actual regional quotas.
+   Keep the app’s production-access gate enabled; do not replace it with an
+   assumed plan allowance or bypass it to send sandbox mail.
+2. Send one small campaign only to explicitly approved, controlled inboxes.
+   Inspect actual From/Reply-To, unsubscribe headers, footer, personalization,
+   MIME/rendering and DKIM/SPF/DMARC alignment. Record SES MessageId and the native
+   recipient receipt. Never use the imported audience as test volume.
+3. Use SES simulator addresses for delivery, hard bounce and complaint paths.
+   Reconcile signed SNS receipts with the exact campaign/recipient, suppression,
+   replay handling and report totals; verify that unrelated Connections retain
+   their tags and subscription status.
+4. Exercise a small scheduled campaign, pause/resume/cancel and observed provider
+   pacing within the approved quota. Confirm no duplicate send after worker
+   restart and that ambiguous responses remain unreplayed. Quota failure paths
+   already have isolated coverage; do not manufacture load against real users.
+5. Exercise observed open/click attribution, one-click unsubscribe and an approved
+   test-address confirmation/resubscription. Reconcile native observations with
+   SES delivery totals, acknowledging privacy/bot limitations. Record actual
+   inbox/client observations and the remaining client differences.
+
+Only after those results and the requested production release are recorded should
+Stage 3 be marked fully qualified. SE01–SE15 remain `partial`, `approximate` and
+`parity_qualified=no`; they do not represent a completion percentage. Public forms,
+automation execution and later-stage product areas are outside this closeout.
