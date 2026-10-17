@@ -169,15 +169,7 @@ if (!empty($_SESSION['user_id'])) {
         </button>
     </div>
 
-    <?php if (!empty($_SESSION['user_id'])): ?>
-        <section class="deployment-notice-banner" data-deployment-notice data-status-url="deployment_status.php" aria-label="Deployment Notice" hidden>
-            <div class="deployment-notice-heading">
-                <strong data-deployment-title role="status" aria-live="polite"></strong>
-                <span data-deployment-timer role="timer" aria-live="off"></span>
-            </div>
-            <span data-deployment-detail></span>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/deployment-notice.php'; ?>
 
     <?php if ($admin_unlock_available): ?>
         <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at ?? 0; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
@@ -390,5 +382,4 @@ if (!empty($_SESSION['user_id'])) {
 <?php renderScript('assets/js/theme.min.js', false); ?>
 <?php if ($admin_unlock_available) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
-<?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

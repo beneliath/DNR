@@ -45,6 +45,7 @@ $baseForm=[];
 $isCampaignView=in_array($view,['campaigns','campaign','templates','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','delivery'],true);$isContentView=in_array($view,['content','brand'],true);
 ?>
 <body class="audience-app" data-audience-key="<?= $h($themeKey) ?>">
+<?php include __DIR__.'/../deployment-notice.php'; ?>
 <a class="audience-skip" href="#audience-content">Skip to main content</a>
 <header class="audience-topbar">
     <div class="audience-brand"><span class="audience-logo-wrap"><?php readfile(__DIR__.'/../../assets/audience-logo.svg'); ?></span><span>MOED MessageMonkey</span></div>

@@ -68,6 +68,19 @@ html.dark-mode {
 }
 *{box-sizing:border-box}
 body.audience-app{margin:0;color:var(--audience-text);background:var(--audience-canvas);font:16px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif}
+/* MessageMonkey uses its own shell, but shares MOED's live deployment notice. */
+.audience-app .deployment-notice-banner{position:fixed;inset:0 0 auto;z-index:87;display:flex;flex-direction:column;justify-content:center;min-height:68px;padding:10px 24px;border-bottom:1px solid #991b1b;background:#b91c1c;color:#fff;font-size:14px;line-height:1.5;text-align:left}
+.audience-app .deployment-notice-banner[hidden]{display:none!important}
+.audience-app .deployment-notice-heading{display:flex;flex-wrap:wrap;gap:.4em;font-size:16px}
+.audience-app .deployment-notice-heading strong{color:inherit}
+.audience-app [data-deployment-timer]{font-weight:700;font-variant-numeric:tabular-nums}
+html.dark-mode .audience-app .deployment-notice-banner{background:#dc2626;border-bottom-color:#f87171}
+body.audience-app.deployment-notice-active{padding-top:var(--deployment-banner-height)}
+.audience-app.deployment-notice-active .audience-topbar{top:var(--deployment-banner-height)}
+.audience-app.deployment-notice-active .audience-sidebar{top:calc(68px + var(--deployment-banner-height))}
+.audience-app.deployment-notice-active .audience-notifications{top:calc(62px + var(--deployment-banner-height));max-height:calc(100dvh - 90px - var(--deployment-banner-height))}
+body.audience-app.email-designer.deployment-notice-active .designer-workspace{height:calc(100vh - 72px - var(--deployment-banner-height))}
+@media(max-width:700px){.audience-app .deployment-notice-banner{padding:9px 14px}body.audience-app.email-designer.deployment-notice-active .designer-workspace{height:calc(100vh - 110px - var(--deployment-banner-height))}}
 a{color:var(--audience-link);text-decoration:none}
 a:hover{text-decoration:underline}
 button,input,select,textarea{font:inherit}

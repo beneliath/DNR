@@ -622,6 +622,56 @@
         }
       ]
     },
+    "audience_campaign_public.php": {
+      "sha256": "d068944492e9eb721fa64d18f70113097af4ec67d714cefa65ae7f0af671e98a",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Email Archive"
+        },
+        {
+          "kind": "a",
+          "label": "Previous"
+        },
+        {
+          "kind": "a",
+          "label": "Next"
+        },
+        {
+          "kind": "a",
+          "label": "Past emails"
+        }
+      ]
+    },
+    "audience_subscription.php": {
+      "sha256": "1bc6bdd9b43c566837fdf48b9a0edf0a09cc678e9cf8ae0eac1c91addf226e65",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Your email"
+        },
+        {
+          "kind": "a",
+          "label": "Email preferences"
+        },
+        {
+          "kind": "a",
+          "label": "Unsubscribe"
+        },
+        {
+          "kind": "h1",
+          "label": "You\u2019re unsubscribed"
+        },
+        {
+          "kind": "h1",
+          "label": "Unsubscribe from emails?"
+        },
+        {
+          "kind": "button",
+          "label": "Unsubscribe"
+        }
+      ]
+    },
     "audit_log.php": {
       "sha256": "e0dc17319237b1ff4ff0c105f264fd6659b85b812d2325d02d63948ad8d42c2a",
       "controls": [
