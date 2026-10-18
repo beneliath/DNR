@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/audience_helpers.php';
 require_once __DIR__ . '/audience_rules.php';
 require_once __DIR__ . '/audience_jobs.php';
+require_once __DIR__ . '/audience_settings.php';
 require_once __DIR__ . '/audience_campaigns.php';
 require_once __DIR__ . '/audience_campaign_advanced.php';
 require_once __DIR__ . '/audience_design.php';
@@ -17,11 +18,11 @@ require_once __DIR__ . '/audience_collection.php';
 require_once __DIR__ . '/audience_flow_store.php';
 require_once __DIR__ . '/audience_inbox_store.php';
 require_once __DIR__ . '/audience_analytics.php';
-require_once __DIR__ . '/audience_mailchimp_history.php';
 
 final class AudienceStore
 {
     use AudienceJobs;
+    use AudienceSettings;
     use AudienceCampaigns;
     use AudienceCampaignAdvanced;
     use AudienceDesigns;
@@ -35,7 +36,6 @@ final class AudienceStore
     use AudienceFlows;
     use AudienceInbox;
     use AudienceAnalytics;
-    use AudienceMailchimpHistory;
     private int $transactionDepth = 0;
     public function __construct(public readonly mysqli $db, public readonly int $audienceId, public readonly int $actorId, public readonly string $actorLabel)
     {
@@ -82,7 +82,13 @@ final class AudienceStore
         foreach ($groups as &$group) $group['options'] = $this->all('SELECT o.*,COUNT(c.id) AS contact_count FROM marketing_group_options o LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=? AND c.deleted_at IS NULL AND c.is_archived=0 WHERE o.category_id=? GROUP BY o.id ORDER BY o.position,o.id',[$this->audienceId,$group['id']]);
         return $groups;
     }
-    public function catalog(): array { return audienceRuleCatalog($this->fields(),$this->tags(),$this->groups()); }
+    public function catalog(): array
+    {
+        $campaigns=array_column($this->all('SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$this->audienceId]),'name','id');
+        $links=[];
+        if($this->deliveryRuntimeAvailable())foreach($this->all("SELECT JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_hash')) hash,MAX(JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_label'))) label FROM marketing_message_events WHERE audience_id=? AND event_type='click' GROUP BY hash",[$this->audienceId])as$link)if(preg_match('/^[a-f0-9]{64}$/D',(string)$link['hash']))$links[$link['hash']]=$link['label']?:'Tracked link '.substr($link['hash'],0,8);
+        return audienceRuleCatalog($this->fields(),$this->tags(),$this->groups(),$campaigns,$links);
+    }
     public function where(array $filters, array $rules = ['match'=>'all','rules'=>[]]): array
     {
         $sql = '1=1'; $params = [];
@@ -138,8 +144,8 @@ final class AudienceStore
             $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);
             foreach ($groupIds as $group) $this->write('INSERT INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$group]);
             $changed=[];foreach(['first_name','last_name','language','timezone']as$key)if(!$previous||($previous[$key]??'')!==($key==='language'?$language:($key==='timezone'?$timezone:$data[$key])))$changed[]=$key;foreach($custom as$key=>$value)if(!$previous||($previous['custom'][$key]??'')!==$value)$changed[]=(string)$key;
-            $this->event($id,$previous?'contact_updated':'contact_added',['email'=>$data['email'],'status'=>$data['email_status'],'consent_note'=>$data['consent_note'],'changed_fields'=>$changed]);
-            if ($previous && $previous['email_status']!==$data['email_status']) $this->event($id,'subscription_changed',['from'=>$previous['email_status'],'to'=>$data['email_status'],'consent_note'=>$data['consent_note']]);
+            $this->event($id,$previous?'contact_updated':'contact_added',['email'=>$data['email'],'status'=>$data['email_status'],'consent_note'=>$data['consent_note'],'changed_fields'=>$changed,'origin'=>$origin]);
+            if ($previous && $previous['email_status']!==$data['email_status']) $this->event($id,'subscription_changed',['from'=>$previous['email_status'],'to'=>$data['email_status'],'consent_note'=>$data['consent_note'],'origin'=>$origin]);
             if ($tagIds !== ($previous['tag_ids']??[])) $this->event($id,'tags_changed',['tag_ids'=>$tagIds,'added'=>array_values(array_diff($tagIds,$previous['tag_ids']??[])),'removed'=>array_values(array_diff($previous['tag_ids']??[],$tagIds))]);
             if ($groupIds !== ($previous['group_ids']??[])) $this->event($id,'groups_changed',['group_ids'=>$groupIds,'added'=>array_values(array_diff($groupIds,$previous['group_ids']??[])),'removed'=>array_values(array_diff($previous['group_ids']??[],$groupIds))]);
             return $id;

@@ -29,6 +29,7 @@ audienceHttpExpect($aiApi(1,['action'=>'checks','text'=>'Two words'])['data']['f
 $base=['mode'=>'analytics','operation'=>'analyze','prompt'=>'Explain changes','request_id'=>$uuid(),'role'=>'admin','evidence'=>['secret'=>'spoofed']];
 audienceHttpExpect($aiApi(1,$base)['status']===403,'Client role cannot elevate editor analytics access');
 audienceHttpExpect($aiApi(0,array_replace($base,['request_id'=>'bad']))['status']===400,'Invalid request identifier is rejected before queueing');
+audienceHttpExpect($aiApi(0,array_replace($base,['window'=>['origin'=>'mailchimp']]))['status']===400,'Removed analytics source cannot be queued through the assistant API');
 [$id,$nonce]=$aiFixture();
 $reply=['purpose'=>'audience-ai','mode'=>'content','operation'=>'write','reason'=>'','message'=>'Ready','headline'=>'Fixture heading','text'=>'Reviewed fixture text','subjects'=>['Fixture subject'],'recommendations'=>[],'checks'=>audienceAiChecks('Reviewed fixture text')];
 aiCoachCompleteRequest($conn,$id,$reply,1);

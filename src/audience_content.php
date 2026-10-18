@@ -4,9 +4,34 @@ declare(strict_types=1);
 function audienceContentUpload(array $file):string
 {
     if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Choose a valid uploaded image.');
-    $bytes=file_get_contents($file['tmp_name']);if($bytes===false||strlen($bytes)>700000)throw new InvalidArgumentException('Choose an image up to 700 KB.');
-    $info=@getimagesizefromstring($bytes);$mime=$info['mime']??'';if(!in_array($mime,['image/png','image/jpeg','image/webp'],true))throw new InvalidArgumentException('Use a PNG, JPEG or WebP image.');
+    $bytes=file_get_contents($file['tmp_name']);if($bytes===false||strlen($bytes)>1000000)throw new InvalidArgumentException('Choose an image up to 1 MB.');
+    $info=@getimagesizefromstring($bytes);$mime=$info['mime']??'';if(!in_array($mime,['image/png','image/jpeg','image/webp','image/gif'],true))throw new InvalidArgumentException('Use a PNG, JPEG, WebP or GIF image.');
     return audienceDesignImage('data:'.$mime.';base64,'.base64_encode($bytes));
+}
+
+function audienceContentFileUpload(array $file):array
+{
+    if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Choose a valid uploaded file.');
+    if(strtolower(pathinfo($file['name']??'',PATHINFO_EXTENSION))!=='pdf')return ['image'=>audienceContentUpload($file)];
+    if(filesize($file['tmp_name'])>10000000)throw new InvalidArgumentException('Choose a PDF up to 10 MB.');
+    $bytes=file_get_contents($file['tmp_name']);if($bytes===false)throw new InvalidArgumentException('The PDF could not be read.');
+    return ['document'=>'data:application/pdf;base64,'.base64_encode($bytes)];
+}
+
+function audienceContentDocument(mixed $value):string
+{
+    if(!is_string($value)||strlen($value)>13400000||!str_starts_with($value,'data:application/pdf;base64,'))throw new InvalidArgumentException('Choose a PDF up to 10 MB.');
+    $bytes=base64_decode(substr($value,28),true);
+    if($bytes===false||strlen($bytes)>10000000||!str_starts_with($bytes,'%PDF-')||!str_contains(substr($bytes,-1024),'%%EOF')||(new finfo(FILEINFO_MIME_TYPE))->buffer($bytes)!=='application/pdf')throw new InvalidArgumentException('Choose a valid PDF document.');
+    return $value;
+}
+
+function audienceContentSendDocument(array $item):never
+{
+    $document=audienceContentDocument($item['data']['document']??'');
+    header('Content-Type: application/pdf');header('Content-Disposition: attachment; filename="document.pdf"; filename*=UTF-8\'\''.rawurlencode($item['name'].(str_ends_with(strtolower($item['name']),'.pdf')?'':'.pdf')));
+    header("Content-Security-Policy: sandbox; default-src 'none'");header('X-Content-Type-Options: nosniff');header('Cache-Control: no-store');
+    echo base64_decode(substr($document,28),true);exit;
 }
 
 trait AudienceContent
@@ -19,7 +44,7 @@ trait AudienceContent
     {
         $search=audienceText($input,'search',100);$folder=audienceText($input,'folder',100);$type=audienceText($input,'type');$trash=($input['trash']??'')==='1';$sort=in_array($input['sort']??'',['name','updated_at','created_at','size'],true)?$input['sort']:'updated_at';$direction=($input['direction']??'desc')==='asc'?'asc':'desc';$pageSize=in_array((int)($input['per_page']??25),[10,25,50,100],true)?(int)($input['per_page']??25):25;
         $where='audience_id=? AND deleted_at IS '.($trash?'NOT ':'').'NULL AND LOCATE(?,name)>0';$params=[$this->audienceId,$search];
-        if(in_array($type,['image','section'],true)){$where.=' AND item_type=?';$params[]=$type;}
+        if(in_array($type,['image','section','file'],true)){$where.=' AND item_type=?';$params[]=$type;}
         if($folder!==''){$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder')),'')=?";$params[]=$folder==='unfiled'?'':$folder;}
         $total=(int)$this->one("SELECT COUNT(*) n FROM marketing_design_library WHERE $where",$params)['n'];$page=max(1,min(max(1,(int)ceil($total/$pageSize)),(int)($input['page']??1)));$order=$sort==='size'?"COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.bytes')) AS UNSIGNED),0)":$sort;
         // Sort the bounded ID page before fetching large embedded image documents.
@@ -36,16 +61,27 @@ trait AudienceContent
     public function saveContentItem(array $input,int $id=0,int $version=0):int
     {
         $name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter a file name.');
+        if(isset($input['document'])){
+            $input['document']=audienceContentDocument($input['document']);
+            require_once __DIR__.'/document_scanning_helpers.php';
+            if(documentScanningEnabled()){
+                $stream=fopen('php://temp','w+b');$bytes=base64_decode(substr($input['document'],28),true);fwrite($stream,$bytes);rewind($stream);
+                try{if(!scanDocumentStream($stream,strlen($bytes)))throw new InvalidArgumentException('The document did not pass scanning.');}catch(RuntimeException $e){throw new InvalidArgumentException('The document could not be verified. Try again later.',0,$e);}finally{fclose($stream);}
+            }
+        }
         return $this->transaction(function()use($input,$id,$version,$name){
-            $old=$id?$this->designLibraryItem($id,true):null;if($old&&((int)$old['version']!==$version||$old['item_type']!=='image'))throw new InvalidArgumentException('This file changed. Reload before saving.');
-            $data=$old['data']??[];$image=audienceDesignImage($input['image']??($data['image']??''));if($image==='')throw new InvalidArgumentException('Upload an image before saving.');
+            $old=$id?$this->designLibraryItem($id,true):null;if($old&&((int)$old['version']!==$version||!in_array($old['item_type'],['image','file'],true)))throw new InvalidArgumentException('This file changed. Reload before saving.');
+            if($old&&$old['item_type']==='file'&&trim((string)($input['image']??''))!=='')throw new InvalidArgumentException('Upload a replacement PDF, or create a new image file.');
+            $data=$old['data']??[];$document=$input['document']??($data['document']??'');$type=$document!==''?'file':'image';
+            if($old&&$old['item_type']!==$type)throw new InvalidArgumentException('Upload a replacement of the same file type, or create a new file.');
+            $image=$type==='image'?audienceDesignImage($input['image']??($data['image']??'')):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
             $url=audienceText($input,'link',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');
-            $published=($input['published']??'')==='1';if($published&&($input['rights_confirmed']??'')!=='1')throw new InvalidArgumentException('Confirm that you may publish this image.');
+            $published=($input['published']??'')==='1';if($published&&($input['rights_confirmed']??'')!=='1')throw new InvalidArgumentException('Confirm that you may publish this file.');
             $folder=audienceText($input,'folder',100);if($folder!==''&&!in_array($folder,$this->contentSettings()['settings']['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
-            $bytes=base64_decode(substr($image,strpos($image,',')+1),true);$info=getimagesizefromstring($bytes);
-            $data=array_replace($data,['image'=>$image,'alt'=>audienceText($input,'alt',300),'url'=>$url,'folder'=>$folder,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1],'published'=>$published,'public_key'=>$data['public_key']??bin2hex(random_bytes(32)),'rights_confirmed'=>$published]);
+            $encoded=$type==='file'?$document:$image;$bytes=base64_decode(substr($encoded,strpos($encoded,',')+1),true);$info=$type==='image'?getimagesizefromstring($bytes):[0,0];
+            $data=array_replace($data,['image'=>$image,'document'=>$document,'alt'=>audienceText($input,'alt',300),'url'=>$url,'folder'=>$folder,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1],'published'=>$published,'public_key'=>$data['public_key']??bin2hex(random_bytes(32)),'rights_confirmed'=>$published]);
             if($old)$this->write('UPDATE marketing_design_library SET name=?,data_json=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel,$this->audienceId,$id]);
-            else{$this->write("INSERT INTO marketing_design_library(audience_id,item_type,name,data_json,actor_label) VALUES (?,'image',?,?,?)",[$this->audienceId,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;
+            else{$this->write("INSERT INTO marketing_design_library(audience_id,item_type,name,data_json,actor_label) VALUES (?,?,?,?,?)",[$this->audienceId,$type,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;
         });
     }
     public function contentOperation(string $operation,array $ids,array $versions,string $folder=''):void

@@ -66,7 +66,7 @@ function audienceValidDate(string $date): bool
     return checkdate((int) $p[2], (int) $p[3], (int) $p[1]);
 }
 
-function audienceRuleCatalog(array $fields, array $tags, array $groups): array
+function audienceRuleCatalog(array $fields, array $tags, array $groups,array $campaigns=[],array $links=[]): array
 {
     $catalog = [];
     foreach (['email' => 'Email address', 'first_name' => 'First name', 'last_name' => 'Last name', 'source' => 'Signup source', 'language' => 'Language', 'timezone' => 'Time zone'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'text', 'section' => 'Connection information'];
@@ -83,6 +83,7 @@ function audienceRuleCatalog(array $fields, array $tags, array $groups): array
     foreach ($fields as $field) $catalog['custom:' . $field['id']] = ['label' => $field['label'], 'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience fields'];
     $events = ['contact_added' => 'Connection added', 'contact_updated' => 'Information updated', 'subscription_changed' => 'Subscription changed', 'tags_changed' => 'Tags changed', 'groups_changed' => 'Groups changed', 'contact_archived' => 'Connection archived', 'contact_restored' => 'Connection restored', 'note_added' => 'Note added', 'imported' => 'Imported'];
     foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection activity'];
+    foreach(['sent'=>'Email sent (accepted)','open'=>'Email opened','click'=>'Email link clicked']as$key=>$label)$catalog['engagement:'.$key]=['label'=>$label,'kind'=>'engagement','section'=>'Email engagement','campaigns'=>$campaigns,'links'=>$key==='click'?$links:[]];
     return $catalog;
 }
 
@@ -91,6 +92,7 @@ function audienceRuleOperators(string $kind): array
     return match ($kind) {
         'membership' => ['any' => 'is any of', 'all' => 'is all of', 'none' => 'is none of', 'empty' => 'is blank', 'not_empty' => 'is not blank'],
         'event' => ['ever' => 'has happened', 'never' => 'has not happened', 'last_days' => 'happened in the last (days)', 'before' => 'happened before', 'after' => 'happened after'],
+        'engagement' => ['ever'=>'has happened','never'=>'has not happened','last_days'=>'happened in the last (days)','not_last_days'=>'has not happened in the last (days)','before'=>'happened before','after'=>'happened after'],
         'choice' => ['is' => 'is', 'is_not' => 'is not'],
         'number' => ['is' => 'is', 'is_not' => 'is not', 'gt' => 'is greater than', 'lt' => 'is less than', 'gte' => 'is at least', 'lte' => 'is at most', 'empty' => 'is blank', 'not_empty' => 'is not blank'],
         'date' => ['is' => 'is on', 'before' => 'is before', 'after' => 'is after', 'last_days' => 'is within the last (days)', 'empty' => 'is blank', 'not_empty' => 'is not blank'],
@@ -129,6 +131,33 @@ function audienceCompileRules(array $tree, array $catalog): array
             return ($op === 'none' ? 'NOT ' : '') . "EXISTS ($base AND m.$column IN ($in))";
         }
         $value = audienceText(['value' => $node['value'] ?? ''], 'value', 2000);
+        if($kind==='engagement'){
+            $campaign=audienceText($node,'campaign_id',10)?:'0';
+            if(!ctype_digit($campaign)||($campaign!=='0'&&!array_key_exists($campaign,$field['campaigns'])))throw new InvalidArgumentException('Choose an available campaign.');
+            $bots=audienceText($node,'bots',10)?:'filtered';if(!in_array($bots,['filtered','all'],true))throw new InvalidArgumentException('Choose a supported engagement filter.');
+            $link=audienceText($node,'link_hash',64);if($link!==''&&($key!=='engagement:click'||!array_key_exists($link,$field['links'])))throw new InvalidArgumentException('Choose an available tracked link.');
+            $sql="SELECT 1 FROM marketing_campaign_recipients er JOIN marketing_campaign_deliveries ed ON ed.id=er.delivery_id AND ed.audience_id=er.audience_id WHERE er.contact_id=c.id AND er.audience_id=c.audience_id AND er.state='accepted'";
+            if($campaign!=='0'){$sql.=' AND ed.campaign_id=?';$params[]=(int)$campaign;}
+            if($key==='engagement:sent'){$date='er.accepted_at';}
+            else{
+                $sql.=" AND NOT EXISTS(SELECT 1 FROM marketing_message_events failed WHERE failed.recipient_id=er.id AND failed.audience_id=er.audience_id AND failed.source='provider' AND failed.event_at<=UTC_TIMESTAMP() AND failed.event_type IN ('hard-bounce','soft-bounce','rejected'))";
+                $sql.=" AND EXISTS(SELECT 1 FROM marketing_message_events ee WHERE ee.recipient_id=er.id AND ee.audience_id=er.audience_id AND ".($key==='engagement:open'?"ee.event_type IN ('open','click')":"ee.event_type='click'");
+                if($bots==='filtered')$sql.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(ee.details_json,'$.bot')),'false')<>'true'";
+                if($link!==''){$sql.=" AND JSON_UNQUOTE(JSON_EXTRACT(ee.details_json,'$.link_hash'))=?";$params[]=$link;}
+                $date='ee.event_at';
+            }
+            $sql.=" AND $date<=UTC_TIMESTAMP()";
+            if(in_array($op,['last_days','not_last_days'],true)){
+                if(!ctype_digit($value)||(int)$value<1||(int)$value>36500)throw new InvalidArgumentException('Enter a day count between 1 and 36500.');
+                $sql.=" AND $date>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY)";$params[]=(int)$value;
+            }
+            if(in_array($op,['before','after'],true)){
+                if(!audienceValidDate($value))throw new InvalidArgumentException('Enter a valid date.');
+                $sql.=" AND DATE($date) ".($op==='before'?'<':'>').' ?';$params[]=$value;
+            }
+            if($key!=='engagement:sent')$sql.=')';
+            return (in_array($op,['never','not_last_days'],true)?'NOT ':'')."EXISTS ($sql)";
+        }
         if ($kind === 'event') {
             $params[] = substr($key, 6);
             $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type=?';

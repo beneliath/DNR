@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_analytics_reports.php';
+require_once __DIR__.'/audience_engagement.php';
+require_once __DIR__.'/audience_profile_engagement.php';
 
 function audienceAnalyticsPresets(bool $home,?DateTimeImmutable $now=null):array
 {
@@ -34,13 +36,15 @@ function audienceAnalyticsWindow(array $input, ?DateTimeImmutable $now = null): 
     $from = new DateTimeImmutable($start, new DateTimeZone('UTC'));
     $until = (new DateTimeImmutable($end, new DateTimeZone('UTC')))->modify('+1 day');
     $days = (int)$from->diff($until)->format('%r%a');
-    if ($days < 1 || $days > 366 || $end > $now->format('Y-m-d')) {
-        throw new InvalidArgumentException('Choose a date range of up to 366 days ending today or earlier.');
+    if ($days < 1 || $days > 3660 || $end > $now->format('Y-m-d')) {
+        throw new InvalidArgumentException('Choose a date range of up to 10 years (3,660 days) ending today or earlier.');
     }
-    $origin=audienceText($input,'origin',20)?:'native';if(!in_array($origin,['native','mailchimp'],true))throw new InvalidArgumentException('Choose a supported analytics source.');
-    $sourceAudience=audienceText($input,'source_audience',250);if($origin==='native'&&$sourceAudience!=='')throw new InvalidArgumentException('Original audience filtering applies only to Mailchimp history.');
-    $bots = $origin==='mailchimp'?'exported':(audienceText($input, 'bots', 10) ?: 'filtered');
-    if (!in_array($bots, $origin==='mailchimp'?['exported']:['filtered', 'all'], true)) throw new InvalidArgumentException('Choose a supported bot filter.');
+    if (!in_array(audienceText($input, 'origin', 20), ['', 'native'], true)
+        || audienceText($input, 'source_audience', 250) !== '') {
+        throw new InvalidArgumentException('This analytics source is no longer available. Use MessageMonkey results.');
+    }
+    $bots = audienceText($input, 'bots', 10) ?: 'filtered';
+    if (!in_array($bots, ['filtered', 'all'], true)) throw new InvalidArgumentException('Choose a supported bot filter.');
     $channel=audienceText($input,'channel',20)?:'all';
     if(!in_array($channel,['all','regular','automation'],true))throw new InvalidArgumentException('Choose a supported email type.');
     $compare=audienceText($input,'compare',20)?:'previous';
@@ -52,7 +56,7 @@ function audienceAnalyticsWindow(array $input, ?DateTimeImmutable $now = null): 
     $messageMode=audienceText($input,'messages_mode',10)?:'all';
     if(!in_array($messageMode,['all','selected'],true))throw new InvalidArgumentException('Choose a supported message filter.');
     $segment=$input['segment']??'0';if(!is_scalar($segment)||!preg_match('/\A[0-9]{1,10}\z/D',(string)$segment)||(int)$segment>2147483647)throw new InvalidArgumentException('Choose a valid saved segment.');
-    return ['origin'=>$origin,'source_audience'=>$sourceAudience,'start'=>$start, 'end'=>$end, 'from'=>$from->format('Y-m-d H:i:s'),
+    return ['start'=>$start, 'end'=>$end, 'from'=>$from->format('Y-m-d H:i:s'),
         'until'=>$until->format('Y-m-d H:i:s'), 'days'=>$days, 'bots'=>$bots,'channel'=>$channel,'messages'=>$messages,'messages_mode'=>$messageMode,'compare'=>$compare,'segment'=>(int)$segment,
         'previous_from'=>$from->modify($compare==='year'?'-1 year':'-'.$days.' days')->format('Y-m-d H:i:s'),
         'previous_until'=>($compare==='year'?$until->modify('-1 year'):$from)->format('Y-m-d H:i:s')];
@@ -78,20 +82,17 @@ function audienceAnalyticsTrend(int|float|null $current,int|float|null $previous
 trait AudienceAnalytics
 {
     use AudienceAnalyticsReports;
+    use AudienceProfileEngagement;
     /** One row per accepted message prevents repeated events and joins inflating rates. */
     public function analyticsRecipients(string $from, string $until, string $bots, array $filters=[]): array
     {
-        $bot = $bots === 'filtered' ? "AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'" : '';
-        [$scope,$params]=$this->analyticsRecipientScope(['from'=>$from,'until'=>$until,'channel'=>$filters['channel']??'all','messages_mode'=>$filters['messages_mode']??'all','messages'=>$filters['messages']??[],'segment'=>$filters['segment']??0]);
+        $columns=audienceEngagementColumns($bots);
+        [$scope,$params]=$this->analyticsRecipientScope(['from'=>$from,'until'=>$until,'channel'=>$filters['channel']??'all','messages_mode'=>$filters['messages_mode']??'all','messages'=>$filters['messages']??[],'segment'=>$filters['segment']??0,'contact_id'=>$filters['contact_id']??0,'delivery_id'=>$filters['delivery_id']??0]);
         return $this->all("SELECT campaign_id,day,COUNT(*) accepted,SUM(delivered) delivered,SUM(opens) opens,
             SUM(clicks) clicks,SUM(bounced) bounced,SUM(complaints) complaints,SUM(receipt) receipt,
-            SUM(detected_bot) detected_bot,SUM(unsubscribed) unsubscribed FROM (SELECT r.id,r.delivery_id,d.campaign_id,DATE(r.accepted_at) day,
-            MAX(e.event_type='delivered' AND e.source='provider') delivered,
-            MAX(e.event_type='open' $bot) opens,MAX(e.event_type='click' $bot) clicks,
-            MAX(e.event_type IN ('hard-bounce','soft-bounce') AND e.source='provider') bounced,
-            MAX(e.event_type='complaint' AND e.source='provider') complaints,
-            MAX(e.event_type IN ('send','delivered','delay','rejected','hard-bounce','soft-bounce','complaint') AND e.source='provider') receipt,
-            MAX(e.event_type IN ('open','click') AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')='true') detected_bot,
+            SUM(detected_bot) detected_bot,SUM(unsubscribed) unsubscribed,SUM(failed) failed,SUM(rejected) rejected,
+            SUM(total_opens) total_opens,SUM(total_clicks) total_clicks FROM (SELECT r.id,r.delivery_id,d.campaign_id,DATE(r.accepted_at) day,
+            $columns,
             EXISTS(SELECT 1 FROM marketing_contact_events ce WHERE ce.contact_id=r.contact_id
                 AND ce.event_type='status' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed'
                 AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR)
@@ -106,22 +107,33 @@ trait AudienceAnalytics
 
     public function analyticsTotals(array $recipients): array
     {
-        $totals = array_fill_keys(['accepted','delivered','opens','clicks','bounced','complaints','receipt','detected_bot','unsubscribed'], 0);
+        $totals = array_fill_keys(['accepted','delivered','opens','clicks','total_opens','total_clicks','bounced','failed','rejected','complaints','receipt','detected_bot','unsubscribed'], 0);
         foreach ($recipients as $row) foreach (array_keys($totals) as $key) {
             $totals[$key] += (int)($row[$key] ?? 0);
         }
         $totals['delivery_rate'] = $totals['receipt'] ? audienceAnalyticsRate($totals['delivered'],$totals['accepted']) : null;
-        foreach (['opens'=>'open_rate','clicks'=>'click_rate','unsubscribed'=>'unsubscribe_rate'] as $key=>$rate) {
-            $totals[$rate] = audienceAnalyticsRate($totals[$key],$totals['accepted']);
+        $totals['successful']=max(0,$totals['accepted']-$totals['failed']);
+        $totals['awaiting_receipt']=max(0,$totals['successful']-$totals['delivered']);
+        foreach (['opens'=>'open_rate','clicks'=>'click_rate','unsubscribed'=>'unsubscribe_rate','complaints'=>'complaint_rate'] as $key=>$rate) {
+            $totals[$rate] = audienceAnalyticsRate($totals[$key],$totals['successful']);
         }
         $totals['clicks_per_open'] = audienceAnalyticsRate($totals['clicks'],$totals['opens']);
         $totals['bounce_rate'] = audienceAnalyticsRate($totals['bounced'],$totals['accepted']);
         return $totals;
     }
 
+    /** Lifetime metrics for the bounded page of campaigns, using the report aggregation. */
+    public function analyticsCampaignMetrics(array $ids):array
+    {
+        if(!$ids)return [];
+        $groups=[];
+        foreach($this->analyticsRecipients('1970-01-01 00:00:00',gmdate('Y-m-d H:i:s',time()+1),'filtered',['messages_mode'=>'selected','messages'=>$ids])as$row)$groups[(int)$row['campaign_id']][]=$row;
+        $result=[];foreach($ids as$id)$result[(int)$id]=$this->analyticsTotals($groups[(int)$id]??[]);
+        return $result;
+    }
+
     public function analyticsOverview(array $window, bool $drafts = false): array
     {
-        if(($window['origin']??'native')==='mailchimp')return $this->mailchimpHistoryOverview($window);
         foreach($window['messages']??[] as$campaign)if(!$this->one('SELECT id FROM marketing_campaigns WHERE audience_id=? AND id=?',[$this->audienceId,$campaign]))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
         $rows = $this->analyticsRecipients($window['from'],$window['until'],$window['bots'],$window);
         $priorRows=$this->analyticsRecipients($window['previous_from'],$window['previous_until'],$window['bots'],$window);

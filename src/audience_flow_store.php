@@ -34,7 +34,7 @@ trait AudienceFlows
             }
             if($t['type']==='profile'&&($t['field']??'')!==''&&!in_array($t['field'],['first_name','last_name','language','timezone',...array_map(static fn($f)=>(string)$f['id'],$this->fields())],true))$errors[]='Choose an available audience field.';
         };
-        $validateTrigger($trigger);
+        foreach([$trigger,...($d['additional_triggers']??[])]as$entryTrigger)$validateTrigger($entryTrigger);
         if(!$d['start']||!$d['nodes'])$errors[]='Add a first step.';
         $reachable=[];$map=array_column($d['nodes'],null,'id');$walk=function(string $id)use(&$walk,&$reachable,$map):void{if($id===''||isset($reachable[$id]))return;$reachable[$id]=true;$n=$map[$id];foreach(in_array($n['type'],['condition','split','wait'],true)?['yes','no']:['next']as$edge)$walk($n[$edge]);};$walk($d['start']);
         foreach($d['nodes']as$n){
@@ -76,7 +76,7 @@ trait AudienceFlows
             if($op==='activate'){
                 if(function_exists('isRestrictedDemoSession')&&isRestrictedDemoSession()||function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())throw new InvalidArgumentException('Starting a flow requires an unrestricted editor or administrator.');
                 if($row['state']==='running')throw new InvalidArgumentException('This flow is already active.');
-                if(($row['document']['trigger']['type']??'')==='flow'&&(int)($row['document']['trigger']['id']??0)===$id)throw new InvalidArgumentException('A flow cannot trigger itself.');
+                foreach([$row['document']['trigger'],...($row['document']['additional_triggers']??[])]as$entryTrigger)if(($entryTrigger['type']??'')==='flow'&&(int)($entryTrigger['id']??0)===$id)throw new InvalidArgumentException('A flow cannot trigger itself.');
                 $d=audienceFlowDocument($row['document']);$errors=$this->flowValidate($d,true);if($errors)throw new InvalidArgumentException(implode(' ',$errors));
                 // Snapshot designs and sender binding once. Later draft changes cannot change an enrolled person's path.
                 $d['email_snapshots']=[];$audience=$this->one('SELECT * FROM marketing_audiences WHERE id=?',[$this->audienceId]);

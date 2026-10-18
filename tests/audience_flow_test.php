@@ -34,4 +34,11 @@ $classic=audienceFlowClassicDocument(['trigger'=>['type'=>'signup'],'emails'=>[[
 $expect($classic['classic']&&count($classic['nodes'])===3&&$classic['nodes'][1]['next']==='step3','Classic ordered delays convert to a connected draft');
 $reject(fn()=>audienceFlowClassicDocument(['trigger'=>['type'=>'external'],'emails'=>[['campaign_id'=>1]]]));
 $reject(fn()=>audienceFlowClassicDocument(['trigger'=>['type'=>'signup'],'emails'=>[['campaign_id'=>1,'unsupported'=>true]]]));
+$multi=audienceFlowDefault();$multi['additional_triggers']=[['type'=>'signup'],['type'=>'tag','id'=>1]];
+$expect(count(audienceFlowDocument($multi)['additional_triggers'])===2,'Three starting triggers normalize without losing legacy primary trigger');
+$reject(fn()=>audienceFlowDocument(array_replace($multi,['additional_triggers'=>[['type'=>'signup'],['type'=>'signup']]])));
+$reject(fn()=>audienceFlowDocument(array_replace($multi,['additional_triggers'=>[['type'=>'signup'],['type'=>'tag'],['type'=>'profile']]])));
+$large=audienceFlowDefault();for($i=1;$i<=200;$i++)$large['nodes'][]=['id'=>'n'.$i,'type'=>'exit'];
+$expect(count(audienceFlowDocument($large)['nodes'])===200,'Flows accept two hundred steps');
+$large['nodes'][]=['id'=>'n201','type'=>'exit'];$reject(fn()=>audienceFlowDocument($large));
 echo "Flow document checks passed: $checks\n";

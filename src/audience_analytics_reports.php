@@ -3,14 +3,14 @@ declare(strict_types=1);
 
 function audienceAnalyticsMetricLabels():array
 {
-    return ['accepted'=>'Total sends','delivered'=>'Deliveries','opens'=>'Opened','open_rate'=>'Open rate','clicks'=>'Clicked','click_rate'=>'Click rate','clicks_per_open'=>'Clicks per unique opens','bounced'=>'Bounces','bounce_rate'=>'Bounce rate','unsubscribed'=>'Unsubscribed','unsubscribe_rate'=>'Unsubscribe rate','delivery_rate'=>'Delivery rate','added'=>'Connections added','subscriptions'=>'Observed subscriptions','optouts'=>'Observed unsubscribes','net'=>'Observed net subscription changes','visitors'=>'Daily unique visitors','responses'=>'Submissions','confirmed'=>'Confirmed subscriptions','conversion_rate'=>'Visitor-to-subscription rate','runs'=>'Started','completed'=>'Completed','exited'=>'Exited','failed'=>'Failed','active'=>'Active','completion_rate'=>'Completion rate'];
+    return ['accepted'=>'Total sends','delivered'=>'Confirmed deliveries','successful'=>'Rate denominator','awaiting_receipt'=>'Pending receipts','total_opens'=>'Total opens','total_clicks'=>'Total clicks','complaints'=>'Complaints','complaint_rate'=>'Complaint rate','opens'=>'Opened','open_rate'=>'Open rate','clicks'=>'Clicked','click_rate'=>'Click rate','clicks_per_open'=>'Clicks per unique opens','bounced'=>'Bounces','bounce_rate'=>'Bounce rate','unsubscribed'=>'Unsubscribed','unsubscribe_rate'=>'Unsubscribe rate','delivery_rate'=>'Delivery rate','added'=>'Connections added','subscriptions'=>'Observed subscriptions','optouts'=>'Observed unsubscribes','net'=>'Observed net subscription changes','visitors'=>'Daily unique visitors','responses'=>'Submissions','confirmed'=>'Confirmed subscriptions','conversion_rate'=>'Visitor-to-subscription rate','runs'=>'Started','completed'=>'Completed','exited'=>'Exited','failed'=>'Failed','active'=>'Active','completion_rate'=>'Completion rate'];
 }
 
 function audienceAnalyticsReportDefinition(array $input):array
 {
     $dataset=audienceText($input,'dataset',20)?:'email';
     $allowed=[
-        'email'=>[['campaign','day','week','month'],['accepted','delivered','opens','open_rate','clicks','click_rate','clicks_per_open','bounced','bounce_rate','unsubscribed','unsubscribe_rate','delivery_rate']],
+        'email'=>[['campaign','day','week','month','quarter','year'],['accepted','delivered','opens','open_rate','clicks','click_rate','clicks_per_open','bounced','bounce_rate','unsubscribed','unsubscribe_rate','delivery_rate','successful','awaiting_receipt','total_opens','total_clicks','complaints','complaint_rate']],
         'audience'=>[['source','day','week','month'],['added','subscriptions','optouts','net']],
         'forms'=>[['resource'],['visitors','responses','confirmed','conversion_rate']],
         'flows'=>[['flow'],['runs','completed','exited','failed','active','completion_rate']],
@@ -19,7 +19,7 @@ function audienceAnalyticsReportDefinition(array $input):array
     [$dimensions,$metrics]=$allowed[$dataset];$dimension=audienceText($input,'dimension',20)?:$dimensions[0];
     if(!in_array($dimension,$dimensions,true))throw new InvalidArgumentException('Choose a supported report dimension.');
     $columns=$input['columns']??(isset($input['columns_present'])?[]:($dataset==='email'?['accepted','opens','open_rate','clicks','click_rate','unsubscribed','unsubscribe_rate']:array_slice($metrics,0,4)));
-    if(!is_array($columns)||count($columns)<1||count($columns)>12)throw new InvalidArgumentException('Choose between one and twelve metrics.');
+    if(!is_array($columns)||count($columns)<1||count($columns)>20)throw new InvalidArgumentException('Choose between one and twenty metrics.');
     foreach($columns as$column)if(!is_string($column)||!in_array($column,$metrics,true))throw new InvalidArgumentException('Choose metrics available for this report type.');
     $columns=array_values(array_unique($columns));$plots=$input['plots']??(isset($input['plots_present'])?[]:array_slice($columns,0,2));
     if(!is_array($plots)||count($plots)>2)throw new InvalidArgumentException('Visualize up to two metrics.');
@@ -43,6 +43,7 @@ trait AudienceAnalyticsReports
     private function analyticsRecipientScope(array $w):array
     {
         $sql="r.audience_id=? AND r.state='accepted' AND r.accepted_at>=? AND r.accepted_at<?";$p=[$this->audienceId,$w['from'],$w['until']];
+        foreach(['contact_id'=>'r.contact_id','delivery_id'=>'r.delivery_id']as$key=>$column)if(!empty($w[$key])){$sql.=" AND $column=?";$p[]=(int)$w[$key];}
         if($w['channel']!=='all')$sql.=$w['channel']==='automation'?' AND d.flow_run_id>0':' AND d.flow_run_id=0';
         if($w['messages_mode']==='selected'){
             if(!$w['messages'])$sql.=' AND 1=0';
@@ -62,16 +63,13 @@ trait AudienceAnalyticsReports
         $flags=['accepted','delivered','opens','clicks','bounced','complaints','unsubscribed'];
         if(!in_array($activity,$flags,true)||$page<1||$page>100000||$size<1||$size>500)throw new InvalidArgumentException('Choose a valid recipient report page.');
         [$scope,$params]=$this->analyticsRecipientScope($w);
-        $bot=$w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'":'';
+        $columns=audienceEngagementColumns($w['bots']);
         if($link!==''){
             if(!preg_match('/^[a-f0-9]{64}$/D',$link))throw new InvalidArgumentException('Choose a valid tracked link.');
             $scope.=" AND EXISTS(SELECT 1 FROM marketing_message_events le WHERE le.recipient_id=r.id AND le.audience_id=r.audience_id AND le.event_type='click' AND le.event_at<? AND JSON_UNQUOTE(JSON_EXTRACT(le.details_json,'$.link_hash'))=?".($w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(le.details_json,'$.bot')),'false')<>'true'":'').')';array_push($params,$w['until'],$link);
         }
         $query="SELECT r.id,r.contact_id,r.accepted_at,r.context_ciphertext,c.email,c.first_name,c.last_name,c.deleted_at,d.campaign_id,m.name campaign,
-            MAX(e.event_type='delivered' AND e.source='provider') delivered,
-            MAX(e.event_type='open' $bot) opens,MAX(e.event_type='click' $bot) clicks,
-            MAX(e.event_type IN ('hard-bounce','soft-bounce') AND e.source='provider') bounced,
-            MAX(e.event_type='complaint' AND e.source='provider') complaints,
+            $columns,
             EXISTS(SELECT 1 FROM marketing_contact_events ce WHERE ce.contact_id=r.contact_id AND ce.event_type='status'
                 AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed'
                 AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR) AND ce.created_at<?) unsubscribed
@@ -96,8 +94,9 @@ trait AudienceAnalyticsReports
         [$scope,$params]=$this->analyticsRecipientScope($w);$bot=$w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'":'';
         $base="FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id
             JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id
-            WHERE $scope AND e.event_at<? AND e.event_type IN ('open','click') $bot";
-        $p=[...$params,$w['until']];$result=[];
+            WHERE $scope AND e.event_at<? AND e.event_type IN ('open','click') $bot
+            AND NOT EXISTS(SELECT 1 FROM marketing_message_events failure WHERE failure.recipient_id=r.id AND failure.audience_id=r.audience_id AND failure.source='provider' AND failure.event_type IN ('hard-bounce','soft-bounce','rejected') AND failure.event_at<?)";
+        $p=[...$params,$w['until'],$w['until']];$result=[];
         foreach(['country','client','device']as$key)$result[$key]=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.$key')),''),'Unknown') label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base GROUP BY label ORDER BY messages DESC,label",$p);
         $result['links']=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')),''),'unknown') link_hash,
             MAX(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_label')),'')) label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base AND e.event_type='click' GROUP BY link_hash ORDER BY messages DESC,link_hash",$p);
@@ -151,7 +150,7 @@ trait AudienceAnalyticsReports
     {
         $d=audienceAnalyticsReportDefinition($definition);$groups=[];$previous=[];
         $groupRows=static function(array $rows,string $dimension,string $dataset,array $names=[])use(&$groups):array{
-            $g=[];foreach($rows as$row){$date=new DateTimeImmutable($row['day']??'today');$key=match($dimension){'campaign'=>(string)$row['campaign_id'],'source'=>$row['source'],'week'=>$date->modify('monday this week')->format('Y-m-d'),'month'=>$date->format('Y-m'),default=>$row['day']};$g[$key]['label']=$names[$key]??$key;$g[$key]['rows'][]=$row;}ksort($g);return $g;
+            $g=[];foreach($rows as$row){$date=new DateTimeImmutable($row['day']??'today');$key=match($dimension){'campaign'=>(string)$row['campaign_id'],'source'=>$row['source'],'week'=>$date->modify('monday this week')->format('Y-m-d'),'month'=>$date->format('Y-m'),'quarter'=>$date->format('Y').'-Q'.(1+intdiv((int)$date->format('n')-1,3)),'year'=>$date->format('Y'),default=>$row['day']};$g[$key]['label']=$names[$key]??$key;$g[$key]['rows'][]=$row;}ksort($g);return $g;
         };
         if($d['dataset']==='email'){
             $names=array_column($this->all('SELECT id,name FROM marketing_campaigns WHERE audience_id=?',[$this->audienceId]),'name','id');
@@ -207,7 +206,7 @@ trait AudienceAnalyticsReports
             if($operation==='copy'){$input=array_replace($old['definition'],$input);$input['name']=$old['name'].' (copy)';$old=null;$index=null;$key='';}
             if($key===''){
                 if($operation!=='save'&&$operation!=='copy')throw new InvalidArgumentException('Save the report first.');
-                if(count($reports)>=50)throw new InvalidArgumentException('This audience can retain up to fifty saved reports, including removed reports.');
+                if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('This audience can retain up to fifty active reports. Remove a report to free a place.');
                 $key=bin2hex(random_bytes(12));$old=['key'=>$key,'owner'=>$this->actorId,'version'=>0,'favorites'=>[],'shared'=>false,'created_at'=>gmdate(DATE_ATOM)];$index=count($reports);
             }
             if($operation==='save'||$operation==='copy'){
@@ -218,7 +217,7 @@ trait AudienceAnalyticsReports
                 $old['name']=$name;$old['description']=audienceText($input,'description',500);$old['definition']=$definition+array_intersect_key($window,array_flip(['start','end','bots','compare','channel','messages','messages_mode','segment']));$old['shared']=($input['shared']??'')==='1';
             }elseif($operation==='favorite'){$favorites=$old['favorites'];$actor=(string)$this->actorId;if(in_array($actor,$favorites,true))$favorites=array_values(array_diff($favorites,[$actor]));else$favorites[]=$actor;$old['favorites']=$favorites;}
             elseif($operation==='delete')$old['deleted']=true;
-            elseif($operation==='restore')$old['deleted']=false;
+            elseif($operation==='restore'){if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('Remove an active report before restoring this one.');$old['deleted']=false;}
             $old['version']++;$old['updated_at']=gmdate(DATE_ATOM);$reports[$index]=$old;$settings['analytics_reports']=$reports;
             $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);return $key;
         });
@@ -256,15 +255,16 @@ trait AudienceAnalyticsReports
     public function analyticsClickMap(array $w,int $delivery=0):array
     {
         [$scope,$params]=$this->analyticsRecipientScope($w);
-        $options=$this->all("SELECT DISTINCT d.id,d.snapshot_ciphertext,d.due_at,c.name FROM marketing_campaign_deliveries d JOIN marketing_campaign_recipients r ON r.delivery_id=d.id AND r.audience_id=d.audience_id JOIN marketing_campaigns c ON c.id=d.campaign_id AND c.audience_id=d.audience_id WHERE $scope ORDER BY d.due_at DESC,d.id DESC LIMIT 100",$params);
+        $options=$this->all("SELECT DISTINCT d.id,d.due_at,c.name FROM marketing_campaign_deliveries d JOIN marketing_campaign_recipients r ON r.delivery_id=d.id AND r.audience_id=d.audience_id JOIN marketing_campaigns c ON c.id=d.campaign_id AND c.audience_id=d.audience_id WHERE $scope ORDER BY d.due_at DESC,d.id DESC",$params);
         if(!$options)return ['options'=>[],'delivery'=>0,'html'=>''];
         $selected=null;foreach($options as$o)if(!$delivery||(int)$o['id']===$delivery){$selected=$o;break;}
         if(!$selected)throw new InvalidArgumentException('Choose a delivery available in this report.');
-        $snapshot=audienceJson(\Dnr\Security\ApplicationKey::open($selected['snapshot_ciphertext']));$draft=$snapshot['draft']??[];
+        $sealed=$this->one('SELECT snapshot_ciphertext FROM marketing_campaign_deliveries WHERE audience_id=? AND id=?',[$this->audienceId,$selected['id']]);
+        $snapshot=audienceJson(\Dnr\Security\ApplicationKey::open($sealed['snapshot_ciphertext']));$draft=$snapshot['draft']??[];
         $plain=htmlspecialchars((string)($draft['text']??''),ENT_QUOTES,'UTF-8');$plain=preg_replace_callback('~https://[^\s<>]+~u',static fn($m)=>'<a href="'.$m[0].'">'.$m[0].'</a>',$plain);
         $html=isset($draft['design'])?audienceDesignHtml($draft['design']):('<!doctype html><html><head></head><body><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'.$plain.'</pre></body></html>');
         $bot=$w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'":'';
-        $counts=array_column($this->all("SELECT JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')) link_hash,COUNT(DISTINCT r.id) messages FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id WHERE $scope AND d.id=? AND e.event_type='click' AND e.event_at<? $bot GROUP BY link_hash",[...$params,$selected['id'],$w['until']]),'messages','link_hash');
+        $counts=array_column($this->all("SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')),'unknown') link_hash,COUNT(DISTINCT r.id) messages FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id WHERE $scope AND d.id=? AND e.event_type='click' AND e.event_at<? $bot AND NOT EXISTS(SELECT 1 FROM marketing_message_events failure WHERE failure.audience_id=r.audience_id AND failure.recipient_id=r.id AND failure.source='provider' AND failure.event_type IN ('hard-bounce','soft-bounce','rejected') AND failure.event_at<?) GROUP BY link_hash",[...$params,$selected['id'],$w['until'],$w['until']]),'messages','link_hash');
         $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$html,LIBXML_NONET);
         foreach(['script','iframe','frame','object','embed','form','input','button','video','audio','source','link','base','meta']as$tag)foreach(iterator_to_array($dom->getElementsByTagName($tag))as$node)$node->parentNode?->removeChild($node);
         foreach($dom->getElementsByTagName('*')as$node){foreach(iterator_to_array($node->attributes)as$attribute)if(str_starts_with(strtolower($attribute->name),'on'))$node->removeAttribute($attribute->name);}

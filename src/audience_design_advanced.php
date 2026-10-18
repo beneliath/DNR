@@ -23,9 +23,9 @@ function audienceDesignUrl(string $url,bool $image=false):bool
 function audienceDesignImage(mixed $image):string
 {
     if($image==='')return '';
-    if(!is_string($image)||!preg_match('~^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$~D',$image,$m))throw new InvalidArgumentException('Upload a PNG, JPEG, or WebP image.');
+    if(!is_string($image)||!preg_match('~^data:image/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$~D',$image,$m))throw new InvalidArgumentException('Upload a PNG, JPEG, WebP or GIF image.');
     $bytes=base64_decode($m[2],true);$info=$bytes===false?false:@getimagesizefromstring($bytes);
-    if(!$info||strlen($bytes)>700000||$info[0]*$info[1]>16000000||$info['mime']!=='image/'.$m[1])throw new InvalidArgumentException('Use an image under 700 KB and 16 megapixels.');return $image;
+    if(!$info||strlen($bytes)>1000000||$info[0]*$info[1]>16000000||$info['mime']!=='image/'.$m[1])throw new InvalidArgumentException('Use an image up to 1 MB and 16 megapixels.');return $image;
 }
 function audienceDesignStyle(mixed $input):array
 {

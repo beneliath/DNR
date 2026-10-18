@@ -622,7 +622,7 @@
                 if (Array.isArray(rule.rules)) { box.append(renderGroup(rule, depth + 1, group, i, rulePath)); return; }
                 const row = el('div', {class: 'segment-condition'});
                 const field = fieldPicker(rule.field, key => {
-                    rule.field = key; const definition = config.catalog[key]; rule.operator = Object.keys(config.operators[definition.kind])[0];
+                    rule.field = key; delete rule.campaign_id; delete rule.link_hash; delete rule.bots; const definition = config.catalog[key]; rule.operator = Object.keys(config.operators[definition.kind])[0];
                     rule.value = definition.kind === 'membership' ? [] : definition.options ? Object.keys(definition.options)[0] || '' : '';
                     renderRules(`${rulePath}-operator`);
                 }, `${rulePath}-field`);
@@ -648,9 +648,22 @@
                         for (const [key, label] of Object.entries(definition.options || {})) value.append(el('option', {value: key}, label));
                         value.value = String(rule.value ?? ''); value.addEventListener('change', () => { rule.value = value.value; clearPreview(); }); row.append(value);
                     } else {
-                        const type = rule.operator === 'last_days' || definition.kind === 'number' ? 'number' : definition.kind === 'date' || (definition.kind === 'event' && ['before', 'after'].includes(rule.operator)) ? 'date' : 'text';
-                        const value = el('input', {type, value: rule.value ?? '', 'aria-label': 'Condition value', required: true, ...(type === 'number' ? {step: rule.operator === 'last_days' ? 1 : 'any'} : {}), ...(rule.operator === 'last_days' ? {min: 1, max: 36500} : {})});
+                        const type = ['last_days', 'not_last_days'].includes(rule.operator) || definition.kind === 'number' ? 'number' : definition.kind === 'date' || (['event', 'engagement'].includes(definition.kind) && ['before', 'after'].includes(rule.operator)) ? 'date' : 'text';
+                        const value = el('input', {type, value: rule.value ?? '', 'aria-label': 'Condition value', required: true, ...(type === 'number' ? {step: ['last_days', 'not_last_days'].includes(rule.operator) ? 1 : 'any'} : {}), ...(['last_days', 'not_last_days'].includes(rule.operator) ? {min: 1, max: 36500} : {})});
                         value.addEventListener('input', () => { rule.value = value.value; clearPreview(); }); row.append(value);
+                    }
+                }
+                if (definition.kind === 'engagement') {
+                    for (const [property, label, options] of [
+                        ['campaign_id', 'Campaign', {'0': 'Any campaign', ...definition.campaigns}],
+                        ['bots', 'Engagement data', {filtered: 'Exclude known bots', all: 'Include detected bots'}],
+                        ...(rule.field === 'engagement:click' ? [['link_hash', 'Tracked link', {'': 'Any link', ...definition.links}]] : [])
+                    ]) {
+                        const picker = el('select', {'aria-label': label});
+                        for (const [key, text] of Object.entries(options)) picker.append(el('option', {value: key}, text));
+                        picker.value = String(rule[property] ?? Object.keys(options)[0]);
+                        picker.addEventListener('change', () => { rule[property] = picker.value; clearPreview(); });
+                        row.append(picker);
                     }
                 }
                 const actions = el('div', {class: 'rule-condition-actions'});
@@ -886,7 +899,7 @@
         socialDialog.addEventListener('input', render);
         $('[data-social-image-upload]').addEventListener('change', event => {
             const file = event.target.files[0], status = $('[data-social-error]'); if (!file) return;
-            if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 700000) { status.textContent = 'Choose a PNG, JPEG or WebP image up to 700 KB.'; event.target.value = ''; return; }
+            if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type) || file.size > 1000000) { status.textContent = 'Choose a PNG, JPEG, WebP or GIF image up to 1 MB.'; event.target.value = ''; return; }
             const reader = new FileReader(); reader.onload = () => { const image = new Image(); image.onload = () => { if (image.naturalWidth * image.naturalHeight > 16000000) { status.textContent = 'Images must be 16 megapixels or less.'; return; } $('[data-social-image]').value = reader.result; const preview = $('[data-social-preview-image]'); preview.src = reader.result; preview.hidden = false; status.textContent = image.naturalWidth < 600 ? 'For a larger card, choose an image at least 600 pixels wide.' : ''; }; image.src = reader.result; }; reader.readAsDataURL(file);
         });
     }
@@ -927,7 +940,15 @@
     };
     $$('[data-content-upload]').forEach(input => input.addEventListener('change', () => {
         const file = input.files[0], form = input.form; if (!file || !form) return;
-        if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 700000) { contentStatus(form, 'Choose a PNG, JPEG or WebP image up to 700 KB.'); input.value = ''; return; }
+        if (input.dataset.contentUpload === 'image' && file.type === 'application/pdf') {
+            if (file.size > 10000000) { input.value = ''; contentStatus(form, 'Choose a PDF up to 10 MB.'); return; }
+            setContentImage(form, 'image', '');
+            form.elements.file_kind.value = 'file';
+            if (!form.elements.name.value) form.elements.name.value = file.name.slice(0,100);
+            contentStatus(form, 'PDF ready. Save to keep your changes.'); return;
+        }
+
+        if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type) || file.size > 1000000) { contentStatus(form, 'Choose a PNG, JPEG, WebP or GIF image up to 1 MB.'); input.value = ''; return; }
         const reader = new FileReader(); reader.onerror = () => contentStatus(form, 'The image could not be read. Try again.');
         reader.onload = () => {
             const image = new Image(); image.onerror = () => { contentStatus(form, 'The image could not be opened.'); input.value = ''; };
@@ -944,7 +965,7 @@
     if (contentEditor) {
         if (contentEditor.elements.image.value) setContentImage(contentEditor, 'image', contentEditor.elements.image.value);
         $('[data-content-new]')?.addEventListener('click', () => {
-            contentEditor.reset(); for (const key of ['id','version']) contentEditor.elements[key].value = '0';
+            contentEditor.reset(); for (const key of ['id','version']) contentEditor.elements[key].value = '0'; contentEditor.elements.file_kind.value = 'image';
             for (const key of ['image','name','alt','link','folder']) contentEditor.elements[key].value = '';
             setContentImage(contentEditor, 'image', ''); $('[data-content-dimensions]', contentEditor).textContent = '';
             contentEditor.elements.published.checked = false; contentEditor.elements.rights_confirmed.checked = false;
@@ -961,13 +982,13 @@
                 const ctx = canvas.getContext('2d'); if (!ctx) return;
                 if (rotate) { ctx.translate(canvas.width,0); ctx.rotate(Math.PI/2); ctx.drawImage(image,0,0); }
                 else ctx.drawImage(image,x,y,width,height,0,0,ow,oh);
-                const result = canvas.toDataURL('image/png'); if (result.length > 940000) { contentStatus(contentEditor, 'The edited image is too large. Choose smaller output dimensions.'); return; }
+                const result = canvas.toDataURL('image/png'); if (result.length > 1333358) { contentStatus(contentEditor, 'The edited image is too large. Choose smaller output dimensions.'); return; }
                 setContentImage(contentEditor,'image',result); contentStatus(contentEditor,'Image edits applied. Save to keep this version.');
             }; image.src = contentEditor.elements.image.value;
         };
         $('[data-content-crop-apply]',contentEditor)?.addEventListener('click', () => editImage(false));
         $('[data-content-rotate]',contentEditor)?.addEventListener('click', () => editImage(true));
-        contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length) { event.preventDefault(); contentStatus(contentEditor,'Upload an image before saving.'); } });
+        contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && !(contentEditor.elements.file_kind.value === 'file' && Number(contentEditor.elements.id.value) > 0)) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
     }
     $$('[data-content-public-url]').forEach(input => { input.value = new URL(input.value, location.href).href; });
     const contentSelection = $('[data-content-selection]');

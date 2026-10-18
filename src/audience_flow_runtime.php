@@ -142,8 +142,15 @@ function processAudienceFlows(mysqli $db,int $limit=25,?int $now=null): int
         $row=$store->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=1 AND flow_id=? AND id=?',[$flow['id'],$flow['published_revision']]);if(!$row)return;$d=audienceJson($row['document_json']);
         $store->transaction(function()use($store,$flow,$d,$now):void{
             $cursor=audienceJson($flow['cursor_json']);
-            if(in_array($d['trigger']['type'],['date','birthday','anniversary'],true))audienceFlowDateEntries($store,$flow,$d,$cursor,$now);
-            else foreach(audienceFlowEvents($store,$cursor)as$event){if(audienceFlowEventMatches($d['trigger'],$event))audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);$cursor[$event['source']]=$event['id'];}
+            $triggers=[$d['trigger'],...($d['additional_triggers']??[])];
+            foreach($triggers as$index=>$trigger)if(in_array($trigger['type'],['date','birthday','anniversary'],true)){
+                $dateKey=$index?'date_'.$index:'date';$dateCursor=['date'=>$cursor[$dateKey]??0];
+                audienceFlowDateEntries($store,$flow,array_replace($d,['trigger'=>$trigger]),$dateCursor,$now);$cursor[$dateKey]=$dateCursor['date'];
+            }
+            foreach(audienceFlowEvents($store,$cursor)as$event){
+                foreach($triggers as$trigger)if(audienceFlowEventMatches($trigger,$event)){audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);break;}
+                $cursor[$event['source']]=$event['id'];
+            }
             $store->write('UPDATE marketing_flows SET cursor_json=? WHERE audience_id=1 AND id=?',[json_encode($cursor,JSON_THROW_ON_ERROR),$flow['id']]);
         });
         for($i=0;$i<max(1,min(100,$limit));$i++){

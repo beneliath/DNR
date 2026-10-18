@@ -55,9 +55,18 @@ function audienceFlowDocument(array $raw): array
     $days=array_values(array_unique(array_map('intval',is_array($s['weekdays']??null)?$s['weekdays']:[1,2,3,4,5,6,7])));if(!$days||array_diff($days,range(1,7)))throw new InvalidArgumentException('Choose at least one delivery day.');
     $d['settings']=['repeat'=>!empty($s['repeat']),'cooldown'=>max(0,min(365,(int)($s['cooldown']??1))),'timezone'=>$zone,'recipient_timezone'=>!empty($s['recipient_timezone']),'weekdays'=>$days,'after'=>$s['after']??'00:00','before'=>$s['before']??'23:59','max_days'=>max(1,min(365,(int)($s['max_days']??365)))];
     foreach([$d['trigger']['time'],$d['settings']['after'],$d['settings']['before']]as$time)if(!is_string($time)||!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$time))throw new InvalidArgumentException('Choose a valid time.');
+    $extra=$raw['additional_triggers']??[];
+    if(!is_array($extra)||!array_is_list($extra)||count($extra)>2)throw new InvalidArgumentException('Use up to three starting triggers.');
+    $d['additional_triggers']=[];$seen=[json_encode($d['trigger'])];
+    foreach($extra as$trigger){
+        if(!is_array($trigger))throw new InvalidArgumentException('Choose a valid starting trigger.');
+        $normalized=audienceFlowDocument(['trigger'=>$trigger,'nodes'=>[]])['trigger'];
+        if(in_array(json_encode($normalized),$seen,true))throw new InvalidArgumentException('Choose different starting triggers.');
+        $seen[]=json_encode($normalized);$d['additional_triggers'][]=$normalized;
+    }
     if($d['settings']['after']>=$d['settings']['before'])throw new InvalidArgumentException('The delivery window must end after it starts.');
     foreach(['entry','exit']as$key){$rules=$raw[$key]??$d[$key];if(!is_array($rules))throw new InvalidArgumentException('Invalid flow filters.');$d[$key]=$rules;}
-    if(count($raw['nodes']??[])>100)throw new InvalidArgumentException('Use at most 100 steps in a flow.');
+    if(count($raw['nodes']??[])>200)throw new InvalidArgumentException('Use at most 200 steps in a flow.');
     foreach($raw['nodes']??[]as$n){
         if(!is_array($n)||!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,39}$/D',(string)($n['id']??''))||!isset(AUDIENCE_FLOW_NODES[$n['type']??'']))throw new InvalidArgumentException('Choose a valid flow step.');
         $node=['id'=>$n['id'],'type'=>$n['type'],'label'=>audienceText($n,'label',100)?:AUDIENCE_FLOW_NODES[$n['type']]];

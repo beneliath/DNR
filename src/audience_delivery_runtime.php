@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_mail_budget.php';
+require_once __DIR__.'/audience_engagement.php';
 require_once __DIR__.'/audience_campaign_advanced.php';
 
 function audienceTestRecipients(string $input):array
@@ -90,7 +91,16 @@ trait AudienceDeliveryRuntime
     public function deliveryReport(int $delivery,bool $testOnly=false):array
     {
         $phase=$testOnly?" AND r.phase='test'":"";
-        return $this->all("SELECT r.variant_key,COUNT(DISTINCT r.id) messages,COUNT(DISTINCT CASE WHEN r.state='accepted' THEN r.id END) accepted,COUNT(DISTINCT CASE WHEN e.event_type='open' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true' THEN r.id END) opens,COUNT(DISTINCT CASE WHEN e.event_type='click' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true' THEN r.id END) clicks,COUNT(DISTINCT CASE WHEN e.event_type='delivered' THEN r.id END) delivered,COUNT(DISTINCT CASE WHEN e.event_type IN ('hard-bounce','soft-bounce') THEN r.id END) bounced,COUNT(DISTINCT CASE WHEN e.event_type='complaint' THEN r.id END) complaints,COUNT(DISTINCT CASE WHEN e.event_type='delay' THEN r.id END) AS `delayed`,COUNT(DISTINCT CASE WHEN e.event_type='rejected' THEN r.id END) AS `rejected`,COUNT(DISTINCT CASE WHEN ce.id IS NOT NULL THEN r.id END) unsubscribed FROM marketing_campaign_recipients r LEFT JOIN marketing_message_events e ON e.recipient_id=r.id LEFT JOIN marketing_contact_events ce ON ce.contact_id=r.contact_id AND ce.event_type='status' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR) WHERE r.audience_id=? AND r.delivery_id=? $phase GROUP BY r.variant_key ORDER BY r.variant_key",[$this->audienceId,$delivery]);
+        $columns=audienceEngagementColumns();
+        $metrics=['opens','clicks','total_opens','total_clicks','delivered','bounced','failed','complaints','receipt','detected_bot','unsubscribed','delayed','rejected'];
+        $sums=implode(',',array_map(static fn($key)=>"SUM(IF(state='accepted',`$key`,0)) `$key`",$metrics));
+        return $this->all("SELECT variant_key,COUNT(*) messages,SUM(state='accepted') accepted,$sums FROM (
+            SELECT r.id,r.variant_key,r.state,$columns,
+            COALESCE(MAX(e.event_type='delay' AND e.source='provider'),0) AS `delayed`,
+            EXISTS(SELECT 1 FROM marketing_contact_events ce WHERE ce.contact_id=r.contact_id AND ce.event_type='status' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed' AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR)) unsubscribed
+            FROM marketing_campaign_recipients r LEFT JOIN marketing_message_events e ON e.recipient_id=r.id AND e.audience_id=r.audience_id AND e.event_at<=UTC_TIMESTAMP()
+            WHERE r.audience_id=? AND r.delivery_id=? $phase GROUP BY r.id
+        ) observations GROUP BY variant_key ORDER BY variant_key",[$this->audienceId,$delivery]);
     }
     public function requestSubscriptionConfirmation(int $personId,string $base,array $collection=[]):void
     {

@@ -40,6 +40,9 @@ $result=audienceAiGenerate($request,microtime(true)+10,null,static function($url
 $expect($calls===1&&($result['reason']??'')===''&&$result['telemetry']['model_calls']===1,'Generation reuses the configured transport exactly once');
 $result=audienceAiGenerate(array_replace($request,['account'=>'other-account']),microtime(true)+10,null,static function()use(&$calls){$calls++;return [];});
 $expect($calls===1&&$result['reason']==='unavailable','Cross-account job data never reaches inference');
+$retired=$analysis+['account'=>currentAccountKey()];$retired['evidence']['window']['origin']='mailchimp';
+$result=audienceAiGenerate($retired,microtime(true)+10,null,static function()use(&$calls){$calls++;return [];});
+$expect($calls===1&&$result['reason']==='unavailable','Queued analysis from a removed source never reaches inference');
 $result=audienceAiGenerate($request,microtime(true)+10,null,static fn()=>throw new AiCoachModelFailure('cancelled'));
 $expect($result['reason']==='cancelled','Cancellation has an explicit native outcome');
 putenv('DNR_AI_COACH_URL=https://user:password@example.test');

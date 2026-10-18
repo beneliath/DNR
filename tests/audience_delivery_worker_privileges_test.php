@@ -84,3 +84,10 @@ $workerInbox->inboxSettings();$db->query('SELECT role,email,email_verified_at,ac
 $db->query('SELECT id FROM marketing_inbox_delivery_events LIMIT 1');
 foreach(["UPDATE marketing_inbox_settings SET gateway_confirmed=1 WHERE 1=0","INSERT INTO marketing_inbox_templates(audience_id,name,subject,body_html) VALUES (1,'Forbidden worker authoring','','')"]as$sql){try{$db->query($sql);throw new RuntimeException('Inbox worker gained authoring privileges.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}}
 echo "Inbox worker read/receipt privileges and source/template authoring separation passed.\n";
+
+require_once '/var/www/html/audience_notification_runtime.php';
+queueAudienceChangeAlerts($db,10);
+(new AudienceStore($db,1,0,'Permission fixture'))->audienceNotificationUsers();
+$db->query('UPDATE marketing_audience_notification_state SET event_cursor=event_cursor WHERE audience_id=1');
+try{$db->query("UPDATE marketing_audiences SET settings_json=JSON_OBJECT() WHERE id=1");throw new RuntimeException('Mail worker can change audience defaults or staff notification preferences.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
+echo "Audience notification worker permissions passed; no external mail.\n";

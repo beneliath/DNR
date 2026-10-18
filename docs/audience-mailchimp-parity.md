@@ -1995,6 +1995,10 @@ localhost. Imported history must never create delivery jobs or change consent.
 
 ### Mailchimp history qualification, October 18, 2026
 
+> Retired by user request on October 18, 2026. The entry below records the former
+> implementation; its importer and dashboard are removed on
+> `codex/mailchimp-cloning-continued5`. Native analytics and Stage 8 AI remain.
+
 The authorized all-reports ZIP contains 4,059 campaign summaries. The final import
 scope retains **335 non-devotional campaigns**, excluding 3,724 daily devotionals
 across the original audiences. Three holiday/event messages from the old devotional
@@ -2031,16 +2035,48 @@ original-audience filtering were exercised; private screenshots are under
 
 The user authorized a minor bump deployment followed by the same 335-record import
 on **s1 / shalom-in-messiah**. Release qualification does not authorize live sending.
-Use the shared release runner and its verified per-account backups first. Stage the
-private archive outside public paths, verify its recorded SHA-256, resolve an active
-administrator in the target database, then dry run:
+The 2.6.3 release imported those 335 records into Shalom only. That import policy is
+now withdrawn: do not reimport this dataset. The removal preserves the original
+migration checksum and adds a forward migration that drops the history table and
+removes saved/queued AI analyses derived from that source. Removed source URLs and
+AI requests are rejected instead of being relabelled as native observations.
+Shalom and localhost data deletion is backed up and verified independently of the
+pending feature-removal release. Test Account data and live-sending gates remain
+unchanged. Original source exports and encrypted recovery backups are retained.
 
-```sh
-php /tmp/import_mailchimp_history.php --file=/tmp/mailchimp-history-reports.zip \
-  --timezone=America/Chicago --bot-filter=unknown --exclude-daily-devotionals \
-  --account=shalom-in-messiah --actor=ACTIVE_ADMIN_ID
-```
+Removal qualification: fresh encrypted, restore-verified backups preceded deleting
+335 imported records from each of localhost and s1's Shalom account. One derived
+AI request was removed locally; none existed on s1. Native campaign/delivery/
+recipient records, consent checksums and sending gates are unchanged, and s1's
+Test Account is unchanged. The obsolete s1 staging archive and both container
+staging copies were removed. The forward migration was applied locally; production
+continues on 2.6.3 with an empty history table until the next requested deployment.
 
-Only after verifying 335 retained and 3,724 excluded should the same command gain
-`--apply`. Record before/after native delivery, recipient, consent and sending-gate
-checks. Test Account receives the same application release and no Shalom history.
+Checks pass: **874 isolated Audience HTTP/storage checks (38 AI checks), 28 pure
+analytics checks, 33 pure AI checks and 320 JavaScript checks**, PHPStan, migration
+integrity, labels, source hashes and whitespace checks. Native Analytics and
+Analytics AI render locally without the retired navigation. Old dashboard,
+export and assistant source requests are rejected. Private operational receipts
+and screenshot evidence are under `var/deployment/`.
+
+
+## Reporting and engagement review follow-up — October 18, 2026
+
+Branch: `codex/mailchimp-cloning-continued5`. The [functional review follow-up](message-monkey-review-2026-10-18.md#authorized-follow-up--local-qualification-october-18) records the implementation and remaining scope.
+
+Campaign list metrics, contact Insights/timeline and campaign/link/date engagement segments now share consistent native reporting definitions. Click-only evidence counts as an open; recorded failed messages leave the engagement denominator once; pending receipts are provisional; known-bot filtering is explicitly limited. Home growth, additional custom metrics/dimensions, saved-report capacity, older campaign selection, selected-dataset AI evidence and GIF/PDF content support are locally implemented.
+
+Qualification: 909 isolated HTTP checks (127 analytics and 38 AI), 320 JavaScript tests and the focused pure validation suites pass. Restricted worker, inbound gateway and provider receipt fixtures pass without external mail. Desktop/mobile/light/dark browser checks cover the changed primary surfaces; the profile overflow found during those checks was corrected. The additive marketing-files migration is applied only locally. No s1 deployment, live sending, external AI inference or real receiving-path claim is included.
+
+The feature matrix keeps `parity_qualified=no`: local functional qualification is not full visual equivalence or live qualification. Optional flow expansion, audience notifications/defaults and remaining production receiving/client/site checks are documented separately, rather than counted as complete.
+
+
+## Remaining review code findings — October 18, 2026
+
+Audience defaults now include optional default subject and sender inheritance for new drafts. Administrator-only settings configure individual subscription/unsubscribe notifications and daily UTC summaries in the bell and by email to verified account staff. Cursor baselines, unchanged-preference generations, operation keys, expiry and dispatch-time staff/preference checks prevent historical replay, duplicate alerts and delivery after revocation. Encrypted notification mail remains on the existing SES path and sending gates.
+
+Flows support three starting triggers and 200 nodes. Existing one-trigger documents and running revisions remain compatible; event enrollment, independent date cursors, repeat settings and source/account validation are retained. Routing splits do not implement A/B experiments. Native reports support up to 3,660 days, all matching click-map deliveries, selected-snapshot decryption and bounded AI period totals. Settings link directly to forms and preferences.
+
+Qualification: **928 Audience HTTP checks** (129 analytics, 38 AI, 16 defaults/notifications); **39 flow, 32 analytics, 33 AI, 40 SES and 22 dispatch pure checks; 320 JavaScript tests**. Worker credential/configuration separation, alert-worker bounded privileges, signed inbound gateway, migration and syntax checks pass without external mail. The notification migration is applied locally; no s1 deployment or sending-gate change is included. Desktop/mobile/light/dark and keyboard browser checks cover the changed settings and populated local sample flow. The inactive localhost Shalom draft “Sample · Multiple entry points” contains no email step.
+
+The [review closeout](message-monkey-review-2026-10-18.md#remaining-code-findings--local-closeout-october-18) records the remaining operational and vendor-specific differences. Real mailbox/client/site verification is separate from local functional acceptance; no new external self-test email has been sent.

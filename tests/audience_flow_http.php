@@ -104,6 +104,16 @@ $failedStep=$fs->one('SELECT state,result_json FROM marketing_flow_steps WHERE r
 $fs->write("INSERT INTO marketing_tags(id,audience_id,name) VALUES (?,1,'Flow repairable tag')",[$retryTag]);$repair=$editor('audience.php?view=flow-report&id='.$repairFlow['id'],['csrf_token'=>$token,'action'=>'flow_retry','id'=>$repairFlow['id'],'run_id'=>$repairRun]);audienceHttpExpect($repair['status']===302,'A failed data step can be explicitly retried');processAudienceFlows($conn,20,time()+1);$repairedStep=audienceJson($fs->one('SELECT result_json FROM marketing_flow_steps WHERE run_id=?',[$repairRun])['result_json']);audienceHttpExpect($fs->one('SELECT state FROM marketing_flow_runs WHERE id=?',[$repairRun])['state']==='completed'&&array_column($repairedStep['history'],'state')===['failed','completed'],'Successful retry preserves its prior failure and commits the effect once');$stop((int)$repairFlow['id']);
 
 // Leave one data-only run queued for the dedicated mail-role privilege suite.
+$multiPeople=[];for($i=0;$i<3;$i++)$multiPeople[]=$fs->savePerson(['email'=>'multi-trigger-'.$i.'@example.test','email_status'=>'non-subscribed']);
+$multiDoc=audienceFlowDefault();$multiDoc['trigger']=['type'=>'signup'];$multiDoc['additional_triggers']=[['type'=>'tag','id'=>$flowTag],['type'=>'profile','field'=>'first_name']];$multiDoc['nodes']=[['id'=>'finish','type'=>'exit']];$multiDoc['start']='finish';
+$multiFlow=$newFlow($multiDoc,'Three-trigger fixture');
+$fs->event($multiPeople[0],'subscription_changed',['from'=>'non-subscribed','to'=>'subscribed']);
+$fs->event($multiPeople[1],'tags_changed',['added'=>[$flowTag],'removed'=>[]]);
+$fs->event($multiPeople[2],'contact_updated',['changed_fields'=>['first_name']]);
+processAudienceFlows($conn,20,time()+1);processAudienceFlows($conn,20,time()+2);
+$multiRuns=$fs->all('SELECT contact_id FROM marketing_flow_runs WHERE audience_id=1 AND flow_id=?',[$multiFlow['id']]);
+audienceHttpExpect(count($multiRuns)===3&&!array_diff($multiPeople,array_map('intval',array_column($multiRuns,'contact_id'))),'Each starting trigger enrolls and repeated scans do not duplicate entries');
+$stop((int)$multiFlow['id']);
 $workerDoc=$d;$workerDoc['nodes']=[['id'=>'worker','type'=>'update','field'=>'first_name','value'=>'Worker qualified']];$workerDoc['start']='worker';$workerFlow=$newFlow($workerDoc,'Restricted worker flow');$enroll($workerFlow);
 foreach($heldJobs as$held)$fs->write('UPDATE marketing_campaign_deliveries SET state=? WHERE id=?',[$held['state'],$held['id']]);
 echo 'Flow HTTP and execution checks passed: '.($checks-$flowStart)."\n";

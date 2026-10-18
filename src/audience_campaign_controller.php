@@ -9,6 +9,7 @@ $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_
 $contentUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>'content']+array_intersect_key($_GET,array_flip(['search','folder','type','sort','direction','layout','trash','per_page'])),$changes));
 $campaignJson=static fn($value)=>$h(json_encode($value,JSON_THROW_ON_ERROR));
 $view=in_array($view,['campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery'],true)?$view:'campaigns';
+if($view==='content'&&!$isPost&&($_GET['download']??'')==='file'){try{$file=$store->designLibraryItem($id);if($file['item_type']!=='file')throw new InvalidArgumentException('File unavailable.');audienceContentSendDocument($file);}catch(InvalidArgumentException){http_response_code(404);exit('File unavailable.');}}
 $campaignFilters=audienceCampaignFilters([]);
 try{$campaignFilters=audienceCampaignFilters($_GET);}catch(InvalidArgumentException $e){$error=$e->getMessage();}
 $campaignUrl=static fn(array $changes=[]):string=>$url(array_replace(['view'=>'campaigns']+$campaignFilters,$changes));
@@ -51,7 +52,7 @@ if($isPost){
             case 'delivery_domain_operation':$store->sendingDomainOperation($id,$version,audienceText($_POST,'operation'));$redirect=$url(['view'=>'delivery']);$message='Domain settings updated. Connections and campaign content were kept.';break;
 
             case 'content_rename':$store->operateDesignLibrary($id,$version,'rename',audienceText($_POST,'name',100));$redirect=$url(['view'=>'content','item'=>$id]);$message='File renamed.';break;
-            case 'content_save':if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$_POST['image']=audienceContentUpload($_FILES['image_file']);$contentId=$store->saveContentItem($_POST,$id,$version);$redirect=$url(['view'=>'content','item'=>$contentId]);$message='File saved.';break;
+            case 'content_save':if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$_POST=array_replace($_POST,audienceContentFileUpload($_FILES['image_file']));$contentId=$store->saveContentItem($_POST,$id,$version);$redirect=$url(['view'=>'content','item'=>$contentId]);$message='File saved.';break;
             case 'content_operation':$store->contentOperation(audienceText($_POST,'operation'),audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$url(['view'=>'content']);$message='Files updated. Existing email snapshots are preserved.';break;
             case 'content_folder':$store->contentFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
@@ -96,6 +97,7 @@ $campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c
 $campaignRowsById=[];$campaignRows=[];
 if($campaignRowIds)foreach($store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds])as$campaignRow)$campaignRowsById[$campaignRow['id']]=$campaignRow;
 foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRowId]))$campaignRows[]=$campaignRowsById[$campaignRowId];
+$campaignMetrics=$runtimeInstalled?$store->analyticsCampaignMetrics($campaignRowIds):[];
 $campaignSnapshot=[];
 if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)as$row)$campaignSnapshot[$row['id']]=(int)$row['version'];
 $month=new DateTimeImmutable($campaignFilters['month'].'-01',new DateTimeZone('UTC'));

@@ -75,4 +75,19 @@ audienceHttpExpect($photoSizes===$expectedSizes&&count($photoSizes)===4,'Large i
 $conn->query('SET SESSION sort_buffer_size='.$priorSortBuffer);
 $photoHttp=$editor($coPath.'&search=Large+photo+fixture');
 audienceHttpExpect($photoHttp['status']===200&&str_contains($photoHttp['body'],'Large photo fixture 4'),'Populated photo library renders over HTTP');
+// Downloadable documents remain private until explicit publication and revoke immediately.
+$coPdfBytes="%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
+$coPdf='data:application/pdf;base64,'.base64_encode($coPdfBytes);
+$coPdfId=$campaignStore->saveContentItem(['name'=>'Qualification document','document'=>$coPdf]);
+$coPdfItem=$campaignStore->designLibraryItem($coPdfId);$coPdfPublic='audience_asset.php?key='.$coPdfItem['data']['public_key'];
+audienceHttpExpect($coPdfItem['item_type']==='file'&&$c2anon($coPdfPublic)['status']===404,'PDF uploads are private by default');
+$r=$editor($coPath.'&download=file&id='.$coPdfId);
+audienceHttpExpect($r['status']===200&&$r['body']===$coPdfBytes&&str_contains(strtolower($r['headers']),'content-disposition: attachment'),'Authenticated PDF download serves exact bytes as an attachment');
+$c2reject(fn()=>$campaignStore->saveContentItem(['name'=>'Wrong replacement','image'=>$coImage],$coPdfId,1),'PDF cannot silently discard an image replacement');
+$c2reject(fn()=>$campaignStore->saveContentItem(['name'=>'Invalid PDF','document'=>'data:application/pdf;base64,'.base64_encode('<script>alert(1)</script>')]),'Non-PDF bytes are rejected');
+$campaignStore->saveContentItem(['name'=>'Qualification document','published'=>'1','rights_confirmed'=>'1'],$coPdfId,1);
+$r=$c2anon($coPdfPublic);audienceHttpExpect($r['status']===200&&$r['body']===$coPdfBytes&&str_contains(strtolower($r['headers']),'content-security-policy: sandbox'),'Published PDF uses a sandboxed attachment response');
+$campaignStore->contentOperation('delete',[$coPdfId],[$coPdfId=>2]);audienceHttpExpect($c2anon($coPdfPublic)['status']===404,'PDF deletion revokes public access');
+$coGif='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+audienceHttpExpect(audienceDesignImage($coGif)===$coGif,'GIF image bytes survive validation unchanged');
 echo 'Content and Brand HTTP: '.($checks-$coStart)." additional checks passed.\n";

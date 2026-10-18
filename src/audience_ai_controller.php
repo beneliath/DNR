@@ -12,8 +12,8 @@ function renderAudienceAi(AudienceStore $store,array $audience,bool $canManage,b
     $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':1';
     $aiText='';$aiSubject='';$aiSourceName='';$aiImages=[];$aiWindow=[];
     if($aiMode==='analytics'){
-        try{$aiWindow=audienceAnalyticsWindow($_GET);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAnalyticsWindow([]);}
-        $aiWindow=array_intersect_key($aiWindow,array_flip(['origin','source_audience','start','end','compare','bots','channel','messages_mode','messages','segment']));
+        try{$aiWindow=audienceAiReportWindow($_GET);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAiReportWindow([]);}
+        $aiWindow=array_intersect_key($aiWindow,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));
     }else{
         $sourceId=\Dnr\Http\RequestInput::positiveInt($_GET,'source_id')??0;
         if($sourceId){

@@ -103,11 +103,16 @@
             if (rule.rules) ruleGroup(row,rule,depth + 1);
             else {
                 const definition = config.catalog[rule.field] || config.catalog.email;
-                row.append(options(Object.fromEntries(Object.entries(config.catalog).map(([key,value]) => [key,value.label])),rule.field,value => { checkpoint(); rule.field = value; rule.operator = Object.keys(config.operators[config.catalog[value].kind])[0]; rule.value = config.catalog[value].kind === 'membership' ? [] : ''; changed(); renderInspector(); renderSettings(); }));
+                row.append(options(Object.fromEntries(Object.entries(config.catalog).map(([key,value]) => [key,value.label])),rule.field,value => { checkpoint(); rule.field = value; delete rule.campaign_id; delete rule.link_hash; delete rule.bots; rule.operator = Object.keys(config.operators[config.catalog[value].kind])[0]; rule.value = config.catalog[value].kind === 'membership' ? [] : ''; changed(); renderInspector(); renderSettings(); }));
                 row.append(options(config.operators[definition.kind],rule.operator,value => { edit(rule,'operator',value); renderInspector(); renderSettings(); }));
                 if (!['empty','not_empty','ever','never'].includes(rule.operator)) {
                     if (definition.options) row.append(options(definition.options,rule.value,value => edit(rule,'value',value),definition.kind === 'membership'));
-                    else row.append(input(['last_days'].includes(rule.operator) || definition.kind === 'number' ? 'number' : definition.kind === 'date' || ['before','after'].includes(rule.operator) && definition.kind === 'event' ? 'date' : 'text',rule.value || '',value => edit(rule,'value',value)));
+                    else row.append(input(['last_days','not_last_days'].includes(rule.operator) || definition.kind === 'number' ? 'number' : definition.kind === 'date' || ['before','after'].includes(rule.operator) && ['event','engagement'].includes(definition.kind) ? 'date' : 'text',rule.value || '',value => edit(rule,'value',value)));
+                }
+                if (definition.kind === 'engagement') {
+                    row.append(options({'0':'Any campaign',...definition.campaigns},rule.campaign_id || '0',value => edit(rule,'campaign_id',value)));
+                    row.append(options({filtered:'Known bots excluded',all:'Include all observations'},rule.bots || 'filtered',value => edit(rule,'bots',value)));
+                    if(rule.field === 'engagement:click') row.append(options({'':'Any tracked link',...definition.links},rule.link_hash || '',value => edit(rule,'link_hash',value)));
                 }
             }
             row.append(button('×',() => { checkpoint(); group.rules.splice(index,1); changed(); renderInspector(); renderSettings(); },{'aria-label':'Remove condition',disabled:!config.editable})); box.append(row);
@@ -141,7 +146,12 @@
     }
     function renderInspector() {
         inspector.replaceChildren(); const node = doc.nodes.find(n => n.id === selected), form = el('fieldset', {disabled:!config.editable}); inspector.append(form);
-        if (!node) { form.append(el('h2', {}, 'Starting point')); triggerFields(form,doc.trigger); field(form,'First step',options({'':'Choose a step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value))); return; }
+        if (!node) { form.append(el('h2', {}, 'Starting point')); [doc.trigger,...(doc.additional_triggers || [])].forEach((trigger,index) => {
+            const group=el('fieldset'); group.append(el('legend',{},`Trigger ${index+1}`)); triggerFields(group,trigger);
+            if(index)group.append(button('Remove trigger',()=>{checkpoint();doc.additional_triggers.splice(index-1,1);changed();renderInspector();},{disabled:!config.editable})); form.append(group);
+        });
+        form.append(el('p',{class:'audience-help'},'Any starting trigger can add a connection. Entry filters and repeat settings apply to every trigger.'));
+        if((doc.additional_triggers || []).length<2)form.append(button('Add starting trigger',()=>{checkpoint();doc.additional_triggers ||= [];doc.additional_triggers.push({type:Object.keys(config.triggers).find(type=>![doc.trigger,...doc.additional_triggers].some(t=>t.type===type)) || 'manual',id:0,field:'',value:'',offset:0,time:'09:00'});changed();renderInspector();},{disabled:!config.editable})); field(form,'First step',options({'':'Choose a step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value))); return; }
         form.append(el('h2', {}, config.types[node.type])); field(form,'Step name',input('text',node.label,value => edit(node,'label',value),{maxlength:100}));
         if (node.type === 'email') {
             field(form,'Email',options(campaignChoices(),node.campaign_id,value => { edit(node,'campaign_id',Number(value)); renderInspector(); }));
@@ -162,13 +172,13 @@
         const edges = ['condition','split','wait'].includes(node.type) ? ['yes','no'] : node.type === 'exit' ? [] : ['next'];
         edges.forEach(edge => field(form,edge==='next'?'Next step':edge==='yes'?'Yes path':'No path',options(edgeChoices(node.id),node[edge],value => edit(node,edge,value))));
         const actions = el('div',{class:'audience-actions'});
-        actions.append(button('Duplicate',() => { checkpoint(); const copy=clone(node); copy.id=newId(); copy.label+= ' (copy)'; copy.next=''; copy.yes=''; copy.no=''; doc.nodes.push(copy); selected=copy.id; changed(); renderInspector(); },{disabled:!config.editable}),button('Delete step',() => { if (!config.editable) return; checkpoint(); const replacement=['condition','split','wait'].includes(node.type)?'':node.next; doc.nodes.forEach(n => ['next','yes','no'].forEach(edge => { if(n[edge]===node.id)n[edge]=replacement; })); if(doc.start===node.id)doc.start=replacement; doc.nodes=doc.nodes.filter(n=>n.id!==node.id); selected='trigger'; changed(); renderInspector(); },{disabled:!config.editable})); form.append(actions);
+        actions.append(button('Duplicate',() => { if(doc.nodes.length>=200){showError('Use at most 200 steps in a flow.');return;} checkpoint(); const copy=clone(node); copy.id=newId(); copy.label+= ' (copy)'; copy.next=''; copy.yes=''; copy.no=''; doc.nodes.push(copy); selected=copy.id; changed(); renderInspector(); },{disabled:!config.editable}),button('Delete step',() => { if (!config.editable) return; checkpoint(); const replacement=['condition','split','wait'].includes(node.type)?'':node.next; doc.nodes.forEach(n => ['next','yes','no'].forEach(edge => { if(n[edge]===node.id)n[edge]=replacement; })); if(doc.start===node.id)doc.start=replacement; doc.nodes=doc.nodes.filter(n=>n.id!==node.id); selected='trigger'; changed(); renderInspector(); },{disabled:!config.editable})); form.append(actions);
         if(config.canManage){const paused=config.pausedNodes.includes(node.id);inspector.append(button(paused?'Resume step':'Pause step',async()=>{if(!await save())return;try{const data=await post({action:'flow_operation',version,operation:paused?'resume_node':'pause_node',node:node.id});window.location.assign(data.redirect);}catch(e){showError(e.message);}}));}
     }
     const newId = () => 'step' + crypto.randomUUID().replaceAll('-','').slice(0,20);
     let insertion = null;
     function add(type, at = insertion) {
-        if (!config.editable) return; checkpoint(); const id=newId(), node={id,type,label:config.types[type],next:'',yes:'',no:'',field:type==='update'?'first_name':'',value:'',time:'09:00',seconds:86400,timeout:86400,percent:50,tag_id:0,option_id:0,campaign_id:0,remove:false,rules:{match:'all',rules:[]}};
+        if (!config.editable) return; if(doc.nodes.length>=200){showError('Use at most 200 steps in a flow.');return;} checkpoint(); const id=newId(), node={id,type,label:config.types[type],next:'',yes:'',no:'',field:type==='update'?'first_name':'',value:'',time:'09:00',seconds:86400,timeout:86400,percent:50,tag_id:0,option_id:0,campaign_id:0,remove:false,rules:{match:'all',rules:[]}};
         if(type==='wait')node.trigger={type:'click',id:0};
         if(!at&&selected!=='trigger'){const current=doc.nodes.find(n=>n.id===selected);if(current&&!['condition','split','wait','exit'].includes(current.type))at={id:current.id,edge:'next'};}
         if(at?.id==='trigger'){node.next=doc.start;doc.start=id;}
@@ -198,12 +208,13 @@
         connect('trigger',doc.start,'next');nodes.forEach(n=>edges(n).forEach(edge=>connect(n.id,n[edge],edge)));
         const card=(id,title,detail,type)=>{
             const p=positions.get(id), item=button('',()=>{selected=id;renderMap();renderInspector();},{class:`flow-node${selected===id?' selected':''}${config.pausedNodes.includes(id)?' paused':''}`,'aria-pressed':selected===id});
-            item.style.left=`${p.x}px`;item.style.top=`${p.y}px`;item.append(el('span',{class:'flow-node-type'},type),el('strong',{},title),el('span',{class:'flow-node-detail'},detail));
+            item.style.left=`${p.x}px`;item.style.top=`${p.y}px`;item.title=title+' · '+detail;item.append(el('span',{class:'flow-node-type'},type),el('strong',{},title),el('span',{class:'flow-node-detail'},detail));
             if(config.pausedNodes.includes(id))item.append(el('span',{class:'flow-node-paused'},'Paused'));
             const counts=config.counts.filter(c=>c.node_key===id);if(counts.length)item.append(el('small',{},counts.map(c=>`${c.n} ${c.state}`).join(' · ')));map.append(item);
         };
-        card('trigger',config.triggers[doc.trigger.type]||'Choose a trigger','Filter who enters your flow','Starting point');
-        nodes.forEach(n=>{const detail=n.type==='email'?config.campaigns.find(c=>Number(c.id)===Number(n.campaign_id))?.name||'Choose an email':n.type==='delay'?`${Math.round(n.seconds/60)} minutes`:n.type==='split'?`${n.percent}% / ${100-n.percent}%`:n.type==='until'?n.time:config.types[n.type];card(n.id,n.label,detail,config.types[n.type]);});
+        const startingTriggers=[doc.trigger,...(doc.additional_triggers || [])].map(t=>config.triggers[t.type] || 'Choose a trigger');
+        card('trigger',startingTriggers.length>1?`${startingTriggers.length} starting triggers`:startingTriggers[0],startingTriggers.length>1?startingTriggers.join(' or '):'Filter who enters your flow','Starting point');
+        nodes.forEach(n=>{const detail=n.type==='email'?config.campaigns.find(c=>Number(c.id)===Number(n.campaign_id))?.name||'Choose an email':n.type==='delay'?`${Math.round(n.seconds/60)} ${Math.round(n.seconds/60)===1?'minute':'minutes'}`:n.type==='split'?`${n.percent}% / ${100-n.percent}%`:n.type==='until'?n.time:config.types[n.type];card(n.id,n.label,detail,config.types[n.type]);});
         $('[data-flow-zoom-label]').textContent=`${Math.round(zoom*100)}%`;
     }
     $$('[data-flow-add]').forEach(b=>{b.addEventListener('click',()=>add(b.dataset.flowAdd));b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',b.dataset.flowAdd);});});
