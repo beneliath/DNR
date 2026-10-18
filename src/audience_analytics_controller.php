@@ -16,7 +16,8 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     }elseif($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET, POST');exit('Unsupported report method.');}
     $reportInput=$_SERVER['REQUEST_METHOD']==='POST'?$_POST:$_GET;
     $reportKey=audienceText($reportInput,'report',32);$section=audienceText($reportInput,'section',20)?:'email';
-    if(!in_array($section,['email','audience','conversions','reports','custom','activity','links','devices','insights'],true)){http_response_code(400);$error='Choose a supported report.';$section='email';}
+    if(!in_array($section,['email','audience','conversions','reports','custom','activity','links','devices','insights','history'],true)){http_response_code(400);$error='Choose a supported report.';$section='email';}
+    if($section==='history'||($reportInput['origin']??'')==='mailchimp'){$section='history';$reportInput['origin']='mailchimp';if($view==='home'){header('Location: '.$url(['view'=>'analytics','section'=>'history']+$_GET),true,303);return;}}
     if($reportKey!==''&&$section==='custom'){
         try{
             $savedReport=$store->analyticsSavedReport($reportKey,$canDelete);$base=$savedReport['definition'];
@@ -34,7 +35,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
             $reportInput['start']=$presets[$rangeKey]['start'];$reportInput['end']=$presets[$rangeKey]['end'];
         }
         $window=audienceAnalyticsWindow($reportInput);$overview=$store->analyticsOverview($window,($reportInput['drafts']??'')==='1');
-    }catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$window=audienceAnalyticsWindow([]);}
+    }catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$window=audienceAnalyticsWindow(['origin'=>($reportInput['origin']??'')==='mailchimp'?'mailchimp':'native']);}
     $showDrafts=($reportInput['drafts']??'')==='1';$overview??=$store->analyticsOverview($window,$showDrafts);
     $messageOptions=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status<>'draft' ORDER BY updated_at DESC LIMIT 100",[$audienceId]);
     $metric=audienceText($reportInput,'metric',30)?:'accepted';$group=audienceText($reportInput,'group',10)?:'campaign';
@@ -58,13 +59,14 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     if($download!==''){
         if(!$canManage){http_response_code(403);exit('Export requires an editor or administrator.');}
         if($error!==''){http_response_code(400);exit($h($error));}
+        if($window['origin']==='mailchimp'&&$download!=='csv'){http_response_code(400);exit('Historical summaries support daily CSV export; recipient activity is not included.');}
         if(!in_array($download,['csv','recipients','links','custom','audience','forms','flows'],true)){http_response_code(400);exit('Choose a supported report export.');}
         header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="message-monkey-'.$download.'.csv"');header('Cache-Control: no-store');
         $out=fopen('php://output','w');$csv=static function(array $row)use($out):void{
             // Prevent formula execution when a spreadsheet opens user-provided names or addresses.
             $row=array_map(static fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row);fputcsv($out,$row,',','"','');
         };
-        if($download==='csv'){$csv(['UTC day','Accepted messages','Observed unique opens','Observed unique clicks','Bot filter']);foreach($overview['daily']as$day=>$row)$csv([$day,$row['accepted'],$row['opens'],$row['clicks'],$window['bots']]);}
+        if($download==='csv'){$csv([$window['origin']==='mailchimp'?'UTC campaign day':'UTC day',$window['origin']==='mailchimp'?'Mailchimp reported sends':'Accepted messages','Observed unique opens','Observed unique clicks',$window['origin']==='mailchimp'?'Source':'Bot filter']);foreach($overview['daily']as$day=>$row)$csv([$day,$row['accepted'],$row['opens'],$row['clicks'],$window['origin']==='mailchimp'?'Mailchimp exported summary':$window['bots']]);}
         elseif($download==='recipients'){
             $csv(['Recipient receipt','Email at sending','Campaign','Accepted UTC','Delivered','Opened','Clicked','Bounced','Complained','Unsubscribed']);
             for($n=1;;$n++){$batch=$store->analyticsActivity($window,$activity,$n,500,$linkHash);foreach($batch['rows']as$r)$csv([$r['id'],$r['destination'],$r['campaign'],$r['accepted_at'],$r['delivered'],$r['opens'],$r['clicks'],$r['bounced'],$r['complaints'],$r['unsubscribed']]);if($n*500>=$batch['total'])break;}
@@ -78,7 +80,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         fclose($out);return;
     }
     $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;
-    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing',default=>'Email dashboard'};
+    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing','history'=>'Mailchimp history',default=>'Email dashboard'};
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
     ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-analytics.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php

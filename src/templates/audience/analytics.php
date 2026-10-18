@@ -5,6 +5,7 @@ $rate=static fn($value):string=>$value===null?'—':rtrim(rtrim(number_format((f
 $metrics=['accepted'=>['Total sends',false],'delivery_rate'=>['Delivery rate',true],'open_rate'=>['Open rate',true],'click_rate'=>['Click rate',true],'clicks_per_open'=>['Clicks per unique opens',true],'unsubscribe_rate'=>['Unsubscribed rate',true]];
 ?>
 <div class="analytics-workspace">
+<?php if($canDelete): ?><p><a class="audience-button" href="<?= $h($url(['view'=>'assistant','mode'=>'analytics']+array_intersect_key($window,array_flip(['origin','start','end','compare','bots','channel','messages_mode','messages','segment'])))) ?>">Ask Analytics AI</a> <a class="audience-button" href="<?= $h($url(['view'=>'analytics','section'=>'history'])) ?>">Mailchimp history</a></p><?php endif; ?>
 <?php if($overview['includes_samples']): ?><p class="audience-notice" role="note"><strong>Local sample data included.</strong> Campaigns named “Sample” contain fictional delivery and engagement records for testing. No emails were sent for these records.</p><?php endif; ?>
 <?php include __DIR__.'/analytics-filters.php'; ?>
 <section class="analytics-card" aria-labelledby="snapshot-heading">

@@ -17,6 +17,7 @@ require_once __DIR__ . '/audience_collection.php';
 require_once __DIR__ . '/audience_flow_store.php';
 require_once __DIR__ . '/audience_inbox_store.php';
 require_once __DIR__ . '/audience_analytics.php';
+require_once __DIR__ . '/audience_mailchimp_history.php';
 
 final class AudienceStore
 {
@@ -34,6 +35,7 @@ final class AudienceStore
     use AudienceFlows;
     use AudienceInbox;
     use AudienceAnalytics;
+    use AudienceMailchimpHistory;
     private int $transactionDepth = 0;
     public function __construct(public readonly mysqli $db, public readonly int $audienceId, public readonly int $actorId, public readonly string $actorLabel)
     {

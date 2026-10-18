@@ -123,6 +123,18 @@ import { normalizeEmailDesignMaps } from './audience-design-model.mjs';
   const freshRow=(columns=1,name='Section')=>({id:uid('section'),name,styles:{},mobile:{},condition:{match:'all',rules:[]},columns:Array.from({length:columns},()=>[])});
   function freshCopy(value){const copy=structuredClone(value);const walk=x=>{if(x&&typeof x==='object'){if(x.id)x.id=uid(x.columns?'section':'block');if(x.anchor)x.anchor='';Object.values(x).forEach(walk);}};walk(copy);return copy;}
   const blockAt=()=>selected?design.rows[selected[0]]?.columns[selected[1]]?.[selected[2]]:null;
+  $('#design-ai').addEventListener('click',()=>{
+    const block=blockAt();
+    if(!block||!['text','heading'].includes(block.type)){error('Select a text or heading block before opening Write with AI.');return;}
+    const plain=block.html?new DOMParser().parseFromString(block.html,'text/html').body.textContent:block.text;
+    document.dispatchEvent(new CustomEvent('audience-ai-open',{detail:{text:plain,target:{id:block.id,original:JSON.stringify(block)}}}));
+  });
+  document.addEventListener('audience-ai-apply',event=>{
+    const block=design.rows.flatMap(row=>row.columns.flat()).find(item=>item.id===event.detail.target.id);
+    if(!block||!['text','heading'].includes(block.type)||JSON.stringify(block)!==event.detail.target.original||typeof event.detail.text!=='string'||event.detail.text.length>10000)return;
+    mutate(()=>{block.text=event.detail.text;block.html='';});event.preventDefault();
+  });
+
   function addBlock(type,target){if(design.mode==='code'){error('Use Edit code for this custom-coded design. Choose a visual template to use drag-and-drop blocks.');return;}mutate(()=>{if(!design.rows.length)design.rows.push(freshRow());const p=target||selected||[design.rows.length-1,0,design.rows.at(-1).columns[0].length];const col=design.rows[p[0]].columns[p[1]],index=target?p[2]:selected?p[2]+1:col.length;col.splice(index,0,defaultBlock(type));selected=[p[0],p[1],index];selectedRow=null;panel='block';blockTab='content';});}
   const field=(label,value,onChange,type='text',options)=>{
     const wrap=el('label',label,'designer-field'), input=el(options?'select':type==='textarea'?'textarea':'input');
