@@ -1936,3 +1936,59 @@ explicit live qualification. The earlier Stage 6 verified-sender/deployed-gatewa
 prerequisite remains separate. Historical missing event metadata, external
 industry benchmarks and privacy-proxy identity are data limitations, not invented
 Stage 7 results.
+
+### Stage 8 native AI qualification, October 17, 2026
+
+AI01–AI04 now use MOED's existing private `qwen3:8b` service on shunbun through
+its existing tunnel, request history, bounded queue and two workers. No schema,
+credentials, network configuration or cloud AI provider was added. Local code
+remains on `codex/mailchimp-cloning-continued4`; this qualification is not a
+production deployment.
+
+- Writing: new drafts, rewrite, shorter/longer copy, tone, subject ideas and review
+  suggestions. A selected designer text/heading block supplies a copy of its text.
+  Reviewed replacement checks the original block snapshot and uses normal
+  undo/autosave. Standalone reviewed headline/body can create one idempotent native
+  template, apply current brand styles and optionally use an existing My files
+  banner. Source text can be refined again; no existing campaign is overwritten.
+- Content review: word count, estimated reading time, subject length,
+  personalization and competing-link checks are deterministic and separate from
+  model suggestions. These checks make no delivery, accessibility, spam or
+  performance guarantee. Model text still requires factual/editorial review.
+- Analytics: administrators can ask about the exact native date/message/type/
+  bot/segment scope. The server selects aggregate facts and daily counts; contact
+  identities, Inbox messages and uploaded files are excluded. Source cards,
+  comparison calculations and charts are application-owned. Model observations
+  cite allowed facts; numeric claims must match their cited source. Advice cannot
+  change filters, contacts, consent, schedules or deliveries.
+- Access/reliability: editors/admins can write, analytics requires admin, reviewers
+  are denied at routes and API. CSRF, account/actor/current-role ownership, purpose
+  and nonce checks cover history, polling, cancellation and applying. Worker
+  account/current-access checks, shared eight-job admission/two-worker limit,
+  deadline, cancellation and late-result protection remain in effect. Recovery
+  stores only request identifiers/times/mode in the browser, not source text.
+  Existing MOED AI review/retention policies cover these requests.
+
+Qualification: **868 isolated Audience HTTP/storage checks, including 37 new AI
+checks; 32 pure AI/evidence checks; 320 JavaScript checks**. Existing Coach HTTP,
+queue, feedback and real-worker recovery/navigation suites pass. Its pre-existing
+CLI session-cleanup warnings remain in those fixtures; no application warning was
+found in the native assistant routes. PHPStan, generated assets, UI label/title
+checks, source-hash and whitespace checks pass. Real private-engine writing,
+inline replacement/undo, native template creation, Analytics AI and own history
+were exercised. Phone (390 × 844) dark/light and desktop checks show no page
+horizontal overflow. Local evidence is under `var/deployment/evidence/stage8/`.
+
+The first model analytics output repeated unverified numbers. The final contract
+checks numeric statements against exact server evidence, including per-observation
+source association; a qualified real response reconciles with the local sample
+current/previous metrics. Malformed, unsupported, truncated and cancelled replies
+are not offered for applying. This is native functional coverage, not a claim of
+identical vendor AI output, generated photography or external commerce knowledge.
+No test/campaign email, AWS change or production deployment occurred; live sending
+remains gated. One explicitly named Stage 8 picnic template is available locally
+for viewing/editing.
+
+Next authorized work: Mailchimp historical analytics import, preserving dates and
+source provenance. The real target dataset is **s1 / Shalom in Messiah**, not only
+localhost. Imported history must never create delivery jobs or change consent.

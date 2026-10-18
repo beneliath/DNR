@@ -1,0 +1,7 @@
+<div class="ai-workspace">
+<nav class="audience-tabs" aria-label="AI assistance"><a href="<?= $h($url(['view'=>'assistant'])) ?>"<?= $aiMode==='content'?' aria-current="page"':'' ?>>Write with AI</a><?php if($canDelete): ?><a href="<?= $h($url(['view'=>'assistant','mode'=>'analytics'])) ?>"<?= $aiMode==='analytics'?' aria-current="page"':'' ?>>Analytics AI</a><?php endif; ?></nav>
+<div class="ai-workspace-grid"><section class="audience-panel ai-main">
+<?php if($aiMode==='analytics'): ?><h2>What would you like to know?</h2><p>Ask about your email results. Calculations and charts come from MessageMonkey; AI adds suggestions for your review.</p><p class="ai-scope">Report scope: <strong><?= $h($aiWindow['start'].' to '.$aiWindow['end']) ?> UTC</strong> · <?= $aiWindow['bots']==='filtered'?'Bot filtered':'All observed activity' ?> <a href="<?= $h($url(['view'=>'analytics']+$aiWindow)) ?>">Change report filters</a></p>
+<?php else: ?><h2>Make your next message your own</h2><p>Draft, rewrite, adjust tone, or explore subject lines. Review facts and wording before using a suggestion.</p><?php if($aiSourceName!==''): ?><p class="ai-scope">Working from a copy of <strong><?= $h($aiSourceName) ?></strong></p><?php endif; ?><?php endif; ?>
+<?php include __DIR__.'/ai-panel.php'; ?>
+</section><aside class="audience-panel ai-history"><h2>Your recent requests</h2><p>Visible to you in your current role. Existing MOED AI review and retention policies apply.</p><ul data-ai-history></ul><p data-ai-history-empty>No recent requests</p></aside></div></div>

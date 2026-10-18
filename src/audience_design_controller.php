@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/audience_ai.php';
 function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,string $view,int $id,string $message,string $error,bool $canManage,bool $canDelete,string $displayName,int $actor):void
 {
     $audienceId=$store->audienceId;$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
@@ -90,8 +91,9 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         $dynamicFields=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address','SOURCE'=>'Signup source','EMAIL_STATUS'=>'Email status'];foreach($store->fields()as$f)$dynamicFields[$f['merge_tag']]=$f['label'];foreach($store->tags()as$t)$dynamicFields['tag:'.$t['id']]='Tag: '.$t['name'];foreach($store->groups()as$g)foreach($g['options']as$o)$dynamicFields['group:'.$o['id']]='Group: '.$g['name'].' / '.$o['name'];
         $mergeTags=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address'];foreach($store->fields()as$f)$mergeTags[$f['merge_tag']]=$f['label'];
         $designerConfig=['nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$store->sesAvailable()&&!audienceSesReasons($store->sesSettings(),$store->sesSettings()['from_email'])?[['email'=>$store->sesSettings()['from_email']]]:[]];
+        $aiInline=true;$aiText='';$aiSubject='';$aiImages=[];$aiConfig=['mode'=>'content','endpoint'=>'audience_ai_api.php','window'=>[],'enabled'=>aiCoachEnabled(),'key'=>hash('sha256',$themeKey.':'.($_SESSION['role']??'').':'.aiCoachStorageKey())];
         releaseApplicationSessionLock();
-        ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php
+        ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php
         return;
     }
     $tab=in_array($_GET['tab']??'', ['built-in','saved','recent'],true)?$_GET['tab']:'built-in';

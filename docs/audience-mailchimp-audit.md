@@ -793,3 +793,14 @@ in `audience-mailchimp-parity.md` for 831 Audience/99 analytics checks and the
 phone/tablet/light/dark evidence. No production deployment or real sending was
 performed. A/B stays excluded. Provider round trips and unavailable historical or
 external evidence are explicitly separated from locally qualified native work.
+
+#### Stage 8 native closeout, October 17, 2026
+
+Writing, editable native content generation, separate content checks and
+admin-only source-grounded Analytics AI are locally qualified through MOED's
+existing shunbun engine. The appended Stage 8 parity entry records permissions,
+source boundaries, failure handling, actual model/UI qualification and test counts.
+Mailchimp's published Write with AI, Create email content with AI and Analytics AI
+controls informed the native workflow; vendor model behavior remains approximate.
+Live sending remains gated. The next authorized follow-on is a historical-report
+import whose real dataset belongs to s1's Shalom in Messiah deployment.
