@@ -25,7 +25,7 @@ $visitorCookie='dnr_collection_'.substr($key,0,12);
 $visitor=is_string($_GET['visitor']??null)?$_GET['visitor']:(is_string($_COOKIE[$visitorCookie]??null)?$_COOKIE[$visitorCookie]:'');
 if (!preg_match('/^[a-f0-9]{64}$/D',$visitor)) $visitor=bin2hex(random_bytes(32));
 setcookie($visitorCookie,$visitor,['expires'=>time()+86400*365,'path'=>rtrim(parse_url(accountPrimaryPublicUrl(),PHP_URL_PATH)?:'/','/').'/','secure'=>requestUsesHttps(),'httponly'=>true,'samesite'=>'Lax']);
-$variant=chr(ord('A')+(hexdec(substr(hash('sha256',$r['public_key'].$visitor),0,6))%(count($d['variants'])+1))); $r['variant']=$variant;
+$variant='A'; $r['variant']='A';
 $recipient=is_string($_GET['recipient']??null)?$_GET['recipient']:'';if(!preg_match('/^[a-f0-9]{64}$/D',$recipient))$recipient=''; $person=$r['kind']==='preferences'?$store->collectionRecipient($recipient):null;
 if ($r['kind']==='preferences') {
     if (!$person) { http_response_code(404); exit('Use the private preferences link in your email.'); }

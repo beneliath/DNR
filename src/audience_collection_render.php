@@ -30,7 +30,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
 {
     $d=array_replace(audienceCollectionDefaults($r['kind']==='confirm'||$r['kind']==='unsubscribe'?'hosted':$r['kind']),$r['document']); $messages=array_replace(audienceCollectionMessages(),$d['messages']); $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $nonce=contentSecurityPolicyNonce();
     $control=static fn($name,$label,$type,$value,$required=false,$options=[])=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages);
-    $variant=$r['variant']??'A'; if ($variant!=='A') { $v=$d['variants'][ord($variant)-ord('B')]??[]; foreach (['title','intro','button'] as $k) if (($v[$k]??'')!=='') $d[$k]=$v[$k]; }
+    // All pages use their canonical content; historical variation receipts remain readable.
     ob_start();
     ?>
     <!doctype html><html lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>

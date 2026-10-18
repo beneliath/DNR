@@ -18,6 +18,7 @@ require_once '/var/www/html/audience_dispatch_worker.php';
 require_once '/var/www/html/audience_store.php';
 require_once '/var/www/html/audience_flow_runtime.php';
 require_once '/var/www/html/audience_ses_inbox.php';
+require_once '/var/www/html/audience_inbox_runtime.php';
 $reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
 $limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
 
@@ -322,6 +323,7 @@ do {
     if (!$reimbursementsOnly) {
         try {
             $processed += processAudienceFlows($conn, 25);
+            queueAudienceInboxAlerts($conn, 10);
             $processed += processAudienceServiceMail($conn, 5);
             $processed += processAudienceCampaignDelivery($conn, 5);
         } catch (Throwable $exception) {

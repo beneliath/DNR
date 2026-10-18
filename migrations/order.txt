@@ -132,3 +132,4 @@
 20261017_queue_marketing_sns_events.sql
 20261017_add_marketing_collection.sql
 20261017_add_marketing_flows.sql
+20261017_add_marketing_inbox.sql

@@ -76,7 +76,8 @@ def main():
         folder = Path(temporary)
         # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
         values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost',
-                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0'}
+                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0',
+                  'DNR_INBOUND_ADDRESS': 'inbox@receiving.example.test'}
         for name in ('ROOT', 'APP', 'BACKUP', 'MAINTENANCE', 'GEOCODER', 'MAIL_INGEST', 'MAIL_DISPATCH'):
             path = folder / ('mysql_' + name.lower())
             path.write_text(secrets.token_hex(32)); path.chmod(0o444)
@@ -142,6 +143,16 @@ def main():
                     '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
                     '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
                     'web', '/opt/dnr/tests/audience_delivery_worker_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_ingest_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_gateway_test.php'], cwd=ROOT, env=env, check=True)
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'MYSQL_USER=dnrmaintenance', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_maintenance_password',

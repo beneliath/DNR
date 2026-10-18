@@ -101,7 +101,7 @@ trait AudienceCampaignAdvanced
     }
     public function campaignDesign(array $row,int $variant=0):?array
     {
-        if($variant<0||$variant>2||($variant>0&&$variant>=count($row['draft']['experiment']['variables']['content']??[])))throw new InvalidArgumentException('This content variation is unavailable.');
+        if($variant!==0)throw new InvalidArgumentException('This content variation is unavailable.');
         return $variant>0?($row['draft']['design_variants'][$variant]??$row['draft']['design']??null):($row['draft']['design']??null);
     }
     public function campaignMergeTags():array
@@ -132,10 +132,7 @@ trait AudienceCampaignAdvanced
             case 'social':
                 $title=audienceText($input,'card_title',200);if(str_contains($title,'*|'))throw new InvalidArgumentException('Social card titles cannot contain merge tags.');
                 $draft['social']=['enabled'=>($input['enabled']??'')==='1','title'=>$title,'description'=>audienceText($input,'card_description',500),'image'=>audienceDesignImage($input['card_image']??'')];break;
-            case 'experiment':
-                if($row['campaign_type']!=='regular')throw new InvalidArgumentException('Testing requires a regular email draft.');
-                $kind=audienceText($input,'experiment_kind')?:($draft['experiment']['kind']??'ab');$draft['experiment']=audienceCampaignExperiment($input,$kind);
-                $count=count($draft['experiment']['variables']['content']??[]);if(isset($draft['design_variants']))$draft['design_variants']=array_filter($draft['design_variants'],static fn($key)=>is_numeric($key)&&(int)$key>0&&(int)$key<$count,ARRAY_FILTER_USE_KEY);break;
+            case 'experiment':throw new InvalidArgumentException('A/B testing is not available in MessageMonkey.');
             default:throw new InvalidArgumentException('Unknown campaign section.');
         }
         return $draft;

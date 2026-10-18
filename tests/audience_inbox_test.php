@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../vendor/autoload.php';require_once __DIR__.'/../src/audience_store.php';require_once __DIR__.'/../src/email_helpers.php';
+$checks=0;$expect=static function(bool $ok,string $message)use(&$checks){if(!$ok)throw new RuntimeException($message);$checks++;};$reject=static function(callable $fn)use($expect){try{$fn();}catch(InvalidArgumentException|DomainException){$expect(true,'Rejected invalid input');return;}throw new RuntimeException('Expected rejection.');};
+$key=str_repeat('R',32);$address=audienceInboxAddress('reply@example.test','shalom-in-messiah',42,$key);
+$markers=audienceInboxAddressMarkers(['to_addresses'=>[strtolower($address)]],static fn($digest)=>$digest===substr(hash('sha256','shalom-in-messiah'),0,12)?'shalom-in-messiah':null);
+$route=resolveAccountMailMarkers($markers,static fn($account)=>$account==='shalom-in-messiah'?$key:null);
+$expect($route['account_key']==='shalom-in-messiah'&&$route['targets']===[['account_key'=>'shalom-in-messiah','type'=>'M','id'=>42]],'Signed address selects one Inbox route');
+$forged=substr_replace($address,$address[strpos($address,'@')-1]==='x'?'y':'x',strpos($address,'@')-1,1);
+$expect(resolveAccountMailMarkers(audienceInboxAddressMarkers(['to_addresses'=>[$forged]],static fn()=>'shalom-in-messiah'),static fn()=>$key)['account_key']===null,'Forged reply route fails closed');
+$expect(resolveAccountMailMarkers($markers.' [MOED@foreign#M42.'.accountMailMarkerTag('foreign','M',42,$key).']',static fn()=>$key)['account_key']===null,'Mixed-account markers cannot pick an account');
+$reject(fn()=>audienceInboxAddress('not-an-address','shalom-in-messiah',1,$key));
+$reject(fn()=>audienceInboxEmail("one@example.test\nBcc: two@example.test"));$reject(fn()=>audienceInboxSubject("Hello\r\nInjected: true"));
+$expect(audienceInboxEmail(' Person@Example.test ')==='person@example.test','Email normalization is exact');
+$expect(audienceInboxReferences("Message-ID: <new@example.test>\r\nReferences: <old@example.test>\r\n <first@example.test>\r\nIn-Reply-To: <old@example.test>")===['<new@example.test>','<old@example.test>','<first@example.test>'],'Folded message references deduplicate');
+$expect(audienceInboxAutoReply("Auto-Submitted: auto-replied\r\n"),'Auto reply filtered');$expect(!audienceInboxAutoReply("Auto-Submitted: no\r\n"),'Explicit human message retained');
+$png=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=');$attachment=audienceInboxAttachment('../pixel.png',$png,false);$expect($attachment['filename']==='pixel.png'&&$attachment['content_type']==='image/png','Attachment bytes and filename validated');
+$reject(fn()=>audienceInboxAttachment('pixel.pdf',$png,false));$reject(fn()=>audienceInboxAttachment('active.html','<script>alert(1)</script>',false));$reject(fn()=>audienceInboxAttachment('large.pdf',str_repeat('x',AUDIENCE_INBOX_ATTACHMENT_BYTES+1),false));
+$html=audienceDesignRichText('<p>Hello <script>alert(1)</script><a href="javascript:alert(1)">link</a></p>');$expect(!str_contains($html,'<script')&&!str_contains($html,'javascript:'),'Authored messages use safe HTML');
+$wire=smtpMessageData('sender@example.test','Team','person@example.test','Hello','Plain',$address,'<p>Body</p>',null,'<inbox@example.test>',[$attachment],['In-Reply-To'=>'<old@example.test>','References'=>'<old@example.test>']);
+$expect(str_contains($wire,'Reply-To: <'.$address.'>')&&str_contains($wire,'In-Reply-To: <old@example.test>')&&str_contains($wire,'image/png'),'MIME carries signed reply route, threading and validated attachment');
+$reject(fn()=>smtpMessageData('sender@example.test','Team','person@example.test','Hello','Plain',"a@example.test\r\nBcc: b@example.test"));
+$reject(fn()=>smtpMessageData('sender@example.test','Team','person@example.test','Hello','Plain','',null,null,null,[],['References'=>"<valid@example.test>\r\nBcc: x@example.test"]));
+echo "Inbox pure validation passed ($checks checks).\n";

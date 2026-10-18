@@ -93,6 +93,8 @@ parameters:
         - src/functions.php
     scanFiles:
         - src/account_mail_helpers.php
+        - src/audience_inbox.php
+        - src/audience_inbox_runtime.php
         - src/engagement_view_helpers.php
     tmpDir: /tmp/dnr-phpstan-helpers
     parallel:

@@ -1675,3 +1675,264 @@ its own scoped group. The complete repository integration order then passed in a
 fresh disposable environment, including all 66 flow and 684 Audience checks, before
 retrying the same 2.6.1 release. No runtime behavior or release version changed for
 that correction.
+
+### Stage 6 native Inbox — October 17, 2026
+
+Branch: `codex/mailchimp-cloning-continued3`, based on release 2.6.1. This is local
+feature development, without a version bump or production deployment.
+
+The standalone Inbox is available at `audience.php?view=inbox`. It follows the
+observed Mailchimp Inbox shell: compact logo/Back header, a Sources/Labels sidebar,
+a separate conversation list, search and To Do/Done/Trash/All tabs, and a detail
+pane. MOED's Account, Viewing As and deployment notice stack is retained. Native
+source, label, template, notification, recipient-picker and conversation screens
+share this shell. The live reference was inspected without saving vendor settings,
+connecting sources, creating vendor records or sending mail. A populated vendor
+conversation was unavailable; native history/reply/error states are qualified
+against the documented behavior rather than claimed pixel-identical.
+
+Native implementation:
+
+- Account/audience-scoped signed reply routes, authenticated receiving-gateway
+  intake, RFC references, exact sender association, replay protection, unknown
+  senders, automatic-reply filtering and safe text rendering. Route capabilities
+  use lowercase hexadecimal in addresses because receiving parsers lowercase
+  email addresses; the existing signed Account marker is reconstructed and checked.
+  Mixed or forged Account routes and untrusted senders cannot auto-file messages.
+- Email/flow snapshots can freeze an Inbox Reply-To address when connected. Native
+  survey replies require an email address and an open-text answer. Hosted contact
+  forms have expiring account-bound proofs, a honeypot, rate limits and idempotent
+  receipts. Typed email addresses do not establish a Connection identity or consent.
+- Search, source/label/status/unread filters, stable thread selection, bounded
+  history with an earlier-message cursor, per-user read state, versioned status
+  changes and recoverable Trash. Moving a conversation to Trash cancels unsent
+  queue items under the same advisory lock used by the sending worker.
+- Private per-user drafts and attachments, explicit recipient selection, safe rich
+  text, native reply templates, supported merge tags, internal comment replies,
+  author attribution, labels, reading/typing presence, per-user browser/email
+  preferences and scoped notification links in the shared MessageMonkey bell.
+- Sending freezes one encrypted service queue item per draft. The web request and
+  restricted worker recheck role, identity, consent, suppression, source state,
+  account/Region SES binding and provider readiness. Accepted and uncertain outcomes
+  are distinct. Signed SNS receipts can resolve uncertainty without replay and
+  record delivery, bounce and complaint outcomes; negative receipts follow the
+  existing consent chronology and suppress the matching Connection safely.
+
+Deliberate adaptations: Inbox access requires an editor or administrator. Only an
+unrestricted administrator configures sources. Email notifications are personal
+opt-ins, rather than one teammate choosing another teammate's preferences. Browser
+alerts operate while Inbox is open. Compose/reply requires an active subscribed
+Connection that passes the existing global suppression rules; anonymous messages
+can be reviewed and explicitly linked to a matching existing Connection, but do
+not grant subscription. A separate one-to-one opt-out leaves newsletter consent
+unchanged; a subsequent authenticated inbound message can reopen one-to-one
+contact. Attachments are downloadable PDF/JPG/PNG/GIF, up to 5 MiB each, 6 MiB total
+and 10 files, with byte/MIME validation and the existing scanner when enabled.
+These stricter limits keep the rendered SES message within its native envelope.
+SMS, connected apps, external integration sources and vendor feedback are omitted.
+
+The migration connects no sources and enables no notifications. An administrator
+must validate the existing gateway's signed plus-address delivery and sender
+assertions before enabling email replies. No DNS, credentials, AWS configuration,
+subscription consent, existing volumes or production releases are changed by
+Stage 6 development. AWS production approval, real inbound gateway delivery,
+provider-backed live replies/attachments/alerts and live SNS round trips remain
+separate qualification prerequisites; no test or campaign email was sent.
+
+Qualification: 18 pure Inbox checks; the isolated Audience suite passes 737 HTTP
+checks including 53 Inbox checks, native storage/route/attachment/public-form and
+receipt scenarios, existing SNS/quota/ambiguity/no-replay checks, dedicated mail
+worker authoring separation and encrypted-credential rotation. Existing SMTP,
+Inbound helper and Flow document checks pass; 15 shell/deployment JavaScript checks
+pass. Local schema backup and browser results are recorded in
+`var/deployment/stage6-local-receipt.json` and Stage 6 evidence files.
+
+Browser closeout: desktop light, 820px tablet dark, 390px phone dark and 320px
+phone layouts passed without horizontal overflow or console errors. Account and
+Viewing As banners stack above Inbox. Private drafts retain their recipient/body;
+attachments work after an AJAX save updates the draft version. Native reply
+templates create, edit and populate a private composer. Fictional test history is
+in recoverable Trash, drafts are discarded and the test template is soft removed;
+zero Inbox service-mail items were created locally. Sources remain disconnected.
+
+Shared MessageMonkey follow-ups: the upper-right moon/sun control appears before
+the notification bell and reuses MOED's shared theme preference. Inbox keeps the
+outlined, un-underlined Back arrow left of the monochrome monkey and Inbox label.
+Create focuses its heading on opening, rather than automatically outlining the
+logo; keyboard navigation still shows the logo's focus indicator. Role, light theme
+and viewport were restored. Local workers are healthy. The local runtime image
+still declares 2.5.25 while workspace development is based on 2.6.1; no release or
+image bump is implied by this bind-mounted preview.
+
+
+### Stage 7 Home and Email dashboard — October 17, 2026
+
+Branch `codex/mailchimp-cloning-continued3`; local bind-mounted sources based on
+2.6.1. No version bump, production deployment, AWS configuration change or source
+activation is included.
+
+Reference inspection used the signed-in Mailchimp Home, Analytics dashboard,
+Audience Analytics and Custom reports screens. No vendor records were saved.
+Observed behavior:
+
+- Home has quick actions, Create email, a 30-day snapshot, audience summary,
+  recent campaigns with a draft switch and template destinations. Its rolling
+  date window ends yesterday. The date popover has presets, separate calendars,
+  Cancel and Apply; changing an uncommitted date must not change the report.
+- Analytics is a separate dashboard. It has a 90-day default including today,
+  Previous period/None comparison, a searchable multi-select message filter that
+  stays open while metrics refresh, All/Regular/Automation tabs, exclusive metric
+  cards and Campaign/Day/Week/Month plots. Engagement, funnel and delivery panels
+  are distinct. Engagement and delivery selectors keep independent state.
+- Home trend arrows are filled triangles beside relative percentage changes.
+  Native comparisons now use `%` rather than percentage-point text. A zero or
+  unavailable baseline displays a dash; fewer unsubscribes/bounces is favorable.
+- The reference bot information distinguishes MPP and click filters. Native
+  filtering only claims the known bot flags it actually retains. Privacy proxies
+  do not establish a human read, and missing provider receipts do not prove failure.
+- Audience Analytics additionally has contacts over time, source performance,
+  source filtering and drilldowns, interval controls and source trends. Custom
+  reports has favorites, classic/enhanced entry points and an unsaved builder.
+  These advanced views remain Stage 7 requirements, not completed parity.
+
+Native implementation:
+
+- `audience_analytics.php` provides validated UTC windows, exact adjacent
+  comparison periods, date presets and scoped aggregate queries. Unique message
+  flags are aggregated before campaign/day rollups to prevent event fan-out.
+  JSON boolean bot flags are compared as unquoted values; the previous numeric
+  comparison counted bot activity. The correction is shared with existing
+  delivery reports and timing calculations.
+- Separate Home and Analytics templates share the workspace authorization,
+  account/preview/deployment banners and theme. Home retains recent campaigns,
+  draft switching and quick actions; Analytics has interactive metrics, blue
+  cohort bars, previous-period averages and separate delivery/funnel sections.
+  Audience and conversion entry points show available native data without
+  inventing historical subscriber totals, sequential human conversions or sales.
+- Search/type/message/bot/date controls are validated server-side. The message
+  selector refreshes results without closing or clearing its search. Metrics and
+  chart intervals remain URL-addressable. Aggregate CSV is editor/admin-only;
+  recipient-level exports and saved custom reports remain later work.
+- The date popover matches the observed layout and has a native calendar grid,
+  month navigation, keyboard arrow navigation, preset changes and discard-on-Cancel.
+- The initial Create dialog heading remains the announced focus target, with
+  its noninteractive outline removed. Buttons/links retain keyboard focus.
+
+The user's A/B exclusion supersedes previous stages: creation controls, advanced
+configuration, content variants, winner release, lifecycle processing and worker
+execution are blocked. Popup/form variants are rejected on save and public pages
+use their canonical content. Historical schema/receipts are kept; replicating an
+older email strips experiment settings. This does not remove ordinary preview
+emails, deterministic resend or historical event attribution.
+
+Local samples are installed only through an explicit development CLI opt-in.
+Nine completed fictional campaigns cover current and two comparison periods;
+twelve fictional contacts are archived and non-subscribed, and three clearly
+labeled Inbox conversations are unverified and unlinked. No sample delivery or
+service message is queued. The seeder is idempotent and changes no sending or
+source setting. No sample data was installed in production.
+
+Qualification: 768 isolated Audience HTTP/storage checks, including 36 Analytics
+checks; 13 restricted receiving-gateway checks; 14 date/trend checks; 18 Inbox
+validation checks; Bridge authentication and actual loopback IMAP wire-protocol
+checks. Existing restricted-worker, SES quota/ambiguity/no-replay, SNS,
+credential-rotation, flow and collection checks pass. PHP/JavaScript syntax,
+asset generation and whitespace checks pass. Browser verification covers desktop
+light/dark, date calendars and Cancel, multiple message selections staying open,
+independent chart metrics, sample comparisons, and the corrected Create heading.
+The new Stage 7 phone/tablet layouts have CSS support but are not newly certified
+by this record. Earlier Stage 6 responsive qualification remains recorded above.
+
+Receiving qualification distinction: the existing production worker and Bridge
+were healthy, and IMAP PEEK authenticated seven of eight sampled messages. One
+user-approved operational SMTP message was sent only to the existing receiving
+mailbox using a signed Account-specific plus address. Proton returned a valid
+`unverified` assertion for that self-send. Its address/body/attachment arrived;
+it is not evidence of an automatically trusted sender or of production Inbox
+filing. No authentication policy was relaxed. The native restricted ingestion
+suite verifies positive signed intake, exact conversation association,
+attachments, duplicate UID handling, unverified sender review and auto-reply
+rejection. Positive live Inbox association still needs the Stage 6 production
+release and a receiving-verified message; live replies and provider acceptance
+remain separately gated by AWS approval and explicit qualification.
+
+Private receipts and screenshots are in `var/deployment/stage7-local-receipt.json`
+and `var/deployment/evidence/stage7-*`. Live sending and all Inbox sources remain
+disconnected. This is a qualified initial Stage 7 slice, not full Mailchimp parity.
+
+### Stage 7 remaining native reports — October 17, 2026
+
+The remaining non-AWS Stage 7 scope is implemented and locally qualified on
+`codex/mailchimp-cloning-continued3`. This supersedes the initial-slice backlog
+above; it does not claim identical vendor data or complete pixel parity.
+
+- Audience analytics: current counts reconcile with source totals, recorded join
+  history and observed subscription gains/opt-outs/net changes, relative previous
+  date buckets, source filters and connection drilldowns. Historical imported
+  snapshots cannot reconstruct subscriber totals; incomplete old transitions are
+  disclosed rather than guessed.
+- Email reports: paginated recipient activity, unique-message link metrics and
+  link-to-recipient navigation; immutable-content click maps use a sandbox,
+  restrictive CSP, inactive links and image placeholders. Coarse country/client/
+  device summaries preserve Unknown and explain proxy and category overlap.
+  Browser tracking stores no raw IP or user-agent; country uses the existing
+  trusted edge chain and URL labels omit queries/fragments.
+- Custom reports: email, audience, forms and flows; metrics/dimensions, up to two
+  plotted metrics, native message/current-segment/source filters, versioned
+  save/rename/copy/favorite, recoverable removal and detailed CSV. Saved definitions
+  use the existing locked audience settings row (maximum fifty retained reports),
+  preserving unrelated settings with optimistic report versions. No migration or
+  database privilege expansion was needed. Private reports are visible to owners
+  and account administrators; explicit internal sharing requires normal account
+  login. Export remains editor/admin. No public report links or messages were sent.
+- Cross-resource analytics: form daily visitors, submissions and distinct confirmed
+  subscriptions; automation start-date cohorts and current outcomes; prior-period
+  comparisons, exports and links to detailed native resource/run reports. These
+  metrics do not invent external commerce or sequential email-to-form attribution.
+- Native benchmarks and content/timing insights: weighted historical comparisons,
+  immutable subject-length groups and the same ninety-day unique-recipient click
+  evidence used by optimized scheduling. Fewer than one hundred distinct non-bot
+  click recipients retains the selected time. Opens do not determine send timing.
+  These are observational insights, with no A/B testing or Stage 8 AI suggestions.
+
+The Mailchimp custom-report builder was inspected again without saving vendor
+changes: seven default email metrics, up to two visualized metrics, report type,
+message/segment filters, name/description, favorite/copy, export and refresh. The
+native implementation retains the previously inspected Home/Analytics distinction
+and date/calendar workflow. It adapts access to MOED authorization and omits the
+user-excluded channels and A/B controls.
+
+Local sample data now includes three draft/unpublished forms, two paused sample
+flows with completed fictional runs, current/prior growth evidence, two saved
+sample reports and the existing nine unsent sample campaigns/twelve archived
+non-subscribers. A private sample copy exercised the browser rename/save controls.
+No sample recipient or run queues real mail. Existing sample event enrichment is
+append-only; only explicitly marked fictional local delivery snapshots gain the
+example.test links used in their maps. Production data was untouched.
+
+Qualification: **831 isolated Audience HTTP/storage checks, including 99 analytics
+checks**, plus 13 restricted receiving-path checks, 24 date/report/evidence checks
+and 59 email-design checks. Existing worker-grant, SES quota/throttle/ambiguity/
+no-replay, SNS, flow and credential-rotation checks pass. The suite exercised report
+ownership/sharing/revocation, CSRF, account isolation, recipient pagination, repeat
+observations, weighted metrics, export access, click-map safety and the exact
+99-to-100 non-bot timing threshold. PHP/JavaScript lint, generated assets and
+whitespace checks pass.
+
+Browser qualification: desktop light/dark; 390×844 phone routes for Home and every
+Analytics subview; 768×1024 report builder; calendar bounds/Cancel; copy/rename/save;
+link-to-recipient counts and populated sample click map. Phone recipient tabs and
+wide tables scroll within their panel without page overflow. Dynamic report bars
+use SVG width attributes compatible with the existing CSP; a zero value is an
+actual zero-width bar. Browser console errors: none. Viewport override was reset
+and the original light theme restored.
+
+The local SES enabled/production/sending flags and all four Inbox source flags
+remain zero. There are no pending sample deliveries. Source totals and visible
+connection count both equal 9,059. Source VERSION remains 2.6.1; the bind-mounted
+local runtime declares 2.5.25. No bump, commit, push or production rollout occurred.
+Real SES sending/provider-event qualification still awaits AWS approval and
+explicit live qualification. The earlier Stage 6 verified-sender/deployed-gateway
+prerequisite remains separate. Historical missing event metadata, external
+industry benchmarks and privacy-proxy identity are data limitations, not invented
+Stage 7 results.

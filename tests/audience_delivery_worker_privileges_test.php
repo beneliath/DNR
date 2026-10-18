@@ -75,3 +75,12 @@ $flowFixture=$db->query("SELECT r.state,c.first_name FROM marketing_flow_runs r 
 if(!$flowFixture||$flowFixture['state']!=='completed'||$flowFixture['first_name']!=='Worker qualified')throw new RuntimeException('Dedicated role could not execute a native flow action.');
 try{$db->query("UPDATE marketing_flows SET state='running' WHERE 1=0");throw new RuntimeException('Mail worker can activate authoring state.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
 echo "Flow execution and authoring privilege separation passed.\n";
+
+// Inbox execution can inspect eligibility and receipts, never author sources or templates.
+require_once '/var/www/html/audience_inbox_runtime.php';
+$workerInbox=new AudienceStore($db,1,0,'Inbox worker');
+if(!$workerInbox->inboxAvailable())throw new RuntimeException('Inbox runtime was not installed.');
+$workerInbox->inboxSettings();$db->query('SELECT role,email,email_verified_at,account_status FROM users LIMIT 1');
+$db->query('SELECT id FROM marketing_inbox_delivery_events LIMIT 1');
+foreach(["UPDATE marketing_inbox_settings SET gateway_confirmed=1 WHERE 1=0","INSERT INTO marketing_inbox_templates(audience_id,name,subject,body_html) VALUES (1,'Forbidden worker authoring','','')"]as$sql){try{$db->query($sql);throw new RuntimeException('Inbox worker gained authoring privileges.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}}
+echo "Inbox worker read/receipt privileges and source/template authoring separation passed.\n";

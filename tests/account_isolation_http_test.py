@@ -235,7 +235,12 @@ def preview_administrator(client):
         assert result[0] == 302 and result[1]['Location'] == 'dashboard.php', 'Preview returned to a restricted view'
         preview = client.request('dashboard.php')
         assert preview[0] == 200 and f'Viewing as {label}' in preview[2]
-        assert 'account-identity-banner' not in preview[2] and 'href="accounts.php"' not in preview[2]
+        assert '<section class="account-identity-banner"' in preview[2], 'Preview must retain Account context'
+        assert preview[2].index('class="account-identity-banner"') < preview[2].index('class="role-preview-banner"'), 'Account and Viewing As banners must stack'
+        switch = re.search(r'<form[^>]*class="account-identity-switch-form"[^>]*>(.*?)</form>', preview[2], re.S)
+        assert switch and 'name="role" value="superadmin"' in switch[1] and 'name="return_to" value="accounts.php"' in switch[1]
+        assert csrf(switch[1]) == csrf(preview[2]), 'Switching must use the CSRF-protected SuperAdmin return flow'
+        assert 'href="accounts.php"' not in preview[2], 'Preview must not link directly to SuperAdmin pages'
         assert 'href="network_diagnostics.php"' not in preview[2] and 'href="ai_coach_requests.php"' not in preview[2]
         assert f'<option value="{role}" selected>{label}</option>' in preview[2]
         if role == 'admin':

@@ -680,7 +680,7 @@ function smtpMessageContent($plainTextBody, $htmlBody = null, array $attachments
                 $contentIds[$cid] = true;
                 $inline[] = $attachment;
             } else {
-                if (!in_array($type, ['application/zip', 'application/pdf', 'text/csv', 'image/jpeg', 'image/png', 'image/webp'], true)) {
+                if (!in_array($type, ['application/zip', 'application/pdf', 'text/csv', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
                     throw new InvalidArgumentException('Invalid email attachment type.');
                 }
                 $total += strlen($data);
@@ -777,8 +777,10 @@ function smtpTlsStreamContext($host)
 function smtpMessageData(string $from, string $fromName, string $recipient, string $subject, string $body, string $replyTo = '', ?string $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [], array $listHeaders = [], ?string $recipientName = null): string
 {
     foreach ($listHeaders as $key => $value) {
-        if (!in_array($key, ['List-Unsubscribe', 'List-Unsubscribe-Post'], true) || !is_string($value) || preg_match('/[\r\n\x00-\x1f]/', $value)) throw new InvalidArgumentException('Invalid list email header.');
+        if (!in_array($key, ['List-Unsubscribe', 'List-Unsubscribe-Post', 'In-Reply-To', 'References'], true) || !is_string($value) || strlen($value)>998 || preg_match('/[\r\n\x00-\x1f]/', $value)) throw new InvalidArgumentException('Invalid email header.');
+        if (in_array($key,['In-Reply-To','References'],true) && !preg_match('/\A<[A-Za-z0-9.!#$%&\x27*+\/=?^_`{|}~@-]{1,500}>(?: <[A-Za-z0-9.!#$%&\x27*+\/=?^_`{|}~@-]{1,500}>){0,19}\z/D',$value)) throw new InvalidArgumentException('Invalid conversation reference.');
     }
+    if ($replyTo!=='' && !filter_var($replyTo,FILTER_VALIDATE_EMAIL)) throw new InvalidArgumentException('Invalid Reply-To address.');
     if ($recipientName !== null && preg_match('/[\r\n]/', $recipientName)) throw new InvalidArgumentException('Invalid recipient name.');
     $listLines = []; foreach ($listHeaders as $key => $value) $listLines[] = $key . ': ' . $value;
     $messageId ??= '<' . bin2hex(random_bytes(24)) . '@dnr.invalid>';

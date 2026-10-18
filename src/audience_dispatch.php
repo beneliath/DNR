@@ -51,7 +51,7 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if(function_exists('audienceTrackMessage')){[$tracked,$text]=audienceTrackMessage($snapshot,$html??'',$text,$token);if($html!==null)$html=$tracked;}
     $toName=!empty($draft['personalize_to'])?trim((string)($context[$draft['to_merge']??'FNAME']??'')):'';
     if(preg_match('/[\r\n]/',$toName))throw new InvalidArgumentException('The personalized To name contains invalid characters.');
-    return ['email'=>$context['EMAIL'],'subject'=>$subject,'text'=>$text,'html'=>$html,'from_name'=>$draft['from_name'],'from_email'=>$draft['from_email'],'to_name'=>$toName,'message_id'=>$messageId,'unsubscribe'=>$link];
+    return ['email'=>$context['EMAIL'],'subject'=>$subject,'text'=>$text,'html'=>$html,'from_name'=>$draft['from_name'],'from_email'=>$draft['from_email'],'to_name'=>$toName,'message_id'=>$messageId,'unsubscribe'=>$link,'reply_to'=>$snapshot['reply_to']??''];
 }
 
 function audienceDispatchLock(mysqli $db,int $audience,int $campaign):string
@@ -76,6 +76,7 @@ trait AudienceDispatch
     private function dispatchSnapshot(array $row,array $audience,string $base):array
     {
         $draft=$row['draft'];
+        if(!empty($draft['experiment'])||!empty($draft['design_variants']))throw new InvalidArgumentException('A/B testing is not available in MessageMonkey.');
         if(!$this->deliveryRuntimeAvailable())throw new InvalidArgumentException('The delivery upgrade is being qualified. Try again after installation.');
         if($row['status']!=='draft')throw new InvalidArgumentException('This campaign has already been confirmed. View its delivery status.');
         if(!$this->sesAvailable())throw new InvalidArgumentException('Install and configure this account’s SES connection before sending.');
@@ -83,9 +84,9 @@ trait AudienceDispatch
         if($row['campaign_type']==='plain-text'&&!empty($draft['resend']['enabled'])&&($draft['resend']['segment']??'')==='non-openers')throw new InvalidArgumentException('Plain-text emails cannot measure opens. Choose Did not click for the resend audience.');
         $winner=$draft['experiment']['winner']??'manual';if(in_array($winner,['opens','clicks'],true)&&empty($draft['tracking'][$winner==='opens'?'opens':'clicks']))throw new InvalidArgumentException('Enable the corresponding tracking setting before using an automatic test winner.');
         if(($draft['send_time']['delivery']??'')==='optimized'){
-            $data=$this->one("SELECT COUNT(DISTINCT r.contact_id) contacts FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id WHERE e.audience_id=? AND e.event_type='click' AND e.event_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 90 DAY) AND COALESCE(JSON_EXTRACT(e.details_json,'$.bot'),false)=false",[$this->audienceId]);
+            $evidence=$this->analyticsTimingEvidence();
             $draft['send_time']['optimization_basis']='Not enough observed click history; using your selected time.';
-            if((int)$data['contacts']>=100){$best=$this->one("SELECT HOUR(e.event_at) hour,COUNT(*) n FROM marketing_message_events e WHERE e.audience_id=? AND e.event_type='click' AND e.event_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 90 DAY) AND COALESCE(JSON_EXTRACT(e.details_json,'$.bot'),false)=false GROUP BY HOUR(e.event_at) ORDER BY n DESC,hour LIMIT 1",[$this->audienceId]);$chosen=new DateTimeImmutable(substr($draft['send_time']['utc'],0,10).' '.sprintf('%02d:00',(int)$best['hour']),new DateTimeZone('UTC'));$local=$chosen->setTimezone(new DateTimeZone($draft['send_time']['timezone']));$draft['send_time']['local']=$local->format('Y-m-d H:i');$draft['send_time']['utc']=$chosen->format('Y-m-d H:i:s');$draft['send_time']['optimization_basis']='Selected from observed click hours for at least 100 distinct recipients; not a guarantee of engagement.';}
+            if($evidence['ready']){$chosen=new DateTimeImmutable(substr($draft['send_time']['utc'],0,10).' '.sprintf('%02d:00',$evidence['best_hour']),new DateTimeZone('UTC'));$local=$chosen->setTimezone(new DateTimeZone($draft['send_time']['timezone']));$draft['send_time']['local']=$local->format('Y-m-d H:i');$draft['send_time']['utc']=$chosen->format('Y-m-d H:i:s');$draft['send_time']['optimization_basis']='Selected from observed click hours for at least 100 distinct recipients; not a guarantee of engagement.';}
         }
         if(($draft['send_time']['delivery']??'')==='timewarp')audienceRecipientDue($draft['send_time'],$draft['send_time']['timezone']);
         if(empty($draft['subject'])||empty($draft['from_email'])||empty($draft['from_name'])||($row['campaign_type']==='plain-text'?empty($draft['text']):empty($draft['design'])))throw new InvalidArgumentException('Complete To, From, Subject, Send time and Content before sending.');
@@ -94,7 +95,7 @@ trait AudienceDispatch
         if(!$ready['ready'])throw new InvalidArgumentException(implode(' ',$ready['reasons']));
         $collectionLinks=[];
         if($this->collectionAvailable())foreach($this->all("SELECT public_key,kind FROM marketing_collection_resources WHERE audience_id=? AND kind IN ('survey','preferences') AND state='published' AND deleted_at IS NULL",[$this->audienceId])as$r)$collectionLinks[$r['public_key']]=$r['kind'];
-        return ['ses'=>audienceSesBinding($this->sesSettings()),'collection_links'=>$collectionLinks,'variants'=>audienceExperimentVariants($draft),'draft'=>$draft,'type'=>$row['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'base'=>audienceDispatchBase($base)];
+        return ['reply_to'=>$this->inboxCampaignReplyTo($draft),'ses'=>audienceSesBinding($this->sesSettings()),'collection_links'=>$collectionLinks,'variants'=>audienceExperimentVariants($draft),'draft'=>$draft,'type'=>$row['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'base'=>audienceDispatchBase($base)];
     }
     /** Proof binds the visible review to content, sender settings and exact recipient identities. */
     public function reviewCampaignDispatch(int $id,array $audience,string $base):array

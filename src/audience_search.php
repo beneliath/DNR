@@ -26,12 +26,12 @@ function audienceSearchCategories(): array
 function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): array
 {
     $pages=[];
-    foreach(['contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Audience fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
+    foreach(['home'=>'Home','analytics'=>'Analytics','contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Audience fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
         $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     }
     foreach(['automations'=>'Automations','flow-templates'=>'Flow templates','forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     if($canManage) {
-        foreach(['import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
+        foreach(['inbox'=>'Inbox','import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
             $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
         }
     }
@@ -39,7 +39,7 @@ function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): a
     $actions=$canManage?[
         ['title'=>'Add a connection','description'=>'Add one person to your audience.','href'=>'audience.php?view=contact','icon'=>'action'],
         ['title'=>'Import connections','description'=>'Upload a file or paste connections.','href'=>'audience.php?view=import','icon'=>'action'],
-        ['title'=>'Create an email','description'=>'Start a regular, plain-text or A/B email.','href'=>'audience.php?view=campaigns&create=1','icon'=>'action'],
+        ['title'=>'Create an email','description'=>'Start a regular or plain-text email.','href'=>'audience.php?view=campaigns&create=1','icon'=>'action'],
         ['title'=>'Build a flow','description'=>'Create a native automation flow.','href'=>'audience.php?view=automations&create=1','icon'=>'action'],
         ['title'=>'Manage tags','description'=>'Organize your audience with tags.','href'=>'audience.php?view=tags','icon'=>'action'],
         ['title'=>'Manage segments','description'=>'Find connections that meet your criteria.','href'=>'audience.php?view=segments','icon'=>'action'],
@@ -75,7 +75,7 @@ function audienceWorkspaceSearch(AudienceStore $store,array $input,bool $canMana
         $rows=$store->all("SELECT id,name,campaign_type,status,updated_at,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.experiment.kind')) experiment_kind FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL".($query!==''?' AND LOCATE(?,name)>0':'').' ORDER BY updated_at DESC,id DESC LIMIT '.($query===''?'5':'10'),$query!==''?[$store->audienceId,$query]:[$store->audienceId]);
         $items=[];
         foreach($rows as $row) {
-            $type=$row['experiment_kind']==='ab'?'A/B test':($row['campaign_type']==='plain-text'?'Plain-text email':'Regular email');
+            $type=$row['experiment_kind']==='ab'?'Historical email':($row['campaign_type']==='plain-text'?'Plain-text email':'Regular email');
             $items[]=['title'=>$row['name'],'description'=>$type,'updated_at'=>$row['updated_at'],'status'=>$row['status'],'href'=>'audience.php?view=campaign&id='.(int)$row['id'],'icon'=>'campaign'];
         }
         $groups[]=['key'=>'campaigns','label'=>$query===''?'Recent campaigns':$labels['campaigns'],'items'=>$items,'more'=>mb_strlen($query)<=100?'audience.php?view=campaigns&search='.rawurlencode($query):null];

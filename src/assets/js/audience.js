@@ -2,6 +2,22 @@
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    // Match the shared shell's fixed account/preview stack, including wrapped mobile labels.
+    const accountBanner = $('.account-identity-banner');
+    const previewBanner = $('[data-role-preview-banner]');
+    const deploymentBanner = $('[data-deployment-notice]');
+    if (accountBanner || previewBanner || deploymentBanner) {
+        const syncBanners = () => {
+            document.body.style.setProperty('--audience-account-banner-height', `${accountBanner?.offsetHeight || 0}px`);
+            document.body.style.setProperty('--audience-preview-banner-height', `${previewBanner?.offsetHeight || 0}px`);
+            sidebarPosition();
+        };
+        const bannerObserver = new ResizeObserver(syncBanners);
+        [deploymentBanner, accountBanner, previewBanner].filter(Boolean).forEach(banner => bannerObserver.observe(banner));
+        window.addEventListener('resize', syncBanners);
+        // Defer until the sidebar position helper has been initialized below.
+        requestAnimationFrame(syncBanners);
+    }
     $$('[data-audience-logo]').forEach(logo => {
         const dashboard = event => {
             if (!event.ctrlKey || (event.type === 'click' && event.button !== 0)) return;

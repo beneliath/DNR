@@ -388,12 +388,16 @@ html:has(body.account-context-active) { overflow: hidden; }
 .account-identity-label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
 .account-identity-banner strong { min-width: 0; overflow-wrap: anywhere; }
 .account-identity-banner a { flex-shrink: 0; color: #115e59; }
+.account-identity-switch-form { flex-shrink: 0; margin: 0; }
+html body .account-identity-banner .account-identity-switch { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0; background: transparent !important; color: #115e59 !important; font: inherit !important; text-decoration: underline; cursor: pointer; box-shadow: none; }
+html body .account-identity-banner .account-identity-switch:is(:hover, :focus-visible) { background: transparent !important; color: #0f766e !important; }
 html.dark-mode .account-identity-banner {
   background: var(--accent-subtle) !important;
   border-bottom-color: var(--nav-active-bg);
   color: var(--nav-active-fg);
 }
 html.dark-mode .account-identity-banner a { color: var(--nav-hover-fg); }
+html.dark-mode body .account-identity-banner .account-identity-switch { color: var(--nav-hover-fg) !important; }
 @media (min-width: 1101px) {
   body.coach-open :is(.account-identity-banner, .admin-unlock-banner, .deployment-notice-banner, .role-preview-banner) {
     right: var(--coach-width, 0px);
@@ -416,6 +420,7 @@ html.dark-mode .account-identity-banner a { color: var(--nav-hover-fg); }
   .account-identity-banner:has(.account-primary-badge) strong { grid-column: 1 / -1; }
   .account-identity-banner .account-primary-badge { justify-self: start; padding-block: 2px; }
   .account-identity-banner a { justify-self: end; white-space: nowrap; }
+  .account-identity-switch-form { justify-self: end; white-space: nowrap; }
 }
 
 .role-preview-banner {
@@ -3312,7 +3317,7 @@ html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close, .account-identity-switch),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,
@@ -5283,6 +5288,7 @@ html.dark-mode .login-secondary-link a {
   .role-preview-return-form button {
     max-width: 128px;
     line-height: 1.2;
+    white-space: normal !important;
   }
 
   .mobile-app-bar {

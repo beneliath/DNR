@@ -40,11 +40,14 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         $wait=$last+$interval-microtime(true);if($wait>0&&$wait<=1)usleep((int)ceil($wait*1000000));elseif($wait>1)audienceSesDeferred('Waiting for the SES sending rate.',max(1,(int)ceil($wait)));
         $correlation=bin2hex(random_bytes(32));
         $headers=empty($m['unsubscribe'])?[]:['List-Unsubscribe'=>'<'.$m['unsubscribe'].'>','List-Unsubscribe-Post'=>'List-Unsubscribe=One-Click'];
-        $raw=smtpMessageData($m['from_email'],$m['from_name'],$m['email'],$m['subject'],$m['text'],'',$m['html']??null,null,$m['message_id'],[],$headers,$m['to_name']??'');
+        if(!empty($m['in_reply_to']))$headers['In-Reply-To']=$m['in_reply_to'];
+        if(!empty($m['references']))$headers['References']=implode(' ',$m['references']);
+        $raw=smtpMessageData($m['from_email'],$m['from_name'],$m['email'],$m['subject'],$m['text'],$m['reply_to']??'',$m['html']??null,null,$m['message_id'],$m['attachments']??[],$headers,$m['to_name']??'');
         if(strlen($raw)>9_500_000)throw new DomainException('The rendered audience email is too large.');
         if($lane==='campaign'){
             $db->execute_query("UPDATE marketing_campaign_recipients SET provider='ses',provider_account_id=?,provider_region=?,ses_correlation=? WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$s['aws_account_id'],$s['region'],$correlation,$m['native_recipient_id'],$m['claim_token']]);if($db->affected_rows!==1)throw new DomainException('The delivery claim changed.');
         }
+        if(in_array($lane,['inbox','inbox-alert'],true))$db->execute_query('UPDATE marketing_service_mail SET ses_correlation=?,provider_account_id=?,provider_region=?,recipient_hash=? WHERE audience_id=1 AND id=? AND claim_token=?',[$correlation,$s['aws_account_id'],$s['region'],audienceDispatchEmailHash($m['email']),$m['native_service_id'],$m['claim_token']]);
         if($lane!=='campaign'){$claim=$db->execute_query("SELECT id FROM marketing_service_mail WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$m['native_service_id'],$m['claim_token']])->fetch_assoc();if(!$claim)throw new DomainException('The service delivery claim changed.');}
         $current=$db->query('SELECT enabled,generation FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();if(!$current['enabled']||$current['generation']!==$s['generation'])audienceSesDeferred('The SES connection changed. Review delivery setup.',300);
         $db->execute_query('INSERT INTO marketing_ses_usage(audience_id,aws_account_id,region,lane) VALUES (1,?,?,?)',[$s['aws_account_id'],$s['region'],$lane]);

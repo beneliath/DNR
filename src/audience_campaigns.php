@@ -39,7 +39,7 @@ trait AudienceCampaigns
     public function createCampaign(array $input): int
     {
         $name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter an internal email name.');
-        $type=audienceText($input,'campaign_type');if(!in_array($type,['regular','plain-text','ab'],true))throw new InvalidArgumentException('Choose a supported email type.');
+        $type=audienceText($input,'campaign_type');if(!in_array($type,['regular','plain-text'],true))throw new InvalidArgumentException('Choose a supported email type.');
         $target=audienceText($input,'target',40);
         $filteredRules=null;if(($input['filtered_rules']??'')!==''){try{$filteredRules=json_decode(audienceText($input,'filtered_rules',50000),true,48,JSON_THROW_ON_ERROR);}catch(JsonException){throw new InvalidArgumentException('The audience filters are invalid.');}if(!is_array($filteredRules))throw new InvalidArgumentException('The audience filters are invalid.');audienceCompileRules($filteredRules,$this->catalog());}
         return $this->transaction(function()use($name,$type,$target,$filteredRules){
@@ -80,7 +80,7 @@ trait AudienceCampaigns
             $rows=[];foreach($ids as$id){$row=$this->campaign($id,true);if((int)$row['version']!==(int)($versions[$id]??0))throw new InvalidArgumentException('A selected campaign changed. Reload before continuing.');$rows[]=$row;}
             foreach($rows as$row){$id=(int)$row['id'];
                 if($operation==='rename'){$name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter a campaign name.');$this->write('UPDATE marketing_campaigns SET name=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$name,$this->actorLabel,$id,$this->audienceId]);}
-                elseif($operation==='replicate'){$copy=$row['draft'];unset($copy['delivery'],$copy['winner'],$copy['public_key']);$this->write("INSERT INTO marketing_campaigns(audience_id,name,campaign_type,folder_id,draft_json,actor_label) VALUES (?,?,?,?,?,?)",[$this->audienceId,mb_substr($row['name'],0,89).' (copy 01)',$row['campaign_type'],$row['folder_id'],json_encode((object)$copy,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;}
+                elseif($operation==='replicate'){$copy=$row['draft'];unset($copy['delivery'],$copy['winner'],$copy['public_key'],$copy['experiment'],$copy['design_variants']);$this->write("INSERT INTO marketing_campaigns(audience_id,name,campaign_type,folder_id,draft_json,actor_label) VALUES (?,?,?,?,?,?)",[$this->audienceId,mb_substr($row['name'],0,89).' (copy 01)',$row['campaign_type'],$row['folder_id'],json_encode((object)$copy,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;}
                 elseif($operation==='move')$this->write('UPDATE marketing_campaigns SET folder_id=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$folder?:null,$this->actorLabel,$id,$this->audienceId]);
                 else{if(in_array($row['status'],['scheduled','sending'],true))throw new InvalidArgumentException('Pause delivery before deleting this campaign.');$this->write('UPDATE marketing_campaigns SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);}
             }return null;
@@ -91,7 +91,7 @@ trait AudienceCampaigns
 function audienceCampaignFilters(array $input): array
 {
     $filters=[];foreach(['search','type','status','folder','date_field','start','end','sort','direction','layout','month','date_preset','holidays']as$key)$filters[$key]=audienceText($input,$key,$key==='search'?100:40);
-    foreach(['type'=>['','regular','plain-text','ab'],'status'=>['','draft','ongoing','scheduled','completed'],'date_field'=>['updated_at','created_at','sent_at'],'sort'=>['updated_at','created_at','sent_at','name'],'direction'=>['desc','asc'],'layout'=>['list','calendar']]as$key=>$allowed)if(!in_array($filters[$key],$allowed,true))$filters[$key]=$allowed[0];
+    foreach(['type'=>['','regular','plain-text'],'status'=>['','draft','ongoing','scheduled','completed'],'date_field'=>['updated_at','created_at','sent_at'],'sort'=>['updated_at','created_at','sent_at','name'],'direction'=>['desc','asc'],'layout'=>['list','calendar']]as$key=>$allowed)if(!in_array($filters[$key],$allowed,true))$filters[$key]=$allowed[0];
     if(!array_key_exists($filters['date_preset'],audienceCampaignDatePresets()))$filters['date_preset']='';
     $filters['holidays']=$filters['holidays']==='1'?'1':'0';
     if($filters['date_preset']!==''&&$filters['date_preset']!=='custom')[$filters['start'],$filters['end']]=audienceCampaignDateRange($filters['date_preset']);

@@ -159,7 +159,8 @@ function inboundEmailUtcDate(mixed $value): ?string
  *   rfc_message_id: string, sender_name: string, sender_address: string,
  *   to_addresses: list<string>, cc_addresses: list<string>, subject: string,
  *   sent_at: ?string, received_at: string, body_text: string,
- *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string
+ *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string,
+ *   _inbox_attachments: list<array{filename: string, data_base64: string}>
  * }
  */
 function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): array
@@ -199,12 +200,23 @@ function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): arra
     $dateHeader = $message->getHeaderValue(HeaderConsts::DATE);
 
     $attachmentNames = [];
+    $inboxParts = []; $inboxBytes = 0;
+    $inboxMessage = preg_match('/\+mm\./i', implode(' ', array_merge($to, $cc)))
+        || preg_match('/\[MOED@[^\]]{1,100}#M/', $subject);
     foreach ($message->getAllAttachmentParts() as $attachment) {
         $filename = trim((string) ($attachment->getFilename() ?? 'unnamed attachment'));
         $filename = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $filename) ?? $filename;
         $filename = mb_substr($filename, 0, 255, 'UTF-8');
         if ($filename !== '') {
             $attachmentNames[$filename] = true;
+        }
+        if ($inboxMessage && count($inboxParts) < 10 && preg_match('/\.(pdf|jpe?g|png|gif)\z/i', $filename)) {
+            $stream = $attachment->getContentStream();
+            $bytes = $stream ? $stream->read(5 * 1024 * 1024 + 1) : '';
+            if ($bytes !== '' && strlen($bytes) <= 5 * 1024 * 1024 && $inboxBytes + strlen($bytes) <= 6 * 1024 * 1024) {
+                $inboxParts[] = ['filename'=>mb_substr($filename,0,180),'data_base64'=>base64_encode($bytes)];
+                $inboxBytes += strlen($bytes);
+            }
         }
         if (count($attachmentNames) >= 100) {
             break;
@@ -227,6 +239,7 @@ function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): arra
         'received_at' => $receivedAt,
         'body_text' => inboundEmailPlainText($message),
         'attachment_names' => array_keys($attachmentNames),
+        '_inbox_attachments' => $inboxParts,
         'raw_headers' => $rawHeaders,
         'deduplication_hash' => hash('sha256', $deduplicationSource, true),
     ];
@@ -250,7 +263,8 @@ function inboundEmailJson($value): string
  *   rfc_message_id: string, sender_name: string, sender_address: string,
  *   to_addresses: list<string>, cc_addresses: list<string>, subject: string,
  *   sent_at: ?string, received_at: string, body_text: string,
- *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string
+ *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string,
+ *   _inbox_attachments?: list<array{filename: string, data_base64: string}>
  * } $message
  * @return array{id: int, inserted: bool}
  */
@@ -353,6 +367,17 @@ function storeInboundEmailMessage(
         }
     }
 
+    if ($inserted && !empty($message['_inbox_attachments'])) {
+        require_once __DIR__.'/audience_inbox.php';
+        if (audienceInboxInstalled($conn)) {
+            $total = 0;
+            foreach (array_slice($message['_inbox_attachments'],0,10) as $part => $file) {
+                $bytes = base64_decode($file['data_base64'],true);
+                if ($bytes === false || strlen($bytes)>AUDIENCE_INBOX_ATTACHMENT_BYTES || ($total+=strlen($bytes))>AUDIENCE_INBOX_ATTACHMENTS_BYTES) break;
+                $conn->execute_query('INSERT IGNORE INTO marketing_inbox_inbound_parts(inbound_id,part_number,filename,content) VALUES (?,?,?,?)',[$messageId,$part,mb_substr($file['filename'],0,180),$bytes]);
+            }
+        }
+    }
     return ['id' => $messageId, 'inserted' => $inserted];
 }
 
@@ -470,9 +495,9 @@ function inboundEmailHeaderValues(string $rawHeaders, string $name): array
 }
 
 /** @return array{required: bool, trusted: bool, authentication_server: ?string, method: ?string, reason: ?string} */
-function inboundEmailSenderAuthentication(array $message): array
+function inboundEmailSenderAuthentication(array $message, bool $force = false): array
 {
-    $required = inboundEmailRequiresAuthenticatedFrom();
+    $required = $force || inboundEmailRequiresAuthenticatedFrom();
     $authentication = [
         'required' => $required, 'trusted' => false, 'authentication_server' => null,
         'method' => null, 'reason' => null,
@@ -1349,6 +1374,11 @@ function processInboundEmailMessage(
     }
     $manual = $contactIds !== null || $organizationIds !== null
         || $engagementIds !== null || $inquiryIds !== null;
+    if (!$manual) {
+        require_once __DIR__.'/audience_inbox_runtime.php';
+        $inboxResult = processAudienceInboxInbound($conn,$messageId);
+        if ($inboxResult !== null) return $inboxResult;
+    }
     $conn->begin_transaction();
     try {
         $stmt = $conn->prepare('SELECT * FROM inbound_email_messages WHERE id = ? FOR UPDATE');

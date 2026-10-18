@@ -283,13 +283,32 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geo
 GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.notes_cache_purge_queue TO '${geocoder_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${geocoder_user}'@'%';
 
+-- Native Inbox uses account-local storage and existing restricted workers.
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_drafts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_attachments TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_labels TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_thread_labels TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_templates TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_read_state TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_user_settings TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_preferences TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_optout_tokens TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_presence TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_inbound_parts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_delivery_events TO '${MYSQL_USER}'@'%';
+
 CREATE USER IF NOT EXISTS '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 ALTER USER '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.platform_accounts TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.platform_inbound_mail TO '${mail_ingest_user}'@'%';
-GRANT SELECT (id, username, verified_email, account_status)
+GRANT SELECT (id, username, verified_email, account_status, role)
     ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${mail_ingest_user}'@'%';
@@ -312,6 +331,18 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${mail_inges
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.mattermost_user_links TO '${mail_ingest_user}'@'%';
 GRANT INSERT ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${mail_ingest_user}'@'%';
+
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_thread_labels TO '${mail_ingest_user}'@'%';
+GRANT SELECT (id) ON \`${MYSQL_DATABASE}\`.marketing_audiences TO '${mail_ingest_user}'@'%';
+GRANT SELECT (id,audience_id,email,first_name,last_name,email_status,deleted_at,is_archived) ON \`${MYSQL_DATABASE}\`.marketing_contacts TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_attachments TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_preferences TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_inbound_parts TO '${mail_ingest_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';
 ALTER USER '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';
@@ -392,6 +423,15 @@ GRANT SELECT (id, organization_id, contact_first_name, contact_last_name, is_del
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (status)
     ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_dispatch_user}'@'%';
+
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_preferences TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_user_settings TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, UPDATE (email_checked_at,email_mail_id) ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_delivery_events TO '${mail_dispatch_user}'@'%';
+GRANT INSERT ON \`${MYSQL_DATABASE}\`.marketing_service_mail TO '${mail_dispatch_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
