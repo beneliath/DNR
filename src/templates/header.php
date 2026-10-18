@@ -75,6 +75,7 @@ $role_preview = $authenticated_superadmin
     && in_array($_SESSION['_role_preview'] ?? null, ['admin', 'editor', 'reviewer'], true)
         ? $user_role
         : null;
+$role_preview_label = $role_preview === 'admin' ? 'Administrator' : ucfirst((string) $role_preview);
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),

@@ -159,7 +159,8 @@ function inboundEmailUtcDate(mixed $value): ?string
  *   rfc_message_id: string, sender_name: string, sender_address: string,
  *   to_addresses: list<string>, cc_addresses: list<string>, subject: string,
  *   sent_at: ?string, received_at: string, body_text: string,
- *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string
+ *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string,
+ *   _inbox_attachments: list<array{filename: string, data_base64: string}>
  * }
  */
 function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): array
@@ -262,7 +263,8 @@ function inboundEmailJson($value): string
  *   rfc_message_id: string, sender_name: string, sender_address: string,
  *   to_addresses: list<string>, cc_addresses: list<string>, subject: string,
  *   sent_at: ?string, received_at: string, body_text: string,
- *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string
+ *   attachment_names: list<string>, raw_headers: string, deduplication_hash: string,
+ *   _inbox_attachments?: list<array{filename: string, data_base64: string}>
  * } $message
  * @return array{id: int, inserted: bool}
  */
@@ -370,9 +372,9 @@ function storeInboundEmailMessage(
         if (audienceInboxInstalled($conn)) {
             $total = 0;
             foreach (array_slice($message['_inbox_attachments'],0,10) as $part => $file) {
-                $bytes = base64_decode((string)($file['data_base64']??''),true);
+                $bytes = base64_decode($file['data_base64'],true);
                 if ($bytes === false || strlen($bytes)>AUDIENCE_INBOX_ATTACHMENT_BYTES || ($total+=strlen($bytes))>AUDIENCE_INBOX_ATTACHMENTS_BYTES) break;
-                $conn->execute_query('INSERT IGNORE INTO marketing_inbox_inbound_parts(inbound_id,part_number,filename,content) VALUES (?,?,?,?)',[$messageId,$part,mb_substr((string)$file['filename'],0,180),$bytes]);
+                $conn->execute_query('INSERT IGNORE INTO marketing_inbox_inbound_parts(inbound_id,part_number,filename,content) VALUES (?,?,?,?)',[$messageId,$part,mb_substr($file['filename'],0,180),$bytes]);
             }
         }
     }

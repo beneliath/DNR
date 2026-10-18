@@ -4,7 +4,7 @@ $reportQuery=['view'=>'analytics','section'=>$section,'start'=>$window['start'],
 $reportQuery+=['source'=>$source,'activity'=>$activity,'link'=>$linkHash,'segment'=>$window['segment']];
 if($definition)$reportQuery=array_replace($reportQuery,$definition,['columns_present'=>1,'plots_present'=>1]);
 if($savedReport)$reportQuery['report']=$savedReport['key'];
-$reportLink=static fn(array $changes=[]):string=>$url(array_replace($reportQuery,$changes));
+$reportLink=static fn(array $changes=[]):string=>'audience.php?'.http_build_query(array_replace($reportQuery,$changes));
 $rate=static fn($v):string=>$v===null?'—':rtrim(rtrim(number_format((float)$v,2),'0'),'.').'%';
 $metricLabels=['accepted'=>'Total sends','open_rate'=>'Open rate','opens'=>'Opened','click_rate'=>'Click rate','clicks'=>'Clicked','clicks_per_open'=>'Clicks per unique opens','bounce_rate'=>'Bounce rate','bounced'=>'Bounces','unsubscribe_rate'=>'Unsubscribe rate','unsubscribed'=>'Unsubscribed','delivery_rate'=>'Delivery rate','delivered'=>'Deliveries'];
 include __DIR__.'/analytics-report-table.php';

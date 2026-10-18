@@ -8,6 +8,28 @@
   const csrf = document.querySelector('input[name="csrf_token"]');
   const status = document.getElementById('inbox-live-status');
   const announce = message => { status.hidden = false; status.textContent = message; };
+  const dialog = document.getElementById('inbox-action-dialog');
+  const linkField = document.getElementById('inbox-link-field');
+  const linkInput = document.getElementById('inbox-link-url');
+  const linkError = document.getElementById('inbox-link-error');
+  function ask(title, message, link = false) {
+    if (dialog.open) return Promise.resolve(null);
+    document.getElementById('inbox-action-title').textContent = title;
+    document.getElementById('inbox-action-message').textContent = message;
+    linkField.hidden = !link; linkInput.value = ''; linkError.hidden = true;
+    linkInput.removeAttribute('aria-invalid'); dialog.returnValue = '';
+    return new Promise(resolve => {
+      dialog.addEventListener('close',() => resolve(dialog.returnValue === 'continue' ? (link ? linkInput.value.trim() : true) : null),{once:true});
+      dialog.showModal();
+      (link ? linkInput : dialog.querySelector('[data-inbox-dialog-cancel]')).focus();
+    });
+  }
+  dialog.querySelector('[data-inbox-dialog-cancel]').addEventListener('click',() => dialog.close('cancel'));
+  dialog.querySelector('form').addEventListener('submit',event => {
+    if (!linkField.hidden && !/^(?:https?:\/\/|mailto:)[^\s<>"']+$/i.test(linkInput.value.trim())) {
+      event.preventDefault(); linkError.hidden = false; linkInput.setAttribute('aria-invalid','true'); linkInput.focus();
+    }
+  });
   async function post(action, values = {}) {
     const data = values instanceof FormData ? values : new FormData();
     if (!(values instanceof FormData)) Object.entries(values).forEach(([k,v]) => data.set(k,String(v)));
@@ -22,14 +44,24 @@
     const editor = root.querySelector('[contenteditable]'); const input = root.querySelector('textarea');
     editor.addEventListener('input',() => { input.value = editor.innerHTML; });
     root.querySelectorAll('[data-format]').forEach(button => button.addEventListener('mousedown',event => event.preventDefault()));
-    root.querySelectorAll('[data-format]').forEach(button => button.addEventListener('click',() => {
+    root.querySelectorAll('[data-format]').forEach(button => button.addEventListener('click',async () => {
       editor.focus(); let value = null;
-      if (button.dataset.format === 'createLink') { value = window.prompt('Link URL (https:// or mailto:)'); if (!value || !/^(https?:\/\/|mailto:)/i.test(value)) return; }
+      if (button.dataset.format === 'createLink') {
+        const selection = window.getSelection();
+        const range = selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+        value = await ask('Add a link','Enter the destination for the selected text.',true); if (!value) return;
+        editor.focus(); if (range) { selection.removeAllRanges(); selection.addRange(range); }
+      }
       document.execCommand(button.dataset.format,false,value); input.value = editor.innerHTML;
     }));
     root.closest('form').addEventListener('submit',() => { input.value = editor.innerHTML; });
   });
-  document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit',event => { if (!window.confirm(form.dataset.confirm)) event.preventDefault(); }));
+  const approvedForms = new WeakSet();
+  document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit',async event => {
+    if (approvedForms.has(form)) { approvedForms.delete(form); return; }
+    event.preventDefault(); const submitter = event.submitter;
+    if (await ask('Confirm action',form.dataset.confirm)) { approvedForms.add(form); form.requestSubmit(submitter || undefined); approvedForms.delete(form); }
+  }));
   const compose = document.querySelector('[data-inbox-compose]');
   let dirty = false, saving = false, lastTyped = 0;
   if (compose) {
@@ -49,14 +81,17 @@
       try { await save(); if (wasNew) location.assign(`${config.endpoint}&panel=compose&draft=${config.draft}`); else announce('Draft saved.'); } catch(error) { announce(error.message); }
     });
     compose.querySelector('[data-inbox-send]').addEventListener('click',async event => {
-      if (!window.confirm('Send this message to the displayed connection?')) return;
       const button = event.currentTarget; button.disabled = true;
+      if (!await ask('Send message','Send this message to the displayed connection?')) { button.disabled = false; return; }
       try { await save(); const result = await post('inbox_send',{draft_id:config.draft,version:config.draftVersion}); location.assign(result.redirect); }
       catch(error) { announce(error.message); button.disabled = false; }
     });
-    compose.querySelector('[data-inbox-template]').addEventListener('change',event => {
+    let selectedTemplate = compose.querySelector('[data-inbox-template]').value;
+    compose.querySelector('[data-inbox-template]').addEventListener('change',async event => {
+      const select = event.currentTarget;
       const template = templates.find(t => String(t.id) === event.target.value); if (!template) return;
-      if (dirty && !window.confirm('Replace the subject and body with this message template?')) return;
+      if (dirty && !await ask('Replace message','Replace the subject and body with this message template?')) { select.value = selectedTemplate; return; }
+      selectedTemplate = select.value;
       compose.querySelector('[name="subject"]').value = template.subject;
       // Template HTML is sanitized by the same server allowlist on every save and read.
       compose.querySelector('[contenteditable]').innerHTML = template.body_html;

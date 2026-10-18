@@ -1,6 +1,10 @@
 <?php
 $reportMetricLabels=audienceAnalyticsMetricLabels();
-$formatReportMetric=static fn($value,string $key):string=>$value===null?'—':(str_contains($key,'rate')||$key==='clicks_per_open'?$rate($value):number_format((float)$value));
+$formatReportMetric=static function($value,string $key):string{
+    if($value===null)return '—';
+    if(str_contains($key,'rate')||$key==='clicks_per_open')return rtrim(rtrim(number_format((float)$value,2),'0'),'.').'%';
+    return number_format((float)$value);
+};
 $renderReportTable=static function(array $rows,array $columns,string $dimension,?string $destination=null)use($h,$url,$reportMetricLabels,$formatReportMetric,$window):void{ ?>
 <div class="analytics-table-scroll"><table class="data-table analytics-report-table"><thead><tr><th><?= $h(ucfirst($dimension)) ?></th><?php foreach($columns as$key): ?><th><?= $h($reportMetricLabels[$key]) ?></th><?php endforeach; ?></tr></thead><tbody>
 <?php foreach($rows as$row): ?><tr><th scope="row"><?php if($destination&&!empty($row['id'])): ?><a href="<?= $h($url($destination==='activity'?['view'=>'analytics','section'=>'activity','messages_mode'=>'selected','messages'=>[$row['id']],'start'=>$window['start'],'end'=>$window['end'],'bots'=>$window['bots']]:['view'=>$destination,'id'=>$row['id']])) ?>"><?= $h($row['label']) ?></a><?php else: ?><?= $h($row['label']) ?><?php endif; ?></th><?php foreach($columns as$key): ?><td><?= $h($formatReportMetric($row[$key]??null,$key)) ?><?php if(isset($row['previous'][$key])&&$window['compare']!=='none'): ?><small class="analytics-prior">Previous: <?= $h($formatReportMetric($row['previous'][$key],$key)) ?></small><?php endif; ?></td><?php endforeach; ?></tr><?php endforeach; ?>

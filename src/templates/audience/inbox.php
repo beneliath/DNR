@@ -1,6 +1,6 @@
 <?php
 $baseFilters=array_intersect_key($_GET,array_flip(['status','source','label','q','unread','page']));
-$filterUrl=static fn(array $p=[])=>$url(array_replace($baseFilters,$p));
+$filterUrl=static fn(array $p=[])=>'audience.php?'.http_build_query(['view'=>'inbox']+array_replace($baseFilters,$p));
 $form=static function(string $action,array $values=[])use($csrf,$h):void{echo $csrf.'<input type="hidden" name="action" value="'.$h($action).'">';foreach($values as$k=>$v)echo '<input type="hidden" name="'.$h($k).'" value="'.$h($v).'">';};
 $rich=static function(string $value,string $label='Message')use($h):void{?><div class="inbox-rich" data-inbox-rich><label><?= $h($label) ?></label><div class="inbox-format" role="toolbar" aria-label="Text formatting"><button type="button" data-format="bold" aria-label="Bold"><b>B</b></button><button type="button" data-format="italic" aria-label="Italic"><i>I</i></button><button type="button" data-format="underline" aria-label="Underline"><u>U</u></button><button type="button" data-format="insertUnorderedList" aria-label="Bulleted list">☷</button><button type="button" data-format="insertOrderedList" aria-label="Numbered list">1.</button><button type="button" data-format="createLink">Link</button></div><div class="inbox-editor" contenteditable="true" role="textbox" aria-label="<?= $h($label) ?>" aria-multiline="true"><?= audienceDesignRichText($value) ?></div><textarea name="body_html" class="inbox-rich-fallback" aria-label="<?= $h($label) ?> HTML" maxlength="30000"><?= $h($value) ?></textarea></div><?php };
 ?>
@@ -63,4 +63,10 @@ $rich=static function(string $value,string $label='Message')use($h):void{?><div 
 <?php else: ?>
 <section class="inbox-onboarding"><div class="inbox-envelope" aria-hidden="true">✉</div><h1>Manage one-to-one conversations with your connections using Inbox</h1><p>Reply, organize messages, and collaborate with your team in one place.</p><a class="button primary" href="<?= $h($url(['panel'=>'sources'])) ?>">Add sources</a></section>
 <?php endif; ?>
-</main></div><form hidden id="inbox-csrf"><?= $csrf ?></form><script type="application/json" id="inbox-config"><?= json_encode($config,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><script type="application/json" id="inbox-templates"><?= json_encode($templates,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script></body>
+</main></div>
+<dialog id="inbox-action-dialog" class="confirmation-dialog" aria-labelledby="inbox-action-title" aria-describedby="inbox-action-message">
+<form method="dialog"><h2 id="inbox-action-title">Confirm action</h2><p id="inbox-action-message"></p>
+<label id="inbox-link-field" hidden>Link URL<input id="inbox-link-url" class="confirmation-dialog-input" type="text" maxlength="2000" placeholder="https://example.com" aria-describedby="inbox-link-error"></label>
+<p id="inbox-link-error" class="dialog-inline-error" role="alert" hidden>Enter an HTTP, HTTPS, or email link without spaces.</p>
+<div class="confirmation-dialog-actions"><button type="button" data-inbox-dialog-cancel class="button-secondary">Cancel</button><button class="save-button" value="continue">Continue</button></div></form></dialog>
+<form hidden id="inbox-csrf"><?= $csrf ?></form><script type="application/json" id="inbox-config"><?= json_encode($config,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><script type="application/json" id="inbox-templates"><?= json_encode($templates,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script></body>

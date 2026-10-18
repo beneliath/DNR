@@ -29,6 +29,28 @@ function safeRolePreviewReturnUrl($return_url, $role)
     return (string) $return_url;
 }
 
+function activeRolePreview()
+{
+    return authenticatedSuperAdmin() ? ($_SESSION['_role_preview'] ?? null) : null;
+}
+
+// The shared Account banner needs a profile, but this render test has no database.
+function applicationDatabaseConnection()
+{
+    return new class {
+        public function query(string $query): object
+        {
+            return new class {
+                public function fetch_assoc(): array
+                {
+                    return ['account_key' => currentAccountKey(), 'name' => 'Test Ministry',
+                        'settings' => '{}', 'version' => 1];
+                }
+            };
+        }
+    };
+}
+
 $_SERVER['PHP_SELF'] = '/contacts.php';
 $_SERVER['QUERY_STRING'] = 'status=archived&cursor=example';
 $_SESSION = [
