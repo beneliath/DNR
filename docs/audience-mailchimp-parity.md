@@ -1992,3 +1992,55 @@ for viewing/editing.
 Next authorized work: Mailchimp historical analytics import, preserving dates and
 source provenance. The real target dataset is **s1 / Shalom in Messiah**, not only
 localhost. Imported history must never create delivery jobs or change consent.
+
+### Mailchimp history qualification, October 18, 2026
+
+The authorized all-reports ZIP contains 4,059 campaign summaries. The final import
+scope retains **335 non-devotional campaigns**, excluding 3,724 daily devotionals
+across the original audiences. Three holiday/event messages from the old devotional
+audience remain included; original audience name alone is not the exclusion rule.
+The retained original-audience counts are 184 master-list messages, 148 news alerts
+and those three holiday/event messages.
+
+The importer validates CSV identities, timestamps, counts and archive bounds before
+writing. It defaults to dry run, requires the exact deployment account and an active
+administrator actor, serializes each atomic import, and uses stable vendor IDs and
+content hashes for idempotent updates. Original Chicago timezone (verified in the
+provider account), UTC timestamps, audience, source identity, displayed percentages,
+bundle checksum and import attribution remain available. Recipient activity, URLs,
+commerce fields and consent are not imported. Historical records have no dispatch
+or native recipient relationship.
+
+A separate Mailchimp history dashboard supports date ranges, previous-period
+comparisons, original-audience filtering, weighted metrics, campaign provenance,
+daily CSV and aggregate Analytics AI. Lifetime summary observations are grouped by
+original send date. The bulk export's bot-filter provenance is unknown and is kept
+explicit: its opens can include bots or Apple MPP activity hidden by Mailchimp's
+current filtered cards. Current segments, native message types and bot detection
+cannot reconstruct those historical observations. Missing evidence remains unknown.
+
+Qualification passes **892 isolated Audience checks, including 24 history checks;
+37 pure history checks; 32 pure AI checks; 320 JavaScript checks**, PHPStan, migration
+integrity and generated assets. A fresh encrypted, restore-verified local backup
+preceded schema migration. Local history contains exactly 335 campaigns; reimport
+reports 335 unchanged. Native delivery/recipient counts, consent and the live-send
+gate remain unchanged. Actual shunbun history analysis reconciles with the selected
+aggregate evidence. Desktop and phone dark/light layouts, date application and
+original-audience filtering were exercised; private screenshots are under
+`var/deployment/evidence/mailchimp-history/`.
+
+The user authorized a minor bump deployment followed by the same 335-record import
+on **s1 / shalom-in-messiah**. Release qualification does not authorize live sending.
+Use the shared release runner and its verified per-account backups first. Stage the
+private archive outside public paths, verify its recorded SHA-256, resolve an active
+administrator in the target database, then dry run:
+
+```sh
+php /tmp/import_mailchimp_history.php --file=/tmp/mailchimp-history-reports.zip \
+  --timezone=America/Chicago --bot-filter=unknown --exclude-daily-devotionals \
+  --account=shalom-in-messiah --actor=ACTIVE_ADMIN_ID
+```
+
+Only after verifying 335 retained and 3,724 excluded should the same command gain
+`--apply`. Record before/after native delivery, recipient, consent and sending-gate
+checks. Test Account receives the same application release and no Shalom history.

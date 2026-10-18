@@ -804,3 +804,21 @@ Mailchimp's published Write with AI, Create email content with AI and Analytics 
 controls informed the native workflow; vendor model behavior remains approximate.
 Live sending remains gated. The next authorized follow-on is a historical-report
 import whose real dataset belongs to s1's Shalom in Messiah deployment.
+
+#### Historical analytics qualification, October 18, 2026
+
+The all-reports export is qualified for a separate historical dashboard and
+source-grounded Analytics AI. The final user-approved scope is **335 non-devotional
+campaigns**, excluding 3,724 devotionals across original audiences. Stable vendor
+identities, original Chicago/UTC dates, weighted counts and export provenance are
+preserved. Bulk bot/MPP filtering remains unknown; historical totals are never
+relabelled as native receipts, current-segment results or bot-free observations.
+The importer is dry-run by default, atomic and idempotent, with explicit account
+and administrator checks. It creates no delivery jobs or consent changes.
+
+The full isolated Audience suite passes 892 checks, including 24 historical
+storage/HTTP checks; 37 pure history, 32 pure AI and 320 JavaScript checks pass.
+Local restore-verified backup, migration, exact 335-record reconciliation, real
+private-engine analysis and desktop/mobile dark/light checks are complete. The
+authorized release and s1 Shalom-only import follow qualification; live sending
+remains gated. See the appended parity entry for operational scope and limits.

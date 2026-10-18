@@ -13,7 +13,7 @@ function renderAudienceAi(AudienceStore $store,array $audience,bool $canManage,b
     $aiText='';$aiSubject='';$aiSourceName='';$aiImages=[];$aiWindow=[];
     if($aiMode==='analytics'){
         try{$aiWindow=audienceAnalyticsWindow($_GET);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAnalyticsWindow([]);}
-        $aiWindow=array_intersect_key($aiWindow,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment']));
+        $aiWindow=array_intersect_key($aiWindow,array_flip(['origin','source_audience','start','end','compare','bots','channel','messages_mode','messages','segment']));
     }else{
         $sourceId=\Dnr\Http\RequestInput::positiveInt($_GET,'source_id')??0;
         if($sourceId){

@@ -37,8 +37,10 @@ function audienceAnalyticsWindow(array $input, ?DateTimeImmutable $now = null): 
     if ($days < 1 || $days > 366 || $end > $now->format('Y-m-d')) {
         throw new InvalidArgumentException('Choose a date range of up to 366 days ending today or earlier.');
     }
-    $bots = audienceText($input, 'bots', 10) ?: 'filtered';
-    if (!in_array($bots, ['filtered', 'all'], true)) throw new InvalidArgumentException('Choose a supported bot filter.');
+    $origin=audienceText($input,'origin',20)?:'native';if(!in_array($origin,['native','mailchimp'],true))throw new InvalidArgumentException('Choose a supported analytics source.');
+    $sourceAudience=audienceText($input,'source_audience',250);if($origin==='native'&&$sourceAudience!=='')throw new InvalidArgumentException('Original audience filtering applies only to Mailchimp history.');
+    $bots = $origin==='mailchimp'?'exported':(audienceText($input, 'bots', 10) ?: 'filtered');
+    if (!in_array($bots, $origin==='mailchimp'?['exported']:['filtered', 'all'], true)) throw new InvalidArgumentException('Choose a supported bot filter.');
     $channel=audienceText($input,'channel',20)?:'all';
     if(!in_array($channel,['all','regular','automation'],true))throw new InvalidArgumentException('Choose a supported email type.');
     $compare=audienceText($input,'compare',20)?:'previous';
@@ -50,7 +52,7 @@ function audienceAnalyticsWindow(array $input, ?DateTimeImmutable $now = null): 
     $messageMode=audienceText($input,'messages_mode',10)?:'all';
     if(!in_array($messageMode,['all','selected'],true))throw new InvalidArgumentException('Choose a supported message filter.');
     $segment=$input['segment']??'0';if(!is_scalar($segment)||!preg_match('/\A[0-9]{1,10}\z/D',(string)$segment)||(int)$segment>2147483647)throw new InvalidArgumentException('Choose a valid saved segment.');
-    return ['start'=>$start, 'end'=>$end, 'from'=>$from->format('Y-m-d H:i:s'),
+    return ['origin'=>$origin,'source_audience'=>$sourceAudience,'start'=>$start, 'end'=>$end, 'from'=>$from->format('Y-m-d H:i:s'),
         'until'=>$until->format('Y-m-d H:i:s'), 'days'=>$days, 'bots'=>$bots,'channel'=>$channel,'messages'=>$messages,'messages_mode'=>$messageMode,'compare'=>$compare,'segment'=>(int)$segment,
         'previous_from'=>$from->modify($compare==='year'?'-1 year':'-'.$days.' days')->format('Y-m-d H:i:s'),
         'previous_until'=>($compare==='year'?$until->modify('-1 year'):$from)->format('Y-m-d H:i:s')];
@@ -119,6 +121,7 @@ trait AudienceAnalytics
 
     public function analyticsOverview(array $window, bool $drafts = false): array
     {
+        if(($window['origin']??'native')==='mailchimp')return $this->mailchimpHistoryOverview($window);
         foreach($window['messages']??[] as$campaign)if(!$this->one('SELECT id FROM marketing_campaigns WHERE audience_id=? AND id=?',[$this->audienceId,$campaign]))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
         $rows = $this->analyticsRecipients($window['from'],$window['until'],$window['bots'],$window);
         $priorRows=$this->analyticsRecipients($window['previous_from'],$window['previous_until'],$window['bots'],$window);
