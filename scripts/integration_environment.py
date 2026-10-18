@@ -76,7 +76,8 @@ def main():
         folder = Path(temporary)
         # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
         values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost',
-                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0'}
+                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0',
+                  'DNR_INBOUND_ADDRESS': 'inbox@receiving.example.test'}
         for name in ('ROOT', 'APP', 'BACKUP', 'MAINTENANCE', 'GEOCODER', 'MAIL_INGEST', 'MAIL_DISPATCH'):
             path = folder / ('mysql_' + name.lower())
             path.write_text(secrets.token_hex(32)); path.chmod(0o444)
@@ -94,8 +95,6 @@ def main():
             values['DNR_' + kind + '_IMAGE'] = os.environ.get('DNR_TEST_' + kind + '_IMAGE', project + '-' + kind.lower())
         if scanning_only:
             values['DNR_DOCUMENT_SCANNING'] = '1'
-        if sys.argv[1:] == ['audience']:
-            values['DNR_INBOUND_ADDRESS'] = 'inbox@receiving.example.test'
         envfile = folder / 'test.env'
         envfile.write_text(''.join(k + '=' + v + '\n' for k, v in values.items()))
         services = ('web', 'downloads', 'document-scans', 'document-scanner', 'data-maintenance', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'key-rotation', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
