@@ -196,6 +196,13 @@ ob_start();
 include __DIR__ . '/../src/templates/header.php';
 $reviewer_preview_markup = ob_get_clean();
 expectHeaderScope(
+    str_contains($reviewer_preview_markup, '<section class="account-identity-banner"')
+        && strpos($reviewer_preview_markup, 'class="account-identity-banner"') < strpos($reviewer_preview_markup, 'class="role-preview-banner"')
+        && preg_match('/class="account-identity-switch-form".*name="role" value="superadmin".*name="return_to" value="accounts\\.php"/s', $reviewer_preview_markup) === 1
+        && !str_contains($reviewer_preview_markup, 'href="accounts.php"'),
+    'Account context stacks above Viewing As and switching requires the SuperAdmin return form.'
+);
+expectHeaderScope(
     str_contains($reviewer_preview_markup, 'data-role-preview-banner')
         && str_contains($reviewer_preview_markup, '<strong>Viewing as Reviewer</strong>')
         && str_contains($reviewer_preview_markup, 'Actions still affect live data.')
