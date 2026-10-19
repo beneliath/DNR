@@ -288,6 +288,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geo
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_route_receipts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_attachments TO '${MYSQL_USER}'@'%';
@@ -335,6 +336,7 @@ GRANT INSERT ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${mail_
 
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_route_receipts TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_thread_labels TO '${mail_ingest_user}'@'%';
 GRANT SELECT (id) ON \`${MYSQL_DATABASE}\`.marketing_audiences TO '${mail_ingest_user}'@'%';
 GRANT SELECT (id,audience_id,email,first_name,last_name,email_status,deleted_at,is_archived) ON \`${MYSQL_DATABASE}\`.marketing_contacts TO '${mail_ingest_user}'@'%';

@@ -1,5 +1,12 @@
 (() => {
     'use strict';
+    document.querySelector('[data-copy-collection-link]')?.addEventListener('click', async () => {
+        const input = document.getElementById('collection-public-url');
+        const status = document.querySelector('[data-collection-copy-status]');
+        if (!input || !status) return;
+        try { await navigator.clipboard.writeText(input.value); status.textContent = 'Link copied'; }
+        catch { input.focus(); input.select(); status.textContent = 'Select and copy this link'; }
+    });
     const create = document.getElementById('collection-create');
     const defaultKinds = create ? Array.from(create.querySelectorAll('[data-collection-kind]')).filter(label => !label.hidden).map(label => label.dataset.collectionKind) : [];
     document.querySelectorAll('[data-open-dialog="collection-create"]').forEach(button => button.addEventListener('click', () => {

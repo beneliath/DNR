@@ -17,6 +17,10 @@ function audienceInboxEmail(string $value):string
     if(strlen($value)>254||!filter_var($value,FILTER_VALIDATE_EMAIL)||preg_match('/[\x00-\x20\x7f]/',$value))throw new InvalidArgumentException('Enter one valid email address.');
     return $value;
 }
+function audienceInboxRouteReceiptsInstalled(mysqli $db):bool
+{
+    return (int)$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_inbox_route_receipts'")->fetch_assoc()['n']===1;
+}
 function audienceInboxSubject(string $value):string
 {
     if(mb_strlen($value)>250||preg_match('/[\x00-\x1f\x7f]/',$value))throw new InvalidArgumentException('Use a subject up to 250 characters without line breaks.');
