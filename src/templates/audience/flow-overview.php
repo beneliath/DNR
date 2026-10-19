@@ -1,7 +1,7 @@
 <?php
 $overviewEmpty=!$classic&&!$trash&&$nativeFlowTotal===0&&$q===''&&$state==='';
 $listBase=['view'=>'automations','tab'=>$classic?'classic':'flows','trash'=>$trash?'1':'0','q'=>$q,'state'=>$state,'sort'=>$flowSort];
-$listUrl=static fn(array $extra=[])=>$url(array_replace($listBase,$extra));
+$listUrl=static function(array $extra=[])use($url,$listBase):string{return $url(array_replace($listBase,$extra));};
 $flowPages=max(1,(int)ceil($flowTotal/25));
 ?>
 <nav class="flow-overview-tabs" aria-label="Automation views"><a href="<?= $h($url(['view'=>'automations','tab'=>'flows'])) ?>"<?= !$classic?' aria-current="page"':'' ?>>Automation flows</a><a href="<?= $h($url(['view'=>'automations','tab'=>'classic'])) ?>"<?= $classic?' aria-current="page"':'' ?>>Classic Automations</a></nav>
