@@ -1,8 +1,8 @@
-FROM golang:1.27.2-alpine@sha256:85dc1069ac644ea3c527b177303a406eb3358192816cd7f9e5848eb658851673 AS gosu
+FROM golang:1.27.2-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS gosu
 # Pin the 1.19 release commit; rebuild with the supported Go toolchain.
 RUN CGO_ENABLED=0 go install github.com/tianon/gosu@6456aaa0f3c854d199d0f037f068eb97515b7513
 
-FROM mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+FROM mysql:8.4@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
 # Keep the server, mysql client and mysqldump; the unused shell bundles its own
 # obsolete Python libraries. Patch the base OS before CI qualifies the digest.
 RUN microdnf remove -y mysql-shell \
