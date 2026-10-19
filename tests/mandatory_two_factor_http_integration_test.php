@@ -106,12 +106,17 @@ try {
     $path = tempnam(sys_get_temp_dir(), 'dnr-export-test-');
     try {
         file_put_contents($path, $download['body']);
-        $plain = decryptDatabaseBackup($path, $payload['backup_password'], 16777216);
+        // This archive includes every earlier suite's fixtures, including campaign
+        // snapshots. Inspect it under the same bounded capacity as the exporter.
+        $backupLimit = databaseBackupMaximumBytes();
+        mfaExpect(strlen($download['body']) <= databaseBackupMaximumEncryptedBytes($backupLimit),
+            'Exporter respects the configured encrypted archive capacity');
+        $plain = decryptDatabaseBackup($path, $payload['backup_password'], $backupLimit);
         try {
             // The export includes tables hidden from the everyday web identity.
             $handle = fopen($plain['path'], 'rb');
             $header = json_decode(fgets($handle), true, 512, JSON_THROW_ON_ERROR); fclose($handle);
-            $inspection = inspectDatabaseBackup($plain['path'], $header['tables'], 16777216);
+            $inspection = inspectDatabaseBackup($plain['path'], $header['tables'], $backupLimit);
             mfaExpect($inspection['file_count'] > 0, 'Admin download includes checksum-verified persistent files');
             mfaExpect($inspection['row_count'] > 0, 'Export decrypts and passes archive integrity/schema validation');
         } finally { unlink($plain['path']); }
@@ -122,7 +127,7 @@ try {
     $editor = fetchAuthenticationUserById($conn, $ids['editor']);
     try {
         $illegal = requestEncryptedDatabaseBackup(['user_id' => $ids['editor'], 'auth_version' => $editor['auth_version'],
-            'admin_password' => $password, 'admin_code' => array_shift($recovery['editor']), 'backup_password' => $payload['backup_password']], 16777216);
+            'admin_password' => $password, 'admin_code' => array_shift($recovery['editor']), 'backup_password' => $payload['backup_password']], $backupLimit);
         unlink($illegal['path']); throw new LogicException('Exporter accepted non-admin credentials');
     } catch (RuntimeException $expected) {}
     // Administrative factor reset invalidates the session and requires enrollment again.
@@ -145,4 +150,4 @@ try {
     foreach ($ids as $id) $conn->query('DELETE FROM users WHERE id=' . (int) $id);
     foreach ($sessions as $session) { session_id($session); startSecureSession(); session_destroy(); }
 }
-echo "Mandatory 2FA and isolated backup HTTP tests passed.\n";
+echo 'Mandatory 2FA and isolated backup HTTP tests passed (' . strlen($download['body']) . " encrypted backup bytes).\n";
