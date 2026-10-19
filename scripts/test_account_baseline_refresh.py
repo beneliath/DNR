@@ -25,6 +25,9 @@ CLEAR_TABLES='''document_scan_jobs reimbursement_email_deliveries
 mattermost_post_reaction_notifications mattermost_reply_notifications
 record_creation_operations record_merge_journal notes_cache_purge_queue
 inbound_email_quarantine inbound_mail_reconciliation notification_outbox'''.split()
+# These inbox records are scoped to inbound mail that the refresh replaces. They
+# must not retain stale references or make old mail look newly received/routed.
+CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
 STATE=Path.home()/'.local/state/moed-test-account-refresh'
 
 def require(condition,message):
@@ -67,8 +70,69 @@ def service_health(services):
 
 def check_external_references():
  links=query(DB,"SELECT TABLE_NAME,REFERENCED_TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='dnr' AND REFERENCED_TABLE_NAME IS NOT NULL")
- unexpected=[line for line in links.splitlines() if line.split('\t')[1] in TABLES and line.split('\t')[0] not in TABLES+CLEAR_TABLES]
+ reset_tables=set(TABLES+CLEAR_TABLES)
+ unexpected=[line for line in links.splitlines() if line.split('\t')[1] in reset_tables and line.split('\t')[0] not in reset_tables]
  require(not unexpected,'Review new business references before refresh: '+str(unexpected))
+
+MIGRATIONS_SQL='SELECT migration_name,checksum,state FROM dnr.schema_migrations ORDER BY migration_name'
+SCHEMA_COLUMNS_SQL="""SELECT TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,COLUMN_TYPE,IS_NULLABLE,
+ COALESCE(COLUMN_DEFAULT,'<NULL>'),EXTRA,COALESCE(COLLATION_NAME,'')
+ FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='dnr' ORDER BY TABLE_NAME,ORDINAL_POSITION"""
+
+def migration_plan(baseline_ledger,current_ledger):
+ def parse(ledger):
+  result={}
+  for line in ledger.splitlines():
+   fields=line.split('\t')
+   require(len(fields)==3,'Invalid migration ledger row')
+   name,checksum,state=fields
+   require(name not in result and re.fullmatch(r'[A-Za-z0-9_.-]+\.sql',name) and re.fullmatch(r'[a-f0-9]{64}',checksum),'Invalid migration ledger identity')
+   require(state=='applied','Review incomplete migration before refresh: '+name)
+   result[name]=checksum
+  require(bool(result),'Migration ledger is empty')
+  return result
+ baseline=parse(baseline_ledger);current=parse(current_ledger)
+ require(all(current.get(name)==checksum for name,checksum in baseline.items()),'Applied baseline migration changed or is missing from current schema')
+ return {'baseline_migration_count':len(baseline),'current_migration_count':len(current),
+         'added_migrations':sorted(set(current)-set(baseline))}
+
+def upgrade_staged_schema(staged,current_ledger,current_columns,baseline_ledger):
+ # The production DB is never eligible for this migration command. The restore
+ # helper creates this labeled container with no network and an ephemeral DB.
+ info=inspect(staged)
+ require(staged.startswith('dnr-online-restore-nightly-baseline-stage-')
+         and info['HostConfig']['NetworkMode']=='none'
+         and info['Config']['Labels'].get('org.dnr.recovery-owner')=='test-account-baseline-refresh',
+         'Schema upgrades require the owned network-isolated disposable restore')
+ require(query(staged,MIGRATIONS_SQL)==baseline_ledger,'Restored migration ledger differs from approved baseline')
+ plan=migration_plan(baseline_ledger,current_ledger)
+ if plan['added_migrations']:
+  # Production supplies the qualified migrator through frozen, read-only binds.
+  # Copy this member's exact files into the disposable DB; do not mount live DB
+  # storage or use an independently versioned set of migration files.
+  targets=['/opt/dnr/migrations','/opt/dnr/bin/migrate']
+  mounts={m['Destination']:Path(m['Source']).resolve() for m in inspect(DB)['Mounts']
+          if m['Type']=='bind' and not m.get('RW',True) and m['Destination'] in targets}
+  frozen=(ROOT/'var/accounts'/KEY/'runtime-config').resolve()
+  require(all(t in mounts and mounts[t].is_relative_to(frozen) for t in targets),'Current Test Account qualified migration binds are unavailable')
+  migration_directory='/tmp/test-account-refresh-migrations'
+  migration_runner='/tmp/test-account-refresh-migrate.sh'
+  subprocess.run(['docker','cp',str(mounts[targets[0]]),staged+':'+migration_directory],check=True,capture_output=True)
+  subprocess.run(['docker','cp',str(mounts[targets[1]]),staged+':'+migration_runner],check=True,capture_output=True)
+  # Reuse the release's ordered/checksummed/locked migrator. This isolated
+  # root-only fixture has no application DB identities, so its grants phase is
+  # a harmless statement; production privilege configuration remains unchanged.
+  grants='/tmp/test-account-refresh-grants.sh'
+  source='#!/bin/sh\nprintf "SELECT 1;\\n" > "$DNR_PRIVILEGE_SQL_FILE"\n'
+  subprocess.run(root_command(staged,'sh','-c','cat > /tmp/test-account-refresh-grants.sh'),input=source,text=True,check=True)
+  command=root_command(staged,'env','MYSQL_USER=dnruser','DNR_REQUIRE_DATABASE_ENCRYPTION=0',
+                       'DNR_PRIVILEGE_SCRIPT='+grants,'DNR_MIGRATION_DIRECTORY='+migration_directory,
+                       'DNR_MIGRATION_ORDER_FILE='+migration_directory+'/order.txt','sh',migration_runner)
+  result=subprocess.run(command,text=True,capture_output=True)
+  require(result.returncode==0,'Isolated baseline migration failed: '+(result.stdout+result.stderr)[-2500:])
+ require(query(staged,MIGRATIONS_SQL)==current_ledger,'Migrated baseline ledger does not match the current Test Account schema')
+ require(query(staged,SCHEMA_COLUMNS_SQL)==current_columns,'Migrated baseline columns do not match the current Test Account schema')
+ return dict(plan,isolated=True,migration_ledger_verified=True,schema_columns_verified=True)
 
 def deployment_lock(lock):
  deadline=time.monotonic()+300
@@ -146,11 +210,12 @@ def refresh(args):
  baseline=json.loads((BASE/'receipt.json').read_text());password=directory/'dnr_backup_password_file'
  web=inspect(WEB);image=web['Image'];database_image=inspect(DB)['Image']
  assert inspect(PRIMARY_WEB)['Image']==image,'Active production image parity failed'
- assert query(DB,'SELECT migration_name,checksum,state FROM dnr.schema_migrations ORDER BY migration_name')==baseline['database_state']['migrations'],'Schema changed since baseline'
  require(shutil.disk_usage(BUNDLE).free>2*1024**3,'Less than 2 GiB free for staging and verified backups')
  with (ROOT/'.git/dnr-deploy/deploy.lock').open('a') as lock:
   deployment_lock(lock)
   require(inspect(WEB)['Image']==image and inspect(DB)['Image']==database_image and json.loads((directory/'deployment.json').read_text())==metadata,'Deployment changed while waiting; retry with the current release')
+  current_ledger=query(DB,MIGRATIONS_SQL);current_columns=query(DB,SCHEMA_COLUMNS_SQL)
+  migration_plan(baseline['database_state']['migrations'],current_ledger)
   dc=saved_compose(directory,PROJECT,metadata); services=saved_active_services(directory)
   service_health(services);check_external_references()
   policy_before=live_php(POLICY_CHECK)
@@ -165,11 +230,13 @@ def refresh(args):
      names.append(entry.name)
    while decrypt.stdout.read(1048576):pass
    assert decrypt.wait()==0 and len(names)==2;decrypt.stdout.close()
-  print('Verified immutable baseline, member keys, production image parity and schema.',flush=True)
+  print('Verified immutable baseline, member keys, production image parity and migration compatibility.',flush=True)
   with tempfile.TemporaryDirectory(prefix='nightly-baseline-stage-',dir=BUNDLE) as temporary:
    work=Path(temporary);files=work/'files';files.mkdir(mode=0o777);files.chmod(0o777)
    (work/'tables.json').write_text(json.dumps(TABLES)); (work/'tables.json').chmod(0o444)
    with restored_database(BASE/'database.sql.gz.dnrenc',database_image,image,password,work,'test-account-baseline-refresh') as staged:
+    schema_upgrade=upgrade_staged_schema(staged,current_ledger,current_columns,baseline['database_state']['migrations'])
+    print('Isolated baseline schema qualified: '+json.dumps(schema_upgrade),flush=True)
     before_counts={t:int(query(staged,'SELECT COUNT(*) FROM dnr.`'+t+'`')) for t in TABLES}
     relationships=date_relationships(staged)
     expected={k:(int(s),c) for k,s,c in (line.split('\t') for line in query(staged,'SELECT storage_key,size,checksum FROM dnr.stored_files').splitlines())}
@@ -205,7 +272,7 @@ def refresh(args):
     print('Isolated restore/remap validated: '+json.dumps({'remap':remap,'owners':owners,'files':filecheck}),flush=True)
     qualification={'account':KEY,'anchor':anchor.isoformat(),'window':window,'qualified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
       'code_sha256':code_hash(),'application_image':image,'baseline_unchanged':True,'isolated_restore_verified':True,
-      'live_business_records_changed':False,'consistency':consistency,'files':filecheck,'policy':policy_before}
+      'live_business_records_changed':False,'schema_upgrade':schema_upgrade,'consistency':consistency,'files':filecheck,'policy':policy_before}
     if not args.apply:
      require(protected_before==table_state(DB,PRESERVE),'Live protected data changed during rehearsal')
      qualification['primary_business_unchanged']=source_state()==primary_before
@@ -221,6 +288,7 @@ def refresh(args):
      subprocess.run(dc+['stop',*paused],check=True,stdout=subprocess.DEVNULL,env=clean_environment())
      before=create_online_backup(DB,WEB,password,ROOT/'var/backups/test-account-demo-before',metadata['commit'],'nightly-pre-baseline-refresh')
      assert protected_before==table_state(DB,PRESERVE),'Users/settings changed during staging'
+     require(query(DB,MIGRATIONS_SQL)==current_ledger and query(DB,SCHEMA_COLUMNS_SQL)==current_columns,'Live schema changed during staging')
      print('Fresh encrypted backup restored and verified; replacing only Test Account business records.',flush=True)
      volume=upload_volume(WEB)
      copy=['docker','run','--rm','--network','none','--mount','type=bind,src='+str(files)+',dst=/staged,readonly',
@@ -234,6 +302,9 @@ def refresh(args):
      changed=True
      subprocess.run(root_command(DB,'mysql','-uroot','dnr'),input=final,check=True,stdout=subprocess.DEVNULL)
      assert protected_before==table_state(DB,PRESERVE),'Protected live tables changed'
+     require(query(DB,MIGRATIONS_SQL)==current_ledger and query(DB,SCHEMA_COLUMNS_SQL)==current_columns,'Refresh changed the live schema or migration ledger')
+     for table in ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']:
+      require(query(DB,'SELECT COUNT(*) FROM dnr.`'+table+'`')=='0','Stale inbox receive/routing metadata remains: '+table)
      owners=validate(DB,anchor)
      live_check=subprocess.check_output(['docker','exec','-i',WEB,'php','/dev/stdin'],input=consistency_source.encode())
      assert sum(json.loads(live_check).values())==0
@@ -244,7 +315,7 @@ def refresh(args):
       'before_backup':before['backup_path'],'pitstop_backup':after['backup_path'],'restore_verified':True,'remap':remap,
       'ownership':ownership,'team_task_samples':samples,'active_task_owners':owners,'primary_business_unchanged':source_state()==primary_before,
       'users_settings_calendar_subscriptions_unchanged':True,'application_commit':metadata['commit'],'application_image':image,
-      'baseline_unchanged':True,'consistency':json.loads(live_check),'files':filecheck}
+      'baseline_unchanged':True,'schema_upgrade':schema_upgrade,'cleared_operational_tables':CLEAR_TABLES,'consistency':json.loads(live_check),'files':filecheck}
      save_state('latest-receipt.json',receipt)
      receipt_written=True
      print('Refresh and final encrypted snapshot verified.',flush=True)

@@ -5,10 +5,11 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
-from test_account_baseline_refresh import month_shift
+from test_account_baseline_refresh import month_shift,migration_plan,upgrade_staged_schema,check_external_references
 from install_test_account_refresh_schedule import scheduled_crontab,BEGIN,END
 
 
@@ -44,6 +45,38 @@ class BaselineRefreshTest(unittest.TestCase):
         self.assertIn('--apply',updated)
         for partial in [updated,BEGIN+'\n',END+'\n']:
             with self.assertRaises(ValueError):scheduled_crontab(partial)
+
+    def test_schema_plan_accepts_new_migrations_and_keeps_baseline_checksums(self):
+        baseline='20261012_baseline.sql\t'+'a'*64+'\tapplied'
+        current=baseline+'\n20261015_mileage.sql\t'+'b'*64+'\tapplied'
+        self.assertEqual(migration_plan(baseline,current),{'baseline_migration_count':1,'current_migration_count':2,'added_migrations':['20261015_mileage.sql']})
+        self.assertEqual(migration_plan(baseline,baseline)['added_migrations'],[])
+
+    def test_schema_plan_rejects_missing_modified_or_failed_migrations(self):
+        baseline='20261012_baseline.sql\t'+'a'*64+'\tapplied'
+        for current in ['',baseline.replace('a'*64,'b'*64),baseline.replace('applied','applying'),baseline+'\n20261015_mileage.sql\t'+'b'*64+'\tfailed']:
+            with self.assertRaises(RuntimeError):migration_plan(baseline,current)
+
+    def test_schema_upgrade_refuses_live_or_networked_databases_before_writing(self):
+        for name,network,owner in [('moed-account-test-account-db-1','none','test-account-baseline-refresh'),
+                ('dnr-online-restore-nightly-baseline-stage-fixture','bridge','test-account-baseline-refresh'),
+                ('dnr-online-restore-nightly-baseline-stage-fixture','none','unrelated')]:
+            with patch('test_account_baseline_refresh.inspect',return_value={'HostConfig':{'NetworkMode':network},'Config':{'Labels':{'org.dnr.recovery-owner':owner}}}), patch('test_account_baseline_refresh.subprocess.run') as command:
+                with self.assertRaises(RuntimeError):upgrade_staged_schema(name,'','','')
+                command.assert_not_called()
+
+    def test_reviewed_inbox_dependencies_are_accepted(self):
+        links='marketing_inbox_inbound_parts\tinbound_email_messages\nmarketing_inbox_route_receipts\tinbound_email_messages'
+        with patch('test_account_baseline_refresh.query',return_value=links):
+            check_external_references()
+
+    def test_unknown_business_dependency_still_blocks_refresh(self):
+        with patch('test_account_baseline_refresh.query',return_value='future_inbox_records\tinbound_email_messages'):
+            with self.assertRaisesRegex(RuntimeError,'future_inbox_records'):check_external_references()
+
+    def test_unknown_reference_to_cleared_inbox_metadata_also_blocks_refresh(self):
+        with patch('test_account_baseline_refresh.query',return_value='future_part_metadata\tmarketing_inbox_inbound_parts'):
+            with self.assertRaisesRegex(RuntimeError,'future_part_metadata'):check_external_references()
 
 
 if __name__=='__main__':unittest.main()
