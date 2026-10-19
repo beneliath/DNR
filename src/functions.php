@@ -71,6 +71,8 @@ function renderPageHead($title, array $options = []) {
         $styles[] = 'assets/css/pages/ai-coach.min.css';
         $scripts[] = 'assets/js/ai-coach.min.js';
     }
+    // Normalize native dropdowns after both MOED and MessageMonkey page styles.
+    $styles[] = 'assets/css/pages/native-selects.min.css';
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;

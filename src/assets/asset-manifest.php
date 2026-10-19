@@ -75,6 +75,8 @@ return [
     "assets/css/pages/mail_review.min.css" => "e1e98f3e07a8",
     "assets/css/pages/mattermost.css" => "262965a537b4",
     "assets/css/pages/mattermost.min.css" => "2ecdb32486ff",
+    "assets/css/pages/native-selects.css" => "db09e12ed7ad",
+    "assets/css/pages/native-selects.min.css" => "2c827c997572",
     "assets/css/pages/network_diagnostics.css" => "ec2d5785eeaf",
     "assets/css/pages/network_diagnostics.min.css" => "11389ec839a7",
     "assets/css/pages/organization_form.css" => "e4575b784180",
