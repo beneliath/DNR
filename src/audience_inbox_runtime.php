@@ -15,10 +15,12 @@ function processAudienceInboxInbound(mysqli $db,int $id):?string
     if($route['account_key']!==currentAccountKey()||count($targets)!==1||count($route['targets'])!==1)return $review('Inbox routing must identify exactly one valid Account and reply source.');
     $target=$targets[0];$source=$db->execute_query('SELECT * FROM marketing_inbox_routes WHERE audience_id=1 AND id=? AND enabled=1',[$target['id']])->fetch_assoc();
     $store=new AudienceStore($db,1,0,'Inbox gateway');$settings=$store->inboxSettings();
-    if(!$source||!$settings['gateway_confirmed'])return $review('The Inbox email source is not connected.');
+    if(!$source)return $review('The Inbox email source is not connected.');
     if(!in_array($m['status'],['pending','processing','review'],true))return $m['status'];
     $authentication=inboundEmailSenderAuthentication($m,true);
+    if(audienceInboxRouteReceiptsInstalled($db))$db->execute_query('INSERT IGNORE INTO marketing_inbox_route_receipts(audience_id,inbound_id,route_id,sender_verified,authentication_method,received_at) VALUES (1,?,?,?,?,?)',[$id,$source['id'],!empty($authentication['trusted'])?1:0,$authentication['method']??'unverified',$m['received_at']]);
     if(empty($authentication['trusted']))return $review('Inbox requires a sender authenticated by the trusted receiving gateway.');
+    if(!$settings['gateway_confirmed'])return $review('The receiving test passed. An administrator must connect Inbox email routing in Sources before this message can be filed.');
     if(audienceInboxAutoReply($m['raw_headers'])){$db->execute_query("UPDATE inbound_email_messages SET status='rejected',review_reason='Automatic reply filtered from MessageMonkey Inbox.',processing_started_at=NULL WHERE id=?",[$id]);return 'rejected';}
     $thread=$source['source']==='thread'?(int)$source['reference_id']:0;
     $attachments=[];$retained=[];

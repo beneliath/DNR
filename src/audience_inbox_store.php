@@ -26,6 +26,31 @@ trait AudienceInbox
             if($gateway){$this->inboxReplyRoute('email');$this->inboxReplyRoute('direct');}
         });
     }
+    /** Prepare an account-bound receiving address without connecting sources or sending mail. */
+    public function prepareInboxRoutingTest():string
+    {
+        $gateway=(string)(getenv('DNR_INBOUND_ADDRESS')?:'');
+        audienceInboxAddress($gateway,currentAccountKey(),1,accountMailSigningKey());
+        $this->write("INSERT IGNORE INTO marketing_inbox_routes(audience_id,source,reference_id) VALUES (?,'direct',0)",[$this->audienceId]);
+        $route=$this->one("SELECT id,enabled FROM marketing_inbox_routes WHERE audience_id=? AND source='direct' AND reference_id=0",[$this->audienceId]);
+        if(!$route||!$route['enabled'])throw new InvalidArgumentException('The direct-message route is disconnected.');
+        return audienceInboxAddress($gateway,currentAccountKey(),(int)$route['id'],accountMailSigningKey());
+    }
+    public function inboxRoutingStatus():array
+    {
+        $status=['configured'=>false,'address'=>'','latest'=>null,'verified_at'=>null];
+        $gateway=(string)(getenv('DNR_INBOUND_ADDRESS')?:'');
+        try{audienceInboxAddress($gateway,currentAccountKey(),1,accountMailSigningKey());}catch(InvalidArgumentException){return $status;}
+        $status['configured']=true;
+        $route=$this->one("SELECT id FROM marketing_inbox_routes WHERE audience_id=? AND source='direct' AND reference_id=0 AND enabled=1",[$this->audienceId]);
+        if(!$route)return $status;
+        $status['address']=audienceInboxAddress($gateway,currentAccountKey(),(int)$route['id'],accountMailSigningKey());
+        if(audienceInboxRouteReceiptsInstalled($this->db)){
+            $status['latest']=$this->one('SELECT sender_verified,authentication_method,received_at FROM marketing_inbox_route_receipts WHERE audience_id=? AND route_id=? ORDER BY received_at DESC,inbound_id DESC LIMIT 1',[$this->audienceId,$route['id']]);
+            $status['verified_at']=$this->one('SELECT MAX(received_at) at FROM marketing_inbox_route_receipts WHERE audience_id=? AND route_id=? AND sender_verified=1',[$this->audienceId,$route['id']])['at']??null;
+        }
+        return $status;
+    }
     public function inboxCampaignReplyTo(array $draft):string
     {
         if(!$this->inboxAvailable())return '';

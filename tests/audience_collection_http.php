@@ -144,11 +144,15 @@ audienceHttpExpect(true,'Survey contact information does not bypass email valida
 $doubleId=$collectStore->saveCollection(['kind'=>'hosted','name'=>'Double opt-in fixture']);$collectStore->collectionOperation($doubleId,1,'publish');$double=$collectStore->collectionResource($doubleId);$doubleActive=$collectStore->collectionPublished($double['public_key']);
 $priorSes=$collectStore->sesSettings();$conn->query("UPDATE marketing_ses_settings SET check_state='attention' WHERE audience_id=1");
 $beforeMail=(int)$collectStore->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=1')['n'];$doublePost=$publicPayload($doubleActive);
+$unavailablePage=$public('audience_collect_public.php?key='.$double['public_key']);
+audienceHttpExpect(str_contains($unavailablePage['body'],'<fieldset disabled>')&&str_contains($unavailablePage['body'],'Email signup is temporarily unavailable'),'Published confirmation signup explains unavailable delivery before collecting personal details');
 $doubleUnavailable=$public('audience_collect_public.php?key='.$double['public_key'],$doublePost);
 audienceHttpExpect($doubleUnavailable['status']===422&&!$collectStore->one('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$doublePost['email']]),'Double opt-in never creates a subscribed connection when confirmation mail is unavailable');
 audienceHttpExpect((int)$collectStore->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=1')['n']===$beforeMail,'Unavailable double opt-in does not queue mail');
 $conn->execute_query('UPDATE marketing_ses_settings SET check_state=? WHERE audience_id=1',[$priorSes['check_state']]);
 $conn->query("UPDATE marketing_ses_settings SET enabled=1,access_key_tail='TEST',check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=1000,max_rate=10,subscription_arn='arn:aws:sns:us-east-2:111122223333:fixture:confirmed' WHERE audience_id=1");
+$availablePage=$public('audience_collect_public.php?key='.$double['public_key']);
+audienceHttpExpect(!str_contains($availablePage['body'],'<fieldset disabled>')&&!str_contains($availablePage['body'],'Email signup is temporarily unavailable'),'Confirmation signup becomes usable only when the normal email readiness checks pass');
 $doublePost['proof']=$proof($doubleActive,str_repeat('d',64));
 $collectStore->submitCollection($doubleActive,$doublePost,'double-opt-in-fixture','https://newsletter.example.test/a/community');
 $pending=$collectStore->one('SELECT * FROM marketing_contacts WHERE audience_id=1 AND email=?',[$doublePost['email']]);

@@ -26,7 +26,7 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
 }
 
 /** A complete script-free document, shared by authenticated preview and public rendering. */
-function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string $error='',string $success='',?array $person=null,bool $preview=false): string
+function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string $error='',string $success='',?array $person=null,bool $preview=false,string $unavailable=''): string
 {
     $d=array_replace(audienceCollectionDefaults($r['kind']==='confirm'||$r['kind']==='unsubscribe'?'hosted':$r['kind']),$r['document']); $messages=array_replace(audienceCollectionMessages(),$d['messages']); $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $nonce=contentSecurityPolicyNonce();
     $control=static fn($name,$label,$type,$value,$required=false,$options=[])=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages);
@@ -45,6 +45,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php foreach($d['sections']as$s): ?><?php if($s['type']==='heading'): ?><h2><?= $h($s['text']) ?></h2><?php elseif($s['type']==='text'): ?><p><?= $h($s['text']) ?></p><?php elseif($s['type']==='image'&&$s['url']): ?><img class="section-image" src="<?= $h($s['url']) ?>" alt="<?= $h($s['text']) ?>" referrerpolicy="no-referrer"><?php elseif($s['type']==='button'&&$s['url']): ?><a class="button" href="<?= $h($s['url']) ?>" rel="noopener noreferrer"><?= $h($s['text']) ?></a><?php elseif($s['type']==='divider'): ?><hr><?php endif; ?><?php endforeach; ?>
     <?php if($error!==''): ?><div class="error" role="alert" tabindex="-1"><strong><?= $h($messages['error_title']) ?></strong><p><?= $h($messages['invalid']) ?></p></div><?php endif; ?>
     <form method="post" action="<?= $h($action) ?>">
+    <?php if($unavailable!==''): ?><div class="error" role="status"><p><?= $h($unavailable) ?></p></div><fieldset disabled><legend class="trap">Signup temporarily unavailable</legend><?php endif; ?>
     <input type="hidden" name="proof" value="<?= $h($proof) ?>"><div class="trap" aria-hidden="true"><label>Leave this field empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
     <?php if($r['kind']==='unsubscribe'): ?><input type="hidden" name="unsubscribe" value="1">
     <?php elseif($r['kind']==='confirm'): ?><input type="hidden" name="csrf_token" value="<?= $h(generateCsrfToken()) ?>">
@@ -62,8 +63,8 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php foreach($groups as$g): if($g['display_type']==='hidden'||!in_array((int)$g['id'],$d['group_ids'],true))continue; $selected=$values['group_ids']??($person['group_ids']??[]); ?><fieldset><legend><?= $h($g['name']) ?></legend><?php if($g['display_type']==='dropdown'): ?><select name="group_pick[<?= (int)$g['id'] ?>]"><option value=""><?= $h($messages['choose']) ?></option><?php foreach($g['options']as$o): ?><option value="<?= (int)$o['id'] ?>"<?= in_array((int)$o['id'],(array)$selected,true)?' selected':'' ?>><?= $h($o['name']) ?></option><?php endforeach; ?></select><?php else: foreach($g['options']as$o): ?><label class="choice"><input type="<?= $g['display_type']==='radio'?'radio':'checkbox' ?>" name="<?= $g['display_type']==='radio'?'group_pick['.$g['id'].']':'group_ids[]' ?>" value="<?= (int)$o['id'] ?>"<?= in_array((int)$o['id'],(array)$selected,true)?' checked':'' ?>><?= $h($o['name']) ?></label><?php endforeach; endif; ?></fieldset><?php endforeach; ?>
     <?php if($r['kind']!=='preferences'): ?><label class="choice"><input type="checkbox" name="permission" value="1" required<?= ($values['permission']??'')==='1'?' checked':'' ?>><?= $h($d['permission']) ?></label><?php foreach($d['permissions']as$permission): ?><label class="choice"><input type="checkbox" name="permissions[]" value="<?= $h($permission) ?>"<?= in_array($permission,(array)($values['permissions']??[]),true)?' checked':'' ?>><?= $h($permission) ?></label><?php endforeach; ?><?php if($d['quiz']): echo $control('quiz',$messages['quiz'],'radio',$values['quiz']??'',true,array_column($d['quiz'],'label')); endif; ?><?php else: ?><p><?= $h($messages['preferences_note']) ?></p><?php endif; ?>
     <?php endif; ?>
-    <button<?= $preview?' disabled':'' ?>><?= $h($d['button']) ?></button>
-    </form><small><?= $preview?'Preview — submissions are disabled.':$messages['powered'] ?></small>
+    <button<?= $preview||$unavailable!==''?' disabled':'' ?>><?= $h($d['button']) ?></button>
+    <?php if($unavailable!==''): ?></fieldset><?php endif; ?></form><small><?= $preview?'Preview — submissions are disabled.':$messages['powered'] ?></small>
     <?php endif; ?>
     </main></body></html>
     <?php $screen=in_array($r['kind'],['confirm','unsubscribe'],true)?$r['kind']:($success!==''?'thanks':'signup');return audienceCollectionCustomPage((string)ob_get_clean(),$d,$screen);

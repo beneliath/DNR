@@ -133,6 +133,11 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     }
     try { $publicBase=accountPrimaryPublicUrl(); } catch (InvalidArgumentException) { $publicBase=''; }
     $publicUrl=$resource?$publicBase.'/audience_collect_public.php?key='.$resource['public_key']:'';
+    $publishedResource=$resource&&$resource['state']==='published'?$store->collectionPublished($resource['public_key']):null;
+    $signupEmailBlocked=false;
+    if($publishedResource&&in_array($publishedResource['kind'],['hosted','embedded','popup','landing'],true)&&$publishedResource['document']['opt_in']==='double'){
+        $ses=$store->sesSettings();$signupEmailBlocked=(bool)audienceSesReasons($ses,$ses['from_email']??'');
+    }
     $pageTitle=match($view){'form'=>$resource['name'],'collection-create'=>'Setup your '.match($creationKind){'landing'=>'landing page','survey'=>'survey','popup'=>'popup form','embedded'=>'embedded form','preferences'=>'preference center',default=>'subscribe form'},'form-settings'=>'Forms Settings','landing-pages'=>'Landing pages','surveys'=>'Surveys','preferences'=>'Subscriber preferences','collection-report'=>$resource['name'].' · Results',default=>'Forms'};
     $csrf=csrfInput(); $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();

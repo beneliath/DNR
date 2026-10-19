@@ -55,4 +55,9 @@ if ($_SERVER['REQUEST_METHOD']==='GET') {
         if (in_array($origin,$d['origins'],true)) $db->execute_query('UPDATE marketing_collection_resources SET installed_at=UTC_TIMESTAMP() WHERE audience_id=1 AND id=?',[$r['id']]);
     }
 }
-echo audienceCollectionHtml($r,$store->fields(),$store->groups(),$publicUrl.($recipient!==''?'&recipient='.rawurlencode($recipient):''),$proof,$values,$error,$success,$person);
+$unavailable='';
+if(in_array($r['kind'],['hosted','embedded','popup','landing'],true)&&$d['opt_in']==='double'){
+    $ses=$store->sesSettings();
+    if(audienceSesReasons($ses,$ses['from_email']??''))$unavailable='Email signup is temporarily unavailable. Please try again later.';
+}
+echo audienceCollectionHtml($r,$store->fields(),$store->groups(),$publicUrl.($recipient!==''?'&recipient='.rawurlencode($recipient):''),$proof,$values,$error,$success,$person,false,$unavailable);

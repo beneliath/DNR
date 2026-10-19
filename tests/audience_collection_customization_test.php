@@ -13,6 +13,8 @@ $canonical=audienceCollectionDocument($doc,'hosted',[],[],[]);
 $expect(!str_contains($canonical['advanced']['pages']['signup'],'script')&&!str_contains($canonical['advanced']['pages']['signup'],'onclick'),'Advanced source strips active content');
 $resource=['kind'=>'hosted','document'=>$canonical];
 $html=audienceCollectionHtml($resource,[],[],'/native-action','sealed-proof',[],'Original internal validation');
+$blocked=audienceCollectionHtml($resource,[],[],'/native-action','sealed-proof',[],'','',null,false,'Signup temporarily unavailable');
+$expect(str_contains($blocked,'<fieldset disabled>')&&str_contains($blocked,'Signup temporarily unavailable'),'Custom page layouts retain disabled native controls and delivery availability');
 $expect(str_contains($html,'dir="rtl"')&&str_contains($html,'בדקו את התשובה'),'Language and translated error heading reach the public page');
 $expect(str_contains($html,'נא למלא את השדות')&&!str_contains($html,'Original internal validation'),'Public error copy is editable without leaking internal errors');
 $expect(str_contains($html,'sealed-proof')&&str_contains($html,'action="/native-action"')&&str_contains($html,'name="permission"'),'Custom layouts retain native proof, destination and explicit permission');

@@ -45,4 +45,13 @@ $expect((int)$db->query("SELECT COUNT(*) n FROM marketing_inbox_messages WHERE r
 $expect((int)$db->execute_query('SELECT COUNT(*) n FROM marketing_inbox_attachments WHERE message_id=?',[$message['id']])->fetch_assoc()['n']===1,'Gateway attachment survives native parse, queue and Inbox storage');
 $expect((int)$db->query('SELECT COUNT(*) n FROM engagement_chron_entries')->fetch_assoc()['n']===$chronBefore,'Inbox messages never leak into ordinary Chron filing');
 $expect(syncInboundMailbox($db,$mailbox,$key,'Disposable Inbox gateway')===0,'Repeated poll does not import completed UIDs');
+$proofFor=static function(string $name)use($db):?array{return $db->execute_query('SELECT r.sender_verified,r.authentication_method FROM marketing_inbox_route_receipts r JOIN inbound_email_messages m ON m.id=r.inbound_id WHERE r.audience_id=1 AND m.rfc_message_id=?',['gateway-'.$name.'@example.test'])->fetch_assoc()?:null;};
+$verified=$proofFor('valid');$unverified=$proofFor('unverified');
+$expect($verified!==null&&(int)$verified['sender_verified']===1,'A valid authenticated signed message records receiving proof');
+$expect($unverified!==null&&(int)$unverified['sender_verified']===0,'An unverified sender never produces verified receiving proof');
+$expect($proofFor('forged')===null,'A forged account route cannot produce receiving proof');
+$receiptCount=(int)$db->query('SELECT COUNT(*) n FROM marketing_inbox_route_receipts WHERE audience_id=1')->fetch_assoc()['n'];
+$m=$db->execute_query('SELECT id FROM inbound_email_messages WHERE rfc_message_id=?',['gateway-valid@example.test'])->fetch_assoc();processInboundEmailMessage($db,(int)$m['id']);
+$expect((int)$db->query('SELECT COUNT(*) n FROM marketing_inbox_route_receipts WHERE audience_id=1')->fetch_assoc()['n']===$receiptCount,'Repeated processing does not duplicate receiving evidence');
+try{$db->query("UPDATE marketing_inbox_route_receipts SET sender_verified=0");throw new RuntimeException('Receiving worker rewrote immutable evidence');}catch(mysqli_sql_exception $e){$expect($e->getCode()===1142,'Receiving worker can insert evidence but cannot rewrite it');}
 echo "Inbox gateway qualification passed ($checks checks): authenticated MIME intake, signed routes, exact thread, attachment, duplicate UID, unverified sender and automatic reply rejection.\n";

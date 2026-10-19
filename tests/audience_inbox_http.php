@@ -5,10 +5,30 @@ $inboxStart=$checks;$inboxPath='audience.php?view=inbox';$inboxPage=$editor($inb
 audienceHttpExpect($inboxPage['status']===200&&str_contains($inboxPage['body'],'Manage one-to-one conversations'),'Standalone Inbox renders');
 foreach(['','&panel=sources','&panel=labels','&panel=templates','&panel=compose','&panel=notifications','&inbox_api=notifications','&inbox_api=recipients&q=fixture']as$tail)audienceHttpExpect($reviewer($inboxPath.$tail)['status']===403,'Reviewer cannot access Inbox private surfaces '.$tail);
 foreach(['sources','labels','templates','compose','notifications','drafts']as$panel){$page=$editor($inboxPath.'&panel='.$panel);audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Inbox panel renders '.$panel);}
+$sourcePanel=$editor($inboxPath.'&panel=sources');
+audienceHttpExpect(!str_contains($sourcePanel['body'],'aria-label="Conversations"')&&str_contains($sourcePanel['body'],'inbox-has-panel'),'Settings use the full work area without a conversation-list column');
+audienceHttpExpect($editor($inboxPath,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_prepare_route'])['status']===403,'Editors cannot prepare receiving addresses');
 $settingsInput=['version'=>1,'title'=>'Contact us','intro'=>'Get in touch','button'=>'Send message','success'=>'Message received','contact_enabled'=>'1','survey_replies'=>'1'];
 audienceHttpExpect($editor($inboxPath,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_sources']+$settingsInput)['status']===403,'Only administrator configures sources');
 audienceHttpExpect($admin($inboxPath,['csrf_token'=>'invalid','action'=>'inbox_sources']+$settingsInput)['status']===400,'Inbox writes require CSRF');
 $adminInbox=$admin($inboxPath);$adminInboxCsrf=audienceHttpCsrf($adminInbox);$saved=$admin($inboxPath,['csrf_token'=>$adminInboxCsrf,'action'=>'inbox_sources']+$settingsInput);audienceHttpExpect($saved['status']===302,'Administrator connects native contact and survey sources');
+$beforeRouteSettings=$conn->query('SELECT gateway_confirmed,campaign_replies,survey_replies FROM marketing_inbox_settings WHERE audience_id=1')->fetch_assoc();
+audienceHttpExpect($admin($inboxPath,['csrf_token'=>$adminInboxCsrf,'action'=>'inbox_prepare_route'])['status']===302,'Administrator prepares an account receiving address');
+audienceHttpExpect($conn->query('SELECT gateway_confirmed,campaign_replies,survey_replies FROM marketing_inbox_settings WHERE audience_id=1')->fetch_assoc()===$beforeRouteSettings,'Preparing a route does not connect sources');
+$sourcePanel=$admin($inboxPath.'&panel=sources');
+audienceHttpExpect(str_contains($sourcePanel['body'],'+mm.')&&str_contains($sourcePanel['body'],'Waiting for a receiving test'),'Sources displays the account-bound test address and honest receiving status');
+try{$conn->query("UPDATE marketing_inbox_route_receipts SET sender_verified=1 WHERE 1=0");throw new RuntimeException('Web identity rewrote receiving evidence');}catch(mysqli_sql_exception $e){audienceHttpExpect($e->getCode()===1142,'Web identity cannot rewrite existing receiving evidence');}
+require_once $source.'/inbound_ingestion_helpers.php';require_once $source.'/audience_inbox_runtime.php';
+$probeStore=new AudienceStore($conn,1,0,'Receiving test');$probeAddress=$probeStore->inboxRoutingStatus()['address'];
+$probeThreads=(int)$conn->query('SELECT COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=1')->fetch_assoc()['n'];
+$priorAuthServers=getenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS');putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.qualification.test');
+try{
+    $probeRaw="From: qualification@example.test\r\nTo: $probeAddress\r\nMessage-ID: <receiving-before-connect@example.test>\r\nSubject: Receiving test\r\nAuthentication-Results: mx.qualification.test; dmarc=pass header.from=example.test\r\n\r\nReceiving test";
+    $probe=storeInboundEmailMessage($conn,'file','receiving-before-connect',parseInboundEmail($probeRaw),inboundEmailGatewayAddress());
+    audienceHttpExpect(processAudienceInboxInbound($conn,(int)$probe['id'])==='review','A receiving test stays in review until an administrator connects its source');
+    audienceHttpExpect($probeStore->inboxRoutingStatus()['verified_at']!==null,'Authenticated receiving evidence is available before a source is connected');
+    audienceHttpExpect((int)$conn->query('SELECT COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=1')->fetch_assoc()['n']===$probeThreads&&!(int)$conn->query('SELECT gateway_confirmed FROM marketing_inbox_settings WHERE audience_id=1')->fetch_assoc()['gateway_confirmed'],'Receiving verification creates no conversation and cannot activate a source');
+}finally{putenv($priorAuthServers===false?'DNR_INBOUND_TRUSTED_AUTH_SERVERS':'DNR_INBOUND_TRUSTED_AUTH_SERVERS='.$priorAuthServers);}
 $actor=(int)$conn->execute_query('SELECT id FROM users WHERE username=?',['audience-editor-'.$suffix])->fetch_assoc()['id'];$ib=new AudienceStore($conn,1,$actor,'Inbox editor');
 $conn->query("INSERT INTO marketing_contacts(audience_id,email,first_name,email_status,notes) VALUES (1,'inbox-person@example.test','Inbox','subscribed','')");$inboxPerson=(int)$conn->insert_id;$inboxAudience=$ib->one('SELECT * FROM marketing_audiences WHERE id=1');
 $key=hash('sha256','inbox-fixture');$tid=$ib->inboxReceive('direct',0,'inbox-person@example.test','Inbox sender','Thread subject','Original message',$key,true,[],0,[],false,'<inbox-original@example.test>');
