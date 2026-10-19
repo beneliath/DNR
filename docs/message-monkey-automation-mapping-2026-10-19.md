@@ -1,9 +1,12 @@
-# MessageMonkey automation and transactional mapping
+# MessageMonkey automation mapping
 
 Reference inspected read-only on October 19, 2026. This feature pass is local
 development on `codex/message-monkey-automation-mapping`; it is not deployed.
 Mailchimp flows, drafts, integrations, billing and sending settings were not changed.
-The user selected MOED system emails and delivery logs as the Transactional scope.
+The user subsequently excluded the Transactional feature entirely. Its native
+page, routing, navigation, search entry, styles and queue-query code are removed.
+Existing MOED confirmations, system emails and their delivery mechanisms remain
+unchanged.
 
 ## What the reference actually provides
 
@@ -15,12 +18,6 @@ map, followed by related templates. The inspected welcome, audience cleanup and
 engagement follow-up previews demonstrate single triggers, converging triggers,
 waits, real branches and explicit exits. Templates become editable drafts through
 “Use this flow.”
-
-The account's Transactional page currently shows a developer-product introduction
-with plan/trial calls to action. Those actions were not taken, so an enabled
-Mandrill operations dashboard was not inspected. The official developer contract
-describes a separate API/SMTP sending service; that service must not be confused
-with an audience automation flow or a campaign delivery dashboard.
 
 ## Catalog and visual mapping implemented
 
@@ -78,36 +75,39 @@ published snapshots and the existing delivery qualification. Opening a preview
 or creating a draft never activates a flow. Data-only cleanup requires explicit
 activation and neither sends email nor changes consent.
 
-## Transactional workspace implemented
+## Upper-level Automations page
 
-The native route is `audience.php?view=transactional`, under Automations. It is
-administrator-only both in navigation/search and on direct requests. It is a
-read-only view of existing account-isolated queues, with a lifecycle graphic,
-stored readiness snapshot, source/status/time filters, totals and paginated
-activity. Its POST requests are rejected; it has no send, retry or enable action.
+The Mailchimp Automation flows empty state and its populated Classic Automations
+list were inspected read-only. Its main overview includes an introduction/video
+tile, a five-task onboarding panel, recommendations and three learning cards.
+The native page now maps those functions as follows:
 
-| Native source | Existing queue | Transport |
-| --- | --- | --- |
-| Signup confirmations | `marketing_service_mail`, confirmation kind | Account SES |
-| Inbox replies and alerts | `marketing_service_mail`, inbox/inbox-alert kinds | Account SES |
-| Audience notifications | `marketing_service_mail`, audience-alert kind | Account SES |
-| Account invitation / verification / recovery | `email_outbox` | Existing MOED SMTP |
-| Daily task digests | `notification_outbox` | Existing MOED SMTP |
-| Engagement correspondence | `engagement_email_deliveries` | Existing MOED SMTP |
-| Reimbursement submissions | `reimbursement_email_deliveries` | Existing MOED SMTP |
+| Reference element | MessageMonkey implementation |
+| --- | --- |
+| Automation flows / Classic Automations tabs | Separate native and converted-classic lists, with the selected-tab underline/background |
+| Main header actions | Build from scratch and Choose flow template, preserving draft-only creation |
+| Introduction and preview tile | Two-column introduction with original vector artwork that opens the actual welcome-template preview; no pretend video player |
+| Get started with automation flows | Five expanding tasks: welcome draft, email readiness, hosted signup, audience organization and template discovery |
+| Setup progress | Account-record-derived completed states, progress bar, completed/dismissed counts, focused next task, Show all/Show fewer, dismiss and restore controls |
+| Task illustrations | Distinct local SVG scenes for the welcome graph, delivery, hosted form, interest tags and template grid |
+| Setup actions | Working links to native editors/previews; non-admin delivery guidance does not link to protected configuration |
+| Dismissal preferences | Browser-local state scoped by account, user and audience; no checklist action enables a flow or changes sending policy |
+| Recommendations | Three native templates with channel/integration coins, descriptions and a route to the full catalog |
+| Getting-started cards | Three linked native guide sections covering first-flow creation, logic/timing and pre-activation review |
+| Populated list | Search, native status filters, Clear all, Last created/Last updated/Oldest sorting, status badges, dates, draft/actual run summaries and row actions |
+| Flow actions | Edit/view, report, replicate, pause/edit, contextual removal review and restore as draft, using existing guarded backend operations |
+| Pagination and empty states | Result ranges plus first/previous/next/last controls, preserved filters and useful empty/Trash states |
 
-Test-email jobs and campaign recipients are excluded. Account and digest tables
-retain their existing restricted web grants: their unavailable attempt counts
-are shown as unavailable, not zero. The implementation reads no message payload,
-recipient address, bearer link, credential, SMTP error or provider message ID.
-Missing tables are reported as unavailable and excluded from totals. No schema,
-grant, credential, infrastructure or production configuration change is needed.
+The large introduction/recommendations appear when there are no native flows.
+Accounts with flows keep the management list prominent and can expand the same
+setup checklist below it. Classic conversion guidance is a disclosure rather
+than an unrelated default panel. Converted classic flows use the same native
+engine and remain identified honestly; vendor runtime queues are not imported.
 
-The shared status vocabulary deliberately distinguishes transport acceptance
-from delivery: pending/retry map to Queued; SMTP sent maps to Transport accepted;
-delivery_uncertain maps to Acceptance uncertain. Acceptance is never presented
-as proof of inbox delivery. Existing feature-specific recovery workflows retain
-their retry/ambiguity rules.
+Published signup state, welcome-flow existence, audience tags/groups and stored
+email readiness determine account-backed task completion. Template discovery and
+dismissals are browser preferences. A dismissed delivery task still cannot bypass
+SES approval, live-sending qualification, permission checks or suppression.
 
 ## Explicit limits and exclusions
 
@@ -116,7 +116,7 @@ their retry/ambiguity rules.
 | Store onboarding, orders/carts/purchases | Not implied by MOED event/date fields; no native commerce event source exists |
 | External app connectors and SMS | Omitted rather than shown as available templates |
 | A/B or percentage testing | Excluded by the user; no new palette action and activation rejects legacy percentage steps |
-| Public developer sending API / SMTP gateway | Outside the selected system-email/log scope |
+| Transactional page or developer sending API / SMTP gateway | Excluded by user request; no native page or service |
 | Mandrill merge-template management | Not imported or faked; system content remains owned by its MOED feature; marketing templates remain separate |
 | Mandrill API logs, metadata/webhook management and billing | Not claimed or represented with decorative controls |
 | Sender authentication / SES readiness | Links to existing admin delivery settings; stored snapshot only, no AWS call or readiness mutation here |
@@ -124,21 +124,23 @@ their retry/ambiguity rules.
 
 ## Qualification
 
-The final run passed 125 unit checks, 956 HTTP/storage checks, the restricted
-worker/SES suites, and 84 browser layouts across WebKit, Chromium and Firefox.
+The updated qualification includes 128 unit checks, 956 HTTP/storage checks and
+the restricted worker/SES suites. Browser checks cover 44 layouts per engine
+across WebKit, Chromium and Firefox.
 No external message was sent; all integration fixtures were disposable.
 
 The unit checks cover every native starter's normalized graph, edge endpoints,
 branch separation, timeout routing, both cleanup status triggers, no-op rejection,
-invalid source/status input and bounded filters. The disposable HTTP/storage
-suite checks real web grants, admin-only access, mutation rejection, draft-only
-creation, cleanup consent preservation/reconfirmation, early-click retention,
+typed overview status/sort input and the five setup-task contracts. The disposable HTTP/storage
+suite checks authorized overview access, independent Classic/native filtering,
+oldest-first sorting, draft-only creation, cleanup consent preservation/reconfirmation, early-click retention,
 percentage-step activation refusal and unchanged live-sending policy.
 
 Browser fixtures render the actual PHP templates and built assets with synthetic
 data, without account authentication or an email transport. They cover catalog
 filter/search/empty states, branching and converging maps, zoom/reset, the live
-builder and Transactional at 390px/1440px in light/dark themes. WebKit and Chromium
+builder, empty/populated/filtered/classic/Trash overviews, and checklist
+expand/dismiss/restore/guide interactions at 390px/1440px in light/dark themes. WebKit and Chromium
 run in isolated local profiles; Firefox runs in the official Playwright Linux
 container with networking disabled because native Firefox automation on macOS 27
 has a known profile-access problem. This does not certify native macOS Firefox
@@ -147,7 +149,3 @@ or actual email-client rendering.
 ## Primary references
 
 - [Mailchimp Flow Templates catalog](https://us3.admin.mailchimp.com/customer-journey/explore/) — authenticated, read-only visual reference.
-- [Mailchimp Transactional fundamentals](https://mailchimp.com/developer/transactional/docs/fundamentals/) — service boundary and application-driven recipients/events.
-- [Transactional outbound email](https://mailchimp.com/developer/transactional/docs/outbound-email/) — sending and message operations.
-- [Authentication and delivery](https://mailchimp.com/developer/transactional/docs/authentication-delivery/) — authentication and provider delivery responsibilities.
-- [Tags and metadata](https://mailchimp.com/developer/transactional/docs/tags-metadata/) — vendor-specific metadata capabilities, not claimed as native parity.

@@ -2081,14 +2081,16 @@ Qualification: **928 Audience HTTP checks** (129 analytics, 38 AI, 16 defaults/n
 
 The [review closeout](message-monkey-review-2026-10-18.md#remaining-code-findings--local-closeout-october-18) records the remaining operational and vendor-specific differences. Real mailbox/client/site verification is separate from local functional acceptance; no new external self-test email has been sent.
 
-## Automation catalog and Transactional refinement — October 19, 2026
+## Automation catalog and overview refinement — October 19, 2026
 
 The current mapping and qualification scope is recorded in
-[the automation/transactional mapping](message-monkey-automation-mapping-2026-10-19.md).
+[the automation mapping](message-monkey-automation-mapping-2026-10-19.md).
 This local pass replaces the simplified catalog/linear previews with 17 native
 starters, requirements, integration/topic/channel filters, real connected graph
-previews and shared vector artwork. It adds an admin-only, metadata-only view of
-MOED's existing transactional queues. It does not create a developer API/SMTP
-service. Percentage testing is excluded, and legacy percentage steps cannot be
-activated. Existing published runtime snapshots remain readable. No Mailchimp
-configuration was changed, and live sending remains gated.
+previews and shared vector artwork. The main Automations page includes a five-task
+illustrated setup checklist, progress/dismissal controls, recommendations, native
+learning resources, and filtered/sorted native and converted-classic lists.
+Transactional is excluded at the user's request; its page and related code are
+removed while MOED's existing confirmations/system emails remain unchanged.
+Percentage testing stays excluded. Existing published runtime snapshots remain
+readable, Mailchimp is unchanged, and live sending remains gated.

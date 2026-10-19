@@ -2,6 +2,46 @@
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const setupKeys=['welcome','delivery','form','organize','library'];
+    const setupStorageKey=document.body.dataset.audienceKey?`moed:message-monkey:automation-setup:${document.body.dataset.audienceKey}`:null;
+    let setupState={dismissed:[],library:false};
+    try{const stored=JSON.parse(setupStorageKey?localStorage.getItem(setupStorageKey):'null');if(stored&&typeof stored==='object')setupState={dismissed:Array.isArray(stored.dismissed)?stored.dismissed.filter(key=>setupKeys.includes(key)):[],library:stored.library===true};}catch(_){/* Checklist storage is optional. */}
+    const saveSetup=()=>{try{if(setupStorageKey)localStorage.setItem(setupStorageKey,JSON.stringify(setupState));}catch(_){/* No application action depends on this preference. */}};
+    const onboarding=$('[data-flow-onboarding]');
+    if(onboarding){
+        let showAll=false;
+        const tasks=$$('[data-flow-task]',onboarding);
+        const updateSetup=(focus=false)=>{
+            let completed=0,dismissed=0;
+            tasks.forEach(task=>{
+                const done=task.dataset.flowTaskComplete==='1'||(task.dataset.flowTask==='library'&&setupState.library), skipped=!done&&setupState.dismissed.includes(task.dataset.flowTask);
+                completed+=Number(done);dismissed+=Number(skipped);task.dataset.resolved=String(done||skipped);
+                task.classList.toggle('completed',done);task.classList.toggle('dismissed',skipped);
+                $('[data-flow-task-state]',task).textContent=done?'Completed':skipped?'Dismissed':'To do';
+                $('[data-flow-task-dismiss]',task).hidden=done||skipped;$('[data-flow-task-restore]',task).hidden=!skipped;
+            });
+            const next=tasks.find(task=>task.dataset.resolved==='false')||tasks[0];
+            tasks.forEach(task=>{task.hidden=!showAll&&task!==next;if(!showAll)task.open=task===next&&task.dataset.resolved==='false';});
+            $('[data-flow-setup-status]',onboarding).textContent=`${completed+dismissed}/${tasks.length} tasks addressed`;
+            $('[data-flow-setup-detail]',onboarding).textContent=`${completed} completed · ${dismissed} dismissed`;
+            $('[data-flow-setup-progress]',onboarding).value=completed+dismissed;
+            $('[data-flow-tasks-restore]',onboarding).hidden=dismissed===0;
+            const toggle=$('[data-flow-tasks-toggle]',onboarding);toggle.textContent=showAll?'⌃ Show fewer':'⌄ Show all';toggle.setAttribute('aria-expanded',String(showAll));
+            if(focus)$('summary',next)?.focus();
+        };
+        tasks.forEach(task=>{
+            $('[data-flow-task-dismiss]',task).addEventListener('click',()=>{setupState.dismissed=Array.from(new Set([...setupState.dismissed,task.dataset.flowTask]));saveSetup();updateSetup(true);});
+            $('[data-flow-task-restore]',task).addEventListener('click',()=>{setupState.dismissed=setupState.dismissed.filter(key=>key!==task.dataset.flowTask);saveSetup();updateSetup();});
+        });
+        $('[data-flow-tasks-toggle]',onboarding).addEventListener('click',()=>{showAll=!showAll;updateSetup();});
+        $('[data-flow-tasks-restore]',onboarding).addEventListener('click',()=>{setupState.dismissed=[];saveSetup();updateSetup(true);});updateSetup();
+    }
+    $$('[data-flow-open-guide]').forEach(link=>link.addEventListener('click',()=>{const guide=$('.flow-basics');if(guide)guide.open=true;}));
+    $$('[data-flow-remove-id]').forEach(button=>button.addEventListener('click',()=>{
+        const dialog=$('#flow-list-remove');$('input[name=id]',dialog).value=button.dataset.flowRemoveId;$('input[name=version]',dialog).value=button.dataset.flowRemoveVersion;
+        $('input[name=confirm]',dialog).value='';$('[data-flow-remove-title]',dialog).textContent=button.dataset.flowRemoveName;
+    }));
+    $$('.flow-overview-filters select').forEach(control=>control.addEventListener('change',()=>control.form.requestSubmit()));
     const search = $('[data-flow-template-search]'), catalogControls = $('[data-flow-catalog-controls]');
     const catalogFields = {q:search, topic:$('[data-flow-template-topic]'), channel:$('[data-flow-template-channel]'), integration:$('[data-flow-template-integration]'), sort:$('[data-flow-template-sort]')};
     const filterTemplates = () => {
@@ -25,6 +65,7 @@
         $$('[data-flow-template] h3 a').forEach(link=>{const target=new URL(link.href);Object.keys(catalogFields).forEach(key=>{if(url.searchParams.has(key))target.searchParams.set(key,url.searchParams.get(key));else target.searchParams.delete(key);});link.href=target.href;});
     };
     if(catalogControls){
+        setupState.library=true;saveSetup();
         const initial=new URLSearchParams(location.search);
         Object.entries(catalogFields).forEach(([key,control])=>{if(initial.has(key)){control.value=initial.get(key);if(control.tagName==='SELECT'&&!control.value)control.selectedIndex=0;}});
         search.addEventListener('input',filterTemplates);

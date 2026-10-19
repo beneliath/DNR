@@ -2,7 +2,6 @@
 declare(strict_types=1);
 require_once __DIR__.'/../src/audience_store.php';
 require_once __DIR__.'/../src/audience_flow_presentation.php';
-require_once __DIR__.'/../src/audience_transactional.php';
 $checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
 $reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArgumentException){$expect(true,'Invalid flow rejected');return;}throw new RuntimeException('Expected a flow validation error.');};
 foreach(audienceFlowTemplates()as$key=>$template){$d=audienceFlowDocument(audienceFlowDefault($key));$expect($d['trigger']['type']===$template['trigger']&&count($d['nodes'])===count($template['steps']),'Every flow starter has a valid native graph');}
@@ -22,10 +21,14 @@ $expect(audienceFlowEventMatches($cleanup['additional_triggers'][0],['type'=>'st
 $expect(!audienceFlowEventMatches($cleanup['trigger'],['type'=>'status','details'=>['from'=>'unsubscribed','to'=>'unsubscribed']]),'A no-op status does not repeat cleanup');
 $expect(!audienceFlowEventMatches($cleanup['trigger'],['type'=>'status','details'=>['from'=>'pending','to'=>'subscribed']]),'Cleanup does not archive newly confirmed subscribers');
 $reject(fn()=>audienceFlowDocument(['trigger'=>['type'=>'status','value'=>'invented'],'nodes'=>[]]));
-$expect(audienceTransactionalFilters(['days'=>'7','source'=>'confirmation','state'=>'uncertain','page'=>-4])===['source'=>'confirmation','state'=>'uncertain','days'=>7,'page'=>1],'Transactional filters use bounded native source and state values');
-$reject(fn()=>audienceTransactionalFilters(['source'=>'email_outbox;DROP TABLE users']));
-$reject(fn()=>audienceTransactionalFilters(['state'=>'sent']));
-$reject(fn()=>audienceTransactionalFilters(['days'=>'999']));
+$expect(audienceFlowListOptions(['q'=>'Welcome','state'=>'paused','sort'=>'oldest'])===['q'=>'Welcome','state'=>'paused','sort'=>'oldest'],'Overview filters preserve native search, state and sort');
+$reject(fn()=>audienceFlowListOptions(['sort'=>'created_at;DROP TABLE users']));
+$reject(fn()=>audienceFlowListOptions(['state'=>'sending']));
+$tasks=audienceFlowSetupTasks(['welcome'=>true,'form'=>true,'organize'=>true,'delivery'=>false],false);
+$expect(count($tasks)===5&&count(array_filter($tasks,static fn($t)=>$t['complete']))===3,'Five setup tasks derive progress from actual account facts');
+$expect(!$tasks['delivery']['complete']&&$tasks['delivery']['target']===null,'A non-admin gets sending guidance without an admin-only setup link');
+$expect(!$tasks['library']['complete'],'Library discovery is not falsely marked complete by the server');
+$expect(!array_filter(audienceSearchCatalog(true,true)['pages'],static fn($page)=>str_contains($page['href'],'transactional')),'Removed Transactional feature is absent from workspace search');
 $binding=['region'=>'us-east-2','from_email'=>'sender@example.test','configuration_set'=>'native','topic_arn'=>'arn:fixture','aws_account_id'=>'123456789012'];
 $expect(audienceSesBinding($binding)===audienceSesBinding(array_reverse($binding,true)),'JSON key ordering cannot change an SES binding');
 $changedBinding=$binding;$changedBinding['region']='us-east-1';$expect(audienceSesBinding($binding)!==audienceSesBinding($changedBinding),'Binding equality still rejects changed SES scope');
