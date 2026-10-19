@@ -20,6 +20,25 @@ $blocked=false;try{$fs->saveFlow('Illegal live edit',$d,(int)$basic['id'],(int)$
 $blocked=false;try{$fs->saveFlow('Stale flow',$d,(int)$basic['id'],1);}catch(InvalidArgumentException){$blocked=true;}audienceHttpExpect($blocked,'Stale map versions cannot overwrite current settings');
 foreach(['automations','flow-templates','flow','flow-report']as$v){$page=$editor('audience.php?view='.$v.($v==='flow'||$v==='flow-report'?'&id='.$basic['id']:''));audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Flow HTTP surface renders '.$v);}
 $nav=$editor('audience.php?view=automations');audienceHttpExpect(str_contains($nav['body'],'href="audience.php?view=automations"')&&!str_contains($nav['body'],'aria-disabled="true" tabindex="0" data-audience-tooltip="Map out'),'Automations is an available sidebar destination');
+$catalog=$editor('audience.php?view=flow-templates');audienceHttpExpect(str_contains($catalog['body'],'data-flow-template-integration')&&str_contains($catalog['body'],'data-flow-template-sort')&&str_contains($catalog['body'],'Re-engage connections'),'Catalog includes native integrations, sorting and categorized templates');
+foreach(['split','followup','cleanup']as$preview){$page=$editor('audience.php?view=flow-templates&preview='.$preview);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'flow-preview-connector')&&str_contains($page['body'],'Use this flow')&&!preg_match('/(?:Warning|Fatal error):/',$page['body']),'Real graph preview renders '.$preview);}
+audienceHttpExpect(!str_contains($editor('audience.php?view=flow&id='.$basic['id'])['body'],'data-flow-add="split"'),'Step palette does not offer percentage testing');
+// Transactional activity uses only columns granted to the web application and
+// never modifies a queue or the live-sending policy.
+$beforePolicy=$fs->one('SELECT bulk_approved,version FROM marketing_delivery_policy WHERE audience_id=1');
+$transactional=$admin('audience.php?view=transactional');audienceHttpExpect($transactional['status']===200&&str_contains($transactional['body'],'Recent transactional activity')&&!preg_match('/(?:Warning|Fatal error):/',$transactional['body']),'Admin can inspect actual operational queues with existing web grants');
+audienceHttpExpect(str_contains($transactional['body'],'Transport accepted')&&str_contains($transactional['body'],'Acceptance uncertain'),'Transactional UI distinguishes transport acceptance and uncertain delivery');
+audienceHttpExpect($editor('audience.php?view=transactional')['status']===403&&$reviewer('audience.php?view=transactional')['status']===403,'Account-wide system activity is administrator-only');
+audienceHttpExpect($admin('audience.php?view=transactional',['csrf_token'=>$csrf,'action'=>'retry'])['status']===405,'Transactional view rejects mutations');
+audienceHttpExpect($admin('audience.php?view=transactional&source=unknown')['status']===400,'Unknown queue sources are rejected');
+audienceHttpExpect($beforePolicy===$fs->one('SELECT bulk_approved,version FROM marketing_delivery_policy WHERE audience_id=1'),'Reading transactional activity preserves live-sending policy');
+$cleanup=$newFlow(audienceFlowDefault('cleanup'),'Status cleanup fixture');$cleanupPeople=[];$serviceBefore=(int)$fs->one('SELECT COUNT(*) n FROM marketing_service_mail')['n'];
+foreach(['unsubscribed','cleaned']as$status){$person=$fs->savePerson(['email'=>'cleanup-'.$status.'@example.test','email_status'=>'non-subscribed']);$cleanupPeople[]=$person;$fs->write('UPDATE marketing_contacts SET email_status=? WHERE id=?',[$status,$person]);$fs->event($person,'status',['from'=>'subscribed','to'=>$status]);}
+$reconfirmed=$fs->savePerson(['email'=>'cleanup-reconfirmed@example.test','email_status'=>'subscribed','consent_note'=>'Affirmative fixture signup']);$fs->event($reconfirmed,'status',['from'=>'subscribed','to'=>'unsubscribed']);$fs->event($reconfirmed,'subscription-confirmed',['from'=>'unsubscribed','to'=>'subscribed']);
+processAudienceFlows($conn,20,$clock+1);
+foreach($cleanupPeople as$person){$p=$fs->person($person);audienceHttpExpect((bool)$p['is_archived']&&in_array($p['email_status'],['unsubscribed','cleaned'],true),'Both cleanup triggers archive without changing consent');}
+audienceHttpExpect(!$fs->person($reconfirmed)['is_archived'],'Cleanup does not archive a connection who reconfirmed before the old event was processed');
+audienceHttpExpect($serviceBefore===(int)$fs->one('SELECT COUNT(*) n FROM marketing_service_mail')['n'],'Cleanup creates no email work');$stop((int)$cleanup['id']);
 $reviewFlows=$reviewer('audience.php?view=automations');audienceHttpExpect($reviewFlows['status']===200&&!str_contains($reviewFlows['body'],'data-open-dialog="flow-create"'),'Reviewer can read flows without editing controls');
 audienceHttpExpect($reviewer('audience.php?view=automations',['csrf_token'=>$reviewToken,'action'=>'flow_create','name'=>'Forbidden'])['status']===403,'Reviewer cannot create a flow');
 audienceHttpExpect($editor('audience.php?view=automations',['csrf_token'=>'invalid','action'=>'flow_create','name'=>'CSRF'])['status']===400,'Flow mutation requires CSRF');
@@ -46,9 +65,10 @@ audienceHttpExpect($fs->person($flowPerson)['first_name']==='Matched','A new tag
 $repeat=$d;$repeat['settings']['repeat']=true;$repeat['settings']['cooldown']=1;$repeat['entry']=['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'flow-person@example.test']]];$repeated=$newFlow($repeat,'Reentry rules');$enroll($repeated);processAudienceFlows($conn,20,$clock);
 audienceHttpExpect($enroll($repeated,null,$clock+60)===null,'Cooldown prevents rapid reentry');audienceHttpExpect($enroll($repeated,null,$clock+86401)!==null,'Completed connections can reenter after cooldown');
 audienceHttpExpect($enroll($repeated,$otherPerson)===null,'A foreign-audience connection cannot enroll');$stop((int)$repeated['id']);
-// Conditional and deterministic percentage paths record their decisions.
-$split=$d;$split['nodes']=[['id'=>'split','type'=>'split','percent'=>50,'yes'=>'yes','no'=>'no'],['id'=>'yes','type'=>'tag','tag_id'=>$flowTag],['id'=>'no','type'=>'tag','tag_id'=>$flowOtherTag]];$split['start']='split';$splitting=$newFlow($split,'Percentage paths');$splitRun=$enroll($splitting);processAudienceFlows($conn,1,$clock);$decision=$fs->one('SELECT result_json FROM marketing_flow_steps WHERE run_id=? AND node_key=\'split\'',[$splitRun]);processAudienceFlows($conn,20,$clock+1);
-audienceHttpExpect($decision&&$fs->one('SELECT result_json FROM marketing_flow_steps WHERE run_id=? AND node_key=\'split\'',[$splitRun])['result_json']===$decision['result_json'],'Percentage assignments remain fixed across restarts');$stop((int)$splitting['id']);
+// Legacy percentage documents remain inspectable, but cannot be activated.
+$split=$d;$split['nodes']=[['id'=>'split','type'=>'split','percent'=>50,'yes'=>'yes','no'=>'no'],['id'=>'yes','type'=>'tag','tag_id'=>$flowTag],['id'=>'no','type'=>'tag','tag_id'=>$flowOtherTag]];$split['start']='split';$splitId=$fs->saveFlow('Unsupported legacy percentage',$split);$flowIds[]=$splitId;$splitBlocked=false;
+try{$fs->flowOperation($splitId,1,'activate');}catch(InvalidArgumentException){$splitBlocked=true;}
+audienceHttpExpect($splitBlocked&&$fs->flow($splitId)['state']==='draft','Percentage testing cannot be enabled through a direct request');
 $exit=$d;$exit['exit']=['match'=>'all','rules'=>[['field'=>'tags','operator'=>'any','value'=>[$flowTag]]]];$exiting=$newFlow($exit,'Exit rules');$exitRun=$enroll($exiting);processAudienceFlows($conn,20,$clock);audienceHttpExpect($fs->one('SELECT state FROM marketing_flow_runs WHERE id=?',[$exitRun])['state']==='exited','Native exit conditions are checked before any effect');$stop((int)$exiting['id']);
 // Signup events are durable and permission-aware; a no-op tag edit does not enroll.
 $eventDoc=$d;$eventDoc['trigger']=['type'=>'signup'];$eventDoc['entry']=['match'=>'all','rules'=>[['field'=>'email','operator'=>'starts','value'=>'flow-signup']]];$signing=$newFlow($eventDoc,'Signup trigger');
@@ -74,6 +94,15 @@ $mailState=$fs->one('SELECT state,error_message,node_key,due_at FROM marketing_f
 audienceHttpExpect($fs->one('SELECT state FROM marketing_flow_runs WHERE id=?',[$mailRun])['state']==='completed','Accepted email receipt advances the flow');
 audienceHttpExpect($fs->campaign($flowEmail)['status']===$originalCampaign['status'],'Flow sending does not change the source campaign lifecycle');
 $beforeMail=count($messages);processAudienceCampaignDelivery($conn,30,$transport);processAudienceFlows($conn,20,$clock+62);audienceHttpExpect(count($messages)===$beforeMail,'Completed email action cannot send again');$stop((int)$emailFlow['id']);
+// A click can arrive between email acceptance and entering the next wait.
+$quick=$mail;$quick['nodes'][0]['next']='wait';$quick['nodes'][]=['id'=>'wait','type'=>'wait','trigger'=>['type'=>'click','id'=>$flowEmail],'timeout'=>259200,'yes'=>'','no'=>''];$quickFlow=$newFlow($quick,'Fast click after welcome');$quickRun=$enroll($quickFlow);processAudienceFlows($conn,20,$clock);
+$quickRecipient=$fs->one('SELECT r.id FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id WHERE d.flow_run_id=?',[$quickRun]);
+// Simulated provider acceptance and click; no transport is invoked for this fixture.
+$fs->write("UPDATE marketing_campaign_recipients SET state='accepted' WHERE id=?",[$quickRecipient['id']]);
+$fs->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (1,?,'click',?,'fixture',UTC_TIMESTAMP(),'{\"bot\":false}')",[$quickRecipient['id'],hash('sha256','fast-click:'.$quickRun)]);
+processAudienceFlows($conn,20,$clock+31);processAudienceFlows($conn,20,$clock+62);
+audienceHttpExpect($fs->one('SELECT state FROM marketing_flow_runs WHERE id=?',[$quickRun])['state']==='completed','A fast click is retained before the email-to-wait transition');
+$quickResult=audienceJson($fs->one("SELECT result_json FROM marketing_flow_steps WHERE run_id=? AND node_key='wait'",[$quickRun])['result_json']);audienceHttpExpect(($quickResult['path']??'')==='yes','Fast engagement takes the clicked path, never the timeout reminder');$stop((int)$quickFlow['id']);
 $converted=$editor('audience.php?view=automations',['csrf_token'=>$token,'action'=>'flow_classic','name'=>'Classic fixture','classic'=>json_encode(['trigger'=>['type'=>'signup'],'emails'=>[['campaign_id'=>$flowEmail,'delay_seconds'=>60]]])]);audienceHttpExpect($converted['status']===302,'Supported classic workflow converts to a draft');
 // More trigger sources, branch decisions and recipient suppression.
 $onlyFlowPerson=['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'flow-person@example.test']]];

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_flow_runtime.php';
+require_once __DIR__.'/audience_flow_presentation.php';
 
 function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string $view,int $id,string $message,string $error,bool $canManage,bool $canDelete,string $displayName,int $actor): void
 {

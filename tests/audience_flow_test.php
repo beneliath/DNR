@@ -1,9 +1,31 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../src/audience_store.php';
+require_once __DIR__.'/../src/audience_flow_presentation.php';
+require_once __DIR__.'/../src/audience_transactional.php';
 $checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
 $reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArgumentException){$expect(true,'Invalid flow rejected');return;}throw new RuntimeException('Expected a flow validation error.');};
 foreach(audienceFlowTemplates()as$key=>$template){$d=audienceFlowDocument(audienceFlowDefault($key));$expect($d['trigger']['type']===$template['trigger']&&count($d['nodes'])===count($template['steps']),'Every flow starter has a valid native graph');}
+foreach(audienceFlowTemplates()as$key=>$template){
+    $graph=audienceFlowPreviewGraph(audienceFlowDefault($key));$cards=array_column($graph['cards'],null,'id');
+    foreach($graph['edges']as$edge)$expect(isset($cards[$edge['from']],$cards[$edge['to']])&&$cards[$edge['to']]['y']>$cards[$edge['from']]['y'],'Every preview edge connects real nodes in execution order');
+    $expect(!in_array('split',$template['steps'],true),'Catalog does not offer percentage testing');
+}
+$conditional=audienceFlowDocument(audienceFlowDefault('split'));
+$expect($conditional['nodes'][0]['yes']==='step2'&&$conditional['nodes'][0]['no']==='step3'&&$conditional['nodes'][1]['next']==='','Conditional template has separate email paths that cannot send both emails');
+$followup=audienceFlowDocument(audienceFlowDefault('followup'));
+$expect($followup['nodes'][1]['yes']===''&&$followup['nodes'][1]['no']==='step3'&&$followup['nodes'][1]['timeout']===259200,'Engaged subscribers exit and only the three-day timeout reaches the reminder');
+$cleanup=audienceFlowDocument(audienceFlowDefault('cleanup'));$cleanupGraph=audienceFlowPreviewGraph($cleanup);
+$expect(count(array_filter($cleanupGraph['cards'],static fn($n)=>$n['kind']==='trigger'))===2,'Cleanup preview preserves both starting triggers');
+$expect(audienceFlowEventMatches($cleanup['trigger'],['type'=>'status','details'=>['from'=>'subscribed','to'=>'unsubscribed']]),'Cleanup accepts a real unsubscribe');
+$expect(audienceFlowEventMatches($cleanup['additional_triggers'][0],['type'=>'status','details'=>['from'=>'subscribed','to'=>'cleaned']]),'Cleanup accepts a provider clean');
+$expect(!audienceFlowEventMatches($cleanup['trigger'],['type'=>'status','details'=>['from'=>'unsubscribed','to'=>'unsubscribed']]),'A no-op status does not repeat cleanup');
+$expect(!audienceFlowEventMatches($cleanup['trigger'],['type'=>'status','details'=>['from'=>'pending','to'=>'subscribed']]),'Cleanup does not archive newly confirmed subscribers');
+$reject(fn()=>audienceFlowDocument(['trigger'=>['type'=>'status','value'=>'invented'],'nodes'=>[]]));
+$expect(audienceTransactionalFilters(['days'=>'7','source'=>'confirmation','state'=>'uncertain','page'=>-4])===['source'=>'confirmation','state'=>'uncertain','days'=>7,'page'=>1],'Transactional filters use bounded native source and state values');
+$reject(fn()=>audienceTransactionalFilters(['source'=>'email_outbox;DROP TABLE users']));
+$reject(fn()=>audienceTransactionalFilters(['state'=>'sent']));
+$reject(fn()=>audienceTransactionalFilters(['days'=>'999']));
 $binding=['region'=>'us-east-2','from_email'=>'sender@example.test','configuration_set'=>'native','topic_arn'=>'arn:fixture','aws_account_id'=>'123456789012'];
 $expect(audienceSesBinding($binding)===audienceSesBinding(array_reverse($binding,true)),'JSON key ordering cannot change an SES binding');
 $changedBinding=$binding;$changedBinding['region']='us-east-1';$expect(audienceSesBinding($binding)!==audienceSesBinding($changedBinding),'Binding equality still rejects changed SES scope');

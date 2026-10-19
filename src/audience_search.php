@@ -30,6 +30,7 @@ function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): a
         $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     }
     foreach(['automations'=>'Automations','flow-templates'=>'Flow templates','forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
+    if($canAccessDelivery)$pages[]=['title'=>'Transactional','description'=>'MOED system email queues and transport activity.','href'=>'audience.php?view=transactional','icon'=>'page'];
     if($canManage) {
         foreach(['inbox'=>'Inbox','import'=>'Import connections','jobs'=>'Import history'] as $view=>$title) {
             $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];

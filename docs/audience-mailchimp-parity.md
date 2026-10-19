@@ -2080,3 +2080,15 @@ Flows support three starting triggers and 200 nodes. Existing one-trigger docume
 Qualification: **928 Audience HTTP checks** (129 analytics, 38 AI, 16 defaults/notifications); **39 flow, 32 analytics, 33 AI, 40 SES and 22 dispatch pure checks; 320 JavaScript tests**. Worker credential/configuration separation, alert-worker bounded privileges, signed inbound gateway, migration and syntax checks pass without external mail. The notification migration is applied locally; no s1 deployment or sending-gate change is included. Desktop/mobile/light/dark and keyboard browser checks cover the changed settings and populated local sample flow. The inactive localhost Shalom draft “Sample · Multiple entry points” contains no email step.
 
 The [review closeout](message-monkey-review-2026-10-18.md#remaining-code-findings--local-closeout-october-18) records the remaining operational and vendor-specific differences. Real mailbox/client/site verification is separate from local functional acceptance; no new external self-test email has been sent.
+
+## Automation catalog and Transactional refinement — October 19, 2026
+
+The current mapping and qualification scope is recorded in
+[the automation/transactional mapping](message-monkey-automation-mapping-2026-10-19.md).
+This local pass replaces the simplified catalog/linear previews with 17 native
+starters, requirements, integration/topic/channel filters, real connected graph
+previews and shared vector artwork. It adds an admin-only, metadata-only view of
+MOED's existing transactional queues. It does not create a developer API/SMTP
+service. Percentage testing is excluded, and legacy percentage steps cannot be
+activated. Existing published runtime snapshots remain readable. No Mailchimp
+configuration was changed, and live sending remains gated.

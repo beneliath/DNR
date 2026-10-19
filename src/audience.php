@@ -5,8 +5,8 @@ require_once __DIR__.'/two_factor_helpers.php';
 require_once __DIR__.'/audience_store.php';
 $db=applicationDatabaseConnection();startSecureSession();requireLogin();
 $canManage=hasRole(['admin','editor']);$canExport=$canManage;$canDelete=hasRole(['admin']);
-$view=\Dnr\Http\RequestInput::enum($_GET,'view',['home','analytics','assistant','inbox','contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report'],'contacts');
-if(!$canDelete&&($view==='delivery'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'delivery_')))){http_response_code(403);exit('Email delivery requires an administrator.');}
+$view=\Dnr\Http\RequestInput::enum($_GET,'view',['home','analytics','assistant','inbox','contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report','transactional'],'contacts');
+if(!$canDelete&&(in_array($view,['delivery','transactional'],true)||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'delivery_')))){http_response_code(403);exit('Email delivery requires an administrator.');}
 $h=static fn($value):string=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 $actor=(int)$_SESSION['user_id'];$displayName=mb_substr((string)($_SESSION['profile_display_name']??$_SESSION['username']??'Account'),0,100);
 // Each MOED account has one canonical audience. Older bookmarked selectors resolve here.
@@ -30,6 +30,7 @@ $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
 $redirect=$url(['view'=>$view]);
+if($view==='transactional'){require __DIR__.'/audience_transactional.php';renderAudienceTransactional($store,$audience,$canManage,$canDelete,$displayName,$actor);exit;}
 if($view==='assistant'){require __DIR__.'/audience_ai_controller.php';renderAudienceAi($store,$audience,$canManage,$canDelete,$displayName,$actor);exit;}
 if(in_array($view,['home','analytics'],true)){require __DIR__.'/audience_analytics_controller.php';renderAudienceAnalytics($store,$audience,$view,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
 if($view==='inbox'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'inbox_'))){require __DIR__.'/audience_inbox_controller.php';renderAudienceInbox($store,$audience,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
