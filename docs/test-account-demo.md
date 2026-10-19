@@ -145,10 +145,17 @@ deliveries/queues referring to discarded tester data are cleared, never replayed
 It verifies data/assets and the demo policy and makes a verified final snapshot
 before resuming the saved services without recreating containers.
 
-The job shares the deployment lock and has its own overlap lock. A busy deployment,
-changed schema or member encryption keys, failed validation/backup, or less than
-2 GiB free disk causes it to fail safely. Schema/key changes require qualification
-of the restore operator before daily refresh can resume; it never downgrades the
+The job shares the deployment lock and has its own overlap lock. It upgrades the
+disposable baseline copy using Test Account's frozen qualified migration files,
+then requires the migration ledger and column definitions to match the live schema.
+The live schema/ledger and immutable baseline remain unchanged. Cleanup includes
+the per-message `marketing_inbox_inbound_parts` and `marketing_inbox_route_receipts`
+records for replaced inbound mail; unrelated marketing configuration and secrets
+are preserved. Unknown dependencies into restored or cleared tables still block
+refresh for review. Every schema change must update/requalify this compatibility
+path before the next scheduled run. A busy deployment, incompatible migration or
+member encryption keys, failed validation/backup, or less than 2 GiB free disk
+causes it to fail safely; it never downgrades the
 application. If replacement has started and a later check fails, it leaves Test
 Account paused for operator recovery and retains its before-change backup.
 
