@@ -17,6 +17,7 @@ function fixture(account, preview) {
     return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
         + '<link rel="stylesheet" href="assets/css/style.min.css"><link rel="stylesheet" href="assets/css/modern.min.css">'
         + '<link rel="stylesheet" href="assets/css/pages/reimbursements.min.css">'
+        + '<link rel="stylesheet" href="assets/css/pages/native-selects.min.css">'
         + '</head><body' + (preview ? ' class="role-preview-active"' : '') + '>'
         + header.replace('<header class="app-shell-header">', '<header class="app-shell-header">' + banners)
         + '<main class="container reimbursement-page"><h1>Mobile shell regression</h1>'

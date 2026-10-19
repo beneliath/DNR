@@ -88,7 +88,19 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
             elseif((int)$result['until']>$now)$waiting=true;
             break;
         case 'wait':
-            if(!$step){$result=['cursor'=>$store->flowCursor(),'until'=>$now+$node['timeout']];$waiting=true;}
+            if(!$step){
+                $cursor=$store->flowCursor();
+                // A fast recipient may click before the worker advances from
+                // the email receipt into its wait step. Retain that activity
+                // for an immediately following wait on the same email.
+                if(in_array($node['trigger']['type'],['open','click'],true))foreach($d['nodes']as$previous){
+                    if($previous['type']!=='email'||$previous['next']!==$node['id']||((int)($node['trigger']['id']??0)!==0&&(int)$node['trigger']['id']!==$previous['campaign_id']))continue;
+                    $prior=$store->one("SELECT result_json FROM marketing_flow_steps WHERE audience_id=? AND run_id=? AND node_key=? AND state='completed'",[$store->audienceId,$run['id'],$previous['id']]);
+                    $priorResult=$prior?audienceJson($prior['result_json']):[];
+                    if(isset($priorResult['event_cursor']))$cursor=$priorResult['event_cursor'];
+                }
+                $result=['cursor'=>$cursor,'until'=>$now+$node['timeout']];$waiting=true;
+            }
             else{
                 $found=false;$cursor=$result['cursor'];foreach(audienceFlowEvents($store,$cursor,100,(int)$p['id'])as$event){$cursor[$event['source']]=$event['id'];if(audienceFlowEventMatches($node['trigger'],$event))$found=true;}
                 $result['cursor']=$cursor;if($found){$next=$node['yes'];$result['path']='yes';}elseif($now>=(int)$result['until']){$next=$node['no'];$result['path']='no';}else $waiting=true;
@@ -113,7 +125,7 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
         case 'email':
             $optout=$store->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=? UNION ALL SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$store->audienceId,audienceDispatchEmailHash($p['email']),$store->audienceId,audienceDispatchEmailHash($p['email'])]);
             if($p['email_status']!=='subscribed'||$optout){$state='skipped';$result=['reason'=>'No longer subscribed'];break;}
-            if(!$step){$due=audienceFlowWindow($d['settings'],$person['timezone'],$now);if($due>$now){$store->write('UPDATE marketing_flow_runs SET due_at=? WHERE id=?',[gmdate('Y-m-d H:i:s',$due),$run['id']]);return;}$result=['delivery_id'=>audienceFlowQueueEmail($store,$run,$node,$d,$person,$now)];$waiting=true;}
+            if(!$step){$due=audienceFlowWindow($d['settings'],$person['timezone'],$now);if($due>$now){$store->write('UPDATE marketing_flow_runs SET due_at=? WHERE id=?',[gmdate('Y-m-d H:i:s',$due),$run['id']]);return;}$result=['delivery_id'=>audienceFlowQueueEmail($store,$run,$node,$d,$person,$now),'event_cursor'=>$store->flowCursor()];$waiting=true;}
             else{
                 $receipt=$store->one('SELECT state,error_message FROM marketing_campaign_recipients WHERE audience_id=? AND delivery_id=?',[$store->audienceId,$result['delivery_id']]);
                 if(!$receipt)throw new RuntimeException('The email receipt is unavailable.');

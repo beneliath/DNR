@@ -2,16 +2,89 @@
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
-    const search = $('[data-flow-template-search]');
+    const setupKeys=['welcome','delivery','form','organize','library'];
+    const setupStorageKey=document.body.dataset.audienceKey?`moed:message-monkey:automation-setup:${document.body.dataset.audienceKey}`:null;
+    let setupState={dismissed:[],library:false};
+    try{const stored=JSON.parse(setupStorageKey?localStorage.getItem(setupStorageKey):'null');if(stored&&typeof stored==='object')setupState={dismissed:Array.isArray(stored.dismissed)?stored.dismissed.filter(key=>setupKeys.includes(key)):[],library:stored.library===true};}catch(_){/* Checklist storage is optional. */}
+    const saveSetup=()=>{try{if(setupStorageKey)localStorage.setItem(setupStorageKey,JSON.stringify(setupState));}catch(_){/* No application action depends on this preference. */}};
+    const onboarding=$('[data-flow-onboarding]');
+    if(onboarding){
+        let showAll=false;
+        const tasks=$$('[data-flow-task]',onboarding);
+        const updateSetup=(focus=false)=>{
+            let completed=0,dismissed=0;
+            tasks.forEach(task=>{
+                const done=task.dataset.flowTaskComplete==='1'||(task.dataset.flowTask==='library'&&setupState.library), skipped=!done&&setupState.dismissed.includes(task.dataset.flowTask);
+                completed+=Number(done);dismissed+=Number(skipped);task.dataset.resolved=String(done||skipped);
+                task.classList.toggle('completed',done);task.classList.toggle('dismissed',skipped);
+                $('[data-flow-task-state]',task).textContent=done?'Completed':skipped?'Dismissed':'To do';
+                $('[data-flow-task-dismiss]',task).hidden=done||skipped;$('[data-flow-task-restore]',task).hidden=!skipped;
+            });
+            const next=tasks.find(task=>task.dataset.resolved==='false')||tasks[0];
+            tasks.forEach(task=>{task.hidden=!showAll&&task!==next;if(!showAll)task.open=task===next&&task.dataset.resolved==='false';});
+            $('[data-flow-setup-status]',onboarding).textContent=`${completed+dismissed}/${tasks.length} tasks addressed`;
+            $('[data-flow-setup-detail]',onboarding).textContent=`${completed} completed · ${dismissed} dismissed`;
+            $('[data-flow-setup-progress]',onboarding).value=completed+dismissed;
+            $('[data-flow-tasks-restore]',onboarding).hidden=dismissed===0;
+            const toggle=$('[data-flow-tasks-toggle]',onboarding);toggle.textContent=showAll?'⌃ Show fewer':'⌄ Show all';toggle.setAttribute('aria-expanded',String(showAll));
+            if(focus)$('summary',next)?.focus();
+        };
+        tasks.forEach(task=>{
+            $('[data-flow-task-dismiss]',task).addEventListener('click',()=>{setupState.dismissed=Array.from(new Set([...setupState.dismissed,task.dataset.flowTask]));saveSetup();updateSetup(true);});
+            $('[data-flow-task-restore]',task).addEventListener('click',()=>{setupState.dismissed=setupState.dismissed.filter(key=>key!==task.dataset.flowTask);saveSetup();updateSetup();});
+        });
+        $('[data-flow-tasks-toggle]',onboarding).addEventListener('click',()=>{showAll=!showAll;updateSetup();});
+        $('[data-flow-tasks-restore]',onboarding).addEventListener('click',()=>{setupState.dismissed=[];saveSetup();updateSetup(true);});updateSetup();
+    }
+    $$('[data-flow-open-guide]').forEach(link=>link.addEventListener('click',()=>{const guide=$('.flow-basics');if(guide)guide.open=true;}));
+    $$('[data-flow-remove-id]').forEach(button=>button.addEventListener('click',()=>{
+        const dialog=$('#flow-list-remove');$('input[name=id]',dialog).value=button.dataset.flowRemoveId;$('input[name=version]',dialog).value=button.dataset.flowRemoveVersion;
+        $('input[name=confirm]',dialog).value='';$('[data-flow-remove-title]',dialog).textContent=button.dataset.flowRemoveName;
+    }));
+    $$('.flow-overview-filters select').forEach(control=>control.addEventListener('change',()=>control.form.requestSubmit()));
+    const search = $('[data-flow-template-search]'), catalogControls = $('[data-flow-catalog-controls]');
+    const catalogFields = {q:search, topic:$('[data-flow-template-topic]'), channel:$('[data-flow-template-channel]'), integration:$('[data-flow-template-integration]'), sort:$('[data-flow-template-sort]')};
     const filterTemplates = () => {
-        const query = search?.value.trim().toLocaleLowerCase() || '', topic = $('[data-flow-template-topic]')?.value || '', channel = $('[data-flow-template-channel]')?.value || '';
-        let count = 0;
-        $$('[data-flow-template]').forEach(card => { card.hidden = !card.dataset.flowTemplate.includes(query) || (topic && card.dataset.topic !== topic) || (channel && card.dataset.channel !== channel); if (!card.hidden) count++; });
-        if ($('[data-flow-template-empty]')) $('[data-flow-template-empty]').hidden = count > 0;
+        const query = search.value.trim().toLocaleLowerCase(), topic=catalogFields.topic.value, channel=catalogFields.channel.value, integration=catalogFields.integration.value;
+        const keys = new Set();
+        $$('[data-flow-template]').forEach(card => {
+            card.hidden = !card.dataset.flowTemplate.includes(query) || (topic && card.dataset.topic !== topic) || (channel && card.dataset.channel !== channel) || (integration && !card.dataset.integrations.split(' ').includes(integration));
+            if (!card.hidden) keys.add(card.dataset.templateKey);
+        });
+        $$('[data-flow-template-section]').forEach(section => {
+            section.hidden = !$$('[data-flow-template]',section).some(card => !card.hidden);
+            const grid=$('.flow-template-grid',section);
+            $$('[data-flow-template]',grid).sort((a,b) => (catalogFields.sort.value==='recommended' ? Number(b.dataset.recommended)-Number(a.dataset.recommended) : 0) || a.dataset.templateName.localeCompare(b.dataset.templateName)).forEach(card => grid.append(card));
+        });
+        $('[data-flow-template-empty]').hidden=keys.size>0;
+        $('[data-flow-template-count]').textContent=`${keys.size} flow template${keys.size===1?'':'s'}`;
+        $$('[data-flow-template-clear]',catalogControls).forEach(control=>{control.hidden=!(query||topic||channel||integration);});
+        const url=new URL(location.href);
+        Object.entries(catalogFields).forEach(([key,control])=>{if(control.value && !(key==='sort'&&control.value==='recommended'))url.searchParams.set(key,control.value);else url.searchParams.delete(key);});
+        history.replaceState(null,'',url);
+        $$('[data-flow-template] h3 a').forEach(link=>{const target=new URL(link.href);Object.keys(catalogFields).forEach(key=>{if(url.searchParams.has(key))target.searchParams.set(key,url.searchParams.get(key));else target.searchParams.delete(key);});link.href=target.href;});
     };
-    search?.addEventListener('input', filterTemplates);
-    $$('[data-flow-template-topic],[data-flow-template-channel]').forEach(control => control.addEventListener('change', filterTemplates));
-    let previewZoom=1;$$('[data-static-flow-zoom]').forEach(button=>button.addEventListener('click',()=>{previewZoom=button.dataset.staticFlowZoom==='reset'?1:Math.max(.4,Math.min(1.6,previewZoom+(button.dataset.staticFlowZoom==='in'?.1:-.1)));$('[data-flow-static-map]').style.zoom=previewZoom;}));
+    if(catalogControls){
+        setupState.library=true;saveSetup();
+        const initial=new URLSearchParams(location.search);
+        Object.entries(catalogFields).forEach(([key,control])=>{if(initial.has(key)){control.value=initial.get(key);if(control.tagName==='SELECT'&&!control.value)control.selectedIndex=0;}});
+        search.addEventListener('input',filterTemplates);
+        Object.values(catalogFields).filter(control=>control!==search).forEach(control=>control.addEventListener('change',filterTemplates));
+        $$('[data-flow-template-clear]').forEach(control=>control.addEventListener('click',()=>{Object.entries(catalogFields).forEach(([key,input])=>{input.value=key==='sort'?'recommended':'';});filterTemplates();search.focus();}));
+        filterTemplates();
+    }
+    // Keep catalog filters when returning from a preview, without retaining its identity.
+    $$('a[data-flow-catalog-back]').forEach(link=>{const url=new URL(link.href), current=new URLSearchParams(location.search);Object.keys(catalogFields).forEach(key=>{if(current.has(key))url.searchParams.set(key,current.get(key));});link.href=url.href;});
+    $('[data-flow-dismiss-hero]')?.addEventListener('click',()=>{$('[data-flow-catalog-hero]').hidden=true;search.focus();});
+    let previewZoom=1;
+    const previewMap=$('[data-flow-static-map]'), previewScroll=$('.flow-preview-map-scroll');
+    const centerPreview=()=>{if(previewScroll)previewScroll.scrollTo({top:0,left:Math.max(0,(previewMap.getBoundingClientRect().width-previewScroll.clientWidth)/2)});};
+    $$('[data-static-flow-zoom]').forEach(button=>button.addEventListener('click',()=>{
+        previewZoom=button.dataset.staticFlowZoom==='reset'?1:Math.max(.4,Math.min(1.6,Math.round((previewZoom+(button.dataset.staticFlowZoom==='in'?.1:-.1))*10)/10));
+        previewMap.style.zoom=previewZoom;$('[data-flow-preview-zoom]').textContent=`${Math.round(previewZoom*100)}%`;
+        if(button.dataset.staticFlowZoom==='reset')centerPreview();
+    }));
+    centerPreview();
     $('[data-flow-person-find]')?.addEventListener('click', async event => {
         const trigger=event.currentTarget, query=$('[data-flow-person-search]').value.trim(), select=$('[data-flow-person-choice]'), status=$('[data-flow-person-status]');
         if(!query){status.textContent='Enter a name or email address';return;}trigger.disabled=true;status.textContent='Searching…';select.replaceChildren(new Option('Choose a connection',''));
@@ -34,6 +107,11 @@
         return element;
     };
     const button = (text, action, attrs = {}) => el('button', {type:'button', onclick:action, ...attrs}, text);
+    const icon = kind => {
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'), path=document.createElementNS('http://www.w3.org/2000/svg','path');
+        svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.classList.add('flow-symbol');
+        path.setAttribute('d',config.iconPaths[kind] || config.iconPaths.trigger);svg.append(path);return svg;
+    };
     const field = (parent, label, control) => { const wrap = el('label', {class:'flow-field'}); wrap.append(el('span', {}, label), control); parent.append(wrap); return control; };
     const options = (choices, value, change, multiple = false) => {
         const select = el('select', {multiple, onchange:() => change(multiple ? Array.from(select.selectedOptions, o => o.value) : select.value)});
@@ -77,7 +155,7 @@
     const tagChoices = () => Object.fromEntries([['0','Choose a tag'], ...config.tags.map(t => [t.id,t.name])]);
     const groupChoices = () => Object.fromEntries([['0','Choose a group'], ...config.groups.flatMap(g => g.options.map(o => [o.id,`${g.name}: ${o.name}`]))]);
     function triggerFields(parent, trigger, wait = false) {
-        field(parent, 'Trigger', options(wait?Object.fromEntries(Object.entries(config.triggers).filter(([key])=>!['date','birthday','anniversary','manual'].includes(key))):config.triggers, trigger.type, value => { edit(trigger,'type',value); renderInspector(); renderSettings(); }));
+        field(parent, 'Trigger', options(wait?Object.fromEntries(Object.entries(config.triggers).filter(([key])=>!['date','birthday','anniversary','manual','status'].includes(key))):config.triggers, trigger.type, value => { edit(trigger,'type',value); renderInspector(); renderSettings(); }));
         let choices;
         if (['tag','untag'].includes(trigger.type)) choices = tagChoices();
         if (['group','ungroup'].includes(trigger.type)) choices = groupChoices();
@@ -85,6 +163,7 @@
         if (trigger.type === 'survey') choices = {'0':'Any survey', ...Object.fromEntries(config.surveys.map(s => [s.id,s.name]))};
         if (trigger.type === 'flow') choices = {'0':'Choose a flow', ...Object.fromEntries(config.flows.filter(f => f.id !== config.id).map(f => [f.id,f.name]))};
         if (choices) field(parent, 'Choose', options(choices,trigger.id || 0,value => edit(trigger,'id',Number(value))));
+        if (trigger.type === 'status') field(parent,'New email status',options({'':'Any email status',subscribed:'Subscribed',unsubscribed:'Unsubscribed','non-subscribed':'Non-subscribed',cleaned:'Cleaned',pending:'Pending confirmation'},trigger.value || '',value=>edit(trigger,'value',value)));
         if (['date','birthday','profile'].includes(trigger.type)) {
             const available = config.fields.filter(f => trigger.type === 'profile' || ['date','birthday'].includes(f.field_type));
             const fields = trigger.type === 'profile' ? {'':'Any profile change',first_name:'First name',last_name:'Last name',language:'Language',timezone:'Time zone'} : {'':'Choose an audience field'};
@@ -161,7 +240,7 @@
         if (node.type === 'delay') field(form,'Delay in minutes',input('number',(node.seconds || 0) / 60,value => edit(node,'seconds',Math.round(value * 60)),{min:0,max:527040}));
         if (node.type === 'until') field(form,'Wait until local time',input('time',node.time || '09:00',value => edit(node,'time',value)));
         if (node.type === 'wait') { if (!node.trigger) node.trigger = {type:'click',id:0}; triggerFields(form,node.trigger,true); field(form,'Timeout in minutes',input('number',(node.timeout || 86400) / 60,value => edit(node,'timeout',Math.round(value * 60)),{min:1,max:527040})); }
-        if (node.type === 'split') field(form,'Percentage on the Yes path',input('number',node.percent || 50,value => edit(node,'percent',value),{min:1,max:99}));
+        if (node.type === 'split') form.append(el('p',{class:'audience-help'},'This legacy percentage step cannot be activated. Replace it with an If/Else condition.'));
         if (node.type === 'condition') ruleGroup(form,node.rules);
         if (['tag','group'].includes(node.type)) { field(form,'Action',options({add:'Add',remove:'Remove'},node.remove?'remove':'add',value => edit(node,'remove',value==='remove'))); field(form,node.type==='tag'?'Tag':'Group',options(node.type==='tag'?tagChoices():groupChoices(),node.type==='tag'?node.tag_id:node.option_id,value => edit(node,node.type==='tag'?'tag_id':'option_id',Number(value)))); }
         if (node.type === 'update') {
@@ -178,6 +257,7 @@
     const newId = () => 'step' + crypto.randomUUID().replaceAll('-','').slice(0,20);
     let insertion = null;
     function add(type, at = insertion) {
+        if(type==='split')return;
         if (!config.editable) return; if(doc.nodes.length>=200){showError('Use at most 200 steps in a flow.');return;} checkpoint(); const id=newId(), node={id,type,label:config.types[type],next:'',yes:'',no:'',field:type==='update'?'first_name':'',value:'',time:'09:00',seconds:86400,timeout:86400,percent:50,tag_id:0,option_id:0,campaign_id:0,remove:false,rules:{match:'all',rules:[]}};
         if(type==='wait')node.trigger={type:'click',id:0};
         if(!at&&selected!=='trigger'){const current=doc.nodes.find(n=>n.id===selected);if(current&&!['condition','split','wait','exit'].includes(current.type))at={id:current.id,edge:'next'};}
@@ -187,34 +267,35 @@
         doc.nodes.push(node);selected=id;insertion=null;changed();renderInspector();
     }
     function renderMap() {
-        const nodes=doc.nodes, rank=new Map(), incoming=new Map(nodes.map(n=>[n.id,0])), byId=new Map(nodes.map(n=>[n.id,n]));
+        const nodes=doc.nodes, triggers=[doc.trigger,...(doc.additional_triggers || [])], rank=new Map(), incoming=new Map(nodes.map(n=>[n.id,0])), byId=new Map(nodes.map(n=>[n.id,n]));
         const edges=n=>['condition','split','wait'].includes(n.type)?['yes','no']:n.type==='exit'?[]:['next'];
         nodes.forEach(n=>edges(n).forEach(e=>{if(n[e]&&incoming.has(n[e]))incoming.set(n[e],incoming.get(n[e])+1);}));
         const queue=nodes.filter(n=>!incoming.get(n.id)); queue.forEach(n=>rank.set(n.id,1));
         while(queue.length){const n=queue.shift();edges(n).forEach(e=>{if(!byId.has(n[e]))return;rank.set(n[e],Math.max(rank.get(n[e])||1,rank.get(n.id)+1));incoming.set(n[e],incoming.get(n[e])-1);if(incoming.get(n[e])===0)queue.push(byId.get(n[e]));});}
         const rows=new Map();nodes.forEach(n=>{const r=rank.get(n.id)||1;if(!rows.has(r))rows.set(r,[]);rows.get(r).push(n);});
-        const width=Math.max(850,...Array.from(rows.values(),r=>r.length*320+100)), height=(Math.max(0,...rank.values())+2)*170;
+        const width=Math.max(850,triggers.length*320+100,...Array.from(rows.values(),r=>r.length*320+100)), height=(Math.max(0,...rank.values())+2)*170;
         map.replaceChildren();map.style.width=`${width}px`;map.style.height=`${height}px`;map.style.zoom=zoom;
-        const positions=new Map([['trigger',{x:width/2-130,y:30}]]);
+        const positions=new Map(triggers.map((_,i)=>[`__trigger-${i}`,{x:(width-triggers.length*320)/2+i*320+30,y:30}]));
         rows.forEach((row,r)=>row.forEach((n,i)=>positions.set(n.id,{x:(width-row.length*320)/2+i*320+30,y:r*170+30})));
         const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('width',width);svg.setAttribute('height',height);svg.setAttribute('aria-hidden','true');svg.classList.add('flow-connectors');map.append(svg);
         const connect=(from,to,edge)=>{
             const a=positions.get(from),b=positions.get(to);if(!a)return;const start={x:a.x+130,y:a.y+110},end=b?{x:b.x+130,y:b.y}:{x:a.x+130+(edge==='yes'?-75:edge==='no'?75:0),y:a.y+155};
             const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',`M${start.x},${start.y} V${start.y+30} H${end.x} V${end.y}`);svg.append(path);
-            const plus=button('+',()=>{insertion={id:from,edge};selected=from;renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${from==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
-            plus.addEventListener('dragover',e=>{if(config.editable)e.preventDefault();});plus.addEventListener('drop',e=>{e.preventDefault();const type=e.dataTransfer.getData('text/plain');if(config.types[type])add(type,{id:from,edge});});map.append(plus);
+            const origin=from.startsWith('__trigger-')?'trigger':from;
+            const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${origin==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
+            plus.addEventListener('dragover',e=>{if(config.editable)e.preventDefault();});plus.addEventListener('drop',e=>{e.preventDefault();const type=e.dataTransfer.getData('text/plain');if(config.types[type]&&type!=='split')add(type,{id:origin,edge});});map.append(plus);
             if(edge==='yes'||edge==='no'){const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');label.style.left=`${end.x+20}px`;label.style.top=`${end.y-37}px`;map.append(label);}
         };
-        connect('trigger',doc.start,'next');nodes.forEach(n=>edges(n).forEach(edge=>connect(n.id,n[edge],edge)));
-        const card=(id,title,detail,type)=>{
-            const p=positions.get(id), item=button('',()=>{selected=id;renderMap();renderInspector();},{class:`flow-node${selected===id?' selected':''}${config.pausedNodes.includes(id)?' paused':''}`,'aria-pressed':selected===id});
-            item.style.left=`${p.x}px`;item.style.top=`${p.y}px`;item.title=title+' · '+detail;item.append(el('span',{class:'flow-node-type'},type),el('strong',{},title),el('span',{class:'flow-node-detail'},detail));
+        triggers.forEach((_,i)=>connect(`__trigger-${i}`,doc.start,'next'));nodes.forEach(n=>edges(n).forEach(edge=>connect(n.id,n[edge],edge)));
+        const card=(id,title,detail,type,kind)=>{
+            const identity=id.startsWith('__trigger-')?'trigger':id;
+            const p=positions.get(id), item=button('',()=>{selected=identity;renderMap();renderInspector();},{class:`flow-node kind-${kind}${selected===identity?' selected':''}${config.pausedNodes.includes(id)?' paused':''}`,'aria-pressed':selected===identity});
+            item.style.left=`${p.x}px`;item.style.top=`${p.y}px`;item.title=title+' · '+detail;item.append(icon(kind),el('span',{class:'flow-node-type'},type),el('strong',{},title),el('span',{class:'flow-node-detail'},detail));
             if(config.pausedNodes.includes(id))item.append(el('span',{class:'flow-node-paused'},'Paused'));
             const counts=config.counts.filter(c=>c.node_key===id);if(counts.length)item.append(el('small',{},counts.map(c=>`${c.n} ${c.state}`).join(' · ')));map.append(item);
         };
-        const startingTriggers=[doc.trigger,...(doc.additional_triggers || [])].map(t=>config.triggers[t.type] || 'Choose a trigger');
-        card('trigger',startingTriggers.length>1?`${startingTriggers.length} starting triggers`:startingTriggers[0],startingTriggers.length>1?startingTriggers.join(' or '):'Filter who enters your flow','Starting point');
-        nodes.forEach(n=>{const detail=n.type==='email'?config.campaigns.find(c=>Number(c.id)===Number(n.campaign_id))?.name||'Choose an email':n.type==='delay'?`${Math.round(n.seconds/60)} ${Math.round(n.seconds/60)===1?'minute':'minutes'}`:n.type==='split'?`${n.percent}% / ${100-n.percent}%`:n.type==='until'?n.time:config.types[n.type];card(n.id,n.label,detail,config.types[n.type]);});
+        triggers.forEach((t,i)=>card(`__trigger-${i}`,t.type==='status'&&t.value?`Changes to ${t.value}`:config.triggers[t.type] || 'Choose a trigger','Entry filters and repeat rules apply','Starting point','trigger'));
+        nodes.forEach(n=>{const detail=n.type==='email'?config.campaigns.find(c=>Number(c.id)===Number(n.campaign_id))?.name||'Choose an email':n.type==='delay'?`${Math.round(n.seconds/60)} ${Math.round(n.seconds/60)===1?'minute':'minutes'}`:n.type==='split'?`${n.percent}% / ${100-n.percent}%`:n.type==='until'?n.time:config.types[n.type];card(n.id,n.label,detail,config.types[n.type],n.type);});
         $('[data-flow-zoom-label]').textContent=`${Math.round(zoom*100)}%`;
     }
     $$('[data-flow-add]').forEach(b=>{b.addEventListener('click',()=>add(b.dataset.flowAdd));b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',b.dataset.flowAdd);});});

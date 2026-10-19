@@ -74,7 +74,7 @@ $isCampaignView=$view==='landing-pages'||($isCollectionView&&$collectionKind==='
 </aside>
 <main id="audience-content" class="audience-content">
     <div class="audience-page-heading">
-        <?php if($view==='flow-templates'&&!empty($flowPreview)): ?><div class="flow-preview-heading"><a href="<?= $h($url(['view'=>'flow-templates'])) ?>" aria-label="Back to flow templates">←</a><div><nav class="flow-preview-breadcrumbs" aria-label="Breadcrumbs"><a href="<?= $h($url(['view'=>'automations'])) ?>">Automation flows</a><span>/</span><a href="<?= $h($url(['view'=>'flow-templates'])) ?>">Flow templates</a></nav><h1><?= $h($pageTitle) ?></h1></div></div><?php else: ?><div><h1><?= $h($pageTitle) ?></h1></div><?php endif; ?>
+        <?php if($view==='flow-templates'&&!empty($flowPreview)): ?><div class="flow-preview-heading"><a href="<?= $h($url(['view'=>'flow-templates'])) ?>" data-flow-catalog-back aria-label="Back to flow templates">←</a><div><nav class="flow-preview-breadcrumbs" aria-label="Breadcrumbs"><a href="<?= $h($url(['view'=>'automations'])) ?>">Automation flows</a><span>/</span><a data-flow-catalog-back href="<?= $h($url(['view'=>'flow-templates'])) ?>">Flow templates</a></nav><h1><?= $h($pageTitle) ?></h1></div></div><?php else: ?><div><h1><?= $h($pageTitle) ?></h1></div><?php endif; ?>
         <div class="audience-actions">
         <?php if($isFlowView): ?>
         <?php if($canManage&&$view==='flow-templates'&&$flowPreview): ?><form method="post"><?= $csrf ?><?php audienceInputs(['action'=>'flow_create','template'=>$flowPreview,'name'=>audienceFlowTemplates()[$flowPreview]['name']]); ?><button class="primary">Use this flow</button></form>

@@ -20,6 +20,7 @@ $expect(str_contains($html,'נא למלא את השדות')&&!str_contains($html
 $expect(str_contains($html,'sealed-proof')&&str_contains($html,'action="/native-action"')&&str_contains($html,'name="permission"'),'Custom layouts retain native proof, destination and explicit permission');
 $expect(str_contains($html,'button:hover,.button:hover{filter:brightness(.9);text-decoration:none}')&&str_contains($html,'button:focus-visible,a:focus-visible{outline:3px solid #007c89')&&str_contains($html,'nonce="collectionTestNonce123456"'),'Public controls retain visible hover and keyboard focus in nonce-scoped styles');
 $expect(!str_contains($html,'<script')&&!str_contains($html,'rel="stylesheet"'),'Branded public forms and previews do not load MOED shell scripts or styles');
+$expect(str_contains($html,'appearance:none')&&str_contains($html,'select:dir(rtl)'),'Branded forms share native dropdown sizing and right-to-left arrow placement');
 $expect(!str_contains($html,' style="')&&str_contains($html,'padding:20px'),'Custom CSS is nonce authorized');
 $preview=audienceCollectionHtml($resource,[],[],'','',[],'','',null,true);
 $expect(str_contains($preview,'<button disabled>'),'Custom preview cannot submit');

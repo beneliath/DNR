@@ -43,7 +43,7 @@ trait AudienceFlows
             if($n['type']==='condition'&&empty($n['rules']['rules']))$errors[]=$n['label'].': add at least one condition.';
             if($n['type']==='tag'&&!in_array($n['tag_id'],$tagIds,true))$errors[]=$n['label'].': choose an available tag.';
             if($n['type']==='group'&&!in_array($n['option_id'],$groupIds,true))$errors[]=$n['label'].': choose an available group.';
-            if($n['type']==='split'&&($n['percent']<1||$n['percent']>99))$errors[]=$n['label'].': use a split from 1% to 99%.';
+            if($n['type']==='split')$errors[]='Percentage testing is not available in MessageMonkey. Use audience conditions to choose a path.';
             if($n['type']==='until'&&!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$n['time']))$errors[]=$n['label'].': choose a time.';
             if($n['type']==='wait'){if(!isset($n['trigger']))$errors[]=$n['label'].': choose a trigger.';else $validateTrigger($n['trigger']);if($n['timeout']<60)$errors[]=$n['label'].': choose a timeout of at least one minute.';}
             if($n['type']==='update'){

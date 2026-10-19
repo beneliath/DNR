@@ -58,6 +58,7 @@ function calendar(month) {
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
                 + '<link rel="stylesheet" href="assets/css/style.min.css"><link rel="stylesheet" href="assets/css/modern.min.css">'
                 + '<link rel="stylesheet" href="assets/css/pages/calendar_subscription.min.css">'
+                + '<link rel="stylesheet" href="assets/css/pages/native-selects.min.css">'
                 + '</head><body class="calendar-subscription-body"><main class="container calendar-subscription">'
                 + markup + '</main><script src="assets/js/calendar-scroll.min.js"></script></body></html>' });
         };

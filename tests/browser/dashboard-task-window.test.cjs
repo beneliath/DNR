@@ -54,7 +54,8 @@ function panel(count) {
             return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><head>'
                 + '<meta name="viewport" content="width=device-width,initial-scale=1">'
                 + '<link rel="stylesheet" href="assets/css/style.min.css"><link rel="stylesheet" href="assets/css/modern.min.css">'
-                + '<link rel="stylesheet" href="assets/css/pages/dashboard.min.css"></head><body class="dashboard-body">'
+                + '<link rel="stylesheet" href="assets/css/pages/dashboard.min.css">'
+                + '<link rel="stylesheet" href="assets/css/pages/native-selects.min.css"></head><body class="dashboard-body">'
                 + '<main class="container dashboard-page">' + panel(Number(url.searchParams.get('count')))
                 + '</main><script src="assets/js/task-attention.min.js"></script></body></html>' });
         });
