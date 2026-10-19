@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__.'/audience_analytics_fixtures.php';
+foreach(['audience.php?view=analytics&section=history','audience.php?view=home&origin=mailchimp','audience.php?view=analytics&origin=mailchimp&download=csv','audience.php?view=assistant&mode=analytics&origin=mailchimp']as$removedPath){$removed=$admin($removedPath);audienceHttpExpect($removed['status']===400&&!str_contains($removed['body'],'Mailchimp history'),'Retired history routes do not expose imported data or exports');}
+$nativePage=$admin('audience.php?view=analytics');audienceHttpExpect($nativePage['status']===200&&!str_contains($nativePage['body'],'Mailchimp history'),'Native analytics navigation omits the removed history feature');
 $startChecks=$checks;
 $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Analytics isolation fixture',JSON_OBJECT())");$analyticsAid=(int)$conn->insert_id;
 $as=new AudienceStore($conn,$analyticsAid,1,'Analytics fixture');
@@ -27,7 +29,7 @@ $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_
 $new=$as->analyticsOverview($window);audienceHttpExpect($new['totals']['accepted']===36&&$new['totals']['opens']===19,'Repeated event fan-out never inflates sends or recipient engagement');
 $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'tracking',UTC_TIMESTAMP(),JSON_OBJECT('bot',false))",[$analyticsAid,$r['id'],bin2hex(random_bytes(32))]);
 audienceHttpExpect($as->analyticsOverview($window)['totals']['opens']===19,'A second human observation of the same message remains unique');
-foreach([['start'=>'2026-02-30'],['start'=>'2026-10-17','end'=>'2026-10-16'],['start'=>'2020-01-01'],['end'=>'2099-01-01'],['bots'=>'invented']]as$bad){$failed=false;try{audienceAnalyticsWindow($bad);}catch(InvalidArgumentException){$failed=true;}audienceHttpExpect($failed,'Invalid reporting window is rejected');}
+foreach([['start'=>'2026-02-30'],['start'=>'2026-10-17','end'=>'2026-10-16'],['start'=>'2000-01-01'],['end'=>'2099-01-01'],['bots'=>'invented']]as$bad){$failed=false;try{audienceAnalyticsWindow($bad);}catch(InvalidArgumentException){$failed=true;}audienceHttpExpect($failed,'Invalid reporting window is rejected');}
 audienceHttpExpect(!array_intersect($samples['campaigns'],array_column($campaignStore->analyticsOverview($window)['campaigns'],'id')),'Analytics fixture never crosses audience boundary');
 foreach(['home','analytics']as$v){$response=$editor('audience.php?view='.$v);audienceHttpExpect($response['status']===200&&str_contains($response['body'],$v==='home'?'Email snapshot':'Email engagement')&&!preg_match('/(?:Warning|Fatal error):/',$response['body']),'Native report route renders '.$v);
     preg_match('/<script type="application\/json" id="audience-config">(.*?)<\/script>/s',$response['body'],$configMatch);$config=json_decode($configMatch[1]??'',true);
@@ -44,4 +46,5 @@ $blocked=false;try{$d=audienceCollectionDefaults('popup');$d['variants']=[['titl
 audienceHttpExpect($blocked,'Collection variants cannot reintroduce A/B testing outside emails');
 audienceHttpExpect($editor('audience.php?view=analytics',['csrf_token'=>$token])['status']===400,'Unsupported report actions cannot mutate on POST');
 require __DIR__.'/audience_analytics_reports_http.php';
+require __DIR__.'/audience_engagement_http.php';
 echo 'Analytics HTTP/storage qualification passed ('.($checks-$startChecks)." checks).\n";

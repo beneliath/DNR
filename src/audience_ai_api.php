@@ -60,8 +60,8 @@ try{
     if($action!=='generate')throw new InvalidArgumentException('Choose a supported assistant action.');
     $request=audienceAiRequest($input,$role);$request['account']=currentAccountKey();
     if($request['mode']==='analytics'){
-        $window=audienceAnalyticsWindow(is_array($input['window']??null)?$input['window']:[]);
-        $request['evidence']=audienceAiEvidence($store->analyticsOverview($window),$window);
+        $window=audienceAiReportWindow(is_array($input['window']??null)?$input['window']:[]);
+        $request['evidence']=audienceAiReportEvidence($store,$window);
     }else{
         $settings=$store->contentSettings()['settings'];
         $request['brand']=['name'=>mb_substr((string)($store->one('SELECT name FROM marketing_audiences WHERE id=1')['name']??''),0,100),'styles'=>array_intersect_key($settings['brand']['styles']??[],array_flip(['font','fontSize','text','button','body']))];

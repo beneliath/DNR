@@ -1,5 +1,7 @@
 # Mailchimp → MOED MessageMonkey parity audit
 
+For the current assessment, see [the October 18 functional review](message-monkey-review-2026-10-18.md). The stage and release summaries below are historical; the new review identifies remaining gaps after Stages 6–8 and the removal of Mailchimp history.
+
 Reference reviewed October 16, 2026, on `codex/mailchimp-clone`.
 Stage 3 non-live closeout updated October 17, 2026, on `codex/ses-endpoint-layout`.
 Local navigation, supported email types and Brand Preview follow-up: October 17, 2026, on `codex/mailchimp-cloning-continued`.
@@ -806,6 +808,12 @@ Live sending remains gated. The next authorized follow-on is a historical-report
 import whose real dataset belongs to s1's Shalom in Messiah deployment.
 
 #### Historical analytics qualification, October 18, 2026
+
+> Superseded by the user's October 18 removal request. Branch
+> `codex/mailchimp-cloning-continued5` removes this feature and importer, including
+> derived historical Analytics AI data. Native analytics and writing/analysis AI
+> remain supported. A forward migration preserves deployed migration integrity;
+> production UI removal requires the next explicitly authorized deployment.
 
 The all-reports export is qualified for a separate historical dashboard and
 source-grounded Analytics AI. The final user-approved scope is **335 non-devotional

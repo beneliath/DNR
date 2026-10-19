@@ -154,8 +154,8 @@ import { normalizeEmailDesignMaps } from './audience-design-model.mjs';
     box.append(button('+ Add condition',()=>mutate(()=>{if(target.condition.rules.length<10)target.condition.rules.push({field:'FNAME',operator:'not_empty',value:''});})));return box;
   }
   function addImageTools(parent,item){
-    const upload=el('label','Upload image','designer-field'), input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp';
-    input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>700000)throw new Error('Choose an image below 700 KB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;});});upload.append(input);parent.append(upload);
+    const upload=el('label','Upload image','designer-field'), input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/gif';
+    input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>1000000)throw new Error('Choose an image up to 1 MB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;});});upload.append(input);parent.append(upload);
     const actions=el('div',undefined,'designer-block-actions');actions.append(button('Content studio',()=>openLibrary('image',value=>mutate(()=>{item.image=value.image;item.alt=value.alt||item.alt;item.url=value.url||item.url;}))));
     if(item.image)actions.append(button('Edit image',()=>openCrop(item)),button('Save to content studio',()=>nameDialog('Save image','Image',async name=>{await request('design_library_save',{type:'image',name,data:JSON.stringify({image:item.image,alt:item.alt||''})});status.textContent='Image saved';})));parent.append(actions,field('Alt text',item.alt||'',v=>{item.alt=v;}),field('Link URL',item.url||'',v=>{item.url=v;}));
   }

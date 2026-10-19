@@ -39,13 +39,14 @@
     box.append(node('p',result.note,'ai-disclosure'));
   }
   function chart(evidence, box) {
-    const series = evidence.series;const historical=evidence.window.origin==='mailchimp';
+    const series = evidence.series;
+    if (evidence.window.dataset && evidence.window.dataset !== 'email') return;
     if (!series.length || !series.some(row => row.accepted)) { box.append(node('p','No accepted email in this report scope')); return; }
     const namespace = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(namespace,'svg'); svg.setAttribute('viewBox','0 0 640 160'); svg.setAttribute('role','img'); svg.setAttribute('aria-label',`${historical?'Mailchimp reported sends':'Daily accepted email'} from ${evidence.window.start} to ${evidence.window.end} UTC`);
+    const svg = document.createElementNS(namespace,'svg'); svg.setAttribute('viewBox','0 0 640 160'); svg.setAttribute('role','img'); svg.setAttribute('aria-label',`Accepted email by period from ${evidence.window.start} to ${evidence.window.end} UTC`);
     const max = Math.max(...series.map(row => row.accepted),1); const width = 640 / series.length;
-    series.forEach((row,index) => { const bar = document.createElementNS(namespace,'rect'); const height = row.accepted/max*140; bar.setAttribute('x',String(index*width)); bar.setAttribute('y',String(150-height)); bar.setAttribute('width',String(Math.max(.5,width-1))); bar.setAttribute('height',String(height)); const title = document.createElementNS(namespace,'title'); title.textContent = `${row.day} UTC: ${row.accepted} ${historical?'Mailchimp reported sends':'accepted messages'}`; bar.append(title); svg.append(bar); });
-    const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption',historical?'Mailchimp sends by original campaign day · UTC · exported summary':'Daily accepted email · UTC · application-calculated')); box.append(figure);
+    series.forEach((row,index) => { const bar = document.createElementNS(namespace,'rect'); const height = row.accepted/max*140; bar.setAttribute('x',String(index*width)); bar.setAttribute('y',String(150-height)); bar.setAttribute('width',String(Math.max(.5,width-1))); bar.setAttribute('height',String(height)); const title = document.createElementNS(namespace,'title'); title.textContent = `${row.day}${row.until ? ` – ${row.until}` : ''} UTC: ${row.accepted} accepted messages`; bar.append(title); svg.append(bar); });
+    const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption','Accepted email by period · UTC · application-calculated')); box.append(figure);
   }
   function render(reply, uuid) {
     if (reply.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; announce(reply.purpose === 'audience-ai' ? reply.message : 'The AI service could not finish this suggestion. Your content is unchanged'); return; }
@@ -58,7 +59,7 @@
       const box = find('[data-ai-analysis]'); box.hidden = false; box.replaceChildren();
       box.append(node('h3','AI interpretation'),node('p',reply.summary));
       const evidence = reply.evidence;
-      box.append(node('p',`Source report: ${evidence.window.start} to ${evidence.window.end} UTC · ${evidence.window.origin==='mailchimp'?'Mailchimp exported summaries; original filtering retained':(evidence.window.bots==='filtered'?'Bot filtered':'All observed activity')} · Comparison: ${evidence.window.compare}`,'ai-scope'));
+      box.append(node('p',`Source report (${evidence.window.dataset || 'email'}): ${evidence.window.start} to ${evidence.window.end} UTC · ${evidence.window.bots==='filtered'?'Known bots excluded':'All observed activity'} · Comparison: ${evidence.window.compare}`,'ai-scope'));
       if(Object.keys(config.window).some(key=>JSON.stringify(config.window[key])!==JSON.stringify(evidence.window[key]))){previous='';announce('Saved analysis opened for its original report scope. Your next question will use the current report filters');}
       if (evidence.includes_samples) box.append(node('p','Local sample data included. These observations include fictional test activity','audience-notice'));
       chart(evidence,box);

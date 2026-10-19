@@ -134,3 +134,6 @@
 20261017_add_marketing_flows.sql
 20261017_add_marketing_inbox.sql
 20261018_add_mailchimp_history.sql
+20261018_remove_mailchimp_history.sql
+20261018_add_marketing_files.sql
+20261018_add_audience_notifications.sql

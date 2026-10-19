@@ -160,13 +160,13 @@ GRANT SELECT (id,audience_id,state,created_at), INSERT ON \`${MYSQL_DATABASE}\`.
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_delivery_policy TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_relay_usage TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_service_mail TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_audience_notification_state TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_consent_challenges TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_flows TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_flow_revisions TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_flow_runs TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_flow_steps TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_message_events TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_historical_campaigns TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_recipients TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_email_optouts TO '${MYSQL_USER}'@'%';
@@ -352,7 +352,7 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${mail_dispatch_user}'
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_ses_settings TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_ses_credentials TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_ses_usage TO '${mail_dispatch_user}'@'%';
-GRANT SELECT (id) ON \`${MYSQL_DATABASE}\`.marketing_audiences TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id,name,settings_json) ON \`${MYSQL_DATABASE}\`.marketing_audiences TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_ses_notifications TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_ses_inbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_sending_domains TO '${mail_dispatch_user}'@'%';
@@ -433,6 +433,7 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_user_settings TO '${mail_d
 GRANT SELECT, UPDATE (email_checked_at,email_mail_id) ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_delivery_events TO '${mail_dispatch_user}'@'%';
 GRANT INSERT ON \`${MYSQL_DATABASE}\`.marketing_service_mail TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_audience_notification_state TO '${mail_dispatch_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
