@@ -210,9 +210,11 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
     // previews, not a MOED shell page. Its rendered control contract is also
     // exercised by audience_collection_customization_test.php.
     if (basename($page_path) === 'audience_collection_render.php') {
+        $public_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audience-collection-public.min.css');
         expectHoverStyle(
-            str_contains($page_source, 'button:hover,.button:hover')
-                && str_contains($page_source, 'button:focus-visible,a:focus-visible')
+            str_contains($page_source, "file_get_contents(__DIR__.'/assets/css/pages/audience-collection-public.min.css')")
+                && str_contains($public_styles, 'button:hover,.button:hover')
+                && str_contains($public_styles, 'button:focus-visible,a:focus-visible')
                 && str_contains($page_source, '<style nonce='),
             'Public collection controls must keep branded hover, keyboard focus and nonce-scoped styles.'
         );

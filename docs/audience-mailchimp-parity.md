@@ -2094,3 +2094,98 @@ Transactional is excluded at the user's request; its page and related code are
 removed while MOED's existing confirmations/system emails remain unchanged.
 Percentage testing stays excluded. Existing published runtime snapshots remain
 readable, Mailchimp is unchanged, and live sending remains gated.
+
+## Pre-approval newsletter qualification — October 20, 2026
+
+Branch: `codex/message-monkey-presend-qualification`. The read-only production
+preflight checked s1 / Shalom in Messiah / audience 1 on application 2.6.9, using
+AWS account 446413910099 in Ohio (`us-east-2`). AWS credentials stayed inside the
+existing mail worker's memory. Audience aggregates used the application connection
+in a read-only transaction; worker/database permissions were not expanded.
+
+The sender domain is verified; DKIM is enabled with successful status and all
+three public DNS records matching. Custom MAIL FROM status, SPF/MX and DMARC pass.
+The expected configuration set is enabled, its configured SNS destination covers
+all required event types, and the confirmed subscription remains stored. These
+checks establish configuration readiness, not delivery of a new SES message.
+
+The all-subscriber eligibility query returns 7,203 active subscribed connections,
+with none additionally excluded by the native opt-out/deleted-email suppression
+tables. Unsubscribed, non-subscribed and cleaned records do not enter that target.
+This aggregate is not approval of a newsletter's eventual recipient segment.
+Production has no campaign drafts, deliveries, recipient jobs or service-mail
+jobs, so a specific newsletter's content/links and final segment remain unreviewed.
+
+The missing audience mailing address was saved using the postal address explicitly
+provided by the user. Only that settings field and its version changed; a native
+audit event was recorded, and a separate application read confirmed it is present.
+All other settings were preserved. `bulk_approved` remains zero, both bulk budgets
+remain zero, and AWS production access remains disabled. No email was queued or
+sent, and this pass did not deploy an application release.
+
+Qualification passed 277 focused pure checks and 961 disposable HTTP/storage
+checks, plus the restricted SES/dispatch/flow/Inbox worker, signed gateway and
+credential-rotation suites. Coverage includes MIME/unsubscribe headers, scanner
+GET versus one-click POST behavior, confirmed consent, signed SNS validation and
+replay rejection, bounce/complaint suppression, tracking/report attribution,
+scheduling/pause/cancel, quota/throttle handling and uncertain-response no-replay.
+The disposable environment used synthetic data and fake transports and was removed
+afterward. Actual provider pacing, delivered headers/client rendering and a real
+reply's Inbox association still need separately authorized live acceptance.
+
+AWS's simulator supports sandbox accounts, but MessageMonkey deliberately retains
+its production-access gate. This pass did not bypass that gate for simulator or
+verified-inbox sends. After approval, refresh quotas/readiness, allocate the bulk
+budget, qualify approved test recipients and simulator events through the deployed
+path, review the actual newsletter, and obtain authorization before enabling its
+first subscriber send. Private aggregate receipts and logs are retained in
+`var/deployment/message-monkey-presend-2026-10-20.json` and referenced local files.
+
+## Inbox receiving and hosted signup qualification — October 20, 2026
+
+Continued on `codex/message-monkey-presend-qualification`. On s1 / Shalom in
+Messiah / audience 1, the administrator-authorized receiving address was prepared
+without connecting sources or sending mail. The user then sent a real external
+test message. The existing gateway recorded trusted `proton-dmarc` authentication
+at 14:48:14 UTC, unlike the earlier unverified Proton self-send.
+
+After that evidence was verified, native settings connected signed Inbox routing
+and campaign replies. Survey/contact sources and their content were preserved.
+The existing restricted `dnrmailingest` worker processed only the qualification
+message: inbound 14 became Inbox thread 1 in the correct account, with a verified
+sender and direct-message source. Reprocessing that same inbound message left
+exactly one message in the thread. Sender-authentication requirements were not
+relaxed, and no outbound email was sent. Actual replies to delivered newsletters
+remain part of the later controlled SES acceptance.
+
+The standalone hosted form was reviewed on localhost: email required, optional
+first/last name, explicit newsletter permission, double opt-in and native
+confirmation/unsubscribe screens. Its public page explains unavailable email
+delivery and disables collection while SES readiness blocks confirmation. An
+identical unpublished draft was prepared on s1 (resource 1); it was not published.
+The user explicitly deferred the first newsletter's content and recipient review.
+
+The review found an actual editor rendering defect: asynchronous preview responses
+used a new CSS nonce, which the parent page's CSP rejected. Preview requests now
+carry the containing editor's nonce; native and custom-layout styles use that
+validated nonce. Public responses retain their own nonce and the security policy
+is unchanged. The spam-trap element also has a native `hidden` attribute.
+
+Shared public-form styling now provides a restrained accent card, clear typography,
+comfortable controls, desktop first/last-name columns and a single mobile column.
+The lower Save draft action has 28px top margin plus 24px padding and a separator.
+These application changes are available on localhost; s1 still runs 2.6.9 and
+requires an authorized qualified release to receive the code changes.
+
+Verification passed 28 focused collection-rendering checks, 963 disposable
+HTTP/storage checks (including the preview-nonce regression and existing Inbox,
+consent, report and account-isolation coverage), restricted worker/gateway/rotation
+suites and five classic-browser bundle checks. The disposable project was removed.
+Live browser observations verified styled signup/confirmation/unsubscribe previews,
+the hidden spam trap, disabled preview submission, lower-action spacing and a
+390px public page with no horizontal overflow and disabled signup controls.
+
+The final s1 readback retained `bulk_approved=0`, zero hourly/daily bulk budgets,
+`production_access=0`, and empty delivery/service-mail queues. Private aggregate
+receipts and screenshots are recorded at
+`var/deployment/message-monkey-inbox-signup-2026-10-20.json`.
