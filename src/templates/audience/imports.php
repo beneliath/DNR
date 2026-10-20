@@ -28,7 +28,17 @@
         <div class="audience-import-start"><h2>Add your connections</h2><p>Upload a file or paste a table. Include an email address column and headers.</p>
             <form method="post" enctype="multipart/form-data" class="audience-panel audience-import-form"><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'import_upload']); ?>
             <fieldset class="import-method-choices"><legend class="sr-only">Import method</legend><label><input type="radio" name="import_method" value="paste"<?= !empty($_POST['paste'])?' checked':'' ?>><span><strong>Paste your connections</strong><small>Separate columns with commas or tabs, one connection per row</small></span></label><label><input type="radio" name="import_method" value="upload"<?= empty($_POST['paste'])?' checked':'' ?>><span><strong>Upload a file</strong><small>CSV, TXT, TSV or XLSX · up to 20 MB</small></span></label></fieldset>
-            <div data-import-method="upload"><h3>Upload a file</h3><label for="import-file">CSV, TXT, TSV or XLSX</label><input id="import-file" type="file" name="import_file" accept=".csv,.txt,.tsv,.xlsx"><p class="audience-help">Up to 20 MB and 50,000 connections per import. XLSX imports the first worksheet; format dates as YYYY-MM-DD.</p></div><div data-import-method="paste"><h3>Paste your connections</h3><label for="import-paste">Separate columns with commas or tabs, one connection per row</label><textarea id="import-paste" name="paste" rows="7" placeholder="Email Address,First Name,Last Name&#10;avery@example.com,Avery,Rivera"><?= $h($error!==''&&is_scalar($_POST['paste']??null)?$_POST['paste']:'') ?></textarea></div><button class="primary">Continue to organize</button></form>
+            <div data-import-method="upload"><h3>Upload a file</h3>
+                <div class="audience-import-drop" data-import-drop>
+                    <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 33H11a8 8 0 0 1-1-16 13 13 0 0 1 25-2 9 9 0 0 1 2 18h-3M24 39V22m-7 7 7-7 7 7"/></svg>
+                    <strong>Drag and drop your file here</strong><span>CSV, TXT, TSV or XLSX · up to 20 MB</span>
+                    <button type="button" data-import-browse hidden>Browse files</button>
+                    <label class="sr-only" for="import-file">Choose a file to import</label><input id="import-file" type="file" name="import_file" accept=".csv,.txt,.tsv,.xlsx" aria-describedby="import-file-status import-file-help import-file-error">
+                    <p id="import-file-status" data-import-file-status role="status">No file selected.</p>
+                    <p id="import-file-error" class="audience-import-file-error" data-import-file-error role="alert" hidden></p>
+                </div>
+                <p id="import-file-help" class="audience-help">Up to 20 MB and 50,000 connections per import. XLSX imports the first worksheet; format dates as YYYY-MM-DD.</p>
+            </div><div data-import-method="paste"><h3>Paste your connections</h3><label for="import-paste">Separate columns with commas or tabs, one connection per row</label><textarea id="import-paste" name="paste" rows="7" placeholder="Email Address,First Name,Last Name&#10;avery@example.com,Avery,Rivera"><?= $h($error!==''&&is_scalar($_POST['paste']??null)?$_POST['paste']:'') ?></textarea></div><button class="primary">Continue to organize</button></form>
         </div>
     <?php else:
         $params=$job['params'];
