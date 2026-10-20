@@ -40,12 +40,15 @@
     systemTheme.addEventListener('change', syncTheme);
     const sidebarToggle = $('[data-sidebar-toggle]');
     const sidebarKey = 'moed:audience:sidebar-collapsed';
+    const mobileNavigation = window.matchMedia('(max-width: 860px)');
+    let sidebarCollapsed = false;
     const sidebarPosition = () => {
         const item = $('.audience-nav-item.selected');
         if (item) document.documentElement.style.setProperty('--audience-subnav-top', `${item.getBoundingClientRect().top}px`);
     };
     const setSidebar = collapsed => {
-        document.body.classList.toggle('audience-sidebar-collapsed', collapsed);
+        sidebarCollapsed = collapsed;
+        document.body.classList.toggle('audience-sidebar-collapsed', collapsed && !mobileNavigation.matches);
         if (sidebarToggle) {
             sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
             sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Minimize navigation');
@@ -55,12 +58,74 @@
     };
     try { setSidebar(localStorage.getItem(sidebarKey) === '1'); } catch (_) { setSidebar(false); }
     sidebarToggle?.addEventListener('click', () => {
-        const collapsed = !document.body.classList.contains('audience-sidebar-collapsed');
+        const collapsed = !sidebarCollapsed;
         setSidebar(collapsed);
         try { localStorage.setItem(sidebarKey, collapsed ? '1' : '0'); } catch (_) { /* Still works without storage. */ }
     });
     window.addEventListener('resize', sidebarPosition);
     $('.audience-sidebar nav')?.addEventListener('scroll', sidebarPosition);
+    // Match the main MOED mobile drawer's dismissal and keyboard behavior.
+    const sidebar = $('#audience-sidebar');
+    const mobileToggle = $('[data-audience-nav-toggle]');
+    const navigationClose = $('[data-audience-nav-close]');
+    const navigationBackdrop = $('[data-audience-nav-backdrop]');
+    if (sidebar && mobileToggle && navigationClose && navigationBackdrop) {
+        let navigationOpen = false;
+        const suspended = new Map();
+        const setNavigationOpen = (requested, restoreFocus = true) => {
+            const wasOpen = navigationOpen;
+            navigationOpen = requested && mobileNavigation.matches;
+            suspended.forEach((wasInert, element) => { element.inert = wasInert; });
+            suspended.clear();
+            document.body.classList.toggle('audience-navigation-open', navigationOpen);
+            mobileToggle.setAttribute('aria-expanded', String(navigationOpen));
+            mobileToggle.setAttribute('aria-label', `${navigationOpen ? 'Close' : 'Open'} MessageMonkey navigation`);
+            navigationBackdrop.hidden = !navigationOpen;
+            sidebar.inert = mobileNavigation.matches && !navigationOpen;
+            if (navigationOpen) {
+                sidebar.setAttribute('role', 'dialog');
+                sidebar.setAttribute('aria-modal', 'true');
+                Array.from(document.body.children).filter(element =>
+                    element !== sidebar && element !== navigationBackdrop && !element.matches('script, style, link, dialog')
+                ).forEach(element => {
+                    suspended.set(element, element.inert);
+                    element.inert = true;
+                });
+                navigationClose.focus();
+            } else {
+                sidebar.removeAttribute('role');
+                sidebar.removeAttribute('aria-modal');
+                if (wasOpen && restoreFocus && mobileNavigation.matches) mobileToggle.focus();
+            }
+        };
+        mobileToggle.addEventListener('click', () => setNavigationOpen(!navigationOpen));
+        navigationClose.addEventListener('click', () => setNavigationOpen(false));
+        navigationBackdrop.addEventListener('click', () => setNavigationOpen(false));
+        sidebar.addEventListener('click', event => {
+            if (navigationOpen && event.target.closest('a[href]')) setNavigationOpen(false);
+        });
+        document.addEventListener('keydown', event => {
+            if (!navigationOpen || $('dialog[open]')) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setNavigationOpen(false);
+            } else if (event.key === 'Tab') {
+                const controls = $$('a[href], button:not([disabled]), [tabindex="0"]', sidebar)
+                    .filter(element => !element.closest('[hidden], [inert]') && element.getClientRects().length > 0);
+                const first = controls[0], last = controls[controls.length - 1];
+                if (event.shiftKey && (document.activeElement === first || !sidebar.contains(document.activeElement))) {
+                    event.preventDefault(); last?.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || !sidebar.contains(document.activeElement))) {
+                    event.preventDefault(); first?.focus();
+                }
+            }
+        });
+        mobileNavigation.addEventListener('change', () => {
+            setSidebar(sidebarCollapsed);
+            setNavigationOpen(false);
+        });
+        setNavigationOpen(false, false);
+    }
     const config = JSON.parse($('#audience-config')?.textContent || '{}');
     const clone = value => JSON.parse(JSON.stringify(value));
     const show = id => { const dialog = document.getElementById(id); if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal(); };
@@ -262,7 +327,7 @@
         let timer;
         const hide = () => hideTooltip(tooltip);
         const display = () => {
-            if (target.matches('.audience-nav-item.selected') && document.body.classList.contains('audience-sidebar-collapsed') && innerWidth > 680) return;
+            if (target.matches('.audience-nav-item.selected') && document.body.classList.contains('audience-sidebar-collapsed') && !mobileNavigation.matches) return;
             window.clearTimeout(timer); if (openTooltip && openTooltip !== tooltip) hideTooltip(openTooltip);
             tooltip.hidden = false; tooltip.showPopover(); openTooltip = tooltip;
             const rect = target.getBoundingClientRect(), box = tooltip.getBoundingClientRect();
