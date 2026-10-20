@@ -6,15 +6,25 @@ function audienceAnalyticsMetricLabels():array
     return ['accepted'=>'Total sends','delivered'=>'Confirmed deliveries','successful'=>'Rate denominator','awaiting_receipt'=>'Pending receipts','total_opens'=>'Total opens','total_clicks'=>'Total clicks','complaints'=>'Complaints','complaint_rate'=>'Complaint rate','opens'=>'Opened','open_rate'=>'Open rate','clicks'=>'Clicked','click_rate'=>'Click rate','clicks_per_open'=>'Clicks per unique opens','bounced'=>'Bounces','bounce_rate'=>'Bounce rate','unsubscribed'=>'Unsubscribed','unsubscribe_rate'=>'Unsubscribe rate','delivery_rate'=>'Delivery rate','added'=>'Connections added','subscriptions'=>'Observed subscriptions','optouts'=>'Observed unsubscribes','net'=>'Observed net subscription changes','visitors'=>'Daily unique visitors','responses'=>'Submissions','confirmed'=>'Confirmed subscriptions','conversion_rate'=>'Visitor-to-subscription rate','runs'=>'Started','completed'=>'Completed','exited'=>'Exited','failed'=>'Failed','active'=>'Active','completion_rate'=>'Completion rate'];
 }
 
-function audienceAnalyticsReportDefinition(array $input):array
+function audienceAnalyticsReportCapabilities():array
 {
-    $dataset=audienceText($input,'dataset',20)?:'email';
-    $allowed=[
+    return [
         'email'=>[['campaign','day','week','month','quarter','year'],['accepted','delivered','opens','open_rate','clicks','click_rate','clicks_per_open','bounced','bounce_rate','unsubscribed','unsubscribe_rate','delivery_rate','successful','awaiting_receipt','total_opens','total_clicks','complaints','complaint_rate']],
         'audience'=>[['source','day','week','month'],['added','subscriptions','optouts','net']],
         'forms'=>[['resource'],['visitors','responses','confirmed','conversion_rate']],
         'flows'=>[['flow'],['runs','completed','exited','failed','active','completion_rate']],
     ];
+}
+
+function audienceAnalyticsMetricUnit(string $metric):string
+{
+    return str_ends_with($metric,'_rate')||$metric==='clicks_per_open'?'%':'count';
+}
+
+function audienceAnalyticsReportDefinition(array $input):array
+{
+    $dataset=audienceText($input,'dataset',20)?:'email';
+    $allowed=audienceAnalyticsReportCapabilities();
     if(!isset($allowed[$dataset]))throw new InvalidArgumentException('Choose a supported report type.');
     [$dimensions,$metrics]=$allowed[$dataset];$dimension=audienceText($input,'dimension',20)?:$dimensions[0];
     if(!in_array($dimension,$dimensions,true))throw new InvalidArgumentException('Choose a supported report dimension.');
@@ -56,6 +66,17 @@ trait AudienceAnalyticsReports
             $sql.=" AND r.contact_id IN (SELECT c.id FROM marketing_contacts c WHERE $membership)";array_push($p,...$values);
         }
         return [$sql,$p];
+    }
+
+    public function analyticsRecentCampaigns(array $window,int $limit=3):array
+    {
+        if($limit<1||$limit>10)throw new InvalidArgumentException('Choose between one and ten recent campaigns.');
+        [$scope,$params]=$this->analyticsRecipientScope($window);
+        $rows=$this->all("SELECT d.campaign_id FROM marketing_campaign_recipients r
+            JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id
+            JOIN marketing_campaigns m ON m.id=d.campaign_id AND m.audience_id=d.audience_id
+            WHERE $scope AND m.deleted_at IS NULL GROUP BY d.campaign_id ORDER BY MAX(r.accepted_at) DESC,d.campaign_id DESC LIMIT $limit",$params);
+        return array_map('intval',array_column($rows,'campaign_id'));
     }
 
     public function analyticsActivity(array $w,string $activity='accepted',int $page=1,int $size=25,string $link=''):array

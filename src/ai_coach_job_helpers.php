@@ -22,8 +22,10 @@ function aiCoachEnqueue(mysqli $conn, int $id, array $request): bool
         aiCoachExpireJobs($conn);
         $count = (int) $conn->query("SELECT COUNT(*) FROM ai_coach_jobs WHERE state IN ('queued','generating')")->fetch_row()[0];
         if ($count >= 8) return false;
+        // Analytics includes query planning, semantic validation and an optional clarification check.
+        $seconds=isset($request['analysis_scope'])&&($request['_audience_ai']??null)===1?90:20;
         $conn->execute_query('INSERT INTO ai_coach_jobs(request_id,request_json,deadline_at)
-            SELECT id,?,DATE_ADD(created_at, INTERVAL 20 SECOND) FROM ai_coach_requests WHERE id=? AND outcome=\'pending\'',
+            SELECT id,?,DATE_ADD(created_at, INTERVAL '.$seconds.' SECOND) FROM ai_coach_requests WHERE id=? AND outcome=\'pending\'',
             [json_encode($request, JSON_THROW_ON_ERROR), $id]);
         return $conn->affected_rows === 1;
     } finally { $conn->query("SELECT RELEASE_LOCK('dnr_coach_admission')"); }

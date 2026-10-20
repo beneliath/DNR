@@ -63,10 +63,10 @@ function aiCoachReviewRequest(mysqli $conn, int $id, int $version, int $reviewer
 function aiCoachRequestStatus(mysqli $conn, int $userId, string $role, string $requestId): ?array
 {
     aiCoachExpireJobs($conn);
-    $row = $conn->execute_query('SELECT r.outcome,r.response_json,j.state AS job_state, TIMESTAMPDIFF(SECOND,r.created_at,UTC_TIMESTAMP(6)) AS age_seconds
+    $row = $conn->execute_query('SELECT r.outcome,r.response_json,j.state AS job_state, TIMESTAMPDIFF(SECOND,r.created_at,UTC_TIMESTAMP(6)) AS age_seconds, TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(6),j.deadline_at) AS remaining_seconds
         FROM ai_coach_requests r LEFT JOIN ai_coach_jobs j ON j.request_id=r.id WHERE r.user_id=? AND r.user_role=? AND r.client_request_id=?', [$userId, $role, $requestId])->fetch_assoc();
     if (!$row) return null;
-    if ($row['outcome'] === 'pending') return ['state' => (int) $row['age_seconds'] > 25 ? 'interrupted' : 'pending', 'stage' => $row['job_state'] ?? 'queued'];
+    if ($row['outcome'] === 'pending') return ['state' => (int) $row['age_seconds'] > 25 && (int)($row['remaining_seconds']??0)<=0 ? 'interrupted' : 'pending', 'stage' => $row['job_state'] ?? 'queued'];
     $reply = json_decode((string) $row['response_json'], true, 32, JSON_THROW_ON_ERROR);
     if (!is_array($reply)) return ['state' => 'interrupted'];
     return ['state' => 'complete', 'response' => $reply + ['history_saved' => true]];

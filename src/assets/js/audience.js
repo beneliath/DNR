@@ -348,7 +348,8 @@
         // Upgrade the former default while preserving explicitly customized layouts.
         const formerDefaults = [
             ['email', 'first_name', 'last_name', 'tags', 'source', 'created_at', 'updated_at'],
-            ['email', 'first_name', 'last_name', 'tags', 'email_status', 'source', 'created_at']
+            ['email', 'first_name', 'last_name', 'tags', 'email_status', 'source', 'created_at'],
+            ['email', 'first_name', 'last_name', 'tags', 'email_status', 'created_at']
         ];
         if (Array.isArray(stored?.visible) && formerDefaults.some(columns => JSON.stringify([...stored.visible].sort()) === JSON.stringify([...columns].sort()))) stored = {...stored, visible:defaultVisible};
         let committed = {

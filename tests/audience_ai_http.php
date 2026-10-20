@@ -35,6 +35,16 @@ $reply=['purpose'=>'audience-ai','mode'=>'content','operation'=>'write','reason'
 aiCoachCompleteRequest($conn,$id,$reply,1);
 audienceHttpExpect($aiApi(0,null,'?request_id='.$nonce)['data']['response']['text']==='Reviewed fixture text','Owner can reopen the exact completed result');
 audienceHttpExpect($aiApi(1,null,'?request_id='.$nonce)['status']===404&&$aiApi(1,['action'=>'cancel','request_id'=>$nonce])['status']===404,'Another user cannot read or cancel a result');
+[$pageId,$pageNonce]=$aiFixture('analytics');
+$pageTools=new AudienceAiQueries(new AudienceStore($conn,1,$actorId,'Pagination qualification'),audienceAiReportWindow([]));
+$pageEvidence=$pageTools->execute(['queries'=>[['tool'=>'contacts','field'=>'','search'=>'fixture@example.test','filters'=>[],'limit'=>1]]]);
+aiCoachCompleteRequest($conn,$pageId,['purpose'=>'audience-ai','mode'=>'analytics','reason'=>'','summary'=>'Saved contact results','observations'=>[],'recommendations'=>[],'evidence'=>$pageEvidence],1);
+$pageQuery='?action=contacts&request_id='.$pageNonce.'&table_id=query_0_contacts&offset=0';
+$contactPage=$aiApi(0,null,$pageQuery);
+audienceHttpExpect($contactPage['status']===200&&($contactPage['data']['table']['rows'][0]['email']??'')==='fixture@example.test','Owner pagination reuses only the saved contact filter');
+audienceHttpExpect($aiApi(1,null,$pageQuery)['status']===404,'Another user cannot page through contact results');
+audienceHttpExpect($aiApi(0,null,str_replace('query_0_contacts','query_9_contacts',$pageQuery))['status']===403,'Unavailable contact tables cannot be selected');
+audienceHttpExpect($aiApi(0,null,str_replace('offset=0','offset=-1',$pageQuery))['status']===400,'Contact pagination rejects invalid offsets');
 audienceHttpExpect($aiApi(1,['action'=>'save_template','request_id'=>$nonce,'text'=>'Other user','name'=>'Forbidden'])['status']===403,'Another user cannot apply a result');
 $history=$aiApi(0,null,'?action=history')['data']['items'];audienceHttpExpect(in_array($nonce,array_column($history,'client_request_id'),true),'Own purpose-filtered history contains the completed request');
 [$roleId,$roleNonce]=$aiFixture('content','editor');aiCoachCompleteRequest($conn,$roleId,$reply,1);
@@ -57,7 +67,7 @@ $duplicate=$aiApi(0,array_replace($base,['request_id'=>$nonce]));audienceHttpExp
 $analysis=$aiApi(0,$base);audienceHttpExpect($analysis['status']===202,'Admin analysis enters the existing queue');
 $queued=$conn->execute_query('SELECT j.request_json FROM ai_coach_jobs j JOIN ai_coach_requests r ON r.id=j.request_id WHERE r.client_request_id=?',[$base['request_id']])->fetch_assoc();
 $context=json_decode($queued['request_json'],true);
-audienceHttpExpect(isset($context['evidence']['facts'])&&!str_contains($queued['request_json'],'spoofed')&&!str_contains($queued['request_json'],'@example.test'),'Evidence is calculated by the server and excludes contact identities');
+audienceHttpExpect(isset($context['analysis_scope']['dataset'])&&!isset($context['evidence'])&&!str_contains($queued['request_json'],'spoofed'),'Only the server-validated query scope enters the queue; client evidence is ignored');
 $aiApi(0,['action'=>'cancel','request_id'=>$base['request_id']]);
 $held=[];for($n=0;$n<8;$n++){[$heldId]=$aiFixture();$held[]=$heldId;$conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,claim_token,deadline_at) VALUES (?,?,'generating',?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 SECOND))",[$heldId,'{}',bin2hex(random_bytes(16))]);}
 // Separate editor session avoids per-session throttling masking queue admission.

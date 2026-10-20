@@ -136,6 +136,9 @@
         const replacement = parsed.querySelector('[data-analytics-results]');
         if (!replacement || !results) throw new Error('Report response is unavailable.');
         results.replaceChildren(...replacement.childNodes); updateMetricCarousels();
+        const aiTools = document.querySelector('.analytics-ai-tools');
+        const updatedAiTools = parsed.querySelector('.analytics-ai-tools');
+        if (aiTools && updatedAiTools) aiTools.replaceChildren(...updatedAiTools.childNodes);
         document.getElementById('analytics-message-trigger').firstChild.textContent = all.checked ? 'All messages ' : `${choices.filter(input => input.checked).length} messages selected `;
         document.querySelectorAll('.analytics-reference-filters form').forEach(form => {
           if (form === messageForm) return;

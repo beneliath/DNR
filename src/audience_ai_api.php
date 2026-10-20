@@ -19,7 +19,15 @@ try{
         }
         $uuid=audienceText($_GET,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
         if(!$owned||($owned['manual_topic']==='audience-ai:analytics'&&$role!=='admin'))audienceAiRespond(['error'=>'Suggestion not found.'],404);
-        releaseApplicationSessionLock();audienceAiRespond(aiCoachRequestStatus($db,$actor,$role,$uuid)??['state'=>'interrupted']);
+        releaseApplicationSessionLock();$status=aiCoachRequestStatus($db,$actor,$role,$uuid)??['state'=>'interrupted'];
+        if(($_GET['action']??'')==='contacts'){
+            if($role!=='admin'||$owned['manual_topic']!=='audience-ai:analytics'||($status['response']['purpose']??'')!=='audience-ai')throw new DomainException('Contact results not found.');
+            $evidence=$status['response']['evidence']??[];$tableId=audienceText($_GET,'table_id',80);$offset=audienceText($_GET,'offset',7);
+            if(!ctype_digit($offset))throw new InvalidArgumentException('Choose a valid results page.');
+            $queries=new AudienceAiQueries($store,audienceAiReportWindow($evidence['window']??[]));
+            audienceAiRespond(['table'=>audienceAiContactPage($queries,$evidence,$tableId,(int)$offset)]);
+        }
+        audienceAiRespond($status+['question'=>$owned['question']]);
     }
     if($_SERVER['REQUEST_METHOD']!=='POST'){header('Allow: GET, POST');audienceAiRespond(['error'=>'Use POST to ask for a suggestion.'],405);}
     if(!validateCsrfToken($_SERVER['HTTP_X_CSRF_TOKEN']??null))audienceAiRespond(['error'=>'Reload the page before continuing.'],403);
@@ -61,7 +69,7 @@ try{
     $request=audienceAiRequest($input,$role);$request['account']=currentAccountKey();
     if($request['mode']==='analytics'){
         $window=audienceAiReportWindow(is_array($input['window']??null)?$input['window']:[]);
-        $request['evidence']=audienceAiReportEvidence($store,$window);
+        $request['analysis_scope']=array_intersect_key($window,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));
     }else{
         $settings=$store->contentSettings()['settings'];
         $request['brand']=['name'=>mb_substr((string)($store->one('SELECT name FROM marketing_audiences WHERE id=1')['name']??''),0,100),'styles'=>array_intersect_key($settings['brand']['styles']??[],array_flip(['font','fontSize','text','button','body']))];
@@ -71,8 +79,8 @@ try{
         $owned=audienceAiOwnedRequest($db,$actor,$role,$parent);
         if(!$owned||$owned['manual_topic']!=='audience-ai:'.$request['mode'])throw new InvalidArgumentException('The previous suggestion is unavailable in this context.');
         $previous=aiCoachRequestStatus($db,$actor,$role,$parent)['response']??[];
-        if($request['mode']==='analytics'&&($previous['evidence']['window']??null)!==$request['evidence']['window'])throw new InvalidArgumentException('The report scope changed. Start a new question for this date range.');
         $request['previous_reply']=array_intersect_key($previous,array_flip(['summary','text','recommendations','observations']));
+        if($request['mode']==='analytics')$request['previous_context']=audienceAiPreviousContext($owned['question'],$previous);
     }
     $envelope=['role'=>$role,'page'=>'audience.php','step'=>'audience-ai','question'=>$request['prompt']?:ucfirst($request['operation']).' selected text','history'=>[],'topic'=>'audience-ai:'.$request['mode'],'request_id'=>$request['request_id'],'ui'=>['purpose'=>'audience-ai','mode'=>$request['mode'],'operation'=>$request['operation']]];
     $created=false;$historyId=aiCoachRecordRequest($db,$envelope,$actor,$created);
