@@ -2094,3 +2094,49 @@ Transactional is excluded at the user's request; its page and related code are
 removed while MOED's existing confirmations/system emails remain unchanged.
 Percentage testing stays excluded. Existing published runtime snapshots remain
 readable, Mailchimp is unchanged, and live sending remains gated.
+
+## Pre-approval newsletter qualification — October 20, 2026
+
+Branch: `codex/message-monkey-presend-qualification`. The read-only production
+preflight checked s1 / Shalom in Messiah / audience 1 on application 2.6.9, using
+AWS account 446413910099 in Ohio (`us-east-2`). AWS credentials stayed inside the
+existing mail worker's memory. Audience aggregates used the application connection
+in a read-only transaction; worker/database permissions were not expanded.
+
+The sender domain is verified; DKIM is enabled with successful status and all
+three public DNS records matching. Custom MAIL FROM status, SPF/MX and DMARC pass.
+The expected configuration set is enabled, its configured SNS destination covers
+all required event types, and the confirmed subscription remains stored. These
+checks establish configuration readiness, not delivery of a new SES message.
+
+The all-subscriber eligibility query returns 7,203 active subscribed connections,
+with none additionally excluded by the native opt-out/deleted-email suppression
+tables. Unsubscribed, non-subscribed and cleaned records do not enter that target.
+This aggregate is not approval of a newsletter's eventual recipient segment.
+Production has no campaign drafts, deliveries, recipient jobs or service-mail
+jobs, so a specific newsletter's content/links and final segment remain unreviewed.
+
+The missing audience mailing address was saved using the postal address explicitly
+provided by the user. Only that settings field and its version changed; a native
+audit event was recorded, and a separate application read confirmed it is present.
+All other settings were preserved. `bulk_approved` remains zero, both bulk budgets
+remain zero, and AWS production access remains disabled. No email was queued or
+sent, and this pass did not deploy an application release.
+
+Qualification passed 277 focused pure checks and 961 disposable HTTP/storage
+checks, plus the restricted SES/dispatch/flow/Inbox worker, signed gateway and
+credential-rotation suites. Coverage includes MIME/unsubscribe headers, scanner
+GET versus one-click POST behavior, confirmed consent, signed SNS validation and
+replay rejection, bounce/complaint suppression, tracking/report attribution,
+scheduling/pause/cancel, quota/throttle handling and uncertain-response no-replay.
+The disposable environment used synthetic data and fake transports and was removed
+afterward. Actual provider pacing, delivered headers/client rendering and a real
+reply's Inbox association still need separately authorized live acceptance.
+
+AWS's simulator supports sandbox accounts, but MessageMonkey deliberately retains
+its production-access gate. This pass did not bypass that gate for simulator or
+verified-inbox sends. After approval, refresh quotas/readiness, allocate the bulk
+budget, qualify approved test recipients and simulator events through the deployed
+path, review the actual newsletter, and obtain authorization before enabling its
+first subscriber send. Private aggregate receipts and logs are retained in
+`var/deployment/message-monkey-presend-2026-10-20.json` and referenced local files.
