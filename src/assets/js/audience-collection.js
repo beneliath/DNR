@@ -58,7 +58,7 @@
     const preview = async () => {
         if (config.previewOnly) return;
         sync(); request?.abort(); request = new AbortController(); const current = ++sequence;
-        const data = new FormData(form); data.set('action', 'collection_preview');data.set('screen', document.querySelector('[data-preview-screen]')?.value || 'signup');
+        const data = new FormData(form); data.set('action', 'collection_preview');data.set('screen', document.querySelector('[data-preview-screen]')?.value || 'signup');data.set('preview_nonce', config.previewNonce);
         status.textContent = 'Updating…';
         try {
             const response = await fetch(location.href, {method:'POST', body:data, signal:request.signal, credentials:'same-origin', headers:{Accept:'application/json'}});

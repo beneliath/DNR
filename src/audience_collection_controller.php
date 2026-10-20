@@ -38,7 +38,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                     foreach(['title','intro','button']as$key)$r['document'][$key]=$system[$screen.'_'.$key];
                 }elseif($screen==='thanks')$previewSuccess=$r['document']['thanks'];
                 releaseApplicationSessionLock(); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store');
-                echo json_encode(['html'=>audienceCollectionHtml($r,$store->fields(),$store->groups(),'','',[], '', $previewSuccess,null,true)],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR); return;
+                echo json_encode(['html'=>audienceCollectionHtml($r,$store->fields(),$store->groups(),'','',[], '', $previewSuccess,null,true,'',audienceText($_POST,'preview_nonce',100))],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR); return;
             } elseif ($action==='collection_defaults') {
                 if (!$canDelete) { http_response_code(403); exit('Only an administrator can change audience defaults.'); }
                 $store->collectionDefaults($version,$_POST); $id=0; $message='Audience form defaults saved. New forms will use these defaults.';

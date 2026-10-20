@@ -64,9 +64,14 @@ audienceHttpExpect($collectStore->person((int)$person['id'])['first_name']==='Pu
 $collectStore->mutatePerson((int)$person['id'],(int)$person['version'],'unsubscribe');
 $again=$publicPayload($active);$again['email']=$person['email'];$public($collectPublic,$again);
 audienceHttpExpect($collectStore->person((int)$person['id'])['email_status']==='unsubscribed','Signup cannot bypass an existing opt-out');
-$preview=$editor('audience.php?view=form&id='.$collectId,['csrf_token'=>$token,'action'=>'collection_preview','document_json'=>json_encode($draft)]);
+$previewNonce='containingEditorNonce123456';
+$preview=$editor('audience.php?view=form&id='.$collectId,['csrf_token'=>$token,'action'=>'collection_preview','document_json'=>json_encode($draft),'preview_nonce'=>$previewNonce]);
 audienceHttpExpect($preview['status']===200&&str_contains(json_decode($preview['body'],true)['html'],'PRIVATE NEW DRAFT'),'Authenticated preview renders the new draft');
 audienceHttpExpect(str_contains(json_decode($preview['body'],true)['html'],'Preview — submissions are disabled'),'Preview cannot collect responses');
+$previewHtml=json_decode($preview['body'],true)['html'];preg_match_all('/<style nonce="([^"]+)"/',$previewHtml,$previewStyles);
+audienceHttpExpect(count($previewStyles[1])>0&&array_unique($previewStyles[1])===[$previewNonce],'HTTP preview authorizes styles with the containing editor nonce');
+$badPreview=$editor('audience.php?view=form&id='.$collectId,['csrf_token'=>$token,'action'=>'collection_preview','document_json'=>json_encode($draft),'preview_nonce'=>'invalid" nonce']);
+audienceHttpExpect($badPreview['status']===422&&isset(json_decode($badPreview['body'],true)['error']),'Malformed preview nonces fail closed');
 $current=$collectStore->collectionResource($collectId);$collectStore->collectionOperation($collectId,(int)$current['version'],'pause');
 audienceHttpExpect($public($collectPublic)['status']===404&&$public($collectPublic,$publicPayload($active))['status']===404,'Pause immediately stops GET and POST collection');
 try{$collectStore->collectionOperation($collectId,1,'publish');throw new RuntimeException('Stale publish accepted');}catch(InvalidArgumentException){}

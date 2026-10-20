@@ -40,7 +40,7 @@ function audienceCollectionAdvancedHtml(string $source): string
     return $html;
 }
 
-function audienceCollectionCustomPage(string $html,array $d,string $screen): string
+function audienceCollectionCustomPage(string $html,array $d,string $screen,string $nonce=''): string
 {
     $source=$d['advanced']['pages'][$screen]??'';
     if(empty($d['advanced']['enabled'])||$source==='')return $html;
@@ -52,5 +52,5 @@ function audienceCollectionCustomPage(string $html,array $d,string $screen): str
     $h=static fn($v)=>htmlspecialchars($v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $custom=strtr($source,['{{content}}'=>$content,'{{form}}'=>$form,'{{message}}'=>$message,'{{logo}}'=>$logo,'{{title}}'=>$h($d['title']),'{{intro}}'=>$h($d['intro'])]);
     $html=preg_replace_callback('~(<main>).*?(</main>)~s',static fn($m)=>$m[1].$custom.$m[2],$html,1);
-    return audienceDesignPreviewSource($html,contentSecurityPolicyNonce());
+    return audienceDesignPreviewSource($html,$nonce!==''?$nonce:contentSecurityPolicyNonce());
 }
