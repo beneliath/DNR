@@ -4,15 +4,15 @@ require_once __DIR__.'/audience_ai.php';
 
 function renderAudienceAi(AudienceStore $store,array $audience,bool $canManage,bool $canDelete,string $displayName,int $actor):void
 {
-    $view='assistant';$aiMode=($_GET['mode']??'content')==='analytics'?'analytics':'content';
+    $view='assistant';$section='';$aiMode=($_GET['mode']??'content')==='analytics'?'analytics':'content';
     if(!$canManage||($aiMode==='analytics'&&!$canDelete)){http_response_code(403);exit('This assistant requires '.($aiMode==='analytics'?'an administrator.':'an editor or administrator.'));}
     if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');exit('Use the assistant controls to request a suggestion.');}
     $audienceId=1;$id=0;$canExport=$canManage;$pageTitle=$aiMode==='analytics'?'Analytics AI':'Write with AI';$message='';$error='';
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
     $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':1';
-    $aiText='';$aiSubject='';$aiSourceName='';$aiImages=[];$aiWindow=[];
+    $aiText='';$aiSubject='';$aiSourceName='';$aiImages=[];$aiWindow=[];$aiPrompt='';
     if($aiMode==='analytics'){
-        try{$aiWindow=audienceAiReportWindow($_GET);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAiReportWindow([]);}
+        try{$aiWindow=audienceAiReportWindow($_GET);$aiPrompt=audienceText($_GET,'prompt',1500);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAiReportWindow([]);}
         $aiWindow=array_intersect_key($aiWindow,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));
     }else{
         $sourceId=\Dnr\Http\RequestInput::positiveInt($_GET,'source_id')??0;

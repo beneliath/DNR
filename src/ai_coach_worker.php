@@ -6,6 +6,7 @@ require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/ai_coach_history_helpers.php';
 require_once __DIR__ . '/ai_coach_job_helpers.php';
 require_once __DIR__ . '/audience_ai.php';
+require_once __DIR__ . '/audience_store.php';
 if (!aiCoachEnabled()) exit;
 // Limit active model workers even if an operator accidentally scales beyond two.
 $slot = null;
@@ -31,7 +32,8 @@ while (true) {
             };
             if (($stored['_audience_ai'] ?? null) === 1) {
                 $stored['role'] = $job['user_role'];
-                $reply = audienceAiGenerate($stored, $start + max(0, (float) $job['remaining']), $check);
+                $queries=isset($stored['analysis_scope'])?new AudienceAiQueries(new AudienceStore($conn,1,(int)$job['user_id'],'Analytics AI'),audienceAiReportWindow($stored['analysis_scope'])):null;
+                $reply = audienceAiGenerate($stored, $start + max(0, (float) $job['remaining']), $check,null,$queries);
             } else {
                 $request = aiCoachValidateRequest($stored, $job['user_role']);
                 $reply = aiCoachGenerate($request, $start + max(0, (float) $job['remaining']), $check);

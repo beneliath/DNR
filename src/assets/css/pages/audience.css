@@ -919,3 +919,7 @@ html.dark-mode .audience-theme-trigger .audience-theme-sun{display:block}
 .audience-person-main{min-width:0}.audience-person-summary>.audience-panel{min-width:0}
 
 .audience-insight-table{min-width:570px}.audience-insight-table th,.audience-insight-table td{padding:12px 10px;text-align:left}.audience-insight-table th:first-child{min-width:190px}
+
+.analytics-ai-beta{font-size:11px;font-weight:400;padding:3px 5px;border-radius:4px;background:#f8e4f2;color:#794566}
+.profile-inbox-message{margin-top:16px}
+.person-marketing-details:has(+ .profile-inbox-message){margin-bottom:0}

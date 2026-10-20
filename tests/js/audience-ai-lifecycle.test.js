@@ -4,26 +4,29 @@ const {readFileSync} = require('node:fs');
 const {runInNewContext} = require('node:vm');
 const source = readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-ai.js'),'utf8');
 class Element {
-  constructor(){this.listeners={};this.children=[];this.hidden=true;this.value='';this.textContent='';}
+  constructor(){this.listeners={};this.children=[];this.hidden=true;this.value='';this.textContent='';this.dataset={};this.style={setProperty(){}};this.scrollHeight=44;this.classList={toggle(){},add(){}};}
   addEventListener(type,callback){this.listeners[type]=callback;}
   append(...children){this.children.push(...children);}
   replaceChildren(...children){this.children=children;}
   setAttribute(){}
   closest(){return null;}
   focus(){}
+  scrollIntoView(){}
+  dispatchEvent(event){this.listeners[event.type]?.(event);}
 }
-function page(fetcher, mode='content'){
+function page(fetcher, mode='content', options={}){
   const controls=new Map();const find=selector=>{if(!controls.has(selector))controls.set(selector,new Element());return controls.get(selector);};
-  const form=find('[data-ai-form]');form.elements={text:new Element(),prompt:new Element(),subject:new Element(),operation:new Element()};form.elements.text.value='Private source';form.querySelector=()=>({value:'csrf'});
-  const root={querySelector:find,querySelectorAll:()=>[],setAttribute(){},closest(){return null;}};
-  let saved=null;const requests=[];
-  const context={document:{getElementById:()=>({textContent:JSON.stringify({mode,key:'account-role-session',endpoint:'audience_ai_api.php',enabled:true,window:{start:'2026-01-01'}})}),querySelector:selector=>selector==='[data-ai-root]'?root:null,createElement:()=>new Element(),createElementNS:()=>new Element(),addEventListener(){}},
-    FormData:class{constructor(){return [['text',form.elements.text.value],['prompt','Rewrite'],['operation','rewrite']][Symbol.iterator]();}},
-    crypto:{randomUUID:()=> '01234567-1234-1234-1234-012345678901'},sessionStorage:{getItem:()=>saved,setItem:(_,value)=>{saved=value;},removeItem:()=>{saved=null;}},
+  const form=find('[data-ai-form]');form.elements={text:new Element(),prompt:new Element(),subject:new Element(),operation:new Element()};form.elements.text.value='Private source';form.elements.prompt.value='Rewrite';form.querySelector=()=>({value:'csrf'});
+  const root={querySelector:find,querySelectorAll:selector=>selector==='[data-ai-starter]'?options.starters||[]:[],setAttribute(){},closest(){return null;},hasAttribute:()=>!!options.chat,style:{setProperty(){}},classList:{toggle(){}},getBoundingClientRect:()=>({top:160})};
+  let saved=options.pending?JSON.stringify(options.pending):null,sequence=0;const requests=[];const storage=options.storage||new Map();
+  const context={document:{getElementById:()=>({textContent:JSON.stringify({mode,key:'account-role-session',endpoint:'audience_ai_api.php',enabled:true,window:options.window||{start:'2026-01-01'}})}),querySelector:selector=>selector==='[data-ai-root]'?root:options.chat?find(selector):null,createElement:()=>new Element(),createTextNode:text=>Object.assign(new Element(),{textContent:text}),createElementNS:(_,tag)=>Object.assign(new Element(),{tagName:tag}),addEventListener(){}},
+    FormData:class{constructor(){return [['text',form.elements.text.value],['prompt',form.elements.prompt.value],['operation',mode==='analytics'?'analyze':'rewrite']][Symbol.iterator]();}},
+    crypto:{randomUUID:()=> `01234567-1234-1234-1234-${String(++sequence).padStart(12,'0')}`},sessionStorage:{getItem:()=>saved,setItem:(_,value)=>{saved=value;},removeItem:()=>{saved=null;}},
+    localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},window:{addEventListener(){}},Event:class{constructor(type){this.type=type;}},
     AbortController,setTimeout:()=>1,clearTimeout(){},console,
-    fetch:async(url,options)=>{requests.push({url,options});return {ok:true,json:()=>fetcher(url,options)};}};
+    fetch:async(url,requestOptions)=>{requests.push({url,options:requestOptions});return {ok:true,json:()=>url.endsWith('?action=history')?{items:options.historyItems||[]}:fetcher(url,requestOptions)};}};
   runInNewContext(source,context);
-  return {find,requests,storage:()=>saved,submit:()=>form.listeners.submit({preventDefault(){}})};
+  return {find,requests,localStorage:storage,storage:()=>saved,submit:()=>form.listeners.submit({preventDefault(){}})};
 }
 const reply={purpose:'audience-ai',reason:'',mode:'content',headline:'Headline',text:'<b>Literal model text</b>',subjects:['Subject'],recommendations:['Review facts'],checks:{facts:[],findings:[],note:'Computed'}};
 test('stop prevents a late response from appearing and recovery stores no source text',async()=>{
@@ -44,4 +47,210 @@ test('wrong-purpose and failed replies never appear as usable results',async()=>
   for(const response of [{...reply,purpose:'coach'},{...reply,reason:'unavailable',message:'Unavailable'}]){
     const p=page(()=>({state:'complete',response}));await p.submit();assert.equal(p.find('[data-ai-result]').hidden,true);
   }
+});
+
+const reportWindow={start:'2026-01-01',end:'2026-01-31',compare:'previous',bots:'filtered',channel:'all',messages_mode:'all',messages:[],segment:0,dataset:'email',source:''};
+const analyticsReply={purpose:'audience-ai',reason:'',mode:'analytics',summary:'Observed results',recommendations:[],observations:[{evidence_id:'accepted',text:'Sending volume changed.'}],evidence:{window:reportWindow,series:[],facts:[{id:'accepted',label:'Accepted messages',value:7,previous:4,change:75,unit:'count'}],includes_samples:false,calculations:{},limitations:[]}};
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+const textOf=element=>[element.textContent,...element.children.map(textOf)].join(' ');
+
+test('analytics recovery keeps waiting within the semantic validation deadline',async()=>{
+  const p=page(()=>({state:'complete',question:'A longer analysis',response:analyticsReply}),'analytics',{
+    chat:true,window:reportWindow,pending:{uuid:'slow-review',mode:'analytics',started:Date.now()-60000}
+  });
+  await tick();
+  assert.ok(p.requests.some(request=>request.url.includes('request_id=slow-review')));
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Observed results'));
+  assert.equal(p.storage(),null);
+});
+
+test('chat shows working animation immediately, then preserves follow-up turns and unique evidence links',async()=>{
+  let finish;const p=page(()=>new Promise(resolve=>{finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const first=p.submit();assert.equal(p.find('[data-ai-thinking]').hidden,false);assert.equal(p.find('[data-ai-generate]').disabled,true);await tick();
+  finish({state:'complete',response:analyticsReply});await first;
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);assert.equal(p.find('[data-ai-generate]').disabled,false);
+  const transcript=p.find('[data-ai-chat-transcript]');assert.equal(transcript.children.length,2);
+  assert.ok(!textOf(transcript).includes('7count'));
+  p.find('[data-ai-form]').elements.prompt.value='What changed?';const second=p.submit();await tick();
+  const posts=p.requests.filter(request=>request.options.method==='POST');
+  assert.equal(JSON.parse(posts[1].options.body).parent,JSON.parse(posts[0].options.body).request_id);
+  finish({state:'complete',response:analyticsReply});await second;
+  assert.equal(transcript.children.length,4);
+  const firstCard=transcript.children[1].children.find(child=>child.children.some(item=>item.id));
+  const secondCard=transcript.children[3].children.find(child=>child.children.some(item=>item.id));
+  assert.notEqual(firstCard.children[0].id,secondCard.children[0].id);
+});
+
+test('stopping chat hides the animation and prevents a late answer from entering the conversation',async()=>{
+  let finish;const p=page((url,options)=>JSON.parse(options.body).action==='cancel'?{saved:true}:new Promise(resolve=>{finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const submitting=p.submit();await p.find('[data-ai-stop]').listeners.click();
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);
+  finish({state:'complete',response:analyticsReply});await submitting;
+  assert.equal(p.find('[data-ai-chat-transcript]').children.length,1);
+});
+
+test('an audience answer retains follow-up context when its data scope differs from the report pane',async()=>{
+  const result={...analyticsReply,evidence:{...analyticsReply.evidence,window:{...reportWindow,dataset:'audience'}}};
+  const p=page(()=>({state:'complete',response:result}),'analytics',{chat:true,window:reportWindow});
+  p.find('[data-ai-form]').elements.prompt.value='How many contacts match?';await p.submit();
+  p.find('[data-ai-form]').elements.prompt.value='Please list those here';await p.submit();
+  const requests=p.requests.filter(request=>request.options?.method==='POST').map(request=>JSON.parse(request.options.body));
+  assert.equal(requests[1].parent,requests[0].request_id);
+  assert.equal(requests[1].window.dataset,'audience');
+});
+
+test('reset list persists its cutoff, retains a visible answer, and admits later requests',async()=>{
+  const options={chat:true,window:reportWindow,historyItems:[{client_request_id:'old',question:'Old request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00.000001',outcome:'complete'}]};
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',options);await tick();await p.submit();await tick();
+  const turns=p.find('[data-ai-chat-transcript]').children.length;
+  p.find('[data-ai-history-reset]').listeners.click();
+  assert.equal(p.find('[data-ai-history]').children.length,0);assert.equal(p.find('[data-ai-chat-transcript]').children.length,turns);
+  assert.equal([...p.localStorage.values()][0],'2026-01-01 12:00:00.000001');
+  options.historyItems.push({...options.historyItems[0],client_request_id:'new',question:'New request',created_at:'2026-01-01 12:00:01.000001'});
+  p.find('[data-ai-form]').elements.prompt.value='Another question';await p.submit();await tick();
+  assert.equal(p.find('[data-ai-history]').children.length,1);
+  assert.equal(textOf(p.find('[data-ai-history]')).includes('Old request'),false);
+});
+
+test('new chat invalidates a pending history response',async()=>{
+  let finish;const options={chat:true,window:reportWindow,historyItems:[{client_request_id:'old',question:'Old request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'complete'}]};
+  const p=page(()=>new Promise(resolve=>{finish=resolve;}),'analytics',options);await tick();
+  const opening=p.find('[data-ai-history]').children[0].children[0].listeners.click();
+  await p.find('[data-ai-new]').listeners.click();finish({state:'complete',response:analyticsReply});await opening;
+  assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);assert.equal(p.find('[data-ai-welcome]').hidden,false);
+});
+
+test('circle-X removes only its request and persists removal without deleting server records',async()=>{
+  const options={chat:true,window:reportWindow,historyItems:[
+    {client_request_id:'first',question:'First request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'complete'},
+    {client_request_id:'second',question:'Second request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
+  ]};
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',options);await tick();
+  const remove=p.find('[data-ai-history]').children[0].children[1];
+  assert.equal(remove.className,'ai-history-remove');assert.equal(remove.children[0].tagName,'svg');
+  remove.listeners.click();
+  assert.equal(p.find('[data-ai-history]').children.length,1);assert.ok(textOf(p.find('[data-ai-history]')).includes('Second request'));
+  assert.equal(p.requests.some(request=>request.options?.method==='POST'),false);
+  const reopened=page(()=>({}),'analytics',{...options,storage:p.localStorage});await tick();
+  assert.equal(reopened.find('[data-ai-history]').children.length,1);assert.equal(textOf(reopened.find('[data-ai-history]')).includes('First request'),false);
+  reopened.find('[data-ai-history]').children[0].children[1].listeners.click();
+  assert.equal(reopened.find('[data-ai-history-empty]').hidden,false);assert.equal(reopened.find('[data-ai-history-reset]').disabled,true);
+});
+
+test('recent history highlights only the displayed chat and clears on New chat',async()=>{
+  const options={chat:true,window:reportWindow,historyItems:[
+    {client_request_id:'first',question:'First request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'complete'},
+    {client_request_id:'second',question:'Second request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
+  ]};
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',options);await tick();
+  await p.find('[data-ai-history]').children[0].children[0].listeners.click();
+  assert.ok(p.find('[data-ai-history]').children[0].children[0].className.includes('is-current'));
+  await p.find('[data-ai-history]').children[1].children[0].listeners.click();
+  assert.equal(p.find('[data-ai-history]').children[0].children[0].className.includes('is-current'),false);
+  assert.ok(p.find('[data-ai-history]').children[1].children[0].className.includes('is-current'));
+  await p.find('[data-ai-new]').listeners.click();
+  assert.equal(p.find('[data-ai-history]').children.some(item=>item.children[0].className.includes('is-current')),false);
+});
+
+test('a pending first history item opens on its first click and completes in place',async()=>{
+  let finish,reads=0;
+  const created=new Date().toISOString().replace('T',' ').replace('Z','');
+  const options={chat:true,window:reportWindow,historyItems:[{client_request_id:'pending',question:'Working request',manual_topic:'audience-ai:analytics',created_at:created,outcome:'pending'}]};
+  const p=page(()=>++reads===1?{state:'pending'}:new Promise(resolve=>{finish=resolve;}),'analytics',options);await tick();
+  const opening=p.find('[data-ai-history]').children[0].children[0].listeners.click();await tick();
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Working request'));
+  assert.ok(p.find('[data-ai-history]').children[0].children[0].className.includes('is-current'));
+  assert.equal(p.find('[data-ai-thinking]').hidden,false);
+  finish({state:'complete',question:'Working request',response:analyticsReply});await opening;
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Observed results'));assert.equal(p.find('[data-ai-thinking]').hidden,true);
+});
+
+test('reload recovery restores the question and permits opening another history entry',async()=>{
+  let finish;
+  const options={chat:true,window:reportWindow,pending:{uuid:'recovering',mode:'analytics',started:Date.now()},historyItems:[
+    {client_request_id:'recovering',question:'Restored request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'pending'},
+    {client_request_id:'saved',question:'Saved request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
+  ]};
+  const p=page(url=>url.endsWith('recovering')?new Promise(resolve=>{finish=resolve;}):{state:'complete',response:analyticsReply},'analytics',options);await tick();
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Restored request'));
+  await p.find('[data-ai-history]').children[0].children[0].listeners.click();
+  assert.ok(p.find('[data-ai-history]').children[0].children[0].className.includes('is-current'));
+  await p.find('[data-ai-history]').children[1].children[0].listeners.click();
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Saved request'));
+  assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Restored request'),false);
+  finish({state:'complete',response:{...analyticsReply,summary:'Late recovered answer'}});await tick();
+  assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Late recovered answer'),false);
+});
+
+test('an audience starter updates the request dataset and clears email-only filters',async()=>{
+  const starter=new Element();starter.textContent='How has my audience changed?';starter.dataset.aiWindow=JSON.stringify({dataset:'audience',start:'2026-01-01',end:'2026-03-31'});
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',{chat:true,window:{...reportWindow,bots:'all',messages_mode:'selected',messages:[7],segment:4},starters:[starter]});
+  starter.listeners.click();await p.submit();
+  const request=JSON.parse(p.requests.find(item=>item.options.method==='POST').options.body);
+  assert.equal(request.window.dataset,'audience');assert.deepEqual(request.window.messages,[]);assert.equal(request.window.segment,0);assert.equal(request.window.bots,'filtered');
+});
+
+test('submission clears the prompt immediately while retaining the question and a visible failure with Retry',async()=>{
+  let finish;const p=page(()=>new Promise(resolve=>{finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  p.find('[data-ai-form]').elements.prompt.value='Find John Smith';const pending=p.submit();
+  assert.equal(p.find('[data-ai-form]').elements.prompt.value,'');assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Find John Smith'));
+  await tick();finish({state:'complete',response:{purpose:'audience-ai',mode:'analytics',reason:'unavailable',message:'The AI service did not finish in time.'}});await pending;
+  const text=textOf(p.find('[data-ai-chat-transcript]'));assert.ok(text.includes('The AI service did not finish in time.'));assert.ok(text.includes('Retry'));
+});
+
+test('saved replies display cited cards, and query results display returned contact data',async()=>{
+  const legacy={...analyticsReply,evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'unrelated',label:'Audience growth',value:123,previous:null,change:null,unit:'count'}]}};
+  const p=page(()=>({state:'complete',response:legacy}),'analytics',{chat:true,window:reportWindow});await p.submit();
+  assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Audience growth'),false);
+  const queryReply={...analyticsReply,observations:[{evidence_id:'query_0_contacts',text:'John Smith has the saved address john@example.test.'}],evidence:{...analyticsReply.evidence,queries:[{tool:'contacts'}],facts:[],tables:[{id:'query_0_contacts',title:'Matching audience records',total:8,shown:1,truncated:true,columns:[{key:'name',label:'Name'},{key:'email',label:'Email address'}],rows:[{name:'John Smith',email:'john@example.test'}]}]}};
+  const q=page(()=>({state:'complete',response:queryReply}),'analytics',{chat:true,window:reportWindow});await q.submit();
+  assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('john@example.test'));
+  assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('Source: Matching audience records'));
+  assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('Showing 1 of 8'));
+  assert.equal(textOf(q.find('[data-ai-chat-transcript]')).includes('could not be displayed'),false);
+});
+
+test('contact pagination appends the remaining matches without submitting another AI request',async()=>{
+  const rows=Array.from({length:30},(_,index)=>({name:`Contact ${index+1}`,email:`person${index+1}@example.test`}));
+  const table={id:'query_0_contacts',title:'Matching audience records',total:30,shown:5,truncated:true,next_offset:5,columns:[{key:'name',label:'Name'},{key:'email',label:'Email'}],rows:rows.slice(0,5)};
+  const result={...analyticsReply,observations:[],evidence:{...analyticsReply.evidence,facts:[],tables:[table]}};
+  const p=page(url=>url.includes('action=contacts')?{table:{...table,rows:rows.slice(5),shown:25,truncated:false,next_offset:null}}:{state:'complete',response:result},'analytics',{chat:true,window:reportWindow});
+  await p.submit();
+  const answer=p.find('[data-ai-chat-transcript]').children[1];
+  const more=answer.children.find(item=>item.textContent==='Show more results');
+  assert.ok(more);assert.ok(textOf(answer).includes('Showing 5 of 30'));
+  p.find('[data-ai-form]').elements.prompt.value='An unsent follow-up';
+  await more.listeners.click();
+  assert.ok(textOf(answer).includes('Showing 30 of 30'));assert.ok(textOf(answer).includes('person30@example.test'));
+  assert.equal(more.hidden,true);assert.equal(p.find('[data-ai-form]').elements.prompt.value,'An unsent follow-up');
+  assert.equal(p.requests.filter(request=>request.options?.method==='POST').length,1);
+  assert.ok(p.requests.some(request=>request.url.includes('table_id=query_0_contacts&offset=5')));
+});
+
+test('clarification is displayed as a question without unrelated metric cards',async()=>{
+  const result={...analyticsReply,interpretation:'clarification',summary:'Which audience field do you mean?',observations:[],recommendations:[],evidence:{...analyticsReply.evidence,facts:[],tables:[],series:[]}};
+  const p=page(()=>({state:'complete',response:result}),'analytics',{chat:true,window:reportWindow});await p.submit();
+  const text=textOf(p.find('[data-ai-chat-transcript]'));
+  assert.ok(text.includes('A quick clarification'));assert.ok(text.includes('Which audience field do you mean?'));
+  assert.equal(text.includes('The request could not be completed'),false);
+});
+
+
+test('calculated comparisons display and link every cited source without unrelated cards',async()=>{
+  const result={...analyticsReply,interpretation:'calculated',summary:'',observations:[{evidence_id:'accepted',evidence_ids:['accepted','previousCampaign'],text:'A is higher than B by 3.'}],evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'previousCampaign',label:'Second campaign',value:4,previous:null,change:null,unit:'count'},{id:'unrelated',label:'Unrelated metric',value:100,previous:null,change:null,unit:'count'}]}};
+  const p=page(()=>({state:'complete',response:result}),'analytics',{chat:true,window:reportWindow});await p.submit();
+  const transcript=p.find('[data-ai-chat-transcript]');const text=textOf(transcript);
+  assert.ok(text.includes('Report results'));assert.ok(text.includes('A is higher than B by 3.'));
+  assert.ok(text.includes('Source: Accepted messages'));assert.ok(text.includes('Source: Second campaign'));
+  assert.equal(text.includes('Unrelated metric'),false);
+  const walk=el=>[el,...el.children.flatMap(walk)];const elements=walk(transcript);
+  const links=elements.filter(el=>el.href?.startsWith('#ai-evidence-'));
+  assert.equal(links.length,2);for(const link of links)assert.ok(elements.some(el=>el.id===link.href.slice(1)));
+});
+
+test('an equal comparison baseline is labeled unchanged without a downward arrow',async()=>{
+  const result={...analyticsReply,evidence:{...analyticsReply.evidence,facts:[{...analyticsReply.evidence.facts[0],value:7,previous:7,change:0}]}};
+  const p=page(()=>({state:'complete',response:result}),'analytics',{chat:true,window:reportWindow});await p.submit();
+  const text=textOf(p.find('[data-ai-chat-transcript]'));
+  assert.ok(text.includes('Unchanged'));assert.equal(text.includes('↓ 0%'),false);
 });
