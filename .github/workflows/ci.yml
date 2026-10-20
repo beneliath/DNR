@@ -90,7 +90,8 @@ jobs:
           done
 
   quality:
-    runs-on: ubuntu-latest
+    # Keep bounded receipt-PDF tools on the qualified OS instead of a moving image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
