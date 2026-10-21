@@ -2,7 +2,7 @@
 require_once $source.'/audience_ai.php';
 $aiStart=$checks;
 $aiApi=static function(int $client,?array $values=null,string $query='',?string $csrfValue=null)use($cookies,$clients):array{
-    $roles=['admin','editor','reviewer'];
+    $roles=['admin','editor','reviewer','queue-editor'];
     $csrfValue??=audienceHttpCsrf($clients[$roles[$client]]('audience.php'));
     $curl=curl_init('http://127.0.0.1/audience_ai_api.php'.$query);
     curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$cookies[$client],CURLOPT_COOKIEJAR=>$cookies[$client],CURLOPT_TIMEOUT=>10]);
@@ -92,8 +92,8 @@ foreach([1=>'editor',2=>'reviewer']as$client=>$role){
     audienceHttpExpect($aiApi(0,null,'?request_id='.$roleResultNonce)['status']===404,'Another user cannot read '.$role.' analytics results');
 }
 $held=[];for($n=0;$n<8;$n++){[$heldId]=$aiFixture();$held[]=$heldId;$conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,claim_token,deadline_at) VALUES (?,?,'generating',?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 SECOND))",[$heldId,'{}',bin2hex(random_bytes(16))]);}
-// Separate editor session avoids per-session throttling masking queue admission.
-$full=$aiApi(1,['mode'=>'content','operation'=>'write','prompt'=>'A short fixture','request_id'=>$uuid()]);
+// This session has not generated analytics; test queue admission without its request throttle.
+$full=$aiApi(3,['mode'=>'content','operation'=>'write','prompt'=>'A short fixture','request_id'=>$uuid()]);
 audienceHttpExpect($full['status']===429&&str_contains($full['data']['error'],'busy'),'Native and existing help share the bounded queue capacity');
 foreach($aiIds as$fixtureId)$conn->execute_query('DELETE FROM ai_coach_requests WHERE id=?',[$fixtureId]);
 audienceHttpExpect($conn->query('SELECT COUNT(*) FROM marketing_campaign_deliveries')->fetch_row()[0]===$sendingBefore,'Assistant generation and applying never create delivery jobs');

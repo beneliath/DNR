@@ -7,12 +7,12 @@ function audienceHttpExpect(bool $condition,string $message):void{global $checks
 function audienceHttpCsrf(array $response):string{preg_match('/name="csrf_token"[^>]*value="([^"]+)"/',$response['body'],$m);if(empty($m[1]))preg_match('/"csrf":"([^"]+)"/',$response['body'],$m);if(empty($m[1]))throw new RuntimeException('Missing Audience CSRF: '.$response['status']);return html_entity_decode($m[1],ENT_QUOTES);}
 $clients=[];$cookies=[];$suffix=bin2hex(random_bytes(5));
 try{
-    foreach(['admin','editor','reviewer']as$role){
-        $username='audience-'.$role.'-'.$suffix;$password=bin2hex(random_bytes(16));
+    foreach(['admin'=>'admin','editor'=>'editor','reviewer'=>'reviewer','queue-editor'=>'editor']as$clientKey=>$role){
+        $username='audience-'.$clientKey.'-'.$suffix;$password=bin2hex(random_bytes(16));
         $conn->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$username,password_hash($password,PASSWORD_DEFAULT),$role]);
         $cookie=tempnam(sys_get_temp_dir(),'audience-cookie-');$cookies[]=$cookie;
         $client=static function(string $path,?array $post=null,bool $multipart=false)use($cookie):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>30]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,$multipart?$post:http_build_query($post));$raw=curl_exec($curl);if($raw===false)throw new RuntimeException(curl_error($curl));$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);$result=['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];return $result;};
-        $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$role);$clients[$role]=$client;
+        $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
     $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced filters'),'Connections renders');
