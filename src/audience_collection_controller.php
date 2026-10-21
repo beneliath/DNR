@@ -79,7 +79,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $q=audienceText($_GET,'q',100); $type=audienceText($_GET,'type',20);$trash=($_GET['trash']??'')==='1';
     $creationKind=\Dnr\Http\RequestInput::enum($_GET,'kind',AUDIENCE_COLLECTION_KINDS,'hosted');
     $kinds=match($view){'surveys'=>['survey'],'landing-pages'=>['landing'],'preferences'=>['preferences'],'form-settings'=>['hosted','preferences'],default=>['hosted','embedded','popup','landing']};
-    $resources=[];$collectionPerPage=(int)($_GET['per_page']??100);if(!in_array($collectionPerPage,[10,25,50,100],true))$collectionPerPage=100;$collectionPage=1;$collectionPages=1;$collectionTotal=0;$collectionDirection=($_GET['direction']??'desc')==='asc'?'asc':'desc';
+    $resources=[];$blockedSignupIds=[];$collectionPerPage=(int)($_GET['per_page']??100);if(!in_array($collectionPerPage,[10,25,50,100],true))$collectionPerPage=100;$collectionPage=1;$collectionPages=1;$collectionTotal=0;$collectionDirection=($_GET['direction']??'desc')==='asc'?'asc':'desc';
     $listQuery=['view'=>$view,'q'=>$q,'type'=>$type,'trash'=>$trash?'1':'0','per_page'=>$collectionPerPage,'direction'=>$collectionDirection];
     if ($available) {
         $sql='SELECT * FROM marketing_collection_resources WHERE audience_id=? AND deleted_at IS '.($trash?'NOT NULL':'NULL').' AND kind IN ('.implode(',',array_fill(0,count($kinds),'?')).')'; $params=[$audienceId,...$kinds];
@@ -87,6 +87,16 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         if (in_array($type,$kinds,true)) { $sql.=' AND kind=?'; $params[]=$type; }
         $collectionTotal=(int)$store->one(str_replace('SELECT *','SELECT COUNT(*) n',$sql),$params)['n'];$collectionPages=max(1,(int)ceil($collectionTotal/$collectionPerPage));$collectionPage=max(1,min($collectionPages,(int)($_GET['page']??1)));
         $resources=$store->all($sql.' ORDER BY updated_at '.$collectionDirection.',id '.$collectionDirection.' LIMIT ? OFFSET ?',[...$params,$collectionPerPage,($collectionPage-1)*$collectionPerPage]);
+    }
+    if($resources){
+        $publishedIds=array_column(array_filter($resources,static fn($r)=>!$r['deleted_at']&&$r['state']==='published'&&in_array($r['kind'],['hosted','embedded','popup','landing'],true)),'id');
+        if($publishedIds){
+            $ses=$store->sesSettings();
+            if(audienceSesReasons($ses,$ses['from_email']??'')){
+                $published=$store->all('SELECT r.id,v.document_json FROM marketing_collection_resources r JOIN marketing_collection_revisions v ON v.id=r.published_revision AND v.resource_id=r.id AND v.audience_id=r.audience_id WHERE r.audience_id=? AND r.id IN ('.implode(',',array_fill(0,count($publishedIds),'?')).')',[$audienceId,...$publishedIds]);
+                foreach($published as$r)if((audienceJson($r['document_json'])['opt_in']??'')==='double')$blockedSignupIds[(int)$r['id']]=true;
+            }
+        }
     }
     $report=[];$reportDocuments=[];$revisionTotals=[];$questionTotals=[];$responses=[];$totalResponses=0;$visits=0;$reportStart='';$reportEnd='';$questionFilter='';$answerFilter='';$revisionFilter=0;
     if($resource&&$view==='collection-report'){

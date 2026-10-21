@@ -52,7 +52,7 @@ if($isPost){
             case 'delivery_domain_operation':$store->sendingDomainOperation($id,$version,audienceText($_POST,'operation'));$redirect=$url(['view'=>'delivery']);$message='Domain settings updated. Connections and campaign content were kept.';break;
 
             case 'content_rename':$store->operateDesignLibrary($id,$version,'rename',audienceText($_POST,'name',100));$redirect=$url(['view'=>'content','item'=>$id]);$message='File renamed.';break;
-            case 'content_save':if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$_POST=array_replace($_POST,audienceContentFileUpload($_FILES['image_file']));$contentId=$store->saveContentItem($_POST,$id,$version);$redirect=$url(['view'=>'content','item'=>$contentId]);$message='File saved.';break;
+            case 'content_save':if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$_POST=array_replace($_POST,audienceContentFileUpload($_FILES['image_file']));$store->saveContentItem($_POST,$id,$version);$redirect=$contentUrl();$message='File saved.';break;
             case 'content_operation':$store->contentOperation(audienceText($_POST,'operation'),audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$url(['view'=>'content']);$message='Files updated. Existing email snapshots are preserved.';break;
             case 'content_folder':$store->contentFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
@@ -159,22 +159,23 @@ if($campaign&&$dispatchInstalled){
     if($view==='campaign-send'&&$canSend)try{$dispatchReview=$store->reviewCampaignDispatch($id,$audience,accountPrimaryPublicUrl());}catch(InvalidArgumentException|RuntimeException $e){$dispatchError=$e instanceof InvalidArgumentException?$e->getMessage():'Public email links are not configured. Review Email delivery setup.';}
 }
 if($view==='campaign-send'&&!$canSend)$dispatchError='Sending requires an unrestricted editor or administrator.';
-$contentLibrary=null;$contentItem=null;$contentContext=null;$brand=[];$brandTemplates=[];$brandImages=[];
+$contentLibrary=null;$contentItem=null;$contentContext=null;$brand=[];$brandTemplates=[];
 if(in_array($view,['content','brand'],true)){
     $contentContext=$store->contentSettings();$brand=$contentContext['settings']['brand']??[];
     if($view==='content'){$contentLibrary=$store->contentList($_GET);$contentId=\Dnr\Http\RequestInput::positiveInt($_GET,'item')??0;if($contentId){try{$contentItem=$store->designLibraryItem($contentId);$contentItem['usage']=$store->contentUsage($contentItem);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}}
-    else{$brandTemplates=$store->all('SELECT id,name,version FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);$brandImages=$store->all("SELECT id,name FROM marketing_design_library WHERE audience_id=? AND item_type='image' AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);$brandPreview=$store->brandedDesign(audienceDesignStarters()['newsletter']['design'],$brand,!empty($brand['logo']));}
+    else{$brandTemplates=$store->all('SELECT id,name,version FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);$brandPreview=$store->brandedDesign(audienceDesignStarters()['newsletter']['design'],$brand,!empty($brand['logo']));}
 }
 $publication=$campaign?$store->campaignPublication((int)$campaign['id']):null;
 $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$id):[];
 $campaignMergeTags=$store->campaignMergeTags();
+$previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
 $sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
 $managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc'],$changes));
 $pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>
 <!DOCTYPE html><html lang="en">
-<?php renderPageHead(applicationPageTitle($view==='delivery'?'Email delivery':'Campaigns'),['styles'=>['assets/css/pages/audience.min.css',...($view==='campaigns'?['assets/css/pages/audience-campaign-list.min.css']:[])],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]); ?>
+<?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css',...($view==='campaigns'?['assets/css/pages/audience-campaign-list.min.css']:[])],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]); ?>
 <?php include __DIR__.'/templates/audience/workspace.php'; ?>
 </html>
 

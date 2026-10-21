@@ -24,7 +24,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 if(!$store->deliveryRuntimeAvailable())throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
                 $n=$store->queueCampaignTest($id,$version,$_POST,$audience,accountPrimaryPublicUrl(),$kind,$variant);$respond(['queued'=>$n]);
             }elseif($action==='design_save'){
-                $design=audienceDesign(audienceJson(audienceText($_POST,'design',3000000)));
+                $design=audienceDesign(audienceJson(audienceDesignPayload($_POST['design']??'')));
                 $version=$store->saveEmailDesign($kind,$id,$version,$design,$variant);
                 $respond(['version'=>$version]);
             }elseif($action==='design_rename'){
@@ -32,11 +32,15 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 $name=audienceText($_POST,'name',100);$store->emailTemplateOperation('rename',$id,$version,['name'=>$name]);
                 $respond(['name'=>$name,'version'=>$version+1]);
              }elseif($action==='design_preview'||$action==='design_links'||$action==='design_source'){
-                $design=audienceDesign(audienceJson(audienceText($_POST,'design',3000000)));$store->validateDesignConditions($design);
+                $design=audienceDesign(audienceJson(audienceDesignPayload($_POST['design']??'')));$store->validateDesignConditions($design);
                 $personId=\Dnr\Http\RequestInput::positiveInt($_POST,'person_id')??0;$context=($_POST['live']??'')==='1'?$store->designRecipientContext($personId,$audience):null;
                 $draft=$kind==='campaign'?($owner['draft']??[]):[];if($context!==null)$context+=['MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??''),'CURRENT_YEAR'=>gmdate('Y'),'LIST:NAME'=>$audience['name']];
-                $report=audienceDesignLinkReport($design,$context);$safe=$design['mode']==='code'?audienceDesignSafeCode($design['code'],$design['areas']):['warnings'=>[],'regions'=>[]];
-                $respond(['html'=>audienceDesignPreviewHtml($design,audienceText($_POST,'preview_nonce',100)?:contentSecurityPolicyNonce(),$context),'text'=>audienceDesignPlainText($design,$context),'report'=>$report,'warnings'=>$safe['warnings'],'regions'=>$safe['regions'],'source'=>$action==='design_source'?($design['mode']==='code'?audienceDesignCodeWithAreas($design['code'],$design['areas']):audienceDesignHtml($design,$context)):null]);
+                // Resolve audience identity in ordinary preview without evaluating recipient conditions.
+                $identity=$store->designRecipientContext(0,$audience);$identity+=['CURRENT_YEAR'=>gmdate('Y'),'LIST:NAME'=>$audience['name']];
+                $preview=audienceDesignPreviewHtml($design,audienceText($_POST,'preview_nonce',100)?:contentSecurityPolicyNonce(),$context,($_POST['dark']??'')==='1');$plain=audienceDesignPlainText($design,$context);
+                if($context===null){$htmlTags=[];$plainTags=[];foreach($identity as$key=>$value){$htmlTags['*|'.$key.'|*']=htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$plainTags['*|'.$key.'|*']=(string)$value;}$preview=strtr($preview,$htmlTags);$plain=strtr($plain,$plainTags);}
+                $report=audienceDesignLinkReport($design,$context);if($context===null&&trim($identity['LIST:ADDRESS'])==='')$report['warnings'][]='The audience mailing address is missing.';$safe=$design['mode']==='code'?audienceDesignSafeCode($design['code'],$design['areas']):['warnings'=>[],'regions'=>[]];
+                $respond(['html'=>$preview,'text'=>$plain,'report'=>$report,'warnings'=>$safe['warnings'],'regions'=>$safe['regions'],'source'=>$action==='design_source'?($design['mode']==='code'?audienceDesignCodeWithAreas($design['code'],$design['areas']):audienceDesignHtml($design,$context)):null]);
             }elseif($action==='design_people'){
                 $search=audienceText($_POST,'search',100);$respond(['people'=>$store->all("SELECT id,email,first_name,last_name FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL AND is_archived=0 AND (LOCATE(?,email)>0 OR LOCATE(?,CONCAT(first_name,' ',last_name))>0) ORDER BY email LIMIT 20",[$audienceId,$search,$search])]);
             }elseif($action==='design_probe_link'){$respond(audienceDesignProbeLink(audienceText($_POST,'url',2048)));}
@@ -47,7 +51,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
             elseif($action==='design_comment_resolve'){$store->resolveDesignComment($kind,$id,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_version')??0,($_POST['resolved']??'')==='1');$respond(['comments'=>$store->designComments($kind,$id)]);}
             elseif($action==='design_library'){$respond($store->designLibrary(audienceText($_POST,'type'),audienceText($_POST,'search',100),\Dnr\Http\RequestInput::positiveInt($_POST,'page')??1));}
             elseif($action==='design_library_get'){$respond(['item'=>$store->designLibraryItem(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0)]);}
-            elseif($action==='design_library_save'){$item=$store->saveDesignLibrary(audienceText($_POST,'type'),audienceText($_POST,'name',100),audienceJson(audienceText($_POST,'data',3000000)));$respond(['id'=>$item]);}
+            elseif($action==='design_library_save'){$item=$store->saveDesignLibrary(audienceText($_POST,'type'),audienceText($_POST,'name',100),audienceJson(audienceDesignPayload($_POST['data']??'')));$respond(['id'=>$item]);}
             elseif($action==='design_library_operation'){$store->operateDesignLibrary(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'item_version')??0,audienceText($_POST,'operation'),audienceText($_POST,'name',100));$respond(['saved'=>true]);}
             elseif($action==='design_code_validate'){$safe=audienceDesignSafeCode(audienceText($_POST,'code',1000000));$respond(['warnings'=>$safe['warnings'],'regions'=>$safe['regions']]);}
             elseif($action==='design_template'){

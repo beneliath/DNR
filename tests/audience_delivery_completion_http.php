@@ -39,6 +39,10 @@ audienceHttpExpect($public($track)['status']===200&&$public($track)['status']===
 audienceHttpExpect($public(preg_replace('/sig=[a-f0-9]+/','sig='.str_repeat('0',64),$track))['status']===404,'Unsigned tracking rejected');
 $encoded=rtrim(strtr(base64_encode('https://example.test/news'),'+/','-_'),'=');$click='audience_track.php?'.http_build_query(['token'=>$ctx['token'],'url'=>$encoded,'sig'=>hash_hmac('sha256',$encoded,$snap['tracking_key'])]);
 audienceHttpExpect($public($click)['status']===302&&str_contains($public($click)['headers'],'Location: https://example.test/news'),'Signed click redirects without fetching destination');
+$httpEncoded=rtrim(strtr(base64_encode('http://legacy.example.test/news'),'+/','-_'),'=');
+$httpClick='audience_track.php?'.http_build_query(['token'=>$ctx['token'],'url'=>$httpEncoded,'sig'=>hash_hmac('sha256',$httpEncoded,$snap['tracking_key'])]);
+$httpRedirect=$public($httpClick);
+audienceHttpExpect($httpRedirect['status']===302&&str_contains($httpRedirect['headers'],'Location: http://legacy.example.test/news'),'Signed HTTP links redirect to the authored destination without fetching it');
 $prefs='audience_subscription.php?token='.$ctx['token'].'&preferences=1';$prefsPage=$editor($prefs);$prefsCsrf=audienceHttpCsrf($prefsPage);$person=$campaignStore->person((int)$rr['contact_id']);$tagsBefore=$person['tag_ids'];
 audienceHttpExpect($prefsPage['status']===200&&str_contains($prefsPage['body'],'Update your preferences')&&!preg_match('/Warning:|Fatal error:/',$prefsPage['body']),'Private preferences renders');
 audienceHttpExpect($editor($prefs,['csrf_token'=>'bad','preference_action'=>'save','version'=>$person['version']])['status']===400,'Preferences require CSRF');

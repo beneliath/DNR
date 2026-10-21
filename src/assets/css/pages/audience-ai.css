@@ -8,3 +8,14 @@
 [data-ai-history] li{position:relative;padding-right:28px}[data-ai-history] .ai-history-remove{position:absolute;right:0;top:8px;display:grid;place-items:center;width:24px;height:24px;min-height:24px;padding:2px;border:0;background:transparent;color:var(--audience-muted)}[data-ai-history] .ai-history-remove:hover{color:var(--audience-primary);background:var(--audience-hover)}.ai-history-remove svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
 [data-ai-history] .ai-history-open.is-current{background:var(--audience-selected);color:var(--audience-primary);font-weight:400;box-shadow:inset 3px 0 0 var(--audience-primary)}
 .analytics-ai-compose-area [data-ai-status]:empty{display:none}
+.ai-assistant .ai-starters{gap:12px 14px}
+.ai-assistant .ai-disclosure{margin:20px 0 24px;line-height:1.6}
+.ai-assistant .ai-actions{align-items:stretch;gap:12px}
+.ai-assistant .ai-actions>button{margin:0!important;min-height:42px;line-height:1.25;align-self:stretch}
+.ai-assistant>[data-ai-status]{margin:16px 0 0}
+.analytics-ai-chat{height:max(780px,calc(100dvh - var(--analytics-ai-offset,160px)));grid-template-rows:minmax(0,1fr) auto}
+.analytics-ai-history{grid-row:1/-1;min-height:0;contain:size;overflow-y:auto;overscroll-behavior-y:contain}
+.analytics-ai-footer{grid-column:2}
+.analytics-ai-chat.history-collapsed>.analytics-ai-footer{grid-column:1}
+.analytics-ai-footer>.app-footer{padding-inline:24px}
+@media(max-width:700px){.analytics-ai-chat{height:auto;grid-template-rows:auto}.analytics-ai-history{grid-row:auto;contain:none}.analytics-ai-footer{grid-column:1}.analytics-ai-footer>.app-footer{padding-inline:16px}}

@@ -2,22 +2,38 @@
 declare(strict_types=1);
 require_once __DIR__.'/audience_design_advanced.php';
 
+function audienceDesignRichImage(DOMElement $node):string
+{
+    try{$source=audienceDesignImage($node->getAttribute('src'));}catch(InvalidArgumentException){return '';}
+    if($source==='')return '';
+    $css=[];foreach(explode(';',$node->getAttribute('style'))as$declaration){$pair=explode(':',$declaration,2);if(count($pair)===2)$css[strtolower(trim($pair[0]))]=trim($pair[1]);}
+    $width=$node->getAttribute('width')?:preg_replace('/px$/','',$css['width']??'');
+    $side=in_array($node->getAttribute('align'),['left','right'],true)?$node->getAttribute('align'):($css['float']??'');
+    $attrs='';$style='max-width:100%;height:auto';
+    if(preg_match('/^[0-9]{1,4}$/D',$width)&&(int)$width>0&&(int)$width<=2400){$attrs.=' width="'.(int)$width.'"';$style.=';width:'.(int)$width.'px';}
+    if(in_array($side,['left','right'],true)){$attrs.=' align="'.$side.'"';$style.=';float:'.$side.';margin:'.($side==='left'?'0 12px 12px 0':'0 0 12px 12px');}
+    return '<img src="'.htmlspecialchars($source,ENT_QUOTES,'UTF-8').'" alt="'.htmlspecialchars(mb_substr($node->getAttribute('alt'),0,300),ENT_QUOTES,'UTF-8').'"'.$attrs.' style="'.$style.'">';
+}
+
 /** Keep authored rich text inert and portable across preview and email rendering. */
 function audienceDesignRichText(string $html):string
 {
-    if(mb_strlen($html)>30000)throw new InvalidArgumentException('Keep each text block below 30,000 characters.');
+    // Embedded image bytes share the document budget; they are not text.
+    audienceDesignPayload($html);
+    if(mb_strlen(strip_tags($html))>30000)throw new InvalidArgumentException('Keep each text block below 30,000 characters.');
     if($html==='')return '';
     $doc=new DOMDocument();$previous=libxml_use_internal_errors(true);
     try{$doc->loadHTML('<?xml encoding="UTF-8"><html><body>'.$html.'</body></html>',LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);}finally{libxml_clear_errors();libxml_use_internal_errors($previous);}
     $walk=static function(DOMNode $node)use(&$walk):string{
         if($node instanceof DOMText)return htmlspecialchars($node->textContent,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
         if(!($node instanceof DOMElement))return '';
-        $tag=strtolower($node->tagName);if(in_array($tag,['script','style','iframe','object','svg','math','form','input','img'],true))return '';
+        $tag=strtolower($node->tagName);if(in_array($tag,['script','style','iframe','object','svg','math','form','input'],true))return '';
+        if($tag==='img')return audienceDesignRichImage($node);
         $children='';foreach($node->childNodes as$child)$children.=$walk($child);
-        if(!in_array($tag,['p','div','span','font','br','strong','b','em','i','u','s','ul','ol','li','a'],true))return $children;
-        if($tag==='br')return '<br>';
-        $attrs='';$id=$node->getAttribute('id');if(preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$id))$attrs=' id="'.$id.'"';if($tag==='a'){$href=$node->getAttribute('href');if(!audienceDesignUrl($href))return $children;$attrs.=' href="'.htmlspecialchars($href,ENT_QUOTES,'UTF-8').'"';}
-        $style=$node->getAttribute('style');$declarations=[];foreach(explode(';',audienceDesignSafeCss($style,false))as$declaration){if(preg_match('/^(?:color|font-family|font-size|font-weight|font-style|text-decoration|letter-spacing):/',$declaration))$declarations[]=$declaration;}
+        if(!in_array($tag,['p','div','span','font','br','hr','h1','h2','h3','h4','blockquote','strong','b','em','i','u','s','ul','ol','li','a'],true))return $children;
+        if($tag==='br'||$tag==='hr')return '<'.$tag.'>';
+        $attrs='';$id=$node->getAttribute('id');if(preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$id))$attrs=' id="'.$id.'"';if($tag==='a'){$href=audienceDesignNormalizeLink($node->getAttribute('href'));if($href!==''&&audienceDesignUrl($href))$attrs.=' href="'.htmlspecialchars($href,ENT_QUOTES,'UTF-8').'"';}
+        $style=$node->getAttribute('style');$declarations=[];foreach(explode(';',audienceDesignSafeCss($style,false))as$declaration){if(preg_match('/^(?:color|background-color|font-family|font-size|font-weight|font-style|text-decoration|text-align|direction|line-height|letter-spacing):/',$declaration))$declarations[]=$declaration;}
         if($tag==='font'){$tag='span';$color=$node->getAttribute('color');if(preg_match('/^#[a-f0-9]{6}$/iD',$color))$declarations[]='color:'.$color;$face=$node->getAttribute('face');if(in_array($face,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true))$declarations[]='font-family:'.$face;$sizes=['1'=>10,'2'=>13,'3'=>16,'4'=>18,'5'=>24,'6'=>32,'7'=>48];if(isset($sizes[$node->getAttribute('size')]))$declarations[]='font-size:'.$sizes[$node->getAttribute('size')].'px';}
         if($declarations)$attrs.=' style="'.htmlspecialchars(implode(';',$declarations),ENT_QUOTES,'UTF-8').'"';
         return '<'.$tag.$attrs.'>'.$children.'</'.$tag.'>';
@@ -83,15 +99,20 @@ function audienceDesignStarters(): array
 /** Render table-based email HTML, escaping every authored value. Footer is always retained. */
 function audienceDesignHtml(array $design,?array $context=null): string { return audienceDesignRender($design,$context); }
 /** Preview CSS is nonce-authorized; the app keeps style-src-attr 'none'. */
-function audienceDesignPreviewHtml(array $design,string $nonce,?array $context=null):string
+function audienceDesignPreviewHtml(array $design,string $nonce,?array $context=null,bool $dark=false,array $identity=[]):string
 {
-    return audienceDesignPreviewSource(audienceDesignHtml($design,$context),$nonce);
+    $document=audienceDesign($design);$preview=audienceDesignPreviewSource(audienceDesignHtml($document,$context),$nonce,$dark);
+    // Account identity can resolve without treating an unselected recipient as
+    // an empty recipient and hiding their conditional content.
+    if($context===null&&$identity){$tags=[];foreach(['LIST:COMPANY','LIST:ADDRESS','LIST:ADDRESSLINE','LIST:NAME','CURRENT_YEAR','MC:SUBJECT','MC_PREVIEW_TEXT']as$key)if(array_key_exists($key,$identity))$tags['*|'.$key.'|*']=htmlspecialchars((string)$identity[$key],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$preview=strtr($preview,$tags);}
+    if($dark){$logoRules='';foreach($document['rows']as$row)if($row['name']==='Brand logo'||str_starts_with($row['id'],'brand-row-')){$background=$row['styles']['background']??$document['regions'][$row['region']]['background']??$document['styles']['body'];$logoRules.='.'. $row['id'].',.'. $row['id'].' .email-block{background-color:'.$background.'!important}';}if($logoRules!=='')$preview=str_replace('</head>','<style nonce="'.$nonce.'">'.$logoRules.'</style></head>',$preview);}
+    return $preview;
 }
-function audienceDesignPreviewSource(string $html,string $nonce):string
+function audienceDesignPreviewSource(string $html,string $nonce,bool $dark=false):string
 {
     if(!preg_match('~^[a-zA-Z0-9+/=]{8,100}$~D',$nonce))throw new InvalidArgumentException('Reload the designer preview.');
-    $rules=[];
-    $html=preg_replace_callback('/ style="([^"]*)"/',static function($m)use(&$rules){$class='email-style-'.count($rules);$rules[]='[data-email-style="'.$class.'"]{'.$m[1].'}';return ' data-email-style="'.$class.'"';},$html);
+    $rules=[];if($dark)$html=preg_replace_callback('~<style>(.*?)</style>~s',static fn($m)=>'<style>'.audienceDesignDarkCss($m[1]).'</style>',$html);
+    $html=preg_replace_callback('/ style="([^"]*)"/',static function($m)use(&$rules,$dark){if($dark)$m[1]=audienceDesignDarkCss($m[1]);$class='email-style-'.count($rules);$rules[]='[data-email-style="'.$class.'"]{'.$m[1].'}';return ' data-email-style="'.$class.'"';},$html);
     $html=str_replace('<style>','<style nonce="'.$nonce.'">',$html);
     return str_replace('</head>','<style nonce="'.$nonce.'">'.implode('',$rules).'</style></head>',$html);
 }

@@ -44,7 +44,8 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         if(!empty($m['in_reply_to']))$headers['In-Reply-To']=$m['in_reply_to'];
         if(!empty($m['references']))$headers['References']=implode(' ',$m['references']);
         $raw=smtpMessageData($m['from_email'],$m['from_name'],$m['email'],$m['subject'],$m['text'],$m['reply_to']??'',$m['html']??null,null,$m['message_id'],$m['attachments']??[],$headers,$m['to_name']??'');
-        if(strlen($raw)>9_500_000)throw new DomainException('The rendered audience email is too large.');
+        // smtpMessageData enforces the encoded-message limit, including MIME overhead.
+        // A lower raw limit would reject content accepted by the 10 MB design limit.
         if($lane==='campaign'){
             $db->execute_query("UPDATE marketing_campaign_recipients SET provider='ses',provider_account_id=?,provider_region=?,ses_correlation=? WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$s['aws_account_id'],$s['region'],$correlation,$m['native_recipient_id'],$m['claim_token']]);if($db->affected_rows!==1)throw new DomainException('The delivery claim changed.');
         }

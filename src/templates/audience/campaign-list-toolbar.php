@@ -22,7 +22,7 @@
 </form>
 
 <div class="campaign-toolbar-actions">
-    <span class="campaign-bot-filter"><i aria-hidden="true"></i>Bot filtered data</span>
+    <span class="campaign-bot-filter"><i aria-hidden="true"></i>Known bots excluded</span>
     <div class="campaign-analytics-links"><a class="audience-button" href="<?= $h($url(['view'=>'analytics'])) ?>">View analytics</a><button type="button" popovertarget="campaign-analytics-menu" aria-label="More analytics views"><?php audienceNavIcon('chevron'); ?></button></div>
     <div popover id="campaign-analytics-menu" class="audience-action-menu" role="menu" aria-label="Analytics views"><a role="menuitem" href="<?= $h($url(['view'=>'analytics'])) ?>">Email dashboard</a><a role="menuitem" href="<?= $h($url(['view'=>'analytics','section'=>'audience'])) ?>">Audience analytics</a><a role="menuitem" href="<?= $h($url(['view'=>'analytics','section'=>'activity'])) ?>">Recipient activity</a></div>
     <?php if($campaignFilters['layout']==='list'): ?><button type="button" class="campaign-customize-trigger" popovertarget="campaign-columns"><?php audienceNavIcon('filters'); ?>Customize</button><?php endif; ?>

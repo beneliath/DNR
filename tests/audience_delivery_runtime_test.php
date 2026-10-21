@@ -19,5 +19,9 @@ $invalid=$d;$invalid['experiment']['kind']='unsupported';$reject(fn()=>audienceE
 $invalid=$d;$invalid['experiment']['variables']['subject'][]='D';$reject(fn()=>audienceExperimentVariants($invalid));
 $s=['base'=>'https://public.example/a/community','tracking_key'=>str_repeat('a',64),'draft'=>['tracking'=>['clicks'=>true,'plain_clicks'=>true,'opens'=>true]]];[$html,$text]=audienceTrackMessage($s,'<a href="https://example.test/?a=1&amp;b=2">Link</a></body>','https://example.test/',str_repeat('b',64));
 $expect(str_contains($html,'audience_track.php?')&&str_contains($html,'width="1"')&&str_contains($text,'sig='),'Signed links and pixel render');
+[$httpHtml,$httpText]=audienceTrackMessage($s,'<a href="http://legacy.example.test/?a=1&amp;b=2">Legacy</a>','http://legacy.example.test/',str_repeat('b',64));
+$expect(str_contains($httpHtml,'audience_track.php?')&&str_contains($httpText,'sig='),'HTTP destinations receive the same signed click tracking as HTTPS');
+preg_match('/href="([^"]+)"/',$httpHtml,$httpMatch);parse_str(parse_url(html_entity_decode($httpMatch[1],ENT_QUOTES,'UTF-8'),PHP_URL_QUERY),$httpQuery);
+$expect(base64_decode(strtr($httpQuery['url'],'-_','+/'))==='http://legacy.example.test/?a=1&b=2','Tracked legacy URL retains its original scheme and query');
 $s['test']=true;[$h,$t]=audienceTrackMessage($s,'original','text','token');$expect($h==='original'&&$t==='text','Test messages never track');
 echo "Delivery runtime: $checks checks passed.\n";

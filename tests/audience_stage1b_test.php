@@ -91,4 +91,23 @@ $addressPerson=$a->savePerson(['email'=>'address@example.test','email_status'=>'
 stageExpect($a->person($addressPerson)['custom'][$addressId]===$addressValue,'Structured addresses use existing scalar storage');
 $addressExport=$a->exportPerson($a->person($addressPerson),['fields'=>$a->fields(),'tag_names'=>[],'group_names'=>[]]);
 stageExpect($addressExport['Postal address (POSTAL)']===$addressValue,'Address export preserves blank component lines');
-echo "Stage 1b storage passed: audience isolation, custom fields, groups/tags, nested rules, concurrency, notes, permission-safe import, resumable jobs, exports, undo and deletion.\n";
+// A separate audience keeps the duplicate/blank-field matrix independent of
+// the export counts and contact mutations above.
+$db->execute_query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Import regression matrix',JSON_OBJECT())");
+$matrix=new AudienceStore($db,(int)$db->insert_id,1,'Test operator');
+$existing=$matrix->savePerson(['email'=>'duplicate@example.test','first_name'=>'Original','last_name'=>'Keep me','email_status'=>'non-subscribed']);
+$importMatrix=static function(string $csv,bool $update)use($matrix):array{
+    $job=$matrix->createImport(audienceParseImport($csv),'Duplicate handling');
+    $matrix->configureImport($job,['mapping'=>['email','first_name'],'import_status'=>'non-subscribed','update_existing'=>$update?'1':''],true);
+    return $matrix->processJob($job);
+};
+$skipped=$importMatrix("Email,First name\n DUPLICATE@example.test ,Replacement\n",false);
+stageExpect((int)$skipped['skipped']===1&&$matrix->person($existing)['first_name']==='Original','Skip existing matches normalized email and preserves the profile');
+$updated=$importMatrix("Email,First name\n DUPLICATE@example.test ,Updated\nduplicate@example.test,Second value\n",true);
+stageExpect((int)$updated['updated']===1&&(int)$updated['skipped']===1&&$matrix->person($existing)['first_name']==='Updated','Update existing applies the first occurrence once and skips repeated rows');
+stageExpect($matrix->person($existing)['last_name']==='Keep me','Unmapped fields survive an update');
+$importMatrix("Email,First name\nduplicate@example.test,\n",true);
+stageExpect($matrix->person($existing)['first_name']===''&&$matrix->person($existing)['last_name']==='Keep me','Mapped blank values clear only the mapped field');
+$added=$importMatrix("Email,First name\nnew-duplicate@example.test,First\nNEW-DUPLICATE@example.test,Second\n",false);
+stageExpect((int)$added['added']===1&&(int)$added['skipped']===1,'Repeated new email creates only one connection');
+echo "Stage 1b storage passed: audience isolation, custom fields, groups/tags, nested rules, concurrency, notes, permission-safe import, duplicate and blank-field matrix, resumable jobs, exports, undo and deletion.\n";

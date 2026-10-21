@@ -41,6 +41,8 @@ audienceHttpExpect($editor($c2designUrl.'&variant=1')['status']===404,'Experimen
 audienceHttpExpect($editor($c2designUrl.'&variant=7')['status']===404,'Unavailable variation denied');
 audienceHttpExpect($editor($c2designUrl.'&variant=01')['status']===404,'Ambiguous variation identifier denied');
 $c2review='audience.php?view=campaign-review&id='.$c2id;
+foreach([$c2url,$c2review]as$identityPreviewUrl){$identityPage=$editor($identityPreviewUrl);preg_match('/data-email-preview="([^"]+)"/',$identityPage['body'],$identityFrame);$identityHtml=html_entity_decode($identityFrame[1]??'',ENT_QUOTES,'UTF-8');audienceHttpExpect($identityHtml!==''&&!str_contains($identityHtml,'*|LIST:COMPANY|*')&&!str_contains($identityHtml,'*|LIST:ADDRESS|*'),'Checklist and team review resolve Brand Kit footer identity');}
+
 audienceHttpExpect($editor($c2review,['csrf_token'=>$token,'action'=>'campaign_comment','id'=>$c2id,'body'=>'Please review this fixture.'])['status']===302,'Team review comment saves');
 audienceHttpExpect(str_contains($reviewer($c2review)['body'],'Please review this fixture.'),'Reviewer can preview draft and comments');
 audienceHttpExpect($reviewer($c2review,['csrf_token'=>$reviewToken,'action'=>'campaign_comment','id'=>$c2id,'body'=>'Denied'])['status']===403,'Read-only reviewer cannot add comments');

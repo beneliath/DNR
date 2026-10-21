@@ -4,7 +4,7 @@ require_once $source.'/audience_dispatch_worker.php';
 $dispatchStart=$checks;
 $conn->query('UPDATE marketing_delivery_policy SET bulk_approved=1,hourly_budget=100000,daily_budget=100000,interval_seconds=1 WHERE audience_id=1');
 // These fictional identities are only installed in the marked disposable database.
-$conn->execute_query("UPDATE marketing_audiences SET settings_json=JSON_SET(settings_json,'$.mailing_address','123 Dispatch Fixture Road') WHERE id=1");
+$conn->execute_query("UPDATE marketing_audiences SET settings_json=JSON_SET(settings_json,'$.mailing_address','Legacy audience address','$.brand.mailing_address','123 Dispatch Fixture Road') WHERE id=1");
 $conn->query("UPDATE marketing_ses_settings SET from_email='sender@dispatch.example',check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");
 $dispatchAudience=$campaignStore->one('SELECT * FROM marketing_audiences WHERE id=1');$dispatchBase='https://message-monkey.example.test';
 $conn->query("INSERT INTO marketing_tags(audience_id,name) VALUES (1,'Dispatch fixture')");$dispatchTag=(int)$conn->insert_id;$dispatchPeople=[];
@@ -81,14 +81,15 @@ audienceHttpExpect(($counts['accepted']??0)==2&&($attempts['dispatch3@example.te
 audienceHttpExpect(processAudienceCampaignDelivery($conn,20,$adapter)===0&&count($received)===2,'Completed recipients never replay');
 audienceHttpExpect($campaignStore->campaignDelivery($dispatchId)['state']==='completed','Queue reaches durable completion');
 $page=$editor($opPath);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Accepted by SES')&&str_contains($page['body'],'Uncertain')&&!preg_match('/Warning:|Fatal error:/',$page['body']),'Status screen shows truthful counts and uncertainty');
-foreach($received as$m)audienceHttpExpect(str_contains($m['text'],'Unsubscribe:')&&str_contains($m['text'],'123 Dispatch Fixture Road')&&$m['message_id']!==''&&$m['subject']!=='Hello *|FNAME|*','Every accepted message has personalized content, footer and stable ID');
+foreach($received as$m)audienceHttpExpect(str_contains($m['text'],'Unsubscribe:')&&str_contains($m['text'],'123 Dispatch Fixture Road')&&$m['message_id']!==''&&$m['subject']!=='Hello *|FNAME|*','Every accepted message has personalized content, Brand Kit address, footer and stable ID');
 $revokedId=$makeDispatch('Revoked sender fixture',false);$v=$campaignStore->campaign($revokedId)['version'];$rev=$campaignStore->reviewCampaignDispatch($revokedId,$dispatchAudience,$dispatchBase);$revJob=$campaignStore->confirmCampaignDispatch($revokedId,(int)$v,$rev['proof'],$dispatchAudience,$dispatchBase);
 $conn->query("UPDATE marketing_ses_settings SET check_state='attention' WHERE audience_id=1");processAudienceCampaignDelivery($conn,20,$adapter);
 audienceHttpExpect($campaignStore->campaignDelivery($revokedId)['state']==='paused','Revoked sender authentication pauses dispatch');
 $conn->query("UPDATE marketing_ses_settings SET check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");$j=$campaignStore->campaignDelivery($revokedId);$campaignStore->campaignDeliveryOperation($revokedId,(int)$j['version'],'cancel');
 // Hosted immutable image snapshots work without a login and do not expose recipient tokens.
 $htmlId=$makeDispatch('HTML dispatch fixture',false);$htmlRow=$campaignStore->campaign($htmlId);$htmlDraft=$htmlRow['draft'];$png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=';
-$htmlDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'image','image'=>$png,'alt'=>'Fixture image'],['type'=>'text','text'=>'Hello *|FNAME|*']]]]]]);
+$gif='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+$htmlDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'image','image'=>$png,'alt'=>'Fixture image'],['type'=>'image','image'=>$gif,'alt'=>'Animated fixture'],['type'=>'text','text'=>'Hello *|FNAME|*']]]]]]);
 $conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($htmlDraft),$htmlId]);
 $rev=$campaignStore->reviewCampaignDispatch($htmlId,$dispatchAudience,$dispatchBase);$htmlJob=$campaignStore->confirmCampaignDispatch($htmlId,(int)$htmlRow['version'],$rev['proof'],$dispatchAudience,$dispatchBase);
 $hj=$campaignStore->campaignDelivery($htmlId);$hr=$campaignStore->one('SELECT * FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id',[$htmlJob]);$hs=json_decode(\Dnr\Security\ApplicationKey::open($hj['snapshot_ciphertext']),true);$hc=json_decode(\Dnr\Security\ApplicationKey::open($hr['context_ciphertext']),true);$hm=audienceDispatchMessage($hs,$hc['context'],$hc['token'],$hr['message_id']);
@@ -96,6 +97,8 @@ audienceHttpExpect(str_contains($hm['html'],'audience_email_asset.php?key=')&&!s
 $public=static function(string $path,?array $post=null):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>10]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));$raw=curl_exec($curl);$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);return ['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'body'=>substr($raw,$size),'headers'=>substr($raw,0,$size)];};
 $asset='audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',$png);$assetResponse=$public($asset);
 audienceHttpExpect($assetResponse['status']===200&&$assetResponse['body']===base64_decode(substr($png,strpos($png,',')+1)),'Hosted image returns exact snapshot bytes anonymously');
+$gifResponse=$public('audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',$gif));
+audienceHttpExpect($gifResponse['status']===200&&str_contains(strtolower($gifResponse['headers']),'content-type: image/gif')&&$gifResponse['body']===base64_decode(substr($gif,strpos($gif,',')+1)),'Hosted GIF preserves exact animation bytes and content type');
 audienceHttpExpect($public('audience_email_asset.php?key='.str_repeat('0',64).'&image='.hash('sha256',$png))['status']===404,'Unrecognized asset capability is rejected');
 audienceHttpExpect($public('audience_subscription.php?token='.$hc['token'].'&email=1')['status']===200,'Personal email browser view works with its private capability');
 $htmlReceived=[];processAudienceCampaignDelivery($conn,20,static function($m)use(&$htmlReceived){$htmlReceived[]=$m;return 'accepted';});audienceHttpExpect(count($htmlReceived)===4,'HTML campaign dispatches only its exact confirmed snapshot');

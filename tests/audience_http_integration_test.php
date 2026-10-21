@@ -202,6 +202,7 @@ try{
     $unsafe=$design;$unsafe['rows'][0]['columns'][0][0]['url']='javascript:alert(1)';
     audienceHttpExpect($editor($designPath,array_replace($designPost,['version'=>2,'design'=>json_encode($unsafe)]))['status']===422,'Unsafe designer link rejected at HTTP boundary');
     $preview=$editor($designPath,array_replace($designPost,['action'=>'design_preview']));audienceHttpExpect(str_contains(json_decode($preview['body'],true)['html'],'*|UNSUB|*')&&$campaignStore->campaign($designCampaign)['version']==2,'Preview retains footer and does not save');
+    $identityPreview=json_decode($preview['body'],true)['html'];audienceHttpExpect(!str_contains($identityPreview,'*|LIST:COMPANY|*')&&!str_contains($identityPreview,'*|LIST:ADDRESS|*')&&str_contains($identityPreview,'*|FNAME|*'),'Ordinary preview resolves audience identity while keeping recipient tags unmerged');
     $templateResponse=$editor($designPath,['csrf_token'=>$token,'action'=>'design_template','version'=>2,'name'=>'Reusable design','folder'=>'Newsletters']);$tid=(int)(json_decode($templateResponse['body'],true)['id']??0);
     audienceHttpExpect($tid>0&&$campaignStore->emailTemplate($tid)['design']==$design,'Save as template captures persisted design');
     $library=$editor('audience.php?view=templates&tab=saved');audienceHttpExpect($library['status']===200&&str_contains($library['body'],'Reusable design')&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$library['body']),'Saved template library renders');
@@ -241,6 +242,26 @@ try{
     $foreignReuse=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_from_campaign','id'=>$foreignCampaign]);
     audienceHttpExpect(str_contains($foreignReuse['body'],'campaign is unavailable'),'Foreign campaign cannot become a local template');
     audienceHttpExpect(str_contains($screen['headers'],"style-src-attr 'none'")&&preg_match("/style-src 'self' 'nonce-[^']+'/",$screen['headers'])===1,'Preview supports nonce CSS while inline style attributes remain prohibited');
+
+    $inlineDoc=audienceDesignStarters()['blank']['design'];
+    $inlinePhoto='data:image/jpeg;base64,'.base64_encode(file_get_contents($source.'/assets/template-art/neve-tzedek-market.jpg'));
+    $inlineCopies=(int)floor(9700000/strlen($inlinePhoto));
+    $inlineDoc['rows'][0]['columns'][0][0]['html']=str_repeat('<p><img src="'.$inlinePhoto.'" width="180" align="right" style="float:right;margin:0 0 12px 16px"><strong style="color:#3366cc">Newsletter text</strong> <a href="https://example.test/news">Read more</a></p>',$inlineCopies);
+    $inlineId=$campaignStore->createEmailTemplate('Inline photo limit fixture',audienceDesignStarters()['blank']['design']);
+    $inlinePath='audience.php?view=designer&kind=template&id='.$inlineId;
+    $inlinePost=['csrf_token'=>$token,'action'=>'design_save','version'=>1,'design'=>json_encode($inlineDoc)];
+    $inlineSave=$editor($inlinePath,$inlinePost);
+    audienceHttpExpect(strlen($inlinePost['design'])>9500000&&$inlineSave['status']===200,'Image-heavy template near 10 MB saves through HTTP');
+    $inlineReload=$campaignStore->emailTemplate($inlineId)['design'];
+    audienceHttpExpect(substr_count($inlineReload['rows'][0]['columns'][0][0]['html'],'<img')===$inlineCopies,'Reload retains all embedded images');
+    $roundTripHtml=$inlineReload['rows'][0]['columns'][0][0]['html'];
+    audienceHttpExpect(str_contains($roundTripHtml,'#3366cc')&&str_contains($roundTripHtml,'float:right')&&str_contains($roundTripHtml,'https://example.test/news'),'Reload preserves authored colors, wrapped images and link destinations');
+    $inlinePreview=$editor($inlinePath,array_replace($inlinePost,['action'=>'design_preview','version'=>2]));
+    audienceHttpExpect($inlinePreview['status']===200&&substr_count(json_decode($inlinePreview['body'],true)['html']??'','<img')===$inlineCopies,'Preview uses the same 10 MB budget as save');
+    $inlineSection=$editor($inlinePath,['csrf_token'=>$token,'action'=>'design_library_save','type'=>'section','name'=>'Large inline photo section','data'=>json_encode($inlineDoc)]);
+    audienceHttpExpect($inlineSection['status']===200,'Reusable section accepts the same image-heavy payload');
+    $oversizedPost=array_replace($inlinePost,['version'=>2,'design'=>str_repeat('x',AUDIENCE_DESIGN_MAX_BYTES+1)]);
+    foreach(['design_save','design_preview']as$limitAction){$tooLarge=$editor($inlinePath,array_replace($oversizedPost,['action'=>$limitAction]));audienceHttpExpect($tooLarge['status']===422&&str_contains($tooLarge['body'],'10 MB'),'Oversized '.$limitAction.' shows the correct shared limit');}
 
     // Remaining Stage 2: revisions, comments, reusable content, import, personalization.
     $advancedId=$campaignStore->createCampaign(['name'=>'Advanced designer fixture','campaign_type'=>'regular']);$advancedPath='audience.php?view=designer&id='.$advancedId;

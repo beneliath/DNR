@@ -59,7 +59,7 @@ trait AudienceDesignExtras
     public function saveDesignLibrary(string $type,string $name,array $data):int
     {
         $name=trim(audienceDesignString($name,100));if($name==='')throw new InvalidArgumentException('Enter a library item name.');
-        if($type==='image'){$image=audienceDesignImage($data['image']??'');if($image==='')throw new InvalidArgumentException('Upload an image before saving it.');$url=audienceDesignString($data['url']??'',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');$bytes=base64_decode(substr($image,strpos($image,',')+1),true);$info=getimagesizefromstring($bytes);$data=['image'=>$image,'alt'=>audienceDesignString($data['alt']??'',300),'url'=>$url,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1]];}
+        if($type==='image'){$image=audienceDesignImage($data['image']??'',1000000);if($image==='')throw new InvalidArgumentException('Upload an image before saving it.');$url=audienceDesignString($data['url']??'',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');$bytes=base64_decode(substr($image,strpos($image,',')+1),true);$info=getimagesizefromstring($bytes);$data=['image'=>$image,'alt'=>audienceDesignString($data['alt']??'',300),'url'=>$url,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1]];}
         elseif($type==='section'){$design=audienceDesign($data);$this->validateDesignConditions($design);if(count($design['rows'])!==1)throw new InvalidArgumentException('Save one section at a time.');$data=$design;}
         else throw new InvalidArgumentException('Unknown library type.');
         $this->write('INSERT INTO marketing_design_library(audience_id,item_type,name,data_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$type,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;
@@ -73,7 +73,7 @@ trait AudienceDesignExtras
     }
     public function designRecipientContext(int $personId,array $audience):array
     {
-        $settings=audienceJson($audience['settings_json']);$context=['LIST:COMPANY'=>(string)($settings['from_name']??$audience['name']),'LIST:ADDRESS'=>(string)($settings['mailing_address']??''),'LIST:ADDRESSLINE'=>(string)($settings['mailing_address']??'')];
+        $settings=audienceJson($audience['settings_json']);$context=audienceBrandIdentity($settings,(string)$audience['name']);
         if(!$personId)return $context;$person=$this->person($personId);
         $context+=['FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'EMAIL'=>$person['email'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
         foreach($this->fields()as$f){$value=$person['custom'][$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
