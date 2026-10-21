@@ -8,9 +8,9 @@ $reportLink=static fn(array $changes=[]):string=>'audience.php?'.http_build_quer
 $rate=static fn($v):string=>$v===null?'—':rtrim(rtrim(number_format((float)$v,2),'0'),'.').'%';
 $metricLabels=['accepted'=>'Total sends','open_rate'=>'Open rate','opens'=>'Opened','click_rate'=>'Click rate','clicks'=>'Clicked','clicks_per_open'=>'Clicks per unique opens','bounce_rate'=>'Bounce rate','bounced'=>'Bounces','unsubscribe_rate'=>'Unsubscribe rate','unsubscribed'=>'Unsubscribed','delivery_rate'=>'Delivery rate','delivered'=>'Deliveries'];
 include __DIR__.'/analytics-report-table.php';
-if($canDelete): $analyticsAiQuery=['view'=>'assistant','mode'=>'analytics','dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source]+array_intersect_key($window,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment'])); ?>
-<div class="analytics-ai-tools"><p><a class="audience-button" href="<?= $h('audience.php?'.http_build_query($analyticsAiQuery)) ?>">Ask Analytics AI</a></p><?php include __DIR__.'/analytics-ai-questions.php'; ?></div>
-<?php endif;
+?>
+<div class="analytics-ai-tools"><?php include __DIR__.'/analytics-ai-questions.php'; ?></div>
+<?php
 $renderMetrics=static function(array $keys,string $selected,bool $delivery=false)use($totals,$previous,$metricLabels,$h,$rate,$reportLink,$window):void{ ?>
 <div class="analytics-metric-carousel"><div class="analytics-metric-strip"><?php foreach($keys as$key): $isRate=str_contains($key,'rate')||$key==='clicks_per_open'; ?><a class="analytics-metric-choice<?= $selected===$key?' active':'' ?>" href="<?= $h($reportLink([$delivery?'delivery_metric':'metric'=>$key])) ?>" role="button" aria-pressed="<?= $selected===$key?'true':'false' ?>"><span><?= $h($metricLabels[$key]) ?></span><strong><?= $h($isRate?$rate($totals[$key]):number_format($totals[$key])) ?></strong><?= audienceAnalyticsTrend($totals[$key],$previous[$key],$key,$window['compare']!=='none') ?></a><?php endforeach; ?></div><button type="button" data-analytics-scroll aria-label="Scroll metrics right">›</button></div>
 <?php };

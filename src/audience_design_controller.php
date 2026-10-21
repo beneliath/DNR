@@ -27,6 +27,10 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 $design=audienceDesign(audienceJson(audienceText($_POST,'design',3000000)));
                 $version=$store->saveEmailDesign($kind,$id,$version,$design,$variant);
                 $respond(['version'=>$version]);
+            }elseif($action==='design_rename'){
+                if($kind!=='template')throw new InvalidArgumentException('Only email templates can be renamed here.');
+                $name=audienceText($_POST,'name',100);$store->emailTemplateOperation('rename',$id,$version,['name'=>$name]);
+                $respond(['name'=>$name,'version'=>$version+1]);
              }elseif($action==='design_preview'||$action==='design_links'||$action==='design_source'){
                 $design=audienceDesign(audienceJson(audienceText($_POST,'design',3000000)));$store->validateDesignConditions($design);
                 $personId=\Dnr\Http\RequestInput::positiveInt($_POST,'person_id')??0;$context=($_POST['live']??'')==='1'?$store->designRecipientContext($personId,$audience):null;

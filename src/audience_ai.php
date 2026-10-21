@@ -6,12 +6,22 @@ require_once __DIR__.'/ai_coach_history_helpers.php';
 require_once __DIR__.'/audience_ai_queries.php';
 require_once __DIR__.'/audience_ai_findings.php';
 
+/** Analytics is read-only for every signed-in role; content assistance retains editing permissions. */
+function audienceAiCanAccess(string $role,string $mode):bool
+{
+    return match($mode){
+        'analytics'=>in_array($role,['superadmin','admin','editor','reviewer'],true),
+        'content'=>in_array($role,['admin','editor'],true),
+        default=>false,
+    };
+}
+
 /** Separate purpose, permissions and output contract; inference uses the existing coach queue. */
 function audienceAiRequest(array $input,string $role):array
 {
     $mode=$input['mode']??'content';
     if(!in_array($mode,['content','analytics'],true))throw new InvalidArgumentException('Choose writing or analytics assistance.');
-    if(!in_array($role,['admin','editor'],true)||($mode==='analytics'&&$role!=='admin'))throw new DomainException('Analytics AI requires an administrator; writing assistance requires an editor or administrator.');
+    if(!audienceAiCanAccess($role,$mode))throw new DomainException('Analytics AI requires a signed-in user; writing assistance requires an editor or administrator.');
     $operation=$input['operation']??($mode==='analytics'?'analyze':'write');
     if(!in_array($operation,$mode==='analytics'?['analyze']:['write','rewrite','shorten','lengthen','tone','subject','generate','optimize'],true))throw new InvalidArgumentException('Choose a supported writing action.');
     $tone=$input['tone']??'friendly';if(!in_array($tone,['friendly','professional','warm','inspiring','plain'],true))throw new InvalidArgumentException('Choose a supported tone.');

@@ -156,6 +156,7 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .audience-sidebar-icon[data-sidebar-icon="audience"]{--sidebar-icon:url("../../icons/audience-nav/audience.svg");--sidebar-icon-active:url("../../icons/audience-nav/audience-active.svg")}
 .audience-sidebar-icon[data-sidebar-icon="content-studio"]{--sidebar-icon:url("../../icons/audience-nav/content-studio.svg");--sidebar-icon-active:url("../../icons/audience-nav/content-studio-active.svg")}
 .audience-sidebar-icon[data-sidebar-icon="analytics"]{--sidebar-icon:url("../../icons/audience-nav/analytics.svg");--sidebar-icon-active:url("../../icons/audience-nav/analytics-active.svg")}
+.audience-sidebar-icon[data-sidebar-icon="analytics-ai"]{--sidebar-icon:url("../../icons/audience-nav/analytics-ai.svg");--sidebar-icon-active:url("../../icons/audience-nav/analytics-ai-active.svg")}
 .audience-subnav{display:flex;flex-direction:column;margin:0 0 10px;gap:0}
 .audience-subnav>a,.audience-subnav>span{padding:6px 8px 6px 35px;border-radius:6px;color:var(--audience-secondary);min-height:36px}
 .audience-subnav>:is(a,span):is(:hover,:focus),.audience-sidebar-footer .audience-return:is(:hover,:focus){background:var(--audience-selected);color:var(--audience-text)}

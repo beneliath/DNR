@@ -170,11 +170,11 @@ $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$i
 $campaignMergeTags=$store->campaignMergeTags();
 $sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
 $managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc'],$changes));
-$pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'All campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
+$pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>
 <!DOCTYPE html><html lang="en">
-<?php renderPageHead(applicationPageTitle($view==='delivery'?'Email delivery':'Campaigns'),['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]); ?>
+<?php renderPageHead(applicationPageTitle($view==='delivery'?'Email delivery':'Campaigns'),['styles'=>['assets/css/pages/audience.min.css',...($view==='campaigns'?['assets/css/pages/audience-campaign-list.min.css']:[])],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]); ?>
 <?php include __DIR__.'/templates/audience/workspace.php'; ?>
 </html>
 

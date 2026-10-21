@@ -8,20 +8,20 @@ header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: p
 function audienceAiRespond(array $value,int $status=200):never{http_response_code($status);echo json_encode($value,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);exit;}
 if(!aiCoachEnabled())audienceAiRespond(['error'=>'AI assistance is not enabled for this deployment.'],503);
 $actor=(int)$_SESSION['user_id'];$role=(string)$_SESSION['role'];
-if(!in_array($role,['admin','editor'],true))audienceAiRespond(['error'=>'AI assistance requires an editor or administrator.'],403);
+if(!audienceAiCanAccess($role,'analytics'))audienceAiRespond(['error'=>'AI assistance requires a signed-in user.'],403);
 $db=applicationDatabaseConnection();$store=new AudienceStore($db,1,$actor,mb_substr((string)($_SESSION['profile_display_name']??$_SESSION['username']??'Account'),0,100));
 try{
     if($_SERVER['REQUEST_METHOD']==='GET'){
         if(($_GET['action']??'')==='history'){
             $rows=$db->execute_query("SELECT client_request_id,question,manual_topic,outcome,created_at FROM ai_coach_requests WHERE user_id=? AND user_role=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics') ORDER BY id DESC LIMIT 20",[$actor,$role])->fetch_all(MYSQLI_ASSOC);
-            if($role!=='admin')$rows=array_values(array_filter($rows,static fn($r)=>$r['manual_topic']==='audience-ai:content'));
+            $rows=array_values(array_filter($rows,static fn($r)=>audienceAiCanAccess($role,$r['manual_topic']==='audience-ai:analytics'?'analytics':'content')));
             audienceAiRespond(['items'=>$rows]);
         }
         $uuid=audienceText($_GET,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
-        if(!$owned||($owned['manual_topic']==='audience-ai:analytics'&&$role!=='admin'))audienceAiRespond(['error'=>'Suggestion not found.'],404);
+        if(!$owned||!audienceAiCanAccess($role,$owned['manual_topic']==='audience-ai:analytics'?'analytics':'content'))audienceAiRespond(['error'=>'Suggestion not found.'],404);
         releaseApplicationSessionLock();$status=aiCoachRequestStatus($db,$actor,$role,$uuid)??['state'=>'interrupted'];
         if(($_GET['action']??'')==='contacts'){
-            if($role!=='admin'||$owned['manual_topic']!=='audience-ai:analytics'||($status['response']['purpose']??'')!=='audience-ai')throw new DomainException('Contact results not found.');
+            if($owned['manual_topic']!=='audience-ai:analytics'||($status['response']['purpose']??'')!=='audience-ai')throw new DomainException('Contact results not found.');
             $evidence=$status['response']['evidence']??[];$tableId=audienceText($_GET,'table_id',80);$offset=audienceText($_GET,'offset',7);
             if(!ctype_digit($offset))throw new InvalidArgumentException('Choose a valid results page.');
             $queries=new AudienceAiQueries($store,audienceAiReportWindow($evidence['window']??[]));
@@ -36,12 +36,17 @@ try{
     if($raw===false||strlen($raw)>24000)audienceAiRespond(['error'=>'This request is too large.'],413);
     $input=json_decode($raw,true,24,JSON_THROW_ON_ERROR);if(!is_array($input))throw new InvalidArgumentException('Invalid request.');
     $action=$input['action']??'generate';
-    if($action==='checks')audienceAiRespond(audienceAiChecks(audienceDesignString($input['text']??'',10000),audienceDesignString($input['subject']??'',250)));
+    if($action==='checks'){
+        if(!audienceAiCanAccess($role,'content'))throw new DomainException('Writing assistance requires an editor or administrator.');
+        audienceAiRespond(audienceAiChecks(audienceDesignString($input['text']??'',10000),audienceDesignString($input['subject']??'',250)));
+    }
     if($action==='cancel'){
-        $uuid=audienceText($input,'request_id',36);if(!audienceAiOwnedRequest($db,$actor,$role,$uuid))audienceAiRespond(['error'=>'Suggestion not found.'],404);
+        $uuid=audienceText($input,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
+        if(!$owned||!audienceAiCanAccess($role,$owned['manual_topic']==='audience-ai:analytics'?'analytics':'content'))audienceAiRespond(['error'=>'Suggestion not found.'],404);
         releaseApplicationSessionLock();audienceAiRespond(['saved'=>aiCoachCancelRequest($db,$actor,$role,$uuid)]);
     }
     if($action==='save_template'){
+        if(!audienceAiCanAccess($role,'content'))throw new DomainException('Saving templates requires an editor or administrator.');
         $uuid=audienceText($input,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
         if(!$owned||$owned['manual_topic']!=='audience-ai:content')throw new DomainException('Writing suggestion not found.');
         $status=aiCoachRequestStatus($db,$actor,$role,$uuid);

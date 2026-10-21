@@ -7,12 +7,12 @@ function audienceHttpExpect(bool $condition,string $message):void{global $checks
 function audienceHttpCsrf(array $response):string{preg_match('/name="csrf_token"[^>]*value="([^"]+)"/',$response['body'],$m);if(empty($m[1]))preg_match('/"csrf":"([^"]+)"/',$response['body'],$m);if(empty($m[1]))throw new RuntimeException('Missing Audience CSRF: '.$response['status']);return html_entity_decode($m[1],ENT_QUOTES);}
 $clients=[];$cookies=[];$suffix=bin2hex(random_bytes(5));
 try{
-    foreach(['admin','editor','reviewer']as$role){
-        $username='audience-'.$role.'-'.$suffix;$password=bin2hex(random_bytes(16));
+    foreach(['admin'=>'admin','editor'=>'editor','reviewer'=>'reviewer','queue-editor'=>'editor']as$clientKey=>$role){
+        $username='audience-'.$clientKey.'-'.$suffix;$password=bin2hex(random_bytes(16));
         $conn->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$username,password_hash($password,PASSWORD_DEFAULT),$role]);
         $cookie=tempnam(sys_get_temp_dir(),'audience-cookie-');$cookies[]=$cookie;
         $client=static function(string $path,?array $post=null,bool $multipart=false)use($cookie):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>30]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,$multipart?$post:http_build_query($post));$raw=curl_exec($curl);if($raw===false)throw new RuntimeException(curl_error($curl));$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);$result=['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];return $result;};
-        $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$role);$clients[$role]=$client;
+        $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
     $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced filters'),'Connections renders');
@@ -215,7 +215,22 @@ try{
     $foreignTemplate=$otherStore->createEmailTemplate('Foreign design',$design);
     audienceHttpExpect($editor('audience.php?view=designer&kind=template&id='.$foreignTemplate)['status']===404,'Foreign template inaccessible');
     audienceHttpExpect($reviewer('audience.php?view=templates',array_replace($templateOp,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer template mutations denied');
-    $copy=$campaignStore->emailTemplateOperation('replicate',$tid,2,[]);audienceHttpExpect($copy!==$tid&&$campaignStore->emailTemplate($copy)['design']==$newDesign,'Template replication copies document');
+    $copyResponse=$editor('audience.php?view=templates&tab=saved',array_replace($templateOp,['operation'=>'replicate']));preg_match('/id=(\d+)/',$copyResponse['headers'],$copyMatch);$copy=(int)($copyMatch[1]??0);
+    audienceHttpExpect($copyResponse['status']===302&&str_contains($copyResponse['headers'],'kind=template')&&$copy!==$tid&&$campaignStore->emailTemplate($copy)['design']==$newDesign,'Template duplication opens an independent copy in the editor');
+    audienceHttpExpect($campaignStore->emailTemplate($copy)['name']==='Reusable design (copy)'&&$campaignStore->emailTemplate($copy)['folder']==='Newsletters','Duplicate preserves the folder with a distinct copy name');
+    $copyDesign=$newDesign;$copyDesign['rows'][0]['columns'][0][0]['text']='Only the duplicate changed';
+    $copySave=$editor('audience.php?view=designer&kind=template&id='.$copy,array_replace($designPost,['design'=>json_encode($copyDesign)]));
+    audienceHttpExpect($copySave['status']===200&&$campaignStore->emailTemplate($copy)['design']==$copyDesign&&$campaignStore->emailTemplate($tid)['design']==$newDesign,'Editing a duplicate preserves the original template');
+    $copyPath='audience.php?view=designer&kind=template&id='.$copy;$renamePost=['csrf_token'=>$token,'action'=>'design_rename','version'=>2,'name'=>'  Renamed duplicate  '];
+    $renameResponse=$editor($copyPath,$renamePost);$renameResult=json_decode($renameResponse['body'],true);
+    audienceHttpExpect($renameResponse['status']===200&&$renameResult['name']==='Renamed duplicate'&&$renameResult['version']===3&&$campaignStore->emailTemplate($copy)['name']==='Renamed duplicate','Template editor renames the current copy and returns its new version');
+    audienceHttpExpect($campaignStore->emailTemplate($copy)['design']==$copyDesign&&$campaignStore->emailTemplate($tid)['name']==='Reusable design','Renaming preserves the design and original template');
+    audienceHttpExpect($editor($copyPath,array_replace($designPost,['version'=>3,'design'=>json_encode($copyDesign)]))['status']===200,'Design autosave continues with the version returned by rename');
+    audienceHttpExpect($editor($copyPath,$renamePost)['status']===422&&$campaignStore->emailTemplate($copy)['name']==='Renamed duplicate','Stale editor rename cannot overwrite another save');
+    foreach(['',str_repeat('x',101)]as$invalidName)audienceHttpExpect($editor($copyPath,array_replace($renamePost,['version'=>4,'name'=>$invalidName]))['status']===422,'Editor rejects an invalid template name');
+    audienceHttpExpect($reviewer($copyPath,array_replace($renamePost,['csrf_token'=>$reviewToken]))['status']===403,'Read-only users cannot rename a template through the editor');
+    audienceHttpExpect($editor('audience.php?view=designer&kind=template&id='.$foreignTemplate,$renamePost)['status']===422,'Editor rename cannot reach a template in another audience');
+    audienceHttpExpect($editor('audience.php?view=templates',array_replace($templateOp,['operation'=>'replicate','version'=>1]))['status']===200&&$campaignStore->emailTemplate($tid)['version']==2,'Stale duplication is rejected without altering the original');
     $deletedTemplate=$editor('audience.php?view=templates',array_replace($templateOp,['operation'=>'delete']));audienceHttpExpect($deletedTemplate['status']===302&&$editor($templatePath)['status']===404&&$campaignStore->campaign($reusedId)['draft']['design']==$newDesign,'Removing a template preserves campaign snapshots');
     $starter=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_create','starter'=>'event']);audienceHttpExpect($starter['status']===302&&str_contains($starter['headers'],'kind=template'),'Starter template opens designer');
     $plain=$campaignStore->createCampaign(['name'=>'Plain fixture','campaign_type'=>'plain-text']);audienceHttpExpect($editor('audience.php?view=designer&id='.$plain)['status']===404,'Plain-text campaign cannot use visual editor');

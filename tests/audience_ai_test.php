@@ -9,7 +9,12 @@ $base=['request_id'=>'12345678-1234-4234-a234-123456789012','mode'=>'content','o
 $request=audienceAiRequest($base,'editor');
 $expect($request['role']==='editor'&&$request['_audience_ai']===1,'Server role and explicit purpose');
 foreach(['reviewer','guest','']as$role)$reject(static fn()=>audienceAiRequest($base,$role),'Unprivileged writing is rejected');
-$reject(static fn()=>audienceAiRequest(array_replace($base,['mode'=>'analytics','operation'=>'analyze']),'editor'),'Analytics AI requires administrator permission');
+foreach(['superadmin','admin','editor','reviewer']as$role){
+    $analysisRequest=audienceAiRequest(array_replace($base,['mode'=>'analytics','operation'=>'analyze','role'=>'admin']),$role);
+    $expect($analysisRequest['role']===$role&&$analysisRequest['mode']==='analytics','Every signed-in role can analyze using its server-authorized role');
+}
+foreach(['guest','', 'unknown']as$role)$reject(static fn()=>audienceAiRequest(array_replace($base,['mode'=>'analytics','operation'=>'analyze']),$role),'Unknown or unauthenticated roles cannot analyze');
+$expect(!audienceAiCanAccess('reviewer','content')&&!audienceAiCanAccess('reviewer','settings'),'Analytics access does not grant writing or unsupported actions');
 foreach([['operation'=>'send'],['tone'=>'invented'],['request_id'=>'../other'],['text'=>[]],['text'=>str_repeat('x',10001)],['prompt'=>str_repeat('x',1501)],['text'=>"bad\0text"],['mode'=>'settings']]as$bad)$reject(static fn()=>audienceAiRequest(array_replace($base,$bad),'admin'),'Malformed or oversized input is rejected');
 $reply=['headline'=>'A warm invitation','text'=>'Hello *|FNAME|*, join us in Jerusalem on Sunday.','subjects'=>['A warm invitation','Join our community','A moment to connect'],'recommendations'=>['Check the event details before use.']];
 $raw=static fn(array $v):array=>['done'=>true,'done_reason'=>'stop','message'=>['content'=>json_encode($v)]];

@@ -847,6 +847,26 @@
         update();
     }
     // Campaign actions reuse native dialogs, confirmations and top-layer menus.
+    const campaignColumns = $('[data-campaign-columns]');
+    if (campaignColumns) {
+        const choices = $$('[data-campaign-column-toggle]:not(:disabled)', campaignColumns);
+        const keys = choices.map(input => input.dataset.campaignColumnToggle);
+        const storageKey = `campaign-columns:${document.body.dataset.audienceKey || 'default'}`;
+        let stored; try { stored = JSON.parse(localStorage.getItem(storageKey)); } catch (_) { /* Optional preference. */ }
+        const hiddenColumns = new Set(Array.isArray(stored) ? stored.filter(key => keys.includes(key)) : []);
+        const render = () => {
+            choices.forEach(input => { input.checked = !hiddenColumns.has(input.dataset.campaignColumnToggle); });
+            $$('[data-campaign-column]').forEach(cell => { cell.hidden = hiddenColumns.has(cell.dataset.campaignColumn); });
+        };
+        const save = () => { try { localStorage.setItem(storageKey, JSON.stringify([...hiddenColumns])); } catch (_) { /* Works without storage. */ } };
+        choices.forEach(input => input.addEventListener('change', () => {
+            if (input.checked) hiddenColumns.delete(input.dataset.campaignColumnToggle);
+            else hiddenColumns.add(input.dataset.campaignColumnToggle);
+            render(); save();
+        }));
+        $('[data-campaign-columns-reset]', campaignColumns).addEventListener('click', () => { hiddenColumns.clear(); render(); save(); });
+        render();
+    }
     const campaignFilters = $('#campaign-filters');
     $$('[data-campaign-filter]').forEach(item => item.addEventListener('click', () => {
         setValue(campaignFilters, item.dataset.campaignFilter, item.dataset.value);
