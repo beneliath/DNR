@@ -24,6 +24,14 @@ audienceHttpExpect($public($collectPublic)['status']===404,'Public drafts are un
 $foreignCollection=$searchForeign->saveCollection(['kind'=>'hosted','name'=>'Foreign collection']);
 audienceHttpExpect($editor('audience.php?view=form&id='.$foreignCollection)['status']===404,'Management rejects foreign forms');
 try{$collectStore->collectionResource($foreignCollection);throw new RuntimeException('Scope accepted');}catch(InvalidArgumentException){}
+$blockedForm=$collectStore->saveCollection(['kind'=>'hosted','name'=>'Double opt-in readiness fixture']);
+$blockedDraft=$collectStore->collectionResource($blockedForm)['draft'];$blockedDraft['opt_in']='double';
+$collectStore->saveCollection(['name'=>'Double opt-in readiness fixture','document'=>$blockedDraft],$blockedForm,1);
+$collectStore->collectionOperation($blockedForm,2,'publish');
+$priorCheckState=$collectStore->sesSettings()['check_state'];$conn->query("UPDATE marketing_ses_settings SET check_state='attention' WHERE audience_id=1");
+$blockedIndex=$editor($collectPath);
+$conn->execute_query('UPDATE marketing_ses_settings SET check_state=? WHERE audience_id=1',[$priorCheckState]);
+audienceHttpExpect(str_contains($blockedIndex['body'],'Signup unavailable')&&str_contains($blockedIndex['body'],'Review email delivery'),'Forms list shows confirmation-delivery blocker for published double opt-in forms');
 $draft=$collect['draft'];$draft['opt_in']='single';$draft['title']='Published <script>alert(1)</script>';
 $collectStore->saveCollection(['name'=>$collect['name'],'document'=>$draft],$collectId,1);
 $collectStore->collectionOperation($collectId,2,'publish');$collect=$collectStore->collectionResource($collectId);

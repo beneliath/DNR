@@ -28,5 +28,6 @@ $aiStarters=[
             <p class="analytics-ai-disclosure">AI can make mistakes. Review answers against the source calculations.</p>
         </div>
     </div>
+    <div class="analytics-ai-footer"><?php include __DIR__ . '/../app-footer.php'; ?></div>
     <script type="application/json" id="audience-ai-config"><?= json_encode($aiConfig,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
 </section>

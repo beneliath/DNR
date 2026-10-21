@@ -181,6 +181,6 @@ $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>
 <!DOCTYPE html><html lang="en">
-<?php renderPageHead(applicationPageTitle('Audience'),['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>array_merge(['assets/js/audience.min.js'],$view==='import'?['assets/js/audience-import.min.js']:[])]); ?>
+<?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>array_merge(['assets/js/audience.min.js'],$view==='import'?['assets/js/audience-import.min.js']:[])]); ?>
 <?php include __DIR__.'/templates/audience/workspace.php'; ?>
 </html>

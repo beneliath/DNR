@@ -46,9 +46,10 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if($html!==null&&(!str_contains($html,htmlspecialchars($link,ENT_QUOTES,'UTF-8'))||!str_contains($html,htmlspecialchars($context['LIST:ADDRESS'],ENT_QUOTES,'UTF-8'))))$html.='<div style="padding:24px;font-size:12px;text-align:center">'.nl2br(htmlspecialchars($footer,ENT_QUOTES,'UTF-8')).'</div>';
     if(preg_match('/\*\|[^|\r\n]{1,300}\|\*/',$subject.$text.($html??'')))throw new InvalidArgumentException('Resolve all merge tags before sending this email.');
     if(trim($subject)===''||preg_match('/[\r\n]/',$subject.$draft['from_name'].$draft['from_email']))throw new InvalidArgumentException('The email subject or sender contains invalid characters.');
-    if(strlen($text)+strlen($html??'')>6_000_000)throw new InvalidArgumentException('The rendered email is too large to send.');
-    if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
+    if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
     if(function_exists('audienceTrackMessage')){[$tracked,$text]=audienceTrackMessage($snapshot,$html??'',$text,$token);if($html!==null)$html=$tracked;}
+    // Measure the delivered bodies, after image hosting and tracking expansion.
+    if(strlen($text)+strlen($html??'')>AUDIENCE_DESIGN_MAX_BYTES)throw new InvalidArgumentException('Keep the rendered email below 10 MB.');
     $toName=!empty($draft['personalize_to'])?trim((string)($context[$draft['to_merge']??'FNAME']??'')):'';
     if(preg_match('/[\r\n]/',$toName))throw new InvalidArgumentException('The personalized To name contains invalid characters.');
     return ['email'=>$context['EMAIL'],'subject'=>$subject,'text'=>$text,'html'=>$html,'from_name'=>$draft['from_name'],'from_email'=>$draft['from_email'],'to_name'=>$toName,'message_id'=>$messageId,'unsubscribe'=>$link,'reply_to'=>$snapshot['reply_to']??''];
@@ -104,7 +105,7 @@ trait AudienceDispatch
         if(!$candidates||count($candidates)>100000)throw new InvalidArgumentException('Choose between 1 and 100,000 eligible subscribers.');
         // Render before confirmation to surface unresolved tags and malformed headers.
         $first=$this->designRecipientContext((int)$candidates[0]['id'],$audience);
-        audienceDispatchMessage($snapshot,$first,str_repeat('0',64),'<review@message-monkey.invalid>');
+        audienceDispatchMessage($snapshot+['asset_key'=>str_repeat('0',64)],$first,str_repeat('0',64),'<review@message-monkey.invalid>');
         $fingerprint=hash('sha256',json_encode([$snapshot,$candidates,$this->fields(),$this->tags(),$this->groups()],JSON_THROW_ON_ERROR));
         $proof=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'campaign'=>$id,'version'=>(int)$row['version'],'actor'=>$this->actorId,'expires'=>time()+900,'fingerprint'=>$fingerprint],JSON_THROW_ON_ERROR));
         return ['proof'=>$proof,'count'=>count($candidates),'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint];

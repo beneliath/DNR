@@ -1,5 +1,15 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_design_builder.php';
+
+// Includes embedded image snapshots. Save, preview and reusable sections must
+// accept the same bounded payload, including Brand Kit logos up to 2 MB.
+const AUDIENCE_DESIGN_MAX_BYTES=10000000;
+function audienceDesignPayload(mixed $value):string
+{
+    if(is_string($value)&&strlen($value)>AUDIENCE_DESIGN_MAX_BYTES)throw new InvalidArgumentException('Keep the email design below 10 MB, including images.');
+    return audienceDesignString($value,AUDIENCE_DESIGN_MAX_BYTES);
+}
 
 function audienceDesignString(mixed $value,int $max=100):string
 {
@@ -18,31 +28,40 @@ function audienceDesignUrl(string $url,bool $image=false):bool
 {
     if($url==='')return true;
     if($image)return preg_match('~^https://[^\s<>"\x00-\x1f]+$~iD',$url)===1;
-    return preg_match('~^(https://[^\s<>"\x00-\x1f]+|mailto:[^\s<>"\x00-\x1f]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]{0,79}|\*\|(?:UNSUB|UPDATE_PROFILE|ARCHIVE|SURVEY:[a-f0-9]{64}|POLL:[a-f0-9]{64}:[0-9]{1,2})\|\*)$~iD',$url)===1;
+    return preg_match('~^(https?://[^\s<>"\x00-\x1f]+|mailto:[^\s<>"\x00-\x1f]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]{0,79}|\*\|(?:UNSUB|UPDATE_PROFILE|ARCHIVE|SURVEY:[a-f0-9]{64}|POLL:[a-f0-9]{64}:[0-9]{1,2})\|\*)$~iD',$url)===1;
 }
-function audienceDesignImage(mixed $image):string
+function audienceDesignNormalizeLink(string $url):string
+{
+    $url=trim($url);
+    if(preg_match('~^[A-Za-z0-9.!#$%&\x27*+/=?^_`{|}\~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$~D',$url))return 'mailto:'.$url;
+    if(preg_match('~^(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}(?::[0-9]{1,5})?(?:[/?#][^\s<>"\x00-\x1f]*)?$~D',$url))return 'https://'.$url;
+    return $url;
+}
+function audienceDesignImage(mixed $image,int $maxBytes=2000000):string
 {
     if($image==='')return '';
     if(!is_string($image)||!preg_match('~^data:image/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$~D',$image,$m))throw new InvalidArgumentException('Upload a PNG, JPEG, WebP or GIF image.');
     $bytes=base64_decode($m[2],true);$info=$bytes===false?false:@getimagesizefromstring($bytes);
-    if(!$info||strlen($bytes)>1000000||$info[0]*$info[1]>16000000||$info['mime']!=='image/'.$m[1])throw new InvalidArgumentException('Use an image up to 1 MB and 16 megapixels.');return $image;
+    if(!$info||strlen($bytes)>$maxBytes||$info[0]*$info[1]>16000000||$info['mime']!=='image/'.$m[1])throw new InvalidArgumentException('Use an image up to '.($maxBytes/1000000).' MB and 16 megapixels.');return $image;
 }
 function audienceDesignStyle(mixed $input):array
 {
     if(!is_array($input))throw new InvalidArgumentException('Invalid email styles.');$out=[];
     foreach($input as$key=>$value){
-        if(in_array($key,['background','color','borderColor'],true))$out[$key]=audienceDesignColor($value);
+        if(in_array($key,['background','color','borderColor','borderTopColor','borderBottomColor'],true))$out[$key]=audienceDesignColor($value);
         elseif(in_array($key,['padding','margin','paragraphSpacing'],true))$out[$key]=audienceDesignNumber($value,0,80);
         elseif(in_array($key,['size','heading1','heading2','heading3','heading4','buttonSize'],true))$out[$key]=audienceDesignNumber($value,10,72);
         elseif($key==='dividerWidth')$out[$key]=audienceDesignNumber($value,10,100);
         elseif($key==='dividerHeight')$out[$key]=audienceDesignNumber($value,1,12);
         elseif($key==='lineHeight')$out[$key]=audienceDesignNumber($value,100,240);
         elseif($key==='letterSpacing')$out[$key]=audienceDesignNumber($value,-2,10);
-        elseif($key==='borderWidth')$out[$key]=audienceDesignNumber($value,0,12);
+        elseif(in_array($key,['borderWidth','borderTopWidth','borderBottomWidth'],true))$out[$key]=audienceDesignNumber($value,0,12);
         elseif($key==='font'&&in_array($value,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true))$out[$key]=$value;
-        elseif($key==='align'&&in_array($value,['left','center','right'],true))$out[$key]=$value;
+        elseif($key==='align'&&in_array($value,['left','center','right','justify'],true))$out[$key]=$value;
         elseif($key==='direction'&&in_array($value,['ltr','rtl'],true))$out[$key]=$value;
-        elseif($key==='borderStyle'&&in_array($value,['solid','dashed','dotted'],true))$out[$key]=$value;
+        elseif($key==='weight'&&in_array($value,['normal','bold'],true))$out[$key]=$value;
+        elseif($key==='fontStyle'&&in_array($value,['normal','italic'],true))$out[$key]=$value;
+        elseif(in_array($key,['borderStyle','borderTopStyle','borderBottomStyle'],true)&&in_array($value,['solid','dashed','dotted'],true))$out[$key]=$value;
         else throw new InvalidArgumentException('Unsupported email style.');
     }return $out;
 }
@@ -68,7 +87,7 @@ function audienceDesignWebFont(mixed $value):string
 function audienceDesignDocument(array $input):array
 {
     if(($input['schema']??null)!==1)throw new InvalidArgumentException('Unsupported email design version.');
-    if(strlen(json_encode($input,JSON_THROW_ON_ERROR))>3000000)throw new InvalidArgumentException('Keep the email design below 3 MB.');
+    audienceDesignPayload(json_encode($input,JSON_THROW_ON_ERROR));
     $s=$input['styles']??[];if(!is_array($s))throw new InvalidArgumentException('Invalid email styles.');
     $styles=[];foreach(['background'=>'#f4f4f4','body'=>'#ffffff','text'=>'#24292d','link'=>'#007c89','button'=>'#007c89','buttonText'=>'#ffffff']as$key=>$default)$styles[$key]=audienceDesignColor($s[$key]??$default);
     $styles['font']=in_array($s['font']??'', ['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$s['font']:'Arial';
@@ -79,21 +98,24 @@ function audienceDesignDocument(array $input):array
     if(!is_array($input['areas']??[]))throw new InvalidArgumentException('Invalid editable regions.');
     foreach($input['areas']??[]as$key=>$value){if(!preg_match('/^[a-zA-Z0-9_-]{1,80}$/D',(string)$key))throw new InvalidArgumentException('Invalid editable region name.');$out['areas'][$key]=audienceDesignRichText(audienceDesignString($value,30000));}
     $footer=$input['footer']??[];if(!is_array($footer))throw new InvalidArgumentException('Invalid footer.');
+    $out+=audienceDesignBuilderSettings($input);
     $out['footer']=['text'=>audienceDesignString($footer['text']??'',2000),'styles'=>audienceDesignStyle($footer['styles']??[])];
     if(!is_array($input['rows']??null)||count($input['rows'])>50)throw new InvalidArgumentException('Use up to 50 layouts.');$count=0;$ids=[];$anchors=[];
     foreach($input['rows']as$ri=>$row){
         if(!is_array($row)||!is_array($row['columns']??null)||count($row['columns'])<1||count($row['columns'])>4)throw new InvalidArgumentException('Use one to four columns per layout.');
-        $rid=audienceDesignKey($row['id']??'row-'.$ri,$ids);$clean=['id'=>$rid,'name'=>audienceDesignString($row['name']??'Section '.($ri+1),100),'styles'=>audienceDesignStyle($row['styles']??[]),'mobile'=>audienceDesignStyle($row['mobile']??[]),'condition'=>audienceDesignCondition($row['condition']??[]),'columns'=>[]];
+        $rid=audienceDesignKey($row['id']??'row-'.$ri,$ids);$clean=['id'=>$rid,'name'=>audienceDesignString($row['name']??'Section '.($ri+1),100),'region'=>in_array($row['region']??'', ['preheader','header','body','footer'],true)?$row['region']:'body','styles'=>audienceDesignStyle($row['styles']??[]),'mobile'=>audienceDesignStyle($row['mobile']??[]),'condition'=>audienceDesignCondition($row['condition']??[]),'columns'=>[]];
         foreach($row['columns']as$ci=>$column){if(!is_array($column))throw new InvalidArgumentException('Invalid content column.');$blocks=[];
             foreach($column as$bi=>$block){
-                if(++$count>150||!is_array($block)||!in_array($block['type']??'', ['heading','text','image','button','divider','spacer','image-card','image-group','video','social','code','toc'],true))throw new InvalidArgumentException('Invalid content block or too many blocks.');
+                if(++$count>150||!is_array($block)||!in_array($block['type']??'', ['heading','text','image','button','divider','spacer','image-card','image-group','video','social','code','toc','boxed-text','image-text','share'],true))throw new InvalidArgumentException('Invalid content block or too many blocks.');
                 $type=$block['type'];$b=['type'=>$type,'id'=>audienceDesignKey($block['id']??'block-'.$ri.'-'.$ci.'-'.$bi,$ids)];
-                foreach(['text'=>20000,'alt'=>300,'url'=>2048,'anchor'=>80,'caption'=>2000,'code'=>50000]as$key=>$limit)$b[$key]=audienceDesignString($block[$key]??'',$limit);
-                if(!audienceDesignUrl($b['url']))throw new InvalidArgumentException('Use an HTTPS, email, telephone, or anchor link.');
+                foreach(['text'=>30000,'alt'=>300,'url'=>2048,'anchor'=>80,'caption'=>2000,'code'=>50000]as$key=>$limit)$b[$key]=audienceDesignString($block[$key]??'',$limit);
+                $b['url']=audienceDesignNormalizeLink($b['url']);if(!audienceDesignUrl($b['url']))throw new InvalidArgumentException('Use an HTTP, HTTPS, email, telephone, or anchor link.');
                 if($b['anchor']!==''){if(!preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$b['anchor'])||isset($anchors[$b['anchor']]))throw new InvalidArgumentException('Use a unique anchor name without spaces.');$anchors[$b['anchor']]=true;}
-                $b['html']=in_array($type,['heading','text','image-card'],true)?audienceDesignRichText(audienceDesignString($block['html']??'',30000)):'';
-                $b['align']=in_array($block['align']??'', ['left','center','right'],true)?$block['align']:'left';
+                $b['html']=in_array($type,['heading','text','image-card','boxed-text','image-text'],true)?audienceDesignRichText(audienceDesignPayload($block['html']??'')):'';
+                $b['align']=in_array($block['align']??'', ['left','center','right','justify'],true)?$block['align']:'left';
                 foreach(['padding'=>[24,0,80],'margin'=>[0,0,80],'size'=>[$type==='heading'?32:16,10,72],'height'=>[24,4,200],'radius'=>[4,0,50],'headingLevel'=>[1,1,4],'dividerWidth'=>[100,10,100],'dividerHeight'=>[1,1,12]]as$key=>[$default,$min,$max])$b[$key]=audienceDesignNumber($block[$key]??$default,$min,$max);
+                $b['imagePosition']=($block['imagePosition']??'left')==='right'?'right':'left';$b['imageWidth']=audienceDesignNumber($block['imageWidth']??40,20,80);
+                $platforms=$block['sharePlatforms']??['facebook','x','linkedin','email'];if(!is_array($platforms)||count($platforms)>4||array_diff($platforms,['facebook','x','linkedin','email']))throw new InvalidArgumentException('Choose supported sharing services.');$b['sharePlatforms']=array_values(array_unique($platforms));
                 $b['bold']=!empty($block['bold']);$b['italic']=!empty($block['italic']);$b['color']=audienceDesignColor($block['color']??$styles['text']);$b['background']=audienceDesignColor($block['background']??$styles['button']);$b['image']=audienceDesignImage($block['image']??'');
                 $b['styles']=audienceDesignStyle($block['styles']??[]);$b['mobile']=audienceDesignStyle($block['mobile']??[]);$b['linkDevices']=($block['linkDevices']??true)!==false;$b['includeToc']=!empty($block['includeToc']);
                 $b['inherit']=[];if(!is_array($block['inherit']??[]))throw new InvalidArgumentException('Invalid inherited styles.');foreach($block['inherit']??[]as$key){if(!in_array($key,['color','size','padding','align','font','lineHeight','letterSpacing','paragraphSpacing','margin','background','radius','dividerHeight','dividerWidth'],true))throw new InvalidArgumentException('Invalid inherited style.');$b['inherit'][]=$key;}
@@ -113,13 +135,13 @@ function audienceDesignKey(mixed $value,array &$ids):string
 }
 function audienceDesignCss(array $style,bool $important=false):string
 {
-    $properties=['background'=>'background-color','color'=>'color','font'=>'font-family','size'=>'font-size','padding'=>'padding','margin'=>'margin','align'=>'text-align','lineHeight'=>'line-height','letterSpacing'=>'letter-spacing','paragraphSpacing'=>'--paragraph-spacing','direction'=>'direction','borderColor'=>'border-color','borderWidth'=>'border-width','borderStyle'=>'border-style'];$out='';
-    foreach($style as$key=>$value){if(!isset($properties[$key]))continue;$unit=in_array($key,['size','padding','margin','letterSpacing','paragraphSpacing','borderWidth'],true)?'px':($key==='lineHeight'?'%':'');$out.=$properties[$key].':'.$value.$unit.($important?'!important':'').';';}return $out;
+    $properties=['background'=>'background-color','color'=>'color','font'=>'font-family','size'=>'font-size','padding'=>'padding','margin'=>'margin','align'=>'text-align','lineHeight'=>'line-height','letterSpacing'=>'letter-spacing','paragraphSpacing'=>'--paragraph-spacing','direction'=>'direction','borderColor'=>'border-color','borderWidth'=>'border-width','borderStyle'=>'border-style','weight'=>'font-weight','fontStyle'=>'font-style','borderTopColor'=>'border-top-color','borderTopWidth'=>'border-top-width','borderTopStyle'=>'border-top-style','borderBottomColor'=>'border-bottom-color','borderBottomWidth'=>'border-bottom-width','borderBottomStyle'=>'border-bottom-style'];$out='';
+    foreach($style as$key=>$value){if(!isset($properties[$key]))continue;$unit=in_array($key,['size','padding','margin','letterSpacing','paragraphSpacing','borderWidth','borderTopWidth','borderBottomWidth'],true)?'px':($key==='lineHeight'?'%':'');$out.=$properties[$key].':'.$value.$unit.($important?'!important':'').';';}return $out;
 }
 function audienceDesignBlockStyle(array $b,array $row,array $s):array
 {
-    $defaults=['color'=>$s['text'],'size'=>$b['type']==='heading'?$s['heading'.$b['headingLevel']]:($b['type']==='button'?$s['buttonSize']:$s['fontSize']),'font'=>$s['font'],'lineHeight'=>$s['lineHeight'],'letterSpacing'=>$s['letterSpacing'],'paragraphSpacing'=>$s['paragraphSpacing'],'direction'=>$s['direction'],'padding'=>24,'margin'=>0,'align'=>'left'];
-    $style=array_replace($defaults,$row['styles']);foreach(['color','size','padding','margin','align']as$key)if(!in_array($key,$b['inherit'],true))$style[$key]=$b[$key];return array_replace($style,$b['styles']);
+    $defaults=['weight'=>$b['type']==='heading'?'bold':'normal','color'=>$s['text'],'size'=>$b['type']==='heading'?$s['heading'.$b['headingLevel']]:($b['type']==='button'?$s['buttonSize']:$s['fontSize']),'font'=>$s['font'],'lineHeight'=>$s['lineHeight'],'letterSpacing'=>$s['letterSpacing'],'paragraphSpacing'=>$s['paragraphSpacing'],'direction'=>$s['direction'],'padding'=>24,'margin'=>0,'align'=>'left'];
+    $defaults=array_replace($defaults,$s['_typography'][$b['type']==='heading'?'heading'.$b['headingLevel']:'paragraph']??[]);$style=array_replace($defaults,$row['styles']);foreach(['color','size','padding','margin','align']as$key)if(!in_array($key,$b['inherit'],true))$style[$key]=$b[$key];return array_replace($style,$b['styles']);
 }
 /** Interpret a bounded subset of Mailchimp conditional merge syntax without eval. */
 function audienceDesignMerge(string $text,array $context,bool $html=true):string
@@ -155,7 +177,7 @@ function audienceDesignSafeCode(string $code,array $areas=[]):array
         foreach(iterator_to_array($node->attributes)as$attribute){$key=strtolower($attribute->name);$value=$attribute->value;$keep=in_array($key,['width','height','align','valign','bgcolor','border','cellpadding','cellspacing','colspan','rowspan','alt','title','class','id','role','charset','name','content'],true);
             if($key==='style'){if(preg_match('/url\s*\(|expression|behavior|binding/i',$value))$warnings['css']='External or unsupported CSS is omitted from the protected preview; the original source is retained.';$node->setAttribute('style',audienceDesignSafeCss($value,false));$keep=true;}
             if(in_array($key,['mc:edit','mc:repeatable','mc:variant','mc:hideable'],true))$keep=preg_match('/^[a-zA-Z0-9 _-]{0,100}$/D',$value)===1;
-            if($key==='href')$keep=audienceDesignUrl($value);
+            if($key==='href'){$value=audienceDesignNormalizeLink($value);$node->setAttribute('href',$value);$keep=$value!==''&&audienceDesignUrl($value);if(!$keep)$warnings['links']='A link is missing a supported destination. Review it in the link checker.';}
             if($key==='src'){$keep=audienceDesignUrl($value,true)||str_starts_with($value,'data:image/');if(str_starts_with($value,'data:')){try{audienceDesignImage($value);}catch(InvalidArgumentException){$keep=false;}}if(!$keep)$warnings['images']='Some image references are unsupported or missing. Upload them or include them in the ZIP.';if(str_starts_with($value,'https://'))$warnings['remote']='Remote images remain in the source; the protected preview blocks remote image loading.';}
             if(!$keep){$node->removeAttribute($attribute->name);if(str_starts_with($key,'on'))$warnings['markup']='Active or unsupported markup is omitted from the safe preview. The original source is retained.';}
         }
@@ -174,10 +196,11 @@ function audienceDesignSafeCss(string $css,bool $sheet):string
 }
 function audienceDesignRender(array $input,?array $context=null):string
 {
-    $d=audienceDesign($input);$s=$d['styles'];$e=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$responsive='';$toc=[];
+    $d=audienceDesign($input);$s=$d['styles'];$s['_typography']=$d['typography'];$e=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$responsive='';$toc=[];
     foreach($d['rows']as$row)foreach($row['columns']as$column)foreach($column as$b)if($b['includeToc']&&$b['type']==='heading'&&($context===null||(audienceDesignMatches($row['condition'],$context)&&audienceDesignMatches($b['condition'],$context))))$toc[]=['anchor'=>$b['anchor']?:$b['id'],'label'=>$b['text']?:strip_tags($b['html'])];
     $tocHtml='<ul>';foreach($toc as$item)$tocHtml.='<li><a href="#'.$e($item['anchor']).'">'.$e($item['label']).'</a></li>';$tocHtml.='</ul>';
-    $footer='<div class="email-footer" style="padding:32px;text-align:center;font-size:12px;color:#60676b;'.audienceDesignCss($d['footer']['styles']).'">'.nl2br($e($d['footer']['text'])).($d['footer']['text']!==''?'<br><br>':'').'*|LIST:COMPANY|*<br>*|LIST:ADDRESS|*<br><br><a href="*|UPDATE_PROFILE|*">Update your preferences</a> or <a href="*|UNSUB|*">unsubscribe</a>.</div>';
+    $footer='<div class="email-footer" style="padding:32px;text-align:center;font-size:12px;color:#60676b;'.audienceDesignCss(array_replace($d['regions']['footer'],$d['footer']['styles'])).'">'.nl2br($e($d['footer']['text'])).($d['footer']['text']!==''?'<br><br>':'').'*|LIST:COMPANY|*<br><span style="white-space:pre-line">*|LIST:ADDRESS|*</span><br><br><a href="*|UPDATE_PROFILE|*">Update your preferences</a> or <a href="*|UNSUB|*">unsubscribe</a>.</div>';
+    if($d['badge']['enabled'])$footer.='<div class="email-badge" style="text-align:'.$d['badge']['align'].';padding:12px;font-size:12px">Made with MessageMonkey</div>';
     if($d['mode']==='code'){
         $safe=audienceDesignSafeCode($d['code'],$d['areas']);$html=$safe['html'];$hasFooter=str_contains($html,'*|UNSUB|*')&&str_contains($html,'*|UPDATE_PROFILE|*')&&(str_contains($html,'*|LIST:ADDRESS|*')||str_contains($html,'*|LIST:ADDRESSLINE|*'));if(!$hasFooter)$html=str_replace('</body>',$footer.'</body>',$html);$html=str_replace('*|MC:TOC|*',$tocHtml,$html);
         // Reinsert only the validated native brand font after sanitizing arbitrary source CSS.
@@ -185,7 +208,7 @@ function audienceDesignRender(array $input,?array $context=null):string
         return $context===null?$html:audienceDesignMerge($html,$context);
     }
     $body='';
-    foreach($d['rows']as$row){
+    foreach($d['rows']as$row){$row['styles']=array_replace($d['regions'][$row['region']],$row['styles']);
         if($context!==null&&!audienceDesignMatches($row['condition'],$context))continue;
         $rowStyle=audienceDesignCss($row['styles']);$responsive.='.'.$row['id'].'{'.audienceDesignCss(array_replace($row['styles'],$row['mobile']),true).'}';
         $body.='<tr><td class="'.$row['id'].'" style="'.$rowStyle.'"><table role="presentation" width="100%"><tr>';
@@ -193,13 +216,15 @@ function audienceDesignRender(array $input,?array $context=null):string
             foreach($column as$b){if($context!==null&&!audienceDesignMatches($b['condition'],$context))continue;
                 $style=audienceDesignBlockStyle($b,$row,$s);if($s['webFont']!==''&&in_array('font',$b['inherit'],true)&&empty($row['styles']['font'])&&empty($b['styles']['font']))$style['font']='MOEDBrandFont,'.$s['font'];$class=$b['id'];$mobileStyle=$b['linkDevices']?[]:$b['mobile'];$mobileDefaults=array_intersect_key($d['mobile'],array_flip($b['inherit']));if(in_array('size',$b['inherit'],true)&&$b['type']==='heading'){$mobileDefaults['size']=$d['mobile']['heading'.$b['headingLevel']]??$style['size'];}elseif(in_array('size',$b['inherit'],true)&&$b['type']==='button')$mobileDefaults['size']=$d['mobile']['buttonSize']??$style['size'];$responsive.='.'.$class.'{'.audienceDesignCss(array_replace($style,$mobileDefaults,$row['mobile'],$mobileStyle),true).'}';
                 $mobileEffective=array_replace($style,$mobileDefaults,$row['mobile'],$mobileStyle);$responsive.='.'. $class.' p{margin-bottom:'.$mobileEffective['paragraphSpacing'].'px!important}';
-                $text=$b['html']!==''?$b['html']:nl2br($e($b['text']));$text=str_replace('*|MC:TOC|*',$tocHtml,$text);$content='';$type=$b['type'];
+                $text=$b['html']!==''?$b['html']:nl2br($e($b['text']));$text=str_replace('*|MC:TOC|*',$tocHtml,$text);if(str_contains($b['html'],'<img'))$text.='<div style="clear:both"></div>';$content='';$type=$b['type'];
                 $image=static function(array $image,int $width)use($e):string{$content=$image['image']!==''?'<img src="'.$e($image['image']).'" alt="'.$e($image['alt']).'" width="'.$width.'" style="max-width:100%;height:auto">':'<div style="padding:40px;background:#eef1f2;color:#66757c">Add an image</div>';return ($image['url']??'')!==''?'<a href="'.$e($image['url']).'">'.$content.'</a>':$content;};
                 $width=max(1,(int)($s['width']/count($row['columns']))-$style['padding']*2);
-                if($type==='heading')$content='<h'.$b['headingLevel'].' id="'.$e($b['anchor']?:$b['id']).'" style="margin:0;font-size:inherit">'.$text.'</h'.$b['headingLevel'].'>';
-                elseif($type==='text')$content='<div'.($b['anchor']!==''?' id="'.$e($b['anchor']).'"':'').'>'.$text.'</div>';
+                if($type==='heading')$content='<h'.$b['headingLevel'].' id="'.$e($b['anchor']?:$b['id']).'" style="margin:0;font-size:inherit;font-weight:inherit">'.$text.'</h'.$b['headingLevel'].'>';
+                elseif($type==='text'||$type==='boxed-text')$content='<div'.($b['anchor']!==''?' id="'.$e($b['anchor']).'"':'').'>'.$text.'</div>';
                 elseif($type==='image')$content=$image($b,$width);
                 elseif($type==='image-card')$content=$image($b,$width).'<div style="padding:16px;background:'.$b['background'].'">'.$text.'</div>';
+                elseif($type==='image-text'){$iw=$b['imageWidth'];$media='<td class="email-media" width="'.$iw.'%" valign="top">'.$image($b,max(1,(int)($width*$iw/100))).'</td>';$copy='<td class="email-media" width="'.(100-$iw).'%" valign="top" style="padding:12px">'.$text.'</td>';$content='<table role="presentation" width="100%"><tr>'.($b['imagePosition']==='left'?$media.$copy:$copy.$media).'</tr></table>';}
+                elseif($type==='share')$content=audienceDesignShare($b['sharePlatforms'],$context);
                 elseif($type==='image-group'){$content='<table role="presentation" width="100%"><tr>';foreach($b['images']as$item)$content.='<td width="'.(100/max(1,count($b['images']))).'%" valign="top">'.$image($item,max(1,(int)($width/max(1,count($b['images']))))).'</td>';$content.='</tr></table>';}
                 elseif($type==='video')$content='<a href="'.$e($b['url']?:'https://example.com').'">'.$image(array_replace($b,['url'=>'']),$width).'<span style="display:block;text-align:center">▶ '.$e($b['caption']?:'Watch video').'</span></a>';
                 elseif($type==='social'){foreach($b['social']as$link)$content.='<a href="'.$e($link['url']).'" style="display:inline-block;margin:8px;color:'.$s['link'].'">'.$e($link['label']).'</a>';}
@@ -209,13 +234,13 @@ function audienceDesignRender(array $input,?array $context=null):string
                 elseif($type==='divider'){$dividerWidth=in_array('dividerWidth',$b['inherit'],true)?$s['dividerWidth']:$b['dividerWidth'];$dividerHeight=in_array('dividerHeight',$b['inherit'],true)?$s['dividerHeight']:$b['dividerHeight'];$content='<div class="email-divider" style="margin:0 auto;width:'.$dividerWidth.'%;border-top:'.$dividerHeight.'px '.($b['styles']['borderStyle']??'solid').' '.$b['color'].'"></div>';$responsive.='.'. $class.' .email-divider{width:'.($mobileStyle['dividerWidth']??$d['mobile']['dividerWidth']??$dividerWidth).'%!important;border-top-width:'.($mobileStyle['dividerHeight']??$d['mobile']['dividerHeight']??$dividerHeight).'px!important}';} 
                 elseif($type==='spacer')$content='<div style="height:'.$b['height'].'px">&nbsp;</div>';
                 if(in_array($type,['text','heading'],true)&&$b['url']!=='')$content='<a href="'.$e($b['url']).'" style="color:'.$s['link'].'">'.$content.'</a>';
-                $body.='<div class="email-block '.$class.'" style="'.audienceDesignCss($style).'font-weight:'.($b['bold']?'bold':'normal').';font-style:'.($b['italic']?'italic':'normal').'">'.$content.'</div>';
+                $body.='<div class="email-block '.$class.'" style="'.audienceDesignCss($style).'font-weight:'.($b['bold']?'bold':($style['weight']??'normal')).';font-style:'.($b['italic']?'italic':($style['fontStyle']??'normal')).'">'.$content.'</div>';
             }$body.='</td>';
         }$body.='</tr></table></td></tr>';
     }
-    $css='*{box-sizing:border-box}body{margin:0}table{border-collapse:collapse;border-spacing:0}td{padding:0}.email-body{table-layout:fixed;max-width:100%}p{margin:0 0 '.$s['paragraphSpacing'].'px}a{color:'.$s['link'].';text-decoration:'.($s['linkUnderline']?'underline':'none').'}img{max-width:100%;height:auto}@media(max-width:600px){.email-column{display:block!important;width:100%!important}.email-body{width:100%!important}'.$responsive.'}';
+    $css='*{box-sizing:border-box}body{margin:0}table{border-collapse:collapse;border-spacing:0}td{padding:0}.email-body{table-layout:fixed;max-width:100%}p{margin:0 0 '.$s['paragraphSpacing'].'px}.email-block p{margin-bottom:var(--paragraph-spacing,'.$s['paragraphSpacing'].'px)}a{color:'.$s['link'].';text-decoration:'.($s['linkUnderline']?'underline':'none').'}img{max-width:100%;height:auto}@media(max-width:600px){.email-media,.email-column{display:block!important;width:100%!important}.email-body{width:100%!important}'.$responsive.'}';
     if($s['webFont']!=='')$css='@font-face{font-family:MOEDBrandFont;src:url('.$s['webFont'].');font-display:swap}'.$css;
-    $html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><style>'.$css.'</style></head><body style="background:'.$s['background'].';color:'.$s['text'].';font-family:'.$s['font'].',serif;font-size:'.$s['fontSize'].'px;line-height:'.($s['lineHeight']/100).';direction:'.$s['direction'].';letter-spacing:'.$s['letterSpacing'].'px"><table role="presentation" width="100%"><tr><td align="center" style="padding:24px 0"><table role="presentation" class="email-body" width="'.$s['width'].'" style="max-width:100%;background:'.$s['body'].'">'.$body.'<tr><td>'.$footer.'</td></tr></table></td></tr></table></body></html>';
+    $html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><style>'.$css.'</style></head><body style="background:'.$s['background'].';color:'.$s['text'].';font-family:'.$s['font'].',serif;font-size:'.$s['fontSize'].'px;line-height:'.($s['lineHeight']/100).';direction:'.$s['direction'].';letter-spacing:'.$s['letterSpacing'].'px">'.($d['preheader']['text']!==''?'<div style="display:none;max-height:0;overflow:hidden;font-size:1px">'.$e($d['preheader']['text']).'</div>':'').'<table role="presentation" width="100%"><tr><td align="center" style="padding:24px 0"><table role="presentation" class="email-body" width="'.$s['width'].'" style="max-width:100%;background:'.$s['body'].';'.audienceDesignCss($d['regions']['page']).'">'.($d['preheader']['showArchive']?'<tr><td style="text-align:center;padding:12px;font-size:12px;'.audienceDesignCss($d['regions']['preheader']).'"><a href="*|ARCHIVE|*">View this email in your browser</a></td></tr>':'').$body.'<tr><td>'.$footer.'</td></tr></table></td></tr></table></body></html>';
     return $context===null?$html:audienceDesignMerge($html,$context);
 }
 function audienceDesignPlainText(array $design,?array $context=null):string
@@ -228,7 +253,7 @@ function audienceDesignPlainText(array $design,?array $context=null):string
 function audienceDesignLinkReport(array $design,?array $context=null):array
 {
     $html=audienceDesignRender($design,$context);$doc=new DOMDocument();$old=libxml_use_internal_errors(true);try{$doc->loadHTML($html,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);}finally{libxml_clear_errors();libxml_use_internal_errors($old);}$anchors=[];foreach($doc->getElementsByTagName('*')as$n)if($n->hasAttribute('id'))$anchors[]=$n->getAttribute('id');$links=[];
-    foreach($doc->getElementsByTagName('a')as$a){$url=$a->getAttribute('href');$status='Ready to check';if(str_starts_with($url,'#'))$status=in_array(substr($url,1),$anchors,true)?'Anchor found':'Missing anchor';elseif(str_contains($url,'*|'))$status=preg_match('/^\*\|(UNSUB|UPDATE_PROFILE|ARCHIVE)\|\*$/D',$url)?'Resolved during delivery':'Unresolved merge tag';elseif(str_contains($url,'example.com')||$url==='')$status='Placeholder link';elseif(!audienceDesignUrl($url))$status='Invalid link';elseif(!str_starts_with($url,'https://'))$status='Email or phone link';$links[$url]=['url'=>$url,'label'=>mb_substr(trim($a->textContent),0,100),'status'=>$status];}
+    foreach($doc->getElementsByTagName('a')as$a){if(!$a->hasAttribute('href')&&$a->hasAttribute('id'))continue;$url=$a->getAttribute('href');$status='Ready to check';if(str_starts_with($url,'#'))$status=in_array(substr($url,1),$anchors,true)?'Anchor found':'Missing anchor';elseif(str_contains($url,'*|'))$status=preg_match('/^\*\|(UNSUB|UPDATE_PROFILE|ARCHIVE)\|\*$/D',$url)?'Resolved during delivery':'Unresolved merge tag';elseif(str_contains($url,'example.com')||$url==='')$status='Placeholder link';elseif(!audienceDesignUrl($url))$status='Invalid link';elseif(str_starts_with(strtolower($url),'http://'))$status='HTTP link — review destination';elseif(!str_starts_with(strtolower($url),'https://'))$status='Email or phone link';$links[$url!==''?$url:'missing-'.count($links)]=['url'=>$url,'label'=>mb_substr(trim($a->textContent),0,100),'status'=>$status];}
     $warnings=[];if($context!==null&&($context['LIST:ADDRESS']??'')==='')$warnings[]='The audience mailing address is missing.';foreach($doc->getElementsByTagName('img')as$img)if(trim($img->getAttribute('alt'))==='')$warnings[]='An image is missing alt text.';
     preg_match_all('/\*\|([A-Z][A-Z0-9_:]{0,60})\|\*/',$html,$tags);foreach(array_unique($tags[1])as$tag)if(!in_array($tag,['UNSUB','UPDATE_PROFILE','ARCHIVE','LIST:COMPANY','LIST:ADDRESS'],true))$warnings[]='Unresolved merge tag: '.$tag;
     return ['links'=>array_values($links),'warnings'=>array_values(array_unique($warnings))];

@@ -46,7 +46,7 @@ if($html===null&&!$preferences&&($system=audienceCollectionSystem($publicStore,'
 }
 ?><!doctype html><html lang="en">
 <?php renderPageHead($done?'Unsubscribed':($html!==null?'Email':($preferences?'Email Preferences':'Unsubscribe')),['styles'=>['assets/css/pages/audience.min.css']]); ?>
-<body class="audience-app campaign-public"><main>
+<body class="audience-app campaign-public subscription-public"><main>
 <?php if($html!==null): ?><header><h1>Your email</h1><nav aria-label="Subscription"><a href="?token=<?= $h($token) ?>&amp;preferences=1">Email preferences</a> · <a href="?token=<?= $h($token) ?>">Unsubscribe</a></nav></header><iframe title="Your email" sandbox="" referrerpolicy="no-referrer" srcdoc="<?= $h(audienceDesignPreviewSource($html,contentSecurityPolicyNonce())) ?>"></iframe>
 <?php elseif($done): ?><h1>You’re unsubscribed</h1><p>You will no longer receive emails from this audience.</p>
 <?php elseif($preferences): require __DIR__.'/templates/audience/subscription-preferences.php'; ?>

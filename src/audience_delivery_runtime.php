@@ -33,11 +33,11 @@ function audienceTrackMessage(array $snapshot,string $html,string $text,string $
 {
     if(empty($snapshot['tracking_key'])||!empty($snapshot['test']))return [$html,$text];$base=$snapshot['base'];$key=$snapshot['tracking_key'];$tracking=$snapshot['draft']['tracking']??[];
     $link=static function(string $url)use($base,$key,$token):string{
-        if(strlen($url)>2048||!str_starts_with($url,'https://')||str_starts_with($url,$base.'/audience_'))return $url;
+        if(strlen($url)>2048||!preg_match('~^https?://~i',$url)||str_starts_with($url,$base.'/audience_'))return $url;
         $encoded=rtrim(strtr(base64_encode($url),'+/','-_'),'=');return $base.'/audience_track.php?'.http_build_query(['token'=>$token,'url'=>$encoded,'sig'=>hash_hmac('sha256',$encoded,$key)]);
     };
-    if(!empty($tracking['clicks']))$html=preg_replace_callback('~href="(https://[^"]+)"~',static fn($m)=>'href="'.htmlspecialchars($link(html_entity_decode($m[1],ENT_QUOTES,'UTF-8')),ENT_QUOTES,'UTF-8').'"',$html);
-    if(!empty($tracking['plain_clicks']))$text=preg_replace_callback('~https://[^\s<>]+~',static fn($m)=>$link($m[0]),$text);
+    if(!empty($tracking['clicks']))$html=preg_replace_callback('~href="(https?://[^"]+)"~i',static fn($m)=>'href="'.htmlspecialchars($link(html_entity_decode($m[1],ENT_QUOTES,'UTF-8')),ENT_QUOTES,'UTF-8').'"',$html);
+    if(!empty($tracking['plain_clicks']))$text=preg_replace_callback('~https?://[^\s<>]+~i',static fn($m)=>$link($m[0]),$text);
     if(!empty($tracking['opens'])){$pixel='<img src="'.htmlspecialchars($base.'/audience_track.php?'.http_build_query(['token'=>$token,'open'=>'1','sig'=>hash_hmac('sha256','open',$key)]),ENT_QUOTES,'UTF-8').'" width="1" height="1" alt="" style="display:block;border:0">';$html=str_contains($html,'</body>')?str_replace('</body>',$pixel.'</body>',$html):$html.$pixel;}
     return [$html,$text];
 }

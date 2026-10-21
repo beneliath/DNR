@@ -54,6 +54,15 @@ expectHoverStyle(
 );
 
 $legacy_hover_markers = ['button-hover-color', '#f77f00', '#ff8c00', '#ffa500', 'darkorange'];
+// The email text palette deliberately offers orange. Exclude only its exact
+// swatch array, including the bundled copy, rather than ignoring designer code.
+$palette = file_get_contents(__DIR__ . '/../src/assets/js/audience-richtext-colors.mjs');
+preg_match('/export const textColors = \[([^]]+)\]/', $palette, $palette_match);
+preg_match_all('/#[a-f0-9]{6}/i', $palette_match[1] ?? '', $palette_colors);
+$palette_pattern = '~\[\s*' . implode('\s*,\s*', array_map(
+    static fn($color) => '[\'\"]' . preg_quote($color, '~') . '[\'\"]',
+    $palette_colors[0]
+)) . '\s*,?\s*\]~i';
 $source_paths = [];
 $source_iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(__DIR__ . '/../src', FilesystemIterator::SKIP_DOTS)
@@ -66,12 +75,15 @@ foreach ($source_iterator as $source_file) {
         || preg_match('/^map-shared-[A-Z0-9]+\.min\.js$/', $source_file->getFilename()) === 1) {
         continue;
     }
-    if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {
+    if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js', 'mjs'], true)) {
         $source_paths[] = $source_file->getPathname();
     }
 }
 foreach ($source_paths as $source_path) {
     $source = strtolower(file_get_contents($source_path));
+    if (in_array(basename($source_path), ['audience-richtext-colors.mjs', 'audience-designer.min.js'], true)) {
+        $source = preg_replace($palette_pattern, '[]', $source);
+    }
     foreach ($legacy_hover_markers as $marker) {
         expectHoverStyle(
             strpos($source, $marker) === false,

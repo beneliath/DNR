@@ -57,6 +57,7 @@ $rich=static function(string $value,string $label='Message')use($h):void{?><div 
 <?php else: ?>
 <section class="inbox-onboarding"><div class="inbox-envelope" aria-hidden="true">✉</div><h1>Manage one-to-one conversations with your connections using Inbox</h1><p>Reply, organize messages, and collaborate with your team in one place.</p><a class="button primary" href="<?= $h($url(['panel'=>'sources'])) ?>">Add sources</a></section>
 <?php endif; ?>
+<?php include __DIR__ . '/../app-footer.php'; ?>
 </main></div>
 <dialog id="inbox-action-dialog" class="confirmation-dialog" aria-labelledby="inbox-action-title" aria-describedby="inbox-action-message">
 <form method="dialog"><h2 id="inbox-action-title">Confirm action</h2><p id="inbox-action-message"></p>

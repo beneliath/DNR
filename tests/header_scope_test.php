@@ -300,7 +300,7 @@ expectHeaderScope(
 );
 
 $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
-$footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$footer_source = file_get_contents(__DIR__ . '/../src/templates/app-footer.php');
 $version = trim((string) file_get_contents(__DIR__ . '/../VERSION'));
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $theme_source = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');

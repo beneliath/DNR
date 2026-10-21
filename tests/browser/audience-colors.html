@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'nonce-colors'; style-src-attr 'none'; connect-src 'none'">
+<title>MessageMonkey Brand Kit color checks</title>
+<link rel="stylesheet" href="../../src/assets/css/pages/audience.css">
+<style nonce="colors">body{font:16px Arial;margin:24px;color:#24292d}main{max-width:720px}fieldset{border:0;padding:0}button,input{font:inherit}.content-color-grid{display:flex;gap:24px;flex-wrap:wrap}.audience-color-field{display:grid;gap:8px}#result{white-space:pre-wrap}</style>
+<main><h1>Brand Kit colors</h1><p>Disposable browser checks. No account settings are saved.</p><button id="run">Run color checks</button><pre id="result">Ready</pre><form id="brand"><fieldset><h3>Colors</h3><div class="content-color-grid"><label>Links<input type="color" name="link" value="#3261b5"></label><label>Button<input type="color" name="button" value="#c00000"></label></div></fieldset></form><div id="disabled"></div></main>
+<script type="module" src="audience-colors.mjs"></script>

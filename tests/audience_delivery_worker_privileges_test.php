@@ -39,9 +39,15 @@ if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1
 if($db->query('SELECT check_state FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['check_state']!=='ready')throw new RuntimeException('SES check failed.');
 try{$db->query("UPDATE marketing_contacts SET email='forbidden@example.test' WHERE 1=0");throw new RuntimeException('Mail role can replace connection identity.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
 $db->query('SELECT id,audience_id,email,email_status,is_archived,deleted_at FROM marketing_contacts LIMIT 0');
-$sent=processAudienceCampaignDelivery($db,10,static fn($m)=>audienceSesDeliver($db,$m,'campaign',$factory));if($sent!==1)throw new RuntimeException('Dedicated role could not process a fictional campaign.');
+$sent=processAudienceCampaignDelivery($db,10,static function($m)use($db,$factory){
+ $m['text']='Large newsletter transport regression';
+ $m['html']='<p>'.str_repeat('Newsletter ',880000).'</p>';
+ if(strlen($m['text'])+strlen($m['html'])>AUDIENCE_DESIGN_MAX_BYTES)throw new RuntimeException('Large email fixture exceeds the design limit.');
+ return audienceSesDeliver($db,$m,'campaign',$factory);
+});if($sent!==1)throw new RuntimeException('Dedicated role could not process a fictional campaign.');
 if(count($fakeSes->sent)!==1)throw new RuntimeException('SES campaign send was replayed.');
 $request=$fakeSes->sent[0];if(count($request['Destination']['ToAddresses'])!==1||$request['ConfigurationSetName']!=='message-monkey'||$request['ConfigurationOverrides']['Tracking']['ClickTrackingEnabled']!=='DISABLED'||!str_contains($request['Content']['Raw']['Data'],'List-Unsubscribe-Post: List-Unsubscribe=One-Click'))throw new RuntimeException('SES envelope lost private delivery, tracking or unsubscribe headers.');
+if(strlen($request['Content']['Raw']['Data'])<=9_500_000)throw new RuntimeException('Large email regression did not exercise encoded MIME overhead.');
 $row=$db->query("SELECT * FROM marketing_campaign_recipients WHERE provider_message_id='mock-ses-1'")->fetch_assoc();if(!$row||$row['state']!=='accepted'||!$row['ses_correlation'])throw new RuntimeException('SES receipt was not retained.');
 // The API adapter’s quota and ambiguity behavior is exercised under the actual worker role.
 $resetSes=static function()use($db,$row,$fakeSes):void{$fakeSes->failure=null;$db->query("UPDATE marketing_ses_settings SET blocked_until=NULL,last_permit_at=NULL,quota_checked_at=UTC_TIMESTAMP(6),sent_last_day=0,max_daily=1000,max_rate=1000,check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");$db->execute_query("UPDATE marketing_campaign_recipients SET state='queued',provider_message_id=NULL,ses_correlation=NULL,next_attempt_at=UTC_TIMESTAMP(),attempts=0,delivery_started_at=NULL WHERE id=?",[$row['id']]);$db->execute_query("UPDATE marketing_campaign_deliveries SET state='sending' WHERE id=?",[$row['delivery_id']]);$db->execute_query("UPDATE marketing_campaigns SET status='sending' WHERE id=(SELECT campaign_id FROM marketing_campaign_deliveries WHERE id=?)",[$row['delivery_id']]);};

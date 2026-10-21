@@ -1,3 +1,6 @@
+import { enhanceColorInput } from './audience-color-picker.mjs';
+import { prepareAudienceImage, imageFileSize } from './audience-image-upload.mjs';
+import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
 (() => {
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -628,14 +631,29 @@
     const defaultRule = () => ({field: 'email_status', operator: 'is', value: 'subscribed'});
     const clearPreview = () => { if ($('[data-segment-results]')) $('[data-segment-results]').hidden = true; if ($('[data-segment-error]')) $('[data-segment-error]').hidden = true; };
     const ruleDepth = group => 1 + Math.max(0, ...group.rules.filter(rule => Array.isArray(rule.rules)).map(ruleDepth));
-    let pickerNumber = 0;
+    let pickerNumber = 0, activeFieldPicker = null;
+    window.addEventListener('resize', () => activeFieldPicker?.close());
+    document.addEventListener('scroll', event => {
+        if (activeFieldPicker && !activeFieldPicker.list.contains(event.target)) activeFieldPicker.close();
+    }, true);
     // Search stays in the combobox while arrows move its active option.
     const fieldPicker = (value, select, focusKey) => {
         const wrap = el('div', {class: 'rule-field-picker'}), listId = `rule-fields-${++pickerNumber}`;
         const input = el('input', {type: 'text', role: 'combobox', 'aria-label': 'Filter field', 'aria-autocomplete': 'list', 'aria-controls': listId, 'aria-expanded': 'false', autocomplete: 'off', 'data-rule-focus': focusKey, placeholder: 'Select or search a filter', value: config.catalog[value]?.label || ''});
         const list = el('div', {id: listId, role: 'listbox', class: 'rule-field-options', 'aria-label': 'Filter fields', hidden: true});
         let active = -1, options = [];
-        const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); input.value = config.catalog[value]?.label || ''; };
+        const close = () => { list.hidden = true; if (activeFieldPicker?.list === list) activeFieldPicker = null; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); input.value = config.catalog[value]?.label || ''; };
+        const position = () => {
+            const rect = input.getBoundingClientRect(), dialog = input.closest('dialog')?.getBoundingClientRect();
+            const bottom = Math.min(window.innerHeight, dialog?.bottom ?? window.innerHeight) - 12;
+            const top = Math.max(0, dialog?.top ?? 0) + 12;
+            const below = bottom - rect.bottom - 8, above = rect.top - top - 8;
+            const up = below < 240 && above > below, height = Math.max(0, Math.min(320, up ? above : below));
+            list.style.position = 'fixed'; list.style.width = Math.min(Math.max(rect.width, 300), window.innerWidth - 32) + 'px';
+            list.style.left = Math.max(16, Math.min(rect.left, window.innerWidth - list.offsetWidth - 16)) + 'px';
+            list.style.maxHeight = height + 'px';
+            list.style.top = (up ? rect.top - list.offsetHeight - 8 : rect.bottom + 8) + 'px';
+        };
         const highlight = index => {
             active = index; options.forEach((option, i) => option.setAttribute('aria-selected', String(i === active)));
             if (options[active]) { input.setAttribute('aria-activedescendant', options[active].id); options[active].scrollIntoView({block: 'nearest'}); }
@@ -655,7 +673,9 @@
                 options.push(option); sections[entry.section].append(option);
             }
             if (!options.length) list.append(el('p', {role: 'status'}, 'No matching filters'));
+            if (activeFieldPicker?.list !== list) activeFieldPicker?.close();
             list.hidden = false; input.setAttribute('aria-expanded', 'true');
+            activeFieldPicker = {list, close}; position();
         };
         input.addEventListener('focus', () => { input.select(); search(''); });
         input.addEventListener('click', () => { if (list.hidden) search(''); });
@@ -1009,14 +1029,16 @@
     $$('[data-skip-plan-confirm]').forEach(button => button.addEventListener('click', () => confirmedForms.add(button.form)));
 
     // The content library and Brand Kit share image controls; uploads stay local until Save.
+    $$('[data-file-drop]').forEach(wireAudienceFileDrop);
+    $$('[data-brand-form] input[type=color]').forEach(input => enhanceColorInput(input,{tile:true}));
     const contentStatus = (form, message) => { const status = $('[data-content-status]', form); if (status) status.textContent = message; };
     const setContentImage = (form, key, value) => {
         form.elements[key].value = value;
-        if (form.elements[`${key}_library`]) form.elements[`${key}_library`].value = '0';
         const preview = $(`[data-content-preview="${key}"]`, form);
         if (preview) { preview.src = value; preview.hidden = !value; }
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
+            if (form.elements[key].value !== value) return;
             const dimensions = $('[data-content-dimensions]', form);
             if (dimensions) dimensions.textContent = `${image.naturalWidth} × ${image.naturalHeight} pixels`;
             for (const [field, number] of Object.entries({x:0,y:0,width:image.naturalWidth,height:image.naturalHeight,output_width:image.naturalWidth,output_height:image.naturalHeight})) {
@@ -1024,38 +1046,81 @@
             }
         }; image.src = value;
     };
-    $$('[data-content-upload]').forEach(input => input.addEventListener('change', () => {
-        const file = input.files[0], form = input.form; if (!file || !form) return;
-        if (input.dataset.contentUpload === 'image' && file.type === 'application/pdf') {
-            if (file.size > 10000000) { input.value = ''; contentStatus(form, 'Choose a PDF up to 10 MB.'); return; }
-            setContentImage(form, 'image', '');
-            form.elements.file_kind.value = 'file';
-            if (!form.elements.name.value) form.elements.name.value = file.name.slice(0,100);
-            contentStatus(form, 'PDF ready. Save to keep your changes.'); return;
-        }
-
-        if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type) || file.size > 1000000) { contentStatus(form, 'Choose a PNG, JPEG, WebP or GIF image up to 1 MB.'); input.value = ''; return; }
-        const reader = new FileReader(); reader.onerror = () => contentStatus(form, 'The image could not be read. Try again.');
-        reader.onload = () => {
-            const image = new Image(); image.onerror = () => { contentStatus(form, 'The image could not be opened.'); input.value = ''; };
-            image.onload = () => {
-                if (image.naturalWidth * image.naturalHeight > 16000000) { contentStatus(form, 'Choose an image of 16 megapixels or less.'); input.value = ''; return; }
-                setContentImage(form, input.dataset.contentUpload, reader.result);
-                if (input.dataset.contentUpload === 'image' && !form.elements.name.value) form.elements.name.value = file.name.slice(0,100);
-                input.value = ''; contentStatus(form, 'Image ready. Save to keep your changes.');
-            }; image.src = reader.result;
-        }; reader.readAsDataURL(file);
+    const contentUploads = new WeakMap();
+    const resetContentUploads = form => {
+        const state=contentUploads.get(form);state.pending.clear();
+        for(const [button,disabled]of state.buttons)button.disabled=disabled;
+        state.buttons=[];form.removeAttribute('aria-busy');
+    };
+    const uploadForms = new Set($$('[data-content-upload],[data-brand-font]').map(input => input.form));
+    for (const form of uploadForms) {
+        const state = {pending:new Map(),buttons:[]}; contentUploads.set(form,state);
+        form.addEventListener('submit',event => { if (state.pending.size) { event.preventDefault(); event.stopImmediatePropagation(); contentStatus(form,'Please wait while the image is prepared.'); } },true);
+        form.addEventListener('reset',() => resetContentUploads(form));
+        form.closest('dialog')?.addEventListener('close',() => resetContentUploads(form));
+    }
+    const finishContentUpload = (form,input,token) => {
+        const state=contentUploads.get(form); if(state.pending.get(input)!==token)return;
+        state.pending.delete(input); if(!state.pending.size){for(const [button,disabled]of state.buttons)button.disabled=disabled;state.buttons=[];form.removeAttribute('aria-busy');}
+    };
+    $$('[data-content-upload],[data-brand-font]').forEach(input => input.addEventListener('change', async () => {
+        const form = input.form; if (!form) return;
+        const state=contentUploads.get(form),token={};
+        if(!state.pending.size){state.buttons=$$('button:not([type]),button[type="submit"],input[type="submit"]',form).map(button=>[button,button.disabled]);state.buttons.forEach(([button])=>button.disabled=true);}
+        state.pending.set(input,token);form.setAttribute('aria-busy','true');
+        try {
+            const file = selectedUploadFile(input); if (!file) return;
+            if (input.hasAttribute('data-brand-font')) {
+                if (file.size > 500000) throw new Error('Choose a WOFF, WOFF2 or TTF font up to 500 KB.');
+                const extension=file.name.split('.').pop().toLowerCase();
+                const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('The font could not be read. Try again.'));reader.readAsDataURL(file);});
+                if(state.pending.get(input)!==token)return;
+                form.elements.web_font.value=`data:font/${extension};base64,${data.split(',')[1]}`;
+                form.elements.font_license.checked=false;input.value='';
+                setFileDropStatus(input,`${file.name} · ${imageFileSize(file.size)} — ready. Confirm its license and save.`);
+                contentStatus(form,`${file.name} ready. Confirm its license and save.`);return;
+            }
+            if (input.dataset.contentUpload === 'image' && file.type === 'application/pdf') {
+                if (file.size > 10000000) throw new Error('Choose a PDF up to 10 MB.');
+                setContentImage(form, 'image', ''); form.elements.file_kind.value = 'file';
+                if (!form.elements.name.value) form.elements.name.value = file.name.slice(0,100);
+                setFileDropStatus(input,`${file.name} · ${imageFileSize(file.size)} — ready to save.`);
+                contentStatus(form, `PDF ready · ${imageFileSize(file.size)}. Save to keep your changes.`); return;
+            }
+            setFileDropStatus(input,`${file.name} — preparing image…`);
+            contentStatus(form, 'Preparing image… Larger images are resized automatically.');
+            const prepared=await prepareAudienceImage(file,{storedBytes:input.dataset.contentUpload==='image'?1_000_000:2_000_000});
+            if(state.pending.get(input)!==token)return;
+            setContentImage(form,input.dataset.contentUpload,prepared.data);
+            if(input.dataset.contentUpload==='image'){
+                form.elements.file_kind.value='image';
+                if(!form.elements.name.value)form.elements.name.value=prepared.name.slice(0,100);
+            }
+            input.value='';
+            setFileDropStatus(input,`${prepared.name} · ${prepared.optimized?imageFileSize(prepared.originalBytes)+' → ':''}${imageFileSize(prepared.bytes)} — ready to save.`);
+            contentStatus(form,prepared.optimized?`Image optimized: ${imageFileSize(prepared.originalBytes)} → ${imageFileSize(prepared.bytes)} · ${prepared.width} × ${prepared.height} pixels. Save to keep this version.`:`Image ready · ${imageFileSize(prepared.bytes)}. Save to keep your changes.`);
+        } catch(error) { if(state.pending.get(input)===token){input.value='';setFileDropStatus(input,error.message,true);contentStatus(form,error.message);} }
+        finally { finishContentUpload(form,input,token); }
     }));
-    $$('[data-content-clear]').forEach(button => button.addEventListener('click', () => { setContentImage(button.form, button.dataset.contentClear, ''); contentStatus(button.form, 'Removed from this form. Save to keep the change.'); }));
+    $$('[data-content-clear]').forEach(button => button.addEventListener('click', () => {
+        const input=$(button.dataset.contentClear==='web_font'?'[data-brand-font]':`[data-content-upload="${button.dataset.contentClear}"]`,button.form);
+        if(input){finishContentUpload(button.form,input,contentUploads.get(button.form).pending.get(input));input.value='';setFileDropStatus(input);}
+        setContentImage(button.form, button.dataset.contentClear, ''); contentStatus(button.form, 'Removed from this form. Save to keep the change.');
+    }));
     const contentEditor = $('[data-content-editor]');
     if (contentEditor) {
+        // A file link opens its editor once; refreshing or closing returns to My files.
+        // Keep the form's explicit action so validation errors retain the edited file.
+        const contentLocation = new URL(location.href);
+        if (contentLocation.searchParams.has('item')) {
+            contentLocation.searchParams.delete('item');
+            history.replaceState(history.state, '', contentLocation);
+        }
         if (contentEditor.elements.image.value) setContentImage(contentEditor, 'image', contentEditor.elements.image.value);
         $('[data-content-new]')?.addEventListener('click', () => {
             contentEditor.reset(); for (const key of ['id','version']) contentEditor.elements[key].value = '0'; contentEditor.elements.file_kind.value = 'image';
             for (const key of ['image','name','alt','link','folder']) contentEditor.elements[key].value = '';
             setContentImage(contentEditor, 'image', ''); $('[data-content-dimensions]', contentEditor).textContent = '';
-            contentEditor.elements.published.checked = false; contentEditor.elements.rights_confirmed.checked = false;
-            $('[data-content-public-url]', contentEditor)?.closest('label').setAttribute('hidden','');
             $('#content-edit-title').textContent = 'Upload file'; contentStatus(contentEditor, ''); show('content-edit');
         });
         const editImage = rotate => {
@@ -1076,19 +1141,12 @@
         $('[data-content-rotate]',contentEditor)?.addEventListener('click', () => editImage(true));
         contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && !(contentEditor.elements.file_kind.value === 'file' && Number(contentEditor.elements.id.value) > 0)) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
     }
-    $$('[data-content-public-url]').forEach(input => { input.value = new URL(input.value, location.href).href; });
     const contentSelection = $('[data-content-selection]');
     if (contentSelection) {
         const all = $('[data-content-all]',contentSelection), items = $$('[data-content-select]',contentSelection);
         const update = () => { const count=items.filter(input=>input.checked).length; if (all) { all.checked=count>0&&count===items.length; all.indeterminate=count>0&&count<items.length; } const label=$('[data-content-count]',contentSelection);if(label)label.textContent=`${count} selected`; $$('button[name=operation]',contentSelection).forEach(button=>button.disabled=!count); };
         all?.addEventListener('change',()=>{items.forEach(input=>input.checked=all.checked);update();});items.forEach(input=>input.addEventListener('change',update));update();
     }
-    const brandForm = $('[data-brand-form]');
-    $('[data-brand-font]')?.addEventListener('change',event => {
-        const input=event.target,file=input.files[0];if(!file)return;const extension=file.name.split('.').pop().toLowerCase();
-        if(!['woff','woff2','ttf'].includes(extension)||file.size>500000){contentStatus(brandForm,'Choose a WOFF, WOFF2 or TTF font up to 500 KB.');input.value='';return;}
-        const reader=new FileReader();reader.onload=()=>{brandForm.elements.web_font.value=`data:font/${extension};base64,${String(reader.result).split(',')[1]}`;brandForm.elements.font_license.checked=false;contentStatus(brandForm,`${file.name} ready. Confirm its license and save.`);input.value='';};reader.readAsDataURL(file);
-    });
     $$('[data-delivery-refresh]').forEach(button=>button.addEventListener('click',()=>location.reload()));
     $$('[data-copy-delivery]').forEach(button=>button.addEventListener('click',async()=>{const status=$('[data-delivery-copy-status]',button.closest('dialog')||document);try{await navigator.clipboard.writeText(button.dataset.copyDelivery);if(status)status.textContent='Copied.';}catch{if(status)status.textContent='Copy is unavailable. Select the record value and copy it.';}}));
     const brandApply=$('[data-brand-apply]');if(brandApply){const select=brandApply.elements.template_id;const update=()=>brandApply.elements.version.value=select.selectedOptions[0]?.dataset.version||'0';select.addEventListener('change',update);update();}

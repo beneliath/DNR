@@ -177,6 +177,14 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .collection-editor-logo svg{display:block;width:44px;height:44px}
 .audience-actions{display:flex;align-items:center;gap:16px}
 .audience-page-body{padding:52px 32px 32px}
+/* Shared MOED footer, kept in the page/tool panel rather than email content. */
+.audience-app .app-footer{width:fit-content;max-width:100%;margin:0 0 0 auto;padding:24px 32px 32px;color:var(--audience-muted);text-align:left}
+.audience-app .app-footer p{margin:0;font-size:.78rem;overflow-wrap:anywhere}
+.audience-app .app-footer .footer-link{color:inherit;text-decoration:none}
+.audience-app .app-footer .footer-link:hover{text-decoration:underline}
+.audience-app .app-footer .footer-ascii-cat{max-width:100%;margin:2lh 0 0;overflow-x:auto;color:inherit;opacity:.35;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:clamp(.45rem,1.935vw,.522rem);line-height:1.15;white-space:pre}
+.audience-app .inbox-main>.app-footer{margin-top:32px;padding:24px 0 0}
+@media(max-width:700px){.audience-app .app-footer{padding:18px 12px 28px}}
 .audience-menu{position:relative;border:1px solid var(--audience-control-border);border-radius:4px}
 .audience-menu summary{list-style:none;padding:7px 13px;cursor:pointer;min-height:33px}
 .audience-menu summary::-webkit-details-marker{display:none}
@@ -421,17 +429,19 @@ html.dark-mode .danger-text{color:#ffaaa0}
 .audience-import-form input,.audience-import-form textarea{width:100%}
 .audience-import-form h3:not(:first-of-type){margin-top:30px}
 .audience-import-form .primary{margin-top:20px}
-.audience-import-drop{display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px 24px;border:2px dashed var(--audience-control-border);border-radius:8px;background:var(--audience-surface);text-align:center;transition:background-color .15s,border-color .15s}
-.audience-import-drop>svg{width:48px;height:48px;fill:none;stroke:var(--audience-link);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.audience-import-drop>strong{font-size:calc(20px * var(--audience-font-scale,1))}
-.audience-import-drop>span{color:var(--audience-muted)}
-.audience-import-drop:is(:hover,.is-dragging){background:var(--audience-notice);border-color:var(--audience-link)}
-.audience-import-drop:focus-within{outline:2px solid var(--audience-primary);outline-offset:3px}
-.audience-import-drop input[type=file]{max-width:100%;width:auto}
-.audience-import-drop input.sr-only{width:1px}
-.audience-import-drop>p{margin:0;max-width:100%;overflow-wrap:anywhere}
-.audience-import-drop>[data-import-file-status]{color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
+:is(.audience-import-drop,.audience-file-drop){display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px 24px;border:2px dashed var(--audience-control-border);border-radius:8px;background:var(--audience-surface);text-align:center;transition:background-color .15s,border-color .15s}
+:is(.audience-import-drop,.audience-file-drop)>svg{width:48px;height:48px;fill:none;stroke:var(--audience-link);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+:is(.audience-import-drop,.audience-file-drop)>strong{font-size:calc(20px * var(--audience-font-scale,1))}
+:is(.audience-import-drop,.audience-file-drop)>span{color:var(--audience-muted)}
+:is(.audience-import-drop,.audience-file-drop):is(:hover,.is-dragging){background:var(--audience-notice);border-color:var(--audience-link)}
+:is(.audience-import-drop,.audience-file-drop):focus-within{outline:2px solid var(--audience-primary);outline-offset:3px}
+:is(.audience-import-drop,.audience-file-drop) input[type=file]{max-width:100%;width:auto}
+:is(.audience-import-drop,.audience-file-drop) input.sr-only{width:1px}
+:is(.audience-import-drop,.audience-file-drop)>p{margin:0;max-width:100%;overflow-wrap:anywhere}
+:is(.audience-import-drop,.audience-file-drop)>:is([data-import-file-status],[data-file-drop-status]){color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
 .audience-import-file-error{color:var(--audience-text);font-weight:600}
+:is(.content-editor,.content-brand-layout) .audience-file-drop input.sr-only{width:1px;padding:0;border:0}
+.audience-file-drop>[data-file-drop-status].is-error{color:var(--audience-text);font-weight:600}
 .audience-import-wizard{max-width:1100px}
 .audience-import-wizard>select,.audience-import-wizard>textarea{display:block;width:min(100%,600px)}
 .import-mapping td{white-space:normal}
@@ -797,6 +807,7 @@ dialog.campaign-create-dialog{width:100vw;max-width:100vw;height:100dvh;max-heig
 .content-library-list .content-thumbnail{height:100px;width:120px;flex:none;padding:12px}.content-library-list article>div{flex:1}
 .content-editor{width:760px}.content-editor form{padding:24px}.content-editor fieldset>label,.content-brand-layout label{display:block;margin:20px 0 8px}
 .content-editor input:not([type=checkbox]),.content-editor select,.content-brand-layout input:not([type=checkbox]),.content-brand-layout select{width:100%}
+.content-brand-layout :is(select[name=font],select[name=template_id]){width:max-content;max-width:100%;justify-self:start}
 .content-image-preview{display:block;max-width:100%;height:230px;margin:20px auto;object-fit:contain;background:var(--audience-hover);border:1px solid var(--audience-border)}
 .content-crop{padding:16px;background:var(--audience-hover);border:1px solid var(--audience-border);border-radius:4px;margin:20px 0}.content-crop summary{font-weight:600;cursor:pointer}.content-crop .form-grid{gap:0 16px}.content-crop button{margin-top:12px}
 .content-brand-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,1fr);gap:24px;align-items:start}
@@ -971,3 +982,67 @@ html.dark-mode .audience-theme-trigger .audience-theme-sun{display:block}
 
 .collection-save-actions{margin-top:28px;padding-top:24px;border-top:1px solid var(--audience-border)}
 .collection-save-actions .primary{margin:0}
+
+/* Public subscription pages share MessageMonkey's theme and form controls. */
+body.audience-app.subscription-public{background:var(--audience-hover)}
+body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px;margin:48px auto;padding:0 24px;min-width:0}
+.subscription-public .subscription-panel{width:100%;margin:0;padding:36px;background:var(--audience-surface);border:1px solid var(--audience-border);border-radius:12px;box-shadow:0 2px 8px color-mix(in srgb,var(--audience-shadow) 35%,transparent)}
+.subscription-public .subscription-panel :is(h1,h2){color:var(--audience-text);text-align:left}
+.subscription-public .subscription-heading{display:flex;align-items:flex-start;gap:16px;margin-bottom:32px}
+.subscription-public .subscription-heading>div{flex:1;min-width:0}
+.subscription-public .subscription-mark{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:10px;background:var(--audience-notice);color:var(--audience-primary)}
+.subscription-public .subscription-mark svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.subscription-public .subscription-panel h1{font-size:28px;line-height:1.25;margin:0 0 10px;letter-spacing:-.5px}
+.subscription-public .subscription-panel h2{font-size:18px;line-height:1.4;margin:0 0 20px}
+.subscription-public .subscription-heading p,.subscription-public .subscription-description{margin:0;color:var(--audience-muted);font-size:15px;line-height:1.6}
+.subscription-public .subscription-section+.subscription-section,.subscription-public .subscription-membership{border-top:1px solid var(--audience-border);margin-top:28px;padding-top:28px}
+.subscription-public .subscription-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.subscription-public .subscription-fields>label,.subscription-public .subscription-fields>.subscription-field-wide,.subscription-public .subscription-field-wide>label,.subscription-public .subscription-group-select{display:grid;gap:8px;min-width:0;margin:0;font-size:14px;font-weight:500}
+.subscription-public .subscription-fields .subscription-field-wide{grid-column:1/-1}
+.subscription-public .subscription-fields small{color:var(--audience-muted);font-size:13px;font-weight:400}
+.subscription-public .subscription-fields :is(input,select,textarea),.subscription-public .subscription-group-select select{display:block;width:100%;min-width:0;max-width:100%;margin:0;font:inherit;font-size:16px;font-weight:400;line-height:1.4;min-height:44px;padding:10px 12px;border-radius:6px}
+.subscription-public .subscription-fields input[readonly]{background:var(--audience-hover);color:var(--audience-muted)}
+.subscription-public .subscription-fields textarea{resize:vertical;min-height:92px}
+.subscription-public .subscription-fields :is(input,select,textarea):focus-visible,.subscription-public .subscription-options input:focus-visible{outline:2px solid var(--audience-primary);outline-offset:3px}
+.subscription-public .subscription-description{margin:-10px 0 20px}
+.subscription-public .subscription-interests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.subscription-public .subscription-options{min-width:0;margin:0;padding:12px 14px 14px;border:1px solid var(--audience-border);border-radius:8px}
+.subscription-public .subscription-options legend{padding:0 6px;font-size:14px;font-weight:600;color:var(--audience-text)}
+.subscription-public .subscription-options .audience-check{display:flex;align-items:flex-start;gap:10px;min-height:40px;margin:0;padding:9px 8px;border-radius:5px;font-size:14px;line-height:1.5;cursor:pointer}
+.subscription-public .subscription-options .audience-check:hover{background:var(--audience-hover)}
+.subscription-public .subscription-options .audience-check:has(input:checked){background:var(--audience-notice)}
+.subscription-public .subscription-options .audience-check input{flex:none;width:18px;height:18px;min-height:0;margin:2px 0 0;accent-color:var(--audience-primary)}
+.subscription-public .subscription-options .audience-check span{min-width:0;overflow-wrap:anywhere}
+.subscription-public .subscription-save{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-top:28px;padding-top:24px;border-top:1px solid var(--audience-border)}
+.subscription-public .subscription-save p{max-width:370px;margin:0;color:var(--audience-muted);font-size:13px;line-height:1.6}
+.subscription-public .subscription-save button{flex:none;margin:0}
+.subscription-public .subscription-membership-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.subscription-public .subscription-membership-heading h2{margin:0}
+.subscription-public .subscription-status{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:999px;background:var(--audience-status);font-size:13px;font-weight:500}
+.subscription-public .subscription-status.is-subscribed{background:var(--audience-subscribed)}
+.subscription-public .subscription-status.is-subscribed:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.subscription-public .subscription-unsubscribe{display:inline-flex;gap:8px;align-items:center;font-size:14px;text-underline-offset:3px}
+.subscription-public .subscription-panel>p{line-height:1.6}
+@media(max-width:600px){body.audience-app.subscription-public>main{margin:20px auto;padding:0 14px}.subscription-public .subscription-panel{padding:24px 20px;border-radius:10px}.subscription-public .subscription-heading{gap:12px;margin-bottom:28px}.subscription-public .subscription-mark{width:36px;height:36px;border-radius:8px}.subscription-public .subscription-mark svg{width:21px;height:21px}.subscription-public .subscription-panel h1{font-size:24px}.subscription-public .subscription-fields,.subscription-public .subscription-interests{grid-template-columns:minmax(0,1fr)}.subscription-public .subscription-save{align-items:stretch;flex-direction:column;gap:16px}.subscription-public .subscription-save button{width:100%}}
+/* Shared field rhythm for stacked forms, including dialogs opened by workspace tools. */
+.audience-app :where(dialog,.audience-edit-form,.audience-contact-form,.audience-import-form,.audience-import-wizard,.audience-panel>form,.campaign-section-form,.content-brand-layout) label:has(> :is(input:not([type=checkbox],[type=radio],[type=hidden]),select,textarea)):not(:has(>input:is([type=checkbox],[type=radio]))){display:grid;row-gap:8px}
+.audience-app :where(dialog,.audience-edit-form,.audience-contact-form,.audience-import-form,.audience-import-wizard,.audience-panel>form,.campaign-section-form,.content-brand-layout) label> :is(input:not([type=checkbox],[type=radio],[type=hidden]),select,textarea){margin-block-start:0}
+/* Action rows missing a layout wrapper still receive visible separation. */
+.audience-app :where(p,td,form:not([class]),.content-crop,.collection-image-browser)>button+button{margin-inline-start:12px}
+.audience-app .campaign-folder-row{gap:8px}
+.audience-app .flow-static-controls{gap:8px}
+.audience-app .ai-result>button{margin-inline-end:12px;margin-block-end:8px}
+/* Brand Kit and email style colors use an in-page picker, matching Mailchimp. */
+.audience-color-field{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}
+.audience-color-control{display:inline-flex;max-width:100%;vertical-align:middle}
+.audience-color-control>input[hidden]{display:none}
+.audience-color-control>.audience-color-trigger{display:inline-flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--audience-input-border,#bfc5c8);border-radius:3px;background:var(--audience-surface,#fff);color:var(--audience-text,#24292d);font:14px Arial,sans-serif;min-height:36px;max-width:100%}
+.audience-color-chip{display:block;width:24px;height:24px;border:1px solid #888;flex-shrink:0}.audience-color-code{font:12px monospace;white-space:nowrap}
+.content-color-grid .audience-color-tile{display:block;min-width:0;width:100%}.audience-color-tile>.audience-color-trigger{position:relative;display:block;width:180px;max-width:100%;height:auto;aspect-ratio:1;padding:0;border-radius:0;overflow:hidden}.audience-color-tile .audience-color-chip{width:100%;height:100%;border:0}.audience-color-tile .audience-color-code{position:absolute;left:12px;bottom:12px;background:#fff;color:#24292d;padding:3px 6px;border-radius:3px}
+.audience-color-popover{box-sizing:border-box;position:fixed;inset:auto;margin:0;padding:12px;width:312px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;background:#fff;color:#24292d;border:1px solid #e4e5e6;border-radius:4px;box-shadow:0 2px 10px #0002;z-index:100}
+.audience-color-popover:not(:popover-open){display:none}.audience-color-popover .audience-color-plane{position:relative;height:240px;border-radius:3px;background-image:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent);touch-action:none;cursor:crosshair;outline-offset:3px}
+.audience-color-marker{position:absolute;width:15px;height:15px;box-sizing:border-box;border:2px solid #fff;border-radius:50%;box-shadow:0 0 2px #000;transform:translate(-50%,-50%);pointer-events:none}
+.audience-color-sliders{display:flex;align-items:center;gap:12px;margin:12px 0 16px}.audience-color-popover input.audience-color-hue{appearance:none;-webkit-appearance:none;flex:1;min-width:0;width:auto;height:14px;min-height:0;padding:0;border:0;border-radius:8px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer}
+.audience-color-hue::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 0 3px #0005}.audience-color-hue::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:#fff;box-shadow:0 0 3px #0005}
+.audience-color-sample{display:block;flex:0 0 34px;height:34px;border-radius:50%;border:1px solid #ddd}.audience-color-popover .audience-color-dropper{display:grid;place-items:center;background:#fff;color:#24292d;border:0;padding:4px;min-width:24px;min-height:24px}.audience-color-dropper svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6}
+.audience-color-popover .audience-color-hex{display:flex;align-items:center;gap:4px;width:96px;margin:0;padding:6px;border:1px solid #ccc;border-radius:4px;font:12px Arial,sans-serif}.audience-color-popover .audience-color-hex input{border:0;outline-offset:5px;width:70px;min-width:0;padding:0;height:auto;min-height:0;background:#fff;color:#24292d;font:12px Arial,sans-serif}

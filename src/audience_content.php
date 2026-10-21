@@ -1,6 +1,23 @@
 <?php
 declare(strict_types=1);
 
+function audienceContentFileSize(array $item):string
+{
+    if(!in_array($item['item_type'],['image','file'],true))return '';
+    $data=$item['data'];$bytes=(int)($data['bytes']??0);
+    // Older library entries may predate size metadata. Read the encoded length
+    // without allocating another decoded image for every card on the page.
+    if($bytes<=0){
+        $encoded=$data[$item['item_type']==='image'?'image':'document']??'';
+        $offset=strpos($encoded,',');
+        if($offset===false)return '';
+        $bytes=intdiv((strlen($encoded)-$offset-1)*3,4)-(str_ends_with($encoded,'==')?2:(str_ends_with($encoded,'=')?1:0));
+    }
+    if($bytes<1000)return $bytes.' B';
+    $scale=$bytes>=1000000?1000000:1000;$precision=$bytes>=1000000?2:1;
+    return rtrim(rtrim(number_format($bytes/$scale,$precision,'.',''),'0'),'.').($scale===1000000?' MB':' KB');
+}
+
 function audienceContentUpload(array $file):string
 {
     if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Choose a valid uploaded image.');
@@ -74,12 +91,12 @@ trait AudienceContent
             if($old&&$old['item_type']==='file'&&trim((string)($input['image']??''))!=='')throw new InvalidArgumentException('Upload a replacement PDF, or create a new image file.');
             $data=$old['data']??[];$document=$input['document']??($data['document']??'');$type=$document!==''?'file':'image';
             if($old&&$old['item_type']!==$type)throw new InvalidArgumentException('Upload a replacement of the same file type, or create a new file.');
-            $image=$type==='image'?audienceDesignImage($input['image']??($data['image']??'')):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
+            $image=$type==='image'?audienceDesignImage($input['image']??($data['image']??''),1000000):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
             $url=audienceText($input,'link',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');
-            $published=($input['published']??'')==='1';if($published&&($input['rights_confirmed']??'')!=='1')throw new InvalidArgumentException('Confirm that you may publish this file.');
             $folder=audienceText($input,'folder',100);if($folder!==''&&!in_array($folder,$this->contentSettings()['settings']['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
             $encoded=$type==='file'?$document:$image;$bytes=base64_decode(substr($encoded,strpos($encoded,',')+1),true);$info=$type==='image'?getimagesizefromstring($bytes):[0,0];
-            $data=array_replace($data,['image'=>$image,'document'=>$document,'alt'=>audienceText($input,'alt',300),'url'=>$url,'folder'=>$folder,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1],'published'=>$published,'public_key'=>$data['public_key']??bin2hex(random_bytes(32)),'rights_confirmed'=>$published]);
+            $data=array_replace($data,['image'=>$image,'document'=>$document,'alt'=>audienceText($input,'alt',300),'url'=>$url,'folder'=>$folder,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1],'published'=>false,'rights_confirmed'=>false]);
+            unset($data['public_key']);
             if($old)$this->write('UPDATE marketing_design_library SET name=?,data_json=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel,$this->audienceId,$id]);
             else{$this->write("INSERT INTO marketing_design_library(audience_id,item_type,name,data_json,actor_label) VALUES (?,?,?,?,?)",[$this->audienceId,$type,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;
         });
@@ -109,8 +126,9 @@ trait AudienceContent
     {
         $brandKeys=['background','body','text','link','button','buttonText','font','buttonRadius','fontSize'];$styles=[];foreach($brandKeys as$key)if(isset($input[$key]))$styles[$key]=$input[$key];$styles=array_intersect_key(audienceDesign(['schema'=>1,'styles'=>$styles,'rows'=>[]])['styles'],array_flip($brandKeys));
         $font=audienceDesignWebFont($input['web_font']??'');if($font!==''&&($input['font_license']??'')!=='1')throw new InvalidArgumentException('Confirm your license permits embedding the uploaded font.');$styles['webFont']=$font;
-        $logos=[];foreach(['logo','secondary_logo']as$key){$library=(int)audienceText($input,$key.'_library',12);$logos[$key]=$library?$this->designLibraryItem($library)['data']['image']??'':audienceDesignImage($input[$key]??'');$logos[$key]=audienceDesignImage($logos[$key]);if($library&&$logos[$key]==='')throw new InvalidArgumentException('Choose an image from your library.');}
-        $this->transaction(function()use($styles,$logos,$version){$row=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);if((int)$row['version']!==$version)throw new InvalidArgumentException('Brand settings changed. Reload before saving.');$settings=audienceJson($row['settings_json']);$settings['brand']=['styles'=>$styles]+$logos;$this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);});
+        $logos=[];foreach(['logo','secondary_logo']as$key)$logos[$key]=audienceDesignImage($input[$key]??'');
+        $identity=[];if(array_key_exists('organization_name',$input))$identity['name']=audienceText($input,'organization_name',150);if(array_key_exists('mailing_address',$input))$identity['mailing_address']=audienceText($input,'mailing_address',1000);
+        $this->transaction(function()use($styles,$logos,$identity,$version){$row=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);if((int)$row['version']!==$version)throw new InvalidArgumentException('Brand settings changed. Reload before saving.');$settings=audienceJson($row['settings_json']);$previous=audienceBrandIdentity($settings,(string)$row['name']);$settings['brand']=['styles'=>$styles]+$logos+$identity+['name'=>$previous['LIST:COMPANY'],'mailing_address'=>$previous['LIST:ADDRESS']];$this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);});
     }
     public function brandedDesign(array $design,array $brand,bool $logo=false):array
     {

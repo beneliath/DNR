@@ -3,6 +3,13 @@
 export function normalizeEmailDesignMaps(design) {
   const map = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   design.mobile = map(design.mobile);
+  design.regions = map(design.regions);
+  for (const key of ['page','preheader','header','body','footer']) design.regions[key] = map(design.regions[key]);
+  design.typography = map(design.typography);
+  for (const key of ['paragraph','heading1','heading2','heading3','heading4']) design.typography[key] = map(design.typography[key]);
+  design.badge = map(design.badge);
+  design.badge.enabled ??= false; design.badge.align ||= 'center';
+  design.preheader ||= {text:'',showArchive:false};
   design.areas = map(design.areas);
   design.footer ||= {text:'',styles:{}};
   design.footer.styles = map(design.footer.styles);
@@ -16,3 +23,13 @@ export function normalizeEmailDesignMaps(design) {
   }
   return design;
 }
+
+// Moving within the same column must compensate for the removed source slot.
+export function moveEmailBlock(design, from, target) {
+  const [r,c,i]=from;let [tr,tc,ti]=target;
+  const source=design.rows[r]?.columns[c], destination=design.rows[tr]?.columns[tc];
+  if(!source?.[i]||!destination||!Number.isInteger(ti)||ti<0||ti>destination.length)return null;
+  if(r===tr&&c===tc&&i<ti)ti--;
+  const [block]=source.splice(i,1);destination.splice(ti,0,block);return [tr,tc,ti];
+}
+export function blockDropIndex(index,y,top,height){return index+(y>top+height/2?1:0);}
