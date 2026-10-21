@@ -1,7 +1,7 @@
 <section class="audience-panel mail-activity-panel">
 <h2>Test and confirmation activity</h2>
 <p>Accepted means the sending service accepted the email. Delivered means the recipient’s mail server accepted it; it does not confirm Inbox placement. Bounced means delivery was unsuccessful.</p>
-<div class="campaign-table-scroll"><table class="mail-activity-table">
+<div class="campaign-table-scroll"><table class="data-table mail-activity-table">
 <thead><tr><th scope="col">Email</th><th scope="col">Requested</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead>
 <tbody><?php foreach($mailActivity as$m): $mailStatus=$m['delivery_status']; ?>
 <tr data-service-mail-id="<?= (int)$m['id'] ?>">
