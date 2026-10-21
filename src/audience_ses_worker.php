@@ -3,13 +3,26 @@ declare(strict_types=1);
 require_once __DIR__.'/audience_ses.php';
 require_once __DIR__.'/email_helpers.php';
 
+/** Safe, actionable delivery errors; never expose the provider's raw diagnostic. */
+final class AudienceSesMessageException extends DomainException
+{
+    public function __construct(string $reason)
+    {
+        parent::__construct(match($reason){
+            'permission'=>'AWS denied permission to send this email. Review the SES IAM policy, including recipient, sender and configuration-set restrictions.',
+            default=>'SES rejected this email. Check the sender, recipient and message content.',
+        });
+    }
+}
+
 /** Only documented rejections are safe to retry; network/5xx outcomes remain uncertain. */
 function audienceSesFailure(Throwable $e):string
 {
     if(!$e instanceof \Aws\Exception\AwsException)return 'uncertain';
     $code=$e->getAwsErrorCode();$status=$e->getStatusCode();
     if($status===429||in_array($code,['TooManyRequestsException','Throttling','ThrottlingException','LimitExceededException'],true))return 'throttled';
-    if(in_array($code,['AccountSuspendedException','SendingPausedException','MailFromDomainNotVerifiedException','NotFoundException','AccessDeniedException','AccessDenied','UnrecognizedClientException','ExpiredTokenException','ExpiredToken','InvalidClientTokenId','SignatureDoesNotMatch','InvalidSignatureException'],true))return 'setup';
+    if(in_array($code,['AccessDeniedException','AccessDenied'],true))return 'permission';
+    if(in_array($code,['AccountSuspendedException','SendingPausedException','MailFromDomainNotVerifiedException','NotFoundException','UnrecognizedClientException','ExpiredTokenException','ExpiredToken','InvalidClientTokenId','SignatureDoesNotMatch','InvalidSignatureException'],true))return 'setup';
     return $status!==null&&$status>=400&&$status<500?'rejected':'uncertain';
 }
 function audienceSesWorkerReady(mysqli $db,int $audience,string $from,?array $binding=null,?callable $factory=null,?callable $resolve=null):array
@@ -49,7 +62,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         if($lane==='campaign'){
             $db->execute_query("UPDATE marketing_campaign_recipients SET provider='ses',provider_account_id=?,provider_region=?,ses_correlation=? WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$s['aws_account_id'],$s['region'],$correlation,$m['native_recipient_id'],$m['claim_token']]);if($db->affected_rows!==1)throw new DomainException('The delivery claim changed.');
         }
-        if(in_array($lane,['inbox','inbox-alert','audience-alert'],true))$db->execute_query('UPDATE marketing_service_mail SET ses_correlation=?,provider_account_id=?,provider_region=?,recipient_hash=? WHERE audience_id=1 AND id=? AND claim_token=?',[$correlation,$s['aws_account_id'],$s['region'],audienceDispatchEmailHash($m['email']),$m['native_service_id'],$m['claim_token']]);
+        if(in_array($lane,['test','inbox','inbox-alert','audience-alert'],true))$db->execute_query('UPDATE marketing_service_mail SET ses_correlation=?,provider_account_id=?,provider_region=?,recipient_hash=? WHERE audience_id=1 AND id=? AND claim_token=?',[$correlation,$s['aws_account_id'],$s['region'],audienceDispatchEmailHash($m['email']),$m['native_service_id'],$m['claim_token']]);
         if($lane!=='campaign'){$claim=$db->execute_query("SELECT id FROM marketing_service_mail WHERE audience_id=1 AND id=? AND claim_token=? AND state='processing'",[$m['native_service_id'],$m['claim_token']])->fetch_assoc();if(!$claim)throw new DomainException('The service delivery claim changed.');}
         $current=$db->query('SELECT enabled,generation FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();if(!$current['enabled']||$current['generation']!==$s['generation'])audienceSesDeferred('The SES connection changed. Review delivery setup.',300);
         $db->execute_query('INSERT INTO marketing_ses_usage(audience_id,aws_account_id,region,lane) VALUES (1,?,?,?)',[$s['aws_account_id'],$s['region'],$lane]);
@@ -62,8 +75,10 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         ]);}catch(Throwable $e){
             $failure=audienceSesFailure($e);
             if($failure==='throttled'){$db->query('UPDATE marketing_ses_settings SET blocked_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 60 SECOND),quota_checked_at=NULL WHERE audience_id=1');audienceSesDeferred('SES throttled this request. Waiting before retrying.');}
+            // IAM conditions can reject one recipient while allowing others. Do not invalidate the connection.
+            if($failure==='permission')throw new AudienceSesMessageException('permission');
             if($failure==='setup'){$db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='SES rejected the connection or sender. Check the connection before resuming.' WHERE audience_id=1");audienceSesDeferred('SES connection needs attention.',300);}
-            if($failure==='rejected')throw new DomainException('SES rejected this message.');
+            if($failure==='rejected')throw new AudienceSesMessageException('rejected');
             throw new RuntimeException('SES acceptance could not be confirmed.');
         }
         $id=(string)($r['MessageId']??'');if($id===''||strlen($id)>256)throw new RuntimeException('SES returned no usable receipt.');

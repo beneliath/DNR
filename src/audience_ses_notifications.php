@@ -64,8 +64,8 @@ function audienceSnsReceive(AudienceStore $store,array $data,?callable $fetch=nu
     $at=audienceSnsEventTime((string)($event[$part]['timestamp']??$mail['timestamp']??''));
     return $store->transaction(function()use($store,$s,$m,$data,$mail,$correlation,$id,$type,$at){
         $r=$store->one("SELECT * FROM marketing_campaign_recipients WHERE audience_id=? AND provider='ses' AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$s['aws_account_id'],$s['region']]);
-        if(!$r){require_once __DIR__.'/audience_inbox_runtime.php';return audienceInboxProviderEvent($store,$s,$data,$mail,$correlation,$id,$type,$at);}
-        if(!$r||count($mail['destination']??[])!==1||!hash_equals($r['email_hash'],audienceDispatchEmailHash((string)$mail['destination'][0]))||($r['provider_message_id']!==null&&$r['provider_message_id']!==$id))return 'ignored';
+        if(!$r){require_once __DIR__.'/audience_inbox_runtime.php';return audienceServiceMailProviderEvent($store,$s,$data,$mail,$correlation,$id,$type,$at);}
+        if(count($mail['destination']??[])!==1||!hash_equals($r['email_hash'],audienceDispatchEmailHash((string)$mail['destination'][0]))||($r['provider_message_id']!==null&&$r['provider_message_id']!==$id))return 'ignored';
         $store->write('INSERT IGNORE INTO marketing_ses_notifications(audience_id,notification_id,event_type) VALUES (?,?,?)',[$store->audienceId,$m['MessageId'],$type]);if($store->db->affected_rows!==1)return 'duplicate';
         $store->write('UPDATE marketing_campaign_recipients SET provider_message_id=? WHERE audience_id=? AND id=?',[$id,$store->audienceId,$r['id']]);
         $store->recordDeliveryEvent((int)$r['id'],$type,hash('sha256','ses:'.$m['MessageId']),'provider',$at,['provider'=>'ses','message_id'=>$id]);

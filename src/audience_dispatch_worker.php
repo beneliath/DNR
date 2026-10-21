@@ -83,6 +83,7 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
                     $message['native_recipient_id']=(int)$recipient['id'];$message['claim_token']=$claim;$message['ses_binding']=$snapshot['ses']??[];$state=$deliver($message);if(!in_array($state,['accepted','development'],true))throw new RuntimeException('Invalid transport receipt.');
                 }
             }catch(MailBudgetDeferredException $e){$state='queued';$retry=$e->retryAt;$error=$e->getMessage();$deferred=true;}catch(SmtpPreDataException $e){$state=(int)$recipient['attempts']<2?'queued':'failed';$error='The SMTP connection failed before DATA. Safe retries are limited to three attempts.';}
+            catch(AudienceSesMessageException $e){$state='failed';$error=$e->getMessage();}
             catch(DomainException|InvalidArgumentException $e){$state='failed';$error='The email was rejected or could not be rendered. Check the sender, content and recipient.';}
             catch(Throwable $e){$state=$started?'uncertain':'failed';$error=$started?'SES acceptance could not be confirmed. This recipient will not be retried automatically.':'Unable to prepare this recipient. No message was sent.';}
             if($state==='uncertain'&&(int)$db->execute_query("SELECT COUNT(*) n FROM marketing_message_events WHERE audience_id=1 AND recipient_id=? AND source='provider' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.provider'))='ses'",[$recipient['id']])->fetch_assoc()['n']>0){$state='accepted';$error='';}

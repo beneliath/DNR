@@ -21,6 +21,7 @@ $delayed=$sesEvent($runtimeRows[3],'DeliveryDelay');audienceSnsReceive($campaign
 $campaignStore->write("UPDATE marketing_campaign_recipients SET state='uncertain' WHERE id=?",[$rr['id']]);audienceSnsReceive($campaignStore,$signSes($event,'ses-reconcile'),$fetch);audienceHttpExpect($campaignStore->one('SELECT state FROM marketing_campaign_recipients WHERE id=?',[$rr['id']])['state']==='accepted','Verified receipt reconciles uncertain API outcome without resend');
 $curl=curl_init('http://127.0.0.1/audience_ses_events.php');curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode(array_replace($signed,['Signature'=>'invalid']))]);curl_exec($curl);audienceHttpExpect(curl_getinfo($curl,CURLINFO_RESPONSE_CODE)===403,'Public SNS route rejects invalid signatures');unset($curl);
 audienceHttpExpect($public('audience_delivery_event.php')['status']===405,'Legacy event route refuses GET');
+require __DIR__.'/audience_test_delivery_events_http.php';
 // Queue real signed envelopes through the network-isolated public route. The
 // dedicated mail-role suite verifies them without any external AWS calls.
 $queuedConfirm=$signEnvelope($confirmation+['FixtureCertificate'=>$cert]);
@@ -31,6 +32,7 @@ $queuedComplaint=$sesEvent($runtimeRows[3],'Complaint');
 foreach([[$queuedBounce,'queued-hard-bounce'],[$queuedComplaint,'queued-complaint']]as[$payload,$mid])audienceSnsEnqueue($campaignStore,$signSes($payload,$mid)+['FixtureCertificate'=>$cert]);
 $forged=$signSes($event,'queued-tampered')+['FixtureCertificate'=>$cert];$forged['Message']='{"tampered":true}';
 $curl=curl_init('http://127.0.0.1/audience_ses_events.php');curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode($forged)]);curl_exec($curl);audienceHttpExpect(curl_getinfo($curl,CURLINFO_RESPONSE_CODE)===202,'Structurally valid envelope queues without synchronous AWS access');unset($curl);
+audienceSnsEnqueue($campaignStore,$signSes($testEvent($receiptTests[0],'Send',gmdate('c')),'queued-test-send')+['FixtureCertificate'=>$cert]);
 $blocked=false;try{$conn->query('SELECT payload_ciphertext FROM marketing_ses_inbox');}catch(mysqli_sql_exception $e){$blocked=in_array($e->getCode(),[1142,1143],true);}audienceHttpExpect($blocked,'Web role cannot retrieve SNS tokens or recipient envelopes');
 $blocked=false;try{$conn->query("UPDATE marketing_ses_inbox SET state='done'");}catch(mysqli_sql_exception $e){$blocked=in_array($e->getCode(),[1142,1143],true);}audienceHttpExpect($blocked,'Web role cannot mark queued events as authenticated');
 echo 'SES signed event/storage: '.($checks-$startSesEvents)." checks passed.\n";
