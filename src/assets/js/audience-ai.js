@@ -103,7 +103,7 @@
     if (reply.mode !== config.mode) { announce('This request belongs to the other assistant. Open it from the matching tab'); return; }
     if (chat && shownAnswers.has(uuid)) return;
     completed = uuid; previous = uuid; output.hidden = chat;
-    announce('Suggestion ready for your review');
+    announce(config.mode === 'analytics' ? '' : 'Suggestion ready for your review');
     const recommendations = chat ? node('section') : find('[data-ai-recommendations]'); recommendations.replaceChildren();
     if (reply.recommendations.length) { recommendations.append(node('h3','Suggested next steps')); const list = node('ul'); reply.recommendations.forEach(text => list.append(node('li',text))); recommendations.append(list); }
     if (reply.mode === 'analytics') {

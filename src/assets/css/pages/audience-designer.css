@@ -35,3 +35,18 @@
 .template-gallery:not(.template-list) .template-card-info h3{color:#24292d}
 .template-gallery:not(.template-list) .template-card-info p,.template-gallery:not(.template-list) .template-card-info small{color:#5e686d}
 .template-gallery .template-card[hidden]{display:none}
+.template-order-help{color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1));margin:16px 0}
+.template-card-info{position:relative;padding-right:56px}
+.template-gallery .template-card-info>.template-drag-handle{position:absolute;right:10px;top:12px;display:flex;align-items:center;justify-content:center;width:32px;height:36px;padding:6px;min-height:36px;border:0;background:transparent;color:var(--audience-muted);cursor:grab;touch-action:none;user-select:none}
+.template-gallery:not(.template-list) .template-card-info>.template-drag-handle{color:#5e686d}
+.template-gallery .template-drag-handle:is(:hover,:focus-visible){background:var(--audience-selected);color:var(--audience-link)}
+.template-drag-handle svg{width:20px;height:24px;fill:currentColor;pointer-events:none}
+.template-dragging{opacity:.55}
+.template-drop-marker{position:fixed;z-index:50;background:var(--audience-primary);border-radius:2px;pointer-events:none}
+.template-drop-marker[hidden]{display:none}
+.template-drag-proxy{position:fixed;top:0;left:0;z-index:51;pointer-events:none;max-width:220px;padding:14px 18px;border:1px solid var(--audience-primary);border-radius:8px;background:var(--audience-surface);color:var(--audience-text);box-shadow:0 4px 18px var(--audience-shadow);font-size:calc(15px * var(--audience-font-scale,1))}
+.template-dragging .template-drag-handle{cursor:grabbing}
+.email-designer .designer-title .designer-rename{display:flex;align-items:center;gap:8px;padding:4px 0;border:0;background:transparent;color:inherit;text-align:left;max-width:100%}
+.designer-rename strong{overflow:hidden;text-overflow:ellipsis}
+.designer-rename svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;color:var(--audience-muted)}
+.designer-rename:is(:hover,:focus-visible) strong{text-decoration:underline}

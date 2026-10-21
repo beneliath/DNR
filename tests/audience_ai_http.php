@@ -13,21 +13,26 @@ $aiApi=static function(int $client,?array $values=null,string $query='',?string 
 $uuid=static fn():string=>bin2hex(random_bytes(4)).'-'.bin2hex(random_bytes(2)).'-'.bin2hex(random_bytes(2)).'-'.bin2hex(random_bytes(2)).'-'.bin2hex(random_bytes(6));
 $actorId=(int)$conn->execute_query('SELECT id FROM users WHERE username=?',['audience-admin-'.$suffix])->fetch_row()[0];
 $aiIds=[];
-$aiFixture=static function(string $mode='content',string $role='admin')use($conn,$actorId,$uuid,&$aiIds):array{
+$aiFixture=static function(string $mode='content',string $role='admin',?int $ownerId=null)use($conn,$actorId,$uuid,&$aiIds):array{
     $nonce=$uuid();$created=false;
-    $id=aiCoachRecordRequest($conn,['role'=>$role,'page'=>'audience.php','step'=>'audience-ai','question'=>'Stage 8 fixture','history'=>[],'topic'=>'audience-ai:'.$mode,'request_id'=>$nonce,'ui'=>[]],$actorId,$created);
+    $id=aiCoachRecordRequest($conn,['role'=>$role,'page'=>'audience.php','step'=>'audience-ai','question'=>'Stage 8 fixture','history'=>[],'topic'=>'audience-ai:'.$mode,'request_id'=>$nonce,'ui'=>[]],$ownerId??$actorId,$created);
     audienceHttpExpect($created&&$id!==null,'Assistant fixture has a unique purpose-bound request');$aiIds[]=$id;
     return [$id,$nonce];
 };
 $sendingBefore=$conn->query('SELECT COUNT(*) FROM marketing_campaign_deliveries')->fetch_row()[0];
 $consentBefore=$conn->query("SELECT GROUP_CONCAT(CONCAT(id,':',email_status) ORDER BY id) FROM marketing_contacts WHERE audience_id=1")->fetch_row()[0];
 foreach(['assistant','assistant&mode=analytics']as$view){$r=$admin('audience.php?view='.$view);audienceHttpExpect($r['status']===200&&!preg_match('/(?:Warning|Fatal error):/',$r['body'])&&str_contains($r['body'],'audience-ai-config'),'Assistant route renders '.$view);}
-audienceHttpExpect($editor('audience.php?view=assistant')['status']===200&&$editor('audience.php?view=assistant&mode=analytics')['status']===403,'Analytics AI is admin-only while editors can write');
-audienceHttpExpect($reviewer('audience.php?view=assistant')['status']===403&&$aiApi(2,null,'?action=history')['status']===403,'Reviewer cannot access assistant or its history');
+audienceHttpExpect($editor('audience.php?view=assistant')['status']===200,'Editors retain writing assistance');
+foreach(['admin','editor','reviewer']as$role){
+    $page=$clients[$role]('audience.php?view=assistant&mode=analytics');
+    audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Fatal error):/',$page['body'])&&str_contains($page['body'],'aria-label="Ask Analytics AI" aria-current="page"'),'Every role can open Analytics AI with its own active sidebar entry');
+}
+audienceHttpExpect($reviewer('audience.php?view=assistant')['status']===403&&$aiApi(2,null,'?action=history')['status']===200,'Reviewers can access analytics history but not writing assistance');
+audienceHttpExpect($aiApi(2,['action'=>'checks','text'=>'Two words'])['status']===403&&$aiApi(2,['action'=>'save_template'])['status']===403,'Read-only analytics access cannot check writing or save templates');
 audienceHttpExpect($aiApi(0,['action'=>'checks','text'=>'Two words'],'','bad')['status']===403,'JSON assistant requires the native CSRF token');
 audienceHttpExpect($aiApi(1,['action'=>'checks','text'=>'Two words'])['data']['facts'][0]['value']===2,'Deterministic checks work without inference');
 $base=['mode'=>'analytics','operation'=>'analyze','prompt'=>'Explain changes','request_id'=>$uuid(),'role'=>'admin','evidence'=>['secret'=>'spoofed']];
-audienceHttpExpect($aiApi(1,$base)['status']===403,'Client role cannot elevate editor analytics access');
+audienceHttpExpect($aiApi(2,array_replace($base,['request_id'=>'bad']))['status']===400,'Reviewer analytics requests reach validation without granting the supplied administrator role');
 audienceHttpExpect($aiApi(0,array_replace($base,['request_id'=>'bad']))['status']===400,'Invalid request identifier is rejected before queueing');
 audienceHttpExpect($aiApi(0,array_replace($base,['window'=>['origin'=>'mailchimp']]))['status']===400,'Removed analytics source cannot be queued through the assistant API');
 [$id,$nonce]=$aiFixture();
@@ -69,6 +74,23 @@ $queued=$conn->execute_query('SELECT j.request_json FROM ai_coach_jobs j JOIN ai
 $context=json_decode($queued['request_json'],true);
 audienceHttpExpect(isset($context['analysis_scope']['dataset'])&&!isset($context['evidence'])&&!str_contains($queued['request_json'],'spoofed'),'Only the server-validated query scope enters the queue; client evidence is ignored');
 $aiApi(0,['action'=>'cancel','request_id'=>$base['request_id']]);
+foreach([1=>'editor',2=>'reviewer']as$client=>$role){
+    $roleRequest=array_replace($base,['request_id'=>$uuid()]);$queuedResult=$aiApi($client,$roleRequest);
+    audienceHttpExpect($queuedResult['status']===202,'Analytics generation enters the existing queue for '.$role);
+    $queued=$conn->execute_query('SELECT j.request_json FROM ai_coach_jobs j JOIN ai_coach_requests r ON r.id=j.request_id WHERE r.client_request_id=?',[$roleRequest['request_id']])->fetch_assoc();
+    $context=json_decode($queued['request_json'],true);
+    audienceHttpExpect($context['role']===$role&&!isset($context['evidence']),'Queued analytics trusts the session role and server scope for '.$role);
+    audienceHttpExpect($aiApi($client,['action'=>'cancel','request_id'=>$roleRequest['request_id']])['data']['saved'],'Own analytics cancellation works for '.$role);
+    $roleActorId=(int)$conn->execute_query('SELECT id FROM users WHERE username=?',['audience-'.$role.'-'.$suffix])->fetch_row()[0];
+    [$roleResultId,$roleResultNonce]=$aiFixture('analytics',$role,$roleActorId);
+    aiCoachCompleteRequest($conn,$roleResultId,['purpose'=>'audience-ai','mode'=>'analytics','reason'=>'','summary'=>'Saved contact results','observations'=>[],'recommendations'=>[],'evidence'=>$pageEvidence],1);
+    audienceHttpExpect($aiApi($client,null,'?request_id='.$roleResultNonce)['status']===200,'Own analytics result is readable by '.$role);
+    $history=$aiApi($client,null,'?action=history')['data']['items'];
+    audienceHttpExpect(in_array($roleResultNonce,array_column($history,'client_request_id'),true),'Own analytics history is visible to '.$role);
+    $pageResult=$aiApi($client,null,'?action=contacts&request_id='.$roleResultNonce.'&table_id=query_0_contacts&offset=0');
+    audienceHttpExpect($pageResult['status']===200&&($pageResult['data']['table']['rows'][0]['email']??'')==='fixture@example.test','Own saved contact results can be paged by '.$role);
+    audienceHttpExpect($aiApi(0,null,'?request_id='.$roleResultNonce)['status']===404,'Another user cannot read '.$role.' analytics results');
+}
 $held=[];for($n=0;$n<8;$n++){[$heldId]=$aiFixture();$held[]=$heldId;$conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,claim_token,deadline_at) VALUES (?,?,'generating',?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 SECOND))",[$heldId,'{}',bin2hex(random_bytes(16))]);}
 // Separate editor session avoids per-session throttling masking queue admission.
 $full=$aiApi(1,['mode'=>'content','operation'=>'write','prompt'=>'A short fixture','request_id'=>$uuid()]);
