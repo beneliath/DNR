@@ -17,11 +17,12 @@ $makeRuntime=static function(array $extra=[])use($campaignStore,$conn,$runtimeTa
  $conn->execute_query('UPDATE marketing_campaigns SET draft_json=? WHERE id=?',[json_encode(array_replace($draft,$extra)),$id]);return $id;
 };
 $confirmRuntime=static function(int $id)use($campaignStore,$dispatchAudience,$dispatchBase):int{$c=$campaignStore->campaign($id);$r=$campaignStore->reviewCampaignDispatch($id,$dispatchAudience,$dispatchBase);return $campaignStore->confirmCampaignDispatch($id,(int)$c['version'],$r['proof'],$dispatchAudience,$dispatchBase);};
+$testsPrior=(int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE kind='test'")['n'];
 $runtimeId=$makeRuntime();$runtimeVersion=$campaignStore->campaign($runtimeId)['version'];$testPath='audience.php?view=campaign&id='.$runtimeId;$testForm=['csrf_token'=>$token,'action'=>'campaign_test','id'=>$runtimeId,'version'=>$runtimeVersion,'request_key'=>str_repeat('a',64),'test_recipients'=>'test-one@example.test, test-two@example.test, test-one@example.test','test_instructions'=>'Review the fixture'];
 audienceHttpExpect($reviewer($testPath,array_replace($testForm,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot send tests');
 audienceHttpExpect($editor($testPath,array_replace($testForm,['csrf_token'=>'bad']))['status']===400,'Test requires CSRF');
 audienceHttpExpect($editor($testPath,$testForm)['status']===302,'Test queues from checklist');$testsBefore=(int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE kind='test'")['n'];
-audienceHttpExpect($testsBefore===2&&$editor($testPath,$testForm)['status']===302&&(int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE kind='test'")['n']===2,'Duplicate request and repeated recipient are idempotent');
+audienceHttpExpect($testsBefore===$testsPrior+2&&$editor($testPath,$testForm)['status']===302&&(int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE kind='test'")['n']===$testsBefore,'Duplicate request and repeated recipient are idempotent');
 $testMessages=[];processAudienceServiceMail($conn,5,static function($m)use(&$testMessages){$testMessages[]=$m;return 'accepted';});
 audienceHttpExpect(count($testMessages)===2&&str_starts_with($testMessages[0]['subject'],'[Test]')&&str_contains($testMessages[0]['text'],'?test=1')&&!str_contains($testMessages[0]['text'],'audience_track.php'),'Test uses samples, no tracking and inert subscription links');
 $template=$campaignStore->createEmailTemplate('Runtime reusable test',audienceDesignStarters()['newsletter']['design']);

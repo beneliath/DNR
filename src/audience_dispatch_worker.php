@@ -16,8 +16,9 @@ function audienceDeliverCampaignMessage(array $message,?mysqli $budgetDb=null):s
 }
 
 /** Dispatch-time authorization is independent of the web application's review receipt. */
-function audienceDispatchWorkerReady(mysqli $db,int $audience,array $snapshot,?callable $resolver=null):void
+function audienceDispatchWorkerReady(mysqli $db,int $audience,array $snapshot,?callable $resolver=null,bool $testOnly=false):void
 {
+    if(!$testOnly){$policy=$db->execute_query('SELECT * FROM marketing_delivery_policy WHERE audience_id=?',[$audience])->fetch_assoc();if(!$policy||!audienceMailPolicyReady($policy))throw new DomainException('Campaign sending awaits approval and a sending budget.');}
     if(!empty($snapshot['draft']['experiment'])||!empty($snapshot['draft']['design_variants']))throw new DomainException('A/B testing is not available in MessageMonkey.');
     if(audienceSesInstalled($db))audienceSesWorkerReady($db,$audience,$snapshot['draft']['from_email'],$snapshot['ses']??[],null,$resolver);
     else throw new DomainException('Configure this account’s SES connection before MessageMonkey delivery.');

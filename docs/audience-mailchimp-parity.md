@@ -2141,6 +2141,39 @@ path, review the actual newsletter, and obtain authorization before enabling its
 first subscriber send. Private aggregate receipts and logs are retained in
 `var/deployment/message-monkey-presend-2026-10-20.json` and referenced local files.
 
+## SES approval and campaign-gate repair — October 21, 2026
+
+AWS account `446413910099` has production access in Ohio (`us-east-2`). The
+read-only SES API and October 20, 23:23:05 Chicago support correspondence agree:
+sending enabled, 50,000 recipient emails per rolling 24 hours, and 14 per second.
+The production-access monitor was removed after approval was verified.
+
+The user authorized controlled qualification using exactly the four addresses in
+the saved `test accounts` segment and AWS simulator addresses. This does not
+authorize subscriber campaigns, changes to those addresses' subscription status,
+or opening `bulk_approved`. A private recipient snapshot records the four exact
+addresses and segment version; its contents are not release documentation.
+
+Preflight verified the existing From identity, DKIM, DMARC, custom MAIL FROM
+SPF/MX, configuration-set events and confirmed SNS subscription. Both campaign
+and service delivery queues were empty. The native AWS readiness check ran in a
+rolled-back database transaction, so it did not change production eligibility.
+
+Qualification exposed an approval gap: the SES path checked AWS readiness but
+did not enforce the local campaign approval and budget policy. The repair checks
+that policy during campaign review, worker dispatch and SES transport. Explicit
+test mail uses its existing separate lane and still requires all sender, identity,
+quota and subscription prerequisites. Revoking approval after confirmation pauses
+the campaign without invoking transport or starting a recipient delivery.
+
+The disposable Audience suite passed 1,003 HTTP/storage checks and the actual
+restricted-worker suites; pure SES (40), dispatch (22) and delivery-runtime (18)
+checks passed. All used fictional recipients and fake transports. No live message
+had been sent at this checkpoint. The user authorized release 2.6.13 for this
+repair before continuing controlled qualification. Campaign approval remains off.
+Actual delivered headers, client rendering, provider receipts and unsubscribe
+acceptance must be recorded separately; these local tests do not certify them.
+
 ## Inbox receiving and hosted signup qualification — October 20, 2026
 
 Continued on `codex/message-monkey-presend-qualification`. On s1 / Shalom in

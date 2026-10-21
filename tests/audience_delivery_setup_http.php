@@ -36,7 +36,7 @@ foreach(['relay','domains','limits','activity','events']as$tab){$p=$admin($s3pat
 audienceHttpExpect(str_contains($admin($s3path.'&tab=events')['body'],'audience_ses_events.php'),'Account HTTPS SNS receiver displayed');
 audienceHttpExpect($s3post(['action'=>'delivery_probe'])['status']===200,'Retired SMTP marketing setup action cannot queue mail');
 $ses=$campaignStore->sesSettings();$conn->execute_query("UPDATE marketing_ses_settings SET check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=100000,max_rate=1000,subscription_arn=CONCAT(topic_arn,':aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') WHERE audience_id=1");
-audienceHttpExpect($campaignStore->sendingReadiness('sender@community.example',['mailing_address'=>'123 Fixture Road'])['ready'],'Verified SES metadata and event subscription permit review');
+audienceHttpExpect($campaignStore->sendingReadiness('sender@community.example',['mailing_address'=>'123 Fixture Road'],true)['ready'],'Verified SES metadata and event subscription permit controlled tests');
 audienceHttpExpect(!$campaignStore->sendingReadiness('other@community.example',['mailing_address'=>'123 Fixture Road'])['ready'],'Different From address blocked');
 audienceHttpExpect(!$campaignStore->sendingReadiness('sender@community.example',[])['ready'],'Postal address still required');
 echo 'SES setup HTTP: '.($checks-$s3start)." checks passed.\n";
