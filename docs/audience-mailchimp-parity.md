@@ -2198,9 +2198,21 @@ campaign-gate changes are part of this repair.
 
 The bounded production processing attempt rolled back on that error. Native
 receipt processing awaits deployment of the repair. Campaign suppression,
-recipient-bound unsubscribe/resubscription, actual authentication headers and
-campaign engagement still require their own end-to-end qualification. The
-controlled test lane deliberately does not create campaign tracking events.
+recipient-bound unsubscribe/resubscription and campaign engagement still require
+their own end-to-end qualification. The controlled test lane deliberately does
+not create campaign tracking events.
+
+The user supplied the actual Gmail-delivered headers for the matching accepted
+test receipt. Gmail reported SPF, DKIM and DMARC passing, including aligned DKIM
+for the From domain. SPF passed for the SES envelope domain. The one-click
+unsubscribe headers were present but used the inert test URL.
+
+The first 2.6.14 final-main image scan blocked publication on newly reported
+`CVE-2026-111943` in the Go 1.27.2-built mail bridge. The database's rebuilt `gosu`
+helper used the same compiler. Both build stages now pin the official Go 1.27.3
+image by digest, incorporating the upstream `crypto/x509` security fix. The
+release resumes as 2.6.14 through the existing protected build and scan gates;
+the failed candidate was not tagged or deployed.
 
 ## Inbox receiving and hosted signup qualification — October 20, 2026
 
