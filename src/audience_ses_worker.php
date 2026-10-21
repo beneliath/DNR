@@ -26,6 +26,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
 {
     $lock='mm-ses-1';if((int)$db->execute_query('SELECT GET_LOCK(?,0) acquired',[$lock])->fetch_assoc()['acquired']!==1)audienceSesDeferred('SES delivery is busy.',2);
     try{
+        if($lane==='campaign'){$policy=$db->query('SELECT * FROM marketing_delivery_policy WHERE audience_id=1')->fetch_assoc();if(!$policy||!audienceMailPolicyReady($policy))audienceSesDeferred('Campaign sending awaits approval and a sending budget.',300);}
         $s=audienceSesWorkerReady($db,1,$m['from_email'],$m['ses_binding']??null,$factory);$factory??='audienceSesClient';try{$credentials=audienceSesCredentials($db,1);}catch(Throwable){$db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='The saved SES credentials are unavailable. Save the account credentials again.' WHERE audience_id=1");audienceSesDeferred('SES credentials need attention.',300);}$client=$factory('ses',$s,$credentials);
         if($s['blocked_until']&&strtotime($s['blocked_until'].' UTC')>time())throw new MailBudgetDeferredException($s['blocked_until'],'Waiting for the SES sending allowance.');
         if(!$s['quota_checked_at']||strtotime($s['quota_checked_at'].' UTC')<time()-60){
