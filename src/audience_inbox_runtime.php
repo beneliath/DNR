@@ -57,11 +57,11 @@ function audienceInboxDeliveryMessage(array $message):array
     $message['attachments']=$files;return $message;
 }
 
-/** A signed SNS receipt can resolve uncertain acceptance without replaying a message. */
-function audienceInboxProviderEvent(AudienceStore $store,array $settings,array $envelope,array $mail,string $correlation,string $providerId,string $type,string $at):string
+/** Retain signed test/Inbox receipts without replaying mail or changing test-recipient consent. */
+function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,array $envelope,array $mail,string $correlation,string $providerId,string $type,string $at):string
 {
     if(!$store->inboxAvailable())return 'ignored';
-    $job=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=? AND kind IN ('inbox','inbox-alert') AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$settings['aws_account_id'],$settings['region']]);
+    $job=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=? AND kind IN ('test','inbox','inbox-alert') AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$settings['aws_account_id'],$settings['region']]);
     if(!$job||count($mail['destination']??[])!==1||!hash_equals($job['recipient_hash'],audienceDispatchEmailHash((string)$mail['destination'][0]))||($job['provider_message_id']!==null&&$job['provider_message_id']!==$providerId))return 'ignored';
     $store->write('INSERT IGNORE INTO marketing_ses_notifications(audience_id,notification_id,event_type) VALUES (?,?,?)',[$store->audienceId,$envelope['MessageId'],$type]);if($store->db->affected_rows!==1)return 'duplicate';
     $store->write('INSERT INTO marketing_inbox_delivery_events(audience_id,service_mail_id,event_type,event_at) VALUES (?,?,?,?)',[$store->audienceId,$job['id'],$type,$at]);

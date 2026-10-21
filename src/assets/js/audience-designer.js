@@ -300,12 +300,14 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
       if(b.type==='image-text')tools.append(field('Image position',b.imagePosition,v=>b.imagePosition=v,'select',{left:'Image on left',right:'Image on right'}),field('Image width (%)',b.imageWidth,v=>b.imageWidth=v,'number'));
       if(b.type==='share'){tools.append(el('p','Let readers share the browser version of this email.','designer-panel-help'));for(const [key,label]of Object.entries({facebook:'Facebook',x:'X',linkedin:'LinkedIn',email:'Email'}))tools.append(field(label,b.sharePlatforms.includes(key),checked=>{b.sharePlatforms=checked?[...b.sharePlatforms,key]:b.sharePlatforms.filter(p=>p!==key);},'checkbox'));}
       if(b.type==='button')tools.append(field('Button text',b.text,v=>{b.text=v;}));
-      if(['text','heading','image-card','boxed-text','image-text','button'].includes(b.type))tools.append(field('Merge tags','',v=>{if(v){b.text+=` *|${v}|*`;if(b.html)b.html+=` *|${v}|*`;renderTools();}},'select',{'':'Insert a merge tag',...config.mergeTags,'MC:TOC':'Table of Contents'}));
+      const contentFields=['text','heading','button'].includes(b.type)?el('div',undefined,'designer-content-fields'):null;
+      if(contentFields)tools.append(contentFields);
+      if(['text','heading','image-card','boxed-text','image-text','button'].includes(b.type))(contentFields||tools).append(field('Merge tags','',v=>{if(v){b.text+=` *|${v}|*`;if(b.html)b.html+=` *|${v}|*`;renderTools();}},'select',{'':'Insert a merge tag',...config.mergeTags,'MC:TOC':'Table of Contents'}));
       if(['image','image-card','image-text','video'].includes(b.type))addImageTools(tools,b);
       if(b.type==='image-group'){
         b.images.forEach((image,i)=>{const group=details('Image '+(i+1));addImageTools(group,image);group.append(button('Remove image',()=>mutate(()=>b.images.splice(i,1))));tools.append(group);});if(b.images.length<4)tools.append(button('Add image',()=>mutate(()=>b.images.push({image:'',alt:'',url:''}))));
       }
-      if(['text','heading','button'].includes(b.type))tools.append(field('Link URL',b.url,v=>{b.url=v;}));
+      if(contentFields)contentFields.append(field('Link URL',b.url,v=>{b.url=v;}));
       if(b.type==='video')tools.append(field('Video caption',b.caption,v=>b.caption=v),el('p','Add a thumbnail and link. The video opens from the email.','designer-panel-help'));
       if(b.type==='social'){
         b.social.forEach((link,i)=>{const group=details('Link '+(i+1));group.append(field('Label',link.label,v=>link.label=v),field('URL',link.url,v=>link.url=v),button('Remove link',()=>mutate(()=>b.social.splice(i,1))));tools.append(group);});if(b.social.length<10)tools.append(button('Add social link',()=>mutate(()=>b.social.push({label:'Website',url:'https://example.com'}))));
@@ -413,7 +415,16 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
   async function loadLibrary(){
     const data=await request('design_library',{type:libraryType,search:$('#design-library-search').value,page:String(libraryPage)});const host=$('#design-library-items');host.replaceChildren();
     data.items.forEach(item=>{const card=el('article',undefined,'designer-library-card');const preview=el('div',undefined,'designer-library-thumbnail');card.append(preview,el('strong',item.name));
-      const use=button('Insert',run(async()=>{const response=await request('design_library_get',{item_id:String(item.id)});$('#design-library-dialog').close();libraryChoose(response.item.data);}));
+      const use=button('Insert',run(async()=>{
+        if(use.disabled)return;
+        use.disabled=true;
+        try{const response=await request('design_library_get',{item_id:String(item.id)});$('#design-library-dialog').close();libraryChoose(response.item.data);}
+        finally{use.disabled=false;}
+      }));
+      if(libraryType==='image'){
+        preview.title='Double-click to insert image';
+        preview.addEventListener('dblclick',()=>use.click());
+      }
       card.append(use,button('Rename',()=>nameDialog('Rename '+libraryType,item.name,async name=>{await request('design_library_operation',{item_id:String(item.id),item_version:String(item.version),operation:'rename',name});await loadLibrary();})),button('Delete',()=>confirmDesignAction('Delete '+libraryType+'?','Existing emails keep their own copy of this content.',async()=>{await request('design_library_operation',{item_id:String(item.id),item_version:String(item.version),operation:'delete'});await loadLibrary();})));host.append(card);
       run(async()=>{const response=await request('design_library_get',{item_id:String(item.id)});if(!card.isConnected)return;if(libraryType==='image')preview.append(imageNode(response.item.data));else preview.append(el('span','▤ '+response.item.data.rows[0].name));})();
     });if(!data.items.length)host.append(el('p','No saved '+(libraryType==='image'?'images':'sections')+' found.'));
@@ -452,13 +463,27 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
   $('#crop-apply').onclick=()=>{const image=$('#design-crop-canvas').toDataURL('image/png');if(image.length>933000){error('The cropped image is too large. Use a smaller image.');return;}mutate(()=>cropTarget.image=image);$('#design-crop-dialog').close();};
   const topMenus=$$('.designer-top-actions .designer-save-menu');topMenus.forEach(menu=>{menu.name='designer-top-menu';menu.addEventListener('toggle',()=>{if(menu.open)topMenus.forEach(other=>{if(other!==menu)other.open=false;});});});
   function closeMenus(){$$('.designer-save-menu').forEach(menu=>menu.open=false);}
+  document.addEventListener('click',event=>{
+    if(!topMenus.some(menu=>menu.contains(event.target)))closeMenus();
+  },true);
   $('#design-undo').onclick=()=>travel(undo,redo);$('#design-redo').onclick=()=>travel(redo,undo);
   document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.target.matches('input,textarea,[contenteditable]')){e.preventDefault();e.shiftKey?travel(redo,undo):travel(undo,redo);}});
   $$('.designer-rail [data-panel]').forEach(b=>b.onclick=()=>{panel=b.dataset.panel;if(panel==='styles'){styleArea='';styleDraft=null;}selectedRow=null;if(panel!=='comments')selected=null;render();});$$('[data-device]').forEach(b=>b.onclick=()=>setDevice(b.dataset.device));
   $('#design-save').onclick=()=>save(true);$('#design-save-only').onclick=()=>{closeMenus();save(false);};$('#design-preview').onclick=openPreview;$('#design-links').onclick=openLinks;$('#design-plain').onclick=openPlain;$('#design-history').onclick=openHistory;$('#design-code').onclick=openCode;$('#design-comments').onclick=()=>{panel='comments';renderTools();};$('#design-test').onclick=()=>{closeMenus();$('#design-test-dialog').showModal();};
   let testRequestKey='';
   $('#design-test').onclick=()=>{closeMenus();testRequestKey=[...crypto.getRandomValues(new Uint8Array(32))].map(n=>n.toString(16).padStart(2,'0')).join('');$('#design-test-status').textContent='';$('#design-test-dialog').showModal();};
-  $('#design-test-form').onsubmit=run(async e=>{e.preventDefault();const submit=$('button.primary',e.target),notice=$('#design-test-status');submit.disabled=true;try{if(dirty&&!(await save(false)))return;const data=await request('design_test',{...Object.fromEntries(new FormData(e.target)),request_key:testRequestKey});notice.textContent=`${data.queued} test email(s) queued. Check Email delivery → Activity for the relay receipt.`;}catch(err){notice.textContent=err.message;}finally{submit.disabled=false;}});
+  $('#design-test-form').onsubmit=run(async e=>{
+    e.preventDefault();const submit=$('button.primary',e.target),notice=$('#design-test-status');submit.disabled=true;notice.textContent='';
+    try{
+      if(dirty&&!(await save(false)))return;
+      const data=await request('design_test',{...Object.fromEntries(new FormData(e.target)),request_key:testRequestKey});
+      const emailLabel=data.queued===1?'test email':'test emails';
+      $('#design-test-result-title').textContent=data.queued===1?'Test email queued':'Test emails queued';
+      $('#design-test-result-text').textContent=`${data.queued} ${emailLabel} queued. Check Email delivery → Activity for the relay receipt.`;
+      $('#design-test-dialog').close();
+      $('#design-test-result-dialog').showModal();
+    }catch(err){notice.textContent=err.message;}finally{submit.disabled=false;}
+  });
   $('#design-save-template').onclick=run(async()=>{closeMenus();dirty=true;if(await save(false))$('#design-template-dialog').showModal();});
   $('#design-template-form').onsubmit=run(async e=>{e.preventDefault();const submit=$('button.primary',e.target);submit.disabled=true;try{if(dirty&&!(await save(false)))return;await request('design_template',{name:e.target.elements.name.value,folder:e.target.elements.folder.value});$('#design-template-dialog').close();status.textContent='Template saved';}finally{submit.disabled=false;}});
   Object.values(config.starters).forEach(entry=>$('#design-starters').append(button(entry.name,()=>confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(entry.design);selected=null;selectedRow=null;panel='add';});$('#design-change-dialog').close();}))));

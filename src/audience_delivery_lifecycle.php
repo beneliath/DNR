@@ -57,9 +57,13 @@ function processAudienceServiceMail(mysqli $db,int $limit=5,?callable $deliver=n
             $db->execute_query('UPDATE marketing_service_mail SET delivery_started_at=UTC_TIMESTAMP() WHERE id=? AND claim_token=?',[$job['id'],$claim]);$started=true;$message['native_service_id']=(int)$job['id'];$message['claim_token']=$claim;if($job['kind']==='test')$message['ses_binding']=$payload['snapshot']['ses']??[];$state=$deliver($message,$job['kind']);if(!in_array($state,['accepted','development'],true))throw new RuntimeException('Invalid mail receipt.');
         }catch(MailBudgetDeferredException $e){$state='queued';$retry=$e->retryAt;$error=$e->getMessage();$deferred=true;}
         catch(SmtpPreDataException $e){$state=(int)$job['attempts']<2?'queued':'failed';$error='SMTP connection failed before DATA.';}
+        catch(AudienceSesMessageException $e){$state='failed';$error=$e->getMessage();}
         catch(DomainException|InvalidArgumentException $e){$state='failed';$error='The request is no longer eligible or SES rejected it.';}
         catch(Throwable $e){$state=$started?'uncertain':'failed';$error=$started?'SES acceptance is uncertain. This message will not be replayed automatically.':'Unable to prepare this message.';}
         finally{if($inboxLock!==null)$db->execute_query('SELECT RELEASE_LOCK(?)',[$inboxLock]);}
+        // A callback may arrive before a timed-out send returns. Its verified receipt
+        // resolves acceptance just as a callback arriving after this pass would.
+        if($state==='uncertain'&&audienceInboxInstalled($db)&&(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_inbox_delivery_events WHERE audience_id=1 AND service_mail_id=?',[$job['id']])->fetch_assoc()['n']>0){$state='accepted';$error='';}
         $db->execute_query("UPDATE marketing_service_mail SET state=?,error_message=?,next_attempt_at=?,attempts=attempts-?,payload_ciphertext=IF(kind='confirmation' AND ?<>'queued','',payload_ciphertext),claim_token=NULL WHERE id=? AND claim_token=? AND state='processing'",[$state,$error,$retry,$deferred?1:0,$state,$job['id'],$claim]);$count++;
     }return $count;
 }

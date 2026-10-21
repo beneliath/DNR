@@ -41,8 +41,66 @@ function audienceTrackMessage(array $snapshot,string $html,string $text,string $
     if(!empty($tracking['opens'])){$pixel='<img src="'.htmlspecialchars($base.'/audience_track.php?'.http_build_query(['token'=>$token,'open'=>'1','sig'=>hash_hmac('sha256','open',$key)]),ENT_QUOTES,'UTF-8').'" width="1" height="1" alt="" style="display:block;border:0">';$html=str_contains($html,'</body>')?str_replace('</body>',$pixel.'</body>',$html):$html.$pixel;}
     return [$html,$text];
 }
+/** Delivery receipts describe the outcome; the queue state continues to control retries. */
+function audienceServiceMailStatus(array $mail,array $events):array
+{
+    $labels=['send'=>'Accepted','delay'=>'Delayed','delivered'=>'Delivered','soft-bounce'=>'Bounced','hard-bounce'=>'Bounced','rejected'=>'Rejected','complaint'=>'Complaint'];
+    $rank=['send'=>0,'delay'=>1,'delivered'=>2,'soft-bounce'=>3,'hard-bounce'=>4,'rejected'=>5,'complaint'=>6];
+    $chosen=null;$order=null;
+    foreach($events as$event){
+        $type=$event['event_type'];if(!isset($labels[$type]))continue;
+        // Late Send/Delay notifications cannot replace a final delivery outcome.
+        // Provider time, rather than callback arrival order, decides between outcomes.
+        $candidate=[$rank[$type]>=2?1:0,$event['event_at'],$rank[$type]];
+        if($order===null||$candidate>$order){$chosen=$event;$order=$candidate;}
+    }
+    $detail=(string)($mail['error_message']??'');
+    if(!$chosen){
+        $detail=$detail?:match($mail['state']){
+            'accepted'=>'The sending service accepted the email. No delivery confirmation is recorded.',
+            'queued'=>'Next attempt: '.$mail['next_attempt_at'].' UTC',
+            'processing'=>'The email is being submitted to the sending service.',
+            'development'=>'Recorded in development mode; no email was sent.',
+            'failed'=>'The email could not be sent.',
+            'uncertain'=>'Acceptance is unconfirmed. This email will not be resent automatically.',
+            'cancelled'=>'This email request was cancelled.',
+            default=>'No delivery details are recorded.',
+        };
+        return ['label'=>ucfirst($mail['state']),'event_at'=>null,'detail'=>$detail];
+    }
+    $detail=match($chosen['event_type']){
+        'send'=>'SES accepted the email; delivery is not yet confirmed.',
+        'delivered'=>'The recipient’s mail server accepted the email. Inbox placement is not confirmed.',
+        'hard-bounce'=>'The recipient’s mail server permanently rejected the email.',
+        'soft-bounce'=>'SES reported an unsuccessful delivery due to a temporary issue.',
+        'delay'=>'Delivery is delayed; SES is still attempting delivery.',
+        'rejected'=>'SES rejected the email before delivery.',
+        'complaint'=>'The recipient reported the email as spam.',
+        default=>'',
+    };
+    return ['label'=>$labels[$chosen['event_type']],'event_at'=>$chosen['event_at'],'detail'=>$detail];
+}
 trait AudienceDeliveryRuntime
 {
+    public function serviceMailActivity():array
+    {
+        $rows=$this->all('SELECT id,kind,actor_label,state,attempts,next_attempt_at,error_message,created_at FROM marketing_service_mail WHERE audience_id=? ORDER BY id DESC LIMIT 25',[$this->audienceId]);
+        $events=[];
+        if($rows&&$this->inboxAvailable())foreach($this->all('SELECT service_mail_id,event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id IN ('.implode(',',array_fill(0,count($rows),'?')).') ORDER BY event_at,id',[$this->audienceId,...array_column($rows,'id')])as$event)$events[$event['service_mail_id']][]=$event;
+        foreach($rows as&$row){
+            $row['recipient']='';
+            // Read one frozen email at a time: 25 large designs must not all live in memory.
+            $sealed=$this->one('SELECT payload_ciphertext FROM marketing_service_mail WHERE audience_id=? AND id=?',[$this->audienceId,$row['id']])['payload_ciphertext']??'';
+            if($sealed!=='')try{
+                $payload=json_decode(\Dnr\Security\ApplicationKey::open($sealed),true,64,JSON_THROW_ON_ERROR);
+                $row['recipient']=(string)($payload['message']['email']??'');
+            }catch(Throwable){/* Older or retired payloads must not hide the retained receipt. */}
+            unset($sealed,$payload);
+            $row['delivery_events']=$events[$row['id']]??[];
+            $row['delivery_status']=audienceServiceMailStatus($row,$row['delivery_events']);
+        }unset($row);
+        return $rows;
+    }
     public function deliveryRuntimeAvailable():bool{return audienceMailPolicyAvailable($this->db);}
     public function deliveryPolicy():array{return $this->one('SELECT * FROM marketing_delivery_policy WHERE audience_id=?',[$this->audienceId])??[];}
     public function saveDeliveryPolicy(int $version,array $input):void

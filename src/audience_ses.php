@@ -20,11 +20,13 @@ function audienceSesBinding(array $s):array
 {
     $binding=[];foreach(['region','from_email','configuration_set','topic_arn','aws_account_id']as$key)if(array_key_exists($key,$s))$binding[$key]=$s[$key];return $binding;
 }
-function audienceSesReasons(array $s,string $from):array
+/** Only test enqueueing may defer freshness to audienceSesWorkerReady; delivery must use the default. */
+function audienceSesReasons(array $s,string $from,bool $requireFreshCheck=true):array
 {
     $reasons=[];
     if(empty($s['enabled'])||empty($s['access_key_tail']))$reasons[]='Configure this account’s SES API credentials in Email delivery.';
-    if(($s['check_state']??'')!=='ready'||empty($s['checked_at'])||strtotime($s['checked_at'].' UTC')<time()-900)$reasons[]='Check the SES connection, verified domain and event destination.';
+    $checkedAt=empty($s['checked_at'])?false:strtotime($s['checked_at'].' UTC');
+    if(($s['check_state']??'')!=='ready'||$checkedAt===false||($requireFreshCheck&&$checkedAt<time()-900))$reasons[]='Check the SES connection, verified domain and event destination.';
     if(empty($s['production_access']))$reasons[]='Request SES production access in the selected AWS Region.';
     if(empty($s['sending_enabled'])||(float)($s['max_daily']??0)<=0||(float)($s['max_rate']??0)<=0)$reasons[]='SES sending is disabled or its sending quota is unavailable.';
     if(strtolower(trim($from))!==($s['from_email']??''))$reasons[]='Use the From address configured for this account’s SES connection.';

@@ -24,4 +24,15 @@ $expect(str_contains($httpHtml,'audience_track.php?')&&str_contains($httpText,'s
 preg_match('/href="([^"]+)"/',$httpHtml,$httpMatch);parse_str(parse_url(html_entity_decode($httpMatch[1],ENT_QUOTES,'UTF-8'),PHP_URL_QUERY),$httpQuery);
 $expect(base64_decode(strtr($httpQuery['url'],'-_','+/'))==='http://legacy.example.test/?a=1&b=2','Tracked legacy URL retains its original scheme and query');
 $s['test']=true;[$h,$t]=audienceTrackMessage($s,'original','text','token');$expect($h==='original'&&$t==='text','Test messages never track');
+$mail=['state'=>'accepted','error_message'=>''];$receipt=static fn($type,$at)=>['event_type'=>$type,'event_at'=>$at];
+$expect(audienceServiceMailStatus($mail,[])['label']==='Accepted','Acceptance without a receipt is never labelled Delivered');
+$expect(str_contains(audienceServiceMailStatus($mail,[])['detail'],'No delivery confirmation is recorded'),'Older accepted emails explain missing receipts instead of showing blank details');
+foreach(['processing','development','failed','uncertain','cancelled']as$state)$expect(audienceServiceMailStatus(['state'=>$state,'error_message'=>''],[])['detail']!=='','No-receipt state has explanatory details: '.$state);
+$expect(audienceServiceMailStatus(['state'=>'failed','error_message'=>'SES permission denied.'],[])['detail']==='SES permission denied.','Specific safe errors remain visible');
+$expect(audienceServiceMailStatus(['state'=>'queued','next_attempt_at'=>'2026-10-21 11:00:00'],[])['detail']==='Next attempt: 2026-10-21 11:00:00 UTC','Queued mail retains the retry time');
+$events=[$receipt('delivered','2026-10-21 10:02:00'),$receipt('send','2026-10-21 10:03:00'),$receipt('delay','2026-10-21 10:01:00')];
+$expect(audienceServiceMailStatus($mail,$events)['label']==='Delivered','Send and Delay cannot replace a delivery outcome');
+$events[]=$receipt('hard-bounce','2026-10-21 10:00:00');
+$expect(audienceServiceMailStatus($mail,$events)['label']==='Delivered','Provider timestamps decide out-of-order final outcomes');
+foreach(['soft-bounce'=>'Bounced','hard-bounce'=>'Bounced','delay'=>'Delayed','rejected'=>'Rejected','complaint'=>'Complaint']as$type=>$label)$expect(audienceServiceMailStatus($mail,[$receipt($type,'2026-10-21 10:04:00')])['label']===$label,'Receipt status '.$type);
 echo "Delivery runtime: $checks checks passed.\n";
