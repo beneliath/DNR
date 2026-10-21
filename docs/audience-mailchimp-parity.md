@@ -2174,6 +2174,34 @@ repair before continuing controlled qualification. Campaign approval remains off
 Actual delivered headers, client rendering, provider receipts and unsubscribe
 acceptance must be recorded separately; these local tests do not certify them.
 
+### Controlled delivery and SNS handoff follow-up
+
+The user separately approved restricted raw-email sending permission for the four
+frozen test inboxes and three SES simulator addresses, followed by Ohio-only
+permission to disable SES open and click tracking. Native campaign tracking still
+uses its own signed links and open pixel. Campaign approval and both sending
+budgets remained zero throughout qualification.
+
+SES accepted all seven original test messages. The user confirmed that all four
+controlled inboxes received and displayed the message correctly. Fifteen actual
+AWS-signed notifications were verified against the accepted message IDs, account,
+Region, topic and destination: sends, controlled-inbox deliveries, simulator
+delivery, permanent bounce and complaint. Private qualification receipts retain
+the evidence; recipient addresses are not release documentation.
+
+Applying those notifications on 2.6.13 exposed a type error at the SNS-to-Inbox
+handoff: the verified AWS message object was passed to a helper expecting an
+array. The focused repair passes the original verified envelope array. Regression
+coverage exercises signed Inbox delivery, duplicate handling and an unmatched
+test notification through the complete validator path. No schema, permissions or
+campaign-gate changes are part of this repair.
+
+The bounded production processing attempt rolled back on that error. Native
+receipt processing awaits deployment of the repair. Campaign suppression,
+recipient-bound unsubscribe/resubscription, actual authentication headers and
+campaign engagement still require their own end-to-end qualification. The
+controlled test lane deliberately does not create campaign tracking events.
+
 ## Inbox receiving and hosted signup qualification — October 20, 2026
 
 Continued on `codex/message-monkey-presend-qualification`. On s1 / Shalom in
