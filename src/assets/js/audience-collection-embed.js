@@ -14,9 +14,15 @@ const frame = document.createElement('iframe');
 frame.title = 'Newsletter signup';
 frame.referrerPolicy = 'origin';
 frame.src = config.url + '&visitor=' + encodeURIComponent(visitor);
-frame.setAttribute('sandbox', 'allow-forms allow-same-origin allow-popups');
+frame.setAttribute('sandbox', 'allow-forms allow-same-origin allow-popups' + (config.kind === 'embedded' && config.javascript ? ' allow-scripts' : ''));
 frame.style.cssText = 'display:block;width:100%;height:720px;border:0;background:white;';
-if (config.kind === 'embedded') { anchor.insertAdjacentElement('afterend', frame); return; }
+if (config.kind === 'embedded') {
+    window.addEventListener('message', event => {
+        if (event.origin !== new URL(config.url).origin || event.source !== frame.contentWindow || event.data?.type !== 'message-monkey-form-height' || event.data.key !== config.key) return;
+        if (Number.isInteger(event.data.height) && event.data.height >= 100 && event.data.height <= 20000) frame.style.height = event.data.height + 'px';
+    });
+    anchor.insertAdjacentElement('afterend', frame); return;
+}
 const rule = config.popup;
 const mobile = matchMedia('(max-width:767px)').matches;
 if ((rule.device === 'mobile' && !mobile) || (rule.device === 'desktop' && mobile)) return;

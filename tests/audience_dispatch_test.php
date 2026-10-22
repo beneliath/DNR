@@ -37,6 +37,8 @@ $expect(strlen(json_encode($snapshot['draft']['design']))>6000000,'Fixture excee
 $imageMessage=audienceDispatchMessage($snapshot,$context,str_repeat('a',64),'<images@example.test>');
 $expect(!str_contains($imageMessage['html'],'data:image/')&&str_contains($imageMessage['html'],hash('sha256',$gif)),'PNG and GIF use immutable hosted images');
 $expect(strlen($imageMessage['html'])<10000,'Hosted images do not consume the message body budget');
+$plainPreference=audienceDispatchMessage($snapshot,$context+['__email_format'=>'text'],str_repeat('a',64),'<plain-preference@example.test>');
+$expect($plainPreference['html']===null&&str_contains($plainPreference['text'],'Unsubscribe:'),'Signup plain-text preference excludes HTML while retaining native subscription links');
 $snapshot['type']='plain-text';$snapshot['draft']['text']=str_repeat('a',6500000);
 $expect(strlen(audienceDispatchMessage($snapshot,$context,str_repeat('a',64),'<large@example.test>')['text'])>6000000,'Plain-text email above the former limit renders');
 $snapshot['draft']['text']=str_repeat('a',AUDIENCE_DESIGN_MAX_BYTES);

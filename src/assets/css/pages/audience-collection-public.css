@@ -66,3 +66,25 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-
     .collection-name-field { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+
+.collection-field-help{margin:6px 0 0;text-align:start;font-weight:400;white-space:pre-line}
+body.collection-embedded{padding:0;background:transparent;font-size:14px;line-height:1.5}
+.collection-embedded main{width:100%;max-width:var(--collection-width);padding:24px;margin:0 auto;background:var(--collection-background);border:0;border-radius:0;box-shadow:none}
+.collection-embedded h1{font-size:20px;letter-spacing:0;margin:0 0 16px}
+.collection-embedded .collection-intro{font-size:14px;margin:0 0 20px;padding:0;border:0}
+.collection-embedded .collection-fields{grid-template-columns:minmax(0,1fr);gap:16px}
+.collection-embedded .collection-field{grid-column:1/-1}
+.collection-embedded .collection-required-note{margin:0 0 -8px;text-align:end;font-size:11px}
+.collection-embedded label,.collection-embedded legend{font-size:14px;font-weight:400;margin:12px 0 4px}
+.collection-embedded .collection-field>label{margin-top:0}
+.collection-embedded label>span,.collection-required-note>span{color:#d04b2b}
+.collection-embedded input:not([type=checkbox]):not([type=radio]),.collection-embedded textarea,.collection-embedded select{min-height:34px;padding:6px 8px;border:1px solid #bfc5c8;border-radius:3px;background:#fff;font-size:14px}
+.collection-embedded .choice{align-items:center;gap:8px;font-size:12px;line-height:1.5;margin:16px 0 0}
+.collection-embedded input[type=checkbox],.collection-embedded input[type=radio]{width:16px;height:16px;margin:0}
+.collection-embedded button{width:auto;min-height:32px;padding:6px 22px;font-size:14px;font-weight:400;border-radius:4px;margin:16px 0 0}
+.collection-embedded button:disabled{opacity:1}
+.collection-format{margin-top:20px}.collection-format .choice{display:inline-flex;margin:0 20px 0 0}
+.collection-embedded .collection-archive{font-size:12px;margin:20px 0 0}
+.collection-referral{display:flex;align-items:center;gap:8px;width:max-content;max-width:100%;padding:8px 12px;margin:24px 0 0;border-radius:5px;font:10px/1.3 Arial,sans-serif}
+.collection-referral>span{display:grid;place-items:center;width:30px;height:30px;border:2px solid currentColor;border-radius:50%;font-size:10px;font-weight:700}
+.collection-referral>strong{font-size:11px}.collection-referral-light{background:#f0f0ee;color:#242424}.collection-referral-dark{background:#242424;color:#fff}

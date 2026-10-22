@@ -14,7 +14,13 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         try {
             if (!$available) throw new InvalidArgumentException('Forms require the qualified database update.');
             $action=audienceText($_POST,'action',40); $version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
-            if ($action==='collection_library') {
+            if ($action==='collection_new_tag') {
+                $store->collectionResource($id);
+                $name=audienceText($_POST,'tag_name',100);
+                $tagId=$store->ensureTag($name);
+                releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
+                echo json_encode(['id'=>$tagId,'name'=>$name],JSON_THROW_ON_ERROR);return;
+            } elseif ($action==='collection_library') {
                 $library=$store->designLibrary('image',audienceText($_POST,'search',100),max(1,(int)($_POST['page']??1)));
                 releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');echo json_encode($library,JSON_THROW_ON_ERROR);return;
             } elseif ($action==='collection_library_image') {
@@ -32,6 +38,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 catch (JsonException) { throw new InvalidArgumentException('The preview document is invalid.'); }
                 if (!is_array($doc)) throw new InvalidArgumentException('The preview document is invalid.');
                 $r['document']=audienceCollectionDocument($doc,$r['kind'],$store->fields(),$store->groups(),$store->tags());
+                $r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$r['public_key'];
                 $screen=\Dnr\Http\RequestInput::enum($_POST,'screen',['signup','thanks','confirm','unsubscribe'],'signup');$previewSuccess='';
                 if($r['kind']==='hosted'&&in_array($screen,['confirm','unsubscribe'],true)){
                     $system=$r['document']['system'];$r['kind']=$screen;
@@ -59,9 +66,14 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 $id=$store->collectionOperation($id,$version,$op); $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','remove'=>'Removed. Existing results are retained.','restore'=>'Restored as a draft. Publish when it’s ready.',default=>'Draft copied.'};
                 if ($op==='remove') $id=0;
             } else throw new InvalidArgumentException('Choose a supported form action.');
+            if (str_contains($_SERVER['HTTP_ACCEPT']??'','application/json') && in_array($action,['collection_save','collection_operation'],true)) {
+                $saved=$id?$store->collectionResource($id):['version'=>0,'state'=>'removed'];
+                releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
+                echo json_encode(['id'=>$id,'version'=>(int)$saved['version'],'state'=>$saved['state']],JSON_THROW_ON_ERROR);return;
+            }
             $_SESSION['audience_message']=$message; header('Location: '.$url($id?['view'=>'form','id'=>$id]:['view'=>'forms'])); return;
         } catch (InvalidArgumentException $e) {
-            if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image'],true)) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR); return; }
+            if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR); return; }
             $error=$e->getMessage(); if ($action==='collection_save') $recover=$_POST;
         }
     }

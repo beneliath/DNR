@@ -14,13 +14,17 @@ $d=$r['document']; $publicUrl=accountPrimaryPublicUrl().'/audience_collect_publi
 if (isset($_GET['embed'])) {
     header('Content-Type: application/javascript; charset=UTF-8');
     if($r['kind']==='popup'&&!empty($d['popup']['countries'])&&!in_array(audienceCollectionCountry($_SERVER),$d['popup']['countries'],true)){echo '/* This popup is not eligible for this location. */';exit;}
-    $config=['url'=>$publicUrl,'key'=>$key,'kind'=>$r['kind'],'origins'=>$d['origins'],'popup'=>$d['popup']];
+    $config=['url'=>$publicUrl,'key'=>$key,'kind'=>$r['kind'],'origins'=>$d['origins'],'popup'=>$d['popup'],'javascript'=>empty($d['embedded']['disable_javascript'])];
     echo '(function(){"use strict";const config='.json_encode($config,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR).';';
     readfile(__DIR__.'/assets/js/audience-collection-embed.js'); echo '})();'; exit;
 }
 $nonce=contentSecurityPolicyNonce(); $ancestors="'none'";
 if (in_array($r['kind'],['embedded','popup'],true)) { $ancestors="'self' ".implode(' ',$d['origins']); header_remove('X-Frame-Options'); }
-header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'");
+$resize=$r['kind']==='embedded'&&empty($d['embedded']['disable_javascript']);
+$scriptPolicy=$resize?"; script-src 'nonce-{$nonce}'":'';
+header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
+$r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$key;
+if($resize)$r['resize_script']=accountPrimaryPublicUrl().'/assets/js/audience-collection-resize.js';
 $visitorCookie='dnr_collection_'.substr($key,0,12);
 $visitor=is_string($_GET['visitor']??null)?$_GET['visitor']:(is_string($_COOKIE[$visitorCookie]??null)?$_COOKIE[$visitorCookie]:'');
 if (!preg_match('/^[a-f0-9]{64}$/D',$visitor)) $visitor=bin2hex(random_bytes(32));

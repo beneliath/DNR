@@ -33,3 +33,11 @@ export function moveEmailBlock(design, from, target) {
   const [block]=source.splice(i,1);destination.splice(ti,0,block);return [tr,tc,ti];
 }
 export function blockDropIndex(index,y,top,height){return index+(y>top+height/2?1:0);}
+
+export function setDesignColor(design,target,key,value) {
+  target[key]=value;
+  if(target===design.styles&&['link','button','buttonText'].includes(key)){
+    design.styles.brandColors ||= {};
+    design.styles.brandColors[key]=false;
+  }
+}

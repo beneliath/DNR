@@ -5,5 +5,5 @@
     <span id="<?= $h($uploadId) ?>-help"><?= $h($uploadHelp) ?></span>
     <button type="button" data-file-browse hidden>Browse files</button>
     <input id="<?= $h($uploadId) ?>" type="file" accept="<?= $h($uploadAccept) ?>" aria-describedby="<?= $h($uploadId) ?>-help <?= $h($uploadId) ?>-status" data-file-types="<?= $h($uploadTypes) ?>"<?php if($uploadKey==='web_font'): ?> data-brand-font<?php else: ?> data-content-upload="<?= $h($uploadKey) ?>"<?php endif; ?><?= $uploadKey==='image'?' name="image_file"':'' ?>>
-    <p id="<?= $h($uploadId) ?>-status" data-file-drop-status role="status" aria-live="polite">No file selected.</p>
+    <p id="<?= $h($uploadId) ?>-status" data-file-drop-status role="status" aria-live="polite"><?= $h($uploadStatus??'No file selected.') ?></p>
 </div>

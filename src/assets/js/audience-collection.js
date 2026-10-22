@@ -1,3 +1,5 @@
+import { enhanceColorInput } from './audience-color-picker.mjs';
+import { initEmbeddedForm } from './audience-embedded.mjs';
 (() => {
     'use strict';
     document.querySelector('[data-copy-collection-link]')?.addEventListener('click', async () => {
@@ -24,6 +26,8 @@
     const configNode = document.getElementById('collection-config');
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
+    if (config.kind === 'embedded') { initEmbeddedForm(form, config); return; }
+    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input));
     let model = structuredClone(config.document);
     model.variants = [];
     const frame = document.querySelector('[data-collection-preview]');
@@ -254,6 +258,7 @@
         form.querySelector('[data-popup-countries]')?.querySelectorAll('option').forEach(option => { option.selected = model.popup.countries.includes(option.value); });
         form.querySelectorAll('[data-field]').forEach(row => { row.querySelector('[data-field-visible]').checked = model.fields.includes(row.dataset.field); row.querySelector('[data-field-required]').checked = model.required.includes(row.dataset.field); });
         const fieldList = form.querySelector('[data-collection-fields]'); if (fieldList) [...model.fields].reverse().forEach(key => { const row = fieldList.querySelector(`[data-field="${key}"]`); if (row) fieldList.prepend(row); });
+        form.querySelectorAll('input[type=color]').forEach(input => input.dispatchEvent(new Event('change')));
         Object.keys(lists).forEach(renderList); restoring = false; record(); preview();
     };
     undo?.addEventListener('click', () => restore(historyIndex - 1)); redo?.addEventListener('click', () => restore(historyIndex + 1));

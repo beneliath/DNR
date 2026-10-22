@@ -1083,6 +1083,7 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
                 const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('The font could not be read. Try again.'));reader.readAsDataURL(file);});
                 if(state.pending.get(input)!==token)return;
                 form.elements.web_font.value=`data:font/${extension};base64,${data.split(',')[1]}`;
+                form.elements.web_font_name.value=file.name;
                 form.elements.font_license.checked=false;input.value='';
                 setFileDropStatus(input,`${file.name} · ${imageFileSize(file.size)} — ready. Confirm its license and save.`);
                 contentStatus(form,`${file.name} ready. Confirm its license and save.`);return;
@@ -1112,7 +1113,9 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
     $$('[data-content-clear]').forEach(button => button.addEventListener('click', () => {
         const input=$(button.dataset.contentClear==='web_font'?'[data-brand-font]':`[data-content-upload="${button.dataset.contentClear}"]`,button.form);
         if(input){finishContentUpload(button.form,input,contentUploads.get(button.form).pending.get(input));input.value='';setFileDropStatus(input);}
-        setContentImage(button.form, button.dataset.contentClear, ''); contentStatus(button.form, 'Removed from this form. Save to keep the change.');
+        setContentImage(button.form, button.dataset.contentClear, '');
+        if(button.dataset.contentClear==='web_font'){button.form.elements.web_font_name.value='';button.form.elements.font_license.checked=false;}
+        contentStatus(button.form, 'Removed from this form. Save to keep the change.');
     }));
     const contentEditor = $('[data-content-editor]');
     if (contentEditor) {

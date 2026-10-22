@@ -79,6 +79,7 @@ trait AudienceDesignExtras
         foreach($this->fields()as$f){$value=$person['custom'][$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
         foreach($this->tags()as$t)$context['tag:'.$t['id']]=in_array((int)$t['id'],$person['tag_ids'],true)?'1':'';
         foreach($this->groups()as$g)foreach($g['options']as$o)$context['group:'.$o['id']]=in_array((int)$o['id'],$person['group_ids'],true)?'1':'';
+        $context['__email_format']=$this->collectionEmailFormat($personId);
         return $context;
     }
 }

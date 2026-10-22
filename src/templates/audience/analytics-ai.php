@@ -10,7 +10,7 @@ $aiStarters=[
 <section class="ai-assistant analytics-ai-chat" data-ai-root data-ai-chat aria-label="Analytics AI">
     <aside class="analytics-ai-history" id="analytics-ai-history" aria-label="Chat history">
         <button class="analytics-ai-new" type="button" data-ai-new><?php audienceNavIcon('rename'); ?>New chat</button>
-        <div class="ai-history-heading"><h2>Recent</h2><button type="button" data-ai-history-reset disabled title="Reset this browser’s list; saved requests are retained for review">Reset list</button></div><ul data-ai-history></ul><p data-ai-history-empty>Start a conversation to see your recent chats.</p>
+        <div class="ai-history-heading"><h2>Recent</h2><button type="button" data-ai-history-reset data-admin-unlock-required hidden disabled title="Reset this browser’s list (Admin Unlock required); saved requests are retained for review">Reset list</button></div><ul data-ai-history></ul><p data-ai-history-empty>Start a conversation to see your recent chats.</p>
     </aside>
     <div class="analytics-ai-main">
         <div class="analytics-ai-toolbar"><button type="button" data-ai-history-toggle aria-controls="analytics-ai-history" aria-expanded="true"><?php audienceNavIcon('text'); ?><span>Hide chat history</span></button><details class="analytics-ai-scope"><summary>Report scope</summary><p data-ai-chat-scope><?= $h($aiWindow['start'].' to '.$aiWindow['end'].' UTC · '.$aiWindow['dataset']) ?></p><a href="<?= $h($url(['view'=>'analytics']+$aiWindow)) ?>">Change report filters</a><p>Inbox messages are excluded.</p></details></div>

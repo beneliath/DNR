@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_collection_customization.php';
+require_once __DIR__.'/audience_collection_embed.php';
 
 const AUDIENCE_COLLECTION_KINDS = ['hosted','embedded','popup','landing','survey','preferences'];
 const AUDIENCE_COLLECTION_QUESTIONS = ['radio','checkboxes','range','text','dropdown','email','contact','content'];
@@ -31,17 +32,18 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
 {
     if (!in_array($kind, AUDIENCE_COLLECTION_KINDS, true)) throw new InvalidArgumentException('Choose a supported form type.');
     return [
-        'title'=>$name ?: ($kind==='survey'?'We’d love your feedback':'Stay in the know'),
-        'intro'=>$kind==='survey'?'Tell us what you think.':'Sign up to receive our latest news and updates.',
+        'title'=>$kind==='embedded'?'Subscribe':($name ?: ($kind==='survey'?'We’d love your feedback':'Stay in the know')),
+        'intro'=>$kind==='embedded'?'':($kind==='survey'?'Tell us what you think.':'Sign up to receive our latest news and updates.'),
         'button'=>$kind==='survey'?'Submit':'Subscribe',
         'thanks'=>'Thank you! Your response has been received.',
         'confirmation'=>'Check your email and confirm your subscription to finish signing up.',
         'permission'=>'Yes, I would like to receive email newsletters. I can unsubscribe at any time.',
-        'language'=>'en', 'close_at'=>'', 'opt_in'=>'double', 'fields'=>['email','first_name','last_name'],
+        'language'=>'en', 'close_at'=>'', 'opt_in'=>'double', 'fields'=>$kind==='embedded'?['email']:['email','first_name','last_name'],
+        'embedded'=>audienceCollectionEmbedDefaults(), 'help_text'=>[],
         'messages'=>audienceCollectionMessages(), 'advanced'=>['enabled'=>false,'pages'=>['signup'=>'','thanks'=>'','confirm'=>'','unsubscribe'=>'']],
         'required'=>['email'], 'group_ids'=>[], 'tag_ids'=>[], 'permissions'=>[],
-        'color'=>'#007c89', 'background'=>'#f6f6f4', 'text_color'=>'#241c15',
-        'font'=>'Arial', 'width'=>640, 'logo'=>'', 'description'=>'', 'favicon'=>'',
+        'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
+        'font'=>'Arial', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'description'=>'', 'favicon'=>'',
         'labels'=>['email'=>'Email address','first_name'=>'First name','last_name'=>'Last name','phone'=>'Phone number'],
         'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from this audience.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
         'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How was your experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
@@ -81,7 +83,9 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
         if (!preg_match('/^#[0-9a-fA-F]{6}$/D',$d[$key])) throw new InvalidArgumentException('Choose a six-digit color.');
     }
     $d['font']=in_array($input['font']??'', ['Arial','Georgia','Verdana'],true)?$input['font']:'Arial';
-    $d['width']=max(320,min(1200,(int)($input['width']??640)));
+    $width=$input['width']??$d['width'];
+    $d['width']=$kind==='embedded'&&($width===''||$width===0)?0:max(320,min(1200,(int)$width));
+    $d['embedded']=audienceCollectionEmbedOptions($input['embedded']??[]);
     foreach (['logo','favicon'] as $key) $d[$key]=audienceCollectionUrl($input[$key]??'',true);
     $d['opt_in']=in_array($input['opt_in']??'', ['single','double'],true)?$input['opt_in']:'double';
     $available=['email','first_name','last_name']; $must=['email'];
@@ -98,6 +102,11 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
         if (!in_array($key,[...$available,'phone'],true)) throw new InvalidArgumentException('A field label is unavailable.');
         $d['labels'][$key]=audienceCollectionText($label,200);
         if ($d['labels'][$key]==='') throw new InvalidArgumentException('Field labels cannot be empty.');
+    }
+    if (!is_array($input['help_text']??[])) throw new InvalidArgumentException('Invalid field help text.');
+    foreach ($input['help_text']??[] as $key=>$help) {
+        if (!in_array($key,$available,true)) throw new InvalidArgumentException('Help text belongs to an unavailable field.');
+        $d['help_text'][$key]=audienceCollectionText($help,1000);
     }
     if (!is_array($input['system']??[])) throw new InvalidArgumentException('Invalid system messages.');
     foreach ($d['system'] as $key=>$value) $d['system'][$key]=audienceCollectionText($input['system'][$key]??$value,1000);
@@ -339,6 +348,9 @@ trait AudienceCollection
 
     private function collectionSignup(array $d, array $input, array $r, string $base): array
     {
+        $format=($d['embedded']['show_format']??false)?audienceText($input,'email_format',4):'html';
+        if($format==='')$format='html';
+        if(!in_array($format,['html','text'],true))throw new InvalidArgumentException('Choose HTML or plain text email.');
         if (($input['permission']??'')!=='1') throw new InvalidArgumentException('Confirm that you want to receive email newsletters.');
         $email=strtolower(audienceText($input,'email',254)); if (!filter_var($email,FILTER_VALIDATE_EMAIL)) throw new InvalidArgumentException('Enter a valid email address.');
         $this->collectionRateLimit('email:'.$email,5);
@@ -363,6 +375,7 @@ trait AudienceCollection
         // ready, regardless of whether this address is already in the audience.
         if ($confirmation) { $ses=$this->sesSettings(); if (audienceSesReasons($ses,$ses['from_email']??'')) throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.'); }
         $person=$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND email=? FOR UPDATE',[$this->audienceId,$email]);
+        $newPerson=!$person;
         $blocked=$this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]) || ($person && ($person['deleted_at'] || $person['is_archived'] || $person['email_status']==='cleaned'));
         if (!$blocked) {
             $wasSubscribed=$person&&$person['email_status']==='subscribed';
@@ -375,7 +388,7 @@ trait AudienceCollection
                 foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
             }
             // Unauthenticated signups never overwrite a known person's profile or interests.
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','at'=>gmdate(DATE_ATOM)],JSON_THROW_ON_ERROR)]);
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)],JSON_THROW_ON_ERROR)]);
             if ($person['email_status']!=='subscribed') {
                 if ($confirmation) {
                     $ses=$this->sesSettings();
@@ -389,7 +402,14 @@ trait AudienceCollection
             }
             if(!$wasSubscribed&&!$confirmation)$this->recordCollectionConversion((int)$person['id'],['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'],'single');
         }
-        return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'quiz'=>audienceText($input,'quiz',200)],$d['opt_in']==='double'];
+        return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'email_format'=>$format,'quiz'=>audienceText($input,'quiz',200)],$d['opt_in']==='double'];
+    }
+
+    /** Public repeat signups cannot overwrite an existing contact's preference. */
+    public function collectionEmailFormat(int $contact): string
+    {
+        $row=$this->one("SELECT JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.email_format')) format FROM marketing_contact_events WHERE contact_id=? AND actor_type='recipient' AND event_type='signup-permission' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.email_format')) IN ('html','text') ORDER BY id DESC LIMIT 1",[$contact]);
+        return ($row['format']??'')==='text'?'text':'html';
     }
 
     public function collectionConversionContext(array $context):array

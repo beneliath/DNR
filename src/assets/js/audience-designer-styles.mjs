@@ -1,5 +1,7 @@
 import { enhanceColorInput } from './audience-color-picker.mjs';
-export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPreview,onSave}) {
+import { designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
+import { setDesignColor } from './audience-design-model.mjs';
+export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPreview,onSave,brandFont}) {
   const labels={page:'Page',preheader:'Preheader',header:'Header',body:'Body',footer:'Footer',mobile:'Mobile Styles',badge:'Referral Badge'};
   if(!area){
     for(const [key,label]of Object.entries(labels)){
@@ -11,11 +13,11 @@ export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPr
   const body=el('div',undefined,'designer-style-scroll'), footer=el('div',undefined,'designer-style-actions');
   const save=button('Save',()=>{const invalid=[...body.querySelectorAll('input,select,textarea')].find(input=>!input.checkValidity());if(invalid){invalid.reportValidity();return;}onSave();});save.className='primary';const cancel=button('Cancel',()=>setArea(''));cancel.className='designer-style-cancel';footer.append(save,cancel);tools.append(header,body,footer);
   const preview=()=>onPreview();
-  const fonts=Object.fromEntries(['Arial','Georgia','Verdana','Tahoma','Times New Roman'].map(x=>[x,x]));
+  const fonts=designFontChoices(design,brandFont);
   const label=(text,control)=>{const wrap=el(control.querySelector('.audience-color-control')?'div':'label',undefined,'designer-style-control');wrap.append(el('span',text),control);return wrap;};
   const select=(target,key,choices,value,changed=()=>{})=>{const input=el('select');for(const [v,text]of Object.entries(choices)){const option=el('option',text);option.value=v;input.append(option);}const current=String(target[key]??value);if(![...input.options].some(option=>option.value===current)){const option=el('option',current);option.value=current;input.append(option);}input.value=current;input.onchange=()=>{target[key]=typeof value==='number'?Number(input.value):input.value;changed();preview();};return input;};
   const number=(target,key,value,min,max,suffix='')=>{const wrap=el('span',undefined,'designer-style-number'),input=el('input');input.type='number';input.min=min;input.max=max;input.value=target[key]??value;input.oninput=()=>{if(!input.checkValidity())return;target[key]=Number(input.value);preview();};wrap.append(input);if(suffix)wrap.append(el('span',suffix));return wrap;};
-  const color=(target,key,value)=>{const group=el('span',undefined,'designer-style-color'),picker=el('input');picker.type='color';picker.value=target[key]??value;picker.oninput=()=>{target[key]=picker.value;preview();};group.append(picker);enhanceColorInput(picker,{label:'Choose '+key+' color'});return group;};
+  const color=(target,key,value)=>{const group=el('span',undefined,'designer-style-color'),picker=el('input');picker.type='color';picker.value=target[key]??value;picker.oninput=()=>{setDesignColor(design,target,key,picker.value);preview();};group.append(picker);enhanceColorInput(picker,{label:'Choose '+key+' color'});return group;};
   const section=title=>{const box=el('section',undefined,'designer-style-section'),heading=el('h3',title),content=el('div',undefined,'designer-style-section-body');box.append(heading,content);body.append(box);return content;};
   const row=(...nodes)=>{const node=el('div',undefined,'designer-style-control-row');node.append(...nodes);return node;};
   const border=(host,target,title,prefix='')=>{
@@ -28,7 +30,7 @@ export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPr
   };
   const toggles=(target,key,choices,value,title)=>{const group=el('div',undefined,'designer-style-toggle-group');group.setAttribute('role','group');group.setAttribute('aria-label',title);for(const [v,text]of Object.entries(choices)){const control=button(text,()=>{target[key]=v;for(const item of group.children)item.setAttribute('aria-pressed',String(item.dataset.value===v));preview();});control.dataset.value=v;control.setAttribute('aria-label',title+': '+v);control.setAttribute('aria-pressed',String((target[key]??value)===v));if(key==='align'){control.textContent='';const icon=el('img');icon.src='assets/editor-icons/align-'+v+'.svg';icon.alt='';control.append(icon);}group.append(control);}return group;};
   const typography=(target,title,size,heading=false)=>{
-    const host=section(title);host.append(label('Font',select(target,'font',fonts,design.styles.font)),row(label('Size',number(target,'size',size,10,72,'px')),label('Color',color(target,'color',design.styles.text))));
+    const host=section(title);host.append(label('Font',select(target,'font',fonts,design.styles.font,()=>selectDesignFont(design,brandFont,target.font))),row(label('Size',number(target,'size',size,10,72,'px')),label('Color',color(target,'color',design.styles.text))));
     const emphasis=el('div',undefined,'designer-style-toggle-group');emphasis.setAttribute('role','group');emphasis.setAttribute('aria-label',title+' text styles');
     for(const [key,text,on,off,fallback]of [['weight','B','bold','normal',heading?'bold':'normal'],['fontStyle','I','italic','normal','normal']]){const control=button(text,()=>{target[key]=(target[key]??fallback)===on?off:on;control.setAttribute('aria-pressed',String(target[key]===on));preview();});control.className=key==='fontStyle'?'italic':'';control.setAttribute('aria-label',title+(key==='weight'?' bold':' italic'));control.setAttribute('aria-pressed',String((target[key]??fallback)===on));emphasis.append(control);}
     host.append(row(label('Styles',emphasis),label('Align',toggles(target,'align',{left:'Left',center:'Center',right:'Right',justify:'Justify'},'left',title+' alignment'))),row(label('Line height',select(target,'lineHeight',{100:'Single',125:'Slight',150:'Normal',160:'Comfortable',200:'Double'},target.lineHeight??design.styles.lineHeight)),label('Spacing',select(target,'letterSpacing',{'-1':'Tight',0:'Normal',1:'Wide',2:'Wider'},target.letterSpacing??design.styles.letterSpacing))));

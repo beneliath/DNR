@@ -34,7 +34,7 @@ function audienceDesignRichText(string $html):string
         if($tag==='br'||$tag==='hr')return '<'.$tag.'>';
         $attrs='';$id=$node->getAttribute('id');if(preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$id))$attrs=' id="'.$id.'"';if($tag==='a'){$href=audienceDesignNormalizeLink($node->getAttribute('href'));if($href!==''&&audienceDesignUrl($href))$attrs.=' href="'.htmlspecialchars($href,ENT_QUOTES,'UTF-8').'"';}
         $style=$node->getAttribute('style');$declarations=[];foreach(explode(';',audienceDesignSafeCss($style,false))as$declaration){if(preg_match('/^(?:color|background-color|font-family|font-size|font-weight|font-style|text-decoration|text-align|direction|line-height|letter-spacing):/',$declaration))$declarations[]=$declaration;}
-        if($tag==='font'){$tag='span';$color=$node->getAttribute('color');if(preg_match('/^#[a-f0-9]{6}$/iD',$color))$declarations[]='color:'.$color;$face=$node->getAttribute('face');if(in_array($face,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true))$declarations[]='font-family:'.$face;$sizes=['1'=>10,'2'=>13,'3'=>16,'4'=>18,'5'=>24,'6'=>32,'7'=>48];if(isset($sizes[$node->getAttribute('size')]))$declarations[]='font-size:'.$sizes[$node->getAttribute('size')].'px';}
+        if($tag==='font'){$tag='span';$color=$node->getAttribute('color');if(preg_match('/^#[a-f0-9]{6}$/iD',$color))$declarations[]='color:'.$color;$face=$node->getAttribute('face');if(preg_match('/^(?:MOEDBrandFont,\s*)?(?:Arial|Georgia|Verdana|Tahoma|Times New Roman)$/D',$face))$declarations[]='font-family:'.$face;$sizes=['1'=>10,'2'=>13,'3'=>16,'4'=>18,'5'=>24,'6'=>32,'7'=>48];if(isset($sizes[$node->getAttribute('size')]))$declarations[]='font-size:'.$sizes[$node->getAttribute('size')].'px';}
         if($declarations)$attrs.=' style="'.htmlspecialchars(implode(';',$declarations),ENT_QUOTES,'UTF-8').'"';
         return '<'.$tag.$attrs.'>'.$children.'</'.$tag.'>';
     };
@@ -42,6 +42,15 @@ function audienceDesignRichText(string $html):string
 }
 /** Versioned, allowlisted email document. No executable HTML or external resource fetching. */
 function audienceDesign(array $input): array { return audienceDesignDocument($input); }
+/** Resolve editor defaults without rewriting authored colors or sent snapshots. */
+function audienceDesignBrandDefaults(array $input,array $brand):array
+{
+    $design=audienceDesign($input);
+    foreach(AUDIENCE_DESIGN_BRAND_COLORS as$key=>$default){
+        if($design['styles']['brandColors'][$key]&&isset($brand['styles'][$key]))$design['styles'][$key]=audienceDesignColor($brand['styles'][$key]);
+    }
+    return $design;
+}
 function audienceDesignStarters(): array
 {
     $block=static fn($type,$text,$extra=[])=>['type'=>$type,'text'=>$text,'inherit'=>array_values(array_diff(['color','size','font','lineHeight','letterSpacing','paragraphSpacing','background','radius','dividerWidth','dividerHeight'],array_keys($extra)))]+$extra;

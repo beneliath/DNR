@@ -1,5 +1,7 @@
 <?php if($available && $canManage): ?>
 <?php if($view==='collection-create'): ?>
+<?php elseif($view==='form'&&$resource['kind']==='embedded'): ?>
+<button type="button" data-embedded-finish>Finish later</button><button type="button" class="primary" data-embedded-continue>Continue</button>
 <?php elseif($view==='form'): ?>
 <a class="audience-button" href="<?= $h($url(['view'=>match($resource['kind']){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'}])) ?>">Finish later</a>
 <button type="button" data-collection-undo disabled aria-label="Undo">↶</button><button type="button" data-collection-redo disabled aria-label="Redo">↷</button><button type="button" data-collection-focus-preview>Preview</button>

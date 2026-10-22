@@ -24,6 +24,7 @@ $rich=static function(string $value,string $label='Message')use($h):void{?><div 
 <?php if($list['total']>25): ?><nav class="inbox-list-pagination" aria-label="Conversation pages"><?php if($list['page']>1): ?><a href="<?= $h($filterUrl(['page'=>$list['page']-1])) ?>">Previous</a><?php endif; ?><span><?= (int)$list['page'] ?> / <?= (int)ceil($list['total']/25) ?></span><?php if($list['page']*25<$list['total']): ?><a href="<?= $h($filterUrl(['page'=>$list['page']+1])) ?>">Next</a><?php endif; ?></nav><?php endif; ?>
 </section><?php endif; ?>
 <main id="inbox-main" class="inbox-main" tabindex="-1">
+<div class="inbox-page-body">
 <?php if($message): ?><p class="inbox-notice" role="status"><?= $h($message) ?></p><?php endif; ?><?php if($error): ?><p class="inbox-error" role="alert"><?= $h($error) ?></p><?php endif; ?><p id="inbox-live-status" role="status" class="inbox-notice" hidden></p>
 <?php if($thread||$panel): ?><a class="inbox-return" href="<?= $h($url()) ?>">← Back to messages</a><?php endif; ?>
 <?php if(!$available): ?><h1>Inbox</h1><p>Inbox will be available after its database update is qualified.</p>
@@ -57,6 +58,7 @@ $rich=static function(string $value,string $label='Message')use($h):void{?><div 
 <?php else: ?>
 <section class="inbox-onboarding"><div class="inbox-envelope" aria-hidden="true">✉</div><h1>Manage one-to-one conversations with your connections using Inbox</h1><p>Reply, organize messages, and collaborate with your team in one place.</p><a class="button primary" href="<?= $h($url(['panel'=>'sources'])) ?>">Add sources</a></section>
 <?php endif; ?>
+</div>
 <?php include __DIR__ . '/../app-footer.php'; ?>
 </main></div>
 <dialog id="inbox-action-dialog" class="confirmation-dialog" aria-labelledby="inbox-action-title" aria-describedby="inbox-action-message">
