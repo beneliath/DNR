@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-22",
+  "run": "manual dedicated-worktree test",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.6.19"
+  },
+  "production_guidance_revision": "cf8e599f5b5c59371c7c98a5ba1f519eebff1ecda9ca5c9a04af0a5ace01ace5",
+  "pending_in_batch": 12,
+  "new_signal_versions": null,
+  "review_status": "blocked_before_full_packet",
+  "blocker": "Production packet builder validates historical request pages against the current supported-page list and fails for audience.php (request 31). The helper returned no complete packet, so version comparisons and investigation were not completed.",
+  "diagnostic_unsupported_original_pages": [
+    {
+      "id": 31,
+      "page": "audience.php"
+    }
+  ],
+  "reconciliation": {
+    "merge_commit": "fdcee28b1bfa8deda0390fcd03e63a6a4d096486",
+    "verified_main_commit": "08527d4bb681473f32ffc9d711e12406483a79ca",
+    "note": "Old coach tree exactly matched already integrated main commit 5f1df9b. Resolved duplicate-release conflicts to current main; complete reconciled tree matched main. Both histories preserved."
+  },
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "shared_checkout_branch_preserved": true,
+  "shared_file_baseline_hashes_unchanged": true,
+  "dedicated_preview_started": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "checks": [
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 1,
+      "result": "production packet helper rejected unsupported historical page"
+    },
+    {
+      "command": "read-only production pending-count and unsupported-page diagnostic",
+      "exit_code": 0,
+      "result": "12 pending; request 31 original page unsupported"
+    }
+  ],
+  "diagnostic_note": "Initial metadata diagnostic used duplicate PHP includes and failed; corrected require_once diagnostic succeeded. No production feedback or business-record mutation was attempted.",
+  "sources": [
+    {
+      "path": "scripts/ai_help/read_production_feedback.py",
+      "sha256": "f7ee7bc39ae2e01b3f4e927cf8d87734bd16383490a6ac30db703dccfa6aea5a"
+    },
+    {
+      "path": "src/ai_coach_feedback_helpers.php",
+      "sha256": "ab34e4b3a918ed1a4eecc290e3343c983e2cbc8c669a66b5cb420d4a689f51dc"
+    },
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "9b66a7b18b1197f2761876627c8f35cec9345aea5176ff388b66495d0caf64eb"
+    },
+    {
+      "path": "docs/ai-coach-feedback-review.md",
+      "sha256": "a3b6df9f43818ae5eb994911a3fc5d6ac94b83c30f94a4afac6485418a83eda7"
+    }
+  ]
+}
