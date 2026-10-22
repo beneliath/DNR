@@ -19,7 +19,7 @@ $nodeTotals=[];foreach($report['nodes']as$row)$nodeTotals[$row['node_key']][$row
     <div class="flow-report-columns">
         <section class="flow-report-panel flow-report-steps" aria-labelledby="flow-steps-heading">
             <header class="flow-report-panel-heading"><div><h2 id="flow-steps-heading">Step analysis</h2><p>Select a step to filter connection activity</p></div></header>
-            <div class="audience-table-scroll"><table class="flow-report-table">
+            <div class="audience-table-scroll"><table class="data-table flow-report-table">
                 <caption class="sr-only">Executions by step and outcome</caption>
                 <thead><tr><th scope="col">Step</th><?php foreach($stepLabels as$label): ?><th scope="col"><?= $label ?></th><?php endforeach; ?></tr></thead>
                 <tbody><?php foreach($flow['document']['nodes']as$n): ?>
