@@ -13,11 +13,12 @@ $notificationClearButton=static function(string $label)use($h):void{ ?>
 <?php };
 ?>
 <div class="audience-account-tools" aria-label="Account tools">
-    <button type="button" class="audience-theme-trigger" data-theme-toggle aria-label="Switch to Dark Theme" aria-pressed="false" title="Change color theme">
+    <?php if(hasRole(['admin'])): ?><button type="button" class="audience-admin-unlock-trigger" data-audience-admin-unlock data-admin-unlock-hint aria-label="Unlock administrator actions" data-tooltip="Admin Unlock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3"/></svg></button><?php endif; ?>
+    <button type="button" class="audience-theme-trigger" data-theme-toggle aria-label="Switch to Dark Theme" aria-pressed="false" data-tooltip="Change color theme">
         <svg class="audience-theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
         <svg class="audience-theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
     </button>
-    <button type="button" class="audience-notification-trigger" popovertarget="audience-notifications" aria-label="Notifications" title="Notifications" data-notification-scope="<?= $h($notificationScope) ?>">
+    <button type="button" class="audience-notification-trigger" popovertarget="audience-notifications" aria-label="Notifications" data-tooltip="Notifications" data-notification-scope="<?= $h($notificationScope) ?>">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4M12 2V1"/></svg>
         <span class="audience-notification-badge" data-notification-count aria-hidden="true"<?= $notificationCount===0?' hidden':'' ?>><?= $notificationCount ?></span>
     </button>

@@ -3,6 +3,7 @@ import { mountRichText, setRichContent, normalizeRichLink } from './audience-des
 import { mountBlockDropSpace } from './audience-designer-drop.mjs';
 import { renderDesignStylePanel } from './audience-designer-styles.mjs';
 import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-model.mjs';
+import { templatePreviewBoundary } from './audience-template-preview.mjs';
 (() => {
   'use strict';
   const $ = (s, root = document) => root.querySelector(s);
@@ -13,19 +14,33 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
   const frameHtml = (frame, html) => { frame.srcdoc = html; };
   $$('[data-email-preview]').forEach(frame=>{
     if(frame.hasAttribute('data-template-preview')){
-      let observer;
+      let observer, pending=false;
+      const schedule=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;fit();});}};
       const fit=()=>{try{
         const doc=frame.contentDocument;if(!doc?.body)return;
         const style=frame.contentWindow.getComputedStyle(doc.body);
         const height=Math.ceil(Math.max(doc.body.scrollHeight,doc.body.getBoundingClientRect().height)+(parseFloat(style.marginTop)||0)+(parseFloat(style.marginBottom)||0))+2;
-        const box=frame.parentElement,list=frame.closest('.template-gallery')?.classList.contains('template-list');
+        const box=frame.parentElement,card=frame.closest('.template-card'),list=frame.closest('.template-gallery')?.classList.contains('template-list');
         const scale=Math.min(1,box.clientWidth/600,list?100/height:1);
         frame.style.height=height+'px';frame.style.transform=`scale(${scale})`;
-        box.style.minHeight=list?'':Math.ceil(height*scale)+2+'px';
+        if(list){box.style.minHeight='';box.style.height='';frame.style.clipPath='';card.style.height='';card.style.maxHeight='';return;}
+        const cardStyle=getComputedStyle(card),boxStyle=getComputedStyle(box);
+        const maxHeight=Math.floor(card.getBoundingClientRect().width*2);
+        const header=[...card.children].filter(node=>node!==box).reduce((sum,node)=>sum+node.getBoundingClientRect().height,0);
+        const borders=(parseFloat(cardStyle.borderTopWidth)||0)+(parseFloat(cardStyle.borderBottomWidth)||0);
+        const previewBorders=(parseFloat(boxStyle.borderTopWidth)||0)+(parseFloat(boxStyle.borderBottomWidth)||0);
+        const available=Math.max(0,Math.floor(maxHeight-header-borders-previewBorders));
+        const cropped=height*scale>available;
+        const end=cropped?templatePreviewBoundary(doc,available/scale):height;
+        const previewHeight=available+previewBorders;
+        card.style.height=card.style.maxHeight=maxHeight+'px';
+        box.style.minHeight=box.style.height=previewHeight+'px';
+        frame.style.clipPath=cropped?`inset(0 0 ${height-end}px)` : '';
       }catch(_){/* A protected preview remains inert. */}};
-      frame.addEventListener('load',()=>{observer?.disconnect();const doc=frame.contentDocument;if(!doc?.body)return;observer=new ResizeObserver(()=>requestAnimationFrame(fit));observer.observe(doc.body);doc.addEventListener('load',fit,true);doc.fonts?.ready.then(fit);fit();});
-      let width=0;new ResizeObserver(()=>{const next=frame.parentElement.clientWidth;if(next!==width){width=next;requestAnimationFrame(fit);}}).observe(frame.parentElement);
-      $$('[data-template-layout]').forEach(button=>button.addEventListener('click',()=>requestAnimationFrame(fit)));
+      frame.addEventListener('load',()=>{observer?.disconnect();const doc=frame.contentDocument;if(!doc?.body)return;observer=new ResizeObserver(schedule);observer.observe(doc.body);doc.addEventListener('load',schedule,true);doc.fonts?.ready.then(schedule);schedule();});
+      let width=0;new ResizeObserver(()=>{const next=frame.parentElement.clientWidth;if(next!==width){width=next;schedule();}}).observe(frame.parentElement);
+      const headerObserver=new ResizeObserver(schedule);for(const node of frame.closest('.template-card').children)if(node!==frame.parentElement)headerObserver.observe(node);
+      $$('[data-template-layout]').forEach(button=>button.addEventListener('click',schedule));
       frame.setAttribute('scrolling','no');
     }
     if (frame.hasAttribute('data-preview-autosize')) {
@@ -157,14 +172,22 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
       });
     });
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&pointerDrag){event.preventDefault();stopDrag(false);}});
-    $$('[data-template-operation]').forEach(b => b.onclick = () => {
+    $$('[data-template-operation]').forEach(b => b.onclick = async () => {
       const d = $('#template-operation'); const r = JSON.parse(b.dataset.templateRecord); const op = b.dataset.templateOperation;
+      if(op==='delete'&&!(await window.DnrAdminUnlock?.request()))return;
+      b.closest('details')?.removeAttribute('open');
       ['id','version'].forEach(k => $(`[name=${k}]`, d).value = r[k]); $('[name=operation]',d).value = op;
       $('#template-operation-title').textContent = {rename:'Rename template',folder:'Move to folder',replicate:'Duplicate template',delete:'Delete template?'}[op];
       const label = $('[data-template-input-label]',d); label.hidden = !['rename','folder'].includes(op);
       const input = $('input', label); input.name = op === 'folder' ? 'folder' : 'name'; input.value = op === 'folder' ? r.folder : r.name; input.required = op === 'rename';
       label.firstChild.textContent = op === 'folder' ? 'Folder name (leave blank to unfile)' : 'Template name';
-      $('[data-template-delete-note]',d).hidden = op !== 'delete'; $('button.primary',d).textContent = {rename:'Save',folder:'Move',replicate:'Duplicate',delete:'Delete'}[op]; d.showModal();
+      $('[data-template-delete-note]',d).hidden = op !== 'delete'; const submit=$('button.primary',d);submit.textContent = {rename:'Save',folder:'Move',replicate:'Duplicate',delete:'Permanently delete'}[op];submit.toggleAttribute('data-admin-unlock-required',op==='delete'); d.showModal();
+    });
+    const operationForm=$('[data-template-operation-form]');let deleteApproved=false;
+    operationForm?.addEventListener('submit',async event=>{
+      if(operationForm.elements.operation.value!=='delete'||deleteApproved){deleteApproved=false;return;}
+      event.preventDefault();
+      if(await window.DnrAdminUnlock?.request()){deleteApproved=true;operationForm.requestSubmit();}
     });
   }
   $('[data-template-import]')?.addEventListener('click',()=>$('#template-import-dialog').showModal());
@@ -371,8 +394,16 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
   document.addEventListener('dragend',finishDrag);document.addEventListener('drop',finishDrag);
   function drop(target){if(!drag)return;const from=drag;finishDrag();if(from.type)addBlock(from.type,target);else if(from.position)mutate(()=>{selected=moveEmailBlock(design,from.position,target);panel='block';});}
   function imageNode(item){if(!item.image)return el('div','▧ Add an image','designer-image-placeholder');const image=el('img');image.src=item.image;image.alt=item.alt||'';return image;}
+  function highlightSelection(block,previous){
+    // Keep the five-blink sequence on its original clock when editing redraws the canvas.
+    const now=performance.now(),started=previous?.dataset.blockId===block.dataset.blockId?Number(previous.dataset.outlineBlinkStarted):now;
+    block.dataset.outlineBlinkStarted=String(started);
+    const elapsed=now-started;
+    if(elapsed<6000){block.classList.add('designer-selection-blink');block.style.animationDelay=`-${elapsed}ms`;}
+  }
   function renderCanvas(doc=styleDraft||design){
     const design=doc;
+    const previousSelection=$('.designer-block.selected',canvas);
     normalize();canvas.replaceChildren();const s=design.styles;canvas.style.width=`${device==='mobile'?375:s.width}px`;canvas.style.border=canvas.style.borderTop=canvas.style.borderBottom='';applyStyle(canvas,{padding:0,size:s.fontSize,background:s.body,...design.regions.page});canvas.style.margin='0 auto';canvas.style.fontFamily=s.webFont?'MOEDBrandFont,'+s.font:s.font;if(s.webFont&&canvas.dataset.brandFont!==s.webFont){canvas.dataset.brandFont=s.webFont;new FontFace('MOEDBrandFont',`url(${s.webFont})`).load().then(font=>document.fonts.add(font)).catch(()=>{status.textContent='Brand font unavailable; using the email fallback.';});}canvas.style.color=s.text;canvas.style.setProperty('--email-link',s.link);canvas.style.setProperty('--email-link-decoration',s.linkUnderline?'underline':'none');canvas.style.fontSize=`${s.fontSize}px`;canvas.style.lineHeight=s.lineHeight/100;canvas.classList.toggle('mobile',device==='mobile');$('.designer-stage').style.background=s.background;
     if(design.mode==='code'){
       canvas.append(button('Edit code',openCode));const frame=el('iframe');frame.title='Custom HTML canvas';frame.sandbox='';frame.referrerPolicy='no-referrer';frame.className='designer-code-canvas';canvas.append(frame);const sequence=++codeSequence;
@@ -385,6 +416,7 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
         const cn=el('div',undefined,'designer-column');cn.dataset.row=r;cn.dataset.column=c;
         col.forEach((b,i)=>{
           const bn=el('div',undefined,'designer-block');bn.tabIndex=0;bn.setAttribute('role','button');bn.setAttribute('aria-label',`Edit ${b.type} block ${i+1}`);bn.dataset.blockId=b.id;const isSelected=selected?.join(',')===[r,c,i].join(',');bn.classList.toggle('selected',isSelected);bn.onclick=e=>{e.preventDefault();selected=[r,c,i];selectedRow=null;panel='block';render();};bn.onkeydown=e=>{if(e.target!==bn)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();bn.click();}};
+          if(isSelected)highlightSelection(bn,previousSelection);
           bn.draggable=true;bn.ondragstart=e=>{drag={position:[r,c,i]};e.dataTransfer.setData('text/plain','block');e.dataTransfer.effectAllowed='move';};bn.ondragend=finishDrag;
           const content=el('div',undefined,'designer-block-content'),style=blockStyle(b,row,doc);applyStyle(content,style);if(b.type==='button')content.style.border='none';content.style.fontWeight=b.bold?'bold':(style.weight||'normal');content.style.fontStyle=b.italic?'italic':(style.fontStyle||'normal');
           const rich=()=>{const text=el(b.type==='heading'?'h'+b.headingLevel:'div',b.html?undefined:b.text);if(b.html){richMarkup(text,b.html);text.style.display='flow-root';}text.dataset.emailText='';text.style.whiteSpace=b.html?'normal':'pre-wrap';text.style.fontSize='inherit';text.style.margin=0;if(b.type==='heading')text.style.fontWeight='inherit';return text;};

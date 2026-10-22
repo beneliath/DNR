@@ -9,14 +9,15 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
     const accountBanner = $('.account-identity-banner');
     const previewBanner = $('[data-role-preview-banner]');
     const deploymentBanner = $('[data-deployment-notice]');
-    if (accountBanner || previewBanner || deploymentBanner) {
+    const adminBanner = $('[data-admin-unlock]');
+    if (accountBanner || previewBanner || deploymentBanner || adminBanner) {
         const syncBanners = () => {
             document.body.style.setProperty('--audience-account-banner-height', `${accountBanner?.offsetHeight || 0}px`);
             document.body.style.setProperty('--audience-preview-banner-height', `${previewBanner?.offsetHeight || 0}px`);
             sidebarPosition();
         };
         const bannerObserver = new ResizeObserver(syncBanners);
-        [deploymentBanner, accountBanner, previewBanner].filter(Boolean).forEach(banner => bannerObserver.observe(banner));
+        [deploymentBanner, accountBanner, previewBanner, adminBanner].filter(Boolean).forEach(banner => bannerObserver.observe(banner));
         window.addEventListener('resize', syncBanners);
         // Defer until the sidebar position helper has been initialized below.
         requestAnimationFrame(syncBanners);
@@ -130,6 +131,8 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
         setNavigationOpen(false, false);
     }
     const config = JSON.parse($('#audience-config')?.textContent || '{}');
+    document.addEventListener('admin-unlock-changed', event => { if (typeof event.detail?.csrf_token === 'string') config.csrf = event.detail.csrf_token; });
+    $$('[data-audience-admin-unlock]').forEach(button => button.addEventListener('click', () => window.DnrAdminUnlock?.request()));
     const clone = value => JSON.parse(JSON.stringify(value));
     const show = id => { const dialog = document.getElementById(id); if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal(); };
     const el = (tag, attrs = {}, text) => {
@@ -324,20 +327,24 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
     // Reference hover help is also available on keyboard focus and remains hoverable.
     let openTooltip = null;
     const hideTooltip = tooltip => { tooltip.hidePopover(); tooltip.hidden = true; if (openTooltip === tooltip) openTooltip = null; };
-    $$('[data-audience-tooltip]').forEach((target, index) => {
-        const tooltip = el('div', {id: `audience-tooltip-${index}`, role: 'tooltip', class: 'audience-tooltip', popover: 'manual', hidden: true}, target.dataset.audienceTooltip);
+    $$('[data-audience-tooltip], .action-icon-button[data-tooltip], .audience-account-tools>[data-tooltip]').forEach((target, index) => {
+        const icon = target.matches('.action-icon-button, .audience-account-tools>[data-tooltip]');
+        const tooltip = el('div', {id: `audience-tooltip-${index}`, role: 'tooltip', class: `audience-tooltip${icon ? ' audience-icon-tooltip' : ''}`, popover: 'manual', hidden: true}, target.dataset.audienceTooltip || target.dataset.tooltip);
         document.body.append(tooltip); target.setAttribute('aria-describedby', tooltip.id);
         let timer;
         const hide = () => hideTooltip(tooltip);
         const display = () => {
             if (target.matches('.audience-nav-item.selected') && document.body.classList.contains('audience-sidebar-collapsed') && !mobileNavigation.matches) return;
             window.clearTimeout(timer); if (openTooltip && openTooltip !== tooltip) hideTooltip(openTooltip);
+            tooltip.textContent = target.dataset.audienceTooltip || target.dataset.tooltip;
             tooltip.hidden = false; tooltip.showPopover(); openTooltip = tooltip;
             const rect = target.getBoundingClientRect(), box = tooltip.getBoundingClientRect();
-            const beside = rect.right + box.width + 20 <= innerWidth;
-            tooltip.classList.toggle('tooltip-below', !beside);
+            const beside = !icon && rect.right + box.width + 20 <= innerWidth;
+            const above = icon && !target.closest('.admin-unlock-banner, .audience-account-tools') && rect.top >= box.height + 16;
+            tooltip.classList.toggle('tooltip-below', !beside && !above);
+            tooltip.classList.toggle('tooltip-above', above);
             tooltip.style.left = `${beside ? rect.right + 12 : Math.max(8, Math.min(rect.left, innerWidth - box.width - 8))}px`;
-            tooltip.style.top = `${Math.max(8, Math.min(beside ? rect.top + (rect.height - box.height) / 2 : rect.bottom + 8, innerHeight - box.height - 8))}px`;
+            tooltip.style.top = `${Math.max(8, Math.min(beside ? rect.top + (rect.height - box.height) / 2 : above ? rect.top - box.height - 8 : rect.bottom + 8, innerHeight - box.height - 8))}px`;
         };
         const hideLater = () => { timer = window.setTimeout(() => { if (!target.matches(':hover,:focus') && !tooltip.matches(':hover')) hide(); }, 140); };
         target.addEventListener('mouseenter', display); target.addEventListener('focus', display);

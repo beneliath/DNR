@@ -161,25 +161,7 @@ if (!empty($_SESSION['user_id'])) {
 
     <?php include __DIR__ . '/deployment-notice.php'; ?>
 
-    <?php if ($admin_unlock_available): ?>
-        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at ?? 0; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
-            <div class="admin-unlock-copy">
-                <strong role="status">Administrator actions unlocked</strong>
-                <span>Sensitive actions are available until the timer expires.</span>
-            </div>
-            <form method="post" action="admin_lock.php" class="admin-unlock-lock-form" data-admin-lock-form>
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="admin-unlock-lock-button button-secondary" formaction="admin_extend.php" data-admin-extend-button>Add 5 Minutes</button>
-                <button type="submit" class="admin-unlock-lock-button button-secondary" data-admin-lock-button>Lock Admin Actions</button>
-                <span data-admin-lock-error role="alert" hidden></span>
-            </form>
-            <div class="admin-unlock-countdown">
-                <span>Automatically locks in</span>
-                <span data-admin-unlock-timer role="timer" aria-label="Time Until Administrator Actions Lock" aria-live="off"></span>
-            </div>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/admin-unlock-banner.php'; ?>
 
     <?php include __DIR__ . '/role-preview-banner.php'; ?>
 
@@ -357,6 +339,5 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
-<?php if ($admin_unlock_available) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

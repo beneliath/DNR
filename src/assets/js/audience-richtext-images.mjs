@@ -21,7 +21,7 @@ export function mountRichImageTools({host,rich,makeElement:el,makeButton:button,
     if(!valid()){selected=null;outline.hidden=controls.hidden=true;return;}
     const rect=selected.getBoundingClientRect(),editor=surface.getBoundingClientRect(),parent=editor;
     outline.hidden=rect.bottom<=editor.top||rect.top>=editor.bottom;
-    Object.assign(outline.style,{left:rect.left-parent.left+surface.scrollLeft+'px',top:rect.top-parent.top+surface.scrollTop+'px',width:rect.width+'px',height:rect.height+'px'});
+    Object.assign(outline.style,{left:rect.left-parent.left+surface.scrollLeft-surface.clientLeft+'px',top:rect.top-parent.top+surface.scrollTop-surface.clientTop+'px',width:rect.width+'px',height:rect.height+'px'});
   };
   const refresh=()=>{
     if(!valid()){position();return;}
@@ -74,7 +74,7 @@ export function mountRichImageTools({host,rich,makeElement:el,makeButton:button,
   },{signal});
   rich.addEventListener('dragover',event=>{
     event.preventDefault();if(!dragged)return;event.dataTransfer.dropEffect='move';const range=atPoint(event.clientX,event.clientY);if(!range)return;
-    const rect=range.getBoundingClientRect(),parent=surface.getBoundingClientRect();caret.hidden=false;Object.assign(caret.style,{left:rect.left-parent.left+surface.scrollLeft+'px',top:rect.top-parent.top+surface.scrollTop+'px',height:Math.max(18,rect.height)+'px'});
+    const rect=range.getBoundingClientRect(),parent=surface.getBoundingClientRect();caret.hidden=false;Object.assign(caret.style,{left:rect.left-parent.left+surface.scrollLeft-surface.clientLeft+'px',top:rect.top-parent.top+surface.scrollTop-surface.clientTop+'px',height:Math.max(18,rect.height)+'px'});
   },{signal});
   rich.addEventListener('drop',event=>{
     event.preventDefault();event.stopPropagation();caret.hidden=true;

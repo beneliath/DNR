@@ -3621,6 +3621,42 @@ html body .action-icon-button.delete-button:focus-visible {
   transform: translate(-50%, 0);
 }
 
+html body .admin-unlock-banner .admin-unlock-lock-button {
+  width: 44px !important;
+  height: 44px !important;
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+html body .admin-unlock-banner .admin-unlock-lock-button:is(:hover, :focus-visible):not(:disabled) {
+  border-color: var(--action-edit) !important;
+  background: var(--action-edit-bg) !important;
+  color: var(--action-edit) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-edit) 20%, transparent) !important;
+}
+.admin-unlock-banner .action-icon-button::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+  background: #000;
+  color: #fff;
+  transform: translate(-50%, 0);
+  transition: none;
+}
+.admin-unlock-banner .action-icon-button:not([aria-busy="true"])::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 4px);
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #000;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+.admin-unlock-banner .action-icon-button:is(:hover, :focus-visible)::before {
+  opacity: 1;
+}
+
 html body :is(button, input, select, textarea, a):focus-visible:not(.coach-control-highlight) {
   outline: 2px solid var(--primary) !important;
   outline-offset: 2px !important;

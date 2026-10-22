@@ -13,6 +13,11 @@ function csrfInput()
     return '';
 }
 
+function actionIconSvg($action)
+{
+    return '<svg aria-hidden="true" data-test-action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '"></svg>';
+}
+
 function renderScript($path, $defer = true)
 {
     echo '<script src="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '"'
