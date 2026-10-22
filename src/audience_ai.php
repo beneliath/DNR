@@ -16,6 +16,11 @@ function audienceAiCanAccess(string $role,string $mode):bool
     };
 }
 
+function audienceAiCanDeleteOwnRequests(string $role):bool
+{
+    return in_array($role,['superadmin','admin','editor'],true);
+}
+
 /** Separate purpose, permissions and output contract; inference uses the existing coach queue. */
 function audienceAiRequest(array $input,string $role):array
 {
@@ -276,5 +281,21 @@ function audienceAiGenerate(array $stored,float $deadline,?callable $cancelled=n
 
 function audienceAiOwnedRequest(mysqli $db,int $actor,string $role,string $uuid):?array
 {
-    return $db->execute_query("SELECT id,manual_topic,question FROM ai_coach_requests WHERE user_id=? AND user_role=? AND client_request_id=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics')",[$actor,$role,$uuid])->fetch_assoc();
+    return $db->execute_query("SELECT id,manual_topic,question,ui_state_json FROM ai_coach_requests WHERE user_id=? AND user_role=? AND client_request_id=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics')",[$actor,$role,$uuid])->fetch_assoc();
+}
+
+/** Read only the writing contract, after the caller has verified request ownership. */
+function audienceAiSavedWritingInput(mysqli $db,array $owned,string $role,string $uuid):?array
+{
+    if($owned['manual_topic']!=='audience-ai:content')return null;
+    $ui=audienceJson($owned['ui_state_json']);$input=$ui['writing_input']??null;
+    if(!is_array($input)){
+        // Existing requests retain the validated source in their queue record.
+        $job=$db->execute_query('SELECT request_json FROM ai_coach_jobs WHERE request_id=?',[$owned['id']])->fetch_assoc();
+        $input=$job?audienceJson($job['request_json']):null;
+    }
+    if(!is_array($input)||!array_key_exists('text',$input))return null;
+    try{$input=audienceAiRequest(array_replace($input,['mode'=>'content','request_id'=>$uuid]),$role);}
+    catch(InvalidArgumentException|DomainException){return null;}
+    return array_intersect_key($input,array_flip(['text','subject','prompt','operation','tone']));
 }

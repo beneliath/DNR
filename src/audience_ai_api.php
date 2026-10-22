@@ -13,9 +13,9 @@ $db=applicationDatabaseConnection();$store=new AudienceStore($db,1,$actor,mb_sub
 try{
     if($_SERVER['REQUEST_METHOD']==='GET'){
         if(($_GET['action']??'')==='history'){
-            $rows=$db->execute_query("SELECT client_request_id,question,manual_topic,outcome,created_at FROM ai_coach_requests WHERE user_id=? AND user_role=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics') ORDER BY id DESC LIMIT 20",[$actor,$role])->fetch_all(MYSQLI_ASSOC);
+            $rows=$db->execute_query("SELECT client_request_id,question,manual_topic,outcome,created_at FROM ai_coach_requests WHERE user_id=? AND user_role=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics') ORDER BY created_at DESC,id DESC LIMIT 20",[$actor,$role])->fetch_all(MYSQLI_ASSOC);
             $rows=array_values(array_filter($rows,static fn($r)=>audienceAiCanAccess($role,$r['manual_topic']==='audience-ai:analytics'?'analytics':'content')));
-            audienceAiRespond(['items'=>$rows,'can_remove_history'=>canDeleteEntries($role)]);
+            audienceAiRespond(['items'=>$rows,'can_remove_history'=>audienceAiCanDeleteOwnRequests($role)]);
         }
         $uuid=audienceText($_GET,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
         if(!$owned||!audienceAiCanAccess($role,$owned['manual_topic']==='audience-ai:analytics'?'analytics':'content'))audienceAiRespond(['error'=>'Suggestion not found.'],404);
@@ -27,6 +27,7 @@ try{
             $queries=new AudienceAiQueries($store,audienceAiReportWindow($evidence['window']??[]));
             audienceAiRespond(['table'=>audienceAiContactPage($queries,$evidence,$tableId,(int)$offset)]);
         }
+        if($owned['manual_topic']==='audience-ai:content')$status['input']=audienceAiSavedWritingInput($db,$owned,$role,$uuid);
         audienceAiRespond($status+['question'=>$owned['question']]);
     }
     if($_SERVER['REQUEST_METHOD']!=='POST'){header('Allow: GET, POST');audienceAiRespond(['error'=>'Use POST to ask for a suggestion.'],405);}
@@ -36,6 +37,14 @@ try{
     if($raw===false||strlen($raw)>24000)audienceAiRespond(['error'=>'This request is too large.'],413);
     $input=json_decode($raw,true,24,JSON_THROW_ON_ERROR);if(!is_array($input))throw new InvalidArgumentException('Invalid request.');
     $action=$input['action']??'generate';
+    if($action==='delete'){
+        if(!audienceAiCanDeleteOwnRequests($role))throw new DomainException('Deleting responses requires an editor or administrator.');
+        if(($input['confirmed']??false)!==true)throw new InvalidArgumentException('Confirm permanent deletion before continuing.');
+        $uuid=audienceText($input,'request_id',36);
+        $db->execute_query("DELETE FROM ai_coach_requests WHERE user_id=? AND user_role=? AND client_request_id=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics')",[$actor,$role,$uuid]);
+        if($db->affected_rows!==1)audienceAiRespond(['error'=>'Response not found.'],404);
+        audienceAiRespond(['deleted'=>true]);
+    }
     if($action==='checks'){
         if(!audienceAiCanAccess($role,'content'))throw new DomainException('Writing assistance requires an editor or administrator.');
         audienceAiRespond(audienceAiChecks(audienceDesignString($input['text']??'',10000),audienceDesignString($input['subject']??'',250)));
@@ -88,6 +97,7 @@ try{
         if($request['mode']==='analytics')$request['previous_context']=audienceAiPreviousContext($owned['question'],$previous);
     }
     $envelope=['role'=>$role,'page'=>'audience.php','step'=>'audience-ai','question'=>$request['prompt']?:ucfirst($request['operation']).' selected text','history'=>[],'topic'=>'audience-ai:'.$request['mode'],'request_id'=>$request['request_id'],'ui'=>['purpose'=>'audience-ai','mode'=>$request['mode'],'operation'=>$request['operation']]];
+    if($request['mode']==='content')$envelope['ui']['writing_input']=array_intersect_key($request,array_flip(['text','subject','prompt','operation','tone']));
     $created=false;$historyId=aiCoachRecordRequest($db,$envelope,$actor,$created);
     if($historyId===null)audienceAiRespond(['error'=>'The request could not be saved. Try again.'],503);
     if(!$created){

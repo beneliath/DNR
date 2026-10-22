@@ -26,6 +26,32 @@ function audienceContentUpload(array $file):string
     return audienceDesignImage('data:'.$mime.';base64,'.base64_encode($bytes));
 }
 
+/** Match the secondary logo's canvas to the default logo without stretching or cropping. */
+function audienceBrandLogos(array $input):array
+{
+    $logos=[];foreach(['logo','secondary_logo']as$key)$logos[$key]=audienceDesignImage($input[$key]??'',2000000,true);
+    if($logos['logo']===''||$logos['secondary_logo']==='')return $logos;
+    [$width,$height]=audienceLogoDimensions($logos['logo']);[$sourceWidth,$sourceHeight]=audienceLogoDimensions($logos['secondary_logo']);
+    if($width===$sourceWidth&&$height===$sourceHeight)return $logos;
+    if(str_starts_with($logos['secondary_logo'],'data:image/svg+xml;')){$logos['secondary_logo']=audienceSvgImage($logos['secondary_logo'],2000000,[$width,$height]);return $logos;}
+    $secondary=base64_decode(explode(',',$logos['secondary_logo'],2)[1],true);
+    // Never flatten animation while fitting a differently sized logo.
+    $animated=str_starts_with($secondary,'GIF')||(substr($secondary,12,4)==='VP8X'&&(ord($secondary[20]??"\0")&2));
+    if(str_starts_with($secondary,"\x89PNG\r\n\x1a\n"))for($offset=8;$offset+12<=strlen($secondary);){$length=unpack('N',substr($secondary,$offset,4))[1];$type=substr($secondary,$offset+4,4);if($type==='acTL'){$animated=true;break;}if($type==='IDAT'||$type==='IEND')break;$offset+=12+$length;}
+    if($animated)throw new InvalidArgumentException('Animated logos must already match the default logo dimensions. Resize the animation or upload a static PNG, JPEG or WebP.');
+    $source=@imagecreatefromstring($secondary);if(!$source)throw new InvalidArgumentException('The secondary logo could not be resized. Upload a valid PNG, JPEG or WebP.');
+    $canvas=imagecreatetruecolor($width,$height);
+    try{
+        imagealphablending($canvas,false);imagesavealpha($canvas,true);imagefill($canvas,0,0,imagecolorallocatealpha($canvas,0,0,0,127));
+        $scale=min($width/$sourceWidth,$height/$sourceHeight);$drawWidth=max(1,min($width,(int)round($sourceWidth*$scale)));$drawHeight=max(1,min($height,(int)round($sourceHeight*$scale)));
+        imagecopyresampled($canvas,$source,intdiv($width-$drawWidth,2),intdiv($height-$drawHeight,2),0,0,$drawWidth,$drawHeight,$sourceWidth,$sourceHeight);
+        ob_start();imagepng($canvas);$bytes=ob_get_clean();$mime='image/png';
+        if(strlen($bytes)>2000000){$mime='image/webp';foreach([90,75,60]as$quality){ob_start();imagewebp($canvas,null,$quality);$bytes=ob_get_clean();if(strlen($bytes)<=2000000)break;}}
+        $logos['secondary_logo']=audienceDesignImage('data:'.$mime.';base64,'.base64_encode($bytes));
+        return $logos;
+    }finally{unset($source,$canvas);}
+}
+
 function audienceContentFileUpload(array $file):array
 {
     if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Choose a valid uploaded file.');
@@ -53,9 +79,9 @@ function audienceContentSendDocument(array $item):never
 
 trait AudienceContent
 {
-    public function contentSettings():array
+    public function contentSettings(bool $lock=false):array
     {
-        $row=$this->one('SELECT settings_json,version FROM marketing_audiences WHERE id=?',[$this->audienceId]);return ['settings'=>audienceJson($row['settings_json']),'version'=>(int)$row['version']];
+        $row=$this->one('SELECT settings_json,version FROM marketing_audiences WHERE id=?'.($lock?' FOR UPDATE':''),[$this->audienceId]);return ['settings'=>audienceJson($row['settings_json']),'version'=>(int)$row['version']];
     }
     public function contentList(array $input):array
     {
@@ -64,13 +90,10 @@ trait AudienceContent
         if(in_array($type,['image','section','file'],true)){$where.=' AND item_type=?';$params[]=$type;}
         if($folder!==''){$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder')),'')=?";$params[]=$folder==='unfiled'?'':$folder;}
         $total=(int)$this->one("SELECT COUNT(*) n FROM marketing_design_library WHERE $where",$params)['n'];$page=max(1,min(max(1,(int)ceil($total/$pageSize)),(int)($input['page']??1)));$order=$sort==='size'?"COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.bytes')) AS UNSIGNED),0)":$sort;
-        // Sort the bounded ID page before fetching large embedded image documents.
-        if($sort==='size'){
-            // MySQL includes the JSON argument in filesort even when only IDs are selected.
-            $sizes=$this->all("SELECT id,$order byte_size FROM marketing_design_library WHERE $where",$params);
-            usort($sizes,static fn($a,$b)=>($direction==='asc'?1:-1)*([(int)$a['byte_size'],(int)$a['id']]<=>[(int)$b['byte_size'],(int)$b['id']]));
-            $ids=array_column(array_slice($sizes,($page-1)*$pageSize,$pageSize),'id');
-        }else $ids=array_column($this->all("SELECT id FROM marketing_design_library WHERE $where ORDER BY $order $direction,id $direction LIMIT $pageSize OFFSET ?",[...$params,($page-1)*$pageSize]),'id');
+        // Materialize only IDs and scalar sort values before ordering the page.
+        // LIMIT prevents derived-table merging, which otherwise carries large JSON
+        // image documents into filesort when filtering by folder or sorting by size.
+        $ids=array_column($this->all("SELECT id FROM (SELECT id,$order sort_value FROM marketing_design_library WHERE $where LIMIT 18446744073709551615) content_matches ORDER BY sort_value $direction,id $direction LIMIT $pageSize OFFSET ?",[...$params,($page-1)*$pageSize]),'id');
         $byId=[];if($ids)foreach($this->all('SELECT * FROM marketing_design_library WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($ids),'?')).')',[$this->audienceId,...$ids])as$item){$item['data']=audienceJson($item['data_json']);$byId[$item['id']]=$item;}
         $items=[];foreach($ids as$id)if(isset($byId[$id]))$items[]=$byId[$id];
         return ['items'=>$items,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/$pageSize)),'per_page'=>$pageSize,'search'=>$search,'folder'=>$folder,'type'=>$type,'sort'=>$sort,'direction'=>$direction,'trash'=>$trash,'layout'=>($input['layout']??'')==='list'?'list':'grid'];
@@ -87,13 +110,15 @@ trait AudienceContent
             }
         }
         return $this->transaction(function()use($input,$id,$version,$name){
+            // Serialize folder assignment with folder deletion and renaming.
+            $settings=$this->contentSettings(true)['settings'];
             $old=$id?$this->designLibraryItem($id,true):null;if($old&&((int)$old['version']!==$version||!in_array($old['item_type'],['image','file'],true)))throw new InvalidArgumentException('This file changed. Reload before saving.');
             if($old&&$old['item_type']==='file'&&trim((string)($input['image']??''))!=='')throw new InvalidArgumentException('Upload a replacement PDF, or create a new image file.');
             $data=$old['data']??[];$document=$input['document']??($data['document']??'');$type=$document!==''?'file':'image';
             if($old&&$old['item_type']!==$type)throw new InvalidArgumentException('Upload a replacement of the same file type, or create a new file.');
             $image=$type==='image'?audienceDesignImage($input['image']??($data['image']??''),1000000):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
             $url=audienceText($input,'link',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');
-            $folder=audienceText($input,'folder',100);if($folder!==''&&!in_array($folder,$this->contentSettings()['settings']['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
+            $folder=audienceText($input,'folder',100);if($folder!==''&&!in_array($folder,$settings['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
             $encoded=$type==='file'?$document:$image;$bytes=base64_decode(substr($encoded,strpos($encoded,',')+1),true);$info=$type==='image'?getimagesizefromstring($bytes):[0,0];
             $data=array_replace($data,['image'=>$image,'document'=>$document,'alt'=>audienceText($input,'alt',300),'url'=>$url,'folder'=>$folder,'bytes'=>strlen($bytes),'width'=>$info[0],'height'=>$info[1],'published'=>false,'rights_confirmed'=>false]);
             unset($data['public_key']);
@@ -103,19 +128,33 @@ trait AudienceContent
     }
     public function contentOperation(string $operation,array $ids,array $versions,string $folder=''):void
     {
-        $ids=audienceIds($ids);sort($ids);if(!$ids||count($ids)>5000||!in_array($operation,['move','delete','restore'],true))throw new InvalidArgumentException('Choose files and a supported action.');$folder=audienceText(['folder'=>$folder],'folder',100);
-        $this->transaction(function()use($ids,$versions,$folder,$operation){if($operation==='move'&&$folder!==''&&!in_array($folder,$this->contentSettings()['settings']['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');$items=[];foreach($ids as$id){$item=$this->one('SELECT * FROM marketing_design_library WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,$id]);if(!$item||(int)$item['version']!==(int)($versions[$id]??0)||($operation==='restore')!==($item['deleted_at']!==null))throw new InvalidArgumentException('A selected file changed. Reload before continuing.');$items[]=$item;}
-            foreach($items as$item){$data=audienceJson($item['data_json']);if($operation==='move')$data['folder']=$folder;else $data['published']=false;$this->write('UPDATE marketing_design_library SET data_json=?,deleted_at='.($operation==='delete'?'UTC_TIMESTAMP(6)':'NULL').',version=version+1 WHERE audience_id=? AND id=?',[json_encode($data,JSON_THROW_ON_ERROR),$this->audienceId,$item['id']]);}
+        $ids=audienceIds($ids);sort($ids);if(!$ids||count($ids)>5000||!in_array($operation,['move','delete','restore','purge'],true))throw new InvalidArgumentException('Choose files and a supported action.');$folder=audienceText(['folder'=>$folder],'folder',100);
+        $this->transaction(function()use($ids,$versions,$folder,$operation){if($operation==='move'&&$folder!==''&&!in_array($folder,$this->contentSettings(true)['settings']['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');$items=[];foreach($ids as$id){$item=$this->one('SELECT * FROM marketing_design_library WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,$id]);if(!$item||(int)$item['version']!==(int)($versions[$id]??0)||in_array($operation,['restore','purge'],true)!==($item['deleted_at']!==null))throw new InvalidArgumentException('A selected file changed. Reload before continuing.');$items[]=$item;}
+            foreach($items as$item){
+                if($operation==='purge'){$this->write('DELETE FROM marketing_design_library WHERE audience_id=? AND id=?',[$this->audienceId,$item['id']]);continue;}
+                $data=audienceJson($item['data_json']);if($operation==='move')$data['folder']=$folder;else $data['published']=false;$this->write('UPDATE marketing_design_library SET data_json=?,deleted_at='.($operation==='delete'?'UTC_TIMESTAMP(6)':'NULL').',version=version+1 WHERE audience_id=? AND id=?',[json_encode($data,JSON_THROW_ON_ERROR),$this->audienceId,$item['id']]);
+            }
         });
     }
     public function contentFolder(string $operation,string $name,string $newName,int $version):void
     {
         $name=audienceText(['name'=>$name],'name',100);$newName=audienceText(['name'=>$newName],'name',100);if($name===''||!in_array($operation,['create','rename','delete'],true)||($operation==='rename'&&$newName===''))throw new InvalidArgumentException('Choose a folder and valid name.');
-        $this->transaction(function()use($operation,$name,$newName,$version){$row=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);if((int)$row['version']!==$version)throw new InvalidArgumentException('Content settings changed. Reload before continuing.');$settings=audienceJson($row['settings_json']);$folders=$settings['content_folders']??[];
+        $this->transaction(function()use($operation,$name,$newName,$version){
+            $context=$this->contentSettings(true);if($context['version']!==$version)throw new InvalidArgumentException('Content settings changed. Reload before continuing.');$settings=$context['settings'];$folders=$settings['content_folders']??[];
             if(strtolower($operation==='rename'?$newName:$name)==='unfiled')throw new InvalidArgumentException('Unfiled is reserved for files without a folder.');
-            if($operation==='create'){if(in_array($name,$folders,true)||count($folders)>=100)throw new InvalidArgumentException('Choose a unique folder name; up to 100 folders are supported.');$folders[]=$name;}else{if(!in_array($name,$folders,true))throw new InvalidArgumentException('This folder is unavailable.');if($operation==='rename'&&in_array($newName,$folders,true))throw new InvalidArgumentException('That folder already exists.');$folders=array_values(array_filter($folders,static fn($f)=>$f!==$name));if($operation==='rename')$folders[]=$newName;
-                foreach($this->all("SELECT id,data_json FROM marketing_design_library WHERE audience_id=? AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder'))=? FOR UPDATE",[$this->audienceId,$name])as$item){$data=audienceJson($item['data_json']);$data['folder']=$operation==='rename'?$newName:'';$this->write('UPDATE marketing_design_library SET data_json=?,version=version+1 WHERE audience_id=? AND id=?',[json_encode($data,JSON_THROW_ON_ERROR),$this->audienceId,$item['id']]);}
-            }sort($folders);$settings['content_folders']=$folders;$this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);
+            if($operation==='create'){
+                if(in_array($name,$folders,true)||count($folders)>=100)throw new InvalidArgumentException('Choose a unique folder name; up to 100 folders are supported.');$folders[]=$name;
+            }else{
+                if(!in_array($name,$folders,true))throw new InvalidArgumentException('This folder is unavailable.');
+                if($operation==='rename'&&in_array($newName,$folders,true))throw new InvalidArgumentException('That folder already exists.');
+                if($operation==='delete'&&$this->one("SELECT id FROM marketing_design_library WHERE audience_id=? AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder'))=? LIMIT 1 FOR UPDATE",[$this->audienceId,$name]))throw new InvalidArgumentException('This folder contains files, including any in Trash. Move its files out before deleting the folder.');
+                $folders=array_values(array_filter($folders,static fn($f)=>$f!==$name));
+                if($operation==='rename'){
+                    $folders[]=$newName;
+                    foreach($this->all("SELECT id,data_json FROM marketing_design_library WHERE audience_id=? AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.folder'))=? FOR UPDATE",[$this->audienceId,$name])as$item){$data=audienceJson($item['data_json']);$data['folder']=$newName;$this->write('UPDATE marketing_design_library SET data_json=?,version=version+1 WHERE audience_id=? AND id=?',[json_encode($data,JSON_THROW_ON_ERROR),$this->audienceId,$item['id']]);}
+                }
+            }
+            sort($folders);$settings['content_folders']=$folders;$this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);
         });
     }
     public function contentUsage(array $item):int
@@ -127,7 +166,7 @@ trait AudienceContent
         $brandKeys=['background','body','text','link','button','buttonText','font','buttonRadius','fontSize'];$styles=[];foreach($brandKeys as$key)if(isset($input[$key]))$styles[$key]=$input[$key];$styles=array_intersect_key(audienceDesign(['schema'=>1,'styles'=>$styles,'rows'=>[]])['styles'],array_flip($brandKeys));
         $font=audienceDesignWebFont($input['web_font']??'');if($font!==''&&($input['font_license']??'')!=='1')throw new InvalidArgumentException('Confirm your license permits embedding the uploaded font.');$styles['webFont']=$font;
         $fontName=$font===''?'':(array_key_exists('web_font_name',$input)?audienceText($input,'web_font_name',255):null);
-        $logos=[];foreach(['logo','secondary_logo']as$key)$logos[$key]=audienceDesignImage($input[$key]??'');
+        $logos=audienceBrandLogos($input);
         $identity=[];if(array_key_exists('organization_name',$input))$identity['name']=audienceText($input,'organization_name',150);if(array_key_exists('mailing_address',$input))$identity['mailing_address']=audienceText($input,'mailing_address',1000);
         $this->transaction(function()use($styles,$logos,$identity,$fontName,$version){$row=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);if((int)$row['version']!==$version)throw new InvalidArgumentException('Brand settings changed. Reload before saving.');$settings=audienceJson($row['settings_json']);$previous=audienceBrandIdentity($settings,(string)$row['name']);$fontName??=($settings['brand']['styles']['webFont']??'')===$styles['webFont']?(string)($settings['brand']['web_font_name']??''):'';$settings['brand']=['styles'=>$styles,'web_font_name'=>$fontName]+$logos+$identity+['name'=>$previous['LIST:COMPANY'],'mailing_address'=>$previous['LIST:ADDRESS']];$this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);});
     }

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Audience HTTP tests skipped (disposable environment required).\n");
+// Sub-suites print progress before later checks update synthetic session state.
+ob_start();
 $source=getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src';require_once $source.'/bootstrap.php';require_once $source.'/audience_store.php';require_once __DIR__.'/integration_auth_helpers.php';
 $conn=applicationDatabaseConnection();$checks=0;
 function audienceHttpExpect(bool $condition,string $message):void{global $checks;if(!$condition)throw new RuntimeException($message);$checks++;}
@@ -320,8 +322,14 @@ try{
     $section['rows'][0]['condition']=['match'=>'all','rules'=>[['field'=>'tag:99999999','operator'=>'is','value'=>'1']]];
     audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_save','type'=>'section','name'=>'Invalid section','data'=>json_encode($section)])['status']===422,'Unavailable dynamic condition cannot be saved in a section');
     $renamedAsset=$editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'rename','name'=>'Renamed image']);audienceHttpExpect($renamedAsset['status']===200,'Library rename checks current version');
-    audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'delete'])['status']===422,'Stale library operation rejected');
-    audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>2,'operation'=>'delete'])['status']===200,'Library delete succeeds with current version');
+    $libraryDelete=['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'delete'];
+    audienceHttpExpect($editor($advancedPath,$libraryDelete)['status']===403,'Editors cannot bypass content Trash protection through the designer API');
+    $libraryDelete['csrf_token']=audienceHttpCsrf($admin($advancedPath));$lockedLibraryDelete=$admin($advancedPath,$libraryDelete);
+    audienceHttpExpect($lockedLibraryDelete['status']===302&&str_contains($lockedLibraryDelete['headers'],'admin_elevation.php'),'Designer library deletion requires admin unlock');
+    session_name($adminSessionName);session_id($adminSessionId);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();
+    audienceHttpExpect($admin($advancedPath,$libraryDelete)['status']===422,'Unlocked library deletion rejects stale versions');
+    audienceHttpExpect($admin($advancedPath,array_replace($libraryDelete,['item_version'=>2]))['status']===200,'Unlocked administrator library deletion succeeds with the current version');
+    session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);session_write_close();
     audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_get','item_id'=>$assetId])['status']===422,'Deleted library item is unavailable');
     $personId=$campaignStore->savePerson(['email'=>'designer-person@example.test','first_name'=>'Ada','last_name'=>'Lovelace','email_status'=>'non-subscribed']);
     $personalized=$editor($advancedPath,['csrf_token'=>$token,'action'=>'design_preview','design'=>json_encode($restoreData['design']),'live'=>'1','person_id'=>$personId]);$personalData=json_decode($personalized['body'],true);audienceHttpExpect(str_contains($personalData['html'],'Hello Ada')&&!str_contains($personalData['html'],'Hello *|FNAME|*'),'Recipient preview resolves scoped native Connections');
@@ -353,6 +361,8 @@ try{
     $mobileResponse=$editor('audience.php?view=designer&kind=template&id='.$importId,['csrf_token'=>$token,'action'=>'design_preview','design'=>json_encode($mobileDoc)]);$mobileHtml=json_decode($mobileResponse['body'],true)['html'];audienceHttpExpect(str_contains($mobileHtml,'font-size:21px!important')&&str_contains($mobileHtml,'padding:10px!important'),'Rendered mobile styles survive the real HTTP JSON boundary');
     require __DIR__.'/audience_campaign_completion_http.php';
     require __DIR__.'/audience_content_http.php';
+    require __DIR__.'/audience_template_folders_http.php';
+    require __DIR__.'/audience_template_bulk_move_http.php';
     require __DIR__.'/audience_delivery_setup_http.php';
     require __DIR__.'/audience_dispatch_http.php';
     require __DIR__.'/audience_search_http.php';

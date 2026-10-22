@@ -192,7 +192,7 @@ GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_jobs TO '${MYSQL
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_job_items TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_design_revisions TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_design_comments TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_design_library TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_design_library TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_plans TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_touchpoints TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_publications TO '${MYSQL_USER}'@'%';

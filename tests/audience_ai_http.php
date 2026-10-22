@@ -39,6 +39,11 @@ audienceHttpExpect($aiApi(0,array_replace($base,['window'=>['origin'=>'mailchimp
 $reply=['purpose'=>'audience-ai','mode'=>'content','operation'=>'write','reason'=>'','message'=>'Ready','headline'=>'Fixture heading','text'=>'Reviewed fixture text','subjects'=>['Fixture subject'],'recommendations'=>[],'checks'=>audienceAiChecks('Reviewed fixture text')];
 aiCoachCompleteRequest($conn,$id,$reply,1);
 audienceHttpExpect($aiApi(0,null,'?request_id='.$nonce)['data']['response']['text']==='Reviewed fixture text','Owner can reopen the exact completed result');
+audienceHttpExpect($aiApi(0,null,'?request_id='.$nonce)['data']['input']===null,'Older requests without retained input do not invent source text');
+$legacyInput=audienceAiRequest(['request_id'=>$nonce,'operation'=>'tone','text'=>"Original source *|FNAME|*\nSecond paragraph.",'subject'=>'Original subject','prompt'=>'Warm this up','tone'=>'warm'],'admin');
+$conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,deadline_at) VALUES (?,?,'complete',DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 20 SECOND))",[$id,json_encode($legacyInput+['brand'=>['name'=>'Not part of the saved writing fields']])]);
+$legacyReopened=$aiApi(0,null,'?request_id='.$nonce)['data']['input'];
+audienceHttpExpect($legacyReopened===array_intersect_key($legacyInput,array_flip(['text','subject','prompt','operation','tone'])),'Existing history recovers the exact validated source and writing controls from its stored job');
 audienceHttpExpect($aiApi(1,null,'?request_id='.$nonce)['status']===404&&$aiApi(1,['action'=>'cancel','request_id'=>$nonce])['status']===404,'Another user cannot read or cancel a result');
 [$pageId,$pageNonce]=$aiFixture('analytics');
 $pageTools=new AudienceAiQueries(new AudienceStore($conn,1,$actorId,'Pagination qualification'),audienceAiReportWindow([]));
@@ -91,10 +96,53 @@ foreach([1=>'editor',2=>'reviewer']as$client=>$role){
     audienceHttpExpect($pageResult['status']===200&&($pageResult['data']['table']['rows'][0]['email']??'')==='fixture@example.test','Own saved contact results can be paged by '.$role);
     audienceHttpExpect($aiApi(0,null,'?request_id='.$roleResultNonce)['status']===404,'Another user cannot read '.$role.' analytics results');
 }
+// Native AI response deletion is owner-scoped, permanent, confirmed, and available to Editor+ without elevation.
+$coSetElevation(null);
+foreach([0=>'admin',1=>'editor']as$deleteClient=>$deleteRole){
+    $deleteActor=(int)$conn->execute_query('SELECT id FROM users WHERE username=?',['audience-'.$deleteRole.'-'.$suffix])->fetch_row()[0];
+    audienceHttpExpect($aiApi($deleteClient,null,'?action=history')['data']['can_remove_history']===true,'History deletion is available to '.$deleteRole.' without Admin Unlock');
+    foreach(['analytics','content']as$deleteMode){
+        [$deleteId,$deleteNonce]=$aiFixture($deleteMode,$deleteRole,$deleteActor);$deleteClaim=bin2hex(random_bytes(16));
+        $conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,claim_token,deadline_at) VALUES (?,?,'generating',?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 20 SECOND))",[$deleteId,'{}',$deleteClaim]);
+        $deletePost=['action'=>'delete','request_id'=>$deleteNonce,'confirmed'=>true];
+        audienceHttpExpect($aiApi($deleteClient,$deletePost,'','bad')['status']===403,'AI deletion requires CSRF for '.$deleteRole.' '.$deleteMode);
+        audienceHttpExpect($aiApi($deleteClient,array_replace($deletePost,['confirmed'=>false]))['status']===400&&$aiApi($deleteClient,null,'?request_id='.$deleteNonce)['status']===200,'Unconfirmed deletion preserves '.$deleteRole.' '.$deleteMode);
+        audienceHttpExpect($aiApi(1-$deleteClient,$deletePost)['status']===404,'AI deletion cannot target another user’s '.$deleteMode.' request');
+        audienceHttpExpect($aiApi($deleteClient,$deletePost)['data']['deleted']===true,'Confirmed '.$deleteRole.' '.$deleteMode.' deletion succeeds without Admin Unlock');
+        audienceHttpExpect(!$conn->execute_query('SELECT id FROM ai_coach_requests WHERE id=?',[$deleteId])->fetch_assoc()&&!$conn->execute_query('SELECT request_id FROM ai_coach_jobs WHERE request_id=?',[$deleteId])->fetch_assoc(),'Permanent deletion removes source, response, and queue data');
+        aiCoachFinishJob($conn,['request_id'=>$deleteId,'claim_token'=>$deleteClaim,'queue_ms'=>0],$reply,1);
+        audienceHttpExpect($aiApi($deleteClient,null,'?request_id='.$deleteNonce)['status']===404&&$aiApi($deleteClient,$deletePost)['status']===404,'Late completion and repeated deletion cannot restore the removed request');
+    }
+}
+$reviewActor=(int)$conn->execute_query('SELECT id FROM users WHERE username=?',['audience-reviewer-'.$suffix])->fetch_row()[0];
+[$reviewDeleteId,$reviewDeleteNonce]=$aiFixture('analytics','reviewer',$reviewActor);
+audienceHttpExpect($aiApi(2,null,'?action=history')['data']['can_remove_history']===false&&$aiApi(2,['action'=>'delete','request_id'=>$reviewDeleteNonce,'confirmed'=>true])['status']===403,'Reviewer cannot delete even their own analytics response');
+[$foreignPurposeId,$foreignPurposeNonce]=$aiFixture();$conn->execute_query("UPDATE ai_coach_requests SET guided_step='other' WHERE id=?",[$foreignPurposeId]);
+audienceHttpExpect($aiApi(0,['action'=>'delete','request_id'=>$foreignPurposeNonce,'confirmed'=>true])['status']===404&&$conn->execute_query('SELECT id FROM ai_coach_requests WHERE id=?',[$foreignPurposeId])->fetch_assoc(),'Native AI deletion cannot remove other AI Coach history');
+[$oldRoleId,$oldRoleNonce]=$aiFixture('analytics','editor');
+audienceHttpExpect($aiApi(0,['action'=>'delete','request_id'=>$oldRoleNonce,'confirmed'=>true])['status']===404,'Deletion retains the current-role ownership boundary');
 $held=[];for($n=0;$n<8;$n++){[$heldId]=$aiFixture();$held[]=$heldId;$conn->execute_query("INSERT INTO ai_coach_jobs(request_id,request_json,state,claim_token,deadline_at) VALUES (?,?,'generating',?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 60 SECOND))",[$heldId,'{}',bin2hex(random_bytes(16))]);}
 // This session has not generated analytics; test queue admission without its request throttle.
-$full=$aiApi(3,['mode'=>'content','operation'=>'write','prompt'=>'A short fixture','request_id'=>$uuid()]);
+$fullNonce=$uuid();$fullInput=['mode'=>'content','operation'=>'rewrite','text'=>"Retained source text\nWith a second paragraph.",'subject'=>'Retained subject','tone'=>'warm','prompt'=>'A short fixture','request_id'=>$fullNonce];
+$full=$aiApi(3,$fullInput);
 audienceHttpExpect($full['status']===429&&str_contains($full['data']['error'],'busy'),'Native and existing help share the bounded queue capacity');
+$fullSaved=$conn->execute_query('SELECT id,ui_state_json FROM ai_coach_requests WHERE client_request_id=?',[$fullNonce])->fetch_assoc();$aiIds[]=$fullSaved['id'];
+audienceHttpExpect(audienceJson($fullSaved['ui_state_json'])['writing_input']==array_intersect_key($fullInput,array_flip(['text','subject','prompt','operation','tone'])),'New writing requests persist their source and controls in the request record');
+audienceHttpExpect($aiApi(3,null,'?request_id='.$fullNonce)['data']['input']==array_intersect_key($fullInput,array_flip(['text','subject','prompt','operation','tone']))&&!$conn->execute_query('SELECT request_id FROM ai_coach_jobs WHERE request_id=?',[$fullSaved['id']])->fetch_assoc(),'Saved writing input reopens without a retained queue job');
+// Import/restore order can differ from timestamp order; take the newest twenty before displaying either mode.
+$chronologicalNonces=[];$chronologicalStart=new DateTimeImmutable('+30 days',new DateTimeZone('UTC'));
+for($historyIndex=0;$historyIndex<22;$historyIndex++){
+    [$historyId,$historyNonce]=$aiFixture($historyIndex%2===0?'analytics':'content');$chronologicalNonces[]=$historyNonce;
+    $historyDate=$chronologicalStart->modify('-'.max(0,$historyIndex-1).' seconds')->format('Y-m-d H:i:s.u');
+    $conn->execute_query('UPDATE ai_coach_requests SET created_at=? WHERE id=?',[$historyDate,$historyId]);
+}
+$expectedHistory=$chronologicalNonces;[$expectedHistory[0],$expectedHistory[1]]=[$expectedHistory[1],$expectedHistory[0]];
+$orderedHistory=$aiApi(0,null,'?action=history')['data']['items'];
+audienceHttpExpect(array_column($orderedHistory,'client_request_id')===array_slice($expectedHistory,0,20),'Both AI modes use timestamp-descending history before the twenty-item limit, with newest ID first for tied timestamps');
+foreach(['audience-ai:analytics','audience-ai:content']as$historyTopic){
+    $modeTimes=array_column(array_values(array_filter($orderedHistory,static fn($row)=>$row['manual_topic']===$historyTopic)),'created_at');$sortedTimes=$modeTimes;rsort($sortedTimes,SORT_STRING);
+    audienceHttpExpect($modeTimes===$sortedTimes,'Recent requests are newest-first for '.$historyTopic);
+}
 foreach($aiIds as$fixtureId)$conn->execute_query('DELETE FROM ai_coach_requests WHERE id=?',[$fixtureId]);
 audienceHttpExpect($conn->query('SELECT COUNT(*) FROM marketing_campaign_deliveries')->fetch_row()[0]===$sendingBefore,'Assistant generation and applying never create delivery jobs');
 audienceHttpExpect($conn->query("SELECT GROUP_CONCAT(CONCAT(id,':',email_status) ORDER BY id) FROM marketing_contacts WHERE audience_id=1")->fetch_row()[0]===$consentBefore,'Assistant generation and applying never alter subscription consent');

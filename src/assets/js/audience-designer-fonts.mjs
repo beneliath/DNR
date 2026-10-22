@@ -1,4 +1,13 @@
 const systemFonts=['Arial','Georgia','Verdana','Tahoma','Times New Roman'];
+export function firstFontFamily(value) {
+  return String(value||'').split(',')[0].trim().replace(/^["']|["']$/g,'');
+}
+
+export function matchingFontChoice(family,choices) {
+  const first=firstFontFamily(family);
+  return Object.keys(choices).find(value=>firstFontFamily(value).toLowerCase()===first.toLowerCase())||first;
+}
+
 export function designFontChoices(design,brandFont={}) {
   const choices=Object.fromEntries(systemFonts.map(name=>[name,name]));
   const font=brandFont.data?brandFont:{data:design.styles.webFont,name:design.styles.webFontName};

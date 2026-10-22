@@ -46,7 +46,7 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if($html!==null&&(!str_contains($html,htmlspecialchars($link,ENT_QUOTES,'UTF-8'))||!str_contains($html,htmlspecialchars($context['LIST:ADDRESS'],ENT_QUOTES,'UTF-8'))))$html.='<div style="padding:24px;font-size:12px;text-align:center">'.nl2br(htmlspecialchars($footer,ENT_QUOTES,'UTF-8')).'</div>';
     if(preg_match('/\*\|[^|\r\n]{1,300}\|\*/',$subject.$text.($html??'')))throw new InvalidArgumentException('Resolve all merge tags before sending this email.');
     if(trim($subject)===''||preg_match('/[\r\n]/',$subject.$draft['from_name'].$draft['from_email']))throw new InvalidArgumentException('The email subject or sender contains invalid characters.');
-    if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
+    if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
     if(($context['__email_format']??'html')==='text')$html=null;
     if(function_exists('audienceTrackMessage')){[$tracked,$text]=audienceTrackMessage($snapshot,$html??'',$text,$token);if($html!==null)$html=$tracked;}
     // Measure the delivered bodies, after image hosting and tracking expansion.

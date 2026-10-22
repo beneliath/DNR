@@ -19,7 +19,8 @@
 .analytics-recipient-report .analytics-tabs{min-width:0;max-width:100%;overflow-x:auto;white-space:nowrap;flex-wrap:nowrap}.analytics-recipient-report .analytics-tabs a{flex:0 0 auto}
 .analytics-horizontal-bars svg{display:block;width:100%;height:18px}.analytics-horizontal-bars rect{fill:#4479bd}.analytics-horizontal-bars rect.negative{fill:#c34659}
 .analytics-ai-tools{display:grid;gap:12px;margin-bottom:24px}.analytics-ai-tools>p{margin:0}.analytics-ai-questions{display:flex;flex-wrap:wrap;gap:10px}.analytics-ai-question{gap:8px;white-space:normal;justify-content:flex-start;text-align:left}.analytics-ai-question svg{width:20px;height:20px;flex:0 0 20px;color:var(--audience-primary)}
-.analytics-report-layout{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:24px;align-items:start;max-width:1904px;margin:0 auto}
+html:has(.analytics-report-layout){scrollbar-gutter:stable}
+.analytics-report-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;align-items:start;width:100%;max-width:1904px;margin:0}
 .analytics-report-layout>.analytics-workspace{min-width:0;width:100%;max-width:none;margin:0}
 .analytics-report-prompts{min-width:0}
 .analytics-report-prompts .analytics-ai-tools{margin-bottom:0}

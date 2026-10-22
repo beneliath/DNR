@@ -33,7 +33,6 @@
         badge.hidden = count === 0;
         const label = count ? `Notifications, ${count} uncleared` : 'Notifications';
         trigger.setAttribute('aria-label', label);
-        trigger.dataset.tooltip = label;
         if (empty) empty.hidden = visible.length > 0;
         if (actions) actions.hidden = visible.length === 0;
         if (list) list.hidden = visible.length === 0;

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/audience_design_builder.php';
 require_once __DIR__.'/audience_font.php';
+require_once __DIR__.'/audience_svg.php';
 
 // Includes embedded image snapshots. Save, preview and reusable sections must
 // accept the same bounded payload, including Brand Kit logos up to 2 MB.
@@ -39,9 +40,10 @@ function audienceDesignNormalizeLink(string $url):string
     if(preg_match('~^(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}(?::[0-9]{1,5})?(?:[/?#][^\s<>"\x00-\x1f]*)?$~D',$url))return 'https://'.$url;
     return $url;
 }
-function audienceDesignImage(mixed $image,int $maxBytes=2000000):string
+function audienceDesignImage(mixed $image,int $maxBytes=2000000,bool $allowSvg=false):string
 {
     if($image==='')return '';
+    if($allowSvg&&is_string($image)&&str_starts_with($image,'data:image/svg+xml;'))return audienceSvgImage($image,$maxBytes);
     if(!is_string($image)||!preg_match('~^data:image/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$~D',$image,$m))throw new InvalidArgumentException('Upload a PNG, JPEG, WebP or GIF image.');
     $bytes=base64_decode($m[2],true);$info=$bytes===false?false:@getimagesizefromstring($bytes);
     if(!$info||strlen($bytes)>$maxBytes||$info[0]*$info[1]>16000000||$info['mime']!=='image/'.$m[1])throw new InvalidArgumentException('Use an image up to '.($maxBytes/1000000).' MB and 16 megapixels.');return $image;
@@ -125,7 +127,7 @@ function audienceDesignDocument(array $input):array
                 foreach(['padding'=>[24,0,80],'margin'=>[0,0,80],'size'=>[$type==='heading'?32:16,10,72],'height'=>[24,4,200],'radius'=>[4,0,50],'headingLevel'=>[1,1,4],'dividerWidth'=>[100,10,100],'dividerHeight'=>[1,1,12]]as$key=>[$default,$min,$max])$b[$key]=audienceDesignNumber($block[$key]??$default,$min,$max);
                 $b['imagePosition']=($block['imagePosition']??'left')==='right'?'right':'left';$b['imageWidth']=audienceDesignNumber($block['imageWidth']??40,20,80);
                 $platforms=$block['sharePlatforms']??['facebook','x','linkedin','email'];if(!is_array($platforms)||count($platforms)>4||array_diff($platforms,['facebook','x','linkedin','email']))throw new InvalidArgumentException('Choose supported sharing services.');$b['sharePlatforms']=array_values(array_unique($platforms));
-                $b['bold']=!empty($block['bold']);$b['italic']=!empty($block['italic']);$b['color']=audienceDesignColor($block['color']??$styles['text']);$b['background']=audienceDesignColor($block['background']??$styles['button']);$b['image']=audienceDesignImage($block['image']??'');
+                $b['bold']=!empty($block['bold']);$b['italic']=!empty($block['italic']);$b['color']=audienceDesignColor($block['color']??$styles['text']);$b['background']=audienceDesignColor($block['background']??$styles['button']);$b['image']=audienceDesignImage($block['image']??'',2000000,true);
                 $b['styles']=audienceDesignStyle($block['styles']??[]);$b['mobile']=audienceDesignStyle($block['mobile']??[]);$b['linkDevices']=($block['linkDevices']??true)!==false;$b['includeToc']=!empty($block['includeToc']);
                 $b['inherit']=[];if(!is_array($block['inherit']??[]))throw new InvalidArgumentException('Invalid inherited styles.');foreach($block['inherit']??[]as$key){if(!in_array($key,['color','size','padding','align','font','lineHeight','letterSpacing','paragraphSpacing','margin','background','radius','dividerHeight','dividerWidth'],true))throw new InvalidArgumentException('Invalid inherited style.');$b['inherit'][]=$key;}
                 $b['condition']=audienceDesignCondition($block['condition']??[]);$b['images']=[];$b['social']=[];
@@ -187,7 +189,7 @@ function audienceDesignSafeCode(string $code,array $areas=[]):array
             if($key==='style'){if(preg_match('/url\s*\(|expression|behavior|binding/i',$value))$warnings['css']='External or unsupported CSS is omitted from the protected preview; the original source is retained.';$node->setAttribute('style',audienceDesignSafeCss($value,false));$keep=true;}
             if(in_array($key,['mc:edit','mc:repeatable','mc:variant','mc:hideable'],true))$keep=preg_match('/^[a-zA-Z0-9 _-]{0,100}$/D',$value)===1;
             if($key==='href'){$value=audienceDesignNormalizeLink($value);$node->setAttribute('href',$value);$keep=$value!==''&&audienceDesignUrl($value);if(!$keep)$warnings['links']='A link is missing a supported destination. Review it in the link checker.';}
-            if($key==='src'){$keep=audienceDesignUrl($value,true)||str_starts_with($value,'data:image/');if(str_starts_with($value,'data:')){try{audienceDesignImage($value);}catch(InvalidArgumentException){$keep=false;}}if(!$keep)$warnings['images']='Some image references are unsupported or missing. Upload them or include them in the ZIP.';if(str_starts_with($value,'https://'))$warnings['remote']='Remote images remain in the source; the protected preview blocks remote image loading.';}
+            if($key==='src'){$keep=audienceDesignUrl($value,true)||str_starts_with($value,'data:image/');if(str_starts_with($value,'data:')){try{$value=audienceDesignImage($value,2000000,true);$node->setAttribute('src',$value);}catch(InvalidArgumentException){$keep=false;}}if(!$keep)$warnings['images']='Some image references are unsupported or missing. Upload them or include them in the ZIP.';if(str_starts_with($value,'https://'))$warnings['remote']='Remote images remain in the source; the protected preview blocks remote image loading.';}
             if(!$keep){$node->removeAttribute($attribute->name);if(str_starts_with($key,'on'))$warnings['markup']='Active or unsupported markup is omitted from the safe preview. The original source is retained.';}
         }
     }

@@ -41,7 +41,7 @@ $html=null;
 if(isset($_GET['email'])&&!$done){$snapshot=json_decode(\Dnr\Security\ApplicationKey::open($recipient['snapshot_ciphertext']),true,64,JSON_THROW_ON_ERROR);$sealed=json_decode(\Dnr\Security\ApplicationKey::open($recipient['context_ciphertext']),true,64,JSON_THROW_ON_ERROR);if(($recipient['phase']??'')==='resend')$snapshot['is_resend']=true;unset($snapshot['tracking_key']);$message=audienceDispatchMessage($snapshot,$sealed['context'],$token,$recipient['message_id'],(string)($recipient['variant_key']??'0'));$html=$message['html']??'<pre>'.$h($message['text']).'</pre>';}
 if($html===null&&!$preferences&&($system=audienceCollectionSystem($publicStore,'unsubscribe'))){
     require_once __DIR__.'/audience_collection_render.php';$nonce=contentSecurityPolicyNonce();
-    header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; img-src 'self' data: https:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+    header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
     echo audienceCollectionHtml($system,[],[],'?token='.$token,'',[],'',$done?$system['done']:'');exit;
 }
 ?><!doctype html><html lang="en">

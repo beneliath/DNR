@@ -1,5 +1,6 @@
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { initEmbeddedForm } from './audience-embedded.mjs';
+import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
 (() => {
     'use strict';
     document.querySelector('[data-copy-collection-link]')?.addEventListener('click', async () => {
@@ -27,9 +28,16 @@ import { initEmbeddedForm } from './audience-embedded.mjs';
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
     if (config.kind === 'embedded') { initEmbeddedForm(form, config); return; }
-    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input));
+    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[]}));
     let model = structuredClone(config.document);
     model.variants = [];
+    const brandLogo = form.querySelector('[data-collection-brand-logo]');
+    const applyBrandLogo = () => {
+        const image = brandLogo.value === 'none' ? '' : config.brandLogos?.[brandLogo.value]?.image;
+        if (typeof image === 'string') form.querySelector('[data-doc="logo"]').value = image;
+    };
+    brandLogo?.addEventListener('input', applyBrandLogo);
+    brandLogo?.addEventListener('change', applyBrandLogo);
     const frame = document.querySelector('[data-collection-preview]');
     const status = document.querySelector('[data-collection-preview-status]');
     const hidden = form.querySelector('[data-collection-document]');
@@ -37,6 +45,10 @@ import { initEmbeddedForm } from './audience-embedded.mjs';
     const readLines = value => value.split('\n').map(s => s.trim()).filter(Boolean);
     const sync = () => {
         form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'number' ? Number(input.value) : input.value; });
+        if (brandLogo) brandLogo.value = model.logo ? Object.keys(config.brandLogos).find(key => config.brandLogos[key].image === model.logo) || '' : 'none';
+        const font=form.querySelector('[data-collection-font]')?.value;
+        if(font==='brand')Object.assign(model,{font:config.brandFont.font,web_font:config.brandFont.data,web_font_name:config.brandFont.name});
+        else if(font&&font!=='saved-brand')Object.assign(model,{font,web_font:'',web_font_name:''});
         form.querySelectorAll('[data-doc-lines]').forEach(input => { model[input.dataset.docLines] = readLines(input.value); });
         model.messages ||= {};
         form.querySelectorAll('[data-doc-message]').forEach(input => { model.messages[input.dataset.docMessage] = input.value; });
@@ -159,11 +171,11 @@ import { initEmbeddedForm } from './audience-embedded.mjs';
     const imageButtons = (card, apply) => {
         const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse images'); browse.type = 'button';
         browse.addEventListener('click', () => { chooseImage = apply; imagePage = 1; imageDialog.showModal(); loadImages(); });
-        const uploadLabel = el('label', 'Upload'); const upload = el('input'); upload.type = 'file'; upload.accept = 'image/png,image/jpeg,image/webp';
+        const uploadLabel = el('label', 'Upload image'); const upload = el('input'); upload.type = 'file'; upload.accept = 'image/png,image/jpeg,image/webp';upload.dataset.fileMaxBytes='1000000';
         upload.addEventListener('change', async () => {
             if (!upload.files?.[0]) return; status.textContent = 'Uploading…';
             try { const result = await api('collection_image', {}, upload.files[0]); apply(result.image); status.textContent = ''; } catch (error) { status.textContent = error.message || 'Unable to upload this image.'; }
-        }); uploadLabel.append(upload); row.append(browse, uploadLabel); card.append(row);
+        }); uploadLabel.append(upload); row.append(browse, uploadLabel); card.append(row);enhanceAudienceFileInput(upload,{help:'PNG, JPEG or WebP · up to 1 MB'});
     };
     const renderList = key => {
         const list = lists[key]; if (!list) return; list.replaceChildren();
@@ -245,7 +257,8 @@ import { initEmbeddedForm } from './audience-embedded.mjs';
     form.addEventListener('input', record); form.addEventListener('change', record);
     const restore = index => {
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
-        form.querySelectorAll('[data-doc]').forEach(input => { input.value = model[input.dataset.doc]; });
+        form.querySelectorAll('[data-doc]').forEach(input => { input.value = model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        const font=form.querySelector('[data-collection-font]');if(font)font.value=model.web_font?(model.web_font===config.brandFont?.data?'brand':'saved-brand'):model.font;
         form.querySelectorAll('[data-doc-label]').forEach(input => { input.value = model.labels[input.dataset.docLabel] || input.value; });
         form.querySelectorAll('[data-doc-system]').forEach(input => { input.value = model.system[input.dataset.docSystem] || ''; });
         form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage] || ''; });
