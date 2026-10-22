@@ -35,7 +35,7 @@ $orderedFields=array_values(array_unique([...$d['fields'],...array_keys($fieldLa
 <label>Form name<input name="name" maxlength="100" required value="<?= $h($resource['name']) ?>"></label>
 <div class="embedded-label-switch"><label for="embedded-title">Form Title</label><label class="embedded-switch"><input type="checkbox" role="switch" data-embedded-option="show_title" aria-label="Show form title"<?= $d['embedded']['show_title']?' checked':'' ?>><span aria-hidden="true"></span></label></div>
 <input id="embedded-title" data-doc="title" maxlength="200" required value="<?= $h($d['title']) ?>">
-<label>Width<div class="embedded-unit"><input type="number" data-doc="width" min="320" max="1200" placeholder="Automatic" value="<?= $d['width']?(int)$d['width']:'' ?>"><span>pixels</span></div><small>Leave blank to use the width of the area where the form is placed.</small></label>
+<label>Width<div class="embedded-unit"><input type="number" data-doc="width" aria-describedby="embedded-width-help" min="320" max="1200" placeholder="Automatic" value="<?= $d['width']?(int)$d['width']:'' ?>"><span>pixels</span></div></label><small id="embedded-width-help">Leave blank to use the width of the area where the form is placed.</small>
 <div class="embedded-label-switch"><span>Remove CSS styles</span><label class="embedded-switch"><input type="checkbox" role="switch" data-embedded-option="remove_css" aria-label="Remove CSS styles"<?= $d['embedded']['remove_css']?' checked':'' ?>><span aria-hidden="true"></span></label></div>
 <label class="embedded-check"><input type="checkbox" data-embedded-option="disable_javascript"<?= $d['embedded']['disable_javascript']?' checked':'' ?>>Disable all JavaScript</label>
 <label class="embedded-check"><input type="checkbox" data-embedded-option="show_format"<?= $d['embedded']['show_format']?' checked':'' ?>>Show format options</label>
@@ -82,7 +82,7 @@ $orderedFields=array_values(array_unique([...$d['fields'],...array_keys($fieldLa
 <?php endforeach; ?>
 <section class="embedded-panel embedded-code-panel" data-embedded-code-panel hidden>
 <button type="button" data-embedded-home>← Back to editing</button><h2>Your embedded form is ready</h2><p>Publish your saved design, then copy the code into your website where you want the form to appear.</p>
-<fieldset<?= !$canManage?' disabled':'' ?>><label>Website origins<textarea data-doc-lines="origins" rows="3" placeholder="https://example.com"><?= $h(implode("\n",$d['origins'])) ?></textarea><small>Enter each HTTPS website that will display the form, one per line.</small></label>
+<fieldset<?= !$canManage?' disabled':'' ?>><label>Website origins<textarea data-doc-lines="origins" aria-describedby="embedded-origins-help" rows="3" placeholder="https://example.com"><?= $h(implode("\n",$d['origins'])) ?></textarea></label><small id="embedded-origins-help">Enter each HTTPS website that will display the form, one per line.</small>
 <button type="button" class="primary" data-embedded-publish>Publish form</button></fieldset>
 <p role="status" data-embedded-publish-status><?= $resource['state']==='published'?'Published form available. Publish any draft changes before copying.':'Save and publish before installing this form.' ?></p>
 <label>Embed code<textarea readonly rows="5" data-embedded-code spellcheck="false"><?= $h(audienceCollectionEmbedCode($publicUrl,$d)) ?></textarea></label>
