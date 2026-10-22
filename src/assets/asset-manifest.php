@@ -210,7 +210,7 @@ return [
     "assets/js/audience-inbox.js" => "36187438f86e",
     "assets/js/audience-inbox.min.js" => "c324c460a6d6",
     "assets/js/audience-notifications.js" => "1be56bfa11e9",
-    "assets/js/audience-notifications.min.js" => "91bc6089374d",
+    "assets/js/audience-notifications.min.js" => "5eef46c491a5",
     "assets/js/audience-richtext-colors.mjs" => "201e2f0af0ad",
     "assets/js/audience-richtext-images.mjs" => "ccfd08cdcf1d",
     "assets/js/audience-template-preview.mjs" => "1a955b86bbe8",
