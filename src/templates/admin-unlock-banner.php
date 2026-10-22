@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../two_factor_helpers.php';
 // Share the same session-bound unlock banner across MOED and MessageMonkey.
-$admin_unlock_available = !empty($_SESSION['user_id']) && hasRole(['admin']);
+$admin_unlock_available = !empty($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin';
 $admin_unlock_expires_at = $admin_unlock_available ? adminElevationExpiresAt() : null;
 $admin_unlock_return_url = safeAdminElevationReturnUrl(
     basename((string) ($_SERVER['PHP_SELF'] ?? 'dashboard.php'))
