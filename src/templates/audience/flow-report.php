@@ -1,4 +1,6 @@
 <?php
+/** @var Closure(array<string,mixed>): string $flowLink */
+/** @var int $id */
 $totals=array_column($report['totals'],'n','state');
 $runLabels=['active'=>'In progress','completed'=>'Completed','exited'=>'Exited','failed'=>'Needs attention'];
 $stepLabels=['waiting'=>'Waiting','completed'=>'Completed','skipped'=>'Skipped','failed'=>'Needs attention'];
