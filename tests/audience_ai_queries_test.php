@@ -258,6 +258,11 @@ $expect($draft['queries'][0]['limit']===100&&$draft['queries'][0]['filters']===[
 $draft=$tools->clarificationPlan(['queries'=>[]],$reportState,'continuation',[],'report','Which supported measure should be used?');
 $expect($draft['queries']===$reportState['queries'],'Unsupported report measures preserve the previously verified campaign selection while asking for clarification.');
 $review=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
+$expect($review['think']===true,'Report catalogs with derived metrics retain ratio and denominator reasoning.');
+$growthQuery=['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['net'],'limit'=>5,'last_days'=>90];
+$growthReview=$tools->planReviewPayload('Show audience growth over the last quarter.',audienceAiDialogueState([]),['queries'=>$tools->validate(['queries'=>[$growthQuery]])]);
+$expect($growthReview['think']===false&&$growthReview['options']['num_predict']<=700,'Count-only report verification avoids extended reasoning while retaining independent checks.');
+$expect(isset($growthReview['format']['properties']['valid'],$growthReview['format']['properties']['unresolved'],$growthReview['format']['properties']['report_metrics']),'Fast report review retains validity, clarification, and independent metric selection.');
 $expect(!in_array('clarification',$review['format']['properties']['result_type']['enum'],true)&&$review['format']['properties']['conditions']['maxItems']===0,'Report validation cannot contradict its own ambiguity decision or invent contact filters.');
 $reviewContext=json_decode($review['messages'][1]['content'],true);
 $expect(!isset($reviewContext['proposed']['queries'][0]['metrics'])&&isset($reviewContext['conversation']['queries'][0]['metrics']),'Measurement intent is selected independently of unverified planner columns while retaining verified conversational scope.');
