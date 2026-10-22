@@ -19,37 +19,39 @@ function fixture(items = ['inbox-1', 'job-1'], scope = 'account-a-user-a', stora
     return { badge, trigger, panel, events, windowEvents, storage, rows, empty, actions, list, clearAll, close };
 }
 
-test('bell counts unread items and hides after the notification panel opens', () => {
+test('badge counts uncleared items and opening the bell keeps it visible after reload', () => {
     const f = fixture();
     assert.equal(f.badge.textContent, '2');
     assert.equal(f.badge.hidden, false);
-    assert.equal(f.trigger.attrs['aria-label'], 'Notifications, 2 unread');
-    f.events.toggle({ newState: 'closed' });
-    assert.equal(f.badge.textContent, '2');
-    f.events.toggle({ newState: 'open' });
-    assert.equal(f.badge.hidden, true);
-    assert.equal(f.trigger.attrs['aria-label'], 'Notifications');
-    assert.equal(fixture(undefined, undefined, f.storage).badge.hidden, true);
+    assert.equal(f.trigger.attrs['aria-label'], 'Notifications, 2 uncleared');
+    f.events.toggle?.({ newState: 'open' });
+    assert.equal(f.badge.hidden, false);
+    assert.equal(fixture(undefined, undefined, f.storage).badge.textContent, '2');
 });
 
-test('new items and new job versions restore the badge without recounting seen activity', () => {
+test('old seen state does not hide existing notifications', () => {
+    const storage = new Map([['moed:audience:notifications:account-a-user-a', '["inbox-1","job-1"]']]);
+    assert.equal(fixture(undefined, undefined, storage).badge.textContent, '2');
+});
+
+test('new items and job versions restore the badge after older activity is cleared', () => {
     const f = fixture();
-    f.events.toggle({ newState: 'open' });
+    f.clearAll.events.click();
     const updated = fixture(['inbox-1', 'job-1-completed', 'inbox-2'], undefined, f.storage);
     assert.equal(updated.badge.textContent, '2');
 });
 
-test('read state is isolated between users and accounts', () => {
+test('cleared state is isolated between users and accounts', () => {
     const f = fixture();
-    f.events.toggle({ newState: 'open' });
+    f.clearAll.events.click();
     assert.equal(fixture(undefined, 'account-a-user-b', f.storage).badge.textContent, '2');
     assert.equal(fixture(undefined, 'account-b-user-a', f.storage).badge.textContent, '2');
 });
 
-test('other tabs synchronize the badge and an empty list has no badge', () => {
+test('other tabs synchronize dismissals and an empty list has no badge', () => {
     const first = fixture(), second = fixture(undefined, undefined, first.storage);
-    first.events.toggle({ newState: 'open' });
-    second.windowEvents.storage({ key: 'moed:audience:notifications:account-a-user-a' });
+    first.clearAll.events.click();
+    second.windowEvents.storage({ key: 'moed:audience:notifications:account-a-user-a:cleared' });
     assert.equal(second.badge.hidden, true);
     assert.equal(fixture([]).badge.hidden, true);
 });
@@ -58,9 +60,9 @@ test('blocked or corrupt browser storage does not break notifications', () => {
     const storage = { get() { throw new Error('Blocked'); }, set() { throw new Error('Blocked'); } };
     const f = fixture(undefined, undefined, storage);
     assert.equal(f.badge.textContent, '2');
-    f.events.toggle({ newState: 'open' });
+    f.clearAll.events.click();
     assert.equal(f.badge.hidden, true);
-    assert.equal(fixture(undefined, undefined, new Map([['moed:audience:notifications:account-a-user-a', 'null']])).badge.textContent, '2');
+    assert.equal(fixture(undefined, undefined, new Map([['moed:audience:notifications:account-a-user-a:cleared', 'null']])).badge.textContent, '2');
 });
 
 test('clearing one notification hides only that item and keeps it cleared after navigation', () => {

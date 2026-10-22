@@ -54,7 +54,7 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode'.(($resource['kind']??'')==='embedded'?' audience-embedded-editor-mode':''):'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>

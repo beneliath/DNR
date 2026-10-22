@@ -99,7 +99,7 @@ export function colorTextRange(root,range,property,value) {
   const next=document.createRange();next.setStart(selected[0],0);next.setEnd(selected.at(-1),selected.at(-1).length);return next;
 }
 
-export function mountRichText({host,block,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection,openLink,mergeTags,openImage}) {
+export function mountRichText({host,block,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection,openLink,mergeTags,openImage,fonts,onFont=()=>{}}) {
   const lifecycle=new AbortController(), {signal}=lifecycle;
   const rich=el('div',undefined,'designer-rich-text');rich.contentEditable='true';rich.setAttribute('role','textbox');rich.setAttribute('aria-label','Text');rich.setAttribute('aria-multiline','true');
   if(block.html)setRichContent(rich,block.html);else (block.text||'').split(/\r?\n/).forEach((line,index)=>{if(index)rich.append(el('br'));rich.append(document.createTextNode(line));});
@@ -172,7 +172,9 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     const input=el('select');input.setAttribute('aria-label',label);input.title=label;for(const [value,text]of options){const option=el('option',text);option.value=value;input.append(option);}input.onpointerdown=remember;input.onchange=()=>{fn(input.value);};row.append(input);return input;
   };
   select('Formatting style',[['','Default Text'],['p','Paragraph'],['h1','Heading 1'],['h2','Heading 2'],['h3','Heading 3'],['h4','Heading 4'],['blockquote','Quote']],value=>value&&command('formatBlock',value));
-  select('Selected text font',[['','Font'],...['Arial','Georgia','Verdana','Tahoma','Times New Roman'].map(v=>[v,v])],value=>value&&command('fontName',value));
+  select('Selected text font',[['','Font'],...Object.entries(fonts||Object.fromEntries(['Arial','Georgia','Verdana','Tahoma','Times New Roman'].map(v=>[v,v])))],value=>value&&edit(()=>{
+    onFont(value);document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,value);
+  }));
   select('Selected text size',[['','Size'],...[8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,35,36,40,44,48,54,60,66,72,80,88,96].map(v=>[String(v),String(v)])],value=>value&&edit(()=>{
     document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');
     applyStyles();

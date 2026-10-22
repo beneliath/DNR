@@ -4,16 +4,91 @@ $contentFolders=$contentContext['settings']['content_folders']??[];
 ?>
 <nav class="campaign-tabs" aria-label="Content views"><a href="<?= $h($url(['view'=>'content'])) ?>"<?= $view==='content'?' aria-current="page"':'' ?>>My files</a><a href="<?= $h($url(['view'=>'brand'])) ?>"<?= $view==='brand'?' aria-current="page"':'' ?>>Brand Kit</a></nav>
 <?php if($view==='brand'):
+$canEditBrand=$canDelete;
 $brandIdentity=audienceBrandIdentity($contentContext['settings'],(string)$audience['name']);
-$brandValues=($campaignRecovery['action']??'')==='brand_save'?$campaignRecovery:($brand['styles']??[])+['organization_name'=>$brandIdentity['LIST:COMPANY'],'mailing_address'=>$brandIdentity['LIST:ADDRESS'],'logo'=>$brand['logo']??'','secondary_logo'=>$brand['secondary_logo']??'','web_font'=>$brand['styles']['webFont']??''];
+$brandValues=($campaignRecovery['action']??'')==='brand_save'?$campaignRecovery:($brand['styles']??[])+['organization_name'=>$brandIdentity['LIST:COMPANY'],'mailing_address'=>$brandIdentity['LIST:ADDRESS'],'logo'=>$brand['logo']??'','secondary_logo'=>$brand['secondary_logo']??'','web_font'=>$brand['styles']['webFont']??'','web_font_name'=>$brand['web_font_name']??''];
+$brandValues['web_font_name']=audienceFontName((string)($brandValues['web_font']??''))?:($brandValues['web_font_name']??'');
 ?>
-<div class="content-brand-layout"><section class="audience-panel"><h2>Your brand</h2><p>Set your logos, fonts, colors and button styles. Apply them to a saved template when you are ready.</p>
-<form method="post" data-brand-form><?php $contentForm('brand_save',['version'=>$contentContext['version']]); ?><fieldset<?= !$canManage?' disabled':'' ?>><h3>Organization details</h3><p class="audience-help">Used for your email footer and preview. Enter the organization name and physical mailing address recipients should see.</p><label>Organization name<input name="organization_name" maxlength="150" value="<?= $h($brandValues['organization_name']??'') ?>" autocomplete="organization"></label><label>Mailing address<textarea name="mailing_address" rows="4" maxlength="1000" autocomplete="street-address"><?= $h($brandValues['mailing_address']??'') ?></textarea></label><h3>Logos</h3>
-<?php foreach(['logo'=>'Default logo','secondary_logo'=>'Secondary logo']as$key=>$label): ?><?php $uploadId='brand-'.$key.'-file';$uploadLabel=$label;$uploadKey=$key;$uploadAccept='image/png,image/jpeg,image/webp';$uploadHelp='PNG, JPEG or WebP · up to 20 MB · resized to 2 MB or less';$uploadTypes='Choose a PNG, JPEG or WebP logo.';include __DIR__.'/file-drop.php'; ?><input type="hidden" name="<?= $key ?>" value="<?= $h($brandValues[$key]??'') ?>"><img class="content-logo-preview" alt="<?= $label ?> preview" data-content-preview="<?= $key ?>" src="<?= $h($brandValues[$key]??'') ?>"<?= empty($brandValues[$key])?' hidden':'' ?>><button type="button" data-content-clear="<?= $key ?>">Remove <?= strtolower($label) ?></button><?php endforeach; ?>
-<h3>Fonts</h3><label>Default font and email fallback<select name="font"><?php foreach(['Arial','Georgia','Verdana','Tahoma','Times New Roman']as$font): ?><option<?= ($brandValues['font']??'Arial')===$font?' selected':'' ?>><?= $font ?></option><?php endforeach; ?></select></label><?php $uploadId='brand-font-file';$uploadLabel='Upload a brand font';$uploadKey='web_font';$uploadAccept='.woff,.woff2,.ttf';$uploadHelp='WOFF, WOFF2 or TTF · up to 500 KB';$uploadTypes='Choose a WOFF, WOFF2 or TTF font.';include __DIR__.'/file-drop.php'; ?><input type="hidden" name="web_font" value="<?= $h($brandValues['web_font']??'') ?>"><label class="audience-check"><input type="checkbox" name="font_license" value="1"<?= !empty($brandValues['web_font'])?' checked':'' ?>>My font license permits embedding this font in emails</label><button type="button" data-content-clear="web_font">Remove uploaded font</button><p class="audience-help">WOFF, WOFF2 or TTF, up to 500 KB. Email clients that do not support embedded fonts use your selected fallback.</p>
-<h3>Colors</h3><div class="content-color-grid"><?php foreach(['background'=>['Email background','#f4f4f4'],'body'=>['Content background','#ffffff'],'text'=>['Text','#24292d'],'link'=>['Links','#007c89'],'button'=>['Button','#007c89'],'buttonText'=>['Button text','#ffffff']]as$key=>[$label,$default]): ?><label><?= $label ?><input type="color" name="<?= $key ?>" value="<?= $h($brandValues[$key]??$default) ?>"></label><?php endforeach; ?></div><h3>Buttons and text</h3><div class="form-grid"><label>Button corner radius<input type="number" name="buttonRadius" min="0" max="50" value="<?= (int)($brandValues['buttonRadius']??4) ?>"></label><label>Paragraph size<input type="number" name="fontSize" min="12" max="30" value="<?= (int)($brandValues['fontSize']??16) ?>"></label></div><p role="status" data-content-status></p><div class="dialog-actions"><button class="primary">Save brand settings</button></div></fieldset></form>
-<?php if($canManage): ?><hr><h3>Apply to a template</h3><form method="post" data-brand-apply><?php $contentForm('brand_apply',['version'=>$brandTemplates[0]['version']??0]); ?><label>Saved template<select name="template_id" required><?php foreach($brandTemplates as$template): ?><option value="<?= $template['id'] ?>" data-version="<?= $template['version'] ?>"><?= $h($template['name']) ?></option><?php endforeach; ?></select></label><label class="audience-check"><input type="checkbox" name="include_logo" value="1">Add the default logo to the top of a visual template</label><p class="audience-help">Uses your saved brand settings. Explicit block styles and existing campaign snapshots are preserved; a template revision records the change.</p><button class="primary"<?= !$brandTemplates?' disabled':'' ?>>Apply Brand Kit</button></form><?php endif; ?></section>
-<aside class="audience-panel"><h2>Brand preview</h2><iframe class="campaign-email-frame" title="Brand preview" sandbox="allow-same-origin" scrolling="no" data-preview-autosize data-email-preview="<?= $h(audienceDesignPreviewHtml($brandPreview,contentSecurityPolicyNonce(),$brandIdentity)) ?>"></iframe></aside></div>
+<div class="content-brand-layout">
+<section class="audience-panel content-brand-settings">
+<h2>Your brand</h2>
+<p>Set your logos, fonts, colors and button styles. Apply them to a saved template when you are ready.</p>
+<form method="post" data-brand-form>
+<?php $contentForm('brand_save',['version'=>$contentContext['version']]); ?>
+<fieldset<?= !$canEditBrand?' disabled':'' ?>>
+<div class="content-brand-sections">
+<section class="content-brand-section content-brand-wide" aria-labelledby="brand-organization-title">
+<h3 id="brand-organization-title">Organization details</h3>
+<p class="audience-help">Used for your email footer and preview. Enter the organization name and physical mailing address recipients should see.</p>
+<div class="content-brand-fields content-brand-identity-fields">
+<label>Organization name<input name="organization_name" maxlength="150" value="<?= $h($brandValues['organization_name']??'') ?>" autocomplete="organization"></label>
+<label>Mailing address<textarea name="mailing_address" rows="3" maxlength="1000" autocomplete="street-address"><?= $h($brandValues['mailing_address']??'') ?></textarea></label>
+</div>
+</section>
+<section class="content-brand-section content-brand-wide" aria-labelledby="brand-logos-title">
+<h3 id="brand-logos-title">Logos</h3>
+<div class="content-brand-logo-grid">
+<?php foreach(['logo'=>'Default logo','secondary_logo'=>'Secondary logo']as$key=>$label): ?>
+<div class="content-brand-upload">
+<?php $uploadId='brand-'.$key.'-file';$uploadLabel=$label;$uploadKey=$key;$uploadAccept='image/png,image/jpeg,image/webp';$uploadHelp='PNG, JPEG or WebP · up to 20 MB · resized to 2 MB or less';$uploadTypes='Choose a PNG, JPEG or WebP logo.';include __DIR__.'/file-drop.php'; ?>
+<input type="hidden" name="<?= $key ?>" value="<?= $h($brandValues[$key]??'') ?>">
+<img class="content-logo-preview" alt="<?= $label ?> preview" data-content-preview="<?= $key ?>" src="<?= $h($brandValues[$key]??'') ?>"<?= empty($brandValues[$key])?' hidden':'' ?>>
+<button type="button" data-content-clear="<?= $key ?>">Remove <?= strtolower($label) ?></button>
+</div>
+<?php endforeach; ?>
+</div>
+</section>
+<section class="content-brand-section content-brand-type-section" aria-labelledby="brand-fonts-title">
+<h3 id="brand-fonts-title">Fonts and text</h3>
+<div class="content-brand-fields content-brand-type-fields">
+<label>Default font and email fallback<select name="font"><?php foreach(['Arial','Georgia','Verdana','Tahoma','Times New Roman']as$font): ?><option<?= ($brandValues['font']??'Arial')===$font?' selected':'' ?>><?= $font ?></option><?php endforeach; ?></select></label>
+<label>Paragraph size<input type="number" name="fontSize" min="12" max="30" value="<?= (int)($brandValues['fontSize']??16) ?>"></label>
+</div>
+<div class="content-brand-upload content-brand-font-upload">
+<?php $uploadId='brand-font-file';$uploadLabel='Upload a brand font';$uploadKey='web_font';$uploadAccept='.woff,.woff2,.ttf';$uploadHelp='WOFF, WOFF2 or TTF · up to 500 KB';$uploadTypes='Choose a WOFF, WOFF2 or TTF font.';$uploadStatus=empty($brandValues['web_font'])?'No file selected.':(!empty($brandValues['web_font_name'])?'Uploaded font: '.$brandValues['web_font_name']:'Uploaded brand font.');include __DIR__.'/file-drop.php';unset($uploadStatus); ?>
+<input type="hidden" name="web_font" value="<?= $h($brandValues['web_font']??'') ?>">
+<input type="hidden" name="web_font_name" value="<?= $h($brandValues['web_font_name']??'') ?>">
+<label class="audience-check"><input type="checkbox" name="font_license" value="1"<?= !empty($brandValues['web_font'])?' checked':'' ?>>My font license permits embedding this font in emails</label>
+<button type="button" data-content-clear="web_font">Remove uploaded font</button>
+<p class="audience-help">Email clients that do not support embedded fonts use your selected fallback.</p>
+</div>
+</section>
+<section class="content-brand-section content-brand-color-section" aria-labelledby="brand-colors-title">
+<h3 id="brand-colors-title">Colors and buttons</h3>
+<?php $brandColorGroups=[
+    ['background'=>['Email background','#f4f4f4'],'body'=>['Content background','#ffffff'],'text'=>['Text','#24292d']],
+    ['link'=>['Links','#007c89'],'button'=>['Button','#007c89'],'buttonText'=>['Button text','#ffffff']]
+];foreach($brandColorGroups as$colorRow=>$colors): ?>
+<?php if($colorRow===0): ?><div class="content-color-grid content-brand-primary-colors"><?php else: ?><div class="content-brand-secondary-colors"><div class="content-color-grid"><?php endif; ?>
+<?php foreach($colors as$key=>[$label,$default]): ?>
+<label><?= $label ?><input type="color" name="<?= $key ?>" value="<?= $h($brandValues[$key]??$default) ?>"></label>
+<?php endforeach; ?>
+</div>
+<?php if($colorRow===1): ?><label class="content-brand-radius">Button corner radius<input type="number" name="buttonRadius" min="0" max="50" value="<?= (int)($brandValues['buttonRadius']??4) ?>"></label></div><?php endif; ?>
+<?php endforeach; ?>
+</section>
+</div>
+<p role="status" data-content-status></p>
+<div class="dialog-actions"><button class="primary">Save brand settings</button></div>
+</fieldset>
+</form>
+<?php if($canManage): ?>
+<section class="content-brand-section content-brand-apply" aria-labelledby="brand-apply-title">
+<h3 id="brand-apply-title">Apply to a template</h3>
+<form method="post" data-brand-apply>
+<?php $contentForm('brand_apply',['version'=>$brandTemplates[0]['version']??0]); ?>
+<div class="content-brand-apply-row">
+<label>Saved template<select name="template_id" required><?php foreach($brandTemplates as$template): ?><option value="<?= $template['id'] ?>" data-version="<?= $template['version'] ?>"><?= $h($template['name']) ?></option><?php endforeach; ?></select></label>
+<button<?= !$brandTemplates?' disabled':'' ?>>Apply Brand Kit</button>
+</div>
+<label class="audience-check"><input type="checkbox" name="include_logo" value="1">Add the default logo to the top of a visual template</label>
+<p class="audience-help">Uses your saved brand settings. Explicit block styles and existing campaign snapshots are preserved; a template revision records the change.</p>
+</form>
+</section>
+<?php endif; ?>
+</section>
+<aside class="audience-panel"><h2>Brand preview</h2><iframe class="campaign-email-frame" title="Brand preview" sandbox="allow-same-origin" scrolling="no" data-preview-autosize data-email-preview="<?= $h(audienceDesignPreviewHtml($brandPreview,contentSecurityPolicyNonce(),$brandIdentity)) ?>"></iframe></aside>
+</div>
 <?php else: $library=$contentLibrary;$itemValues=($campaignRecovery['action']??'')==='content_save'?$campaignRecovery:($contentItem?['id'=>$contentItem['id'],'version'=>$contentItem['version'],'name'=>$contentItem['name']]+$contentItem['data']:[]); ?>
 <?php if($canManage): ?><p><a class="audience-button" href="<?= $h($url(['view'=>'assistant'])) ?>">Write with AI</a></p><?php endif; ?>
 <div class="section-title"><p>Store images, PDF documents and reusable sections for your emails.</p><div class="audience-actions"><?php if($canManage): ?><button type="button" data-open-dialog="content-folder">Manage folders</button><button type="button" class="primary" data-content-new>Upload</button><?php endif; ?><a href="<?= $h($contentUrl(['trash'=>$library['trash']?'0':'1','page'=>1])) ?>"><?= $library['trash']?'Back to files':'Trash' ?></a></div></div>

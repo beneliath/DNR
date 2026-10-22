@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_design_builder.php';
+require_once __DIR__.'/audience_font.php';
 
 // Includes embedded image snapshots. Save, preview and reusable sections must
 // accept the same bounded payload, including Brand Kit logos up to 2 MB.
 const AUDIENCE_DESIGN_MAX_BYTES=10000000;
+const AUDIENCE_DESIGN_BRAND_COLORS=['link'=>'#007c89','button'=>'#007c89','buttonText'=>'#ffffff'];
 function audienceDesignPayload(mixed $value):string
 {
     if(is_string($value)&&strlen($value)>AUDIENCE_DESIGN_MAX_BYTES)throw new InvalidArgumentException('Keep the email design below 10 MB, including images.');
@@ -56,7 +58,7 @@ function audienceDesignStyle(mixed $input):array
         elseif($key==='lineHeight')$out[$key]=audienceDesignNumber($value,100,240);
         elseif($key==='letterSpacing')$out[$key]=audienceDesignNumber($value,-2,10);
         elseif(in_array($key,['borderWidth','borderTopWidth','borderBottomWidth'],true))$out[$key]=audienceDesignNumber($value,0,12);
-        elseif($key==='font'&&in_array($value,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true))$out[$key]=$value;
+        elseif($key==='font'&&is_string($value)&&preg_match('/^(?:MOEDBrandFont,)?(?:Arial|Georgia|Verdana|Tahoma|Times New Roman)$/D',$value))$out[$key]=$value;
         elseif($key==='align'&&in_array($value,['left','center','right','justify'],true))$out[$key]=$value;
         elseif($key==='direction'&&in_array($value,['ltr','rtl'],true))$out[$key]=$value;
         elseif($key==='weight'&&in_array($value,['normal','bold'],true))$out[$key]=$value;
@@ -90,8 +92,15 @@ function audienceDesignDocument(array $input):array
     audienceDesignPayload(json_encode($input,JSON_THROW_ON_ERROR));
     $s=$input['styles']??[];if(!is_array($s))throw new InvalidArgumentException('Invalid email styles.');
     $styles=[];foreach(['background'=>'#f4f4f4','body'=>'#ffffff','text'=>'#24292d','link'=>'#007c89','button'=>'#007c89','buttonText'=>'#ffffff']as$key=>$default)$styles[$key]=audienceDesignColor($s[$key]??$default);
+    $brandColors=$s['brandColors']??[];if(!is_array($brandColors))throw new InvalidArgumentException('Invalid Brand Kit color defaults.');
+    foreach(AUDIENCE_DESIGN_BRAND_COLORS as$key=>$default){
+        if(array_key_exists($key,$brandColors)&&!is_bool($brandColors[$key]))throw new InvalidArgumentException('Invalid Brand Kit color default.');
+        $styles['brandColors'][$key]=$brandColors[$key]??(strtolower($styles[$key])===$default);
+    }
     $styles['font']=in_array($s['font']??'', ['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$s['font']:'Arial';
     $styles['webFont']=audienceDesignWebFont($s['webFont']??'');
+    $styles['webFontName']=audienceDesignString($s['webFontName']??'',255);
+    $styles['webFontDefault']=($s['webFontDefault']??true)!==false;
     foreach(['width'=>[600,400,800],'fontSize'=>[16,12,30],'lineHeight'=>[160,100,240],'letterSpacing'=>[0,-2,10],'paragraphSpacing'=>[16,0,80],'heading1'=>[32,12,72],'heading2'=>[28,12,72],'heading3'=>[24,12,72],'heading4'=>[20,12,72],'buttonSize'=>[16,10,72],'buttonRadius'=>[4,0,50],'dividerHeight'=>[1,1,12],'dividerWidth'=>[100,10,100]]as$key=>[$default,$min,$max])$styles[$key]=audienceDesignNumber($s[$key]??$default,$min,$max);
     $styles['direction']=($s['direction']??'ltr')==='rtl'?'rtl':'ltr';$styles['linkUnderline']=($s['linkUnderline']??true)!==false;
     $out=['schema'=>1,'mode'=>($input['mode']??'visual')==='code'?'code':'visual','styles'=>$styles,'mobile'=>audienceDesignStyle($input['mobile']??[]),'rows'=>[],'plainText'=>isset($input['plainText'])?audienceDesignString($input['plainText'],100000):null,'code'=>audienceDesignString($input['code']??'',3000000),'areas'=>[]];
@@ -204,7 +213,7 @@ function audienceDesignRender(array $input,?array $context=null):string
     if($d['mode']==='code'){
         $safe=audienceDesignSafeCode($d['code'],$d['areas']);$html=$safe['html'];$hasFooter=str_contains($html,'*|UNSUB|*')&&str_contains($html,'*|UPDATE_PROFILE|*')&&(str_contains($html,'*|LIST:ADDRESS|*')||str_contains($html,'*|LIST:ADDRESSLINE|*'));if(!$hasFooter)$html=str_replace('</body>',$footer.'</body>',$html);$html=str_replace('*|MC:TOC|*',$tocHtml,$html);
         // Reinsert only the validated native brand font after sanitizing arbitrary source CSS.
-        if($s['webFont']!=='')$html=str_replace('</head>','<style>@font-face{font-family:MOEDBrandFont;src:url('.$s['webFont'].');font-display:swap}body{font-family:MOEDBrandFont,'.$s['font'].'}</style></head>',$html);
+        if($s['webFont']!=='')$html=str_replace('</head>','<style>@font-face{font-family:MOEDBrandFont;src:url('.$s['webFont'].');font-display:swap}'.($s['webFontDefault']?'body{font-family:MOEDBrandFont,'.$s['font'].'}':'').'</style></head>',$html);
         return $context===null?$html:audienceDesignMerge($html,$context);
     }
     $body='';
@@ -214,7 +223,7 @@ function audienceDesignRender(array $input,?array $context=null):string
         $body.='<tr><td class="'.$row['id'].'" style="'.$rowStyle.'"><table role="presentation" width="100%"><tr>';
         foreach($row['columns']as$column){$body.='<td class="email-column" valign="top" width="'.(100/count($row['columns'])).'%">';
             foreach($column as$b){if($context!==null&&!audienceDesignMatches($b['condition'],$context))continue;
-                $style=audienceDesignBlockStyle($b,$row,$s);if($s['webFont']!==''&&in_array('font',$b['inherit'],true)&&empty($row['styles']['font'])&&empty($b['styles']['font']))$style['font']='MOEDBrandFont,'.$s['font'];$class=$b['id'];$mobileStyle=$b['linkDevices']?[]:$b['mobile'];$mobileDefaults=array_intersect_key($d['mobile'],array_flip($b['inherit']));if(in_array('size',$b['inherit'],true)&&$b['type']==='heading'){$mobileDefaults['size']=$d['mobile']['heading'.$b['headingLevel']]??$style['size'];}elseif(in_array('size',$b['inherit'],true)&&$b['type']==='button')$mobileDefaults['size']=$d['mobile']['buttonSize']??$style['size'];$responsive.='.'.$class.'{'.audienceDesignCss(array_replace($style,$mobileDefaults,$row['mobile'],$mobileStyle),true).'}';
+                $style=audienceDesignBlockStyle($b,$row,$s);if($s['webFont']!==''&&$s['webFontDefault']&&$style['font']===$s['font']&&in_array('font',$b['inherit'],true)&&empty($row['styles']['font'])&&empty($b['styles']['font']))$style['font']='MOEDBrandFont,'.$s['font'];$class=$b['id'];$mobileStyle=$b['linkDevices']?[]:$b['mobile'];$mobileDefaults=array_intersect_key($d['mobile'],array_flip($b['inherit']));if(in_array('size',$b['inherit'],true)&&$b['type']==='heading'){$mobileDefaults['size']=$d['mobile']['heading'.$b['headingLevel']]??$style['size'];}elseif(in_array('size',$b['inherit'],true)&&$b['type']==='button')$mobileDefaults['size']=$d['mobile']['buttonSize']??$style['size'];$responsive.='.'.$class.'{'.audienceDesignCss(array_replace($style,$mobileDefaults,$row['mobile'],$mobileStyle),true).'}';
                 $mobileEffective=array_replace($style,$mobileDefaults,$row['mobile'],$mobileStyle);$responsive.='.'. $class.' p{margin-bottom:'.$mobileEffective['paragraphSpacing'].'px!important}';
                 $text=$b['html']!==''?$b['html']:nl2br($e($b['text']));$text=str_replace('*|MC:TOC|*',$tocHtml,$text);if(str_contains($b['html'],'<img'))$text.='<div style="clear:both"></div>';$content='';$type=$b['type'];
                 $image=static function(array $image,int $width)use($e):string{$content=$image['image']!==''?'<img src="'.$e($image['image']).'" alt="'.$e($image['alt']).'" width="'.$width.'" style="max-width:100%;height:auto">':'<div style="padding:40px;background:#eef1f2;color:#66757c">Add an image</div>';return ($image['url']??'')!==''?'<a href="'.$e($image['url']).'">'.$content.'</a>':$content;};

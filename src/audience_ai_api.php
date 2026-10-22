@@ -15,7 +15,7 @@ try{
         if(($_GET['action']??'')==='history'){
             $rows=$db->execute_query("SELECT client_request_id,question,manual_topic,outcome,created_at FROM ai_coach_requests WHERE user_id=? AND user_role=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics') ORDER BY id DESC LIMIT 20",[$actor,$role])->fetch_all(MYSQLI_ASSOC);
             $rows=array_values(array_filter($rows,static fn($r)=>audienceAiCanAccess($role,$r['manual_topic']==='audience-ai:analytics'?'analytics':'content')));
-            audienceAiRespond(['items'=>$rows]);
+            audienceAiRespond(['items'=>$rows,'can_remove_history'=>canDeleteEntries($role)]);
         }
         $uuid=audienceText($_GET,'request_id',36);$owned=audienceAiOwnedRequest($db,$actor,$role,$uuid);
         if(!$owned||!audienceAiCanAccess($role,$owned['manual_topic']==='audience-ai:analytics'?'analytics':'content'))audienceAiRespond(['error'=>'Suggestion not found.'],404);

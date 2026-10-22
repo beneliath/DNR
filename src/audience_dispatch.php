@@ -47,6 +47,7 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if(preg_match('/\*\|[^|\r\n]{1,300}\|\*/',$subject.$text.($html??'')))throw new InvalidArgumentException('Resolve all merge tags before sending this email.');
     if(trim($subject)===''||preg_match('/[\r\n]/',$subject.$draft['from_name'].$draft['from_email']))throw new InvalidArgumentException('The email subject or sender contains invalid characters.');
     if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
+    if(($context['__email_format']??'html')==='text')$html=null;
     if(function_exists('audienceTrackMessage')){[$tracked,$text]=audienceTrackMessage($snapshot,$html??'',$text,$token);if($html!==null)$html=$tracked;}
     // Measure the delivered bodies, after image hosting and tracking expansion.
     if(strlen($text)+strlen($html??'')>AUDIENCE_DESIGN_MAX_BYTES)throw new InvalidArgumentException('Keep the rendered email below 10 MB.');
@@ -136,6 +137,7 @@ trait AudienceDispatch
                 $context=['EMAIL'=>$person['email'],'FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
                 foreach($fields as$f){$value=$custom[$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
                 foreach($tagIds as$t)$context['tag:'.$t]=$memberships[$person['id']]['tag:'.$t]??'';foreach($groupIds as$g)$context['group:'.$g]=$memberships[$person['id']]['group:'.$g]??'';
+                $context['__email_format']=$this->collectionEmailFormat((int)$person['id']);
                 $token=bin2hex(random_bytes(32));$mid='<mm-'.bin2hex(random_bytes(24)).'@'.parse_url($base,PHP_URL_HOST).'>';
                 [$variantKey,$phase]=$assignments[$person['id']]??['0','main'];$send=$draft['send_time'];$variant=$snapshot['variants'][(int)$variantKey]??[];if(!empty($variant['local'])){$send['local']=str_replace('T',' ',$variant['local']);$send['mode']='schedule';$send['delivery']='specific';}
                 $recipientDue=audienceRecipientDue($send,$person['timezone']);if($phase==='hold')$recipientDue=$decision;

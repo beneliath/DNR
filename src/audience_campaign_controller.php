@@ -21,6 +21,7 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Reload the canonical audience before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
+        if($action==='brand_save'&&!$canDelete){http_response_code(403);exit('Only administrators can change Brand Kit settings.');}
         if($action==='campaign_preview'){
             header('Content-Type: application/json');header('Cache-Control: no-store');
             try{$row=$store->campaign($id);$candidate=$store->campaignAdvancedSection($row,'to',$_POST);[$where,$params]=$store->campaignTarget($candidate);echo json_encode(['count'=>(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n']],JSON_THROW_ON_ERROR);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;

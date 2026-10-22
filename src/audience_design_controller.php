@@ -5,6 +5,8 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     $audienceId=$store->audienceId;$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[])=>'audience.php'.($p?'?'.http_build_query($p):'');
     $kind=($_GET['kind']??'')==='template'?'template':'campaign';$starters=audienceDesignStarters();
+    $brand=$store->contentSettings()['settings']['brand']??[];
+    foreach($starters as&$starter)$starter['design']=audienceDesignBrandDefaults($starter['design'],$brand);unset($starter);
     $variantRaw=$_GET['variant']??'0';if(!is_string($variantRaw)||!preg_match('/^[0-7]$/D',$variantRaw)||($kind==='template'&&$variantRaw!=='0')){http_response_code(404);exit('This content variation is unavailable.');}$variant=(int)$variantRaw;
     $jsonRequest=($_SERVER['HTTP_X_AUDIENCE_DESIGN']??'')==='1'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'design_'));
     $respond=static function(array $data,int $status=200):never{http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode($data,JSON_THROW_ON_ERROR);exit;};
@@ -102,13 +104,14 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         if(!$canManage){http_response_code(403);exit('The designer requires an editor or administrator.');}
         try{$record=$kind==='template'?$store->emailTemplate($id):$store->campaign($id);if($kind==='campaign'&&($record['status']!=='draft'||$record['campaign_type']!=='regular'))throw new InvalidArgumentException('Only regular email drafts can use the visual designer.');$variantDesign=$kind==='template'?$record['design']:$store->campaignDesign($record,$variant);}
         catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
-        $design=$variantDesign??$starters['blank']['design'];if($variant>0)$record['name'].=' · Variation '.($variant+1);
-        $savedDesigns=[];foreach($templates as$t)$savedDesigns[]=['id'=>(int)$t['id'],'name'=>$t['name'],'design'=>audienceJson($t['design_json'])];
+        $design=audienceDesignBrandDefaults($variantDesign??$starters['blank']['design'],$brand);if($variant>0)$record['name'].=' · Variation '.($variant+1);
+        $savedDesigns=[];foreach($templates as$t)$savedDesigns[]=['id'=>(int)$t['id'],'name'=>$t['name'],'design'=>audienceDesignBrandDefaults(audienceJson($t['design_json']),$brand)];
         $dynamicFields=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address','SOURCE'=>'Signup source','EMAIL_STATUS'=>'Email status'];foreach($store->fields()as$f)$dynamicFields[$f['merge_tag']]=$f['label'];foreach($store->tags()as$t)$dynamicFields['tag:'.$t['id']]='Tag: '.$t['name'];foreach($store->groups()as$g)foreach($g['options']as$o)$dynamicFields['group:'.$o['id']]='Group: '.$g['name'].' / '.$o['name'];
         $mergeTags=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address'];foreach($store->fields()as$f)$mergeTags[$f['merge_tag']]=$f['label'];
         $sesSettings=$store->sesAvailable()?$store->sesSettings():[];
         $testSenders=$sesSettings&&!audienceSesReasons($sesSettings,$sesSettings['from_email']??'',requireFreshCheck:false)?[['email'=>$sesSettings['from_email']]]:[];
-        $designerConfig=['nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
+        $brandFont=audienceBrandFont($brand);
+        $designerConfig=['brandFont'=>$brandFont,'nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
         $aiInline=true;$aiText='';$aiSubject='';$aiImages=[];$aiConfig=['mode'=>'content','endpoint'=>'audience_ai_api.php','window'=>[],'enabled'=>aiCoachEnabled(),'key'=>hash('sha256',$themeKey.':'.($_SESSION['role']??'').':'.aiCoachStorageKey())];
         releaseApplicationSessionLock();
         ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php

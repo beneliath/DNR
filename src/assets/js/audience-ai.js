@@ -15,6 +15,7 @@
   const historyResetKey = `moed-audience-ai-history-reset-${config.key}-${config.mode}`;
   const historyHiddenKey = `${historyResetKey}-hidden`;
   let historyItems = [], historyCutoff = '';
+  let canRemoveHistory = false, historyChangePending = false;
   let hiddenRequests = new Set();
   try { historyCutoff = localStorage.getItem(historyResetKey) || ''; } catch { /* The list still works without storage. */ }
   try { const saved=JSON.parse(localStorage.getItem(historyHiddenKey)||'[]');if(Array.isArray(saved))hiddenRequests=new Set(saved.filter(id=>typeof id==='string')); } catch { /* Removing an entry still works for the current page. */ }
@@ -165,7 +166,7 @@
   function renderHistory() {
     const list = document.querySelector('[data-ai-history]'); if (!list) return;
       const items = historyItems.filter(item => item.created_at > historyCutoff && !hiddenRequests.has(item.client_request_id)); list.replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = items.length>0;
-      if (resetHistoryButton) resetHistoryButton.disabled = items.length === 0;
+      if (resetHistoryButton) { resetHistoryButton.hidden = !canRemoveHistory; resetHistoryButton.disabled = items.length === 0 || historyChangePending; }
       items.forEach(item => { const li=node('li');const button=node('button',item.question,'ai-history-open');button.type='button';if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
           if(busy&&active===item.client_request_id){question(item.question,item.client_request_id);return;}
           if(busy){generation++;active='';clearPending();setBusy(false);}
@@ -181,23 +182,36 @@
             }else failure('This request was interrupted. Please retry it.',item.client_request_id,item.question);
           }catch(error){if(token===generation)failure(error.message,item.client_request_id,item.question);}
         });
-        const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Remove from recent requests';remove.setAttribute('aria-label',`Remove request: ${item.question}`);
-        const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
-        remove.addEventListener('click',()=>{hiddenRequests.add(item.client_request_id);try{localStorage.setItem(historyHiddenKey,JSON.stringify([...hiddenRequests].slice(-200)));}catch{/* Current-page removal remains available. */}renderHistory();announce('Request removed from the list.');});
-        li.append(button,remove,node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));list.append(li); });
+        li.append(button);
+        if (canRemoveHistory) {
+          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Remove from recent requests (Admin Unlock required)';remove.setAttribute('aria-label',`Remove request: ${item.question}`);remove.setAttribute('data-admin-unlock-required','');
+          const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
+          remove.addEventListener('click',()=>changeHistory(()=>{hiddenRequests.add(item.client_request_id);try{localStorage.setItem(historyHiddenKey,JSON.stringify([...hiddenRequests].slice(-200)));}catch{/* Current-page removal remains available. */}announce('Request removed from the list.');}));
+          li.append(remove);
+        }
+        li.append(node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));list.append(li); });
+  }
+  async function changeHistory(change) {
+    if (!canRemoveHistory || historyChangePending) return;
+    historyChangePending = true;
+    if (resetHistoryButton) resetHistoryButton.disabled = true;
+    try {
+      if (!(await window.DnrAdminUnlock?.request()) || !canRemoveHistory) return;
+      change();
+    } catch { announce('Unable to verify Admin Unlock. The request list is unchanged.'); }
+    finally { historyChangePending = false; renderHistory(); }
   }
   async function history() {
     try {
-      const data = await api(null,'?action=history'); historyItems = data.items.filter(item => item.manual_topic === `audience-ai:${config.mode}`); renderHistory();
+      const data = await api(null,'?action=history'); historyItems = data.items.filter(item => item.manual_topic === `audience-ai:${config.mode}`); canRemoveHistory = data.can_remove_history === true; renderHistory();
       if(chat&&active){const item=historyItems.find(item=>item.client_request_id===active);if(item)question(item.question,active);}
     } catch { /* History failure never prevents manual editing. */ }
   }
-  resetHistoryButton?.addEventListener('click', () => {
+  resetHistoryButton?.addEventListener('click', () => changeHistory(() => {
     historyCutoff = historyItems.reduce((latest, item) => item.created_at > latest ? item.created_at : latest, historyCutoff);
     try { localStorage.setItem(historyResetKey, historyCutoff); } catch { /* The current list can still be reset. */ }
-    document.querySelector('[data-ai-history]').replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = false;
-    resetHistoryButton.disabled = true; announce('Request list reset. Saved requests remain available for review.');
-  });
+    announce('Request list reset. Saved requests remain available for review.');
+  }));
   function complete(result, uuid) {
     clearPending(); active=''; setBusy(false);
     if (chat && result.response?.evidence?.window) updateScope(Object.fromEntries(Object.keys(config.window).map(key => [key,result.response.evidence.window[key]])));
