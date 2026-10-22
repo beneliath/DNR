@@ -5,7 +5,7 @@ require_once __DIR__ . '/../src/functions.php';
 function renderAdminUnlockHeader(array $session): string {
     $_SESSION = $session;
     $_SERVER['PHP_SELF'] = 'dashboard.php';
-    $request_reminder_counts = ['active' => 0];
+    $request_reminder_counts = ['active' => 0, 'dashboard_overdue' => 0, 'dashboard_today' => 0];
     ob_start();
     include __DIR__ . '/../src/templates/header.php';
     return (string) ob_get_clean();
@@ -47,8 +47,8 @@ $lockForm = $xpath->query('//section[@data-admin-unlock]/form[@data-admin-lock-f
 if (!$lockForm instanceof DOMElement || $lockForm->getAttribute('method') !== 'post'
     || $lockForm->getAttribute('action') !== 'admin_lock.php'
     || $xpath->query('.//input[@name="csrf_token" and string-length(@value) > 0]', $lockForm)->length !== 1
-    || $xpath->query('.//button[@type="submit" and normalize-space(.)="Lock Admin Actions"]', $lockForm)->length !== 1
-    || $xpath->query('.//button[@type="submit" and @formaction="admin_extend.php" and normalize-space(.)="Add 5 Minutes"]', $lockForm)->length !== 1
+    || $xpath->query('.//button[@type="submit" and @aria-label="Lock Admin Actions" and .//svg]', $lockForm)->length !== 1
+    || $xpath->query('.//button[@type="submit" and @formaction="admin_extend.php" and @aria-label="Add 5 Minutes" and .//svg]', $lockForm)->length !== 1
 ) {
     throw new RuntimeException('The unlock banner needs a CSRF-protected early-lock button.');
 }

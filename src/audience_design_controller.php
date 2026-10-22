@@ -78,16 +78,24 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 $starter=audienceText($_POST,'starter');if(!isset($starters[$starter]))throw new InvalidArgumentException('Choose a starter template.');
                 $tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:$starters[$starter]['name'],$starters[$starter]['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_operation'){
-                $op=audienceText($_POST,'operation');$result=$store->emailTemplateOperation($op,$id,$version,$_POST);
+                $op=audienceText($_POST,'operation');
+                if($op==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can permanently delete archived templates.');}
+                    requireRecentAdminElevation($url(['view'=>'templates','tab'=>'archived']));
+                }
+                $result=$store->emailTemplateOperation($op,$id,$version,$_POST);
+                $message=match($op){'archive'=>'Template archived. Existing campaign designs are preserved.','restore'=>'Template restored.','delete'=>'Template permanently deleted. Existing campaign designs are preserved.',default=>'Template updated.'};
+                if($op==='delete')$redirect=$url(['view'=>'templates','tab'=>'archived']);
                 if($op==='campaign')$redirect=$url(['view'=>'designer','id'=>$result]);
                 elseif($op==='replicate')$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$result]);
             }else throw new InvalidArgumentException('Unknown design action.');
-            $_SESSION['audience_message']='Template saved.';header('Location: '.$redirect);exit;
+            $_SESSION['audience_message']=$action==='template_operation'?$message:'Template saved.';header('Location: '.$redirect);exit;
         }catch(InvalidArgumentException $e){if($jsonRequest)$respond(['error'=>$e->getMessage()],422);$error=$e->getMessage();}
         catch(Throwable $e){applicationLog('error','Email design operation failed',['error'=>$e->getMessage()]);if($jsonRequest)$respond(['error'=>'Unable to save. Your edits are still here. Try again.'],500);$error='Unable to save. Try again.';}
     }
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
-    $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL',[$audienceId]);
+    $archivedTemplates=$view==='templates'&&($_GET['tab']??'')==='archived';
+    $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json,deleted_at FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS '.($archivedTemplates?'NOT NULL':'NULL'),[$audienceId]);
     // Embedded photographs must not become MySQL filesort payloads.
     usort($templates,static fn($a,$b)=>[$b['updated_at'],(int)$b['id']]<=>[$a['updated_at'],(int)$a['id']]);
     if($view==='designer'){
@@ -106,7 +114,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php
         return;
     }
-    $tab=in_array($_GET['tab']??'', ['built-in','saved','recent'],true)?$_GET['tab']:'built-in';
+    $tab=in_array($_GET['tab']??'', ['built-in','saved','recent','archived'],true)?$_GET['tab']:'saved';
     $recentIds=array_column($store->all("SELECT id FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' AND campaign_type='regular' ORDER BY sent_at DESC,id DESC LIMIT 50",[$audienceId]),'id');
     $recentById=[];$recentDesigns=[];
     if($recentIds)foreach($store->all('SELECT id,name,draft_json,updated_at FROM marketing_campaigns WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($recentIds),'?')).')',[$audienceId,...$recentIds])as$recent)$recentById[$recent['id']]=$recent;

@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
-        "templates/header.php": "ea47e09823e34c18c69b73dde5a54ccdd1d7dc2b3045a33e22b475e564e91dd6",
+        "templates/header.php": "13cd7e78c4f99cfe6c3f87400188f6d4ef24b5041b8bc89f6fc1a2fe8a69a208",
         "templates/deployment-notice.php": "985aee2d55a646d05733893b93cc3e6e4d4782955568730128191e8ac9b0e6cc"
       },
       "subjects": [
@@ -1329,7 +1329,7 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "6463344a922e309bbddc1fa1ef44364d5663cd0b187e53851cc419c7662721d2"
+        "functions.php": "91beba44de46756f7fe252fcc1df44c71953f9f3e914625f1293ede04792e0be"
       }
     },
     {
@@ -1357,8 +1357,8 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "6463344a922e309bbddc1fa1ef44364d5663cd0b187e53851cc419c7662721d2",
-        "templates/footer.php": "7ac4520cb24350e93eba4934a4cd209ddf4bfa0691b50a74678bbe80a704699f",
+        "functions.php": "91beba44de46756f7fe252fcc1df44c71953f9f3e914625f1293ede04792e0be",
+        "templates/footer.php": "585b8620ecfb524aa0631b1864c639e9cd03c1df4e92854cff45c0128c47184a",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
         "ai_coach_guidance_helpers.php": "2ae52ac22fb959b8b9110673d690ae3367e98debb2fdd384a5895bf8ce1626e2"

@@ -118,9 +118,9 @@ function audienceDesignPreviewSource(string $html,string $nonce,bool $dark=false
 }
 trait AudienceDesigns
 {
-    public function emailTemplate(int $id,bool $lock=false):array
+    public function emailTemplate(int $id,bool $lock=false,bool $includeArchived=false):array
     {
-        $row=$this->one('SELECT * FROM marketing_email_templates WHERE audience_id=? AND id=? AND deleted_at IS NULL'.($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
+        $row=$this->one('SELECT * FROM marketing_email_templates WHERE audience_id=? AND id=?'.($includeArchived?'':' AND deleted_at IS NULL').($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
         if(!$row)throw new InvalidArgumentException('This template is unavailable.');$row['design']=audienceJson($row['design_json']);return $row;
     }
     public function saveEmailDesign(string $kind,int $id,int $version,array $design,int $variant=0):int
@@ -146,10 +146,19 @@ trait AudienceDesigns
     public function emailTemplateOperation(string $operation,int $id,int $version,array $input):int
     {
         return $this->transaction(function()use($operation,$id,$version,$input){
-            $row=$this->emailTemplate($id,true);if((int)$row['version']!==$version)throw new InvalidArgumentException('This template changed. Reload before continuing.');
+            $row=$this->emailTemplate($id,true,true);if((int)$row['version']!==$version)throw new InvalidArgumentException('This template changed. Reload before continuing.');
+            $archived=$row['deleted_at']!==null;
+            if($archived&&!in_array($operation,['restore','delete'],true))throw new InvalidArgumentException('Restore this archived template before using or changing it.');
+            if(!$archived&&in_array($operation,['restore','delete'],true))throw new InvalidArgumentException('Only archived templates can be restored or permanently deleted.');
             if($operation==='replicate')return $this->createEmailTemplate(mb_substr($row['name'],0,90).' (copy)',$row['design'],$row['folder']);
             if($operation==='campaign'){$cid=$this->createCampaign(['name'=>audienceText($input,'name',100)?:$row['name'],'campaign_type'=>'regular']);$this->saveEmailDesign('campaign',$cid,1,$row['design']);return $cid;}
-            if($operation==='delete')$this->write('UPDATE marketing_email_templates SET deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
+            if($operation==='delete'){
+                $this->write("DELETE FROM marketing_design_comments WHERE audience_id=? AND owner_type='template' AND owner_id=?",[$this->audienceId,$id]);
+                $this->write("DELETE FROM marketing_design_revisions WHERE audience_id=? AND owner_type='template' AND owner_id=?",[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_email_templates WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
+            }elseif($operation==='archive'||$operation==='restore'){
+                $this->write('UPDATE marketing_email_templates SET deleted_at='.($operation==='archive'?'UTC_TIMESTAMP(6)':'NULL').',actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
+            }
             elseif($operation==='rename'||$operation==='folder'){$key=$operation==='rename'?'name':'folder';$value=audienceText($input,$key,100);if($key==='name'&&$value==='')throw new InvalidArgumentException('Enter a template name.');$this->write("UPDATE marketing_email_templates SET $key=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?",[$value,$this->actorLabel,$this->audienceId,$id]);}
             else throw new InvalidArgumentException('Unknown template action.');return $id;
         });

@@ -2262,3 +2262,39 @@ The final s1 readback retained `bulk_approved=0`, zero hourly/daily bulk budgets
 `production_access=0`, and empty delivery/service-mail queues. Private aggregate
 receipts and screenshots are recorded at
 `var/deployment/message-monkey-inbox-signup-2026-10-20.json`.
+
+## Email template archive and protected deletion (2026-10-21)
+
+Saved email designs now have an Archived view. Editors and administrators can
+archive and restore designs using MOED's archive and restore icons. Archived
+designs cannot be edited or used for new campaigns until restored. Existing
+campaign snapshots are preserved throughout the lifecycle.
+
+Permanent deletion is available only for archived designs, only to administrators,
+and only with a current MOED Admin Unlock. The server checks the role, unlock,
+audience ownership, archive state and record version. Deletion removes the design
+and its template-owned comments and revisions. The existing soft-removal timestamp
+backs the archive, so previously removed designs are recoverable there; no schema
+migration or Test Account baseline format change is required.
+
+MOED and MessageMonkey share the unlock banner and authentication dialog. Protected
+controls use MOED's orange outline until unlocked. The countdown, Add 5 Minutes and
+Lock Admin Actions controls stack with account, deployment and role-preview banners.
+Unlocking rotates the CSRF tokens in pending forms; expiry is checked again before
+a permanent-delete submission. Releases must apply the updated table-specific web
+DELETE grants for `marketing_email_templates` and `marketing_design_comments` through
+the standard privilege configuration step.
+
+The library opens on Saved. Card actions use a single row of icons, shared teal
+hover states and immediate speech-bubble tooltips that invert in dark mode. Cards
+have a uniform height of twice their width; previews stop before incomplete text
+lines or images and leave the remaining area blank. The editor uses a narrower
+panel, a two-row text toolbar and a rounded double outline that blinks five times
+before remaining visible on the selected preview block.
+
+Validation: 1,078 isolated audience HTTP checks plus the existing restricted worker,
+ingestion, gateway and credential-rotation suites passed. Browser coverage checks
+role visibility, lifecycle icons, unlock cancellation/expiry, rotated tokens and
+banner stacking/collapse at desktop, tablet and mobile widths. Shared unlock,
+confirmation, action-icon and UI consistency checks also passed. No live account
+data was changed by these tests.
