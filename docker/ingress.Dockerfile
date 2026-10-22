@@ -1,4 +1,4 @@
-FROM php:8.5-apache@sha256:609de4eac65a03f20975441c9c3f313811d785575f0d02413c630753ab5c5532
+FROM php:8.5.12-apache@sha256:e25ab14ef2cfec3bab9dd66c6cf871691146f428fbd72241b1a2c38fcacf92f5
 
 # The public edge contains the reverse proxy and a read-only deployment notice.
 # It has no business routes, Composer dependencies, migrations, database clients,
