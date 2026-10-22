@@ -95,6 +95,12 @@
     const config = JSON.parse(configNode.textContent), clone = value => JSON.parse(JSON.stringify(value));
     let doc = clone(config.document), version = config.version, name = config.name, selected = 'trigger', zoom = 1, dirty = false, timer, saving = null, sequence = 0;
     const undo = [], redo = [], map = $('[data-flow-map]'), inspector = $('[data-flow-inspector]'), status = $('[data-flow-save-status]'), error = $('[data-flow-error]');
+    const saveButton = $('[data-flow-save]');
+    const topbar = $('.audience-topbar');
+    const syncFlowHeader = () => document.body.style.setProperty('--flow-topbar-height', `${topbar?.getBoundingClientRect().height || 0}px`);
+    syncFlowHeader();
+    if (topbar) new ResizeObserver(syncFlowHeader).observe(topbar);
+    let manualSaving = false, saveNotice, feedbackTimer;
     const storageKey = `moed:message-monkey:flow:${config.key}:${config.id}`;
     const el = (tag, attrs = {}, text) => {
         const element = document.createElement(tag);
@@ -122,7 +128,7 @@
     const showError = message => { error.textContent = message; error.hidden = !message; };
     const checkpoint = () => { undo.push(clone({doc,name})); if (undo.length > 30) undo.shift(); redo.length = 0; };
     const remember = () => { try { localStorage.setItem(storageKey, JSON.stringify({version,doc,name})); } catch (_) { /* Saving does not depend on browser storage. */ } };
-    const changed = (render = true) => { dirty = true; sequence++; status.textContent = 'Unsaved changes'; remember(); clearTimeout(timer); timer = setTimeout(() => save(), 1200); if (render) renderMap(); };
+    const changed = (render = true) => { dirty = true; sequence++; status.textContent = 'Unsaved changes'; if (!manualSaving) { clearTimeout(feedbackTimer); if (saveNotice) saveNotice.hidden = true; if (saveButton) saveButton.textContent = 'Save'; } remember(); clearTimeout(timer); timer = setTimeout(() => save(), 1200); if (render) renderMap(); };
     const edit = (target, key, value, redraw = true) => { if (!config.editable) return; checkpoint(); target[key] = value; changed(redraw); };
     const post = async values => {
         const response = await fetch('audience.php?view=flow', {method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({csrf_token:config.csrf,id:config.id,format:'json',...values}),cache:'no-store'});
@@ -130,7 +136,7 @@
         const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to save this flow.'); return data;
     };
     async function save() {
-        clearTimeout(timer); if (!dirty || !config.editable) return true; if (saving) { await saving; return dirty ? save() : true; }
+        clearTimeout(timer); if (!config.editable) return true; if (saving) { const result = await saving; return result && dirty ? save() : result; } if (!dirty) return true;
         const turn = sequence; status.textContent = 'Saving…'; showError('');
         saving = (async () => {
             try {
@@ -144,6 +150,26 @@
             } catch (e) { status.textContent = 'Not saved'; showError(e.message); return false; }
         })();
         const result = await saving; saving = null; return result;
+    }
+    async function saveWithFeedback() {
+        if (!config.editable || manualSaving) return;
+        manualSaving = true;
+        clearTimeout(feedbackTimer);
+        if (!saveNotice) { saveNotice = el('p', {class:'button-feedback-notice',role:'status','aria-live':'polite','aria-atomic':'true','data-flow-save-feedback':true}); document.body.append(saveNotice); }
+        const hadChanges = dirty || Boolean(saving);
+        saveNotice.hidden = false; saveNotice.textContent = 'Saving draft';
+        if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Saving'; saveButton.setAttribute('aria-busy','true'); }
+        try {
+            let saved = await save();
+            // Include edits made while an earlier autosave was in flight.
+            while (saved && dirty) saved = await save();
+            saveNotice.textContent = saved ? (hadChanges ? 'Draft saved' : 'All changes are already saved') : `Draft was not saved. ${error.textContent}`;
+            if (saveButton) saveButton.textContent = saved ? '✓ Saved' : 'Save';
+        } finally {
+            manualSaving = false;
+            if (saveButton) { saveButton.disabled = false; saveButton.removeAttribute('aria-busy'); }
+            feedbackTimer = setTimeout(() => { saveNotice.hidden = true; if (saveButton) saveButton.textContent = 'Save'; }, 5000);
+        }
     }
     function renderValidation(errors = []) {
         const panel = $('[data-flow-validation]'); panel.replaceChildren(el('h2', {}, 'Review your flow'));
@@ -201,18 +227,46 @@
         parent.append(box);
     }
     function renderSettings() {
-        const parent = $('[data-flow-settings]'); parent.replaceChildren(); const fieldset = el('fieldset', {disabled:!config.editable}); parent.append(fieldset);
-        fieldset.append(el('h2', {}, 'Flow settings'));
-        field(fieldset,'Flow name',input('text',name,value => { if (!config.editable) return; checkpoint(); name = value; changed(false); },{maxlength:100,required:true}));
-        field(fieldset,'Allow connections to repeat the flow',input('checkbox',doc.settings.repeat,value => edit(doc.settings,'repeat',value)));
-        field(fieldset,'Minimum days before reentry',input('number',doc.settings.cooldown,value => edit(doc.settings,'cooldown',value),{min:0,max:365}));
-        field(fieldset,'Time zone',input('text',doc.settings.timezone,value => edit(doc.settings,'timezone',value),{list:'flow-timezones'}));
+        const parent = $('[data-flow-settings]'); parent.replaceChildren(); const fieldset = el('fieldset', {disabled:!config.editable}), settingsFields = el('div', {class:'flow-settings-fields'}); parent.append(fieldset);
+        fieldset.append(el('h2', {}, 'Flow settings'), settingsFields);
+        field(settingsFields,'Flow name',input('text',name,value => { if (!config.editable) return; checkpoint(); name = value; changed(false); },{maxlength:100,required:true})).parentElement.classList.add('flow-setting-wide');
+        field(settingsFields,'Allow connections to repeat the flow',input('checkbox',doc.settings.repeat,value => edit(doc.settings,'repeat',value))).parentElement.classList.add('flow-setting-wide');
+        const timingSettings = el('div', {class:'flow-timing-settings'}); settingsFields.append(timingSettings);
+        field(timingSettings,'Minimum days before reentry',input('number',doc.settings.cooldown,value => edit(doc.settings,'cooldown',value),{min:0,max:365}));
+        field(timingSettings,'Exit after (days)',input('number',doc.settings.max_days,value => edit(doc.settings,'max_days',value),{min:1,max:365}));
+        field(timingSettings,'Time zone',input('text',doc.settings.timezone,value => edit(doc.settings,'timezone',value),{list:'flow-timezones'}));
         if (!$('#flow-timezones')) { const list = el('datalist', {id:'flow-timezones'}); Intl.supportedValuesOf('timeZone').forEach(zone => list.append(el('option', {value:zone}))); document.body.append(list); }
-        field(fieldset,'Use each connection’s time zone when available',input('checkbox',doc.settings.recipient_timezone,value => edit(doc.settings,'recipient_timezone',value)));
-        field(fieldset,'Email delivery days',options({1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday',7:'Sunday'},doc.settings.weekdays,value => edit(doc.settings,'weekdays',value.map(Number)),true));
-        field(fieldset,'Send after',input('time',doc.settings.after,value => edit(doc.settings,'after',value)));
-        field(fieldset,'Send before',input('time',doc.settings.before,value => edit(doc.settings,'before',value)));
-        field(fieldset,'Exit after (days)',input('number',doc.settings.max_days,value => edit(doc.settings,'max_days',value),{min:1,max:365}));
+        field(settingsFields,'Use each connection’s time zone when available',input('checkbox',doc.settings.recipient_timezone,value => edit(doc.settings,'recipient_timezone',value))).parentElement.classList.add('flow-setting-wide');
+        const deliveryDays = el('fieldset', {class:'flow-weekdays'}), dayChoices = el('div', {class:'flow-weekday-options'}), dayPresets = el('div', {class:'flow-weekday-presets'}), presetChecks = [];
+        const syncDeliveryDays = () => {
+            const selectedDays = doc.settings.weekdays.map(Number);
+            $$('input',dayChoices).forEach(control => { control.checked = selectedDays.includes(Number(control.value)); });
+            presetChecks.forEach(({control,days}) => {
+                const count = days.filter(day => selectedDays.includes(day)).length;
+                control.checked = count === days.length;
+                control.indeterminate = count > 0 && count < days.length;
+            });
+        };
+        deliveryDays.append(el('legend', {}, 'Email delivery days'), dayPresets, dayChoices);
+        for (const [label, days] of [['Weekdays',[1,2,3,4,5]],['Weekends',[6,7]],['All',[1,2,3,4,5,6,7]]]) {
+            const choice = el('label'), control = input('checkbox',false,checked => {
+                const selectedDays = new Set(doc.settings.weekdays.map(Number));
+                days.forEach(day => { if (checked) selectedDays.add(day); else selectedDays.delete(day); });
+                edit(doc.settings,'weekdays',Array.from(selectedDays).sort((a,b) => a-b));
+                syncDeliveryDays();
+            });
+            presetChecks.push({control,days});
+            choice.append(control,el('span',{},label)); dayPresets.append(choice);
+        }
+        for (const [day, label] of Object.entries({1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday',7:'Sunday'})) {
+            const choice = el('label');
+            choice.append(input('checkbox',false,() => { edit(doc.settings,'weekdays',$$('input:checked',dayChoices).map(control => Number(control.value))); syncDeliveryDays(); },{value:day}),el('span',{},label));
+            dayChoices.append(choice);
+        }
+        syncDeliveryDays();
+        settingsFields.append(deliveryDays);
+        field(settingsFields,'Send after',input('time',doc.settings.after,value => edit(doc.settings,'after',value)));
+        field(settingsFields,'Send before',input('time',doc.settings.before,value => edit(doc.settings,'before',value)));
         fieldset.append(el('h3', {}, 'Entry filters')); ruleGroup(fieldset,doc.entry);
         fieldset.append(el('h3', {}, 'Exit conditions')); fieldset.append(el('p', {class:'audience-help'}, 'No exit conditions means connections finish their path normally. Archived and removed connections always exit.')); ruleGroup(fieldset,doc.exit);
         parent.append(el('p', {class:'audience-help'}, 'Changes apply to new entries after activation. Connections already in progress keep their revision. Delays continue to count while paused.'));
@@ -225,12 +279,21 @@
     }
     function renderInspector() {
         inspector.replaceChildren(); const node = doc.nodes.find(n => n.id === selected), form = el('fieldset', {disabled:!config.editable}); inspector.append(form);
-        if (!node) { form.append(el('h2', {}, 'Starting point')); [doc.trigger,...(doc.additional_triggers || [])].forEach((trigger,index) => {
-            const group=el('fieldset'); group.append(el('legend',{},`Trigger ${index+1}`)); triggerFields(group,trigger);
-            if(index)group.append(button('Remove trigger',()=>{checkpoint();doc.additional_triggers.splice(index-1,1);changed();renderInspector();},{disabled:!config.editable})); form.append(group);
-        });
-        form.append(el('p',{class:'audience-help'},'Any starting trigger can add a connection. Entry filters and repeat settings apply to every trigger.'));
-        if((doc.additional_triggers || []).length<2)form.append(button('Add starting trigger',()=>{checkpoint();doc.additional_triggers ||= [];doc.additional_triggers.push({type:Object.keys(config.triggers).find(type=>![doc.trigger,...doc.additional_triggers].some(t=>t.type===type)) || 'manual',id:0,field:'',value:'',offset:0,time:'09:00'});changed();renderInspector();},{disabled:!config.editable})); field(form,'First step',options({'':'Choose a step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value))); return; }
+        if (!node) {
+            form.append(el('h2', {}, 'Starting point'));
+            const triggers = el('div', {class:'flow-trigger-list'});
+            [doc.trigger,...(doc.additional_triggers || [])].forEach((trigger,index) => {
+                const headingId = `flow-trigger-heading-${index+1}`, group = el('div', {class:'flow-trigger-card',role:'group','aria-labelledby':headingId}), heading = el('div', {class:'flow-trigger-heading'}), fields = el('div', {class:'flow-trigger-fields'});
+                heading.append(el('strong', {id:headingId}, `Trigger ${index+1}`));
+                if(index)heading.append(button('Remove trigger',()=>{checkpoint();doc.additional_triggers.splice(index-1,1);changed();renderInspector();},{disabled:!config.editable}));
+                triggerFields(fields,trigger); group.append(heading,fields); triggers.append(group);
+            });
+            form.append(triggers,el('p',{class:'audience-help'},'Any starting trigger can add a connection. Entry filters and repeat settings apply to every trigger.'));
+            const footer = el('div', {class:'flow-trigger-footer'});
+            field(footer,'First step',options({'':'Choose a step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value)));
+            if((doc.additional_triggers || []).length<2)footer.append(button('Add starting trigger',()=>{checkpoint();doc.additional_triggers ||= [];doc.additional_triggers.push({type:Object.keys(config.triggers).find(type=>![doc.trigger,...doc.additional_triggers].some(t=>t.type===type)) || 'manual',id:0,field:'',value:'',offset:0,time:'09:00'});changed();renderInspector();},{disabled:!config.editable}));
+            form.append(footer); return;
+        }
         form.append(el('h2', {}, config.types[node.type])); field(form,'Step name',input('text',node.label,value => edit(node,'label',value),{maxlength:100}));
         if (node.type === 'email') {
             field(form,'Email',options(campaignChoices(),node.campaign_id,value => { edit(node,'campaign_id',Number(value)); renderInspector(); }));
@@ -300,17 +363,47 @@
     }
     $$('[data-flow-add]').forEach(b=>{b.addEventListener('click',()=>add(b.dataset.flowAdd));b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',b.dataset.flowAdd);});});
     $$('[data-flow-panel]').forEach(b=>b.addEventListener('click',()=>{$$('[data-flow-panel]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$$('[data-flow-panel-body]').forEach(x=>{x.hidden=x.dataset.flowPanelBody!==b.dataset.flowPanel;});}));
-    $$('[data-flow-zoom]').forEach(b=>b.addEventListener('click',()=>{zoom=b.dataset.flowZoom==='reset'?1:Math.max(.35,Math.min(1.5,zoom+(b.dataset.flowZoom==='in'?.1:-.1)));renderMap();if(b.dataset.flowZoom==='reset')$('.flow-map-scroll').scrollTo({top:0,left:Math.max(0,(map.offsetWidth-$('.flow-map-scroll').clientWidth)/2)});}));
-    $('[data-flow-save]')?.addEventListener('click',save);
+    $$('[data-flow-zoom]').forEach(b=>b.addEventListener('click',()=>{zoom=b.dataset.flowZoom==='reset'?1:Math.max(.35,Math.min(1.5,zoom+(b.dataset.flowZoom==='in'?.1:-.1)));renderMap();if(b.dataset.flowZoom==='reset')centerMap();}));
+    saveButton?.addEventListener('click',saveWithFeedback);
     $('[data-flow-review]')?.addEventListener('click',async()=>{if(await save()){const dialog=$('#flow-turn-on');dialog.showModal();$('button',dialog)?.focus();}});
     $$('form[data-flow-needs-save]').forEach(form=>form.addEventListener('submit',async event=>{if(!dirty)return;event.preventDefault();if(await save())form.requestSubmit();}));
     const restoreHistory = backwards => { if(!config.editable)return; const source=backwards?undo:redo,dest=backwards?redo:undo;if(!source.length)return;dest.push(clone({doc,name}));const previous=source.pop();doc=previous.doc;name=previous.name;changed();renderInspector();renderSettings(); };
     $('[data-flow-undo]')?.addEventListener('click',()=>restoreHistory(true));$('[data-flow-redo]')?.addEventListener('click',()=>restoreHistory(false));
-    document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();save();}});
+    document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveWithFeedback();}});
     window.addEventListener('beforeunload',event=>{if(dirty||saving){remember();event.preventDefault();event.returnValue='';}});
     try{const recovered=JSON.parse(localStorage.getItem(storageKey)||'null');if(recovered&&config.editable){const banner=el('div',{class:'audience-notice flow-recovery'},'A recovered flow draft is available ');banner.append(button('Recover draft',()=>{checkpoint();doc=recovered.doc;name=recovered.name;changed();renderInspector();renderSettings();banner.remove();}),button('Discard',()=>{localStorage.removeItem(storageKey);banner.remove();}));if(recovered.version!==version)banner.prepend(el('strong',{},'The saved flow changed since this draft was kept. Review differences before saving. '));$('.flow-editor').prepend(banner);}}catch(_){/* Storage is optional. */}
-    const scroll=$('.flow-map-scroll');let pan=null;
-    scroll.addEventListener('pointerdown',event=>{if(event.button!==0||event.target.closest('button'))return;pan={x:event.clientX,y:event.clientY,left:scroll.scrollLeft,top:scroll.scrollTop};scroll.setPointerCapture(event.pointerId);});
-    scroll.addEventListener('pointermove',event=>{if(!pan)return;scroll.scrollLeft=pan.left-(event.clientX-pan.x);scroll.scrollTop=pan.top-(event.clientY-pan.y);});scroll.addEventListener('pointerup',()=>{pan=null;});scroll.addEventListener('pointercancel',()=>{pan=null;});
-    renderSettings();renderMap();renderInspector();scroll.scrollLeft=Math.max(0,(map.offsetWidth-scroll.clientWidth)/2);
+    const scroll = $('.flow-map-scroll'), plane = el('div', {class:'flow-map-plane'});
+    map.before(plane); plane.append(map);
+    let pan = null, paddingX = 0, paddingY = 0;
+    const sizeCanvas = () => {
+        const width = scroll.clientWidth, height = scroll.clientHeight;
+        if (!width || !height || (width === paddingX && height === paddingY)) return;
+        const left = scroll.scrollLeft + width - paddingX, top = scroll.scrollTop + height - paddingY;
+        paddingX = width; paddingY = height;
+        // Keep room on every side so even a flow that fits can be panned.
+        plane.style.padding = `${paddingY}px ${paddingX}px`;
+        scroll.scrollTo({left,top,behavior:'instant'});
+    };
+    function centerMap() {
+        sizeCanvas();
+        scroll.scrollTo({left:paddingX + (map.getBoundingClientRect().width - scroll.clientWidth) / 2,top:paddingY,behavior:'instant'});
+    }
+    scroll.addEventListener('pointerdown',event => {
+        if (!event.isPrimary || event.button !== 0 || event.target.closest('button,a,input,select,textarea')) return;
+        event.preventDefault();
+        pan = {pointerId:event.pointerId,x:event.clientX,y:event.clientY,left:scroll.scrollLeft,top:scroll.scrollTop};
+        scroll.classList.add('is-panning'); scroll.setPointerCapture(event.pointerId);
+    });
+    scroll.addEventListener('pointermove',event => {
+        if (!pan || event.pointerId !== pan.pointerId) return;
+        scroll.scrollLeft = pan.left - (event.clientX - pan.x); scroll.scrollTop = pan.top - (event.clientY - pan.y);
+    });
+    const stopPan = event => {
+        if (!pan || event.pointerId !== pan.pointerId) return;
+        pan = null; scroll.classList.remove('is-panning');
+        if (scroll.hasPointerCapture(event.pointerId)) scroll.releasePointerCapture(event.pointerId);
+    };
+    ['pointerup','pointercancel','lostpointercapture'].forEach(type => scroll.addEventListener(type,stopPan));
+    renderSettings(); renderMap(); renderInspector(); centerMap();
+    new ResizeObserver(sizeCanvas).observe(scroll);
 })();

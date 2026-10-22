@@ -134,6 +134,7 @@ html.dark-mode .designer-rail img{filter:invert(1)}
 .designer-rich-toolbar :is(button,select){margin:0!important;min-height:32px;height:32px;line-height:1.2;border-radius:3px}
 .designer-rich-toolbar .designer-rich-tool{display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;min-width:28px;padding:3px;color:inherit;background:transparent}
 .designer-rich-tool svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:square;stroke-linejoin:miter}
+.designer-rich-toolbar .audience-history-action{flex-basis:38px;min-width:38px;height:38px;min-height:38px;padding:6px}
 .designer-rich-toolbar :is(button:hover,button[aria-pressed=true]){background:var(--audience-hover)}
 .designer-rich-toolbar .designer-rich-bold{font-size:20px;font-weight:700}.designer-rich-toolbar .designer-rich-italic{font:italic 700 20px Georgia,serif}.designer-rich-toolbar .designer-rich-underline{font-size:20px;text-decoration:underline;font-weight:700}
 .designer-rich-toolbar .designer-rich-label-tool{flex-basis:auto;padding-inline:8px;background:var(--audience-hover);font-size:13px;white-space:nowrap}

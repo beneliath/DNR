@@ -6,12 +6,15 @@ require __DIR__.'/../../src/audience_flow_presentation.php';
 function audienceInputs(array $values): void { foreach($values as$key=>$value)echo '<input type="hidden" name="'.htmlspecialchars($key,ENT_QUOTES,'UTF-8').'" value="'.htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8').'">'; }
 $kind=$argv[1]??'catalog';$dark=($argv[2]??'')==='dark';$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$url=static fn(array $p=[])=>'audience.php?'.http_build_query($p);$q='';$canDelete=true;
 ob_start();renderPageHead('Automation qualification',['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-flows.min.css']]);$head=preg_replace('~<script\b[^>]*>.*?</script>~s','',ob_get_clean());
-echo '<!doctype html><html'.($dark?' class="dark-mode"':'').'>'.$head.'<body class="audience-app audience-flow-workspace" data-audience-key="synthetic-user-account"><main class="audience-content"><div class="audience-page-body">';
+echo '<!doctype html><html'.($dark?' class="dark-mode"':'').'>'.$head.'<body class="audience-app audience-flow-workspace" data-audience-key="synthetic-user-account"><main class="audience-content">';
+if($kind!=='builder-save')echo '<div class="audience-page-body">';
 if($kind==='catalog')require __DIR__.'/../../src/templates/audience/flow-catalog.php';
-elseif($kind==='builder'){
-    $view='flow';$available=true;$id=1;$csrf='';$canManage=false;$themeKey='synthetic';$tags=[];$groups=[];$fields=[];$campaignOptions=[];$surveyOptions=[];$flowOptions=[];$validation=[];$report=['nodes'=>[]];
+elseif(in_array($kind,['builder','builder-save'],true)){
+    $view='flow';$available=true;$id=1;$csrf='';$canManage=$kind==='builder-save';$themeKey='synthetic';$tags=[];$groups=[];$fields=[];$campaignOptions=[];$surveyOptions=[];$flowOptions=[];$validation=[];$report=['nodes'=>[]];
     $catalog=['email'=>['kind'=>'text','label'=>'Email'],'email_status'=>['kind'=>'choice','label'=>'Email status','options'=>array_combine(AUDIENCE_STATUSES,AUDIENCE_STATUSES)]];
     $flow=['id'=>1,'version'=>1,'name'=>'Cleanup fixture','state'=>'draft','document'=>audienceFlowDocument(audienceFlowDefault('cleanup')),'paused_nodes'=>[]];
+    if($canManage)echo '<div class="audience-page-heading"><h1>Cleanup fixture</h1><div class="audience-actions"><button type="button" data-flow-save>Save</button></div></div>';
+    if($kind==='builder-save')echo '<div class="audience-page-body">';
     require __DIR__.'/../../src/templates/audience/flows.php';
 }
 elseif(str_starts_with($kind,'overview-')){
