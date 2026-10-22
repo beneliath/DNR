@@ -2,6 +2,7 @@ parameters:
     level: 5
     paths:
         - src/workflow_task_helpers.php
+        - src/test_account_demo_helpers.php
         - src/task_bulk_helpers.php
         - src/duplicate_warning_helpers.php
         - src/global_search_helpers.php
@@ -15,6 +16,7 @@ parameters:
         - src/reimbursement_admin_helpers.php
         - src/reimbursement_workflow_helpers.php
         - src/reimbursement_helpers.php
+        - src/reimbursement_mileage_helpers.php
         - src/record_merge_journal_helpers.php
         - src/record_merge_helpers.php
         - src/ai_coach_helpers.php
@@ -47,6 +49,8 @@ parameters:
         - src/database_backup_service.php
         - src/deployment_notice_helpers.php
         - src/dashboard_helpers.php
+        - src/engagement_location_helpers.php
+        - src/account_release_helpers.php
         - src/daily_digest_email.php
         - src/engagement_export_helpers.php
         - src/presentation_export_helpers.php
@@ -57,6 +61,7 @@ parameters:
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/email_helpers.php
+        - src/audience_mail_budget.php
         - src/email_ascii_footer.php
         - src/email_inline_image_helpers.php
         - src/account_email_change_helpers.php
@@ -88,6 +93,8 @@ parameters:
         - src/functions.php
     scanFiles:
         - src/account_mail_helpers.php
+        - src/audience_inbox.php
+        - src/audience_inbox_runtime.php
         - src/engagement_view_helpers.php
     tmpDir: /tmp/dnr-phpstan-helpers
     parallel:

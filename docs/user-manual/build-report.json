@@ -1,10 +1,10 @@
 {
-  "version": "2.5.3",
-  "edition_date": "October 8, 2026",
-  "pages": 188,
+  "version": "2.5.14",
+  "edition_date": "October 13, 2026",
+  "pages": 189,
   "screenshots": 114,
   "chapters": 14,
-  "link_annotations": 1627,
+  "link_annotations": 1632,
   "destinations": {
     "contents": 2,
     "how-to-use": 3,
@@ -460,67 +460,67 @@
     "readme-section-3": 164,
     "readme-section-4": 165,
     "readme-section-5": 165,
-    "readme-section-6": 166,
-    "readme-section-7": 167,
-    "readme-section-8": 167,
-    "readme-section-9": 167,
-    "readme-section-10": 167,
-    "readme-section-11": 168,
-    "readme-section-12": 168,
-    "readme-section-13": 169,
-    "readme-section-14": 169,
-    "readme-section-15": 169,
-    "readme-section-16": 169,
-    "readme-section-17": 170,
-    "readme-section-18": 170,
-    "readme-section-19": 170,
-    "readme-section-20": 170,
-    "readme-section-21": 171,
-    "readme-section-22": 171,
-    "readme-section-23": 171,
-    "readme-section-24": 171,
-    "readme-section-25": 172,
-    "readme-section-26": 172,
-    "readme-section-27": 172,
-    "readme-section-28": 174,
-    "readme-section-29": 175,
-    "readme-section-30": 177,
-    "readme-section-31": 177,
-    "readme-section-32": 177,
-    "readme-section-33": 177,
-    "readme-section-34": 177,
-    "readme-section-35": 178,
-    "readme-section-36": 178,
-    "readme-section-37": 178,
-    "readme-section-38": 179,
-    "readme-section-39": 179,
-    "readme-section-40": 180,
-    "readme-section-41": 181,
-    "readme-section-42": 181,
-    "readme-section-43": 181,
-    "readme-section-44": 182,
-    "readme-section-45": 182,
-    "readme-section-46": 182,
-    "readme-section-47": 183,
-    "readme-section-48": 183,
-    "readme-section-49": 183,
-    "readme-section-50": 183,
-    "readme-section-51": 184,
-    "readme-section-52": 185,
-    "readme-section-53": 185,
-    "readme-section-54": 185,
-    "readme-section-55": 187,
-    "readme-section-56": 187,
-    "readme-section-57": 187,
-    "readme-section-58": 187,
-    "readme-section-59": 188,
-    "readme-section-60": 188,
-    "readme-section-61": 188,
-    "readme-section-62": 188,
-    "__total__": 188
+    "readme-section-6": 167,
+    "readme-section-7": 168,
+    "readme-section-8": 168,
+    "readme-section-9": 168,
+    "readme-section-10": 168,
+    "readme-section-11": 169,
+    "readme-section-12": 169,
+    "readme-section-13": 170,
+    "readme-section-14": 170,
+    "readme-section-15": 170,
+    "readme-section-16": 171,
+    "readme-section-17": 171,
+    "readme-section-18": 171,
+    "readme-section-19": 171,
+    "readme-section-20": 171,
+    "readme-section-21": 172,
+    "readme-section-22": 172,
+    "readme-section-23": 172,
+    "readme-section-24": 172,
+    "readme-section-25": 173,
+    "readme-section-26": 173,
+    "readme-section-27": 173,
+    "readme-section-28": 175,
+    "readme-section-29": 176,
+    "readme-section-30": 178,
+    "readme-section-31": 178,
+    "readme-section-32": 178,
+    "readme-section-33": 178,
+    "readme-section-34": 178,
+    "readme-section-35": 179,
+    "readme-section-36": 179,
+    "readme-section-37": 179,
+    "readme-section-38": 180,
+    "readme-section-39": 180,
+    "readme-section-40": 181,
+    "readme-section-41": 182,
+    "readme-section-42": 182,
+    "readme-section-43": 182,
+    "readme-section-44": 183,
+    "readme-section-45": 183,
+    "readme-section-46": 183,
+    "readme-section-47": 184,
+    "readme-section-48": 184,
+    "readme-section-49": 184,
+    "readme-section-50": 184,
+    "readme-section-51": 185,
+    "readme-section-52": 186,
+    "readme-section-53": 186,
+    "readme-section-54": 186,
+    "readme-section-55": 188,
+    "readme-section-56": 188,
+    "readme-section-57": 188,
+    "readme-section-58": 188,
+    "readme-section-59": 189,
+    "readme-section-60": 189,
+    "readme-section-61": 189,
+    "readme-section-62": 189,
+    "__total__": 189
   },
   "outline_entries": 397,
-  "edition_scope": "Application release 2.5.3",
+  "edition_scope": "Application release 2.5.14",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -732,28 +732,29 @@
     "164": "readme-columns",
     "165": "readme-columns",
     "166": "readme-columns",
-    "167": "readme-columns",
+    "167": "readme-mixed",
     "168": "readme-columns",
     "169": "readme-columns",
     "170": "readme-columns",
     "171": "readme-columns",
     "172": "readme-columns",
     "173": "readme-columns",
-    "174": "readme-mixed",
-    "175": "readme-columns",
+    "174": "readme-columns",
+    "175": "readme-mixed",
     "176": "readme-columns",
-    "177": "readme-mixed",
-    "178": "readme-columns",
+    "177": "readme-columns",
+    "178": "readme-mixed",
     "179": "readme-columns",
     "180": "readme-columns",
-    "181": "readme-mixed",
-    "182": "readme-columns",
+    "181": "readme-columns",
+    "182": "readme-mixed",
     "183": "readme-columns",
     "184": "readme-columns",
     "185": "readme-columns",
     "186": "readme-columns",
     "187": "readme-columns",
-    "188": "readme-columns"
+    "188": "readme-columns",
+    "189": "readme-columns"
   },
   "column_regions": {
     "3": {
@@ -953,7 +954,7 @@
       "bottom": 748
     },
     "167": {
-      "top": 50,
+      "top": 125,
       "bottom": 748
     },
     "168": {
@@ -981,11 +982,11 @@
       "bottom": 748
     },
     "174": {
-      "top": 190,
+      "top": 50,
       "bottom": 748
     },
     "175": {
-      "top": 50,
+      "top": 190,
       "bottom": 748
     },
     "176": {
@@ -993,11 +994,11 @@
       "bottom": 748
     },
     "177": {
-      "top": 125,
+      "top": 50,
       "bottom": 748
     },
     "178": {
-      "top": 50,
+      "top": 125,
       "bottom": 748
     },
     "179": {
@@ -1009,11 +1010,11 @@
       "bottom": 748
     },
     "181": {
-      "top": 151,
+      "top": 50,
       "bottom": 748
     },
     "182": {
-      "top": 50,
+      "top": 151,
       "bottom": 748
     },
     "183": {
@@ -1037,6 +1038,10 @@
       "bottom": 748
     },
     "188": {
+      "top": 50,
+      "bottom": 748
+    },
+    "189": {
       "top": 50,
       "bottom": 748
     }
@@ -1063,31 +1068,35 @@
       "width": 528.0
     },
     {
-      "page": 174,
+      "page": 167,
+      "label": "The dynamic pool allocates 172.29.255.128 through 172.29.255.254. Keep Traefik, primary ingress (172",
+      "width": 528.0
+    },
+    {
+      "page": 175,
       "label": "\u2022 Automatic routing requires authenticated sender results by default. The bundled Proton Bridge adap",
       "width": 528.0
     },
     {
-      "page": 177,
+      "page": 178,
       "label": "Primary implementation references: Proton's pinned message metadata flags (https://github.com/Proton",
       "width": 528.0
     },
     {
-      "page": 181,
+      "page": 182,
       "label": "\u2022 DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM and DNR_INBOUND_TRUSTED_AUTH_SERVERS: fail-closed automatic",
       "width": 528.0
     }
   ],
   "automatic_word_breaks": 0,
   "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted",
-  "footer_adjusted_figures": [
-    "dark",
-    "roles",
-    "inquiry-action",
-    "organizations",
-    "email-message",
-    "setup"
-  ],
+  "screenshot_quality": {
+    "embedding": "lossless Flate compression at original cropped pixel dimensions",
+    "native_png_processing": "no sharpening or resampling",
+    "minimum_effective_dpi": 300,
+    "future_capture_device_scale_factor": 3
+  },
+  "footer_adjusted_figures": [],
   "cover_logo": {
     "source": "src/assets/dnr-logo.svg",
     "rendering": "native PDF vector paths",
@@ -1095,8 +1104,8 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "4fd501301ac5c8031a5921c6bb3843510dedc5be2831b611fff47b420fc4fe5b",
-    "bytes": 108612,
+    "sha256": "aaa031ef738ffe600f4195bb636d5465c23c79d7b05cf95e6faccca1e2170b94",
+    "bytes": 110248,
     "start_page": 163,
     "sections": 62,
     "attachment": "README.md"

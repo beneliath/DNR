@@ -1,4 +1,66 @@
 'use strict';
+document.querySelectorAll('[data-mileage-calculation]').forEach(function (summary) {
+  const form = summary.closest('form');
+  const start = form.querySelector('[data-mileage-start]');
+  const end = form.querySelector('[data-mileage-end]');
+  const total = summary.querySelector('[data-mileage-total]');
+  const mills = Math.round(Number(summary.dataset.mileageRate) * 1000);
+  function update() {
+    const pattern = /^\d{1,7}(?:\.\d{1,2})?$/;
+    const valid = pattern.test(start.value) && pattern.test(end.value);
+    const distance = Math.round(Number(end.value) * 100) - Math.round(Number(start.value) * 100);
+    end.setCustomValidity(valid && distance <= 0 ? 'Ending odometer reading must be greater than the starting reading.' : '');
+    if (end.value === '') {
+      total.textContent = 'Incomplete · Add an Ending Odometer Reading to make this entry available for reimbursement.';
+      return;
+    }
+    if (!valid || distance <= 0) {
+      total.textContent = 'Enter an ending odometer reading greater than the starting reading.';
+      return;
+    }
+    const cents = Math.floor((distance * mills + 500) / 1000);
+    total.textContent = (distance / 100).toFixed(2) + ' miles · Reimbursement: $' + (cents / 100).toFixed(2);
+  }
+  start.addEventListener('input', update);
+  end.addEventListener('input', update);
+  update();
+});
+
+document.querySelectorAll('[data-mileage-saved]').forEach(function (dialog) {
+  if (typeof dialog.showModal === 'function') dialog.showModal();
+  else {
+    dialog.setAttribute('open', '');
+    dialog.querySelector('form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      dialog.removeAttribute('open');
+    });
+  }
+});
+
+document.querySelectorAll('.reimbursement-progress').forEach(function (progress) {
+  let scheduled = false;
+  function updateStickyState() {
+    scheduled = false;
+    let top = parseFloat(window.getComputedStyle(progress).top);
+    for (let parent = progress.parentElement; parent && parent !== document.documentElement; parent = parent.parentElement) {
+      const style = window.getComputedStyle(parent);
+      if (!/^(auto|scroll|hidden|overlay)$/.test(style.overflowY)) continue;
+      if (parent !== document.scrollingElement) top += parent.getBoundingClientRect().top + parent.clientTop + (parseFloat(style.paddingTop) || 0);
+      break;
+    }
+    progress.classList.toggle('is-stuck', progress.getBoundingClientRect().top <= top + 1);
+  }
+  function scheduleUpdate() {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(updateStickyState);
+  }
+  document.addEventListener('scroll', scheduleUpdate, {passive: true, capture: true});
+  window.addEventListener('resize', scheduleUpdate);
+  window.addEventListener('pageshow', scheduleUpdate);
+  updateStickyState();
+});
+
 document.querySelectorAll('[data-clear-reimbursement-selection]').forEach(function (node) {
   try { window.DnrAccountContext.session.removeItem(node.dataset.clearReimbursementSelection); } catch (_) { /* Storage is optional. */ }
 });
@@ -43,7 +105,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
   boxes.forEach(function (box) {
     if (box.checked) selected.add(box.value); // Preserve a failed server submission.
     box.checked = selected.has(box.value);
-    if (box.dataset && box.dataset.amountCents) metadata[box.value] = {amount: Number(box.dataset.amountCents), missing: box.dataset.receiptCount === '0'};
+    if (box.dataset && box.dataset.amountCents) metadata[box.value] = {amount: Number(box.dataset.amountCents), missing: box.dataset.receiptCount === '0' && box.dataset.expenseType !== 'mileage'};
   });
   function update() {
     try { window.DnrAccountContext.session.setItem(key, JSON.stringify({scope: scope, ids: Array.from(selected), metadata: metadata})); } catch (_) {}
@@ -96,7 +158,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
         result.expenses.forEach(function (expense) {
           const id = String(expense.id);
           selected.add(id);
-          metadata[id] = {amount: Number(expense.amount_cents), missing: Number(expense.receipt_count) === 0};
+          metadata[id] = {amount: Number(expense.amount_cents), missing: Number(expense.receipt_count) === 0 && expense.expense_type !== 'mileage'};
         });
         boxes.forEach(function (box) { box.checked = selected.has(box.value); });
         update();
@@ -316,6 +378,8 @@ document.querySelectorAll('[data-reimbursement-email-preview]').forEach(function
 // Warn only for genuinely unsaved entry; prevent accidental repeat submission.
 document.querySelectorAll('[data-expense-save]').forEach(function (form) {
   let dirty = false, saving = false;
+  const buttons = Array.from(form.querySelectorAll('button[type="submit"]'));
+  const labels = buttons.map(function (button) { return button.textContent; });
   form.addEventListener('input', function () { dirty = true; });
   form.addEventListener('change', function () { dirty = true; });
   window.addEventListener('beforeunload', function (event) { if (dirty && !saving) { event.preventDefault(); event.returnValue = ''; } });
@@ -325,7 +389,7 @@ document.querySelectorAll('[data-expense-save]').forEach(function (form) {
     saving = true;
     form.querySelectorAll('button[type="submit"]').forEach(function (button) { button.disabled = true; button.textContent = 'Saving…'; });
   });
-  window.addEventListener('pageshow', function (event) { if (event.persisted) { saving = false; form.querySelectorAll('button[type="submit"]').forEach(function (button) { button.disabled = false; button.textContent = 'Save Expense'; }); } });
+  window.addEventListener('pageshow', function (event) { if (event.persisted) { saving = false; buttons.forEach(function (button, index) { button.disabled = false; button.textContent = labels[index]; }); } });
 });
 document.querySelectorAll('[data-receipt-thumbnail]').forEach(function (image) {
   function showFallback() { image.hidden = true; const fallback = image.nextElementSibling; if (fallback && fallback.hasAttribute('data-pdf-receipt-preview')) fallback.hidden = false; }

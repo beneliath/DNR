@@ -89,6 +89,10 @@ foreach (glob($root . '/src/*.php') ?: [] as $pagePath) {
     if (!str_contains($pageSource, '<!DOCTYPE html>')) {
         continue;
     }
+    // The Audience route renders its main landmark from its workspace template.
+    if (in_array(basename($pagePath), ['audience.php','audience_campaign_controller.php','audience_design_controller.php'], true) && str_contains($pageSource, "templates/audience/workspace.php")) {
+        $pageSource .= $read('src/templates/audience/workspace.php');
+    }
     expectUiConsistency(
         str_contains($pageSource, '<main') || str_contains($pageSource, 'role="main"'),
         basename($pagePath) . ' should expose a main-content landmark.'

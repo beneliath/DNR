@@ -35,6 +35,7 @@ function emailAddressBelongsToAnotherUser(mysqli $conn, $email, $user_id = null)
 /** @return array{user_id: int, token: string, email: string, username: string} */
 function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_id)
 {
+    if (isRestrictedDemoSession()) throw new InvalidArgumentException('This demo login cannot invite users.');
     $username = trim((string) $username);
     if (str_starts_with(strtolower($username), '_platform_')) throw new InvalidArgumentException('This username is reserved.');
     $email = normalizeAccountEmail($email);

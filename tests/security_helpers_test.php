@@ -131,6 +131,28 @@ foreach ($role_preview_ui_pages as $page) {
 }
 putenv('DNR_ACCOUNTS_ENABLED');
 $_SESSION = ['role' => 'editor'];
+$security_account_key = getenv('DNR_ACCOUNT_KEY');
+putenv('DNR_ACCOUNT_KEY=test-account');
+expectTrue(accountSecurityAccessAllowed(), 'Standalone deployments must retain Account Security.');
+expectTrue(accountMattermostAccessAllowed(), 'Standalone deployments must retain Mattermost.');
+putenv('DNR_ACCOUNTS_ENABLED=1');
+foreach (['admin', 'editor', 'reviewer', 'superadmin'] as $security_role) {
+    $_SESSION = ['role' => $security_role === 'superadmin' ? 'admin' : $security_role,
+        'is_superadmin' => $security_role === 'superadmin'];
+    expectTrue(!accountSecurityAccessAllowed(), 'Every Test Account user must be denied Account Security: ' . $security_role);
+    expectTrue(!accountMattermostAccessAllowed(), 'Every Test Account user must be denied Mattermost: ' . $security_role);
+}
+$_SESSION = [];
+expectTrue(!accountSecurityAccessAllowed(), 'Test Account security routes must also reject pending or anonymous sessions.');
+expectTrue(!accountMattermostAccessAllowed(), 'Test Account Mattermost access must not depend on a session.');
+foreach (['shalom-in-messiah', 'account-isolation-preview'] as $security_key) {
+    putenv('DNR_ACCOUNT_KEY=' . $security_key);
+    expectTrue(accountSecurityAccessAllowed(), 'Account Security must remain available in ' . $security_key);
+    expectTrue(accountMattermostAccessAllowed(), 'Mattermost must remain available in ' . $security_key);
+}
+putenv($security_account_key === false ? 'DNR_ACCOUNT_KEY' : 'DNR_ACCOUNT_KEY=' . $security_account_key);
+putenv('DNR_ACCOUNTS_ENABLED');
+$_SESSION = ['role' => 'editor'];
 expectTrue(
     organizationArchiveDependencyMessage(['contacts' => 2, 'engagements' => 1])
         === 'This organization cannot be archived while it has 2 active contacts and 1 active engagement. Archive those related records first, or move them to another organization.',

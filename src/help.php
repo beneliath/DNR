@@ -575,7 +575,8 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>My Reminders</h3>
-                        <p>The sidebar badge and Dashboard personal cards always count your own reminders. In the queue, choose Mine, Everyone, or Unassigned; every queue summary count uses that same ownership scope, search, and related-record filter.</p>
+                        <p>The sidebar <strong>Tasks</strong> badge counts your assigned active tasks that are <strong>overdue or due today</strong>, including Waiting. It hides zero and shows <strong>99+</strong> above 99. Dashboard <strong>My Active Tasks</strong> also includes future and undated assignments.</p>
+                        <p>In the queue, choose Mine, Everyone, or Unassigned; summary counts use the same ownership scope, search, and related-record filter.</p>
                     </article>
                     <article class="manual-card">
                         <h3>Queue Views</h3>

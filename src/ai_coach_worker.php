@@ -5,6 +5,8 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/ai_coach_history_helpers.php';
 require_once __DIR__ . '/ai_coach_job_helpers.php';
+require_once __DIR__ . '/audience_ai.php';
+require_once __DIR__ . '/audience_store.php';
 if (!aiCoachEnabled()) exit;
 // Limit active model workers even if an operator accidentally scales beyond two.
 $slot = null;
@@ -22,13 +24,20 @@ while (true) {
         if (!$user || ($user['role'] !== $job['user_role'] && $user['role'] !== 'admin') || $user['account_status'] !== 'active') {
             $reply = ['message' => 'Your access changed. Reload MOED before asking again.', 'question' => '', 'sources' => [], 'mode' => 'conversation', 'reason' => 'error'];
         } else {
-            $request = aiCoachValidateRequest(json_decode($job['request_json'], true, 16, JSON_THROW_ON_ERROR), $job['user_role']);
+            $stored = json_decode($job['request_json'], true, 24, JSON_THROW_ON_ERROR);
             $lastCheck = 0.0; $cancelled = false;
             $check = static function () use ($conn, $job, &$lastCheck, &$cancelled): bool {
                 if (microtime(true) - $lastCheck > .2) { $lastCheck = microtime(true); $cancelled = aiCoachJobCancelled($conn, $job); }
                 return $cancelled;
             };
-            $reply = aiCoachGenerate($request, $start + max(0, (float) $job['remaining']), $check);
+            if (($stored['_audience_ai'] ?? null) === 1) {
+                $stored['role'] = $job['user_role'];
+                $queries=isset($stored['analysis_scope'])?new AudienceAiQueries(new AudienceStore($conn,1,(int)$job['user_id'],'Analytics AI'),audienceAiReportWindow($stored['analysis_scope'])):null;
+                $reply = audienceAiGenerate($stored, $start + max(0, (float) $job['remaining']), $check,null,$queries);
+            } else {
+                $request = aiCoachValidateRequest($stored, $job['user_role']);
+                $reply = aiCoachGenerate($request, $start + max(0, (float) $job['remaining']), $check);
+            }
         }
     } catch (Throwable $exception) { $reply = aiCoachFailureReply([], 'worker', $exception); }
     aiCoachFinishJob($conn, $job, $reply, (int) ((microtime(true) - $start) * 1000));

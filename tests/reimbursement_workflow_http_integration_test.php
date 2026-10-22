@@ -291,7 +291,7 @@ try {
     $context['items'][0]['merchant'] = '<script>alert(1)</script>';
     expectReimbursement(!str_contains(reimbursementSubmissionMessage($context)['html_body'], '<script>'), 'Email escapes merchant markup');
     $notedMessage = reimbursementSubmissionMessage($context);
-    expectReimbursement(str_contains($notedMessage['body'], $note) && str_contains($notedMessage['html_body'], 'Note to the bookkeeper') && str_contains($notedMessage['html_body'], 'Call before issuing payment &lt;script&gt;'), 'Bookkeeper note appears in both email formats and HTML is escaped');
+    expectReimbursement(str_contains($notedMessage['body'], $note) && str_contains($notedMessage['html_body'], 'Note from ') && !str_contains($notedMessage['body'], 'to the bookkeeper') && !str_contains($notedMessage['html_body'], 'to the bookkeeper') && str_contains($notedMessage['html_body'], 'Call before issuing payment &lt;script&gt;'), 'General note appears in both email formats and HTML is escaped');
     $blankNoteContext = $context; $blankNoteContext['request']['bookkeeper_note'] = '';
     expectReimbursement(!str_contains(reimbursementSubmissionMessage($blankNoteContext)['body'], 'Note from '), 'Empty note does not add a note section');
     try { reimbursementSubmissionNote(str_repeat('x', 1001)); throw new RuntimeException('Oversized note accepted'); }
@@ -402,10 +402,97 @@ try {
     }
     deleteReimbursementExpense($conn, $expenseId);
     expectReimbursement($conn->execute_query('SELECT id FROM reimbursement_expenses WHERE id = ?', [$expenseId])->num_rows === 0, 'Available expense deletion succeeds');
+    // Mileage uses the same owner, draft, export, and submitted-record protections.
+    expectReimbursement(str_contains($setupPage['body'], 'name="mileage_rate"') && str_contains($setupPage['body'], 'value="0.760"'), 'Setup exposes the default mileage rate');
+    $mileageForm = $editor('reimbursement_expense.php?type=mileage');
+    foreach (['origin_location', 'destination_location', 'odometer_start', 'odometer_end', 'description', 'expense_date'] as $field) {
+        expectReimbursement(str_contains($mileageForm['body'], 'name="' . $field . '"'), 'Mileage form includes ' . $field);
+    }
+    expectReimbursement(!str_contains($mileageForm['body'], 'name="amount"') && !str_contains($mileageForm['body'], 'name="merchant"'), 'Mileage amount and payee cannot be entered manually');
+    expectReimbursement(!str_contains($mileageForm['body'], 'name="cost_center_id"'), 'Mileage form does not ask for an account');
+    $mileageInput = ['expense_date' => '2026-10-15', 'origin_location' => 'Rockwall, TX', 'destination_location' => 'Sugar Land, TX',
+        'odometer_start' => '12000.10', 'odometer_end' => '12250.60', 'description' => 'Business meeting',
+        'mileage_rate' => '0.760', 'amount' => '9999', 'csrf_token' => reimbursementCsrf($mileageForm), 'operation_token' => bin2hex(random_bytes(16))];
+    $mileageDocument = new DOMDocument(); @$mileageDocument->loadHTML($mileageForm['body']);
+    $mileageXpath = new DOMXPath($mileageDocument);
+    expectReimbursement($mileageXpath->query('//input[@name="odometer_end" and not(@required)]')->length === 1, 'Ending odometer is optional on the save form');
+    $incompleteInput = array_replace($mileageInput, ['odometer_end' => '', 'operation_token' => bin2hex(random_bytes(16))]);
+    $incompleteSave = $editor('reimbursement_expense.php?type=mileage', $incompleteInput);
+    expectReimbursement($incompleteSave['status'] === 302, 'Mileage can be saved before the trip ends');
+    $incomplete = $conn->execute_query('SELECT * FROM reimbursement_expenses WHERE user_id=? AND operation_token=?', [$users['editor'], $incompleteInput['operation_token']])->fetch_assoc();
+    $incompleteId = (int) $incomplete['id']; $expenses[] = $incompleteId;
+    expectReimbursement($incomplete['odometer_end'] === null && (int) $incomplete['amount_cents'] === 0, 'Incomplete saves retain a null ending reading and no calculated reimbursement');
+    $incompleteList = $editor('reimbursements.php?state=incomplete&start_date=2026-10-01&end_date=2026-10-31');
+    preg_match('/<tr[^>]*data-selection-expense="' . $incompleteId . '"[^>]*>(.*?)<\/tr>/s', $incompleteList['body'], $incompleteRow);
+    expectReimbursement(isset($incompleteRow[1]) && str_contains($incompleteRow[1], 'Incomplete') && str_contains($incompleteRow[1], 'Pending')
+        && !str_contains($incompleteRow[1], 'type="checkbox"'), 'Incomplete mileage shows pending amount and cannot be selected');
+    expectReimbursement(!str_contains($editor('reimbursements.php?state=available&start_date=2026-10-01&end_date=2026-10-31')['body'], 'data-selection-expense="' . $incompleteId . '"'), 'Available filter excludes incomplete mileage');
+    $availableApi = $editor('reimbursements.php?action=available_expenses&start_date=2026-10-01&end_date=2026-10-31');
+    expectReimbursement(!in_array($incompleteId, array_map('intval', array_column(json_decode($availableApi['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'], 'id')), true), 'Select All Available excludes incomplete mileage');
+    expectReimbursementRejected(fn() => createReimbursementRequest($conn, $users['editor'], '2026-10-01', '2026-10-31', [$incompleteId]), 'Direct request creation rejects incomplete mileage');
+    $forgedCreate = $editor('reimbursements.php', ['csrf_token' => $incompleteInput['csrf_token'], 'action' => 'create_request', 'start_date' => '2026-10-01', 'end_date' => '2026-10-31', 'expense_ids' => [$incompleteId]]);
+    expectReimbursement($forgedCreate['status'] === 200 && str_contains($forgedCreate['body'], 'Add an Ending Odometer Reading'), 'Forged request selection receives a useful completion error');
+    expectReimbursement(!str_contains($editor($emptyPath)['body'], '<option value="' . $incompleteId . '"'), 'Draft add choices exclude incomplete mileage');
+    $forgedAdd = $editor($emptyPath, ['csrf_token' => $incompleteInput['csrf_token'], 'action' => 'add', 'expense_id' => $incompleteId]);
+    expectReimbursement($forgedAdd['status'] === 200 && str_contains($forgedAdd['body'], 'Add an Ending Odometer Reading'), 'Direct draft additions reject incomplete mileage');
+    $completedInput = array_replace($incompleteInput, ['odometer_end' => '12250.60', 'version' => '1']);
+    expectReimbursement($editor('reimbursement_expense.php?id=' . $incompleteId, $completedInput)['status'] === 302, 'An ending reading completes the saved entry');
+    expectReimbursement(str_contains($editor('reimbursements.php?state=available&start_date=2026-10-01&end_date=2026-10-31')['body'], 'data-selection-expense="' . $incompleteId . '"'), 'Completed mileage becomes Available');
+    $clearedInput = array_replace($incompleteInput, ['version' => '2', 'expense_type' => 'mileage']);
+    saveReimbursementExpense($conn, $users['editor'], $clearedInput, [], $incompleteId);
+    expectReimbursement(reimbursementMileageIncomplete(reimbursementExpense($conn, $incompleteId, $users['editor'])), 'Clearing an unclaimed ending reading returns mileage to Incomplete');
+    saveReimbursementExpense($conn, $users['editor'], array_replace($completedInput, ['version' => '3', 'expense_type' => 'mileage']), [], $incompleteId);
+    $completionRequest = createReimbursementRequest($conn, $users['editor'], '2026-10-01', '2026-10-31', [$incompleteId]); $requests[] = $completionRequest;
+    expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], array_replace($clearedInput, ['version' => '4']), [], $incompleteId), 'Mileage already in a draft cannot be made incomplete');
+    expectReimbursement(!reimbursementMileageIncomplete(reimbursementExpense($conn, $incompleteId, $users['editor'])), 'Rejected clearing preserves the complete mileage entry');
+    $invalidMileage = $editor('reimbursement_expense.php?type=mileage', array_replace($mileageInput, ['odometer_end' => '100']));
+    expectReimbursement($invalidMileage['status'] === 200 && str_contains($invalidMileage['body'], 'must be greater')
+        && !str_contains($invalidMileage['body'], 'data-mileage-saved'), 'Invalid mileage keeps entered values without a success dialog');
+    $savedMileage = $editor('reimbursement_expense.php?type=mileage', $mileageInput);
+    preg_match('/Location: ([^\r\n]+)/', $savedMileage['headers'], $mileageRedirect);
+    expectReimbursement($savedMileage['status'] === 302 && isset($mileageRedirect[1]), 'Mileage save redirects to saved entry');
+    $mileage = $conn->execute_query('SELECT * FROM reimbursement_expenses WHERE user_id=? AND operation_token=?', [$users['editor'], $mileageInput['operation_token']])->fetch_assoc();
+    $mileageId = (int) $mileage['id']; $expenses[] = $mileageId;
+    expectReimbursement($mileage['expense_type'] === 'mileage' && (int) $mileage['amount_cents'] === 19038 && $mileage['mileage_rate'] === '0.760', 'Server calculates amount and stores the configured rate');
+    $mileageAccount = $conn->execute_query('SELECT coa_number, description FROM reimbursement_cost_centers WHERE id=?', [$mileage['cost_center_id']])->fetch_assoc();
+    expectReimbursement($mileageAccount === ['coa_number' => '6110', 'description' => 'Mileage Reimbursement'], 'Mileage saves without an account selection and uses 6110 Mileage Reimbursement');
+    $mileageSavedPage = $editor($mileageRedirect[1]);
+    expectReimbursement(str_contains($mileageSavedPage['body'], 'data-mileage-saved') && str_contains($mileageSavedPage['body'], 'taxable income'), 'A successful save shows the fuel reimbursement reminder');
+    expectReimbursement(!str_contains($editor($mileageRedirect[1])['body'], 'data-mileage-saved'), 'Reloading does not repeat the save reminder');
+    $editor('reimbursement_expense.php?type=mileage', $mileageInput);
+    expectReimbursement((int) $conn->execute_query('SELECT COUNT(*) FROM reimbursement_expenses WHERE user_id=? AND operation_token=?', [$users['editor'], $mileageInput['operation_token']])->fetch_row()[0] === 1, 'Mileage double-submit is idempotent');
+    expectReimbursement($reviewer('reimbursement_expense.php?type=mileage')['status'] === 403, 'Read-only users cannot create mileage');
+    expectReimbursement($reviewer('reimbursement_expense.php?id=' . $mileageId)['status'] === 404, 'Mileage remains owner-scoped');
+    $conn->query('UPDATE reimbursement_setup SET mileage_rate=0.800 WHERE id=1');
+    $staleInput = array_replace($mileageInput, ['operation_token' => bin2hex(random_bytes(16)), 'expense_type' => 'mileage']);
+    expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], $staleInput, [], null), 'A stale new form cannot silently save at a changed rate');
+    $updatedMileage = array_replace($mileageInput, ['expense_type' => 'mileage', 'version' => '1', 'odometer_end' => '12300.10', 'cost_center_id' => $centerId]);
+    saveReimbursementExpense($conn, $users['editor'], $updatedMileage, [], $mileageId);
+    $mileage = reimbursementExpense($conn, $mileageId, $users['editor']);
+    expectReimbursement((int) $mileage['amount_cents'] === 22800 && $mileage['mileage_rate'] === '0.760', 'Editing mileage retains its saved rate');
+    expectReimbursement($mileage['coa_number'] === '6110', 'Posted account overrides cannot reclassify mileage');
+    expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], array_replace($input, ['version' => '2']), [], $mileageId), 'Ordinary expense saves cannot overwrite mileage');
+    expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], $updatedMileage, [], $mileageId), 'Mileage rejects stale versions');
+    $mileageRequestId = createReimbursementRequest($conn, $users['editor'], '2026-10-01', '2026-10-31', [$mileageId]); $requests[] = $mileageRequestId;
+    $mileageContext = reimbursementSubmissionContext($conn, $mileageRequestId, $users['editor']);
+    expectReimbursement($mileageContext['items'][0]['odometer_start'] === '12000.10', 'Submission snapshot carries mileage evidence');
+    expectReimbursement($mileageContext['items'][0]['coa_number'] === '6110' && $mileageContext['items'][0]['coa_description'] === 'Mileage Reimbursement', 'Reports carry the automatic mileage category');
+    $mileageMessage = reimbursementSubmissionMessage($mileageContext);
+    expectReimbursement(str_contains($mileageMessage['body'], '300.00 miles at $0.760') && str_contains($mileageMessage['html_body'], 'Sugar Land, TX'), 'Email includes trip details and saved rate');
+    $mileageReport = $editor('download_reimbursement.php?id=' . $mileageRequestId . '&format=pdf');
+    expectReimbursement($mileageReport['status'] === 200 && str_starts_with($mileageReport['body'], '%PDF-'), 'Mileage draft exports a PDF');
+    $mileagePdf = tempnam(sys_get_temp_dir(), 'mileage-report-'); file_put_contents($mileagePdf, $mileageReport['body']);
+    exec('pdftotext -layout ' . escapeshellarg($mileagePdf) . ' ' . escapeshellarg($mileagePdf . '.txt'), $output, $code);
+    $mileageText = file_get_contents($mileagePdf . '.txt');
+    expectReimbursement($code === 0 && str_contains($mileageText, '12000.10') && str_contains($mileageText, '0.760') && str_contains($mileageText, '$228.00'), 'PDF contains odometers, rate, and calculated amount');
+    unlink($mileagePdf); unlink($mileagePdf . '.txt');
+    submitReimbursementRequest($conn, $mileageRequestId, $users['editor']);
+    expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], array_replace($updatedMileage, ['version' => '2']), [], $mileageId), 'Submitted mileage is immutable');
+    expectReimbursement(str_contains($editor('reimbursement_request.php?id=' . $mileageRequestId)['body'], '300.00 miles at $0.760'), 'Submitted request keeps mileage details');
     echo "Reimbursement workflow: {$checks} assertions passed.\n";
 } finally {
     foreach ($deliveryIds as $deliveryId) $conn->execute_query('DELETE FROM reimbursement_email_deliveries WHERE id = ?', [$deliveryId]);
-    if ($originalSetup) $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_email = ?, cc_email = ?, reviewer_email = ?, bookkeeper_first_name = ? WHERE id = 1', [$originalSetup['bookkeeper_email'], $originalSetup['cc_email'], $originalSetup['reviewer_email'], $originalSetup['bookkeeper_first_name']]);
+    if ($originalSetup) $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_email = ?, cc_email = ?, reviewer_email = ?, bookkeeper_first_name = ?, mileage_rate = ? WHERE id = 1', [$originalSetup['bookkeeper_email'], $originalSetup['cc_email'], $originalSetup['reviewer_email'], $originalSetup['bookkeeper_first_name'], $originalSetup['mileage_rate']]);
     foreach ($users as $user) {
         if ($conn->execute_query("SELECT id FROM reimbursement_requests WHERE user_id=? AND status='submitted' LIMIT 1",[$user])->fetch_row()) continue;
         $conn->execute_query('DELETE FROM reimbursement_requests WHERE user_id = ?', [$user]);

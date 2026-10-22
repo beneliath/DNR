@@ -3,12 +3,12 @@
 This server plugin keeps MOED as the system of record while exposing a small,
 auditable workflow surface inside Mattermost.
 
-Version 0.4.8 provides:
+Version 0.4.10 adds account-scoped engagement routing markers (`[MOED@account-key#E17.<signed-token>]`) alongside legacy signed markers, and wraps long markers in cards and dialogs. It provides:
 
 - short-lived, single-use account linking;
 - `/moed status` plus polished `/moed today` and `/moed tasks` dashboards;
 - responsive, theme-aware share-safe engagement cards, with a quick-copy email routing marker on private event lookups and channel links;
-- an always-visible channel-header chain control plus a compact `[MOED#n]` channel-name marker in web, desktop, and mobile sidebars, while cards and email tools retain the full signed `[MOED#n.token]` routing marker;
+- an always-visible channel-header chain control plus a compact `[MOED#n]` channel-name marker in web, desktop, and mobile sidebars, while cards and email tools retain the full signed routing marker returned by MOED;
 - editor/admin channel-to-engagement binding;
 - role-checked Assign to me, Start, Complete, and Reopen task buttons;
 - top-level **Message actions** entries to add a linked-engagement task, save a post to its Chron, or prepare an engagement email;
@@ -24,7 +24,7 @@ and performs all reads and writes.
 
 ## Build
 
-Go 1.26.9 or newer and Node.js with the repository's root dependencies are
+Go 1.26.10 or newer and Node.js with the repository's root dependencies are
 required. Run `npm install` from the repository root once before building the
 plugin webapp.
 
@@ -34,7 +34,7 @@ make dist
 ```
 
 The installable bundle is written to
-`dist/org.moed.mattermost-0.4.8.tar.gz` with its SHA-256 digest printed at the
+`dist/org.moed.mattermost-0.4.10.tar.gz` with its SHA-256 digest printed at the
 end of the build.
 
 ## Install

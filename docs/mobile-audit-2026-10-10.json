@@ -1,0 +1,199 @@
+{
+  "date": "2026-10-10",
+  "branch": "codex/fix-mobile-header-navigation",
+  "scope": "Every application UI route in the application map, plus Help and AI Coach Requests; valid record fixtures, security forms, and review flows.",
+  "routes": [
+    "accept_invitation.php",
+    "account_settings.php",
+    "accounts.php",
+    "add_contact.php",
+    "add_inquiry.php",
+    "add_organization.php",
+    "add_standard_task.php",
+    "add_task.php",
+    "admin_elevation.php",
+    "ai_coach_improvements.php",
+    "ai_coach_requests.php",
+    "audit_log.php",
+    "bulk_delete.php",
+    "close_engagement.php",
+    "compose_engagement_email.php",
+    "compose_inquiry_email.php",
+    "contacts.php",
+    "convert_inquiry.php",
+    "dashboard.php",
+    "database_maintenance.php",
+    "edit_contact.php",
+    "edit_email_template.php",
+    "edit_engagement.php",
+    "edit_inquiry.php",
+    "edit_organization.php",
+    "edit_speaker.php",
+    "edit_standard_task.php",
+    "edit_task.php",
+    "edit_user.php",
+    "email_templates.php",
+    "engagements.php",
+    "help.php",
+    "inbound_mail.php",
+    "index.php",
+    "inquiries.php",
+    "login.php",
+    "mail_review.php",
+    "map.php",
+    "map_pin.php",
+    "mattermost.php",
+    "network_diagnostics.php",
+    "operations.php",
+    "organizations.php",
+    "outbound_mail.php",
+    "profile.php",
+    "record_merge.php",
+    "recover_password.php",
+    "register.php",
+    "reimbursement_cost_centers.php",
+    "reimbursement_expense.php",
+    "reimbursement_request.php",
+    "reimbursement_requests.php",
+    "reimbursement_setup.php",
+    "reimbursement_submit.php",
+    "reimbursements.php",
+    "reset_presentation_stats.php",
+    "reset_user_password.php",
+    "restore_chron_entries.php",
+    "restore_entity_chron_entries.php",
+    "restore_presentations.php",
+    "search.php",
+    "setup_2fa.php",
+    "short_links.php",
+    "speakers.php",
+    "standard_tasks.php",
+    "task_bulk.php",
+    "tasks.php",
+    "two_factor_recovery_codes.php",
+    "two_factor_settings.php",
+    "users.php",
+    "verify_2fa.php",
+    "verify_email.php",
+    "view_calendar.php",
+    "view_contact.php",
+    "view_engagement.php",
+    "view_inquiry.php",
+    "view_organization.php",
+    "view_speaker.php",
+    "view_standard_task.php"
+  ],
+  "coverage": {
+    "safari_webkit": {
+      "routes": 79,
+      "page_checks": 474,
+      "viewports": [
+        "320x844",
+        "390x844",
+        "768x1024",
+        "844x390",
+        "932x430"
+      ],
+      "dark_mode": "390x844"
+    },
+    "android_chromium": {
+      "routes": 79,
+      "page_checks": 237,
+      "viewports": [
+        "360x800",
+        "412x915",
+        "915x412"
+      ]
+    },
+    "total_page_checks": 711,
+    "roles": [
+      "SuperAdmin",
+      "Editor",
+      "Reviewer"
+    ],
+    "additional_variants": [
+      "Valid password recovery link",
+      "Valid email verification link",
+      "Dynamic presentation row",
+      "All five calendar content filters",
+      "Closed/open navigation drawer",
+      "Closed/open Coach panel",
+      "Reduced viewport height",
+      "Country and phone picker menus",
+      "One-time recovery code page",
+      "Selected-record bulk review",
+      "Shared and account mail review"
+    ]
+  },
+  "fixed": [
+    {
+      "problem": "Fixed scrolling body starts below viewport-fixed header controls on touch screens, leaving the controls outside body bounds.",
+      "change": "Use document scrolling at mobile widths and on coarse-pointer touch screens, including wide landscape; preserve fine-pointer desktop behavior.",
+      "limitation": "The original device-specific invisible-header paint failure was not reproduced in current desktop WebKit."
+    },
+    {
+      "problem": "Sticky progress and Inbox controls can overlap fixed account, role-preview, or unlock banners.",
+      "change": "Measure the complete shell stack for every role and use it for sticky offsets and anchor spacing."
+    },
+    {
+      "problem": "Mobile unlock return could restore the wrong scroll container.",
+      "change": "Choose the scrolling container from the actual body position."
+    },
+    {
+      "problem": "42px mobile navigation and theme controls; small login, sidebar, and tablet fields can trigger iOS focus zoom.",
+      "change": "Use 44px header touch targets and at least 16px editable field text on mobile/touch screens."
+    },
+    {
+      "problem": "Long native speaker options expand page scroll width in Safari.",
+      "change": "Contain native select overflow."
+    },
+    {
+      "problem": "Add Organization duplicate checking throws when region input and select share a name.",
+      "change": "Attach handlers to each actual control and query only enabled controls."
+    },
+    {
+      "problem": "Inquiry address fields and map date filters overflow at intermediate widths.",
+      "change": "Wrap address rows and reserve enough width for the paired map dates."
+    },
+    {
+      "problem": "Email preview, record merge, and bulk-task tables expand the whole page.",
+      "change": "Contain horizontal scrolling within the relevant preview or table; retain usable merge selectors."
+    },
+    {
+      "problem": "Next-task due-date pill spills past its card in wide phone landscape.",
+      "change": "Allow the pill to wrap within its available width."
+    }
+  ],
+  "results": {
+    "layout_failures": 0,
+    "field_sizing_failures": 0,
+    "unexpected_route_redirects": 0,
+    "application_javascript_errors": 0,
+    "frontend_unit_tests": {
+      "passed": 300,
+      "failed": 0
+    },
+    "browser_regression": "16 narrow/tablet mobile layouts, four wide touch layouts, and four desktop checks passed.",
+    "other_checks": [
+      "JavaScript syntax for 47 source files",
+      "Header scope feature checks",
+      "Mobile form layout feature checks",
+      "Map feature checks",
+      "AI Coach source hash checks",
+      "PHP syntax checks for changed pages",
+      "git diff --check"
+    ]
+  },
+  "method_notes": [
+    "Fresh labelled Docker project, isolated database and synthetic records; current source and generated assets.",
+    "One-time and POST-only views replayed original server-rendered HTML across sizes without applying destructive actions.",
+    "Initial replay artifacts and WebKit navigation-cancellation errors were checked against stable live pages; they were not treated as application defects.",
+    "Wide native tables and faithful email previews retain contained horizontal scrolling."
+  ],
+  "limitations": [
+    "No physical iPhone or Android device was available.",
+    "Native keyboards, OS file/camera pickers, and third-party embedded pages/map tiles were not exercised on hardware.",
+    "Production was not deployed."
+  ],
+  "browser_regression_command": "DNR_PLAYWRIGHT_MODULE=/path/to/playwright node tests/browser/mobile-shell.test.cjs"
+}

@@ -445,7 +445,9 @@ function attemptAdminElevation(mysqli $conn, $password, $code, bool $establishSe
         logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
         return false;
     }
-    if (empty($user['two_factor_enabled']) || !empty($user['two_factor_is_locked'])) {
+    $demo_password_only = demoPasswordOnlyAuthenticationAllowed($user);
+    if ($demo_password_only && !empty($user['login_is_locked'])) return false;
+    if (!$demo_password_only && (empty($user['two_factor_enabled']) || !empty($user['two_factor_is_locked']))) {
         logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
         return false;
     }
@@ -453,9 +455,9 @@ function attemptAdminElevation(mysqli $conn, $password, $code, bool $establishSe
     resetAuthenticationFailures($conn, $user_id, 'password');
     $submitted_code = trim((string) $code);
     $is_totp = preg_match('/^[0-9]{6}$/', $submitted_code) === 1;
-    $verified = $is_totp
+    $verified = $demo_password_only || ($is_totp
         ? verifyAndConsumeTotp($conn, $user, $submitted_code)
-        : consumeRecoveryCode($conn, $user_id, $submitted_code);
+        : consumeRecoveryCode($conn, $user_id, $submitted_code));
     if (!$verified) {
         recordAuthenticationFailure($conn, $user_id, 'two_factor');
         logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
@@ -499,7 +501,8 @@ function adminElevationRequestReturnUrl($return_url) {
 
         $referrer = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
         $origin = parse_url((requestUsesHttps() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? ''));
-        $directory = dirname((string) ($_SERVER['PHP_SELF'] ?? '/'));
+        // The account proxy strips the public prefix from PHP_SELF, but not from referrers.
+        $directory = accountPublicPath() ?: dirname((string) ($_SERVER['PHP_SELF'] ?? '/'));
         if (is_array($referrer) && is_array($origin)
             && ($referrer['scheme'] ?? '') === ($origin['scheme'] ?? '')
             && strcasecmp($referrer['host'] ?? '', $origin['host'] ?? '') === 0

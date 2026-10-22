@@ -4,6 +4,72 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
+test('mileage preview matches cent rounding and rejects reversed readings', () => {
+  const input = value => ({value, events: {}, addEventListener(name, fn) { this.events[name] = fn; }, setCustomValidity(message) { this.error = message; }});
+  const start = input('12000.10'), end = input('12250.60'), total = {};
+  const form = {querySelector: selector => selector === '[data-mileage-start]' ? start : end};
+  const summary = {dataset: {mileageRate: '0.760'}, closest: () => form, querySelector: () => total};
+  let opened = 0;
+  vm.runInNewContext(source, {document: {querySelectorAll: selector => selector === '[data-mileage-calculation]' ? [summary] : selector === '[data-mileage-saved]' ? [{showModal() { opened++; }}] : []}, window: {}});
+  assert.equal(total.textContent, '250.50 miles · Reimbursement: $190.38');
+  assert.equal(opened, 1);
+  end.value = '12000'; end.events.input();
+  assert.match(end.error, /greater/);
+  start.value = '0'; end.value = '1'; end.events.input();
+  assert.equal(end.error, '');
+  assert.equal(total.textContent, '1.00 miles · Reimbursement: $0.76');
+  end.value = ''; end.events.input();
+  assert.equal(end.error, '');
+  assert.match(total.textContent, /Incomplete/);
+  assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
+  start.value = ''; start.events.input();
+  assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
+});
+
+test('pipeline emphasis follows sticky position, responsive offsets, and history restoration', () => {
+  let position = 200, stickyTop = '12px', scrollContainerTop = 52, scrollContainerPadding = '0px';
+  const classes = new Set(), frames = [], events = {};
+  const scrollContainer = {getBoundingClientRect: () => ({top: scrollContainerTop}), clientTop: 0};
+  const progress = {
+    parentElement: scrollContainer,
+    getBoundingClientRect: () => ({top: position}),
+    classList: {toggle(name, active) { if (active) classes.add(name); else classes.delete(name); }}
+  };
+  vm.runInNewContext(source, {
+    document: {
+      querySelectorAll: selector => selector === '.reimbursement-progress' ? [progress] : [],
+      addEventListener(name, callback, options) { events[name] = callback; assert.equal(options.capture, true); }
+    },
+    window: {
+      getComputedStyle: element => element === progress ? {top: stickyTop} : {overflowY: 'auto', paddingTop: scrollContainerPadding},
+      requestAnimationFrame(callback) { frames.push(callback); },
+      addEventListener(name, callback) { events[name] = callback; }
+    }
+  });
+  assert.equal(classes.has('is-stuck'), false);
+  position = 64;
+  events.scroll(); events.scroll();
+  assert.equal(frames.length, 1);
+  frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  position = 100;
+  events.scroll(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), false);
+  position = 88; scrollContainerPadding = '24px';
+  events.scroll(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  scrollContainerPadding = '0px';
+  position = 120; stickyTop = '68px';
+  events.resize(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  scrollContainerTop = 0; position = 68;
+  events.resize(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), true);
+  position = 200;
+  events.pageshow(); frames.shift()();
+  assert.equal(classes.has('is-stuck'), false);
+});
+
 function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = false, checked = [], available = []} = {}) {
   const node = () => ({dataset: {}, events: {}, addEventListener(name, fn) { this.events[name] = fn; }});
   const boxes = ids.map(value => Object.assign(node(), {value, checked: checked.includes(value)}));

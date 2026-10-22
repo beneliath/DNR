@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'nonce-rich-fixture'; style-src-attr 'none'; img-src data:; connect-src 'none'">
+<title>MessageMonkey text toolbar regression checks</title>
+<link rel="stylesheet" href="../../src/assets/css/pages/audience.css">
+<link rel="stylesheet" href="../../src/assets/css/pages/audience-designer.css">
+<style nonce="rich-fixture">
+  :root{--audience-surface:#fff;--audience-text:#24292d;--audience-hover:#eee;--audience-input-border:#bbc4ca;--audience-primary:#007c89}
+  body{font:16px Arial;padding:24px;color:#24292d}button,select,input{font:inherit}button{cursor:pointer}#fixture{max-width:900px;margin-top:24px}#result{white-space:pre-wrap}dialog::backdrop{background:#0005}
+</style>
+<h1>Text toolbar regression checks</h1>
+<p>Runs only in this disposable document. No network requests or email sends.</p>
+<button id="run">Run regression checks</button>
+<pre id="result">Ready</pre>
+<div id="fixture"></div>
+<script type="module" src="audience-richtext.mjs"></script>

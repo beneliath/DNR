@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/github_version_helpers.php';
+require_once __DIR__ . '/engagement_location_helpers.php';
 
 function engagementMapStyleUrl(): string
 {
@@ -114,9 +115,7 @@ function normalizeEngagementMapFilters(array $query, ?DateTimeImmutable $instant
 
 function engagementMapAddress(array $engagement)
 {
-    // The default country alone does not describe an event location.
-    $location_fields = ['event_address_line_1', 'event_address_line_2', 'event_city', 'event_state', 'event_zipcode'];
-    if (!array_filter($location_fields, static fn ($field) => trim((string) ($engagement[$field] ?? '')) !== '')) {
+    if (!engagementHasVenueLocation($engagement)) {
         return '';
     }
     $parts = [];

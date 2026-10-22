@@ -7,9 +7,10 @@
 .inbound-mail-heading h1 { font-size: clamp(1.8rem, 3vw, 2.3rem); }
 .inbound-mail-body { --inbound-scroll-offset: 16px; }
 .inbound-mail-body.role-preview-active { --inbound-scroll-offset: 84px; }
-@media (max-width: 860px) {
-    .inbound-mail-body { --inbound-scroll-offset: 80px; }
-    .inbound-mail-body.role-preview-active { --inbound-scroll-offset: 164px; }
+@media (max-width: 860px), (pointer: coarse) {
+    .inbound-mail-body,
+    .inbound-mail-body.role-preview-active { --inbound-scroll-offset: calc(var(--account-shell-height, 64px) + 16px); }
+    html body .inbound-review-actions { top: calc(var(--account-shell-height, 64px) + 16px); }
 }
 .inbound-mail-body .app-footer {
     width: min(100%, var(--app-content-max));
@@ -64,6 +65,9 @@ html body #inbound-queue-search {
     background: var(--surface) !important;
     box-shadow: none;
     scroll-margin-top: calc(var(--inbound-scroll-offset) + var(--deployment-banner-height, 0px));
+}
+@media (max-width: 860px), (pointer: coarse) {
+    html body #inbound-queue-search { scroll-margin-top: var(--inbound-scroll-offset); }
 }
 .inbound-queue-search > div { display: grid; gap: 6px; min-width: 0; }
 .inbound-queue-search .inbound-search-field { flex: 1; }

@@ -1,0 +1,59 @@
+{
+  "text.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/text.svg",
+  "boxedText.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/boxedText.svg",
+  "divider.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/divider.svg",
+  "image.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/image.svg",
+  "imageGroup.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/imageGroup.svg",
+  "imageCard.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/imageCard.svg",
+  "imageCaption.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/imageCaption.svg",
+  "socialShareRevised.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/socialShareRevised.svg",
+  "socialFollowRevised.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/socialFollowRevised.svg",
+  "button.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/button.svg",
+  "footer.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/footer.svg",
+  "code.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/code.svg",
+  "video.svg": "https://cdn-images.mailchimp.com/product/campaigns/content-blocks/video.svg",
+  "blocks-nav.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E125"
+  },
+  "style-nav.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E127"
+  },
+  "comments-nav.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E043"
+  },
+  "block-move.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E064"
+  },
+  "block-edit.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E000"
+  },
+  "block-duplicate.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E001"
+  },
+  "block-delete.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E002"
+  },
+  "align-left.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E081"
+  },
+  "align-center.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E082"
+  },
+  "align-right.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E083"
+  },
+  "align-justify.svg": {
+    "source": "https://mailchimp.com/cdn/product/fonts/mailchimp/freddicons/freddicons-20px.woff2",
+    "glyph": "U+E084"
+  }
+}

@@ -12,6 +12,8 @@ function queueSharedPasswordRecovery(mysqli $conn, string $username, string $ema
 
 /** Called only locally or by the authenticated primary; receipt and mail commit together. */
 function acceptSharedPasswordRecovery(mysqli $conn, array $payload): array {
+    // Acknowledge suppressed recovery without issuing mail/tokens or retrying forever.
+    if (!accountSecurityAccessAllowed()) return ['ok' => true];
     $id = (string) ($payload['operation_id'] ?? '');
     if (!preg_match('/\A[a-f0-9]{64}\z/D', $id)) throw new InvalidArgumentException('Invalid recovery request.');
     $conn->begin_transaction();

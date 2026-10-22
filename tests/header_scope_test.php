@@ -13,6 +13,11 @@ function csrfInput()
     return '';
 }
 
+function actionIconSvg($action)
+{
+    return '<svg aria-hidden="true" data-test-action="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '"></svg>';
+}
+
 function renderScript($path, $defer = true)
 {
     echo '<script src="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '"'
@@ -27,6 +32,28 @@ function assetUrl($path)
 function safeRolePreviewReturnUrl($return_url, $role)
 {
     return (string) $return_url;
+}
+
+function activeRolePreview()
+{
+    return authenticatedSuperAdmin() ? ($_SESSION['_role_preview'] ?? null) : null;
+}
+
+// The shared Account banner needs a profile, but this render test has no database.
+function applicationDatabaseConnection()
+{
+    return new class {
+        public function query(string $query): object
+        {
+            return new class {
+                public function fetch_assoc(): array
+                {
+                    return ['account_key' => currentAccountKey(), 'name' => 'Test Ministry',
+                        'settings' => '{}', 'version' => 1];
+                }
+            };
+        }
+    };
 }
 
 $_SERVER['PHP_SELF'] = '/contacts.php';
@@ -107,15 +134,19 @@ expectHeaderScope(
 );
 
 foreach ([
-    ['active' => 4, 'total' => 5, 'label' => '4'],
-    ['active' => 7, 'total' => 4, 'label' => '7'],
-    ['active' => 0, 'total' => 1, 'label' => null],
-    ['active' => 120, 'total' => 5, 'label' => '99+'],
+    ['active' => 7, 'total' => 9, 'overdue' => 3, 'today' => 1, 'count' => 4, 'label' => '4'],
+    ['active' => 7, 'total' => 9, 'overdue' => 3, 'today' => 0, 'count' => 3, 'label' => '3'],
+    ['active' => 7, 'total' => 9, 'overdue' => 0, 'today' => 2, 'count' => 2, 'label' => '2'],
+    ['active' => 7, 'total' => 9, 'overdue' => 0, 'today' => 0, 'count' => 0, 'label' => null],
+    ['active' => 120, 'total' => 125, 'overdue' => 60, 'today' => 39, 'count' => 99, 'label' => '99'],
+    ['active' => 120, 'total' => 125, 'overdue' => 60, 'today' => 40, 'count' => 100, 'label' => '99+'],
 ] as $badge_case) {
     $_SESSION['user_id'] = 1;
     $request_reminder_counts = [
         'active' => $badge_case['active'],
         'total' => $badge_case['total'],
+        'dashboard_overdue' => $badge_case['overdue'],
+        'dashboard_today' => $badge_case['today'],
     ];
     ob_start();
     include __DIR__ . '/../src/templates/header.php';
@@ -129,9 +160,9 @@ foreach ([
         $badge_case['label'] === null
             ? !$has_badge
             : $has_badge
-                && $badge_match[1] === $badge_case['active'] . ' Active Tasks Assigned to You'
+                && $badge_match[1] === $badge_case['count'] . ' Overdue or Due Today Tasks Assigned to You'
                 && $badge_match[2] === $badge_case['label'],
-        'Tasks should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
+        'Tasks should count only personal overdue and due-today tasks, exclude future tasks and shared reminders, hide zero, and cap large counts.'
     );
 }
 unset($_SESSION['user_id'], $request_reminder_counts);
@@ -169,6 +200,13 @@ $_SESSION = [
 ob_start();
 include __DIR__ . '/../src/templates/header.php';
 $reviewer_preview_markup = ob_get_clean();
+expectHeaderScope(
+    str_contains($reviewer_preview_markup, '<section class="account-identity-banner"')
+        && strpos($reviewer_preview_markup, 'class="account-identity-banner"') < strpos($reviewer_preview_markup, 'class="role-preview-banner"')
+        && preg_match('/class="account-identity-switch-form".*name="role" value="superadmin".*name="return_to" value="accounts\\.php"/s', $reviewer_preview_markup) === 1
+        && !str_contains($reviewer_preview_markup, 'href="accounts.php"'),
+    'Account context stacks above Viewing As and switching requires the SuperAdmin return form.'
+);
 expectHeaderScope(
     str_contains($reviewer_preview_markup, 'data-role-preview-banner')
         && str_contains($reviewer_preview_markup, '<strong>Viewing as Reviewer</strong>')
@@ -267,7 +305,7 @@ expectHeaderScope(
 );
 
 $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
-$footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$footer_source = file_get_contents(__DIR__ . '/../src/templates/app-footer.php');
 $version = trim((string) file_get_contents(__DIR__ . '/../VERSION'));
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $theme_source = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');

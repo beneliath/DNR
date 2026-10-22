@@ -201,13 +201,24 @@ def control_proxy_service(config, configuration, image):
                            'interval':'10s','timeout':'3s','retries':3}}
 
 
+def backend_ipam(subnet, ingress_ip):
+    """Keep the static ingress address outside Docker's dynamic allocation pool."""
+    network = ipaddress.ip_network(subnet)
+    reserved = ipaddress.ip_address(ingress_ip)
+    if network.version != 4 or reserved not in network or network.prefixlen > 28:
+        raise ValueError('Backend requires an IPv4 subnet with room for reserved ingress and services')
+    pool = next(part for part in network.subnets(prefixlen_diff=1) if reserved not in part)
+    return {'subnet': str(network), 'ip_range': str(pool)}
+
+
 def primary_overlay(config, directory=None):
     directory = directory or ROOT/PRIMARY_DIRECTORY
     environment = account_environment(config, config['primary_key'], True)
     relay=control_proxy_service(config, directory/'control.conf', '${DNR_INGRESS_IMAGE:?Qualified ingress image required}')
     if config.get('primary_control_edge_ip'):
         relay['networks']={'backend':{},'edge':{'ipv4_address':config['primary_control_edge_ip']}}
-    return {'networks':{'edge':{'external':True,'name':config['edge_network']}},
+    return {'networks':{'edge':{'external':True,'name':config['edge_network']},
+            'backend':{'ipam':{'config':[backend_ipam(config['primary_backend_subnet'], config['primary_ingress_ip'])]}}},
             'services': {**{s:{'environment':environment} for s in SERVICES},
             'mail-ingest':{'environment':environment},
             'account-control':relay,
@@ -289,6 +300,15 @@ def qualify_runtime(directory,document,metadata):
 def saved_active_services(directory):
     document = json.loads((directory/'runtime.compose.json').read_text())
     return validate_active_services(document)
+
+
+def require_current_runtime(config, directory, metadata):
+    """Recovery snapshots are preserved, but stale releases cannot be activated."""
+    document = json.loads((directory/'runtime.compose.json').read_text())
+    images = {kind:document['services'][service]['image']
+              for kind,service in [('app','web'),('database','db'),('ingress','ingress')]}
+    if metadata.get('commit') != config['commit'] or images != config['images']:
+        raise ValueError('Account requires a backed-up upgrade to the current qualified release before activation')
 
 
 def validate_active_services(document):
@@ -406,8 +426,13 @@ def verify_images(config):
 
 
 def ready_probe(config, key, public_url=None):
-    # The response is HMAC authenticated and names the private database identity.
-    control(config['primary_web'], 'probe', key, public_url or config['origin']+'/a/'+key)
+    # Check actual containers as well as the authenticated public route. A saved
+    # manifest alone does not establish what is serving the Account now.
+    for kind,service in [('app','web'),('database','db'),('ingress','ingress')]:
+        member = inspect(config['project_prefix']+'-'+key+'-'+service+'-1')
+        if member['Config']['Image'] != config['images'][kind] or not member['State']['Running']:
+            raise ValueError('Running Account service does not match the current qualified release')
+    control(config['primary_web'], 'probe', key, public_url or config['origin']+'/a/'+key, config['commit'])
 
 
 def provision(config, key):
@@ -453,12 +478,13 @@ def provision(config, key):
         private_file(statefile,json.dumps(state,indent=2))
         prepare_member_runtime(config,key,account,directory,state)
     dc=saved_compose(directory,project,state)
+    require_current_runtime(config,directory,state)
     document=json.loads(runtime.read_text())
     public_url=document['services']['web']['environment']['DNR_PUBLIC_BASE_URL']
     def call(*args): return run(dc+list(args),env=clean_environment(),cwd=ROOT,capture_output=True)
     call('up','-d','--no-build','--wait','db')
-    # A retry runs only the original member's migrator/configuration. The primary
-    # may have advanced, but no newer image or checkout enters this transaction.
+    # Retry only a snapshot qualified at the current release. An older database
+    # requires its own writer pause, verified backup and release transaction.
     call('run','--rm','--no-deps','migrator')
     sql="""SET @fresh=((SELECT account_key FROM account_profile WHERE id=1)='shalom-in-messiah'
       AND (SELECT COUNT(*) FROM users)=0 AND (SELECT COUNT(*) FROM organizations)=0 AND (SELECT COUNT(*) FROM engagements)=0);
@@ -506,7 +532,9 @@ def prepare_member_runtime(config,key,account,directory,state):
     member_environment['DNR_PLATFORM_API_KEY_FILE'] = '/run/secrets/platform_api_key'
     for service in SERVICES:
         overlay['services'][service]={'environment':member_environment,'secrets':['platform_api_key']}
-    for name,subnet in state['networks'].items(): overlay['networks'][name]={'ipam':{'config':[{'subnet':subnet}]}}
+    for name,subnet in state['networks'].items():
+        ipam = backend_ipam(subnet, values['DNR_INGRESS_PROXY_IP']) if name == 'backend' else {'subnet':subnet}
+        overlay['networks'][name]={'ipam':{'config':[ipam]}}
     private_file(directory/'ingress-security.conf',ingress_security_configuration(key,values['DNR_PUBLIC_BASE_URL']))
     overlay['services']['ingress']={'networks':{'edge':{}},'labels':labels(config,key),
         'volumes':[str(directory/'ingress-security.conf')+':/etc/apache2/conf-enabled/zy-dnr-account-security.conf:ro']}
@@ -542,6 +570,7 @@ def lifecycle(config,account):
         if containers: run(['docker','stop',*containers],capture_output=True)
         # Stopping ingress withdraws its route from Traefik. Stored volumes survive archive.
     if state=='restoring':
+        require_current_runtime(config,directory,metadata)
         run(dc+['up','-d','--no-build','--no-deps','--wait','db'],env=clean_environment(),capture_output=True)
         run(root_command(project+'-db-1','mysql','-uroot','dnr'),input='UPDATE users SET auth_version=auth_version+1; DELETE FROM account_login_handoffs;',capture_output=True)
         # Restart only the saved services. In particular, do not run migrator or

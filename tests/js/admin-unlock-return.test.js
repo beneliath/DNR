@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/footer.js'), 'utf8');
 
-function page(storage = new Map(), { url = 'https://app.example/reimbursement_setup.php?return=dashboard.php#settings', user = '17', version = '1', baseline = 'Saved Name', accountBanner = false } = {}) {
+function page(storage = new Map(), { url = 'https://app.example/reimbursement_setup.php?return=dashboard.php#settings', user = '17', version = '1', baseline = 'Saved Name', accountBanner = false, mobile = false } = {}) {
     const events = {}, windowEvents = {}, notifications = [];
     function field(name, type, value, extra = {}) {
         return Object.defineProperties({ name, type, value, checked: false,
@@ -31,7 +31,7 @@ function page(storage = new Map(), { url = 'https://app.example/reimbursement_se
             querySelectorAll: selector => selector === 'main form' ? [form] : selector === '[data-admin-unlock-link]' ? [nav] : [],
             addEventListener(type, fn) { (events[type] ||= []).push(fn); }
         },
-        window: { location, scrollX: 0, scrollY: 430,
+        window: { location, scrollX: 0, scrollY: 430, getComputedStyle: () => ({ position: accountBanner && !mobile ? 'fixed' : 'static' }),
             sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
             addEventListener(type, fn) { windowEvents[type] = fn; }, scrollTo(x, y) { scroll = [x, y]; } },
         URL, Event
@@ -83,6 +83,16 @@ test('unlock restores the content scroll position beneath a fixed account banner
     returned.windowEvents.pageshow();
     assert.equal(returned.fields[0].value, 'Unsaved Name');
     assert.deepEqual(returned.scroll(), [0, 735]);
+});
+
+test('mobile unlock restores native document scrolling with an account banner', () => {
+    const view = page(new Map(), { accountBanner: true, mobile: true });
+    edit(view);
+    view.capture();
+    const returned = page(view.storage, { accountBanner: true, mobile: true });
+    returned.windowEvents.pageshow();
+    assert.equal(returned.fields[0].value, 'Unsaved Name');
+    assert.deepEqual(returned.scroll(), [0, 430]);
 });
 
 test('snapshots are isolated by tab, account and exact query, and consumed by cancel as well as success', () => {

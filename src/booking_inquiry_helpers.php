@@ -192,7 +192,7 @@ function bookingInquiryDateRange(
     if ($start !== null && $end === null) {
         $end = $start;
     }
-    if ($start !== null && $end !== null && $end < $start) {
+    if ($start !== null && $end < $start) {
         throw new InvalidArgumentException($label . ' end date cannot be before its start date.');
     }
     return [$start, $end];

@@ -767,7 +767,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-recoverable-draft="edit_engagement.php:<?php echo (int)$engagement_id; ?>" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
+    <form method="post" action="edit_engagement.php?id=<?php echo (int) $engagement_id; ?>" class="engagement-form" id="engagement-edit-form" data-recoverable-draft="edit_engagement.php:<?php echo (int)$engagement_id; ?>" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">

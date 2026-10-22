@@ -352,6 +352,29 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
     <?php if ($chron_action_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($source_inquiry): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked from Inquiry #<?php echo (int) $source_inquiry['id']; ?></strong><span>The pre-booking history remains on the read-only source record.</span></div><a href="view_inquiry.php?id=<?php echo (int) $source_inquiry['id']; ?>" class="button-secondary">Open Source Inquiry</a></div><?php endif; ?>
 
+    <section class="engagement-routing-card" aria-labelledby="engagement-routing-heading">
+        <h2 id="engagement-routing-heading">Email Routing Marker</h2>
+        <div class="detail-value engagement-email-marker">
+            <span class="engagement-email-marker-control">
+                <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
+                <button
+                    type="button"
+                    class="action-icon-button engagement-marker-copy"
+                    data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
+                    data-copy-status="engagement-marker-copy-status"
+                    data-tooltip="Copy Marker"
+                    aria-label="Copy Email Routing Marker"
+                    title="Copy Email Routing Marker"
+                >
+                    <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                </button>
+            </span>
+            <span class="engagement-email-marker-help">Keep this marker in the email subject or plain-text body to route the message to this Engagement’s Chron log.</span>
+            <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
+        </div>
+    </section>
+
     <div class="engagement-planning-summary">
             <section class="engagement-card engagement-workflow-card" id="workflow-controls">
                 <h2>Workflow</h2>
@@ -415,7 +438,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <div><dt>Presentations</dt><dd><a href="#engagement-presentations"><?php echo count($presentations); ?> added</a></dd></div>
         </dl>
         <?php if (!empty($engagement['event_description'])): ?>
-        <details class="engagement-description"><summary>Show Description</summary><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></details>
+        <div class="engagement-description"><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></div>
         <?php endif; ?>
         <p class="engagement-overview-meta"><?php echo $event_address_parts ? implode(', ', array_map('htmlspecialchars', $event_address_parts)) : 'Location not recorded'; ?> · Caller: <?php echo htmlspecialchars($engagement['caller_name'] ?: 'Not assigned'); ?> · Updated <?php echo htmlspecialchars(applicationTimestampLabel($engagement['updated_at'], 'M j, Y')); ?></p>
     </section>
@@ -427,8 +450,8 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     <button type="button" role="tab" id="engagement-activity-tab" aria-controls="chron-log" aria-selected="true">Activity <span><?php echo $chron_entry_count; ?></span></button>
                     <button type="button" role="tab" id="engagement-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($engagement_email_messages) === 10 ? '10+' : count($engagement_email_messages); ?></span></button>
                     <button type="button" role="tab" id="engagement-tasks-tab" aria-controls="engagement-tasks" aria-selected="false">Tasks <span><?php echo count($context_tasks); ?></span></button>
-                    <button type="button" role="tab" id="engagement-presentations-tab" aria-controls="engagement-presentations" aria-selected="false">Presentations</button>
-                    <button type="button" role="tab" id="engagement-contacts-tab" aria-controls="engagement-contacts" aria-selected="false">Contacts</button>
+                    <button type="button" role="tab" id="engagement-presentations-tab" aria-controls="engagement-presentations" aria-selected="false">Presentations <span><?php echo count($presentations); ?></span></button>
+                    <button type="button" role="tab" id="engagement-contacts-tab" aria-controls="engagement-contacts" aria-selected="false">Contacts <span><?php echo count($contacts); ?></span></button>
                     <button type="button" role="tab" id="engagement-logistics-tab" aria-controls="engagement-logistics" aria-selected="false">Logistics</button>
                     <button type="button" role="tab" id="engagement-financials-tab" aria-controls="financial-closeout" aria-selected="false">Financials</button>
                 </div>
@@ -521,28 +544,6 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
         <?php endif; ?>
     </section>
     <section class="engagement-correspondence engagement-tab-panel" id="correspondence" role="tabpanel" aria-labelledby="engagement-correspondence-tab" tabindex="0" hidden>
-            <details class="engagement-routing-card"><summary>Email Routing Marker</summary>
-        <div class="detail-value engagement-email-marker">
-            <span class="engagement-email-marker-control">
-                <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
-                <button
-                    type="button"
-                    class="action-icon-button engagement-marker-copy"
-                    data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-copy-status="engagement-marker-copy-status"
-                    data-tooltip="Copy Marker"
-                    aria-label="Copy Email Routing Marker"
-                    title="Copy Email Routing Marker"
-                >
-                    <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-                    <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
-                </button>
-            </span>
-            <span class="engagement-email-marker-help">Keep this marker in the email subject or plain-text body to route the message to this Engagement’s Chron log.</span>
-            <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
-        </div>
-            </details>
-
         <div class="engagement-correspondence-heading">
             <div>
                 <h2>Correspondence</h2>

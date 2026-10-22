@@ -12,6 +12,145 @@
     if (!viewport) return;
     const desktop = window.matchMedia('(min-width: 861px)');
     const body = viewport.querySelector('tbody');
+    // Keep the expanded day outside the scrolling table so it cannot be clipped.
+    const popover = document.createElement('section');
+    popover.id = 'calendar-day-popover';
+    popover.className = 'calendar-day-popover';
+    popover.hidden = true;
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-labelledby', 'calendar-day-popover-title');
+    popover.setAttribute('aria-describedby', 'calendar-day-popover-summary');
+    popover.innerHTML = '<div class="calendar-day-popover-heading"><div>'
+        + '<h3 id="calendar-day-popover-title"></h3><p id="calendar-day-popover-summary"></p>'
+        + '</div><button type="button" class="calendar-day-popover-close" aria-label="Close expanded day">Close</button></div>'
+        + '<div class="calendar-day-popover-items"></div>';
+    document.body.appendChild(popover);
+    const popoverItems = popover.querySelector('.calendar-day-popover-items');
+    let dayTrigger = null;
+    let dayPinned = false;
+    let closeDayTimer;
+    let refreshDayFrame;
+    function closeDay(restoreFocus = false) {
+        clearTimeout(closeDayTimer);
+        if (!dayTrigger) return;
+        const previous = dayTrigger;
+        previous.setAttribute('aria-expanded', 'false');
+        dayTrigger = null;
+        dayPinned = false;
+        popover.hidden = true;
+        if (restoreFocus && previous.isConnected) previous.focus({ preventScroll: true });
+    }
+    function openDay(trigger, pin = false) {
+        if (!desktop.matches || (dayPinned && !pin)) return;
+        clearTimeout(closeDayTimer);
+        if (dayTrigger !== trigger) {
+            closeDay();
+            dayTrigger = trigger;
+            const items = trigger.closest('td').querySelector('.calendar-day-items');
+            popoverItems.replaceChildren(...Array.from(items.children, item => item.cloneNode(true)));
+            popoverItems.scrollTop = 0;
+            popover.querySelector('h3').textContent = trigger.querySelector('time').getAttribute('aria-label');
+            popover.querySelector('p').textContent = `${items.children.length} ${items.children.length === 1 ? 'item' : 'items'}`;
+            trigger.setAttribute('aria-expanded', 'true');
+            popover.hidden = false;
+            const anchor = trigger.getBoundingClientRect();
+            const bounds = popover.getBoundingClientRect();
+            const left = Math.max(12, Math.min(anchor.left, window.innerWidth - bounds.width - 12));
+            const below = anchor.bottom + 6;
+            const above = anchor.top - bounds.height - 6;
+            const top = below + bounds.height <= window.innerHeight - 12 ? below
+                : above >= 12 ? above : Math.max(12, window.innerHeight - bounds.height - 12);
+            popover.style.left = `${left}px`;
+            popover.style.top = `${top}px`;
+        }
+        dayPinned = pin;
+        if (pin) popoverItems.querySelector('a').focus({ preventScroll: true });
+    }
+    function scheduleCloseDay() {
+        clearTimeout(closeDayTimer);
+        closeDayTimer = setTimeout(() => {
+            if (!dayPinned && !dayTrigger?.matches(':hover') && !popover.matches(':hover')
+                && !popover.contains(document.activeElement)) closeDay();
+        }, 220);
+    }
+    function refreshDays() {
+        if (dayTrigger && (!dayTrigger.isConnected || !desktop.matches)) {
+            closeDay(popover.contains(document.activeElement));
+        }
+        body.querySelectorAll('.calendar-month-day').forEach(cell => {
+            const items = cell.querySelector('.calendar-day-items');
+            const heading = cell.querySelector('.calendar-day-heading');
+            let trigger = heading.querySelector('.calendar-day-toggle');
+            const hasItems = desktop.matches && items.clientHeight > 0 && items.children.length > 0;
+            if (!hasItems) {
+                if (trigger) {
+                    if (dayTrigger === trigger) closeDay(popover.contains(document.activeElement));
+                    trigger.replaceWith(trigger.querySelector('time'));
+                }
+                return;
+            }
+            if (!trigger) {
+                const date = heading.querySelector('time');
+                trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'calendar-day-toggle';
+                trigger.setAttribute('aria-haspopup', 'dialog');
+                trigger.setAttribute('aria-controls', popover.id);
+                trigger.setAttribute('aria-expanded', 'false');
+                date.replaceWith(trigger);
+                trigger.appendChild(date);
+                const indicator = document.createElement('span');
+                indicator.setAttribute('aria-hidden', 'true');
+                indicator.textContent = '▾';
+                trigger.appendChild(indicator);
+            }
+            const count = items.children.length;
+            const label = `View ${count} ${count === 1 ? 'item' : 'items'} for ${trigger.querySelector('time').getAttribute('aria-label')}`;
+            trigger.setAttribute('aria-label', label);
+        });
+    }
+    function queueRefreshDays() {
+        cancelAnimationFrame(refreshDayFrame);
+        refreshDayFrame = requestAnimationFrame(refreshDays);
+    }
+    // Adjacent months replace overlapping weeks and append new day cells.
+    new MutationObserver(queueRefreshDays).observe(body, { childList: true, subtree: true });
+    viewport.addEventListener('pointerover', event => {
+        const trigger = event.target.closest('.calendar-day-toggle');
+        if (event.pointerType !== 'touch' && trigger && !trigger.contains(event.relatedTarget)) openDay(trigger);
+    });
+    viewport.addEventListener('pointerout', event => {
+        const trigger = event.target.closest('.calendar-day-toggle');
+        if (trigger && !trigger.contains(event.relatedTarget)) scheduleCloseDay();
+    });
+    viewport.addEventListener('click', event => {
+        const trigger = event.target.closest('.calendar-day-toggle');
+        if (!trigger) return;
+        if (dayTrigger === trigger && dayPinned) closeDay();
+        else openDay(trigger, true);
+    });
+    popover.addEventListener('pointerenter', () => clearTimeout(closeDayTimer));
+    popover.addEventListener('pointerleave', scheduleCloseDay);
+    popover.addEventListener('focusout', scheduleCloseDay);
+    popover.querySelector('button').addEventListener('click', () => closeDay(true));
+    document.addEventListener('pointerdown', event => {
+        if (dayTrigger && !dayTrigger.contains(event.target) && !popover.contains(event.target)) closeDay();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && dayTrigger) {
+            event.preventDefault();
+            closeDay(popover.contains(document.activeElement));
+        }
+    });
+    window.addEventListener('scroll', event => {
+        if (!popover.contains(event.target)) closeDay(popover.contains(document.activeElement));
+    }, true);
+    window.addEventListener('resize', () => {
+        closeDay(popover.contains(document.activeElement));
+        queueRefreshDays();
+    });
+    desktop.addEventListener('change', queueRefreshDays);
+    queueRefreshDays();
     const months = new Map();
     let first = viewer.dataset.month;
     let last = first;

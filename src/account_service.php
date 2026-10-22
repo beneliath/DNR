@@ -40,7 +40,8 @@ try {
     }
     if (($request['operation'] ?? '') === 'directory_profile') {
         $profile = $conn->query('SELECT account_key,name,version FROM account_profile WHERE id=1')->fetch_assoc();
-        echo json_encode(['account_key' => $profile['account_key'], 'name' => $profile['name'], 'version' => (int) $profile['version']], JSON_THROW_ON_ERROR); exit;
+        echo json_encode(['account_key' => $profile['account_key'], 'name' => $profile['name'], 'version' => (int) $profile['version'],
+            'application_version' => APP_VERSION, 'application_commit' => (string) getenv('DNR_BUILD_COMMIT')], JSON_THROW_ON_ERROR); exit;
     }
     if (($request['operation'] ?? '') !== 'password' || !is_array($payload)) throw new RuntimeException('Invalid request.');
     $username = is_string($payload['username'] ?? null) ? $payload['username'] : '';

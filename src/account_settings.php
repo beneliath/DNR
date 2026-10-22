@@ -3,11 +3,15 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/account_login_helpers.php';
+require_once __DIR__ . '/speaker_helpers.php';
 startSecureSession();
 requireAdmin();
+requireDemoAccountConfigurationAccess();
 if (!accountsEnabled()) { http_response_code(404); exit('Not found.'); }
 header('Cache-Control: no-store');
 $profile = currentAccountProfile();
+$speakerOptions = fetchSpeakerOptions($conn);
+$selectedSpeakerId = $speakerOptions ? defaultSpeakerId($speakerOptions, applicationDefaultSpeaker()) : 0;
 $timezones = DateTimeZone::listIdentifiers();
 $currentTimezone = applicationTimezoneName();
 if (!in_array($currentTimezone, $timezones, true)) {
@@ -26,13 +30,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim(\Dnr\Http\RequestInput::string($_POST, 'name'));
         if ($name === '' || mb_strlen($name) > 160 || preg_match('/[\x00-\x1f\x7f]/', $name)) throw new InvalidArgumentException('Enter a valid Account name.');
         $settings = [];
+        if (isset($profile['settings']['demo_password_only_user_id'])) {
+            $settings['demo_password_only_user_id'] = $profile['settings']['demo_password_only_user_id'];
+        }
+        if (isset($profile['settings']['demo_password_only_user_ids'])) {
+            $settings['demo_password_only_user_ids'] = $profile['settings']['demo_password_only_user_ids'];
+        }
         foreach ($fields as $key => [$label, $default]) {
             $value = trim(\Dnr\Http\RequestInput::string($_POST, $key));
-            if (strlen($value) > 255 || preg_match('/[\x00-\x1f\x7f]/', $value)) throw new InvalidArgumentException('Enter a valid ' . $label . '.');
+            if ($key !== 'DNR_DEFAULT_SPEAKER' && (strlen($value) > 255 || preg_match('/[\x00-\x1f\x7f]/', $value))) throw new InvalidArgumentException('Enter a valid ' . $label . '.');
             $settings[$key] = $value;
         }
         if (!in_array($settings['DNR_TIMEZONE'], $timezones, true)) {
             throw new InvalidArgumentException('Select a supported time zone.');
+        }
+        if (($speakerOptions !== [] || $settings['DNR_DEFAULT_SPEAKER'] !== '')
+            && !in_array($settings['DNR_DEFAULT_SPEAKER'], array_column($speakerOptions, 'name'), true)) {
+            throw new InvalidArgumentException('Select a speaker from the Speakers list.');
         }
         deploymentConfig()->withAccountOverrides($settings);
         $conn->execute_query('UPDATE account_profile SET name = ?, settings = ?, version = version + 1 WHERE id = 1 AND version = ?',
@@ -58,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <select id="<?php echo $key; ?>" name="<?php echo $key; ?>" required>
 <?php foreach ($timezones as $timezone): ?>
 <option value="<?php echo htmlspecialchars($timezone); ?>"<?php echo $value === $timezone ? ' selected' : ''; ?>><?php echo htmlspecialchars(str_replace('_', ' ', $timezone)); ?></option>
+<?php endforeach; ?>
+</select>
+<?php elseif ($key === 'DNR_DEFAULT_SPEAKER'): ?>
+<select id="<?php echo $key; ?>" name="<?php echo $key; ?>"<?php echo $speakerOptions ? ' required' : ''; ?>>
+<?php if (!$speakerOptions): ?><option value="">No speakers available</option><?php endif; ?>
+<?php foreach ($speakerOptions as $speaker): ?>
+<option value="<?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo (int) $speaker['id'] === $selectedSpeakerId ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></option>
 <?php endforeach; ?>
 </select>
 <?php else: ?>

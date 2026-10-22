@@ -19,6 +19,11 @@ try {
     $conn->execute_query('UPDATE account_login_handoffs SET consumed_at = UTC_TIMESTAMP() WHERE token_hash = ?', [hash('sha256', $token)]);
     $conn->commit();
     beginPendingAuthentication($user);
+    if (demoPasswordOnlyAuthenticationAllowed($user)) {
+        completeAuthentication($conn, $user);
+        header('Location: ' . authenticationDestination($user));
+        exit;
+    }
     header('Location: ' . (!empty($user['two_factor_enabled']) ? 'verify_2fa.php' : 'setup_2fa.php'));
 } catch (Throwable $error) {
     $conn->rollback(); http_response_code(403);

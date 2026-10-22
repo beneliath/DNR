@@ -13,6 +13,13 @@ require_once '/var/www/html/email_helpers.php';
 require_once '/var/www/html/notification_helpers.php';
 require_once '/var/www/html/engagement_email_helpers.php';
 require_once '/var/www/html/reimbursement_email_helpers.php';
+require_once '/var/www/html/audience_delivery_worker.php';
+require_once '/var/www/html/audience_dispatch_worker.php';
+require_once '/var/www/html/audience_store.php';
+require_once '/var/www/html/audience_flow_runtime.php';
+require_once '/var/www/html/audience_ses_inbox.php';
+require_once '/var/www/html/audience_inbox_runtime.php';
+require_once '/var/www/html/audience_notification_runtime.php';
 $reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
 $limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
 
@@ -91,6 +98,19 @@ do {
         }
     }
 
+    if (!$reimbursementsOnly) {
+        try {
+            // Marketing setup checks use this account’s encrypted SES credentials; operational mail stays on SMTP.
+            $processed += processAudienceSnsInbox($conn);
+            $processed += processAudienceSesSetup($conn, 1);
+        } catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to process MessageMonkey delivery setup', [
+                'exception' => get_class($exception),
+            ]);
+        }
+    }
+
     for ($index = 0; $index < ($reimbursementsOnly ? 0 : $batchSize); $index++) {
         $queued = claimQueuedAccountEmail($conn, 600, false);
         if ($queued === null) {
@@ -108,7 +128,7 @@ do {
                 $message['recipient'],
                 $message['subject'],
                 $message['body'],
-                messageId: $queued['smtp_message_id']
+                messageId: $queued['smtp_message_id'], budgetDb: $conn
             );
             $accepted = true;
             $conn->begin_transaction();
@@ -171,7 +191,7 @@ do {
                 '',
                 is_string($message['html_body'] ?? null) ? $message['html_body'] : null,
                 messageId: $queued['smtp_message_id'],
-                attachments: $message['inline_images']
+                attachments: $message['inline_images'], budgetDb: $conn
             );
             $accepted = true;
             completeQueuedNotificationEmail($conn, $queued['id'], $queued['claim_token']);
@@ -218,7 +238,7 @@ do {
                 $message['body'],
                 $message['reply_to'],
                 visibleRecipients: $message['visible_recipients'],
-                messageId: $queued['smtp_message_id']
+                messageId: $queued['smtp_message_id'], budgetDb: $conn
             );
             $accepted = true;
             completeQueuedEngagementEmail($conn, $queued['id'], $queued['claim_token']);
@@ -269,7 +289,7 @@ do {
                 htmlBody: $message['html_body'],
                 visibleRecipients: $message['visible_recipients'],
                 messageId: $queued['smtp_message_id'],
-                attachments: [...$attachments, ...$message['inline_images']]
+                attachments: [...$attachments, ...$message['inline_images']], budgetDb: $conn
             );
             $accepted = true;
             completeQueuedReimbursementEmail($conn, $queued['id'], $queued['claim_token']);
@@ -298,6 +318,22 @@ do {
         }
         recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
         $processed++;
+    }
+
+    // Account and operational mail keeps priority over each bounded marketing batch.
+    if (!$reimbursementsOnly) {
+        try {
+            $processed += processAudienceFlows($conn, 25);
+            queueAudienceInboxAlerts($conn, 10);
+            queueAudienceChangeAlerts($conn, 100);
+            $processed += processAudienceServiceMail($conn, 5);
+            $processed += processAudienceCampaignDelivery($conn, 5);
+        } catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to process MessageMonkey campaign delivery', [
+                'exception' => get_class($exception),
+            ]);
+        }
     }
 
     if ($smtpSession instanceof SmtpSession) {

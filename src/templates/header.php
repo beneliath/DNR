@@ -25,6 +25,7 @@ $nav_groups = [
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php', 'short_links.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
+    'audience' => ['audience.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
     'reimbursements' => ['reimbursements.php', 'reimbursement_expense.php', 'reimbursement_request.php', 'reimbursement_requests.php', 'reimbursement_cost_centers.php', 'reimbursement_submit.php'],
@@ -65,6 +66,7 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $authenticated_superadmin = authenticatedSuperAdmin();
+$demo_restricted = isRestrictedDemoSession();
 $admin_unlock_available = !empty($_SESSION['user_id']) && $user_role === 'admin';
 $admin_unlock_expires_at = $admin_unlock_available
     ? adminElevationExpiresAt()
@@ -73,7 +75,7 @@ $role_preview = $authenticated_superadmin
     && in_array($_SESSION['_role_preview'] ?? null, ['admin', 'editor', 'reviewer'], true)
         ? $user_role
         : null;
-$role_preview_label = $role_preview === 'admin' ? 'Administrator' : ($role_preview === null ? '' : ucfirst($role_preview));
+$role_preview_label = $role_preview === 'admin' ? 'Administrator' : ucfirst((string) $role_preview);
 $role_preview_return_url = safeRolePreviewReturnUrl(
     $shell_current_page
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
@@ -128,7 +130,8 @@ if (!empty($_SESSION['user_id'])) {
             (int) $_SESSION['user_id'],
             $user_role
         );
-        $nav_task_count = (int) $nav_reminders['active'];
+        $nav_task_count = (int) $nav_reminders['dashboard_overdue']
+            + (int) $nav_reminders['dashboard_today'];
     } catch (Throwable $exception) {
         applicationLog('error', 'Unable to load navigation reminders', [
             'user_id' => (int) $_SESSION['user_id'],
@@ -140,17 +143,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <header class="app-shell-header"<?php if (aiCoachEnabled() && !empty($_SESSION['user_id'])): ?> data-coach-layout-key="<?php echo htmlspecialchars(aiCoachStorageKey(), ENT_QUOTES, 'UTF-8'); ?>" data-coach-pane-key="<?php echo aiCoachPaneKey(); ?>" data-coach-page="<?php echo htmlspecialchars(aiCoachPage(), ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
     <a class="skip-link" href="#app-content-start" data-skip-link>Skip to Main Content</a>
-    <?php if (isSuperAdmin()): ?>
-    <section class="account-identity-banner" aria-label="Current Account">
-        <span class="account-identity-label">
-            <strong><?php echo htmlspecialchars(currentAccountProfile()['name']); ?></strong>
-            <?php if (accountIsPrimary()): ?>
-            <span class="account-primary-badge"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8"/></svg>Primary Account</span>
-            <?php endif; ?>
-        </span>
-        <a href="accounts.php">Switch Account</a>
-    </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/account-identity-banner.php'; ?>
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
             <span class="visually-hidden">Open Navigation</span>
@@ -166,50 +159,11 @@ if (!empty($_SESSION['user_id'])) {
         </button>
     </div>
 
-    <?php if (!empty($_SESSION['user_id'])): ?>
-        <section class="deployment-notice-banner" data-deployment-notice data-status-url="deployment_status.php" aria-label="Deployment Notice" hidden>
-            <div class="deployment-notice-heading">
-                <strong data-deployment-title role="status" aria-live="polite"></strong>
-                <span data-deployment-timer role="timer" aria-live="off"></span>
-            </div>
-            <span data-deployment-detail></span>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/deployment-notice.php'; ?>
 
-    <?php if ($admin_unlock_available): ?>
-        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at ?? 0; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
-            <div class="admin-unlock-copy">
-                <strong role="status">Administrator actions unlocked</strong>
-                <span>Sensitive actions are available until the timer expires.</span>
-            </div>
-            <form method="post" action="admin_lock.php" class="admin-unlock-lock-form" data-admin-lock-form>
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="admin-unlock-lock-button button-secondary" formaction="admin_extend.php" data-admin-extend-button>Add 5 Minutes</button>
-                <button type="submit" class="admin-unlock-lock-button button-secondary" data-admin-lock-button>Lock Admin Actions</button>
-                <span data-admin-lock-error role="alert" hidden></span>
-            </form>
-            <div class="admin-unlock-countdown">
-                <span>Automatically locks in</span>
-                <span data-admin-unlock-timer role="timer" aria-label="Time Until Administrator Actions Lock" aria-live="off"></span>
-            </div>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/admin-unlock-banner.php'; ?>
 
-    <?php if ($role_preview !== null): ?>
-        <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator Role Preview">
-            <div class="role-preview-banner-copy">
-                <strong>Viewing as <?php echo htmlspecialchars($role_preview_label, ENT_QUOTES, 'UTF-8'); ?></strong>
-                <span>Navigation and permissions reflect this role. Actions still affect live data.</span>
-            </div>
-            <form method="post" action="role_preview.php" class="role-preview-return-form">
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="role" value="superadmin">
-                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="button-secondary">Return to SuperAdmin</button>
-            </form>
-        </section>
-    <?php endif; ?>
+    <?php include __DIR__ . '/role-preview-banner.php'; ?>
 
     <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars($nav_preference_user, ENT_QUOTES, 'UTF-8'); ?>" data-nav-preference-cookie="<?php echo htmlspecialchars($nav_preference_cookie, ENT_QUOTES, 'UTF-8'); ?>">
         <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close Navigation</button>
@@ -232,7 +186,7 @@ if (!empty($_SESSION['user_id'])) {
                     </a></li>
                         <li><a href="tasks.php?owner=me" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>Tasks</span>
-                        <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> Active Tasks Assigned to You"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
+                        <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> Overdue or Due Today Tasks Assigned to You"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
                     </a></li>
                         <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>
@@ -277,6 +231,9 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="speakers.php" class="nav-link<?php echo $active_nav === 'speakers' ? ' active' : ''; ?>"<?php echo $active_nav === 'speakers' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Speakers</span>
                     </a></li>
+                        <li><a href="audience.php" class="nav-link<?php echo $active_nav === 'audience' ? ' active' : ''; ?>"<?php echo $active_nav === 'audience' ? ' aria-current="page"' : ''; ?>>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="8" r="2"/><path d="M2 21v-5a6 6 0 0 1 12 0v5M15 13a5 5 0 0 1 7 4v4"/></svg><span>Audience</span>
+                    </a></li>
                     </ul>
                 </details>
                 <?php if ($user_role === 'admin'): ?>
@@ -287,9 +244,11 @@ if (!empty($_SESSION['user_id'])) {
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2M12 15v2"/></svg><span>Admin Unlock</span>
                         </a></li>
                         <?php if (accountsEnabled()): ?>
+                        <?php if (!$demo_restricted): ?>
                         <li><a href="account_settings.php" class="nav-link admin-nav-link<?php echo $active_nav === 'account_settings' ? ' active' : ''; ?>"<?php echo $active_nav === 'account_settings' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h7M15 7h5M4 17h3M11 17h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Account Settings</span>
                         </a></li>
+                        <?php endif; ?>
                         <?php if (isSuperAdmin()): ?><li><a href="accounts.php" class="nav-link admin-nav-link<?php echo $active_nav === 'accounts' ? ' active' : ''; ?>"<?php echo $active_nav === 'accounts' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Accounts</span>
                         </a></li>
@@ -343,12 +302,16 @@ if (!empty($_SESSION['user_id'])) {
             <?php endif; ?>
 
             <nav class="utility-navigation" aria-label="Account and Application">
+                <?php if (accountMattermostAccessAllowed()): ?>
                 <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-4.5A2 2 0 0 1 3 15V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 14h5"/></svg><span>Mattermost</span>
                 </a>
+                <?php endif; ?>
+                <?php if (accountSecurityAccessAllowed()): ?>
                 <a href="two_factor_settings.php" class="nav-link<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' active' : ''; ?>"<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Account Security</span>
                 </a>
+                <?php endif; ?>
                 <a href="help.php" class="nav-link<?php echo $active_nav === 'help' ? ' active' : ''; ?>"<?php echo $active_nav === 'help' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h.5a2.5 2.5 0 0 1 2.5 2.5v-15Z"/></svg><span>User Manual</span>
                 </a>
@@ -376,7 +339,5 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
-<?php if ($admin_unlock_available) renderScript('assets/js/admin-unlock.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
-<?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

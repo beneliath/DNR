@@ -1,0 +1,15 @@
+---
+description: Keep every MOED production account on the same latest qualified application release
+alwaysApply: true
+---
+
+# One MOED implementation and release
+
+- Every active production account, including Shalom in Messiah Ministries and Test Account, must run the same latest qualified application version and commit. A release is complete only after all active accounts are verified against that release.
+- Deploy shared MOED feature changes to every active production account. Check actual running images and footer/readiness versions; matching GitHub and GitLab refs alone does not establish deployment parity.
+- Newly provisioned or reactivated accounts must use the current qualified release before becoming available for login.
+- Account data refreshes change only the selected account's data. They must not create a separate application release or change another account's records.
+- Use one codebase and shared qualified images. Existing isolated account containers/databases are deployments of that implementation; do not create a Test Account implementation fork or duplicate business services.
+- Express demo restrictions through shared authorization policies and permission-based interface visibility. Enforce the restrictions on direct backend requests as well as hiding controls.
+- Demo users must not provision, change privileges, deactivate, delete, or reset other users. Preserve the protected shared demo login and account-configuration restrictions while allowing authorized experimentation with demo business records.
+- Preserve per-account settings, datasets, secrets, uploads, and permission differences during releases. Obtain the required verified backups and save window, and verify account isolation and service health after deployment.

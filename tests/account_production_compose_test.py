@@ -71,6 +71,8 @@ def main():
         assert list(frozen['services']['web']['networks'])==['backend']
         assert list(frozen['services']['backup']['networks'])==['backend']
         assert frozen['networks']['backend']['internal']
+        assert frozen['networks']['backend']['ipam']['config'][0]['ip_range'] == production.backend_ipam(
+            metadata['networks']['backend'], frozen['services']['ingress']['networks']['backend']['ipv4_address'])['ip_range']
         assert not frozen['services']['ingress'].get('ports')
         assert not frozen['services']['account-control'].get('ports')
         assert frozen['services']['account-control']['extra_hosts']==['moed.beneliath.com=172.29.255.2']

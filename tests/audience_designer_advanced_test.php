@@ -1,0 +1,97 @@
+<?php
+require_once __DIR__.'/../src/audience_design.php';
+$checks=0;function advancedExpect(bool $ok,string $message):void{global $checks;++$checks;if(!$ok)throw new RuntimeException($message);}
+function advancedReject(callable $operation,string $message):void{$failed=false;try{$operation();}catch(InvalidArgumentException){$failed=true;}advancedExpect($failed,$message);}
+$d=audienceDesignStarters()['blank']['design'];$b=$d['rows'][0]['columns'][0][0];$b['id']='heading-one';$b['type']='heading';$b['text']='News';$b['includeToc']=true;$b['anchor']='news';$b['mobile']=['size'=>18,'padding'=>8];$b['linkDevices']=false;
+$intro=$d['rows'][0]['columns'][0][0];$intro['id']='intro';$intro['text']='Hello *|FNAME|*';$toc=$intro;$toc['id']='table-contents';$toc['type']='toc';$d['rows'][0]['columns'][0]=[$toc,$b,$intro];
+$html=audienceDesignHtml($d);advancedExpect(str_contains($html,'href="#news"')&&str_contains($html,'id="news"'),'TOC anchors connect');advancedExpect(str_contains($html,'font-size:18px')&&str_contains($html,'padding:8px'),'Device-specific CSS generated');
+$context=['FNAME'=>'<Ada & "Grace">','LIST:COMPANY'=>'Fixture','LIST:ADDRESS'=>'Test address'];$html=audienceDesignHtml($d,$context);advancedExpect(str_contains($html,'&lt;Ada &amp; &quot;Grace&quot;&gt;')&&!str_contains($html,'<Ada'),'Recipient values are escaped');
+advancedExpect(audienceDesignMerge('*|IF:FNAME=Ada|*A*|ELSEIF:FNAME=Bob|*B*|ELSE:|*C*|END:IF|*',['FNAME'=>'Bob'])==='B','Conditional ELSEIF');
+advancedExpect(audienceDesignMerge('*|IF:COUNT &gt; 2|*Yes*|ELSE:|*No*|END:IF|*',['COUNT'=>'3'])==='Yes','Encoded numeric condition');
+advancedExpect(audienceDesignMerge('*|IF:FNAME|*Outer *|IFNOT:LNAME|*Inner*|END:IF|**|END:IF|*',['FNAME'=>'Ada'])==='Outer Inner','Nested conditional merge tags');
+$d['rows'][0]['columns'][0][2]['condition']=['match'=>'all','rules'=>[['field'=>'tag:1','operator'=>'is','value'=>'1']]];
+advancedExpect(!str_contains(audienceDesignHtml($d,$context),'Hello'),'Dynamic block omitted for nonmatching recipient');$context['tag:1']='1';advancedExpect(str_contains(audienceDesignHtml($d,$context),'Hello'),'Dynamic block shown for matching recipient');
+$canonical=audienceDesign($d);advancedExpect(audienceDesign($canonical)===$canonical,'Extended canonical round trip');
+$bad=$d;$bad['rows'][0]['columns'][0][2]['id']='heading-one';advancedReject(fn()=>audienceDesign($bad),'Duplicate identifiers rejected');
+$bad=$d;$bad['rows'][0]['columns'][0][2]['anchor']='news';advancedReject(fn()=>audienceDesign($bad),'Duplicate anchors rejected');
+$bad=$d;$bad['rows'][0]['styles']=['background'=>'url(javascript:bad)'];advancedReject(fn()=>audienceDesign($bad),'Unsafe section style rejected');
+$bad=$d;$bad['rows'][0]['condition']=['rules'=>[['field'=>'evil SQL','operator'=>'is','value'=>'1']]];advancedReject(fn()=>audienceDesign($bad),'Invalid condition field rejected');
+$code='<html><head><style>p{color:#123456;background:url(https://tracker.test/x)}@import "https://bad.test";</style></head><body onload="alert(1)"><table><tr><td mc:edit="intro"><b>Original</b></td></tr></table><script>bad()</script><iframe src="https://bad.test"></iframe><a href="javascript:alert(1)">Bad</a><img src="data:image/svg+xml;base64,PHN2Zz4="></body></html>';
+$safe=audienceDesignSafeCode($code,['intro'=>'<p>Edited <strong>content</strong></p>']);advancedExpect(!preg_match('/onload|<script|<iframe|javascript:|data:image\/svg|@import|url\(/',$safe['html']),'Imported HTML active content removed');advancedExpect(str_contains($safe['html'],'Edited <strong>content</strong>')&&isset($safe['regions']['intro']),'Editable regions retained');
+$d['mode']='code';$d['code']=$code;$d['areas']=['intro'=>'Updated'];$stored=audienceDesign($d);advancedExpect($stored['code']===$code,'Original imported source is preserved');advancedExpect(str_contains(audienceDesignHtml($stored),'*|UNSUB|*'),'Code designs retain required footer');
+$text=audienceDesignPlainText($canonical,$context);advancedExpect(str_contains($text,'unsubscribe (*|UNSUB|*)')&&str_contains($text,'Hello'),'Plain-text output retains links and content');$canonical['plainText']='My text *|FNAME|*';advancedExpect(audienceDesignPlainText($canonical,['FNAME'=>'Ada'])==='My text Ada','Custom text counterpart personalized');
+$report=audienceDesignLinkReport($canonical);advancedExpect(in_array('Anchor found',array_column($report['links'],'status'),true),'Link report checks internal anchors');
+foreach(['https://127.0.0.1/','https://localhost/','http://example.com/','https://10.0.0.2/','https://example.com:8080/','https://user:pass@example.com/']as$url)advancedReject(fn()=>audienceDesignProbeLink($url),'Probe rejects unsafe URL '.$url);
+$identityPreview=audienceDesignPreviewHtml($canonical,'previewnonce123',null,false,['LIST:COMPANY'=>'Brand <Company>','LIST:ADDRESS'=>'123 Brand Road','FNAME'=>'Must not use this']);
+advancedExpect(str_contains($identityPreview,'Brand &lt;Company&gt;')&&str_contains($identityPreview,'123 Brand Road')&&!str_contains($identityPreview,'*|LIST:COMPANY|*'),'Ordinary previews resolve and escape Brand Kit identity');
+advancedExpect(str_contains($identityPreview,'*|FNAME|*')&&!str_contains($identityPreview,'Must not use this'),'Identity-only previews retain personal merge tags and conditional blocks');
+$linkDoc=audienceDesignStarters()['blank']['design'];
+$linkDoc['rows'][0]['columns'][0][0]['html']='<p><a href="http://legacy.example.org/news">Legacy website</a> <a href="www.example.org">Bare website</a> <a href="person@example.org">Email</a> <a href="javascript:alert(1)">Unsupported</a> <a href="">Missing</a></p>';
+$linkDoc=audienceDesign($linkDoc);$linkHtml=audienceDesignHtml($linkDoc);$linkReport=audienceDesignLinkReport($linkDoc);
+advancedExpect(str_contains($linkHtml,'href="http://legacy.example.org/news"')&&str_contains($linkHtml,'href="https://www.example.org"')&&str_contains($linkHtml,'href="mailto:person@example.org"'),'Pasted HTTP, bare domains and email destinations survive');
+advancedExpect(!str_contains($linkHtml,'javascript:')&&!str_contains($linkHtml,'href=""'),'Unsupported links cannot execute or point back to the editor');
+advancedExpect(count(array_filter($linkReport['links'],static fn($link)=>$link['status']==='Placeholder link'))===2,'Each missing destination remains visible in the link checker');
+advancedExpect(in_array('HTTP link — review destination',array_column($linkReport['links'],'status'),true),'HTTP destination is reported without enabling an insecure server-side probe');
+$image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=';
+foreach(['image-card','image-group','video','social','code']as$type){$doc=audienceDesignStarters()['blank']['design'];$item=$doc['rows'][0]['columns'][0][0];$item['type']=$type;$item['id']='test-'.$type;$item['image']=$image;$item['alt']='Example';$item['url']='https://example.test/watch';$item['images']=[['image'=>$image,'alt'=>'One','url'=>'https://example.test/one']];$item['social']=[['label'=>'Website','url'=>'https://example.test/']];$item['code']='<p>Safe code</p>';$doc['rows'][0]['columns'][0]=[$item];$render=audienceDesignHtml($doc);advancedExpect(!str_contains($render,'<script')&&str_contains($render,'*|UNSUB|*'),'New block safe render '.$type);}
+foreach(['100.64.0.1','192.0.2.1','198.18.0.1','203.0.113.2','224.0.0.1','169.254.169.254']as$address)advancedExpect(!audienceDesignPublicAddress($address),'Public link checks reject special-use address '.$address);
+advancedExpect(audienceDesignPublicAddress('8.8.8.8'),'Public IPv4 accepted without connecting');
+$mobile=audienceDesignStarters()['blank']['design'];$mobile['mobile']=['size'=>14];$mobile['rows'][0]['columns'][0][0]['inherit']=['size'];$mobileHtml=audienceDesignHtml($mobile);advancedExpect(str_contains($mobileHtml,'font-size:14px!important'),'Responsive rules override email inline styles');
+$font=audienceDesignRichText('<font color="#123456" face="Georgia" size="5">Styled</font>');advancedExpect(str_contains($font,'font-family:Georgia')&&str_contains($font,'font-size:24px'),'Selected-text styles survive validation');
+$toolbar=audienceDesignRichText('<p><span style="color:rgb(255, 0, 0);background-color:rgb(255, 255, 0);font-size:35px">First</span> <span style="color:rgb(0, 0, 255)">Second</span><span id="newsletter-details">&#8203;</span></p>');advancedExpect(str_contains($toolbar,'color:rgb(255, 0, 0)')&&str_contains($toolbar,'color:rgb(0, 0, 255)')&&str_contains($toolbar,'background-color:rgb(255, 255, 0)')&&str_contains($toolbar,'font-size:35px')&&str_contains($toolbar,'id="newsletter-details"'),'Repeated text colors, highlights, exact sizes and inline anchors survive server validation');
+$source='<html><body><p mc:edit="name">Old</p></body></html>';$edited=audienceDesignCodeWithAreas($source,['name'=>'New']);advancedExpect(str_contains($edited,'mc:edit="name"')&&str_contains($edited,'New'),'Editing code retains authored regions and their content');
+$css=audienceDesignSafeCss('@media (max-width:600px){p{font-size:14px}} @media (prefers-color-scheme:dark){p{color:#ffffff}}',true);advancedExpect(str_contains($css,'@media (max-width:600px)')&&str_contains($css,'prefers-color-scheme:dark'),'Imported responsive and dark media queries remain scoped');
+$builder=audienceDesignStarters()['newsletter']['design'];
+$builder['regions']['header']=['background'=>'#e5f5f2','padding'=>8];$builder['rows'][1]['region']='header';
+$builder['typography']['heading1']=['weight'=>'normal','fontStyle'=>'italic','align'=>'justify'];
+$builder['preheader']=['text'=>'Newsletter preview','showArchive'=>true];
+$normalized=audienceDesign($builder);advancedExpect(audienceDesign($normalized)===$normalized,'Named regions typography and preheader survive canonical storage');
+$render=audienceDesignHtml($builder,['ARCHIVE'=>'https://example.test/newsletter']);
+advancedExpect(str_contains($render,'background-color:#e5f5f2')&&str_contains($render,'font-weight:normal')&&str_contains($render,'font-style:italic'),'Header region and heading typography render together');
+advancedExpect(str_contains($render,'Newsletter preview')&&str_contains($render,'href="https://example.test/newsletter"'),'Inbox preview and browser archive render');
+foreach(['boxed-text','image-text','share']as$type){$item=$builder['rows'][1]['columns'][0][0];$item['type']=$type;$item['id']='builder-'.$type;$item['image']=$image;$item['text']='Authored content';$item['sharePlatforms']=['facebook','email'];$item['imagePosition']='right';$item['imageWidth']=35;$builder['rows'][1]['columns'][0]=[$item];$round=audienceDesign($builder);$render=audienceDesignHtml($round,['ARCHIVE'=>'https://example.test/edition?a=1&b=2']);advancedExpect(str_contains($render,'*|UNSUB|*')&&($type==='share'?str_contains($render,'facebook.com/sharer/sharer.php?u=https%3A'):str_contains($render,'Authored content')),'Authored builder block renders safely '.$type);if($type==='image-text')advancedExpect(str_contains($render,'width="35%"')&&str_contains($render,'email-media'),'Image and text sizing retained');}
+$builder=audienceDesignStarters()['newsletter']['design'];$source=audienceDesignHtml($builder);$light=audienceDesignPreviewHtml($builder,'fixtureNonce1234');$dark=audienceDesignPreviewHtml($builder,'fixtureNonce1234',null,true);
+preg_match_all('/<img[^>]+src="([^"]*)"/',$light,$lightImages);preg_match_all('/<img[^>]+src="([^"]*)"/',$dark,$darkImages);
+advancedExpect(count($lightImages[1])>0&&$lightImages[1]===$darkImages[1],'Dark preview preserves exact original photograph bytes');
+advancedExpect(!str_contains($dark,'filter:')&&str_contains($dark,'background:#171d27'),'Dark preview adapts backgrounds without image inversion');
+advancedExpect(str_contains($dark,'nonce="fixtureNonce1234"')&&!preg_match('/ style="/',$dark),'Dark preview keeps nonce CSS protection');
+advancedExpect(audienceDesignHtml($builder)===$source,'Dark preview never changes exported email content');
+$rich=audienceDesignRichText('<h2 id="headline">Heading</h2><p style="direction:rtl;text-align:justify">Copy<img src="'.$image.'" alt="Inline photo" onerror="bad()"></p><img src="https://tracker.test/pixel">');
+advancedExpect(str_contains($rich,'direction:rtl')&&str_contains($rich,'text-align:justify')&&str_contains($rich,'Inline photo')&&!str_contains($rich,'onerror')&&!str_contains($rich,'tracker.test'),'Rich text retains headings direction alignment and safe inline images only');
+foreach(['left','right']as$side){
+    $wrapped=audienceDesignRichText('<p><img src="'.$image.'" width="180" align="'.$side.'" style="width:180px;float:'.$side.';position:fixed;top:0" onload="bad()">Text wrapping around the image.</p>');
+    advancedExpect(str_contains($wrapped,'width="180"')&&str_contains($wrapped,'float:'.$side)&&str_contains($wrapped,'align="'.$side.'"')&&str_contains($wrapped,'12px')&&!preg_match('/position|onload|top:0/',$wrapped),'Safe image size and '.$side.' wrapping survive validation');
+    advancedExpect(audienceDesignRichText($wrapped)===$wrapped,'Wrapped image sanitizer is stable across saves');
+    $wrappedDoc=audienceDesignStarters()['blank']['design'];$wrappedDoc['rows'][0]['columns'][0][0]['html']=$wrapped;$normalizedWrapped=audienceDesign($wrappedDoc);
+    advancedExpect($normalizedWrapped['rows'][0]['columns'][0][0]['html']===$wrapped&&str_contains(audienceDesignHtml($normalizedWrapped),'clear:both'),'Wrapped image persists and is contained within its email block');
+}
+$unsafeImage=audienceDesignRichText('<img src="'.$image.'" width="9999" align="top" style="width:expression(bad());float:url(https://tracker.test);position:fixed">');advancedExpect(!preg_match('/9999|align=|expression|tracker|position/',$unsafeImage),'Invalid image dimensions and wrapping are removed');
+$photo='data:image/jpeg;base64,'.base64_encode(file_get_contents(__DIR__.'/../src/assets/template-art/neve-tzedek-market.jpg'));
+$copies=(int)ceil(3600000/strlen($photo));$photoText=str_repeat('<p><img src="'.$photo.'" width="180" align="right">Newsletter text</p>',$copies);
+$largeText=audienceDesignStarters()['blank']['design'];$largeText['rows'][0]['columns'][0][0]['html']=$photoText;
+advancedExpect(strlen($photoText)>3000000&&strlen(json_encode($largeText))<AUDIENCE_DESIGN_MAX_BYTES,'Inline-photo fixture crosses former block limit within email budget');
+$largeRound=audienceDesign($largeText);
+advancedExpect(audienceDesignPayload(json_encode($largeText))===json_encode($largeText),'Save and preview request payload accepts multiple embedded photos');
+advancedReject(fn()=>audienceDesignPayload(str_repeat('a',AUDIENCE_DESIGN_MAX_BYTES+1)),'Oversized request payload is rejected with the shared limit');
+advancedExpect(substr_count($largeRound['rows'][0]['columns'][0][0]['html'],'<img')===$copies,'Multiple inline photos are retained within 10 MB email budget');
+advancedExpect(audienceDesign($largeRound)===$largeRound,'Large rich text survives validation again after storage');
+advancedExpect(substr_count(audienceDesignHtml($largeRound),'<img')===$copies,'Large rich text retains every photo in preview');
+$largeText['rows'][0]['columns'][0][0]['text']=str_repeat('a',25000);$largeText['rows'][0]['columns'][0][0]['html']='<p>'.str_repeat('a',25000).'</p>';
+advancedExpect(strlen(audienceDesign($largeText)['rows'][0]['columns'][0][0]['text'])===25000,'Plain-text mirror uses the same 30,000-character limit as rich text');
+advancedReject(fn()=>audienceDesignRichText('<p>'.str_repeat('a',30001).'</p>'),'Rich text length remains bounded');
+$largeText['rows'][0]['columns'][0][0]['html']=str_repeat($photoText,3);
+advancedReject(fn()=>audienceDesign($largeText),'Overall 10 MB design budget remains enforced');
+$identity=audienceBrandIdentity(['from_name'=>'Legacy name','mailing_address'=>'Legacy address','brand'=>['name'=>'Brand name','mailing_address'=>'Brand address']],'Audience');advancedExpect($identity['LIST:COMPANY']==='Brand name'&&$identity['LIST:ADDRESS']==='Brand address','Brand Kit identity takes precedence');
+advancedExpect(audienceBrandIdentity(['mailing_address'=>'Legacy address'],'Audience')['LIST:ADDRESS']==='Legacy address','Existing audience addresses remain available before Brand Kit is saved');
+advancedExpect(audienceBrandIdentity(['mailing_address'=>'Legacy address','brand'=>['mailing_address'=>'']])['LIST:ADDRESS']==='','Clearing a Brand Kit address cannot silently use an obsolete address');
+$logoDoc=audienceDesignStarters()['newsletter']['design'];$logoDoc['rows'][0]['name']='Brand logo';$logoDoc['rows'][0]['id']='brand-row-fixture';$logoBefore=audienceDesignHtml($logoDoc);$logoDark=audienceDesignPreviewHtml($logoDoc,'fixtureNonce1234',null,true);advancedExpect(str_contains($logoDark,'.brand-row-fixture .email-block{background-color:#ffffff!important}'),'Dark preview keeps the original brand logo background for transparent lettering');advancedExpect(audienceDesignHtml($logoDoc)===$logoBefore,'Logo preview protection does not alter delivered email HTML');
+// A valid PNG text chunk makes exact byte-boundary fixtures without GD.
+$logoPng=base64_decode(substr($image,strpos($image,',')+1));
+$logoAtSize=static function(int $size)use($logoPng):string{$text='tEXt'.'Comment'."\0".str_repeat('x',$size-strlen($logoPng)-20);$chunk=pack('N',strlen($text)-4).$text.pack('N',crc32($text));return 'data:image/png;base64,'.base64_encode(substr($logoPng,0,-12).$chunk.substr($logoPng,-12));};
+$twoMbLogo=$logoAtSize(2000000);
+advancedExpect(strlen(base64_decode(substr($twoMbLogo,22)))===2000000&&audienceDesignImage($twoMbLogo)===$twoMbLogo,'Brand logos at 2 MB are accepted');
+advancedReject(fn()=>audienceDesignImage($logoAtSize(2000001)),'Brand logos over 2 MB are rejected');
+advancedReject(fn()=>audienceDesignImage($twoMbLogo,1000000),'Content Studio retains its 1 MB limit');
+$logoDoc['rows'][0]['columns'][0][0]['image']=$twoMbLogo;
+advancedExpect(str_contains(audienceDesignPreviewHtml(audienceDesign($logoDoc),'fixtureNonce1234'),$twoMbLogo),'A 2 MB brand logo survives template validation and preview');
+echo "Advanced designer: $checks checks passed.\n";

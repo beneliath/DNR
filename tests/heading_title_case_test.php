@@ -42,6 +42,10 @@ foreach ($source_files as $source_file) {
     if (!$source_file->isFile() || $source_file->getExtension() !== 'php') {
         continue;
     }
+    // Audience deliberately follows the user-requested Mailchimp sentence-case interface.
+    if (str_starts_with($source_file->getRealPath(), realpath(__DIR__ . '/../src/templates/audience') . DIRECTORY_SEPARATOR) || in_array($source_file->getFilename(), ['audience_subscription.php', 'audience_inbox_optout.php'], true)) {
+        continue;
+    }
     $source = file_get_contents($source_file->getPathname());
     preg_match_all('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/si', $source, $heading_matches);
     foreach ($heading_matches[1] as $heading_markup) {

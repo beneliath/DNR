@@ -57,9 +57,9 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
+        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
-        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
+        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
       },
       "controls": {
         "presentations-tab": {
@@ -206,8 +206,8 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
-        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
+        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
       },
       "controls": {
         "edit-event": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89"
+        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3"
       },
       "controls": {
         "tasks-tab": {
@@ -318,10 +318,12 @@
         "editor"
       ],
       "entry": "Reimbursements → + Add Expense",
-      "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
+      "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
-        "reimbursement_helpers.php": "c06dafb71e99a6976f1294869d21bb6eab9bf81db092d4b5abc48e5f6a1e6d19"
+        "reimbursement_expense.php": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
+        "reimbursement_helpers.php": "570810247327dde6e7c0225551a59fe0711767062be9a119e542f5cdc53268c7",
+        "reimbursement_mileage_helpers.php": "7ff237356b6d01130d33ba0436865d42fb575507b1c9ba9ce611114057353ac2",
+        "templates/reimbursement_mileage_fields.php": "74e9c58a7a289d1fb8382f9f8612ce3aa400149302b83ed90f1eddea65cbb8dc"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -388,10 +390,10 @@
         "editor"
       ],
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
-      "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
+      "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+        "reimbursements.php": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "controls": {
@@ -416,7 +418,7 @@
           "selector": ".reimbursement-date-range-form input[name=\"end_date\"]"
         },
         "reimbursement-bookkeeper-note": {
-          "label": "Note to the Bookkeeper",
+          "label": "Brief note or comment (optional)",
           "selector": "textarea[name=\"bookkeeper_note\"]"
         },
         "reimbursement-review-submit": {
@@ -441,8 +443,8 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "4b4179d2c1a2c3269b7dde5703e0059acd48b0f48a1c108f8bbb4b1edd6bd1f8",
-        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
+        "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
+        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af"
       },
       "controls": {
         "reimbursement-confirm": {
@@ -465,7 +467,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf"
+        "reimbursement_setup.php": "591fe015476b87fee8194e335ed73a31d8c0bcaa898e0672ce9442846403756b"
       },
       "controls": {
         "reimbursement-bookkeeper": {
@@ -479,6 +481,10 @@
         "reimbursement-bcc": {
           "label": "Bcc Email Address",
           "selector": "input[name=\"reviewer_email\"]"
+        },
+        "reimbursement-mileage-rate": {
+          "label": "Reimbursement Per Mile (USD)",
+          "selector": "input[name=\"mileage_rate\"]"
         }
       }
     },
@@ -496,12 +502,12 @@
       "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
-        "view_engagement.php": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
-        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
+        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
-        "templates/footer.php": "c4e1bd9d091f561c5de8cc01708f352f8ac29491e751a367b36775ad9a7c1334",
-        "assets/js/footer.js": "259cb6cff74da45ede984f9c877af758d240e0eed6b09b251ad97f194c9f9232",
-        "admin_elevation.php": "5724aa534f55f5585e5fa7e69b9c66a02e3b4c108a081420e189472984f52b4c"
+        "templates/footer.php": "585b8620ecfb524aa0631b1864c639e9cd03c1df4e92854cff45c0128c47184a",
+        "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
+        "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"
       },
       "controls": {
         "presentation-blocks": {

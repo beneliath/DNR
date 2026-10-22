@@ -5,6 +5,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') exit(1);
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/two_factor_helpers.php';
+require_once '/var/www/html/account_release_helpers.php';
 $action = $argv[1] ?? '';
 $key = $argv[2] ?? '';
 if (!accountIsPrimary()) throw new RuntimeException('The primary Account is required.');
@@ -15,6 +16,9 @@ switch ($action) {
         $row['public_url'] = accountPublicUrl($argv[3] ?? '');
         $profile = platformMemberCall($row, 'directory_profile', []);
         if (($profile['account_key'] ?? '') !== $key) throw new RuntimeException('Account identity probe failed.');
+        $expectedCommit = (string) ($argv[4] ?? '');
+        if (!hash_equals((string) getenv('DNR_BUILD_COMMIT'), $expectedCommit)) throw new RuntimeException('Primary release configuration changed.');
+        assertAccountReleaseParity($profile, $expectedCommit, APP_VERSION);
         echo '{"ok":true}';
         break;
     case 'directory':

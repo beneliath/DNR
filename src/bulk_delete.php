@@ -26,6 +26,7 @@ $action = \Dnr\Http\RequestInput::string($_POST, 'action');
 if ($method === 'POST' && $action === 'review') {
     try {
         $entity = \Dnr\Http\RequestInput::string($_POST, 'entity');
+        if ($entity === 'user') requireDemoAccountConfigurationAccess();
         $type = bulkDeleteType($entity);
         $ids = bulkDeleteIds($_POST['selected_ids'] ?? null);
     } catch (InvalidArgumentException $exception) {
@@ -48,6 +49,7 @@ if ($draft === null) {
     exit('This deletion selection has expired or already been used. Return to the list and select the items again.');
 }
 $type = bulkDeleteType($draft['entity']);
+if ($draft['entity'] === 'user') requireDemoAccountConfigurationAccess();
 $return_to = $draft['return_to'];
 $review_url = 'bulk_delete.php?selection=' . $selection;
 if ($method === 'POST' && $action === 'cancel') {

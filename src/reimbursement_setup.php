@@ -36,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values[$field] = $value;
     }
     $setup = array_merge($setup, $values);
+    $setup['mileage_rate'] = is_string($_POST['mileage_rate'] ?? null) ? $_POST['mileage_rate'] : '';
+    if ($error === '') {
+        try { $setup['mileage_rate'] = reimbursementMileageRate($setup['mileage_rate']); }
+        catch (InvalidArgumentException $exception) { $error = $exception->getMessage(); }
+    }
     $phoneCountryCode = $_POST['bookkeeper_phone_country_code'] ?? applicationDefaultPhoneCountryCode();
     if ($error === '') {
         try {
@@ -57,10 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             requireReimbursementAdminVersion($locked,$_POST['version'] ?? null);
             $conn->execute_query('UPDATE reimbursement_setup SET bookkeeper_first_name = ?,
                 bookkeeper_last_name = ?, bookkeeper_email = ?, bookkeeper_phone = ?,
-                reviewer_email = ?, cc_email = ?, version=version+1 WHERE id = 1',
+                reviewer_email = ?, cc_email = ?, mileage_rate = ?, version=version+1 WHERE id = 1',
                 [$setup['bookkeeper_first_name'], $setup['bookkeeper_last_name'],
-                 $setup['bookkeeper_email'], $setup['bookkeeper_phone'], $setup['reviewer_email'], $setup['cc_email']]);
-            reimbursementEvent($conn,'setup',1,'updated','Bookkeeper and recipient settings updated.');
+                 $setup['bookkeeper_email'], $setup['bookkeeper_phone'], $setup['reviewer_email'], $setup['cc_email'], $setup['mileage_rate']]);
+            reimbursementEvent($conn,'setup',1,'updated','Bookkeeper, recipient, and mileage rate settings updated.');
             $conn->commit();
             $_SESSION['reimbursement_setup_saved'] = true;
             header('Location: reimbursement_setup.php', true, 303); exit();
@@ -82,20 +87,22 @@ function reimbursementSetupH(mixed $value): string { return htmlspecialchars((st
 <!DOCTYPE html><html lang="en">
 <?php renderPageHead(applicationPageTitle('Reimbursement Setup'), ['styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css', 'assets/css/pages/reimbursements.css']]); ?>
 <body><?php include 'templates/header.php'; ?><main class="container reimbursement-page reimbursement-form-page">
-<div class="page-heading"><div><h1>Reimbursement Setup</h1><p class="page-intro">Set the bookkeeper and recipient details used in reimbursement reports and emails.</p></div></div>
+<div class="page-heading"><div><h1>Reimbursement Setup</h1><p class="page-intro">Set the mileage reimbursement rate and the bookkeeper and recipient details used in reports and emails.</p></div></div>
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementSetupH($error) ?></p><?php endif; ?>
 <?php if ($saved): ?><p class="success" role="status">Reimbursement setup saved.</p><?php endif; ?>
 <section class="reimbursement-card"><form method="post" class="reimbursement-setup-form" data-admin-unlock-required><?= csrfInput() ?>
 <input type="hidden" name="version" value="<?= reimbursementSetupH($_SERVER['REQUEST_METHOD'] === 'POST' ? (is_scalar($_POST['version'] ?? null) ? $_POST['version'] : 0) : $setup['version']) ?>">
 <div class="reimbursement-form-grid">
-<div class="reimbursement-setup-wide"><strong>Account Name:</strong> <?= reimbursementSetupH($setup['account_name']) ?><?php if (accountsEnabled()): ?> <a href="account_settings.php">Edit in Account Settings</a><?php endif; ?></div>
+<div class="reimbursement-setup-wide"><strong>Account Name:</strong> <?php if (accountsEnabled()): ?><a href="account_settings.php"><?= reimbursementSetupH($setup['account_name']) ?></a><?php else: ?><?= reimbursementSetupH($setup['account_name']) ?><?php endif; ?></div>
 <label>Bookkeeper First Name <input type="text" name="bookkeeper_first_name" autocomplete="given-name" maxlength="80" value="<?= reimbursementSetupH($setup['bookkeeper_first_name']) ?>"></label>
 <label>Bookkeeper Last Name <input type="text" name="bookkeeper_last_name" autocomplete="family-name" maxlength="80" value="<?= reimbursementSetupH($setup['bookkeeper_last_name']) ?>"></label>
 <label>Bookkeeper Email Address <input type="email" name="bookkeeper_email" autocomplete="email" maxlength="254" value="<?= reimbursementSetupH($setup['bookkeeper_email']) ?>"></label>
 <div class="reimbursement-setup-phone"><label for="bookkeeper_phone">Bookkeeper Phone Number</label><div class="phone-input-group" data-phone-input-group><?= phoneCountryPicker('bookkeeper_phone_country_code', $phoneCountryCodeValue, 'Bookkeeper phone country code') ?><input type="tel" id="bookkeeper_phone" name="bookkeeper_phone" autocomplete="tel-national" inputmode="tel" maxlength="64" value="<?= reimbursementSetupH($phoneLocalValue) ?>" data-phone-number></div></div>
 <label>Bcc Email Address <input type="email" name="reviewer_email" maxlength="254" value="<?= reimbursementSetupH($setup['reviewer_email']) ?>"></label>
 <label>Cc Email Address <input type="email" name="cc_email" maxlength="254" value="<?= reimbursementSetupH($setup['cc_email']) ?>"></label>
+<label>Reimbursement Per Mile (USD) <input type="number" name="mileage_rate" min="0.001" max="99.999" step="0.001" inputmode="decimal" value="<?= reimbursementSetupH($setup['mileage_rate']) ?>" required aria-describedby="mileage-rate-help"></label>
 </div>
+<p class="field-help" id="mileage-rate-help">Default: $0.76 per mile, the IRS business rate for July–December 2026. Rate changes apply to new mileage entries; saved entries retain their rate. <a href="https://www.irs.gov/tax-professionals/standard-mileage-rates" target="_blank" rel="noopener">IRS Standard Mileage Rates</a></p>
 <p class="field-help">Saved details apply to drafts and future submissions. Submitted packages retain their original content. The Catalog address is used only as Bcc and is never printed in the report.</p>
 <div class="reimbursement-actions"><button type="submit" class="save-button">Save Reimbursement Setup</button></div>
 </form></section>

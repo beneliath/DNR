@@ -16,6 +16,26 @@ html.dark-mode .dashboard-page {
     --dashboard-mail-bg: #463b78;
 }
 
+.dashboard-panel-highlight {
+    outline: 3px solid var(--accent);
+    outline-offset: 5px;
+    scroll-margin-block: 100px;
+    animation: dashboard-panel-blink 900ms ease-in-out 3;
+}
+
+@keyframes dashboard-panel-blink {
+    0%, 100% { outline-offset: 5px; }
+    50% { outline-offset: 10px; outline-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-panel-highlight { animation: none; }
+}
+
+@media (forced-colors: active) {
+    .dashboard-panel-highlight { outline-color: Highlight; }
+}
+
 .dashboard-heading {
     margin-bottom: 0;
 }
@@ -311,6 +331,23 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     box-shadow: inset 4px 0 0 var(--task-today-row-accent);
 }
 
+.dashboard-page :is(.dashboard-record-list, .dashboard-attention-list) > li {
+    box-sizing: border-box;
+    min-height: var(--dashboard-row-height, 0px);
+}
+
+.dashboard-page .dashboard-row-window {
+    max-height: var(--dashboard-row-window-height, 400px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+}
+
+.dashboard-page .dashboard-row-window:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
 .dashboard-record-main {
     display: flex;
     min-width: 0;
@@ -452,25 +489,6 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     margin: 5px 0 0;
     color: var(--text-muted);
     font-size: .77rem;
-}
-
-.dashboard-mail-alert {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 11px;
-    border: 1px solid color-mix(in srgb, var(--dashboard-mail-color) 45%, var(--border));
-    border-radius: 999px;
-    background: var(--dashboard-mail-bg);
-    color: var(--dashboard-mail-color);
-    font-size: .72rem;
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.dashboard-mail-alert:hover,
-.dashboard-mail-alert:focus-visible {
-    border-color: var(--dashboard-mail-color);
-    color: var(--dashboard-mail-color);
 }
 
 .dashboard-attention-list > li {

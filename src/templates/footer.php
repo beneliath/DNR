@@ -11,32 +11,7 @@
     <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss completion notice">Dismiss</button>
 </aside>
 <?php endif; ?>
-<?php
-require_once __DIR__ . '/../application_runtime.php';
-require_once __DIR__ . '/../github_version_helpers.php';
-
-$footer_version = defined('APP_VERSION') ? APP_VERSION : 'dev';
-$footer_push = githubPushMetadata();
-$footer_timezone_name = applicationTimezoneName();
-$footer_short_commit = $footer_push === null ? '' : substr($footer_push['commit'], 0, 7);
-$footer_push_label = $footer_push === null
-    ? ''
-    : githubPushTimestampLabel($footer_push['pushed_at'], $footer_timezone_name);
-[$footer_repository_owner, $footer_repository_name] = githubRepositoryParts();
-$footer_repository_url = githubRepositoryUrl();
-?>
-<footer class="app-footer">
-    <p>&copy; <?php echo date("Y"); ?> <a class="footer-link" href="<?php echo htmlspecialchars('https://github.com/' . rawurlencode($footer_repository_owner), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_owner, ENT_QUOTES, 'UTF-8'); ?></a> <span aria-hidden="true">·</span> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_name, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($footer_version, ENT_QUOTES, 'UTF-8'); ?></a><?php if ($footer_push !== null): ?> <span aria-hidden="true">·</span> <time datetime="<?php echo htmlspecialchars($footer_push['pushed_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($footer_push_label, ENT_QUOTES, 'UTF-8'); ?></time> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url . '/commit/' . $footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" title="View commit <?php echo htmlspecialchars($footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?> on GitHub">(<?php echo htmlspecialchars($footer_short_commit, ENT_QUOTES, 'UTF-8'); ?>)</a><?php endif; ?></p>
-    <pre class="footer-ascii-cat" aria-label="ASCII Art Cat">     ("`-''-/").___..--''"`-.
-     `6_ 6  )   `-.  (     ).`-.__.`)
-     (_Y_.)'  ._   )  `._ `. ``-..-'
-   _..`--'_..-_/  /--'_.' ,'
-  (il),-''  (li),'  ((!.-'
-
-Genesis 49:9,10 ... Revelation 5:5
-         Do you see Him?
-    </pre>
-</footer>
+<?php include __DIR__ . '/app-footer.php'; ?>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title" aria-describedby="logout-confirmation-message">
     <h2 id="logout-confirmation-title">Log Out?</h2>
@@ -117,25 +92,7 @@ Genesis 49:9,10 ... Revelation 5:5
     </form>
 </dialog>
 
-<?php if (!empty($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin'): ?>
-<dialog id="admin-unlock-dialog" class="confirmation-dialog" aria-labelledby="admin-unlock-title" aria-describedby="admin-unlock-description">
-    <h2 id="admin-unlock-title">Confirm Administrator Access</h2>
-    <p id="admin-unlock-description" class="dialog-supporting-text">Enter your current password and a fresh authenticator or recovery code to unlock sensitive actions for five minutes. Your current page will stay open.</p>
-    <p data-unlock-error class="dialog-inline-error" role="alert" hidden></p>
-    <form method="post" action="admin_elevation.php" autocomplete="off" data-admin-unlock-dialog-form>
-        <?php echo csrfInput(); ?>
-        <label for="unlock-password" class="confirmation-dialog-label">Administrator Password</label>
-        <input type="password" id="unlock-password" name="admin_password" class="confirmation-dialog-input" autocomplete="current-password" maxlength="72" required>
-        <label for="unlock-code" class="confirmation-dialog-label">Fresh Authenticator Code or Recovery Code</label>
-        <input type="text" id="unlock-code" name="admin_code" class="confirmation-dialog-input" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
-        <div class="confirmation-dialog-actions">
-            <button type="button" class="button-secondary" data-unlock-cancel>Cancel</button>
-            <button type="submit" class="button-primary" data-unlock-submit>Unlock Sensitive Actions</button>
-        </div>
-    </form>
-</dialog>
-<?php renderScript('assets/js/admin-unlock-dialog.min.js'); ?>
-<?php endif; ?>
+<?php include __DIR__ . '/admin-unlock-dialog.php'; ?>
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>
 <?php renderScript('assets/js/workflow-ui.min.js'); ?>

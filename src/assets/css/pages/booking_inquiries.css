@@ -391,6 +391,9 @@ html.dark-mode .inquiry-form input[type="date"] { color-scheme: dark; }
 .inquiry-location-section .form-field { display: flex; min-width: 0; flex-direction: column; gap: .3rem; margin: 0; }
 .inquiry-location-section .form-field > :is(input, select) { width: 100%; margin: 0; }
 .inquiry-location-section .event-address-row { display: flex; width: 100%; align-items: flex-start; flex-direction: row; gap: .65rem; }
+@media (max-width: 1050px) {
+    .inquiry-location-section .event-address-row { flex-wrap: wrap; }
+}
 .inquiry-location-section .event-address-city-field { min-width: 180px; flex: 2 1 220px; }
 .inquiry-location-section .event-address-state-field { min-width: 180px; flex: 2 1 230px; }
 .inquiry-location-section .event-address-zipcode-field { min-width: 110px; flex: 1 1 130px; }

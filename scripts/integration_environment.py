@@ -55,8 +55,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -74,7 +74,10 @@ def main():
            if not k.startswith(('DNR_', 'MYSQL_', 'COMPOSE_')) and k not in ('PORT', 'DEFAULT_SPEAKER')}
     with tempfile.TemporaryDirectory(prefix='dnr-test-') as temporary:
         folder = Path(temporary)
-        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost', 'DNR_REQUIRE_HTTPS': '0'}
+        # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
+        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost',
+                  'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0',
+                  'DNR_INBOUND_ADDRESS': 'inbox@receiving.example.test'}
         for name in ('ROOT', 'APP', 'BACKUP', 'MAINTENANCE', 'GEOCODER', 'MAIL_INGEST', 'MAIL_DISPATCH'):
             path = folder / ('mysql_' + name.lower())
             path.write_text(secrets.token_hex(32)); path.chmod(0o444)
@@ -99,6 +102,12 @@ def main():
                     'volumes': {v: {'labels': {LABEL: token}} for v in ('app_sessions', 'uploaded_files', 'db_data', 'db_keyring', 'db_socket', 'scanner_signatures')},
                     'networks': {name: {'labels': {LABEL: token}, 'ipam': {'config': [{'subnet': str(subnet)}]}}
                                  for name, subnet in test_networks.items()}}
+        if os.environ.get('DNR_TEST_DATABASE_TMPFS') == '1':
+            # Opt-in memory-backed storage for disposable tests on small Docker disks.
+            override['services']['db']['volumes'] = [
+                {'type': 'tmpfs', 'target': '/var/lib/mysql', 'tmpfs': {'size': 2 * 1024**3}},
+                {'type': 'tmpfs', 'target': '/var/lib/mysql-keyring', 'tmpfs': {'size': 1024**2}},
+            ]
         if scanning_only:
             override['services']['document-scans']['volumes'] = [{'type': 'volume', 'source': 'uploaded_files', 'target': '/var/lib/dnr/files', 'read_only': False}]
         # MySQL images declare volumes even when used only as a migration CLI.
@@ -109,6 +118,8 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
+        if sys.argv[1:] == ['audience']:
+            override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
                    DNR_INTEGRATION_ENV_FILE=str(envfile), DNR_INTEGRATION_OVERLAY=str(overlay))
@@ -121,7 +132,49 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if sys.argv[1:] == ['audience']:
+                for suite in ('audience_stage1b_test.php', 'audience_http_integration_test.php'):
+                    subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/'+suite],
+                        cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
+                    '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
+                    'web', '/opt/dnr/tests/audience_delivery_worker_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_ingest_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',
+                    '-v', values['DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE']+':/run/secrets/test_ingest_password:ro',
+                    'web', '/opt/dnr/tests/audience_inbox_gateway_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'MYSQL_USER=dnrmaintenance', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_maintenance_password',
+                    '-v', values['DNR_MYSQL_MAINTENANCE_PASSWORD_FILE']+':/run/secrets/setup_test_maintenance_password:ro',
+                    'web', '/opt/dnr/tests/audience_ses_key_rotation_test.php'], cwd=ROOT, env=env, check=True)
+                return
+            if sys.argv[1:] == ['test-account-closeout']:
+
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TARGET=disposable', '-e', 'DNR_INTEGRATION_TEST=1',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    'key-rotation', '/opt/dnr/tests/test_account_closeout_integration_test.php'], cwd=ROOT, env=env, check=True)
+                return
             if sys.argv[1:] == ['data-management']:
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TARGET=disposable', '-e', 'DNR_INTEGRATION_TEST=1',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+                    '-e', 'DNR_TEST_WEB_PASSWORD_FILE=/run/secrets/test_web_password',
+                    '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    '-v', values['DNR_MYSQL_APP_PASSWORD_FILE']+':/run/secrets/test_web_password:ro',
+                    'key-rotation', '/opt/dnr/tests/record_merge_privileges_integration_test.php'],
+                    cwd=ROOT, env=env, check=True)
                 for suite in ('data_management_integration_test.php', 'review_improvements_integration_test.php',
                               'contact_organizations_integration_test.php','data_maintenance_integration_test.php','financial_tracking_integration_test.php'):
                     subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
@@ -217,7 +270,7 @@ def main():
             subprocess.run([sys.executable, 'tests/download_pool_capacity_test.py', 'http://' + address, fixture['path']], cwd=ROOT, env=env, check=True)
         except subprocess.CalledProcessError:
             # Preserve startup/test diagnostics before removing the disposable project.
-            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'migrator', 'file-migrator', 'file-monitor', 'web', 'ai-coach-worker', 'document-scanner'], cwd=ROOT, env=env, check=False)
+            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'db', 'migrator', 'file-migrator', 'file-monitor', 'web', 'ai-coach-worker', 'document-scanner'], cwd=ROOT, env=env, check=False)
             web_ids = subprocess.check_output(compose + ['ps', '-aq', 'web'], cwd=ROOT, env=env, text=True).split()
             for identifier in web_ids:
                 info = json.loads(subprocess.check_output(['docker', 'inspect', identifier]))[0]

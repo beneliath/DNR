@@ -10,7 +10,7 @@ channel-visible receipt reactions after confirmed MOED actions.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.8.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.10.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -85,7 +85,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.4.8.tar.gz`;
+3. select `org.moed.mattermost-0.4.10.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -126,7 +126,9 @@ route related email to the correct engagement.
 In a linked channel, the stored channel display name begins with the compact `[MOED#17]`
 marker so the channel title has more room in web, desktop, and mobile sidebars.
 The private channel binding retains the full signed marker, such as
-`[MOED#17.<signed-token>]`; engagement cards, email tools, and the rest of the
+`[MOED@account-key#E17.<signed-token>]` or the legacy `[MOED#17.<signed-token>]`.
+Only engagement (`E`) markers can bind channels; inquiry (`I`) markers cannot.
+Engagement cards, email tools, and the rest of the
 plugin continue to show and copy the full signed value. The chain control in the
 channel header is colored and marked with a dot. Select the chain control—or
 choose **MOED engagement** from the channel menu—to identify or open the

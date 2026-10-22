@@ -1,0 +1,12 @@
+{
+  "version": "2.6.14",
+  "commit": "628b70ca8cc02510f4183908a91bae45ec5ef749",
+  "timestamp": "2026-10-21T11:40:27Z",
+  "footer_has_version": true,
+  "footer_has_time": true,
+  "footer_has_commit": true,
+  "source_files": 729,
+  "source_manifest_sha256": "0cb0e2d77da7ea0888031b5bd839c9622a5fe008ed03837ceb251318230a1256",
+  "candidate_image": "sha256:2be9a1903bc78c267e81240429fdeab564ef48c06e16fb6bb6698954519bbc8a",
+  "note": "Local candidate from dirty working tree. Commit/time identify the base commit, not a qualified release. Backend integration passed before the color-only frontend change; final frontend checks passed after it."
+}

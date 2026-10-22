@@ -78,11 +78,11 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
     $html = '<table border="0" cellpadding="6"><thead><tr style="background-color:#eaf0ff;color:#2457d6;font-weight:bold"><th width="17%">Date</th><th width="34%">Merchant / Purpose</th><th width="33%">Account</th><th width="16%" align="right">Amount</th></tr></thead><tbody>';
     foreach ($items as $item) {
         $receiptNames = array_map('reimbursementReceiptPackageFilename', $receipts[(int) $item['expense_id']] ?? []);
-        $purpose = '<b>' . $escape($item['merchant']) . '</b>' . ($item['description'] !== '' ? '<br><span style="font-size:8pt;color:#667085">' . $escape($item['description']) . '</span>' : '');
+        $purpose = '<b>' . $escape($item['merchant']) . '</b>' . ($item['description'] !== '' ? '<br><span style="font-size:8pt;color:#667085">' . nl2br($escape(reimbursementExpenseDescription($item))) . '</span>' : '');
         // One outer row keeps the expense and its filename block together across page breaks.
         $html .= '<tr nobr="true"><td colspan="4" style="background-color:#ffffff;border-bottom:0.5px solid #dfe4ec"><table border="0" cellpadding="0"><tr><td width="17%">' . $escape($item['expense_date']) . '</td><td width="34%">' . $purpose . '</td><td width="33%">' . $escape($item['coa_number'] . ' · ' . $item['coa_description']) . '</td><td width="16%" align="right">' . reimbursementMoney((int) $item['amount_cents']) . '</td></tr>'
             . '<tr><td colspan="4" style="font-size:7.5pt;color:#667085"><br><b>Receipt Files - Expense #' . (int) $item['expense_id'] . ' (' . reimbursementMoney((int) $item['amount_cents']) . '):</b><br>'
-            . ($receiptNames ? implode('<br>', array_map($escape, $receiptNames)) : 'No Receipt Attached') . '</td></tr></table></td></tr>';
+            . ($receiptNames ? implode('<br>', array_map($escape, $receiptNames)) : (($item['expense_type'] ?? 'expense') === 'mileage' ? 'Mileage Log (No Receipt Required)' : 'No Receipt Attached')) . '</td></tr></table></td></tr>';
     }
     $html .= '<tr style="font-weight:bold;background-color:#e7f5ef;color:#137b59"><td colspan="3">Total Amount Due</td><td align="right">' . reimbursementMoney($total) . '</td></tr></tbody></table>';
     $pdf->writeHTML($html, true, false, true, false, '');

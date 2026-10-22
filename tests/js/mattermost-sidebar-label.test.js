@@ -29,3 +29,31 @@ test('Mattermost sidebar labels keep Unicode titles intact', () => {
         '[MOED#23] Café — אירוע'
     );
 });
+
+test('Mattermost sidebar labels compact account-scoped engagement markers', () => {
+    for (const account of ['abc', 'shalom-in-messiah', 'a'.repeat(64)]) {
+        assert.equal(
+            shortMOEDSidebarChannelDisplayName(` [MOED@${account}#E2147483647.ABCDEFGHIJKLMNOPQRSTUV] Café — אירוע`),
+            '[MOED#2147483647] Café — אירוע'
+        );
+    }
+});
+
+test('Mattermost sidebar labels leave invalid account and inquiry markers untouched', () => {
+    for (const marker of [
+        '[MOED@abc#I17.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@abc#E0.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@abc#E017.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@abc#E2147483648.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED#2147483648.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@ab#E17.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@ABC#E17.ABCDEFGHIJKLMNOPQRSTUV]',
+        '[MOED@bad_key#E17.ABCDEFGHIJKLMNOPQRSTUV]',
+        `[MOED@${'a'.repeat(65)}#E17.ABCDEFGHIJKLMNOPQRSTUV]`,
+        '[MOED@abc#E17.short]',
+        '[MOED@abc#E17.ABCDEFGHIJKLMNOPQRSTUVX]',
+    ]) {
+        const name = `${marker} Event team`;
+        assert.equal(shortMOEDSidebarChannelDisplayName(name), name);
+    }
+});

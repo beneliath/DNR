@@ -3,6 +3,7 @@
 import datetime
 import fcntl
 import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ from deployment_backup import create_verified_backup
 from storage_encryption_preflight import require_encrypted_upload_storage
 from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
+from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members
 
 
 def run(args, **kwargs):
@@ -49,6 +51,37 @@ def verify_app_replicas(service, output, expected_image_id, inspect):
             raise ValueError(service + ' is running a different image')
         if state['State'].get('Health', {}).get('Status') != 'healthy':
             raise ValueError(service + ' failed its health/progress check')
+
+
+def reload_account_operators(root):
+    """Replace preflight imports from the previous checkout after the qualified fast-forward."""
+    importlib.invalidate_caches()
+    for name in ('provision_local_account', 'integration_environment', 'account_lifecycle_local',
+                 'account_ingress_security', 'account_map_configuration', 'account_production'):
+        module = sys.modules.get(name)
+        if module is None:
+            continue
+        if Path(module.__file__).resolve() != (root / 'scripts' / (name + '.py')).resolve():
+            raise ValueError('Account operator was loaded outside the deployment checkout: ' + name)
+        importlib.reload(module)
+
+
+def active_account_worker(root):
+    """Reload only an already-running, verified operator service for this checkout."""
+    command = ['systemctl', '--user']
+    try:
+        result = subprocess.run(command + ['show', 'moed-account-worker.service',
+            '--property=ActiveState,Type,ExecStart'], text=True, capture_output=True)
+    except FileNotFoundError:
+        return None
+    fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
+    if result.returncode or fields.get('ActiveState') != 'active':
+        return None
+    invocation = fields.get('ExecStart', '')
+    if fields.get('Type') != 'simple' or str(root / 'scripts/account_production.py') not in invocation \
+        or str(root / 'var/deployment/account-production/config.json') not in invocation or '--apply --watch' not in invocation:
+        raise ValueError('Active Account worker does not match this deployment')
+    return command + ['restart', 'moed-account-worker.service']
 
 
 def main():
@@ -106,6 +139,8 @@ def main():
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
         account_configuration = account_release_configuration(root, inspect(container('web'))['Config']['Env'])
+        account_worker = active_account_worker(root) if account_configuration else None
+        members = discover_members(root, account_configuration['config']) if account_configuration else []
         storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
         def speaker_seed(action):
@@ -160,6 +195,7 @@ def main():
             raise
         try:
             compose('stop', *application_writers())
+            pause_members(members)
             save('backing-up')
             # Standing deployment directive: finish and verify a NEW backup before
             # changing the checkout, database version, schema, or application image.
@@ -167,9 +203,11 @@ def main():
                 container('db'), previous_database_image_id, images['app'], previous_commit,
                 run(['git', 'show', previous_commit + ':VERSION']), backup_password_file, records / 'backups'
             )
+            record['account_backups'] = backup_members(members, images['app'], backup_password_file, records)
             save('backup-verified')
             run(['git', 'merge', '--ff-only', expected])
             if account_configuration is not None:
+                reload_account_operators(root)
                 # Still within the writer pause and the shared deployment lock.
                 # The saved operator topology persists; only qualified release
                 # images/commit change. The worker reloads this manifest per cycle.
@@ -181,6 +219,8 @@ def main():
             save('migrating')
             compose('run', '--rm', '--no-deps', 'migrator')
             compose('run', '--rm', '--no-deps', 'file-migrator')
+            save('migrating-accounts')
+            apply_members(root, members, release, env['DNR_BUILD_TIMESTAMP'])
             if speaker_seed_sha256:
                 save('seeding-speaker')
                 # The import checks every profile field/photo and all presentation
@@ -217,6 +257,15 @@ def main():
             health = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', public_url + '/health.php']))
             if ready.get('status') != 'ready' or ready.get('version') != version or health.get('status') != 'ok':
                 raise ValueError('Public readiness failed')
+            save('verifying-accounts')
+            record['accounts'] = start_and_verify_members(members, account_configuration['config'] if account_configuration else {}, release)
+            if account_worker:
+                # The new process loads the qualified checkout. Its lifecycle
+                # cycle observes this same deployment lock before doing work.
+                run(account_worker)
+                if run(['systemctl', '--user', 'is-active', 'moed-account-worker.service']) != 'active':
+                    raise ValueError('Account worker failed to restart on the qualified checkout')
+                record['account_worker_restarted'] = True
             record['outcome'] = 'success'
             save('verified')
             (records / 'current.json').write_text(json.dumps(record, indent=2) + '\n')
@@ -226,6 +275,8 @@ def main():
             record['error'] = str(error)
             # Schema may have advanced. Do not restart old writers or attempt a MySQL downgrade.
             try: compose('stop', *application_writers())
+            except subprocess.CalledProcessError: pass
+            try: pause_members(members)
             except subprocess.CalledProcessError: pass
             save(record['phase'])
             notice.finish(notice_id, 'failed')

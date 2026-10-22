@@ -137,6 +137,7 @@ if (($date_from !== '' && !validIsoDate($date_from))
 } elseif ($date_from !== '' && $date_to !== '' && $date_to < $date_from) {
     $date_error = 'The Through date cannot precede the From date.';
 }
+$date_filter_active = $date_error === '' && ($date_from !== '' || $date_to !== '');
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['value', 'id']
@@ -348,7 +349,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </div>
-            <fieldset class="engagement-date-window" aria-label="Engagement Dates" data-engagement-date-window>
+            <fieldset class="engagement-date-window<?php echo $date_filter_active ? ' has-active-date-filter' : ''; ?>" aria-label="Engagement Dates" data-engagement-date-window>
                 <label for="engagement-date-from">From
                     <input type="date" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
                 </label>

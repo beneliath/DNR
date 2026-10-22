@@ -30,7 +30,7 @@
       ]
     },
     "account_settings.php": {
-      "sha256": "b408effce98c84e871f5aafb86d3907727f5666547a964ac979dfeecb5d9e0c4",
+      "sha256": "8ba4ee8b33e432cbdbb8aad649d7cfa78481207574e4296c2d9720063ba13cf5",
       "controls": [
         {
           "kind": "h1",
@@ -529,7 +529,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "5724aa534f55f5585e5fa7e69b9c66a02e3b4c108a081420e189472984f52b4c",
+      "sha256": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
       "controls": [
         {
           "kind": "h1",
@@ -622,6 +622,94 @@
         }
       ]
     },
+    "audience_campaign_public.php": {
+      "sha256": "6c9d2c3c26e19baf4579137ee51fb24a7f39ef19da054bdddb55e3e054898138",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Email Archive"
+        },
+        {
+          "kind": "a",
+          "label": "Previous"
+        },
+        {
+          "kind": "a",
+          "label": "Next"
+        },
+        {
+          "kind": "a",
+          "label": "Past emails"
+        }
+      ]
+    },
+    "audience_inbox_contact.php": {
+      "sha256": "dce4d4f06e93e3f70cc8de18effff91b734d3f9107bde800631ef5f590b934d8",
+      "controls": [
+        {
+          "kind": "label",
+          "label": "Name"
+        },
+        {
+          "kind": "label",
+          "label": "Email address"
+        },
+        {
+          "kind": "label",
+          "label": "Subject"
+        },
+        {
+          "kind": "label",
+          "label": "Message"
+        },
+        {
+          "kind": "label",
+          "label": "Website"
+        }
+      ]
+    },
+    "audience_inbox_optout.php": {
+      "sha256": "b1105a4f78027c77d8ffffcc1062c604173292150ed65f0ce00dd15ff7b7182d",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "One-to-one email preferences"
+        },
+        {
+          "kind": "button",
+          "label": "Stop one-to-one messages"
+        }
+      ]
+    },
+    "audience_subscription.php": {
+      "sha256": "96b57e154d29018ef44dbdc1ba0d197c6751a4eccba3a5e45a214bee058fc961",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Your email"
+        },
+        {
+          "kind": "a",
+          "label": "Email preferences"
+        },
+        {
+          "kind": "a",
+          "label": "Unsubscribe"
+        },
+        {
+          "kind": "h1",
+          "label": "You\u2019re unsubscribed"
+        },
+        {
+          "kind": "h1",
+          "label": "Unsubscribe from emails?"
+        },
+        {
+          "kind": "button",
+          "label": "Unsubscribe"
+        }
+      ]
+    },
     "audit_log.php": {
       "sha256": "e0dc17319237b1ff4ff0c105f264fd6659b85b812d2325d02d63948ad8d42c2a",
       "controls": [
@@ -699,7 +787,7 @@
       ]
     },
     "bulk_delete.php": {
-      "sha256": "43a48e23a551b0f740b544d62b9d64bf98306497846ff97556ee4cf9488f4521",
+      "sha256": "89640c422f286ad47b5afbd838e398838a621ac8abb2305f5a05e60e2619e01d",
       "controls": [
         {
           "kind": "h1",
@@ -1061,15 +1149,11 @@
       ]
     },
     "dashboard.php": {
-      "sha256": "4da35c5967cbfcc62f5862be16332df0eba9acdc4a64d67025690b5d4cea5529",
+      "sha256": "dfc6d1c415b60a0ac6d25808c9a5c7fca4c381ade277ff7fc59feddcc845f068",
       "controls": [
         {
           "kind": "h1",
           "label": "Good day,"
-        },
-        {
-          "kind": "a",
-          "label": "Open My Tasks"
         },
         {
           "kind": "a",
@@ -1133,10 +1217,6 @@
           "label": "Needs Attention"
         },
         {
-          "kind": "a",
-          "label": "inbound message awaiting routing review"
-        },
-        {
           "kind": "h3",
           "label": "Event Readiness",
           "id": "event-readiness-heading"
@@ -1183,7 +1263,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "4076a50257c8c31f8be001a14fbc250094023f48732b116914d529d7520d6523",
+      "sha256": "5983e9879d69e0132bc55e5856d5f279dcaf72b06dbb678831bd003192b0ff80",
       "controls": [
         {
           "kind": "h1",
@@ -1362,7 +1442,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
+      "sha256": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
       "controls": [
         {
           "kind": "a",
@@ -1556,7 +1636,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "34c8635e9e07ae857e9c045a40098ed9ebced8173697f8ec642ce05a14244f31",
+      "sha256": "ec90630020a777093e3543d522296d58dbb6c6f8b186e97107ccebdd1f575e2a",
       "controls": [
         {
           "kind": "a",
@@ -1775,7 +1855,7 @@
       ]
     },
     "edit_user.php": {
-      "sha256": "61ee22072b95aa7d0c7c8a02f6e76d3c02293fef60a9eb415720ced6649849c4",
+      "sha256": "6e1da3c359595d24ec61069ca5fd6be02227cdcf11bfe96dc200a46075368db6",
       "controls": [
         {
           "kind": "a",
@@ -1915,7 +1995,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "dd639720bc92086cc1ee714b2fcfd740dfa616a7b6ea807aaf66f2de43717719",
+      "sha256": "f42bbcb9cd777c953382e6adb001a0286f65c1e95e5d1874d66003c00b9918f2",
       "controls": [
         {
           "kind": "a",
@@ -2335,7 +2415,7 @@
       ]
     },
     "login.php": {
-      "sha256": "5ed6eb8e3d48a11096d895d270b8ffd5516c3c2fae28845cbbaa5911616daf5d",
+      "sha256": "ebbffa5a2770703099f7824f8ed45f49732ba0a509e1255e6e45d05dd3c502f5",
       "controls": [
         {
           "kind": "h1",
@@ -2553,7 +2633,7 @@
       ]
     },
     "mattermost.php": {
-      "sha256": "9ecbfd23184cfbe66b1d07d3baf9cdcc74d53834f934ac6c1cbfd06296c6c2b5",
+      "sha256": "40e7587b226dfb8573a809cccac7cbca67b00ba33c33276eaf55d896811db858",
       "controls": [
         {
           "kind": "h1",
@@ -2767,7 +2847,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "1c24d6788d52262903194768ad57fa70acf22df12ea41b1ca63c4f1044486d38",
+      "sha256": "285bba870cbe5e63b0cd450d5a70377c9a5ad04554a7ca30149d7fa1ed1d538d",
       "controls": [
         {
           "kind": "h1",
@@ -2782,6 +2862,15 @@
           "kind": "label",
           "label": "Choose a New Picture",
           "for": "profile_picture"
+        },
+        {
+          "kind": "button",
+          "label": "Paste Image"
+        },
+        {
+          "kind": "label",
+          "label": "Paste a Picture",
+          "for": "profile-picture-paste-target"
         },
         {
           "kind": "label",
@@ -2887,7 +2976,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "6161eeceba03b03a21b91c8fcbe482bd105272c63f75731e023e805b73212daf",
+      "sha256": "12be902ff3c349a6250b6d72274c93e15b720a94d00f44aa04d8bd3c9627ddd7",
       "controls": [
         {
           "kind": "h1",
@@ -2933,7 +3022,7 @@
       ]
     },
     "recover_password.php": {
-      "sha256": "c8b91f8d8248468f60b041f1acfbf5bc43786d57495767511b447e06d6debb8f",
+      "sha256": "e408104196e6d929e38557b938914a269716ae42e37428ac5ce14de1fb05d82a",
       "controls": [
         {
           "kind": "h1",
@@ -2975,7 +3064,7 @@
       ]
     },
     "register.php": {
-      "sha256": "84c857c9a364a7a88a3f00fccbfb257a6ca008696fbf09cfe90d0f85559386ba",
+      "sha256": "697e6e5ef98e8cb8fe9711df101269605fbe8a7e3c5a35cecd78f09cead0251e",
       "controls": [
         {
           "kind": "a",
@@ -3086,7 +3175,7 @@
       ]
     },
     "reimbursement_expense.php": {
-      "sha256": "bc67133ac8618ceb859bce22bc363b1b3e067144b59097ccd48fc3855cbbc896",
+      "sha256": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
       "controls": [
         {
           "kind": "a",
@@ -3100,12 +3189,12 @@
         },
         {
           "kind": "a",
-          "label": "Requests",
-          "href": "reimbursement_requests.php"
+          "label": "+ Add Mileage"
         },
         {
           "kind": "a",
-          "label": "Edit Expense"
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
         },
         {
           "kind": "a",
@@ -3159,10 +3248,6 @@
           "label": "Drop Receipts Here or click to choose \u00b7 JPEG, PNG, WebP, PDF \u00b7 up to 15 MB each Select Save expense to upload."
         },
         {
-          "kind": "button",
-          "label": "Save Expense"
-        },
-        {
           "kind": "h2",
           "label": "Receipts ()"
         },
@@ -3173,11 +3258,24 @@
         {
           "kind": "button",
           "label": "Delete Expense"
+        },
+        {
+          "kind": "h2",
+          "label": "Mileage Saved: Fuel Reimbursement Reminder",
+          "id": "mileage-reminder-title"
+        },
+        {
+          "kind": "a",
+          "label": "IRS Travel, Gift, and Car Expenses Guidance"
+        },
+        {
+          "kind": "button",
+          "label": "Understood"
         }
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+      "sha256": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
       "controls": [
         {
           "kind": "a",
@@ -3224,10 +3322,6 @@
         {
           "kind": "a",
           "label": "Review and Submit"
-        },
-        {
-          "kind": "h2",
-          "label": "Note to the Bookkeeper"
         },
         {
           "kind": "label",
@@ -3356,16 +3450,11 @@
       ]
     },
     "reimbursement_setup.php": {
-      "sha256": "7f8bee1626964a21f50be78e78188897a10115d78210939e8fcda643045c6dbf",
+      "sha256": "591fe015476b87fee8194e335ed73a31d8c0bcaa898e0672ce9442846403756b",
       "controls": [
         {
           "kind": "h1",
           "label": "Reimbursement Setup"
-        },
-        {
-          "kind": "a",
-          "label": "Edit in Account Settings",
-          "href": "account_settings.php"
         },
         {
           "kind": "label",
@@ -3391,6 +3480,14 @@
         {
           "kind": "label",
           "label": "Cc Email Address"
+        },
+        {
+          "kind": "label",
+          "label": "Reimbursement Per Mile (USD)"
+        },
+        {
+          "kind": "a",
+          "label": "IRS Standard Mileage Rates"
         },
         {
           "kind": "button",
@@ -3469,7 +3566,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "d47cf544ffcc6385a4226dc4b751ca84743a54d3eae473bc105700c7bf2093c7",
+      "sha256": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
       "controls": [
         {
           "kind": "h1",
@@ -3479,6 +3576,10 @@
           "kind": "a",
           "label": "+ Add Expense",
           "href": "reimbursement_expense.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ Add Mileage"
         },
         {
           "kind": "a",
@@ -3806,7 +3907,7 @@
       ]
     },
     "setup_2fa.php": {
-      "sha256": "f9b5e96383f55023b64f185c7c89fafe5a27691e648bb72504a10dcd7d0c32ea",
+      "sha256": "23cff4ec9dfb234798d3673bb9ea3e2eaecbd199970d8c8732fa5dadaa777813",
       "controls": [
         {
           "kind": "label",
@@ -3846,7 +3947,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "55e16f5ce632a34388fcf61c6b7e442f38a1fc1d5fbb79871b2eb8ac7523563f",
+      "sha256": "8c68c821178cd03b4b2e6546cf3165f74dc25b751c470894382d69cef7172863",
       "controls": [
         {
           "kind": "a",
@@ -4034,7 +4135,7 @@
       ]
     },
     "task_bulk.php": {
-      "sha256": "fc055d82bc45ed5129e909e0f68a572d45ddd6cd860f87f31a2fd63738164e10",
+      "sha256": "e55410aa89305a14ec1f51934f87a964c33afffe3f466caf348fe6c2d9e380c8",
       "controls": [
         {
           "kind": "button",
@@ -4086,7 +4187,7 @@
       ]
     },
     "two_factor_recovery_codes.php": {
-      "sha256": "12d6a2ae5e02758f5cdfaa696766d92f36927d94e6ab1f4a3285a529615f8d13",
+      "sha256": "385cb84eec0e69cbfca057b6e22743b972b5a1ca67654805c8516a6434282371",
       "controls": [
         {
           "kind": "h1",
@@ -4100,7 +4201,7 @@
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
+      "sha256": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
       "controls": [
         {
           "kind": "h1",
@@ -4162,7 +4263,7 @@
       ]
     },
     "users.php": {
-      "sha256": "e99a589b9cfe95464d1d90dee825f08b3b3794c92bc435bdd074ecf042b18953",
+      "sha256": "6aa550fc11eec7fd955842cab8f1781d011014f48b6c32c92ad1699f9f3496e1",
       "controls": [
         {
           "kind": "h1",
@@ -4240,7 +4341,7 @@
       ]
     },
     "verify_email.php": {
-      "sha256": "529a955b243781ce7233d5a143aee44b1199aa95f3bf0599ecf76043ccb5bc70",
+      "sha256": "161d182607133fe344424f98e5aa3551c93ee0631db978bed52ddc3882c00005",
       "controls": [
         {
           "kind": "h1",
@@ -4347,7 +4448,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "97a05eb40c2de9321b86b623109b7b8557d7caff7087b081ab318bb466fa0c89",
+      "sha256": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
       "controls": [
         {
           "kind": "a",
@@ -4365,6 +4466,11 @@
         {
           "kind": "a",
           "label": "Open Source Inquiry"
+        },
+        {
+          "kind": "h2",
+          "label": "Email Routing Marker",
+          "id": "engagement-routing-heading"
         },
         {
           "kind": "h2",
@@ -4771,7 +4877,7 @@
       ]
     },
     "view_speaker.php": {
-      "sha256": "ce90766c9b04f0c3b46ffe11ecfc9274ecf1a947ab4f3cee92e718a2ed79f60c",
+      "sha256": "b35029b56cb342e1d6501bf039d4bb873772f5a75ba9684a6f4deaa7ff9bf438",
       "controls": [
         {
           "kind": "a",
@@ -4780,7 +4886,7 @@
         },
         {
           "kind": "a",
-          "label": "Statistics"
+          "label": "Engagement"
         },
         {
           "kind": "h2",

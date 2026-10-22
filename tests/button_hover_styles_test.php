@@ -54,6 +54,15 @@ expectHoverStyle(
 );
 
 $legacy_hover_markers = ['button-hover-color', '#f77f00', '#ff8c00', '#ffa500', 'darkorange'];
+// The email text palette deliberately offers orange. Exclude only its exact
+// swatch array, including the bundled copy, rather than ignoring designer code.
+$palette = file_get_contents(__DIR__ . '/../src/assets/js/audience-richtext-colors.mjs');
+preg_match('/export const textColors = \[([^]]+)\]/', $palette, $palette_match);
+preg_match_all('/#[a-f0-9]{6}/i', $palette_match[1] ?? '', $palette_colors);
+$palette_pattern = '~\[\s*' . implode('\s*,\s*', array_map(
+    static fn($color) => '[\'\"]' . preg_quote($color, '~') . '[\'\"]',
+    $palette_colors[0]
+)) . '\s*,?\s*\]~i';
 $source_paths = [];
 $source_iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(__DIR__ . '/../src', FilesystemIterator::SKIP_DOTS)
@@ -66,12 +75,15 @@ foreach ($source_iterator as $source_file) {
         || preg_match('/^map-shared-[A-Z0-9]+\.min\.js$/', $source_file->getFilename()) === 1) {
         continue;
     }
-    if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {
+    if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js', 'mjs'], true)) {
         $source_paths[] = $source_file->getPathname();
     }
 }
 foreach ($source_paths as $source_path) {
     $source = strtolower(file_get_contents($source_path));
+    if (in_array(basename($source_path), ['audience-richtext-colors.mjs', 'audience-designer.min.js'], true)) {
+        $source = preg_replace($palette_pattern, '[]', $source);
+    }
     foreach ($legacy_hover_markers as $marker) {
         expectHoverStyle(
             strpos($source, $marker) === false,
@@ -203,6 +215,21 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
     $page_source = file_get_contents($page_path);
     if (stripos($page_source, '<!DOCTYPE html>') === false
         || preg_match($interactive_markup_pattern, $page_source) !== 1) {
+        continue;
+    }
+
+    // This renderer produces branded, script-free public forms and iframe
+    // previews, not a MOED shell page. Its rendered control contract is also
+    // exercised by audience_collection_customization_test.php.
+    if (basename($page_path) === 'audience_collection_render.php') {
+        $public_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audience-collection-public.min.css');
+        expectHoverStyle(
+            str_contains($page_source, "file_get_contents(__DIR__.'/assets/css/pages/audience-collection-public.min.css')")
+                && str_contains($public_styles, 'button:hover,.button:hover')
+                && str_contains($public_styles, 'button:focus-visible,a:focus-visible')
+                && str_contains($page_source, '<style nonce='),
+            'Public collection controls must keep branded hover, keyboard focus and nonce-scoped styles.'
+        );
         continue;
     }
 

@@ -1,0 +1,31 @@
+/* Safari's native popup chrome can ignore a select's min-height and padding.
+   Let the existing page styles size the field while retaining native selection,
+   keyboard controls and accessibility. Multi-select/list boxes and the hidden
+   backing fields for custom address pickers keep their original appearance. */
+html body select:not([multiple]):not([aria-hidden="true"]):where(:not([size]), [size="0"], [size="1"]) {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  /* Important longhands survive page-specific background/padding shorthands. */
+  padding-inline-end: 2em !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23646c70' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-position: right .55em center !important;
+  background-size: 1em 1em !important;
+  background-repeat: no-repeat !important;
+}
+
+html.dark-mode body select:not([multiple]):not([aria-hidden="true"]):where(:not([size]), [size="0"], [size="1"]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23f3f6fb' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+html body select:dir(rtl):not([multiple]):not([aria-hidden="true"]):where(:not([size]), [size="0"], [size="1"]) {
+  background-position: left .55em center !important;
+}
+
+@media (forced-colors: active) {
+  html body select:not([multiple]):not([aria-hidden="true"]):where(:not([size]), [size="0"], [size="1"]) {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none !important;
+  }
+}

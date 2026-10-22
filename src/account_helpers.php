@@ -16,6 +16,42 @@ function accountIsPrimary(): bool {
     return accountsEnabled() && (getenv('DNR_ACCOUNT_MODE') ?: 'primary') === 'primary';
 }
 
+function demoPasswordOnlyAuthenticationAllowed(array $user): bool {
+    if (!accountsEnabled() || accountIsPrimary() || currentAccountKey() !== 'test-account') return false;
+    return \Dnr\Security\DemoAuthenticationPolicy::allows($user, currentAccountProfile(),
+        currentAccountKey(), (string) getenv('DNR_ACCOUNT_MODE'), true);
+}
+
+/** Called after authentication; never infer demo restrictions from a request parameter. */
+function isRestrictedDemoSession(): bool {
+    if (!accountsEnabled() || accountIsPrimary() || currentAccountKey() !== 'test-account') return false;
+    return \Dnr\Security\DemoAuthenticationPolicy::isRestrictedUser(
+        ['id' => (int) ($_SESSION['user_id'] ?? 0)], currentAccountProfile(),
+        currentAccountKey(), (string) getenv('DNR_ACCOUNT_MODE'), true);
+}
+
+function requireDemoAccountConfigurationAccess(): void {
+    if (isRestrictedDemoSession()) { http_response_code(403); exit('Forbidden.'); }
+}
+
+/** Account-wide restriction, independent of user role, identity, or demo MFA pins. */
+function accountSecurityAccessAllowed(): bool {
+    return !accountsEnabled() || currentAccountKey() !== 'test-account';
+}
+
+function requireAccountSecurityAccess(): void {
+    if (!accountSecurityAccessAllowed()) { http_response_code(403); exit('Forbidden.'); }
+}
+
+/** Test Account cannot link identities or use the Mattermost integration. */
+function accountMattermostAccessAllowed(): bool {
+    return !accountsEnabled() || currentAccountKey() !== 'test-account';
+}
+
+function requireAccountMattermostAccess(): void {
+    if (!accountMattermostAccessAllowed()) { http_response_code(403); exit('Forbidden.'); }
+}
+
 function currentAccountKey(): string {
     $key = (string) (getenv('DNR_ACCOUNT_KEY') ?: 'shalom-in-messiah');
     if (!preg_match('/\A[a-z][a-z0-9-]{2,63}\z/D', $key)) {
@@ -64,6 +100,9 @@ function accountRoleLabel(array $user): string {
 
 /** Account admins may never take over a platform identity by resetting it. */
 function requireManageableAccountUser(mysqli $conn, int $id): void {
+    if (isRestrictedDemoSession() && $id !== (int) ($_SESSION['user_id'] ?? 0)) {
+        throw new InvalidArgumentException('This demo login may manage only its own profile.');
+    }
     if (!accountsEnabled()) return;
     $user = $conn->execute_query('SELECT is_superadmin, platform_identity_id FROM users WHERE id = ?', [$id])->fetch_assoc();
     if ($user && (!empty($user['is_superadmin']) || !empty($user['platform_identity_id']))) {

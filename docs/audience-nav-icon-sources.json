@@ -1,0 +1,103 @@
+{
+  "observed_on": "2026-10-17",
+  "reference": "Mailchimp primary navigation, us3.admin.mailchimp.com",
+  "behavior": "Normal icon at rest; active icon on hover, focus, and selected navigation. Create has a hover variant. SVG geometry retained without modification; local CSS masks inherit the MessageMonkey theme color.",
+  "icons": {
+    "analytics": {
+      "active": {
+        "source_url": "https://cdn-images.mailchimp.com/product/left-nav/analytics-active.svg",
+        "local_asset": "assets/icons/audience-nav/analytics-active.svg",
+        "sha256": "36941e1b9f4335937efc143571de6a8d08c58b8139016b8aabe0a7995ff4b8c4"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/product/left-nav/analytics.svg",
+        "local_asset": "assets/icons/audience-nav/analytics.svg",
+        "sha256": "835835a420c545ca8e0b879ac431de2a7be04fb11cac8611c912395a8c1a0195"
+      }
+    },
+    "audience": {
+      "active": {
+        "source_url": "https://cdn-images.mailchimp.com/product/left-nav/audience-active.svg",
+        "local_asset": "assets/icons/audience-nav/audience-active.svg",
+        "sha256": "20e1e5fd9194dedf9ebd5e07204a3223ea9dc369c07582a36fc251289f7e875d"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/product/left-nav/audience.svg",
+        "local_asset": "assets/icons/audience-nav/audience.svg",
+        "sha256": "6fc506eca4e69f0ba92ff6ad4711e44dcb5fee44e7eb232cbd18f9a6519aff1c"
+      }
+    },
+    "automations": {
+      "active": {
+        "source_url": "https://cdn-images.mailchimp.com/product/left-nav/automations-active.svg",
+        "local_asset": "assets/icons/audience-nav/automations-active.svg",
+        "sha256": "90aa31086aebfb787b18f7f463c94872eecd8ca52b997c8fb13956687636afd2"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/product/left-nav/automations.svg",
+        "local_asset": "assets/icons/audience-nav/automations.svg",
+        "sha256": "6bcbb702992e01223cacac00b1a50eda994338865615821855db11a5bd58fa5b"
+      }
+    },
+    "campaigns": {
+      "active": {
+        "source_url": "https://cdn-images.mailchimp.com/product/left-nav/campaigns-active.svg",
+        "local_asset": "assets/icons/audience-nav/campaigns-active.svg",
+        "sha256": "a9f76fd50b612bd21356afd752fcc02a5adc3a74a9d4fc5710ed0f7d1439726c"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/product/left-nav/campaigns.svg",
+        "local_asset": "assets/icons/audience-nav/campaigns.svg",
+        "sha256": "2b385d0a0e8fd389cf15f2f7b28fcb8232bc4bb59dca70dccaf97fae9f8f4e8e"
+      }
+    },
+    "content-studio": {
+      "active": {
+        "source_url": "https://cdn-images.mailchimp.com/product/left-nav/content-studio-active.svg",
+        "local_asset": "assets/icons/audience-nav/content-studio-active.svg",
+        "sha256": "612236c95e52e3fbddbae9f4e55bd5b44ef454e000dee562fc45c3caaa704408"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/product/left-nav/content-studio.svg",
+        "local_asset": "assets/icons/audience-nav/content-studio.svg",
+        "sha256": "f3db58ebdb89f13592c92ddb2819eb6f0d067174c676c2bcd5e39cadefe5bdda"
+      }
+    },
+    "create": {
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/assets/icons/Create_Icon_Default.svg",
+        "local_asset": "assets/icons/audience-nav/create.svg",
+        "sha256": "685a55fe6881caa9514cd6b22b1e903b552d0ca63592274e44200a815a06d8a6"
+      },
+      "active": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/assets/icons/Create_Icon_Hover.svg",
+        "local_asset": "assets/icons/audience-nav/create-active.svg",
+        "sha256": "41440b0e9e574cd1a99a36bd53df690ebf365b01b1cf5d9854ad1a396713250d"
+      }
+    },
+    "forms": {
+      "active": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/images/forms/formsiconselected.svg",
+        "local_asset": "assets/icons/audience-nav/forms-active.svg",
+        "sha256": "391e8147240aeba9bd949c4561bc86aa6da972a0ade64043a4320bbafde444cb"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/images/forms/formsicon.svg",
+        "local_asset": "assets/icons/audience-nav/forms.svg",
+        "sha256": "cd0a980a92e2af45e0f34ed932c8cacdd7acaef7facca8533846e59d527470fb"
+      }
+    },
+    "home": {
+      "active": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/assets/home-left-nav-icon-active.svg",
+        "local_asset": "assets/icons/audience-nav/home-active.svg",
+        "sha256": "ce0add89234127cce127ce5c13ec8aacc95b3903f65285132ee05ed5a6aa4f5b"
+      },
+      "normal": {
+        "source_url": "https://digitalasset.intuit.com/render/content/dam/intuit/mc-fe/en_us/assets/home-left-nav-icon-default.svg",
+        "local_asset": "assets/icons/audience-nav/home.svg",
+        "sha256": "87d3c0ff74454c7260e1227c0746fbe7d38a284407397574b5638fef03d2a451"
+      }
+    }
+  }
+}

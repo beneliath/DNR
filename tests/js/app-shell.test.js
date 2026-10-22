@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/app-shell.js'), 'utf8');
 
-function fixture(width = 390, saved = new Map(), storageFails = false, readyState = 'complete', coachState = null) {
+function fixture(width = 390, saved = new Map(), storageFails = false, readyState = 'complete', coachState = null, { sessionSaved = new Map(), preferenceUser = '42' } = {}) {
     const events = {}, windowEvents = {};
     const doc = { readyState, activeElement: null, addEventListener(name, fn) { events[name] = fn; } };
     function node(name) {
@@ -21,6 +21,8 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
     const body = node('body'), header = node('header'), sidebar = node('sidebar'), toggle = node('toggle');
     const close = node('close'), last = node('last'), backdrop = node('backdrop'), main = node('main'), footer = node('footer'), skip = node('skip');
     const desktopBrand = node('desktop-brand'), mobileBrand = node('mobile-brand');
+    const scrollArea = node('sidebar-scroll-area');
+    scrollArea.scrollTop = 0;
     const coachLayout = coachState && { dataset: { coachLayoutKey: 'test-key', coachPaneKey: 'test-pane-key', coachPage: coachState.page || 'dashboard.php' } };
     desktopBrand.href = mobileBrand.href = 'dashboard.php';
     const sections = ['work', 'schedule', 'relationships', 'administration'].map(name => {
@@ -29,10 +31,11 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
         section.open = name !== 'administration';
         return section;
     });
-    sidebar.attrs['data-nav-preference-user'] = '42';
+    sidebar.attrs['data-nav-preference-user'] = preferenceUser;
     sidebar.attrs['data-nav-preference-cookie'] = 'dnr_sidebar_test';
     sidebar.children = [close, last];
     sidebar.querySelectorAll = selector => selector === '[data-nav-group]' ? sections : sidebar.children;
+    sidebar.querySelector = selector => selector === '.sidebar-scroll-area' ? scrollArea : null;
     header.children = [skip, toggle, sidebar, backdrop];
     body.children = [header, main, footer];
     footer.inert = true;
@@ -40,7 +43,10 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
     doc.getElementById = id => id === 'app-sidebar' ? sidebar : null;
     doc.querySelector = selector => ({ '[data-coach-layout-key]': coachLayout, '[data-nav-toggle]': toggle, '[data-nav-close]': close, '[data-nav-backdrop]': backdrop, '.app-shell-header': header, 'main, [role="main"]': main, '[data-skip-link]': skip }[selector] || null);
     doc.querySelectorAll = selector => selector === '.app-brand, .mobile-brand' ? [desktopBrand, mobileBrand] : [];
-    const win = { innerWidth: width, sessionStorage: { getItem() { return JSON.stringify(coachState); } },
+    const win = { innerWidth: width, sessionStorage: {
+        getItem(key) { if (storageFails) throw new Error('unavailable'); return key === 'moed-coach-session' ? JSON.stringify(coachState) : sessionSaved.get(key) ?? null; },
+        setItem(key, value) { if (storageFails) throw new Error('unavailable'); sessionSaved.set(key, value); }
+    },
         matchMedia() { return { matches: width >= 1101 }; },
         location: { assigned: null, assign(url) { this.assigned = url; } }, addEventListener(k, fn) { windowEvents[k] = fn; } };
     const localStorage = {
@@ -48,7 +54,8 @@ function fixture(width = 390, saved = new Map(), storageFails = false, readyStat
         setItem(key, value) { if (storageFails) throw new Error('unavailable'); saved.set(key, value); }
     };
     vm.runInNewContext(source, { document: doc, window: win, localStorage });
-    return { sections, doc, body, sidebar, toggle, close, last, main, footer, skip, win, desktopBrand, mobileBrand,
+    return { sections, doc, body, sidebar, scrollArea, toggle, close, last, main, footer, skip, win, desktopBrand, mobileBrand,
+        pagehide() { windowEvents.pagehide(); },
         cookieState() { return decodeURIComponent(doc.cookie.split(';', 1)[0].split('=', 2)[1]); },
         domReady() { events.DOMContentLoaded(); },
         key(key, shiftKey = false) { const e = { key, shiftKey, prevented: false, preventDefault() { this.prevented = true; } }; events.keydown(e); return e; },
@@ -163,4 +170,50 @@ test('sidebar link navigation saves the latest disclosure state before loading t
     f.sections[1].open = false;
     f.sidebar.events.click({ target: { closest(selector) { return selector === '.site-navigation a[href]' ? {} : null; } } });
     assert.equal(f.cookieState(), 'work=1,schedule=0,relationships=1,administration=0');
+});
+
+test('sidebar navigation preserves its scroll position before the next page becomes interactive', () => {
+    for (const width of [390, 1200]) {
+        const sessionSaved = new Map();
+        const first = fixture(width, new Map(), false, 'complete', null, { sessionSaved });
+        first.scrollArea.scrollTop = 275;
+        first.sidebar.events.click({ target: { closest() { return {}; } } });
+        const next = fixture(width, new Map(), false, 'loading', null, { sessionSaved });
+        assert.equal(next.scrollArea.scrollTop, 275);
+        assert.equal(next.scrollArea.getAttribute('data-nav-scroll-ready'), '');
+        next.domReady();
+        if (width < 860) next.toggle.events.click();
+        assert.equal(next.scrollArea.scrollTop, 275, 'initialization and opening the drawer keep its position');
+
+        next.scrollArea.scrollTop = 0;
+        next.scrollArea.events.scroll();
+        assert.equal(fixture(width, new Map(), false, 'complete', null, { sessionSaved }).scrollArea.scrollTop, 0);
+    }
+});
+
+test('sidebar scroll is saved when leaving a page and isolated by user and browser tab', () => {
+    const sessionSaved = new Map();
+    const first = fixture(1200, new Map(), false, 'complete', null, { sessionSaved, preferenceUser: 'account-one:42' });
+    first.scrollArea.scrollTop = 310;
+    first.pagehide();
+    assert.equal(fixture(1200, new Map(), false, 'complete', null, { sessionSaved, preferenceUser: 'account-one:42' }).scrollArea.scrollTop, 310);
+    for (const preferenceUser of ['account-one:43', 'account-two:42']) {
+        assert.equal(fixture(1200, new Map(), false, 'complete', null, { sessionSaved, preferenceUser }).scrollArea.scrollTop, 0);
+    }
+    assert.equal(fixture(1200, new Map(), false, 'complete', null, { preferenceUser: 'account-one:42' }).scrollArea.scrollTop, 0);
+});
+
+test('sidebar stays available with invalid or unavailable scroll storage', () => {
+    for (const value of ['invalid', '-20', 'Infinity']) {
+        const sessionSaved = new Map([['dnr.sidebar.42.scroll', value]]);
+        const f = fixture(1200, new Map(), false, 'loading', null, { sessionSaved });
+        assert.equal(f.scrollArea.scrollTop, 0);
+        assert.equal(f.scrollArea.getAttribute('data-nav-scroll-ready'), '');
+    }
+    const blocked = fixture(1200, new Map(), true);
+    assert.equal(blocked.scrollArea.getAttribute('data-nav-scroll-ready'), '');
+    assert.doesNotThrow(() => {
+        blocked.scrollArea.events.scroll();
+        blocked.pagehide();
+    });
 });

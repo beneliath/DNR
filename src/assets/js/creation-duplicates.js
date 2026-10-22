@@ -4,12 +4,14 @@
         const kind=form.dataset.duplicateKind;
         const panel=form.querySelector('[data-duplicate-warning]');
         const names=kind==='contact'?['contact_first_name','contact_last_name','contact_email','contact_phone','contact_phone_country_code']:['organization_name','email','phone','phone_country_code','physical_address_line_1','physical_city','physical_state','physical_country'];
-        const fields=names.map(name=>form.elements.namedItem(name)).filter(Boolean);
+        // Region pickers keep both a text input and a select with the same name,
+        // enabling the appropriate one for the chosen country.
+        const fields=names.flatMap(name=>Array.from(form.querySelectorAll('[name="'+name+'"]')));
         let timer; let sequence=0;
         function check() {
             const current=++sequence;
             const query=new URLSearchParams({kind:kind});
-            fields.forEach(el=>query.set(el.name,el.value));
+            fields.filter(el=>!el.disabled).forEach(el=>query.set(el.name,el.value));
             const returnTo=form.elements.namedItem('return_to'); if(returnTo) query.set('return_to',returnTo.value);
             fetch('creation_duplicates.php?'+query,{headers:{Accept:'application/json'}}).then(response=>{if(!response.ok) throw new Error('Lookup failed'); return response.json();}).then(function (data) {
                 if(current!==sequence) return;

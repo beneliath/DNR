@@ -77,7 +77,7 @@ def main():
     run(['docker','exec','-i','-e','DNR_ACCOUNT_CAPACITY_TEST=1',
          '-e','DNR_ACCOUNT_TEST_SOURCE_ROOT=/var/www/html','dnr-web-1','php','-d','memory_limit=64M'],
         input=(ROOT/'tests/account_mail_capacity_test.php').read_text())
-    for script in ['account_isolation_http_test.py','account_identity_http_test.py','account_creation_http_test.py','account_consistency_http_test.py','account_mail_http_test.py','account_invitation_http_test.py']:
+    for script in ['account_isolation_http_test.py','account_identity_http_test.py','account_creation_http_test.py','account_consistency_http_test.py','account_security_http_test.py','demo_authentication_http_test.py','account_mail_http_test.py','account_invitation_http_test.py']:
         run([sys.executable,str(ROOT/'tests'/script),'--local-preview'])
     lifecycle=fixture('dnr-web-1');key='lifecycle-check-'+secrets.token_hex(3)
     php('dnr',f"platformCreateAccount($conn,'Disposable Lifecycle Check','{key}',{lifecycle['users']['superadmin']['id']});echo '{{}}';")

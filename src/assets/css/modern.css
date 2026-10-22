@@ -388,12 +388,16 @@ html:has(body.account-context-active) { overflow: hidden; }
 .account-identity-label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
 .account-identity-banner strong { min-width: 0; overflow-wrap: anywhere; }
 .account-identity-banner a { flex-shrink: 0; color: #115e59; }
+.account-identity-switch-form { flex-shrink: 0; margin: 0; }
+html body .account-identity-banner .account-identity-switch { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0; background: transparent !important; color: #115e59 !important; font: inherit !important; text-decoration: underline; cursor: pointer; box-shadow: none; }
+html body .account-identity-banner .account-identity-switch:is(:hover, :focus-visible) { background: transparent !important; color: #0f766e !important; }
 html.dark-mode .account-identity-banner {
   background: var(--accent-subtle) !important;
   border-bottom-color: var(--nav-active-bg);
   color: var(--nav-active-fg);
 }
 html.dark-mode .account-identity-banner a { color: var(--nav-hover-fg); }
+html.dark-mode body .account-identity-banner .account-identity-switch { color: var(--nav-hover-fg) !important; }
 @media (min-width: 1101px) {
   body.coach-open :is(.account-identity-banner, .admin-unlock-banner, .deployment-notice-banner, .role-preview-banner) {
     right: var(--coach-width, 0px);
@@ -401,7 +405,22 @@ html.dark-mode .account-identity-banner a { color: var(--nav-hover-fg); }
   html body.coach-open .coach-panel { top: 0; }
 }
 @media (max-width: 860px) {
-  .account-identity-banner { left: 0; padding: 10px 14px; flex-wrap: wrap; }
+  .account-identity-banner {
+    left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 0;
+    gap: 2px 10px;
+    padding: 5px 14px;
+    font-size: 0.875rem;
+    line-height: 1.3;
+  }
+  .account-identity-label { display: contents; }
+  .account-identity-banner strong { justify-self: start; }
+  .account-identity-banner:has(.account-primary-badge) strong { grid-column: 1 / -1; }
+  .account-identity-banner .account-primary-badge { justify-self: start; padding-block: 2px; }
+  .account-identity-banner a { justify-self: end; white-space: nowrap; }
+  .account-identity-switch-form { justify-self: end; white-space: nowrap; }
 }
 
 .role-preview-banner {
@@ -592,6 +611,12 @@ body.has-app-shell.admin-unlock-active {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  scroll-behavior: auto;
+}
+
+/* Reveal navigation only at its restored position, including on a cold load. */
+html.has-js .sidebar-scroll-area:not([data-nav-scroll-ready]) {
+  visibility: hidden;
 }
 
 .sidebar-scroll-area > * {
@@ -1287,6 +1312,9 @@ html body .container > .profile-form {
   margin-inline: 0;
 }
 .account-settings-form .form-group { min-width: 0; }
+.account-settings-form .form-group:last-of-type {
+  margin-bottom: clamp(20px, 4vw, 32px);
+}
 .account-settings-form :is(input:not([type="hidden"]), select) {
   width: 100%;
   min-width: 0;
@@ -3289,7 +3317,7 @@ html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close, .account-identity-switch),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,
@@ -3591,6 +3619,42 @@ html body .action-icon-button.delete-button:focus-visible {
 .action-icon-button:focus-visible::after {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+html body .admin-unlock-banner .admin-unlock-lock-button {
+  width: 44px !important;
+  height: 44px !important;
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+html body .admin-unlock-banner .admin-unlock-lock-button:is(:hover, :focus-visible):not(:disabled) {
+  border-color: var(--action-edit) !important;
+  background: var(--action-edit-bg) !important;
+  color: var(--action-edit) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-edit) 20%, transparent) !important;
+}
+.admin-unlock-banner .action-icon-button::after {
+  top: calc(100% + 8px);
+  bottom: auto;
+  background: #000;
+  color: #fff;
+  transform: translate(-50%, 0);
+  transition: none;
+}
+.admin-unlock-banner .action-icon-button:not([aria-busy="true"])::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 4px);
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #000;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+.admin-unlock-banner .action-icon-button:is(:hover, :focus-visible)::before {
+  opacity: 1;
 }
 
 html body :is(button, input, select, textarea, a):focus-visible:not(.coach-control-highlight) {
@@ -4305,6 +4369,10 @@ input[type="radio"] {
   overflow-x: auto;
 }
 
+.record-merge-table table {
+  min-width: 640px;
+}
+
 .engagement-table,
 .organization-table,
 .contact-table,
@@ -4615,7 +4683,6 @@ html body .register-button[disabled] {
   .nav-notification-badge,
   .task-reminder-badge strong,
   .dashboard-health-list strong,
-  .dashboard-mail-alert,
   .inquiry-kanban-column > header > div > strong,
   .inquiry-tab-list button span,
   .conversion-task-section summary span
@@ -5194,6 +5261,45 @@ html.dark-mode .login-secondary-link a {
   }
 }
 
+@media (max-width: 860px), (pointer: coarse) {
+  /* Keep viewport-fixed controls inside the page on mobile Safari. Moving the
+     scrolling body below them can leave the header outside its painted bounds. */
+  body.has-app-shell.account-context-active {
+    position: static;
+    inset: auto;
+    min-height: 100dvh;
+    overflow-y: visible;
+    padding-top: var(--account-shell-height, 64px) !important;
+  }
+
+  html:has(body.account-context-active) {
+    overflow: visible;
+  }
+
+  html:has(body.has-app-shell) {
+    scroll-padding-top: var(--account-shell-height, 64px);
+  }
+
+  html:has(body.has-app-shell.navigation-open) {
+    overflow: hidden;
+  }
+
+  /* Sidebar, authentication, and tablet fields need the same iOS focus sizing
+     as the fields in mobile record forms. */
+  html body :is(input, select, textarea):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]) {
+    font-size: max(16px, 1rem) !important;
+  }
+
+  /* WebKit can include long native option text in the page's scroll width. */
+  html body select {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 1100px) {
+  html:has(body.has-app-shell.coach-open) { overflow: hidden; }
+}
+
 @media (max-width: 860px) {
   body.has-app-shell {
     padding: 64px 0 0;
@@ -5218,6 +5324,7 @@ html.dark-mode .login-secondary-link a {
   .role-preview-return-form button {
     max-width: 128px;
     line-height: 1.2;
+    white-space: normal !important;
   }
 
   .mobile-app-bar {
@@ -5249,6 +5356,13 @@ html.dark-mode .login-secondary-link a {
     width: min(100%, 180px);
     height: auto;
     max-height: 38px;
+  }
+
+  .mobile-app-bar :is(.mobile-menu-button, .mobile-theme-button) {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px !important;
+    min-height: 44px !important;
   }
 
   .app-sidebar {

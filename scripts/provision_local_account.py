@@ -24,8 +24,11 @@ def run(args, **kwargs):
     return subprocess.run(args, check=True, text=True, **kwargs)
 
 
-def control(container, action, key='', value=''):
-    result = run(['docker', 'exec', '-i', container, 'php', '/dev/stdin', action, key, value],
+def control(container, action, key='', value='', expected_commit=''):
+    arguments = ['docker', 'exec', '-i', container, 'php', '/dev/stdin', action, key, value]
+    if expected_commit:
+        arguments.append(expected_commit)
+    result = run(arguments,
                  input=(ROOT/'scripts/account_control.php').read_text(), capture_output=True)
     return json.loads(result.stdout)
 
