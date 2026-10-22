@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-22",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.6.19"
+  },
+  "production_guidance_revision": "cf8e599f5b5c59371c7c98a5ba1f519eebff1ecda9ca5c9a04af0a5ace01ace5",
+  "local_builder_guidance_revision": "cf8e599f5b5c59371c7c98a5ba1f519eebff1ecda9ca5c9a04af0a5ace01ace5",
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "pending_in_batch": 12,
+  "new_signal_versions": 1,
+  "unchanged_previously_reviewed_signals": 11,
+  "prior_receipt": "a04c8af:docs/ai-coach-production-receipt-2026-10-05.json",
+  "resolved_intake_failure": "Historical unsupported pages and steps no longer abort packet generation. Their original context is preserved and flagged; unsupported context gets no workflow or manual-topic candidates. Live request validation remains unchanged. The reader exports whitelisted production packet inputs in a read-only transaction, then groups evidence locally while keeping production and local-builder provenance separate.",
+  "regression_failed_before_fix": true,
+  "requests": [
+    {
+      "id": 31,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "fe1ca262cad63e4abf5baddfb76a888cac2056997a7d3d8986377482cd9ef2e7",
+      "original_application_version": "2.6.18",
+      "disposition": "deferred",
+      "summary": "Successful Audience analytics answer automatically queued for latency. Three recorded model calls took 47.671 seconds overall. Source confirms separate planning, plan verification and interpretation calls. No negative rating or administrator correction is present; latency is not established as fixed.",
+      "duration_ms": 47671,
+      "model_calls": 3,
+      "context_supported": false
+    }
+  ],
+  "bounded_investigation": [
+    "Inspected the original private answer, query plan, evidence and stage timings as untrusted evidence.",
+    "Verified the source computes selected-period audience totals separately from sampled time-group cards and uses plan verification before execution.",
+    "The new signal is Audience analytics, not an ordinary manual-coaching request. It was not replayed through the wrong coach path.",
+    "A controlled local analytics performance replay remains outstanding; no production inference or production data import was performed.",
+    "Existing unchanged visibility and historical inference-availability findings remain deferred."
+  ],
+  "tests": [
+    {
+      "command": "php tests/ai_coach_historical_feedback_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tests/ai_coach_production_reader_test.py",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_helpers_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_regression_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_database_retry_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/minified_assets_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/js/ai-coach.test.js tests/js/ai-coach-lifecycle.test.js",
+      "exit_code": 0
+    },
+    {
+      "command": "DNR_TEST_APP_IMAGE=dnr-app:local DNR_TEST_INGRESS_IMAGE=dnr-ingress:local DNR_TEST_DATABASE_IMAGE=dnr-database:local python3 scripts/integration_environment.py coach",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/var/www/html:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require_once \"/opt/dnr/vendor/autoload.php\"; require \"/opt/dnr/tests/audience_ai_test.php\";'",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "scripts/ai_help/read_production_feedback.py",
+      "sha256": "5dff2b563b39baadc706a2b49207efd823191c439b6023a3e0e27a5c4bc212ff"
+    },
+    {
+      "path": "src/ai_coach_feedback_helpers.php",
+      "sha256": "f192cc68afa81de0a0a543262ade7e6227fa8ea50f04a134768fbadb906047b5"
+    },
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "9b66a7b18b1197f2761876627c8f35cec9345aea5176ff388b66495d0caf64eb"
+    },
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "877e963ee5d13ed36c5e18f0780805b344dc069b743c8d98e50b5f0eb8aec53e"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "078ce039137be8bd391cfea62770cc16fc303e639897b9ee1dd8dd15c1cb1267"
+    },
+    {
+      "path": "tests/ai_coach_historical_feedback_test.php",
+      "sha256": "1d7056d9ca93409dd29f93c136af2f02724d23ed0b5792c25bec6a9b60b153c0"
+    },
+    {
+      "path": "tests/ai_coach_production_reader_test.py",
+      "sha256": "d0ed77b816762aa7d3e403ef42cda93cf64be97e93644e7de6d94a691e681dcb"
+    },
+    {
+      "path": "tests/ai_coach_feedback_integration_test.php",
+      "sha256": "539c5f45a51aa80627e2bd0dc96cc02d16f1e972768ec3a2801118df8560526a"
+    },
+    {
+      "path": "docs/ai-coach-feedback-review.md",
+      "sha256": "65b3f644ffb3c1d0d6450bdc2456492a32a9529436007e19621032bf9d7527b3"
+    }
+  ],
+  "test_limitations": [
+    "The disposable suite emits known session cleanup warnings after passing its assertions.",
+    "The host Audience validation test initially lacked worktree vendor dependencies; its 40 checks subsequently passed using image-bundled dependencies in a network-isolated container.",
+    "No new fresh-model answer or latency improvement is claimed for the deferred Audience signal. This change modifies feedback intake rather than user answers."
+  ],
+  "production_versions_rechecked": true,
+  "shared_checkout_branch_preserved": true,
+  "recorded_shared_file_hashes_unchanged": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "shared_checkout_note": "Some existing shared-checkout file hashes changed during this run, consistent with concurrent user work. No command in this run wrote shared-checkout files, changed its branch, or reverted that activity."
+}

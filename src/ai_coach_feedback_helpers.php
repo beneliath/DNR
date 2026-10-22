@@ -27,12 +27,19 @@ function aiCoachFeedbackPacket(array $rows): array
         $feedbackStep = $feedbackContext['step'] ?? '';
         $page = is_string($feedbackPage) && isset(aiCoachPages()[$feedbackPage]) ? $feedbackPage : $row['page_path'];
         $step = is_string($feedbackStep) && isset(aiCoachSteps()[$feedbackStep]) ? $feedbackStep : $row['guided_step'];
-        $request = aiCoachValidateRequest(['question'=>$row['question'], 'page'=>$row['page_path'], 'step'=>$row['guided_step'],
+        // Historical evidence is not a new live request. Retain original values
+        // below, but never interpret an unknown page/step as a supported control.
+        $pageSupported = isset(aiCoachPages()[$row['page_path']]);
+        $stepSupported = $row['guided_step'] === '' || isset(aiCoachSteps()[$row['guided_step']]);
+        $analysisPage = $pageSupported ? $row['page_path'] : 'other';
+        $analysisStep = $stepSupported ? $row['guided_step'] : '';
+        $request = aiCoachValidateRequest(['question'=>$row['question'], 'page'=>$analysisPage, 'step'=>$analysisStep,
             'history'=>json_decode($row['conversation_json'] ?? '[]', true) ?: []], $row['user_role']);
-        $workflow = aiCoachMatchWorkflow(aiCoachContextQuestion($request));
-        if ($row['user_feedback']==='control_missing' && is_string($feedbackContext['workflow'] ?? null)
+        $contextSupported = $pageSupported && $stepSupported;
+        $workflow = $contextSupported ? aiCoachMatchWorkflow(aiCoachContextQuestion($request)) : '';
+        if ($contextSupported && $row['user_feedback']==='control_missing' && is_string($feedbackContext['workflow'] ?? null)
             && isset(aiCoachWorkflows()[$feedbackContext['workflow']])) $workflow = $feedbackContext['workflow'];
-        $topics = aiCoachRetrieve(aiCoachContextQuestion($request), '', $row['user_role']);
+        $topics = $contextSupported ? aiCoachRetrieve(aiCoachContextQuestion($request), '', $row['user_role']) : [];
         $category = in_array($row['outcome'], ['unavailable','error','busy'], true) || (int)$row['duration_ms']>15000
             ? 'reliability' : aiCoachTriageImprovement($row);
         $subject = $workflow !== '' ? 'workflow:' . $workflow : 'topic:' . ($topics[0]['id'] ?? 'unclassified');
@@ -48,6 +55,8 @@ function aiCoachFeedbackPacket(array $rows): array
             'question'=>$row['question'], 'history'=>$request['history'], 'answer'=>$answer,
             'recorded_at'=>$row['created_at'], 'original_model'=>$row['model_name'], 'application_version'=>$row['application_version'],
             'original_page'=>$row['page_path'], 'original_step'=>$row['guided_step'],
+            'context_compatibility'=>['page_supported'=>$pageSupported, 'step_supported'=>$stepSupported,
+                'analysis_page'=>$analysisPage, 'analysis_step'=>$analysisStep],
             'original_ui'=>aiCoachValidateUi(json_decode($row['ui_state_json'] ?? '{}', true)),
             'reported_page'=>$page, 'reported_step'=>$step, 'reported_target'=>aiCoachSteps()[$step]['target'] ?? '',
             'administrator_review'=>['status'=>$row['review_status'], 'notes'=>$row['review_notes'], 'proposed_correction'=>$row['corrected_guidance']],
