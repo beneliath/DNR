@@ -99,7 +99,7 @@ if(in_array($view,['home','analytics'],true)){
         <?php elseif($canManage&&$flow): ?>
         <span class="campaign-status"><?= $flow['state']==='running'?'Active':$h(ucfirst($flow['state'])) ?></span>
         <?php if($flow['state']==='running'): ?><form method="post" data-confirm="Pause this flow? Connections keep their positions while it is paused."><?= $csrf ?><?php audienceInputs(['action'=>'flow_operation','id'=>$id,'version'=>$flow['version'],'operation'=>'pause']); ?><button>Pause &amp; Edit</button></form>
-        <?php else: ?><?php if($view==='flow'): ?><button type="button" data-flow-undo aria-label="Undo">↶</button><button type="button" data-flow-redo aria-label="Redo">↷</button><button type="button" data-flow-save>Save</button><button type="button" class="primary" data-flow-review><?= $flow['state']==='paused'?'Turn back on':'Continue' ?></button><?php else: ?><a class="audience-button" href="<?= $h($url(['view'=>'flow','id'=>$id])) ?>">Edit flow</a><?php endif; ?><?php endif; ?><button type="button" data-open-dialog="flow-remove">Remove</button>
+        <?php else: ?><?php if($view==='flow'): ?><button type="button" class="audience-history-action" data-flow-undo aria-label="Undo" title="Undo"><?php audienceNavIcon('undo'); ?></button><button type="button" class="audience-history-action" data-flow-redo aria-label="Redo" title="Redo"><?php audienceNavIcon('redo'); ?></button><button type="button" data-flow-save>Save</button><button type="button" class="primary" data-flow-review><?= $flow['state']==='paused'?'Turn back on':'Continue' ?></button><?php else: ?><a class="audience-button" href="<?= $h($url(['view'=>'flow','id'=>$id])) ?>">Edit flow</a><?php endif; ?><?php endif; ?><button type="button" data-open-dialog="flow-remove">Remove</button>
         <?php endif; ?>
         <?php elseif($isCollectionView): require __DIR__.'/collection-actions.php'; ?>
         <?php elseif($view==='home'&&$canManage): ?><details class="audience-menu"><summary>Quick actions <span aria-hidden="true">⌄</span></summary><div><a href="<?= $h($url(['view'=>'import'])) ?>">Import connections</a><a href="<?= $h($url(['view'=>'contact'])) ?>">Add a single connection</a><a href="<?= $h($url(['view'=>'automations'])) ?>">Create automation</a></div></details><a class="audience-button primary" href="<?= $h($url(['view'=>'campaigns','create'=>1])) ?>">Create email</a><?php elseif($view==='campaigns'): include __DIR__.'/campaign-list-heading.php'; ?>
@@ -158,6 +158,8 @@ function audienceNavIcon(string $name): void
         'calendar' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M7 2v6M17 2v6"/>',
         'chevron' => '<path d="m7 10 5 5 5-5"/>',
         'close' => '<path d="m6 6 12 12M6 18 18 6"/>',
+        'undo' => '<path d="M3 10h11a7 7 0 0 1 7 7M3 10l6-6m-6 6 6 6"/>',
+        'redo' => '<path d="M21 10H10a7 7 0 0 0-7 7m18-7-6-6m6 6-6 6"/>',
         'external' => '<path d="M14 3h7v7M21 3l-9 9M10 5H4v16h16v-6"/>',
         'plus-circle' => '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>',
         'filters' => '<path d="M3 7h10m4 0h4M3 17h4m4 0h10"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',

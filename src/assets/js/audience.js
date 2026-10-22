@@ -5,6 +5,11 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    // A pointer click can retain :focus-visible on a checkbox already focused by the keyboard.
+    document.addEventListener('pointerdown', () => document.body.classList.add('audience-pointer-input'), true);
+    document.addEventListener('keydown', event => {
+        if (!['Shift','Control','Alt','Meta'].includes(event.key)) document.body.classList.remove('audience-pointer-input');
+    }, true);
     // Match the shared shell's fixed account/preview stack, including wrapped mobile labels.
     const accountBanner = $('.account-identity-banner');
     const previewBanner = $('[data-role-preview-banner]');

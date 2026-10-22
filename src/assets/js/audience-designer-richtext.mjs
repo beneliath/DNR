@@ -243,6 +243,8 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   };
   row=first;
   const undo=tool('Undo text change','',()=>travel(past,future),'undo'),redo=tool('Redo text change','',()=>travel(future,past),'redo');undo.disabled=redo.disabled=true;
+  undo.classList.add('audience-history-action');redo.classList.add('audience-history-action');
+  undo.title='Undo';redo.title='Redo';
   tool('Strikethrough','S̶',()=>command('strikeThrough'));
   const collapse=button('▴',()=>{second.hidden=!second.hidden;collapse.textContent=second.hidden?'▾':'▴';collapse.setAttribute('aria-expanded',String(!second.hidden));collapse.setAttribute('aria-label',second.hidden?'Expand text toolbar':'Collapse text toolbar');});collapse.className='designer-rich-collapse';collapse.setAttribute('aria-label','Collapse text toolbar');collapse.setAttribute('aria-expanded','true');first.append(collapse);
   rich.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopPropagation();e.shiftKey?travel(future,past):travel(past,future);}},{signal});
