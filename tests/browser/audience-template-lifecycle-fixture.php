@@ -17,6 +17,12 @@ $tags=$groups=$fields=$catalog=$query=$recentDesigns=[];
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 $starters=audienceDesignStarters();
 $templates=[['id'=>7,'name'=>'Reusable design','folder'=>'Newsletters','version'=>3,'updated_at'=>'2026-10-21 12:00:00','deleted_at'=>$tab==='archived'?'2026-10-21 12:00:00':null,'design_json'=>json_encode($starters['blank']['design'])]];
+if(($argv[4]??'')==='with-unfiled')$templates[]=['id'=>8,'name'=>'Unfiled design','folder'=>'','version'=>1,'updated_at'=>'2026-10-22 12:00:00','deleted_at'=>$tab==='archived'?'2026-10-22 12:00:00':null,'design_json'=>json_encode($starters['blank']['design'])];
+if(in_array($argv[4]??'',['bulk','bulk-paged'],true)){
+    foreach(range(8,($argv[4]??'')==='bulk-paged'?33:10)as$fixtureId)$templates[]=['id'=>$fixtureId,'name'=>'Sample design '.$fixtureId,'folder'=>$fixtureId===8?'':'Newsletters','version'=>1,'updated_at'=>'2026-10-22 12:00:00','deleted_at'=>null,'design_json'=>json_encode($starters['thanks']['design'])];
+    foreach($templates as&$fixtureTemplate){$change=audienceJson($argv[5]??'{}')[$fixtureTemplate['id']]??[];if($change)$fixtureTemplate=array_replace($fixtureTemplate,$change);}unset($fixtureTemplate);
+}
+$templateFolderContext=['version'=>1];$templateFolders=['Empty folder','Newsletters'];$templateFolderFilter=in_array($_GET['folder']??'',['unfiled',...$templateFolders],true)?$_GET['folder']:'';
 echo '<!doctype html><html>';
 renderPageHead('Template lifecycle fixture',['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);
 require __DIR__.'/../../src/templates/audience/workspace.php';

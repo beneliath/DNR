@@ -5,6 +5,7 @@ import { renderDesignStylePanel } from './audience-designer-styles.mjs';
 import { designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
 import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-model.mjs';
 import { templatePreviewBoundary } from './audience-template-preview.mjs';
+import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-drop.mjs';
 (() => {
   'use strict';
   const $ = (s, root = document) => root.querySelector(s);
@@ -74,6 +75,18 @@ import { templatePreviewBoundary } from './audience-template-preview.mjs';
     const sortControl=$('[data-template-sort]'), orderStatus=$('[data-template-order-status]');
     const orderKey=`template-order:${document.body.dataset.audienceKey || 'default'}:${gallery.dataset.templateTab}`;
     const initialCards=$$('.template-card',gallery), validKeys=new Set(initialCards.map(card=>card.dataset.templateKey));
+    const selectionForm=$('[data-template-selection]'),selectPage=$('[data-template-select-page]'),selectItems=$$('[data-template-select]',gallery);
+    function updateTemplateSelection(){
+      if(!selectionForm)return;
+      const visible=selectItems.filter(input=>!input.closest('.template-card').hidden);
+      selectItems.forEach(input=>{if(input.closest('.template-card').hidden)input.checked=false;});
+      const count=visible.filter(input=>input.checked).length;
+      $('[data-template-selection-count]').textContent=`${count} selected`;
+      selectPage.checked=visible.length>0&&count===visible.length;selectPage.indeterminate=count>0&&count<visible.length;selectPage.disabled=visible.length===0;
+      $('[data-template-move-selected]').disabled=count===0;
+    }
+    selectItems.forEach(input=>input.addEventListener('change',updateTemplateSelection));
+    selectPage?.addEventListener('change',()=>{selectItems.forEach(input=>{input.checked=selectPage.checked&&!input.closest('.template-card').hidden;});updateTemplateSelection();});
     let stored;try{stored=JSON.parse(localStorage.getItem(orderKey));}catch(_){/* Optional browser preference. */}
     let customOrder=Array.isArray(stored?.order)?[...new Set(stored.order.filter(key=>validKeys.has(key)))]:[];
     if(['custom','newest','name','oldest'].includes(stored?.sort))sortControl.value=stored.sort;
@@ -83,16 +96,21 @@ import { templatePreviewBoundary } from './audience-template-preview.mjs';
       const cards = $$('.template-card', gallery); const type=$('[data-template-type]')?.value||''; const sort = sortControl.value;
       const ranks=new Map(customOrder.map((key,index)=>[key,index]));
       cards.sort((a,b) => sort==='custom' ? (ranks.get(a.dataset.templateKey)??Infinity)-(ranks.get(b.dataset.templateKey)??Infinity)||0 : sort === 'name' ? a.dataset.templateName.localeCompare(b.dataset.templateName) : (sort === 'oldest' ? 1 : -1) * a.dataset.templateDate.localeCompare(b.dataset.templateDate));
-      matches=cards.filter(c=>c.dataset.templateName.includes(q)&&(category==='All'||category===c.dataset.templateCategoryValue)&&(!folder||folder===c.dataset.templateFolderValue)&&(!type||type===c.dataset.templateMode));
+      matches=cards.filter(c=>c.dataset.templateName.includes(q)&&(category==='All'||category===c.dataset.templateCategoryValue)&&(!folder||(folder==='unfiled'?!c.dataset.templateFolderValue:folder===c.dataset.templateFolderValue))&&(!type||type===c.dataset.templateMode));
       const maxPage=Math.max(1,Math.ceil(matches.length/20));galleryPage=Math.min(maxPage,Math.max(1,galleryPage));const visible=new Set(matches.slice((galleryPage-1)*20,galleryPage*20));cards.forEach(c=>{c.hidden=!visible.has(c);gallery.append(c);});
       $('[data-template-empty]').hidden=matches.length>0;
+      updateTemplateSelection();
       const pagination=$('#template-pagination');pagination.replaceChildren();const previous=button('‹',()=>{galleryPage--;filter();});previous.setAttribute('aria-label','Previous page');previous.disabled=galleryPage===1;const next=button('›',()=>{galleryPage++;filter();});next.setAttribute('aria-label','Next page');next.disabled=galleryPage===maxPage;
       const page=el('input');page.type='number';page.min=1;page.max=maxPage;page.value=galleryPage;page.setAttribute('aria-label','Page number');page.onchange=()=>{galleryPage=Number(page.value)||1;filter();};pagination.append(el('span',`Showing results ${matches.length?(galleryPage-1)*20+1:0}–${Math.min(galleryPage*20,matches.length)} of ${matches.length}`),previous,el('span','Page'),page,el('span','of '+maxPage),next);
 
     };
     const resetFilter=()=>{galleryPage=1;filter();};$('[data-template-search]').oninput=resetFilter;sortControl.onchange=()=>{resetFilter();saveOrder();};
     if($('[data-template-type]'))$('[data-template-type]').onchange=resetFilter;
-    if ($('[data-template-folder]')) $('[data-template-folder]').onchange = resetFilter;
+    if ($('[data-template-folder]')) $('[data-template-folder]').onchange = () => {
+      const url=new URL(location.href),folder=$('[data-template-folder]').value;
+      if(folder)url.searchParams.set('folder',folder);else url.searchParams.delete('folder');
+      window.history.replaceState(window.history.state,'',url);resetFilter();
+    };
     $$('[data-template-category]').forEach(b => b.onclick = () => { category = b.dataset.templateCategory;galleryPage=1; $$('[data-template-category]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); filter(); });
     $$('[data-template-layout]').forEach(b => b.onclick = () => { gallery.classList.toggle('template-list', b.dataset.templateLayout === 'list'); $$('[data-template-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
     $('[data-template-all-filters]')?.addEventListener('click',()=>{$('[data-template-category-filter]').value=category;$('[data-template-type-filter]').value=$('[data-template-type]').value;$('#template-filters-dialog').showModal();});
@@ -179,9 +197,10 @@ import { templatePreviewBoundary } from './audience-template-preview.mjs';
       b.closest('details')?.removeAttribute('open');
       ['id','version'].forEach(k => $(`[name=${k}]`, d).value = r[k]); $('[name=operation]',d).value = op;
       $('#template-operation-title').textContent = {rename:'Rename template',folder:'Move to folder',replicate:'Duplicate template',delete:'Delete template?'}[op];
-      const label = $('[data-template-input-label]',d); label.hidden = !['rename','folder'].includes(op);
-      const input = $('input', label); input.name = op === 'folder' ? 'folder' : 'name'; input.value = op === 'folder' ? r.folder : r.name; input.required = op === 'rename';
-      label.firstChild.textContent = op === 'folder' ? 'Folder name (leave blank to unfile)' : 'Template name';
+      const label = $('[data-template-input-label]',d); label.hidden = op !== 'rename';
+      const input = $('input', label); input.value = r.name; input.disabled = op !== 'rename'; input.required = op === 'rename';
+      const folderLabel = $('[data-template-folder-label]',d); folderLabel.hidden = op !== 'folder';
+      const folder = $('select',folderLabel); folder.disabled = op !== 'folder'; folder.value = r.folder;
       $('[data-template-delete-note]',d).hidden = op !== 'delete'; const submit=$('button.primary',d);submit.textContent = {rename:'Save',folder:'Move',replicate:'Duplicate',delete:'Permanently delete'}[op];submit.toggleAttribute('data-admin-unlock-required',op==='delete'); d.showModal();
     });
     const operationForm=$('[data-template-operation-form]');let deleteApproved=false;
@@ -193,7 +212,7 @@ import { templatePreviewBoundary } from './audience-template-preview.mjs';
   }
   $('[data-template-import]')?.addEventListener('click',()=>$('#template-import-dialog').showModal());
   $('[data-template-legacy]')?.addEventListener('click',()=>$('#template-legacy-dialog').showModal());
-  $$('[data-import-tab]').forEach(button=>button.onclick=()=>{const type=button.dataset.importTab;$$('[data-import-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('[data-import-code]').hidden=type!=='paste';$('[data-import-file]').hidden=type==='paste';const input=$('[data-import-file] input');input.value='';input.accept=type==='zip'?'.zip':'.html,.htm';$('[data-import-code] textarea').value='';$('[data-import-help]').textContent=type==='zip'?'Include one HTML file and local images. Maximum 5 MB, 100 files.':type==='html'?'Choose an HTML file up to 1 MB.':'Paste your HTML. Add named mc:edit regions to edit content visually.';});
+  $$('[data-import-tab]').forEach(button=>button.onclick=()=>{const type=button.dataset.importTab;$$('[data-import-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('[data-import-code]').hidden=type!=='paste';$('[data-import-file]').hidden=type==='paste';const input=$('[data-import-file] input');input.value='';input.accept=type==='zip'?'.zip':'.html,.htm';input.dataset.fileMaxBytes=type==='zip'?'5000000':'1000000';setFileDropStatus(input);const hint=input.closest('[data-file-drop]')?.querySelector(':scope>span');if(hint)hint.textContent=type==='zip'?'ZIP · up to 5 MB':'HTML · up to 1 MB';$('[data-import-code] textarea').value='';$('[data-import-help]').textContent=type==='zip'?'Include one HTML file and local images. Maximum 5 MB, 100 files.':type==='html'?'Choose an HTML file up to 1 MB.':'Paste your HTML. Add named mc:edit regions to edit content visually.';});
   const configNode=$('#designer-config');if(!configNode)return;
   const config=JSON.parse(configNode.textContent), canvas=$('#email-canvas'), tools=$('#designer-tools'), status=$('#design-status');
   let design=structuredClone(config.design),version=config.version,selected=null,selectedRow=null,panel='add',addTab='content',sectionTab='manage',blockTab='content',device='desktop',styleArea='',styleDraft=null,dirty=false,timer,savePromise=null,drag=null,confirmAction=null,nameAction=null,libraryType='image',libraryPage=1,libraryChoose=null,richRange=null,disposeRichText=null,cropImage=null,cropTarget=null,codeSequence=0;
@@ -275,7 +294,7 @@ import { templatePreviewBoundary } from './audience-template-preview.mjs';
   }
   function addImageTools(parent,item){
     const upload=el('label','Upload image','designer-field'), input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/gif';
-    input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>1000000)throw new Error('Choose an image up to 1 MB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;});});upload.append(input);parent.append(upload);
+    input.dataset.fileMaxBytes='1000000';input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>1000000)throw new Error('Choose an image up to 1 MB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;});});upload.append(input);parent.append(upload);enhanceAudienceFileInput(input,{help:'PNG, JPEG, WebP or GIF · up to 1 MB'});
     const actions=el('div',undefined,'designer-block-actions');actions.append(button('Content studio',()=>openLibrary('image',value=>mutate(()=>{item.image=value.image;item.alt=value.alt||item.alt;item.url=value.url||item.url;}))));
     if(item.image)actions.append(button('Edit image',()=>openCrop(item)),button('Save to content studio',()=>nameDialog('Save image','Image',async name=>{await request('design_library_save',{type:'image',name,data:JSON.stringify({image:item.image,alt:item.alt||''})});status.textContent='Image saved';})));parent.append(actions,fieldGrid(field('Alt text',item.alt||'',v=>{item.alt=v;}),field('Link URL',item.url||'',v=>{item.url=v;})));
   }

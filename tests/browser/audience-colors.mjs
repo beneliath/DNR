@@ -1,6 +1,6 @@
 import {enhanceColorInput} from '../../src/assets/js/audience-color-picker.mjs';
 const form=document.querySelector('#brand'),result=document.querySelector('#result');
-form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true}));
+form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true,palette:[{label:'Link',value:'#3261b5'},{label:'Button',value:'#c00000'}]}));
 document.querySelector('#run').onclick=async()=>{
   let count=0;const expect=(ok,message)=>{if(!ok)throw Error(message);count++;};
   const input=form.elements.link,wrap=input.parentElement,trigger=wrap.querySelector('button'),panel=wrap.querySelector('[popover]'),hex=panel.querySelector('input[type=text]'),hue=panel.querySelector('input[type=range]'),plane=panel.querySelector('[role=slider]');
@@ -16,6 +16,7 @@ document.querySelector('#run').onclick=async()=>{
     trigger.click();panel.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));expect(!panel.matches(':popover-open'),'Escape closes the panel');
     trigger.click();const box=panel.getBoundingClientRect();expect(box.left>=0&&box.right<=innerWidth&&box.top>=0&&box.bottom<=innerHeight,'Panel fits viewport');panel.hidePopover();
     form.reset();await Promise.resolve();expect(input.value==='#3261b5'&&trigger.textContent==='#3261B5','Form reset restores chip and submitted color');
+    trigger.click();const swatches=panel.querySelectorAll('.audience-color-brand-swatch');expect(swatches.length===2&&swatches[1].getAttribute('aria-label')==='Brand Kit Button: #C00000','Brand Kit swatches retain role labels and exact saved hex values');swatches[1].click();expect(input.value==='#c00000'&&trigger.textContent==='#C00000'&&!panel.matches(':popover-open'),'Choosing a Brand Kit swatch updates the input and closes the picker');
     form.querySelector('fieldset').disabled=true;trigger.click();expect(!panel.matches(':popover-open'),'Disabled Brand Kit cannot open color picker');form.querySelector('fieldset').disabled=false;
     result.textContent=`PASS: ${count} color checks`;result.dataset.status='passed';
   }catch(e){result.textContent=`FAIL after ${count} checks: ${e.message}`;result.dataset.status='failed';throw e;}

@@ -12,6 +12,7 @@
   const transcript = chat ? find('[data-ai-chat-transcript]') : null;
   const shownQuestions = new Set(), shownAnswers = new Set(), questionTexts = new Map();
   const resetHistoryButton = document.querySelector('[data-ai-history-reset]');
+  const historyConfirmation = document.querySelector('[data-ai-history-confirm]');
   const historyResetKey = `moed-audience-ai-history-reset-${config.key}-${config.mode}`;
   const historyHiddenKey = `${historyResetKey}-hidden`;
   let historyItems = [], historyCutoff = '';
@@ -167,12 +168,19 @@
     const list = document.querySelector('[data-ai-history]'); if (!list) return;
       const items = historyItems.filter(item => item.created_at > historyCutoff && !hiddenRequests.has(item.client_request_id)); list.replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = items.length>0;
       if (resetHistoryButton) { resetHistoryButton.hidden = !canRemoveHistory; resetHistoryButton.disabled = items.length === 0 || historyChangePending; }
-      items.forEach(item => { const li=node('li');const button=node('button',item.question,'ai-history-open');button.type='button';if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
+      items.forEach(item => { const li=node('li');const button=node('button',undefined,'ai-history-open');button.type='button';button.setAttribute('aria-label',item.question);button.append(node('span',item.question),node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
           if(busy&&active===item.client_request_id){question(item.question,item.client_request_id);return;}
           if(busy){generation++;active='';clearPending();setBusy(false);}
           const token=++generation;previous='';completed='';output.hidden=true;resetChat();question(item.question,item.client_request_id);
+          displayedRequest=item.client_request_id;renderHistory();
           try{
             const result=await api(null,`?request_id=${encodeURIComponent(item.client_request_id)}`);if(token!==generation)return;
+            if(config.mode==='content'){
+              const input=result.input;
+              const defaults={text:'',subject:'',prompt:item.question,operation:'write',tone:'friendly'};
+              for(const [name,fallback]of Object.entries(defaults))if(form.elements[name])form.elements[name].value=typeof input?.[name]==='string'?input[name]:fallback;
+              displayedRequest=item.client_request_id;
+            }
             if(result.state==='complete'){complete({...result,question:item.question},item.client_request_id);}
             else if(result.state==='pending'){
               active=item.client_request_id;setBusy(true);announce('Your request is being processed');
@@ -180,26 +188,55 @@
               try{sessionStorage.setItem(storageKey,JSON.stringify({uuid:active,started,mode:config.mode}));}catch{/* Recovery is optional. */}
               return poll(active,token,started);
             }else failure('This request was interrupted. Please retry it.',item.client_request_id,item.question);
+            if(config.mode==='content'&&!result.input)announce('Original source text is unavailable for this older request.');
           }catch(error){if(token===generation)failure(error.message,item.client_request_id,item.question);}
         });
         li.append(button);
         if (canRemoveHistory) {
-          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Remove from recent requests (Admin Unlock required)';remove.setAttribute('aria-label',`Remove request: ${item.question}`);remove.setAttribute('data-admin-unlock-required','');
+          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete response permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete response: ${item.question}`);
           const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
-          remove.addEventListener('click',()=>changeHistory(()=>{hiddenRequests.add(item.client_request_id);try{localStorage.setItem(historyHiddenKey,JSON.stringify([...hiddenRequests].slice(-200)));}catch{/* Current-page removal remains available. */}announce('Request removed from the list.');}));
+          remove.addEventListener('click',()=>changeHistory('delete',async()=>{
+            await api({action:'delete',request_id:item.client_request_id,confirmed:true});
+            hiddenRequests.add(item.client_request_id);
+            historyItems=historyItems.filter(saved=>saved.client_request_id!==item.client_request_id);
+            if([active,displayedRequest,completed,previous].includes(item.client_request_id)){
+              generation++;active='';displayedRequest='';completed='';previous='';clearPending();setBusy(false);resetChat();output.hidden=true;find('[data-ai-check-result]').hidden=true;
+              if(config.mode==='content')for(const name of ['text','subject','prompt'])form.elements[name].value='';
+            }
+            announce('Response permanently deleted.');
+          }));
           li.append(remove);
         }
-        li.append(node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));list.append(li); });
+        list.append(li); });
   }
-  async function changeHistory(change) {
+  function confirmHistoryChange(kind) {
+    if (!historyConfirmation?.showModal) return Promise.resolve(false);
+    const deleting=kind==='delete';
+    document.querySelector('[data-ai-history-confirm-message]').textContent=deleting
+      ? 'This will permanently delete this AI request, its source text, and its response. This cannot be undone.'
+      : 'Reset the recent requests shown in this browser? Saved responses will be retained.';
+    document.querySelector('[data-ai-history-confirm-submit]').textContent=deleting?'Delete permanently':'Reset list';
+    historyConfirmation.returnValue='';
+    return new Promise(resolve=>{
+      historyConfirmation.addEventListener('close',()=>resolve(historyConfirmation.returnValue==='confirm'),{once:true});
+      historyConfirmation.showModal();
+    });
+  }
+  async function changeHistory(kind,change) {
     if (!canRemoveHistory || historyChangePending) return;
+    let changed=false;
     historyChangePending = true;
     if (resetHistoryButton) resetHistoryButton.disabled = true;
     try {
-      if (!(await window.DnrAdminUnlock?.request()) || !canRemoveHistory) return;
-      change();
-    } catch { announce('Unable to verify Admin Unlock. The request list is unchanged.'); }
-    finally { historyChangePending = false; renderHistory(); }
+      if (!(await confirmHistoryChange(kind)) || !canRemoveHistory) return;
+      await change();
+      changed=true;
+    } catch (error) { announce(`Unable to change recent requests. ${error.message}`); }
+    finally {
+      historyChangePending=false;
+      if(changed)renderHistory();
+      else if(resetHistoryButton)resetHistoryButton.disabled=!historyItems.some(item=>item.created_at>historyCutoff&&!hiddenRequests.has(item.client_request_id));
+    }
   }
   async function history() {
     try {
@@ -207,7 +244,7 @@
       if(chat&&active){const item=historyItems.find(item=>item.client_request_id===active);if(item)question(item.question,active);}
     } catch { /* History failure never prevents manual editing. */ }
   }
-  resetHistoryButton?.addEventListener('click', () => changeHistory(() => {
+  resetHistoryButton?.addEventListener('click', () => changeHistory('reset',() => {
     historyCutoff = historyItems.reduce((latest, item) => item.created_at > latest ? item.created_at : latest, historyCutoff);
     try { localStorage.setItem(historyResetKey, historyCutoff); } catch { /* The current list can still be reset. */ }
     announce('Request list reset. Saved requests remain available for review.');
@@ -255,13 +292,16 @@
     }catch(error){if(token===generation){active='';setBusy(false);clearPending();failure(error.message,uuid,values.prompt);}}
   });
   find('[data-ai-stop]').addEventListener('click',stop);
-  find('[data-ai-new]').addEventListener('click',async()=>{generation++;if(busy)await stop();previous='';completed='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();announce('Ready for a new request');});
+  find('[data-ai-new]').addEventListener('click',async()=>{generation++;if(busy)await stop();previous='';completed='';displayedRequest='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();if(!chat){for(const name of ['text','subject','prompt'])form.elements[name].value='';renderHistory();form.elements.prompt.focus();}announce('Ready for a new request');});
   root.querySelectorAll('[data-ai-starter]').forEach(button=>button.addEventListener('click',()=>{if(busy)return;if(chat&&button.dataset.aiWindow)updateScope(JSON.parse(button.dataset.aiWindow));form.elements.prompt.value=button.textContent;form.elements.prompt.dispatchEvent(new Event('input'));form.elements.prompt.focus();}));
   if (chat) {
     const resize = () => { const input=form.elements.prompt; input.style.height='auto'; input.style.height=`${Math.min(160,input.scrollHeight)}px`; };
     form.elements.prompt.addEventListener('input',resize); resize();
     form.elements.prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
-    find('[data-ai-history-toggle]').addEventListener('click',event=>{const button=event.currentTarget,panel=find('#analytics-ai-history');panel.hidden=!panel.hidden;root.classList.toggle('history-collapsed',panel.hidden);button.setAttribute('aria-expanded',String(!panel.hidden));button.querySelector('span').textContent=panel.hidden?'Show chat history':'Hide chat history';});
+  }
+  const historyToggle=find('[data-ai-history-toggle]'),historyPanel=find('[data-ai-history-panel]');
+  if(historyToggle&&historyPanel){
+    historyToggle.addEventListener('click',event=>{const button=event.currentTarget;historyPanel.hidden=!historyPanel.hidden;root.classList.toggle('history-collapsed',historyPanel.hidden);button.setAttribute('aria-expanded',String(!historyPanel.hidden));button.querySelector('span').textContent=`${historyPanel.hidden?'Show':'Hide'} ${chat?'chat':'request'} history`;});
     const measure = () => root.style.setProperty('--analytics-ai-offset',`${Math.max(0,root.getBoundingClientRect().top)}px`);
     window.addEventListener('resize',measure); measure();
   }

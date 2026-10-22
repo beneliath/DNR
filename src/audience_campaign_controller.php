@@ -21,7 +21,11 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Reload the canonical audience before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
-        if($action==='brand_save'&&!$canDelete){http_response_code(403);exit('Only administrators can change Brand Kit settings.');}
+        if(in_array($action,['brand_save','brand_logo_svg'],true)&&!$canDelete){http_response_code(403);exit('Only administrators can change Brand Kit settings.');}
+        if($action==='brand_logo_svg'){
+            releaseApplicationSessionLock();header('Content-Type: application/json');header('Cache-Control: no-store');
+            try{$image=audienceSvgImage(audienceText($_POST,'image',2700000));[$width,$height]=audienceLogoDimensions($image);echo json_encode(['data'=>$image,'width'=>$width,'height'=>$height],JSON_THROW_ON_ERROR);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}return;
+        }
         if($action==='campaign_preview'){
             header('Content-Type: application/json');header('Cache-Control: no-store');
             try{$row=$store->campaign($id);$candidate=$store->campaignAdvancedSection($row,'to',$_POST);[$where,$params]=$store->campaignTarget($candidate);echo json_encode(['count'=>(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n']],JSON_THROW_ON_ERROR);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;
@@ -54,7 +58,14 @@ if($isPost){
 
             case 'content_rename':$store->operateDesignLibrary($id,$version,'rename',audienceText($_POST,'name',100));$redirect=$url(['view'=>'content','item'=>$id]);$message='File renamed.';break;
             case 'content_save':if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$_POST=array_replace($_POST,audienceContentFileUpload($_FILES['image_file']));$store->saveContentItem($_POST,$id,$version);$redirect=$contentUrl();$message='File saved.';break;
-            case 'content_operation':$store->contentOperation(audienceText($_POST,'operation'),audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$url(['view'=>'content']);$message='Files updated. Existing email snapshots are preserved.';break;
+            case 'content_operation':
+                $operation=audienceText($_POST,'operation');
+                if(in_array($operation,['delete','purge'],true)){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can delete content files.');}
+                    requireRecentAdminElevation($contentUrl());
+                }
+                if($operation==='purge'&&($_POST['confirm_delete']??'')!=='1')throw new InvalidArgumentException('Confirm permanent deletion of the selected files from Trash.');
+                $store->contentOperation($operation,audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$contentUrl($operation==='purge'?['trash'=>'1','page'=>1]:[]);$message=$operation==='purge'?'Files permanently deleted. Existing email snapshots are preserved.':'Files updated. Existing email snapshots are preserved.';break;
             case 'content_folder':$store->contentFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
             case 'brand_apply':$store->applyBrand((int)audienceText($_POST,'template_id',12),$version,($_POST['include_logo']??'')==='1');$redirect=$url(['view'=>'templates','tab'=>'saved']);$message='Brand applied. The previous template revision is retained.';break;

@@ -21,6 +21,32 @@ export async function isAnimatedUpload(file) {
 const dataUrl=blob=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('The image could not be read. Try again.'));reader.readAsDataURL(blob);});
 const encode=(canvas,type,quality)=>new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('The image could not be resized. Try a smaller image.')),type,quality));
 
+export async function matchAudienceBrandLogos(logos) {
+  if(!logos.logo||!logos.secondary_logo)return logos;
+  const load=data=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('The logo could not be opened. Choose a valid PNG, JPEG or WebP.'));image.src=data;});
+  const [primary,secondary]=await Promise.all([load(logos.logo),load(logos.secondary_logo)]);
+  const width=primary.naturalWidth,height=primary.naturalHeight;
+  if(width===secondary.naturalWidth&&height===secondary.naturalHeight)return logos;
+  if(logos.secondary_logo.startsWith('data:image/svg+xml;')){
+    const source=new TextDecoder().decode(Uint8Array.from(atob(logos.secondary_logo.split(',')[1]),char=>char.charCodeAt(0))),document=new DOMParser().parseFromString(source,'image/svg+xml'),root=document.documentElement;
+    root.setAttribute('width',width);root.setAttribute('height',height);root.setAttribute('preserveAspectRatio','xMidYMid meet');
+    return {...logos,secondary_logo:await dataUrl(new Blob([new XMLSerializer().serializeToString(root)],{type:'image/svg+xml'}))};
+  }
+  if(width*height>16_000_000)throw new Error('Choose logos of 16 megapixels or less.');
+  const [header,base64]=logos.secondary_logo.split(','),bytes=Uint8Array.from(atob(base64),char=>char.charCodeAt(0));
+  if(await isAnimatedUpload(new File([bytes],'logo',{type:header.slice(5,-7)})))throw new Error('Animated logos must already match the default logo dimensions. Resize the animation or upload a static PNG, JPEG or WebP.');
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Image resizing is unavailable in this browser.');
+  try{
+    const scale=Math.min(width/secondary.naturalWidth,height/secondary.naturalHeight),drawWidth=Math.max(1,Math.min(width,Math.round(secondary.naturalWidth*scale))),drawHeight=Math.max(1,Math.min(height,Math.round(secondary.naturalHeight*scale)));
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(secondary,Math.floor((width-drawWidth)/2),Math.floor((height-drawHeight)/2),drawWidth,drawHeight);
+    let output=await encode(canvas,'image/png');
+    if(output.size>2_000_000)for(const quality of [.9,.75,.6]){output=await encode(canvas,'image/webp',quality);if(output.size<=2_000_000)break;}
+    if(output.size>2_000_000)throw new Error('The logos could not be matched within 2 MB. Try a smaller default logo.');
+    return {...logos,secondary_logo:await dataUrl(output)};
+  }finally{canvas.width=canvas.height=1;}
+}
+
 export async function prepareAudienceImage(file, {storedBytes = imageUploadLimits.storedBytes} = {}) {
   if(!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type))throw new Error('Choose a PNG, JPEG, WebP or GIF image.');
   if(file.size>imageUploadLimits.sourceBytes)throw new Error('Choose an image up to 20 MB. Larger photos can be exported at a smaller size first.');

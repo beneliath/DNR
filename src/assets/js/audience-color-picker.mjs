@@ -9,7 +9,7 @@ export function hsvToHex(h,s,v) {
   const f=n=>{const k=(n+h/60)%6;return Math.round(255*(v-v*s*Math.max(0,Math.min(k,4-k,1)))).toString(16).padStart(2,'0');};
   return '#'+f(5)+f(3)+f(1);
 }
-export function enhanceColorInput(input,{label,tile=false}={}) {
+export function enhanceColorInput(input,{label,tile=false,palette=[]}={}) {
   if(input.dataset.colorEnhanced)return input.parentElement;
   input.dataset.colorEnhanced='true';
   label||=input.getAttribute('aria-label')||input.labels?.[0]?.textContent.trim()||'Color';
@@ -48,6 +48,13 @@ export function enhanceColorInput(input,{label,tile=false}={}) {
     const dropper=node('button','audience-color-dropper');dropper.type='button';dropper.title='Pick color';dropper.setAttribute('aria-label','Pick color with eyedropper');
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','m14 5 5 5M5 15l9-9 4 4-9 9-5 1zM15 5l3-3 4 4-3 3');svg.append(path);dropper.append(svg);controls.prepend(dropper);
     dropper.onclick=async()=>{const generation=session;try{const result=await new window.EyeDropper().open();if(generation===session&&panel.matches(':popover-open')&&wrap.isConnected){current=result.sRGBHex;hsv=hexToHsv(current);select();}}catch{/* Escape leaves the color unchanged. */}};
+  }
+  const brandColors=palette.filter(color=>/^#[a-f0-9]{6}$/i.test(color.value));
+  if(brandColors.length){
+    const colors=node('div','audience-color-brand-palette'),heading=node('strong');heading.textContent='Brand Kit colors';colors.append(heading);
+    brandColors.forEach(color=>{const swatch=node('button','audience-color-brand-swatch');swatch.type='button';swatch.style.backgroundColor=color.value;swatch.setAttribute('aria-label',`Brand Kit ${color.label}: ${color.value.toUpperCase()}`);
+      swatch.onclick=()=>{if(input.matches(':disabled'))return;current=color.value.toLowerCase();hsv=hexToHsv(current);select();};colors.append(swatch);
+    });panel.append(colors);
   }
   input.addEventListener('change',sync);input.form?.addEventListener('reset',()=>queueMicrotask(sync));sync();return wrap;
 }

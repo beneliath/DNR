@@ -32,13 +32,50 @@ $coList=$campaignStore->contentList(['search'=>'Paging content','per_page'=>10,'
 $coTemplate=$campaignStore->createEmailTemplate('Brand completion template',audienceDesignStarters()['newsletter']['design']);$coBefore=$campaignStore->emailTemplate($coTemplate);$coDesign=$coBefore['design'];$coDesign['rows'][0]['columns'][0][0]['image']=$coImage;
 $campaignStore->saveEmailDesign('template',$coTemplate,$coBefore['version'],$coDesign);$coSnapshot=$campaignStore->emailTemplate($coTemplate)['design'];
 audienceHttpExpect($campaignStore->contentUsage($campaignStore->designLibraryItem($coId))>=1,'Image usage finds independent template snapshots');
-audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_operation','operation'=>'delete','selected'=>[$coId],'versions'=>[$coId=>$coVersion]])['status']===302,'Content moves to recoverable Trash');
+$coTrashPost=['csrf_token'=>$token,'action'=>'content_operation','operation'=>'delete','selected'=>[$coId],'versions'=>[$coId=>$coVersion]];
+audienceHttpExpect($editor($coPath,$coTrashPost)['status']===403,'Editors cannot move content to Trash');
+audienceHttpExpect(!str_contains($editor($coPath)['body'],'Move to Trash</button>'),'Editors have no content Trash action');
+$coAdminToken=audienceHttpCsrf($admin($coPath));$coTrashPost['csrf_token']=$coAdminToken;
+$coSetElevation=static function(?int $at)use($adminSessionName,$adminSessionId):void{session_name($adminSessionName);session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);if($at!==null)$_SESSION['_admin_elevated_at']=$at;session_write_close();};
+foreach([null,time()-300]as$coElevation){
+    $coSetElevation($coElevation);$coBlocked=$admin($coPath,$coTrashPost);
+    audienceHttpExpect($coBlocked['status']===302&&str_contains($coBlocked['headers'],'admin_elevation.php')&&(int)$campaignStore->designLibraryItem($coId)['version']===(int)$coVersion,'Locked or expired admin unlock leaves the selected content unchanged');
+}
+$coSetElevation(time());
+$coTrashedResponse=$admin($coPath,$coTrashPost);
+audienceHttpExpect($coTrashedResponse['status']===302&&!str_contains($coTrashedResponse['headers'],'admin_elevation.php'),'Unlocked administrator can move content to recoverable Trash');
+$coSetElevation(null);
 audienceHttpExpect($c2anon($coPublic)['status']===404&&$campaignStore->contentList(['trash'=>'1','search'=>'Completion image'])['total']===1,'Trashed image revoked publicly and visible in Trash');
+$coBlockedFolder=$editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'delete','name'=>'Completion files','version'=>$coSettingsVersion()]);
+audienceHttpExpect($coBlockedFolder['status']===200&&str_contains($coBlockedFolder['body'],'This folder contains files')&&in_array('Completion files',$campaignStore->contentSettings()['settings']['content_folders'],true),'A folder containing only files in Trash cannot be deleted');
 $coTrashed=$campaignStore->one('SELECT version FROM marketing_design_library WHERE id=?',[$coId]);
 audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_operation','operation'=>'restore','selected'=>[$coId],'versions'=>[$coId=>$coTrashed['version']]])['status']===302,'Trashed image restores');
 audienceHttpExpect($c2anon($coPublic)['status']===404&&$campaignStore->emailTemplate($coTemplate)['design']===$coSnapshot,'Restore remains private and snapshots unchanged');
 audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'rename','name'=>'Completion files','new_name'=>'Renamed files','version'=>$coSettingsVersion()])['status']===302&&$campaignStore->designLibraryItem($coId)['data']['folder']==='Renamed files','Folder rename updates membership');
-audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'delete','name'=>'Renamed files','version'=>$coSettingsVersion()])['status']===302&&$campaignStore->designLibraryItem($coId)['data']['folder']==='','Folder deletion unfiles and preserves images');
+$coFolderVersion=$coSettingsVersion();$coFolderImage=$campaignStore->designLibraryItem($coId);
+$coBlockedFolder=$editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'delete','name'=>'Renamed files','version'=>$coFolderVersion]);
+audienceHttpExpect($coBlockedFolder['status']===200&&str_contains($coBlockedFolder['body'],'This folder contains files')&&$coSettingsVersion()===$coFolderVersion&&$campaignStore->designLibraryItem($coId)===$coFolderImage,'Nonempty folder deletion preserves the folder, settings version, and file');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_operation','operation'=>'move','selected'=>[$coId],'versions'=>[$coId=>$coFolderImage['version']],'folder'=>''])['status']===302,'Editors can move files out of a folder without admin unlock');
+audienceHttpExpect($editor($coPath,['csrf_token'=>$token,'action'=>'content_folder','operation'=>'delete','name'=>'Renamed files','version'=>$coSettingsVersion()])['status']===302&&!in_array('Renamed files',$campaignStore->contentSettings()['settings']['content_folders'],true)&&$campaignStore->designLibraryItem($coId)['data']['folder']==='','Empty folder deletion preserves its former files in Unfiled');
+// Permanent deletion is limited to selected, version-matched Trash in this audience.
+$campaignStore->contentFolder('create','Purge folder','',$coSettingsVersion());
+$coPurgeIds=[];foreach(['First','Second']as$coPurgeName)$coPurgeIds[]=$campaignStore->saveContentItem(['name'=>'Purge '.$coPurgeName,'image'=>$coImage,'folder'=>'Purge folder']);
+$coPurgeVersions=array_fill_keys($coPurgeIds,1);$campaignStore->contentOperation('delete',$coPurgeIds,$coPurgeVersions);$coPurgeVersions=array_fill_keys($coPurgeIds,2);
+$coTrashPath=$coPath.'&trash=1';$coAdminToken=audienceHttpCsrf($admin($coTrashPath));
+$coPurgePost=['csrf_token'=>$coAdminToken,'action'=>'content_operation','operation'=>'purge','selected'=>$coPurgeIds,'versions'=>$coPurgeVersions,'confirm_delete'=>'1'];
+audienceHttpExpect(str_contains($admin($coTrashPath)['body'],'value="purge" data-admin-unlock-required')&&!str_contains($editor($coTrashPath)['body'],'value="purge"'),'Only administrators see protected permanent deletion in Trash');
+audienceHttpExpect($editor($coTrashPath,array_replace($coPurgePost,['csrf_token'=>$token]))['status']===403&&$reviewer($coTrashPath,array_replace($coPurgePost,['csrf_token'=>$reviewToken]))['status']===403,'Editors and reviewers cannot permanently delete Trash');
+audienceHttpExpect($admin($coTrashPath,array_replace($coPurgePost,['csrf_token'=>'invalid']))['status']===400,'Permanent deletion requires valid CSRF');
+foreach([null,time()-300]as$coElevation){$coSetElevation($coElevation);$coPurgeBlocked=$admin($coTrashPath,$coPurgePost);audienceHttpExpect($coPurgeBlocked['status']===302&&str_contains($coPurgeBlocked['headers'],'admin_elevation.php')&&$campaignStore->one('SELECT id FROM marketing_design_library WHERE id=?',[$coPurgeIds[0]]),'Locked or expired unlock cannot permanently delete Trash');}
+$coSetElevation(time());$coPurgeUnconfirmed=$admin($coTrashPath,array_replace($coPurgePost,['confirm_delete'=>'']));
+audienceHttpExpect($coPurgeUnconfirmed['status']===200&&str_contains($coPurgeUnconfirmed['body'],'Confirm permanent deletion'),'Permanent deletion requires explicit confirmation');
+$coBadPurgeRequests=[array_replace($coPurgePost,['versions'=>array_fill_keys($coPurgeIds,1)]),array_replace($coPurgePost,['selected'=>[$coPurgeIds[0],$coId],'versions'=>[$coPurgeIds[0]=>2,$coId=>$campaignStore->designLibraryItem($coId)['version']]]),array_replace($coPurgePost,['selected'=>[$coPurgeIds[0],$coForeign],'versions'=>[$coPurgeIds[0]=>2,$coForeign=>$otherStore->designLibraryItem($coForeign)['version']]])];
+foreach($coBadPurgeRequests as$coBadPurge)audienceHttpExpect($admin($coTrashPath,$coBadPurge)['status']===200&&$campaignStore->one('SELECT id FROM marketing_design_library WHERE id=?',[$coPurgeIds[0]])&&$campaignStore->one('SELECT id FROM marketing_design_library WHERE id=?',[$coPurgeIds[1]]),'Stale, active, or foreign selections leave the entire Trash selection untouched');
+$coPurged=$admin($coTrashPath,$coPurgePost);
+audienceHttpExpect($coPurged['status']===302&&str_contains($coPurged['headers'],'trash=1')&&!$campaignStore->one('SELECT id FROM marketing_design_library WHERE id IN (?,?)',$coPurgeIds),'Unlocked confirmed deletion removes only the selected Trash and returns to Trash');
+audienceHttpExpect($campaignStore->designLibraryItem($coId)&&$otherStore->designLibraryItem($coForeign)&&$campaignStore->emailTemplate($coTemplate)['design']===$coSnapshot,'Permanent deletion preserves active files, foreign files, and email snapshots');
+$campaignStore->contentFolder('delete','Purge folder','',$coSettingsVersion());audienceHttpExpect(!in_array('Purge folder',$campaignStore->contentSettings()['settings']['content_folders'],true),'Permanently deleting the last trashed files allows empty-folder deletion');
+$coReplay=$admin($coTrashPath,$coPurgePost);audienceHttpExpect($coReplay['status']===200&&str_contains($coReplay['body'],'A selected file changed'),'A stale permanent-deletion replay is rejected');$coSetElevation(null);
 $coBrandCsrf=audienceHttpCsrf($admin($coBrand));
 $coBrandInput=['csrf_token'=>$coBrandCsrf,'action'=>'brand_save','version'=>$coSettingsVersion(),'organization_name'=>'Brand Kit ministry','mailing_address'=>"123 Example Street\nExample City, TX 75000",'font'=>'Georgia','background'=>'#fafafa','text'=>'#222222','link'=>'#006973','button'=>'#006973','buttonText'=>'#ffffff','body'=>'#ffffff','buttonRadius'=>12,'fontSize'=>18,'logo'=>$coImage,'secondary_logo'=>$coImage];
 audienceHttpExpect($admin($coBrand,$coBrandInput)['status']===302,'Brand settings save without changing other audience settings');
@@ -66,6 +103,24 @@ audienceHttpExpect($coReplacementBrand['logo']===$coLargeLogo&&$coReplacementBra
 $coBrandScreen=$editor($coBrand)['body'];
 audienceHttpExpect(str_contains($coBrandScreen,$coLargeLogo)&&!str_contains($coBrandScreen,'Use a saved image')&&substr_count($coBrandScreen,'data-file-drop role=')===3,'Brand Kit renders replacement logos and three drop areas without saved-image selectors');
 audienceHttpExpect($admin($coBrand,array_replace($coReplacementInput,['version'=>$coSettingsVersion(),'logo'=>$coLogoAtSize(2000001)]))['status']===200&&$campaignStore->contentSettings()['settings']['brand']['logo']===$coLargeLogo,'Oversized logo is rejected without replacing the saved logo');
+// Differently sized logo uploads are normalized on the backend as well.
+$coLogoCanvas=imagecreatetruecolor(240,120);imagefill($coLogoCanvas,0,0,imagecolorallocate($coLogoCanvas,50,97,181));ob_start();imagepng($coLogoCanvas);$coDefaultSized='data:image/png;base64,'.base64_encode(ob_get_clean());unset($coLogoCanvas);
+$coLogoCanvas=imagecreatetruecolor(40,80);imagefill($coLogoCanvas,0,0,imagecolorallocate($coLogoCanvas,0,170,0));ob_start();imagepng($coLogoCanvas);$coSecondarySized='data:image/png;base64,'.base64_encode(ob_get_clean());unset($coLogoCanvas);
+audienceHttpExpect($admin($coBrand,array_replace($coBrandInput,['version'=>$coSettingsVersion(),'logo'=>$coDefaultSized,'secondary_logo'=>$coSecondarySized]))['status']===302,'Brand Kit accepts different source logo dimensions and normalizes on save');
+$coSizedBrand=$campaignStore->contentSettings()['settings']['brand'];$coSizedImage=imagecreatefromstring(base64_decode(explode(',',$coSizedBrand['secondary_logo'],2)[1]));
+audienceHttpExpect($coSizedBrand['logo']===$coDefaultSized&&imagesx($coSizedImage)===240&&imagesy($coSizedImage)===120&&(imagecolorat($coSizedImage,0,60)>>24)===127&&(imagecolorat($coSizedImage,120,60)>>24)===0,'Saved logos share exact pixel dimensions with centered artwork and transparent padding');unset($coSizedImage);
+audienceHttpExpect(str_contains($editor($coBrand)['body'],$coSizedBrand['secondary_logo'])&&str_contains($editor($coBrand)['body'],'data-brand-logo-dimensions'),'Reload shows the matched logo and pixel dimension labels');
+$coSvgRaw='data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80" onload="alert(1)"><script>alert(1)</script><path fill="#3261b5" d="M0 0h40v80H0z"/></svg>');
+$coSvgVersion=$coSettingsVersion();$coSvgPost=['csrf_token'=>$coBrandCsrf,'action'=>'brand_logo_svg','image'=>$coSvgRaw];$coSvgResponse=$admin($coBrand,$coSvgPost);$coSvgData=json_decode($coSvgResponse['body'],true);$coSvgXml=base64_decode(explode(',',$coSvgData['data']??',')[1]??'');
+audienceHttpExpect($coSvgResponse['status']===200&&!str_contains($coSvgXml,'script')&&!str_contains($coSvgXml,'onload')&&str_contains($coSvgXml,'<path')&&$coSettingsVersion()===$coSvgVersion,'SVG upload preparation sanitizes active content, retains vectors, and does not save settings');
+audienceHttpExpect($editor($coBrand,array_replace($coSvgPost,['csrf_token'=>$token]))['status']===403&&$reviewer($coBrand,array_replace($coSvgPost,['csrf_token'=>$reviewToken]))['status']===403,'SVG preparation requires the same Brand Kit administrator role');
+audienceHttpExpect($admin($coBrand,array_replace($coSvgPost,['csrf_token'=>'invalid']))['status']===400,'SVG upload preparation enforces CSRF');
+audienceHttpExpect($admin($coBrand,array_replace($coSvgPost,['image'=>'data:image/svg+xml;base64,'.base64_encode('<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg viewBox="0 0 10 20">&x;</svg>')]))['status']===422,'SVG upload rejects document entities');
+audienceHttpExpect($admin($coBrand,array_replace($coBrandInput,['version'=>$coSettingsVersion(),'logo'=>$coDefaultSized,'secondary_logo'=>$coSvgRaw]))['status']===302,'Brand Kit saves and matches an SVG secondary logo directly as well as through the preparation endpoint');
+$coVectorBrand=$campaignStore->contentSettings()['settings']['brand'];$coVectorXml=base64_decode(explode(',',$coVectorBrand['secondary_logo'])[1]);
+audienceHttpExpect(audienceLogoDimensions($coVectorBrand['secondary_logo'])===[240,120]&&str_contains($coVectorXml,'viewBox="0 0 40 80"')&&!str_contains($coVectorXml,'script')&&str_contains($editor($coBrand)['body'],$coVectorBrand['secondary_logo']),'Saved SVG stays vector with matching dimensions and reloads');
+$coVectorDoc=audienceCollectionDefaults('landing');$coVectorDoc['logo']=$coVectorBrand['secondary_logo'];$coVectorDoc['opt_in']='single';$coVectorPage=$campaignStore->saveCollection(['kind'=>'landing','name'=>'SVG logo landing page','document'=>$coVectorDoc]);$campaignStore->collectionOperation($coVectorPage,1,'publish');$coVectorResource=$campaignStore->collectionResource($coVectorPage);$coVectorPublic=$c2anon('audience_collect_public.php?key='.$coVectorResource['public_key']);
+audienceHttpExpect($coVectorPublic['status']===200&&str_contains($coVectorPublic['body'],$coVectorBrand['secondary_logo']),'Published landing page retains its SVG logo without rasterizing');
 // Restore the licensed font before applying the kit.
 $campaignStore->saveBrand($coFontInput+['font_license'=>'1'],$coSettingsVersion());
 $coTemplateNow=$campaignStore->emailTemplate($coTemplate);$coRevisions=count($campaignStore->designRevisions('template',$coTemplate));
@@ -85,13 +140,23 @@ $coCode=$campaignStore->brandedDesign($codeDoc,$campaignStore->contentSettings()
 $coWidthDesign=audienceDesignStarters()['newsletter']['design'];$coWidthDesign['styles']['width']=720;audienceHttpExpect($campaignStore->brandedDesign($coWidthDesign,$campaignStore->contentSettings()['settings']['brand'])['styles']['width']===720,'Brand application preserves unrelated template layout');
 // Realistic photo payloads must not enter MySQL's sorting buffer.
 $photoAssets=json_decode(file_get_contents($source.'/assets/template-art/sources.json'),true,64,JSON_THROW_ON_ERROR)['assets'];$photoIds=[];
-foreach(array_slice($photoAssets,0,4)as$i=>$photo)$photoIds[]=$campaignStore->saveContentItem(['name'=>'Large photo fixture '.($i+1),'image'=>'data:image/jpeg;base64,'.base64_encode(file_get_contents($source.'/assets/template-art/'.$photo['file']))]);
+$campaignStore->contentFolder('create','Large photo folder','',$coSettingsVersion());
+foreach(array_slice($photoAssets,0,4)as$i=>$photo)$photoIds[]=$campaignStore->saveContentItem(['name'=>'Large photo fixture '.($i+1),'image'=>'data:image/jpeg;base64,'.base64_encode(file_get_contents($source.'/assets/template-art/'.$photo['file'])),'folder'=>$i<3?'Large photo folder':'']);
 $priorSortBuffer=(int)$conn->query('SELECT @@SESSION.sort_buffer_size n')->fetch_assoc()['n'];$conn->query('SET SESSION sort_buffer_size=32768');
 $photoPage=$campaignStore->contentList(['search'=>'Large photo fixture','sort'=>'name','direction'=>'asc']);
 audienceHttpExpect(array_map('intval',array_column($photoPage['items'],'id'))===$photoIds,'Large images retain exact name order with a small sort buffer');
 $photoPage=$campaignStore->contentList(['search'=>'Large photo fixture','sort'=>'size','direction'=>'desc']);$photoSizes=array_column(array_column($photoPage['items'],'data'),'bytes');$expectedSizes=$photoSizes;rsort($expectedSizes,SORT_NUMERIC);
 audienceHttpExpect($photoSizes===$expectedSizes&&count($photoSizes)===4,'Large images sort by file size without sorting their full payloads');
+foreach(['name','updated_at','created_at','size']as$photoSort){
+    $filteredPhotos=$campaignStore->contentList(['search'=>'Large photo fixture','folder'=>'Large photo folder','type'=>'image','sort'=>$photoSort]);
+    $filteredPhotoIds=array_map('intval',array_column($filteredPhotos['items'],'id'));sort($filteredPhotoIds);
+    audienceHttpExpect($filteredPhotoIds===array_slice($photoIds,0,3)&&$filteredPhotos['total']===3,'Folder filtering with large images and a small sort buffer: '.$photoSort);
+}
+$unfiledPhotos=$campaignStore->contentList(['search'=>'Large photo fixture','folder'=>'unfiled']);
+audienceHttpExpect(array_map('intval',array_column($unfiledPhotos['items'],'id'))===[$photoIds[3]],'Unfiled filtering excludes the large photos in a named folder');
 $conn->query('SET SESSION sort_buffer_size='.$priorSortBuffer);
+$photoFolderHttp=$editor($coPath.'&search=Large+photo+fixture&folder=Large+photo+folder');
+audienceHttpExpect($photoFolderHttp['status']===200&&str_contains($photoFolderHttp['body'],'Large photo fixture 1')&&!str_contains($photoFolderHttp['body'],'Large photo fixture 4'),'Applying a folder filter renders only its matching photos over HTTP');
 $photoHttp=$editor($coPath.'&search=Large+photo+fixture');
 audienceHttpExpect($photoHttp['status']===200&&str_contains($photoHttp['body'],'Large photo fixture 4'),'Populated photo library renders over HTTP');
 foreach(['grid','list']as$layout){$sizePage=$editor($coPath.'&search=Large+photo+fixture&layout='.$layout);foreach($photoPage['items']as$photoItem)audienceHttpExpect(str_contains($sizePage['body'],'<small data-content-file-size>'.audienceContentFileSize($photoItem).'</small>'),'Stored file size shown in '.$layout);}

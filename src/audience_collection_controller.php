@@ -94,11 +94,12 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $resources=[];$blockedSignupIds=[];$collectionPerPage=(int)($_GET['per_page']??100);if(!in_array($collectionPerPage,[10,25,50,100],true))$collectionPerPage=100;$collectionPage=1;$collectionPages=1;$collectionTotal=0;$collectionDirection=($_GET['direction']??'desc')==='asc'?'asc':'desc';
     $listQuery=['view'=>$view,'q'=>$q,'type'=>$type,'trash'=>$trash?'1':'0','per_page'=>$collectionPerPage,'direction'=>$collectionDirection];
     if ($available) {
-        $sql='SELECT * FROM marketing_collection_resources WHERE audience_id=? AND deleted_at IS '.($trash?'NOT NULL':'NULL').' AND kind IN ('.implode(',',array_fill(0,count($kinds),'?')).')'; $params=[$audienceId,...$kinds];
+        $sql='FROM marketing_collection_resources WHERE audience_id=? AND deleted_at IS '.($trash?'NOT NULL':'NULL').' AND kind IN ('.implode(',',array_fill(0,count($kinds),'?')).')'; $params=[$audienceId,...$kinds];
         if ($q!=='') { $sql.=' AND LOCATE(?,name)>0'; $params[]=$q; }
         if (in_array($type,$kinds,true)) { $sql.=' AND kind=?'; $params[]=$type; }
-        $collectionTotal=(int)$store->one(str_replace('SELECT *','SELECT COUNT(*) n',$sql),$params)['n'];$collectionPages=max(1,(int)ceil($collectionTotal/$collectionPerPage));$collectionPage=max(1,min($collectionPages,(int)($_GET['page']??1)));
-        $resources=$store->all($sql.' ORDER BY updated_at '.$collectionDirection.',id '.$collectionDirection.' LIMIT ? OFFSET ?',[...$params,$collectionPerPage,($collectionPage-1)*$collectionPerPage]);
+        $collectionTotal=(int)$store->one('SELECT COUNT(*) n '.$sql,$params)['n'];$collectionPages=max(1,(int)ceil($collectionTotal/$collectionPerPage));$collectionPage=max(1,min($collectionPages,(int)($_GET['page']??1)));
+        // The list needs metadata only. Keep embedded images and fonts out of MySQL's sort buffer.
+        $resources=$store->all('SELECT id,kind,name,state,version,deleted_at,updated_at '.$sql.' ORDER BY updated_at '.$collectionDirection.',id '.$collectionDirection.' LIMIT ? OFFSET ?',[...$params,$collectionPerPage,($collectionPage-1)*$collectionPerPage]);
     }
     if($resources){
         $publishedIds=array_column(array_filter($resources,static fn($r)=>!$r['deleted_at']&&$r['state']==='published'&&in_array($r['kind'],['hosted','embedded','popup','landing'],true)),'id');
@@ -161,6 +162,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         $ses=$store->sesSettings();$signupEmailBlocked=(bool)audienceSesReasons($ses,$ses['from_email']??'');
     }
     $pageTitle=match($view){'form'=>$resource['name'],'collection-create'=>'Setup your '.match($creationKind){'landing'=>'landing page','survey'=>'survey','popup'=>'popup form','embedded'=>'embedded form','preferences'=>'preference center',default=>'subscribe form'},'form-settings'=>'Forms Settings','landing-pages'=>'Landing pages','surveys'=>'Surveys','preferences'=>'Subscriber preferences','collection-report'=>$resource['name'].' · Results',default=>'Forms'};
+    $collectionBrand=$resource&&$resource['kind']==='landing'?($store->contentSettings()['settings']['brand']??[]):[];
     $csrf=csrfInput(); $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
     ?>

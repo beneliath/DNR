@@ -233,4 +233,61 @@ audienceHttpExpect($identified['status']===200&&in_array($autoTag,$collectStore-
 $tagEvidence=$collectStore->one("SELECT actor_type,actor_user_id FROM marketing_contact_events WHERE contact_id=? AND event_type='survey-answer-tag' ORDER BY id DESC LIMIT 1",[$autoContact['id']]);
 audienceHttpExpect($tagEvidence['actor_type']==='recipient'&&$tagEvidence['actor_user_id']===null,'Automatic answer tagging records a recipient actor');
 audienceHttpExpect((int)$collectStore->collectionConversions($conversionDouble,'2000-01-01','2000-01-02')['subscribers']===0,'Conversion date filters use actual conversion time');
+// Landing pages offer account Brand Kit choices and publish a self-contained font snapshot.
+$cbOriginal=$collectStore->contentSettings()['settings'];$cbSettings=$cbOriginal;
+$cbFont='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",44));
+$cbDefaultLogo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=';
+$cbSecondaryLogo='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+$cbSettings['brand']['logo']=$cbDefaultLogo;$cbSettings['brand']['secondary_logo']=$cbSecondaryLogo;
+$cbSettings['brand']['styles']=array_replace($cbSettings['brand']['styles']??[],['font'=>'Tahoma','webFont'=>$cbFont,'button'=>'#3261b5','background'=>'#f1f2f3','text'=>'#112233']);$cbSettings['brand']['web_font_name']='Example Light';
+try{
+    $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
+    $cbId=$collectStore->saveCollection(['kind'=>'landing','name'=>'Brand Kit landing page']);$cbPath='audience.php?view=form&id='.$cbId;
+    $cbEditor=$editor($cbPath);audienceHttpExpect($cbEditor['status']===200&&str_contains($cbEditor['body'],'Example Light (Brand Kit)')&&str_contains($cbEditor['body'],'"brandColors":[')&&str_contains($cbEditor['body'],'"value":"#3261b5"'),'Landing page editor exposes the current account Brand Kit font and colors');
+    audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Default logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary logo</option>'),'Landing page offers both account Brand Kit logos');
+    $cbDoc=$collectStore->collectionResource($cbId)['draft'];$cbDoc=array_replace($cbDoc,['font'=>'Tahoma','web_font'=>$cbFont,'web_font_name'=>'Example Light','color'=>'#3261b5','background'=>'#f1f2f3','text_color'=>'#112233','opt_in'=>'single','logo_width'=>360]);
+    $cbSave=['csrf_token'=>$token,'action'=>'collection_save','id'=>$cbId,'version'=>1,'name'=>'Brand Kit landing page','document_json'=>json_encode($cbDoc)];
+    $cbPreview=$editor($cbPath,array_replace($cbSave,['action'=>'collection_preview','preview_nonce'=>'BrandKitLandingNonce123']));$cbPreviewHtml=json_decode($cbPreview['body'],true)['html']??'';
+    audienceHttpExpect($cbPreview['status']===200&&str_contains($cbPreviewHtml,'@font-face{font-family:MOEDCollectionBrandFont;src:url('.$cbFont.')')&&str_contains($cbPreviewHtml,'--collection-accent:#3261b5'),'Live preview embeds the selected font and exact Brand Kit color');
+    audienceHttpExpect($editor($cbPath,$cbSave)['status']===302&&$collectStore->collectionResource($cbId)['draft']['web_font']===$cbFont&&$collectStore->collectionResource($cbId)['draft']['logo_width']===360,'Editor can save the selected Brand Kit font snapshot');
+    audienceHttpExpect(str_contains($editor($cbPath)['body'],'<option value="brand" selected>Example Light (Brand Kit)</option>'),'Reloading retains the selected uploaded Brand Kit font');
+    audienceHttpExpect($editor($cbPath,['csrf_token'=>$token,'action'=>'collection_operation','id'=>$cbId,'version'=>2,'operation'=>'publish'])['status']===302,'Editor can publish the branded landing page');
+    $cbResource=$collectStore->collectionResource($cbId);$cbPublic='audience_collect_public.php?key='.$cbResource['public_key'];$cbLive=$public($cbPublic);
+    audienceHttpExpect($cbLive['status']===200&&str_contains($cbLive['body'],$cbFont)&&str_contains($cbLive['body'],'--collection-font:MOEDCollectionBrandFont,Tahoma')&&str_contains($cbLive['body'],'--collection-logo-width:360px;--collection-logo-height:none')&&str_contains($cbLive['headers'],'font-src data:'),'Public landing page can load its embedded Brand Kit font under CSP');
+    $cbSettings['brand']['styles']['webFont']='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",45));$cbSettings['brand']['web_font_name']='New Brand Font';
+    $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
+    $cbLive=$public($cbPublic);$cbReopened=$editor($cbPath)['body'];
+    audienceHttpExpect(str_contains($cbLive['body'],$cbFont)&&!str_contains($cbLive['body'],$cbSettings['brand']['styles']['webFont'])&&str_contains($cbReopened,'value="saved-brand" selected>Example Light (saved font)')&&str_contains($cbReopened,'New Brand Font (Brand Kit)'),'Brand Kit changes preserve the published font and offer both saved and current choices');
+    $cbBad=array_replace($cbDoc,['web_font'=>'https://example.test/font.woff2']);$cbRejected=$editor($cbPath,array_replace($cbSave,['version'=>3,'document_json'=>json_encode($cbBad)]));
+    audienceHttpExpect($cbRejected['status']===200&&(int)$collectStore->collectionResource($cbId)['version']===3,'External font sources cannot be saved through a crafted request');
+    $cbPlain=array_replace($cbDoc,['font'=>'Verdana','web_font'=>'','web_font_name'=>'']);
+    audienceHttpExpect($editor($cbPath,array_replace($cbSave,['version'=>3,'document_json'=>json_encode($cbPlain)]))['status']===302,'Switching back to a built-in font saves');
+    $collectStore->collectionOperation($cbId,4,'publish');$cbLive=$public($cbPublic);
+    audienceHttpExpect(!str_contains($cbLive['body'],'@font-face')&&str_contains($cbLive['body'],'--collection-font:Verdana'),'Built-in font publication removes the embedded font');
+    foreach(['logo'=>$cbDefaultLogo,'secondary_logo'=>$cbSecondaryLogo]as$logoKey=>$logoImage){
+        $cbCurrent=$collectStore->collectionResource($cbId);$cbLogoDoc=array_replace($cbCurrent['draft'],['logo'=>$logoImage]);
+        $cbLogoSave=array_replace($cbSave,['version'=>$cbCurrent['version'],'document_json'=>json_encode($cbLogoDoc)]);
+        audienceHttpExpect($editor($cbPath,$cbLogoSave)['status']===302&&str_contains($editor($cbPath)['body'],'value="'.$logoKey.'" selected>'),'Saving and reloading retains Brand Kit logo selection: '.$logoKey);
+        $cbCurrent=$collectStore->collectionResource($cbId);$collectStore->collectionOperation($cbId,(int)$cbCurrent['version'],'publish');
+        audienceHttpExpect(str_contains($public($cbPublic)['body'],'src="'.$logoImage.'"'),'Publishing renders selected Brand Kit logo: '.$logoKey);
+    }
+    $cbSettings['brand']['secondary_logo']=$cbDefaultLogo;
+    $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
+    audienceHttpExpect(str_contains($public($cbPublic)['body'],'src="'.$cbSecondaryLogo.'"')&&$collectStore->collectionResource($cbId)['draft']['logo']===$cbSecondaryLogo,'Brand Kit logo updates preserve saved and published page snapshots');
+}finally{$collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbOriginal,JSON_THROW_ON_ERROR),1]);}
+// Large logo/font documents must never enter list sorting, including paginated and filtered lists.
+$largeCollectionDoc=audienceCollectionDefaults('landing');$largeCollectionDoc['web_font']='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",450000));
+$largeCollectionDoc['logo']='data:image/jpeg;base64,'.base64_encode(file_get_contents($source.'/assets/template-art/tel-aviv-market.jpg'));
+$largeCollectionIds=[];
+for($i=1;$i<=12;++$i){$largeId=$collectStore->saveCollection(['kind'=>'landing','name'=>'Large landing fixture '.sprintf('%02d',$i),'document'=>$largeCollectionDoc]);$largeCollectionIds[]=$largeId;$collectStore->write('UPDATE marketing_collection_resources SET updated_at=? WHERE id=?',['2026-01-'.sprintf('%02d',$i).' 00:00:00',$largeId]);}
+foreach(['forms','landing-pages']as$largeView)foreach(['asc','desc']as$largeDirection){
+    $largePage=$editor('audience.php?'.http_build_query(['view'=>$largeView,'q'=>'Large landing fixture','direction'=>$largeDirection,'per_page'=>10]));
+    $largeDom=new DOMDocument();@$largeDom->loadHTML($largePage['body']);$largeXpath=new DOMXPath($largeDom);$largeNames=array_map(static fn($n)=>$n->textContent,iterator_to_array($largeXpath->query('//table[contains(@class,"collection-table")]/tbody/tr/td[1]//strong')));
+    $expectedLargeNames=array_map(static fn($n)=>'Large landing fixture '.sprintf('%02d',$n),$largeDirection==='asc'?range(1,10):range(12,3));
+    audienceHttpExpect($largePage['status']===200&&$largeNames===$expectedLargeNames&&str_contains($largePage['body'],'Page 1 of 2'),'Large landing documents render with exact order and pagination: '.$largeView.' '.$largeDirection);
+}
+$largeNext=$editor('audience.php?view=landing-pages&q=Large+landing+fixture&per_page=10&page=2&direction=asc');
+audienceHttpExpect($largeNext['status']===200&&str_contains($largeNext['body'],'<strong>Large landing fixture 11</strong>')&&str_contains($largeNext['body'],'<strong>Large landing fixture 12</strong>')&&!str_contains($largeNext['body'],'<strong>Large landing fixture 01</strong>'),'Large landing second page preserves its filter and remaining rows');
+$collectStore->collectionOperation($largeCollectionIds[0],1,'remove');$largeTrash=$editor('audience.php?view=landing-pages&trash=1&q=Large+landing+fixture');
+audienceHttpExpect($largeTrash['status']===200&&str_contains($largeTrash['body'],'<strong>Large landing fixture 01</strong>')&&!str_contains($largeTrash['body'],'<strong>Large landing fixture 02</strong>'),'Removed large landing pages render in Trash without active rows');
 echo 'Collection HTTP checks passed ('.($checks-$collectionBefore)." checks).\n";

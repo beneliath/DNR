@@ -1,12 +1,12 @@
 <?php $aiAnalytics=($aiConfig['mode']??'content')==='analytics'; ?>
-<section data-ai-root class="ai-assistant" aria-label="<?= $aiAnalytics?'Analytics AI':'Write with AI' ?>">
+<?php if(!($aiFullPage??false)): ?><section data-ai-root class="ai-assistant" aria-label="<?= $aiAnalytics?'Analytics AI':'Write with AI' ?>"><?php endif; ?>
 <form data-ai-form><?= csrfInput() ?>
 <?php if(!$aiAnalytics): ?><div class="ai-control-row"><label>Writing action<select name="operation"><option value="write">Write something new</option><option value="rewrite">Rewrite</option><option value="shorten">Make shorter</option><option value="lengthen">Make longer</option><option value="tone">Change tone</option><option value="subject">Suggest subject lines</option><option value="generate">Create email content</option><option value="optimize">Suggest improvements</option></select></label><label>Tone<select name="tone"><option value="friendly">Friendly</option><option value="professional">Professional</option><option value="warm">Warm</option><option value="inspiring">Inspiring</option><option value="plain">Plain and direct</option></select></label></div>
 <label>Source text<textarea name="text" rows="6" maxlength="10000" data-ai-source><?= $h($aiText??'') ?></textarea></label><label>Current subject<input name="subject" maxlength="250" value="<?= $h($aiSubject??'') ?>"></label><?php endif; ?>
 <label><?= $aiAnalytics?'Your question':'What would you like to write or change?' ?><textarea name="prompt" rows="3" maxlength="1500" placeholder="<?= $aiAnalytics?'What changed compared with the previous period?':'Tell us your goal, audience, and the facts to include' ?>"<?= !empty($aiPrompt)?' autofocus':'' ?>><?= $h($aiPrompt??'') ?></textarea></label>
 <div class="ai-starters"><?php foreach($aiAnalytics?['Summarize my email performance','Explain the biggest changes','What should I improve next?','What data is missing?']:['Help me share a community update','Write a warm invitation','Make this clearer and more concise']as$starter): ?><button type="button" data-ai-starter><?= $h($starter) ?></button><?php endforeach; ?></div>
 <p class="ai-disclosure"><?= $aiAnalytics?'Inbox messages are excluded.':'The text you provide and basic brand context go to MOED’s existing AI service. Add only information you intend to use for this request.' ?></p>
-<div class="ai-actions"><button class="primary" data-ai-generate<?= !$aiConfig['enabled']?' disabled':'' ?>><?= $aiAnalytics?'Ask Analytics AI':'Generate suggestions' ?></button><?php if(!$aiAnalytics): ?><button type="button" data-ai-checks>Check content</button><?php endif; ?><button type="button" data-ai-stop hidden>Stop</button><button type="button" data-ai-new>New request</button></div>
+<div class="ai-actions"><button class="primary" data-ai-generate<?= !$aiConfig['enabled']?' disabled':'' ?>><?= $aiAnalytics?'Ask Analytics AI':'Generate suggestions' ?></button><?php if(!$aiAnalytics): ?><button type="button" data-ai-checks>Check content</button><?php endif; ?><button type="button" data-ai-stop hidden>Stop</button><?php if(!($aiFullPage??false)): ?><button type="button" data-ai-new>New request</button><?php endif; ?></div>
 </form>
 <div class="ai-thinking" data-ai-thinking hidden aria-hidden="true"><span class="ai-thinking-dots"><i></i><i></i><i></i></span><span>AI is working on your response…</span></div>
 <?php if(!$aiConfig['enabled']): ?><p class="audience-notice">AI assistance is not enabled for this deployment.</p><?php endif; ?>
@@ -18,4 +18,4 @@
 <div data-ai-recommendations></div><p class="ai-disclosure">AI suggestions can be wrong. Review them before use. Generating or applying a suggestion never publishes, schedules, or sends email.</p>
 </section>
 <script type="application/json" id="audience-ai-config"><?= json_encode($aiConfig,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
-</section>
+<?php if(!($aiFullPage??false)): ?></section><?php endif; ?>

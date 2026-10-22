@@ -89,7 +89,8 @@ $conn->query("UPDATE marketing_ses_settings SET check_state='ready',checked_at=U
 // Hosted immutable image snapshots work without a login and do not expose recipient tokens.
 $htmlId=$makeDispatch('HTML dispatch fixture',false);$htmlRow=$campaignStore->campaign($htmlId);$htmlDraft=$htmlRow['draft'];$png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=';
 $gif='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-$htmlDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'image','image'=>$png,'alt'=>'Fixture image'],['type'=>'image','image'=>$gif,'alt'=>'Animated fixture'],['type'=>'text','text'=>'Hello *|FNAME|*']]]]]]);
+$svg=audienceSvgImage('data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80"><path d="M0 0h40v80H0z" fill="#3261b5"/></svg>'));
+$htmlDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'image','image'=>$png,'alt'=>'Fixture image'],['type'=>'image','image'=>$gif,'alt'=>'Animated fixture'],['type'=>'image','image'=>$svg,'alt'=>'Vector logo'],['type'=>'text','text'=>'Hello *|FNAME|*']]]]]]);
 $conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($htmlDraft),$htmlId]);
 $rev=$campaignStore->reviewCampaignDispatch($htmlId,$dispatchAudience,$dispatchBase);$htmlJob=$campaignStore->confirmCampaignDispatch($htmlId,(int)$htmlRow['version'],$rev['proof'],$dispatchAudience,$dispatchBase);
 $hj=$campaignStore->campaignDelivery($htmlId);$hr=$campaignStore->one('SELECT * FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id',[$htmlJob]);$hs=json_decode(\Dnr\Security\ApplicationKey::open($hj['snapshot_ciphertext']),true);$hc=json_decode(\Dnr\Security\ApplicationKey::open($hr['context_ciphertext']),true);$hm=audienceDispatchMessage($hs,$hc['context'],$hc['token'],$hr['message_id']);
@@ -99,6 +100,8 @@ $asset='audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',
 audienceHttpExpect($assetResponse['status']===200&&$assetResponse['body']===base64_decode(substr($png,strpos($png,',')+1)),'Hosted image returns exact snapshot bytes anonymously');
 $gifResponse=$public('audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',$gif));
 audienceHttpExpect($gifResponse['status']===200&&str_contains(strtolower($gifResponse['headers']),'content-type: image/gif')&&$gifResponse['body']===base64_decode(substr($gif,strpos($gif,',')+1)),'Hosted GIF preserves exact animation bytes and content type');
+$svgResponse=$public('audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',$svg));
+audienceHttpExpect($svgResponse['status']===200&&str_contains(strtolower($svgResponse['headers']),'content-type: image/svg+xml')&&str_contains($svgResponse['headers'],"sandbox; default-src 'none'")&&$svgResponse['body']===base64_decode(explode(',',$svg)[1]),'Hosted SVG preserves vector snapshot bytes and uses a sandboxed response');
 audienceHttpExpect($public('audience_email_asset.php?key='.str_repeat('0',64).'&image='.hash('sha256',$png))['status']===404,'Unrecognized asset capability is rejected');
 audienceHttpExpect($public('audience_subscription.php?token='.$hc['token'].'&email=1')['status']===200,'Personal email browser view works with its private capability');
 $htmlReceived=[];processAudienceCampaignDelivery($conn,20,static function($m)use(&$htmlReceived){$htmlReceived[]=$m;return 'accepted';});audienceHttpExpect(count($htmlReceived)===4,'HTML campaign dispatches only its exact confirmed snapshot');

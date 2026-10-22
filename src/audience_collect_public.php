@@ -22,7 +22,7 @@ $nonce=contentSecurityPolicyNonce(); $ancestors="'none'";
 if (in_array($r['kind'],['embedded','popup'],true)) { $ancestors="'self' ".implode(' ',$d['origins']); header_remove('X-Frame-Options'); }
 $resize=$r['kind']==='embedded'&&empty($d['embedded']['disable_javascript']);
 $scriptPolicy=$resize?"; script-src 'nonce-{$nonce}'":'';
-header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
+header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
 $r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$key;
 if($resize)$r['resize_script']=accountPrimaryPublicUrl().'/assets/js/audience-collection-resize.js';
 $visitorCookie='dnr_collection_'.substr($key,0,12);
