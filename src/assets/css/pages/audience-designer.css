@@ -242,3 +242,14 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
 #design-name-dialog label>input{margin-top:0}
 .designer-content-fields{display:flex;flex-wrap:wrap;align-items:end;column-gap:20px;row-gap:18px;margin:18px 0}
 .email-designer .designer-content-fields>.designer-field{flex:1 1 200px;min-width:0;margin:0}
+.email-designer .designer-field.designer-merge-field{flex:0 1 auto;width:max-content;max-width:100%}
+.email-designer .designer-merge-field>select{width:auto;max-width:100%}
+
+/* Keep block controls compact while allowing narrow inspectors to stack. */
+.designer-block-style-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:14px 16px;margin:16px 0}
+.designer-block-style-fields>.designer-field{min-width:0;margin:0;align-content:start}
+.designer-block-style-fields :is(input,select){max-width:100%;margin:0}
+.designer-block-style-fields .audience-color-trigger{width:100%;min-width:0}
+.email-designer #designer-tools.designer-block-style>.designer-field:has(>input[type=checkbox]){display:flex;align-items:center;gap:10px;margin:10px 0}
+.email-designer #designer-tools.designer-block-style>.designer-field>input[type=checkbox]{order:-1;flex:none;width:18px}
+.email-designer #designer-tools.designer-block-style>.designer-subtabs{margin:12px 0}
