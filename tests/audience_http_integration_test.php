@@ -270,6 +270,25 @@ try{
     audienceHttpExpect($expiredDelete['status']===302&&str_contains($expiredDelete['headers'],'admin_elevation.php')&&$campaignStore->one('SELECT id FROM marketing_email_templates WHERE id=?',[$expiryTemplate]),'Expired unlock cannot delete an archived template');
     $starter=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_create','starter'=>'event']);audienceHttpExpect($starter['status']===302&&str_contains($starter['headers'],'kind=template'),'Starter template opens designer');
     $plain=$campaignStore->createCampaign(['name'=>'Plain fixture','campaign_type'=>'plain-text']);audienceHttpExpect($editor('audience.php?view=designer&id='.$plain)['status']===404,'Plain-text campaign cannot use visual editor');
+    $campaignStore->saveCampaignSection($plain,1,'content',['text'=>"Plain preview <script>not markup</script> & line one\nLine two"]);
+    $plainReview='audience.php?view=campaign-review&id='.$plain;
+    $preview=$editor($plainReview);
+    audienceHttpExpect($preview['status']===200&&str_contains($preview['body'],"Plain preview &lt;script&gt;not markup&lt;/script&gt; &amp; line one\nLine two"),'Plain-text Preview renders escaped content and preserves line breaks');
+    audienceHttpExpect(str_contains($preview['body'],'No comments yet.')&&str_contains($preview['body'],'Add a comment'),'Plain-text draft exposes team review');
+    $plainComment=['csrf_token'=>$token,'action'=>'campaign_comment','id'=>$plain,'body'=>'Plain-text review comment'];
+    audienceHttpExpect($editor($plainReview,$plainComment)['status']===302&&str_contains($editor($plainReview)['body'],'Plain-text review comment'),'Plain-text review comment saves and reloads');
+    $plainComments=$campaignStore->designComments('campaign',$plain);
+    $campaignStore->resolveDesignComment('campaign',$plain,(int)$plainComments[0]['id'],1,true);
+    audienceHttpExpect(str_contains($editor($plainReview)['body'],'<small>Resolved</small>'),'Plain-text comments can be resolved');
+    audienceHttpExpect($reviewer($plainReview)['status']===200&&!str_contains($reviewer($plainReview)['body'],'Add a comment'),'Read-only users can view plain-text reviews');
+    audienceHttpExpect($reviewer($plainReview,array_replace($plainComment,['csrf_token'=>$reviewToken]))['status']===403,'Read-only users cannot add plain-text comments');
+    audienceHttpExpect($editor($plainReview,array_replace($plainComment,['csrf_token'=>'invalid']))['status']===400,'Plain-text comments require CSRF');
+    $foreignPlain=$otherStore->createCampaign(['name'=>'Foreign plain review','campaign_type'=>'plain-text']);
+    audienceHttpExpect($editor('audience.php?view=campaign-review&id='.$foreignPlain)['status']===404,'Plain-text review remains audience scoped');
+    $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$plain]);
+    audienceHttpExpect($editor($plainReview)['status']===200&&!str_contains($editor($plainReview)['body'],'Add a comment'),'Sent plain-text review remains readable without editing controls');
+    $blockedPlainComment=$editor($plainReview,$plainComment);
+    audienceHttpExpect($blockedPlainComment['status']===200&&str_contains($blockedPlainComment['body'],'Only email drafts can be commented on.')&&count($campaignStore->designComments('campaign',$plain))===1,'Sent plain-text campaigns reject new comments');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$designCampaign]);audienceHttpExpect($editor($designPath,array_replace($designPost,['version'=>2]))['status']===422,'Sent designs cannot be overwritten');
 
     $recentReuse=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_from_campaign','id'=>$designCampaign]);
