@@ -17,7 +17,7 @@ $doc=new DOMDocument();@$doc->loadHTML($email['html']);
 foreach($doc->getElementsByTagName('img')as$img)$expect(str_starts_with($img->getAttribute('src'),'https://'),'Every email graphic loads from a remote HTTPS URL');
 $expect(str_contains($email['html'],'/assets/dnr-logo-email.svg?'),'MOED masthead uses the remote SVG logo');
 $logo=new DOMDocument();$expect($logo->load(__DIR__.'/../src/assets/dnr-logo-email.svg')&&$logo->documentElement->localName==='svg'&&$logo->getElementsByTagName('image')->length===0,'MOED email logo is a standalone vector SVG');
-$expect(str_contains($email['html'],'/assets/audience-logo-email.png?'),'Footer uses the transparent monkey PNG for email client compatibility');
+$expect(str_contains($email['html'],'/assets/audience-logo-email.png?'),'Header uses the transparent monkey PNG for email client compatibility');
 $expect(!preg_match('/(?:url\(|@import)/i',$email['html']),'Email styling loads no remote graphics or fonts');
 $monkey=imagecreatefrompng(__DIR__.'/../src/assets/audience-logo-email.png');
 $expect($monkey!==false&&imagecolorsforindex($monkey,imagecolorat($monkey,0,0))['alpha']===127,'Monkey logo canvas is transparent');
