@@ -52,7 +52,10 @@ trait AudienceInboxCompose
     public function inboxRecipientEligibility(array $draft):array
     {
         $person=$draft['contact_id']?$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL',[$this->audienceId,$draft['contact_id']]):null;
-        $reasons=[];$thread=$draft['thread_id']?$this->inboxThread((int)$draft['thread_id']):null;
+        // Delivery only needs recipient identity and status, not UI labels or contact decoration.
+        // Keep this path usable by the restricted mail worker without granting label access.
+        $reasons=[];$thread=$draft['thread_id']?$this->one('SELECT sender_email,status FROM marketing_inbox_threads WHERE audience_id=? AND id=?',[$this->audienceId,(int)$draft['thread_id']]):null;
+        if($draft['thread_id']&&!$thread)throw new InvalidArgumentException('This conversation is unavailable in this audience.');
         if(!$person)$reasons[]='Link this sender to a subscribed connection before sending.';
         elseif($person['is_archived']||$person['email_status']!=='subscribed')$reasons[]='This connection is archived, cleaned, or is not subscribed to email.';
         if($person){$hash=hash('sha256',strtolower($person['email']));

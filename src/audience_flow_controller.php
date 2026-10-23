@@ -82,7 +82,7 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
         $welcome=$store->one("SELECT id FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL AND (JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.trigger.type'))='signup' OR JSON_CONTAINS(JSON_EXTRACT(draft_json,'$.additional_triggers'),JSON_OBJECT('type','signup'))) AND JSON_CONTAINS(JSON_EXTRACT(draft_json,'$.nodes'),JSON_OBJECT('type','email')) LIMIT 1",[$audienceId]);
         $hosted=$store->collectionAvailable()?$store->one("SELECT id FROM marketing_collection_resources WHERE audience_id=? AND kind='hosted' AND state='published' AND deleted_at IS NULL LIMIT 1",[$audienceId]):null;
         $ready=false;
-        if($store->sesAvailable()){$ses=$store->sesSettings();$readiness=$store->sendingReadiness($ses['from_email']??'',audienceJson($audience['settings_json']));$policy=$store->deliveryRuntimeAvailable()?$store->one('SELECT bulk_approved FROM marketing_delivery_policy WHERE audience_id=?',[$audienceId]):[];$ready=$readiness['ready']&&!empty($policy['bulk_approved']);}
+        if($store->sesAvailable()){$ses=$store->sesSettings();$readiness=$store->sendingReadiness($ses['from_email']??'',audienceJson($audience['settings_json']));$ready=$readiness['ready'];}
         $flowSetupTasks=audienceFlowSetupTasks(['welcome'=>(bool)$welcome,'form'=>(bool)$hosted,'organize'=>(bool)($tags||$groups),'delivery'=>$ready],$canDelete);
     }
     $report=$flow?$store->flowReport($id,$_GET):null;$validation=$flow?$store->flowValidate($flow['document']):[];
