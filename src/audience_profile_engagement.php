@@ -14,9 +14,9 @@ trait AudienceProfileEngagement
     }
 
     /** Metadata only; Inbox content and bodies never enter the profile timeline. */
-    public function personActivity(int $person,string $type,int $days,int $year,int $page,bool $includeInbox):array
+    public function personActivity(int $person,string $type,int $days,int $year,int $page,bool $includeInbox,int $size=25):array
     {
-        $this->person($person);$page=max(1,$page);
+        $this->person($person);$size=audiencePageSize(['per_page'=>$size]);$page=max(1,$page);
         $union="SELECT CONCAT('contact-',e.id) event_id,e.event_type,e.actor_label,e.details_json,e.created_at FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND c.id=?
             UNION ALL SELECT CONCAT('accepted-',r.id),'email_accepted','Email delivery',JSON_OBJECT('campaign',m.name,'campaign_id',m.id),r.accepted_at FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id JOIN marketing_campaigns m ON m.id=d.campaign_id AND m.audience_id=d.audience_id WHERE r.audience_id=? AND r.contact_id=? AND r.state='accepted'
             UNION ALL SELECT CONCAT('message-',e.id),CONCAT('email_',e.event_type),'Email activity',JSON_OBJECT('campaign',m.name,'campaign_id',m.id,'bot',(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')='true')),e.event_at FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id JOIN marketing_campaigns m ON m.id=d.campaign_id AND m.audience_id=d.audience_id WHERE r.audience_id=? AND r.contact_id=? AND e.event_type<>'send'";
@@ -32,6 +32,7 @@ trait AudienceProfileEngagement
         elseif($days){$where.=' AND created_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY)';$filter[]=$days;}
         $allParams=[...$params,...$filter];
         $total=(int)$this->one("SELECT COUNT(*) n FROM ($union) activity WHERE $where",$allParams)['n'];
-        return ['years'=>$years,'total'=>$total,'rows'=>$this->all("SELECT * FROM ($union) activity WHERE $where ORDER BY created_at DESC,event_id DESC LIMIT 25 OFFSET ?",[...$allParams,($page-1)*25])];
+        $page=min($page,max(1,(int)ceil($total/$size)));
+        return ['years'=>$years,'total'=>$total,'page'=>$page,'rows'=>$this->all("SELECT * FROM ($union) activity WHERE $where ORDER BY created_at DESC,event_id DESC LIMIT ? OFFSET ?",[...$allParams,$size,($page-1)*$size])];
     }
 }

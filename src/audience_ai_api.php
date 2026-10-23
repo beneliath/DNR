@@ -25,7 +25,7 @@ try{
             $evidence=$status['response']['evidence']??[];$tableId=audienceText($_GET,'table_id',80);$offset=audienceText($_GET,'offset',7);
             if(!ctype_digit($offset))throw new InvalidArgumentException('Choose a valid results page.');
             $queries=new AudienceAiQueries($store,audienceAiReportWindow($evidence['window']??[]));
-            audienceAiRespond(['table'=>audienceAiContactPage($queries,$evidence,$tableId,(int)$offset)]);
+            audienceAiRespond(['table'=>audienceAiContactPage($queries,$evidence,$tableId,(int)$offset,audiencePageSize($_GET,'per_page',100))]);
         }
         if($owned['manual_topic']==='audience-ai:content')$status['input']=audienceAiSavedWritingInput($db,$owned,$role,$uuid);
         audienceAiRespond($status+['question'=>$owned['question']]);

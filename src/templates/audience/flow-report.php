@@ -8,11 +8,11 @@ $reportState=is_string($_GET['state']??null)&&isset($runLabels[$_GET['state']])?
 $nodeNames=array_column($flow['document']['nodes'],'label','id');
 $reportNode=is_string($_GET['node']??null)&&isset($nodeNames[$_GET['node']])?$_GET['node']:'';
 $reportFiltered=$reportState!==''||$reportNode!=='';
-$reportLink=static fn(array $p=[])=>$flowLink(array_replace(['id'=>$id,'state'=>$reportState,'node'=>$reportNode],$p));
+$reportLink=static fn(array $p=[])=>$flowLink(array_replace(['id'=>$id,'state'=>$reportState,'node'=>$reportNode,'per_page'=>$report['per_page']??25],$p));
 $nodeTotals=[];foreach($report['nodes']as$row)$nodeTotals[$row['node_key']][$row['state']]=(int)$row['n'];
 ?>
 <div class="flow-report">
-    <nav class="campaign-tabs" aria-label="Flow views"><a href="<?= $h($url(['view'=>'flow','id'=>$id])) ?>">Flow map</a><a href="<?= $h($flowLink(['id'=>$id])) ?>" aria-current="page">Report</a></nav>
+    <nav class="campaign-tabs" aria-label="Flow views"><a href="<?= $h($flow['deleted_at']?$url(['view'=>'automations','trash'=>'1']):$url(['view'=>'flow','id'=>$id])) ?>"><?= $flow['deleted_at']?'Archived flows':'Flow map' ?></a><a href="<?= $h($flowLink(['id'=>$id])) ?>" aria-current="page">Report</a></nav>
     <section class="flow-report-totals" aria-label="Execution totals">
         <?php foreach(['started'=>'Started']+$runLabels as$key=>$label): ?>
         <article><h2><?= $label ?></h2><strong><?= number_format($key==='started'?array_sum(array_map('intval',$totals)):(int)($totals[$key]??0)) ?></strong></article>
@@ -36,7 +36,7 @@ $nodeTotals=[];foreach($report['nodes']as$row)$nodeTotals[$row['node_key']][$row
 
         <section class="flow-report-panel flow-report-activity" aria-labelledby="flow-activity-heading">
             <header class="flow-report-panel-heading"><div><h2 id="flow-activity-heading">Connection activity <span class="flow-report-count"><?= number_format($report['total']) ?></span></h2></div>
-                <?php if($canManage): ?><div class="flow-report-actions"><a class="audience-button" href="<?= $h($reportLink(['download'=>'csv'])) ?>">Export CSV</a><button type="button" class="primary" data-open-dialog="flow-add-person"<?= $flow['state']!=='running'?' disabled title="Turn this flow on before adding connections"':'' ?>>Add connection</button></div><?php endif; ?>
+                <?php if($canManage): ?><div class="flow-report-actions"><a class="audience-button" href="<?= $h($reportLink(['download'=>'csv'])) ?>">Export CSV</a><?php if(!$flow['deleted_at']): ?><button type="button" class="primary" data-open-dialog="flow-add-person"<?= $flow['state']!=='running'?' disabled title="Turn this flow on before adding connections"':'' ?>>Add connection</button><?php endif; ?></div><?php endif; ?>
             </header>
             <form method="get" class="flow-report-filters">
                 <?php audienceInputs(['view'=>'flow-report','id'=>$id]); ?>
@@ -55,12 +55,12 @@ $nodeTotals=[];foreach($report['nodes']as$row)$nodeTotals[$row['node_key']][$row
                         <?php if($r['error_message']!==''): ?><p class="audience-notice error"><?= $h($r['error_message']) ?></p><?php endif; ?>
                         <p class="flow-run-meta"><span>Execution <?= (int)$r['id'] ?></span><span>Revision <?= (int)$r['revision_id'] ?></span></p>
                         <ol><?php foreach($r['steps']as$step): ?><li><strong><?= $h($nodeNames[$step['node_key']]??$step['node_key']) ?></strong> · <?= $h($stepLabels[$step['state']]??ucfirst($step['state'])) ?> · <?= $h($step['created_at']) ?> UTC<?php $detail=audienceJson($step['result_json']);if(isset($detail['path']))echo ' · Path '.$h($detail['path']);if(isset($detail['receipt']))echo ' · Receipt '.$h($detail['receipt']);if(count($detail['history']??[])>1)echo ' · '.$h(implode(' → ',array_column($detail['history'],'state'))); ?></li><?php endforeach; ?></ol>
-                        <?php if($canManage): ?><div class="audience-actions"><?php if($r['state']==='failed'): ?><form method="post"><?php $flowForm('flow_retry',['run_id'=>$r['id']]); ?><button>Retry failed data step</button></form><?php endif; ?><?php if(in_array($r['state'],['active','failed'],true)): ?><form method="post" data-confirm="Remove this connection from the flow and cancel queued actions?"><?php $flowForm('flow_exit',['run_id'=>$r['id']]); ?><button>Remove from flow</button></form><?php endif; ?><?php if(!$r['deleted_at']): ?><a class="audience-button" href="<?= $h($url(['view'=>'contact','id'=>$r['contact_id']])) ?>">View connection</a><?php endif; ?></div><?php endif; ?>
+                        <?php if($canManage&&!$flow['deleted_at']): ?><div class="audience-actions"><?php if($r['state']==='failed'): ?><form method="post"><?php $flowForm('flow_retry',['run_id'=>$r['id']]); ?><button>Retry failed data step</button></form><?php endif; ?><?php if(in_array($r['state'],['active','failed'],true)): ?><form method="post" data-confirm="Remove this connection from the flow and cancel queued actions?"><?php $flowForm('flow_exit',['run_id'=>$r['id']]); ?><button>Remove from flow</button></form><?php endif; ?><?php if(!$r['deleted_at']): ?><a class="audience-button" href="<?= $h($url(['view'=>'contact','id'=>$r['contact_id']])) ?>">View connection</a><?php endif; ?></div><?php endif; ?>
                     </div>
                 </details>
                 <?php endforeach; ?>
             </div>
-            <nav class="audience-pagination" aria-label="Execution pages"><span><?= number_format(($report['page']-1)*25+1) ?>–<?= number_format(min($report['total'],$report['page']*25)) ?> of <?= number_format($report['total']) ?> executions</span><div><?php if($report['page']>1): ?><a href="<?= $h($reportLink(['page'=>$report['page']-1])) ?>" aria-label="Previous page">←</a><?php endif; ?><span><?= $report['page'] ?> / <?= $report['pages'] ?></span><?php if($report['page']<$report['pages']): ?><a href="<?= $h($reportLink(['page'=>$report['page']+1])) ?>" aria-label="Next page">→</a><?php endif; ?></div></nav>
+            <?php audiencePagination(['total'=>$report['total'],'page'=>$report['page'],'size'=>$report['per_page']??25,'label'=>'Execution pages','url'=>$reportLink]); ?>
             <?php endif; ?>
         </section>
     </div>

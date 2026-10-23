@@ -37,9 +37,12 @@
         $('[data-flow-tasks-restore]',onboarding).addEventListener('click',()=>{setupState.dismissed=[];saveSetup();updateSetup(true);});updateSetup();
     }
     $$('[data-flow-open-guide]').forEach(link=>link.addEventListener('click',()=>{const guide=$('.flow-basics');if(guide)guide.open=true;}));
-    $$('[data-flow-remove-id]').forEach(button=>button.addEventListener('click',()=>{
-        const dialog=$('#flow-list-remove');$('input[name=id]',dialog).value=button.dataset.flowRemoveId;$('input[name=version]',dialog).value=button.dataset.flowRemoveVersion;
-        $('input[name=confirm]',dialog).value='';$('[data-flow-remove-title]',dialog).textContent=button.dataset.flowRemoveName;
+    $$('[data-flow-lifecycle]').forEach(button=>button.addEventListener('click',()=>{
+        const dialog=$(`#flow-${button.dataset.flowLifecycle}`);if(!dialog)return;
+        const record=JSON.parse(button.dataset.flowRecord);
+        $('input[name=id]',dialog).value=record.id;$('input[name=version]',dialog).value=record.version;
+        $('[data-flow-lifecycle-name]',dialog).textContent=record.name;
+        const confirmation=$('input[name=confirm]',dialog);if(confirmation)confirmation.value='';
     }));
     $$('.flow-overview-filters select').forEach(control=>control.addEventListener('change',()=>control.form.requestSubmit()));
     const search = $('[data-flow-template-search]'), catalogControls = $('[data-flow-catalog-controls]');

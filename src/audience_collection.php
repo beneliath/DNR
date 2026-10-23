@@ -212,11 +212,16 @@ trait AudienceCollection
     public function collectionOperation(int $id, int $version, string $operation): int
     {
         return $this->transaction(function() use($id,$version,$operation) {
-            $r=$this->collectionResource($id,true,$operation==='restore');
+            $r=$this->collectionResource($id,true,in_array($operation,['restore','delete'],true));
             if ((int)$r['version']!==$version) throw new InvalidArgumentException('This form changed. Reload before continuing.');
+            if(in_array($operation,['restore','delete'],true)&&!$r['deleted_at'])throw new InvalidArgumentException('Only archived forms can be restored or permanently deleted.');
             if ($operation==='replicate') return $this->saveCollection(['kind'=>$r['kind'],'name'=>mb_substr($r['name'],0,90).' (copy)','document'=>$r['draft']]);
-            if ($operation==='restore') {
-                if(!$r['deleted_at'])throw new InvalidArgumentException('This form is not removed.');
+            if($operation==='delete'){
+                $this->write('DELETE FROM marketing_collection_responses WHERE audience_id=? AND resource_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_collection_visits WHERE resource_id=?',[$id]);
+                $this->write('DELETE FROM marketing_collection_revisions WHERE audience_id=? AND resource_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_collection_resources WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
+            } elseif ($operation==='restore') {
                 $this->write("UPDATE marketing_collection_resources SET deleted_at=NULL,state='draft',published_revision=NULL,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             } elseif ($operation==='publish') {
                 $doc=audienceCollectionDocument($r['draft'],$r['kind'],$this->fields(),$this->groups(),$this->tags());
@@ -225,7 +230,7 @@ trait AudienceCollection
                 $revision=(int)$this->db->insert_id;
                 $this->write("UPDATE marketing_collection_resources SET state='published',published_revision=?,version=version+1 WHERE audience_id=? AND id=?",[$revision,$this->audienceId,$id]);
             } elseif ($operation==='pause') $this->write("UPDATE marketing_collection_resources SET state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
-            elseif ($operation==='remove') $this->write("UPDATE marketing_collection_resources SET deleted_at=UTC_TIMESTAMP(),state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
+            elseif (in_array($operation,['archive','remove'],true)) $this->write("UPDATE marketing_collection_resources SET deleted_at=UTC_TIMESTAMP(),state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             else throw new InvalidArgumentException('Choose a supported form action.');
             return $id;
         });

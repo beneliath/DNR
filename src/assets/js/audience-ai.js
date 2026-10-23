@@ -1,3 +1,4 @@
+import { audiencePageSizes, renderAudiencePagination } from './audience-pagination.mjs';
 (() => {
   'use strict';
   const configNode = document.getElementById('audience-ai-config');
@@ -121,23 +122,27 @@
       chart(evidence,box);
       for (const result of evidence.tables || []) {
         const scroll=node('div',undefined,'analytics-ai-table-scroll'),table=node('table'),caption=node('caption');scroll.id=`ai-evidence-${uuid}-${result.id}`;
-        let loaded=result.rows.length,next=result.next_offset;
+        let loaded=result.rows.length;
         const updateCaption=total=>{caption.textContent=Number.isInteger(total)?`${result.title} · Showing ${loaded} of ${total}`:result.title;};updateCaption(result.total);table.append(caption);
         const header=node('tr');result.columns.forEach(column=>{const cell=node('th',column.label);cell.setAttribute('scope','col');header.append(cell);});const head=node('thead');head.append(header);table.append(head);
         const body=node('tbody');const appendRows=rows=>rows.forEach(row=>{const line=node('tr');result.columns.forEach(column=>line.append(node('td',String(row[column.key]??''))));body.append(line);});appendRows(result.rows);table.append(body);scroll.append(table);box.append(scroll);
-        // Older saved replies used a smaller first page and have no explicit cursor.
-        if(next===undefined&&Number.isInteger(result.total)&&loaded<result.total)next=loaded;
-        if(Number.isInteger(next)){
-          const more=node('button','Show more results'),notice=node('p','','ai-scope');more.type='button';notice.setAttribute('role','status');box.append(more,notice);
-          more.addEventListener('click',async()=>{
-            more.disabled=true;more.textContent='Loading…';notice.textContent='';
-            try{
-              const response=await api(null,`?action=contacts&request_id=${encodeURIComponent(uuid)}&table_id=${encodeURIComponent(result.id)}&offset=${next}`);
+        if (/^query_[0-9]+_contacts$/.test(result.id) && Number.isInteger(result.total)) {
+          table.dataset.mmPaginatedTable='';
+          const pages=node('div'),notice=node('p','','ai-scope');notice.setAttribute('role','status');box.append(pages,notice);
+          let currentPage=1,pageSize=audiencePageSizes.find(size=>size>=loaded)||100,total=result.total;
+          const load=async next=>{
+            pages.querySelectorAll('button,select').forEach(control=>control.disabled=true);notice.textContent='Loading';
+            try {
+              const response=await api(null,`?action=contacts&request_id=${encodeURIComponent(uuid)}&table_id=${encodeURIComponent(result.id)}&offset=${(next.page-1)*next.pageSize}&per_page=${next.pageSize}`);
               if(response.table?.id!==result.id||!Array.isArray(response.table.rows))throw new Error('The contact results could not be loaded.');
-              appendRows(response.table.rows);loaded+=response.table.rows.length;next=response.table.next_offset;updateCaption(response.table.total);more.hidden=!Number.isInteger(next);
-            }catch(error){notice.textContent=error.message;}
-            finally{more.disabled=false;more.textContent='Show more results';}
-          });
+              currentPage=Math.floor(response.table.offset/next.pageSize)+1;pageSize=next.pageSize;total=response.table.total;
+              body.replaceChildren();appendRows(response.table.rows);loaded=response.table.rows.length;updateCaption(total);notice.textContent='';
+            } catch(error) { notice.textContent=error.message; }
+            finally { draw(); }
+          };
+          const draw=()=>renderAudiencePagination(pages,{total,page:currentPage,pageSize,label:'Audience result pages',onChange:load});
+          draw();
+          if(loaded<Math.min(pageSize,total))load({page:1,pageSize});
         }
         if (!result.rows.length) box.append(node('p','No audience records matched this lookup.'));
       }

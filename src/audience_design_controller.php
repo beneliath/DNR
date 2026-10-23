@@ -54,7 +54,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
             elseif($action==='design_comments'){$respond(['comments'=>$store->designComments($kind,$id)]);}
             elseif($action==='design_comment_add'){$store->addDesignComment($kind,$id,$_POST);$respond(['comments'=>$store->designComments($kind,$id)]);}
             elseif($action==='design_comment_resolve'){$store->resolveDesignComment($kind,$id,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_version')??0,($_POST['resolved']??'')==='1');$respond(['comments'=>$store->designComments($kind,$id)]);}
-            elseif($action==='design_library'){$respond($store->designLibrary(audienceText($_POST,'type'),audienceText($_POST,'search',100),\Dnr\Http\RequestInput::positiveInt($_POST,'page')??1));}
+            elseif($action==='design_library'){$respond($store->designLibrary(audienceText($_POST,'type'),audienceText($_POST,'search',100),\Dnr\Http\RequestInput::positiveInt($_POST,'page')??1,audiencePageSize($_POST)));}
             elseif($action==='design_library_get'){$respond(['item'=>$store->designLibraryItem(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0)]);}
             elseif($action==='design_library_save'){$item=$store->saveDesignLibrary(audienceText($_POST,'type'),audienceText($_POST,'name',100),audienceJson(audienceDesignPayload($_POST['data']??'')));$respond(['id'=>$item]);}
             elseif($action==='design_library_operation'){

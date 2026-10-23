@@ -119,11 +119,11 @@ trait AudienceInbox
         if($q!==''){$where.=' AND (LOCATE(?,t.subject)>0 OR LOCATE(?,t.sender_email)>0 OR LOCATE(?,t.sender_name)>0 OR EXISTS(SELECT 1 FROM marketing_inbox_messages sm WHERE sm.audience_id=t.audience_id AND sm.thread_id=t.id AND LOCATE(?,sm.body_text)>0))';array_push($p,$q,$q,$q,$q);}
         $read='COALESCE((SELECT last_read_id FROM marketing_inbox_read_state rs WHERE rs.audience_id=t.audience_id AND rs.thread_id=t.id AND rs.user_id='.(int)$this->actorId.'),0)';
         if($unread)$where.=" AND t.last_message_id>$read";
-        $total=(int)$this->one("SELECT COUNT(*) n FROM marketing_inbox_threads t WHERE $where",$p)['n'];$page=max(1,min(max(1,(int)ceil($total/25)),(int)($input['page']??1)));
-        $items=$this->all("SELECT t.*,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC LIMIT 25 OFFSET ?",[...$p,($page-1)*25]);
+        $size=audiencePageSize($input);$total=(int)$this->one("SELECT COUNT(*) n FROM marketing_inbox_threads t WHERE $where",$p)['n'];$page=max(1,min(max(1,(int)ceil($total/$size)),(int)($input['page']??1)));
+        $items=$this->all("SELECT t.*,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC LIMIT ? OFFSET ?",[...$p,$size,($page-1)*$size]);
         $counts=['todo'=>0,'done'=>0,'trash'=>0,'all'=>0];foreach($this->all('SELECT status,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 GROUP BY status',[$this->audienceId])as$r){$counts[$r['status']]=(int)$r['n'];$counts['all']+=(int)$r['n'];}
         $sources=['email'=>0,'contact'=>0,'survey'=>0,'direct'=>0];foreach($this->all("SELECT source,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 AND status<>'trash' GROUP BY source",[$this->audienceId])as$r)$sources[$r['source']]=(int)$r['n'];
-        return compact('items','total','page','status','source','q','label','unread','counts','sources');
+        return ['per_page'=>$size]+compact('items','total','page','status','source','q','label','unread','counts','sources');
     }
     public function inboxThread(int $id,bool $lock=false):array
     {
@@ -133,10 +133,10 @@ trait AudienceInbox
         $t['labels']=array_map('intval',array_column($this->all('SELECT label_id FROM marketing_inbox_thread_labels WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]),'label_id'));
         return $t;
     }
-    public function inboxMessages(int $thread,int $before=0):array
+    public function inboxMessages(int $thread,int $before=0,int $page=1,int $size=100):array
     {
-        $this->inboxThread($thread);
-        $messages=$this->all('SELECT m.*,s.state delivery_state,s.error_message delivery_error,s.provider_message_id FROM marketing_inbox_messages m LEFT JOIN marketing_service_mail s ON s.id=m.service_mail_id AND s.audience_id=m.audience_id WHERE m.audience_id=? AND m.thread_id=?'.($before?' AND m.id<?':'').' ORDER BY m.id DESC LIMIT 100',$before?[$this->audienceId,$thread,$before]:[$this->audienceId,$thread]);
+        $this->inboxThread($thread);$size=audiencePageSize(['per_page'=>$size],'per_page',100);$page=max(1,$page);
+        $messages=$this->all('SELECT m.*,s.state delivery_state,s.error_message delivery_error,s.provider_message_id FROM marketing_inbox_messages m LEFT JOIN marketing_service_mail s ON s.id=m.service_mail_id AND s.audience_id=m.audience_id WHERE m.audience_id=? AND m.thread_id=?'.($before?' AND m.id<?':'').' ORDER BY m.id DESC LIMIT ? OFFSET ?',[...($before?[$this->audienceId,$thread,$before]:[$this->audienceId,$thread]),$size,($page-1)*$size]);
         foreach($messages as&$m){$m['delivery_events']=$m['service_mail_id']?$this->all('SELECT event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id=? ORDER BY id',[$this->audienceId,$m['service_mail_id']]):[];$m['attachments']=$this->all('SELECT id,filename,mime_type,byte_size FROM marketing_inbox_attachments WHERE audience_id=? AND message_id=? ORDER BY id',[$this->audienceId,$m['id']]);}unset($m);
         return array_reverse($messages);
     }

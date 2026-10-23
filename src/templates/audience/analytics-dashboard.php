@@ -1,7 +1,7 @@
 <?php
 $totals=$overview['totals'];$previous=$overview['previous'];
 $reportQuery=['view'=>'analytics','section'=>$section,'start'=>$window['start'],'end'=>$window['end'],'compare'=>$window['compare'],'bots'=>$window['bots'],'channel'=>$window['channel'],'messages_mode'=>$window['messages_mode'],'messages'=>$window['messages'],'metric'=>$metric,'group'=>$group,'delivery_metric'=>$deliveryMetric,'delivery_group'=>$deliveryGroup];
-$reportQuery+=['source'=>$source,'activity'=>$activity,'link'=>$linkHash,'segment'=>$window['segment']];
+$reportQuery+=['source'=>$source,'activity'=>$activity,'per_page'=>$activitySize,'link'=>$linkHash,'segment'=>$window['segment']];
 if($definition)$reportQuery=array_replace($reportQuery,$definition,['columns_present'=>1,'plots_present'=>1]);
 if($savedReport)$reportQuery['report']=$savedReport['key'];
 $reportLink=static fn(array $changes=[]):string=>'audience.php?'.http_build_query(array_replace($reportQuery,$changes));

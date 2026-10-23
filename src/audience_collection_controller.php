@@ -6,7 +6,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
     $audienceId=$store->audienceId; $isPost=$_SERVER['REQUEST_METHOD']==='POST';
-    $available=$store->collectionAvailable(); $resource=null; $recover=null;
+    $available=$store->collectionAvailable(); $resource=null; $recover=null; $operationRedirect=null;
     if ($isPost) {
         requireValidCsrfToken();
         $action=audienceText($_POST,'action',40);
@@ -21,7 +21,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
                 echo json_encode(['id'=>$tagId,'name'=>$name],JSON_THROW_ON_ERROR);return;
             } elseif ($action==='collection_library') {
-                $library=$store->designLibrary('image',audienceText($_POST,'search',100),max(1,(int)($_POST['page']??1)));
+                $library=$store->designLibrary('image',audienceText($_POST,'search',100),max(1,(int)($_POST['page']??1)),audiencePageSize($_POST));
                 releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');echo json_encode($library,JSON_THROW_ON_ERROR);return;
             } elseif ($action==='collection_library_image') {
                 $image=$store->designLibraryItem((int)audienceText($_POST,'image_id',12));
@@ -62,19 +62,30 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 $id=$store->saveCollection($input,$id,$version); $message='Draft saved. Publish when it’s ready.';
             } elseif ($action==='collection_operation') {
                 $op=audienceText($_POST,'operation',30);
+                if($op==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can permanently delete archived forms.');}
+                    requireRecentAdminElevation($url(['view'=>$view,'id'=>$id]));
+                    if(audienceText($_POST,'confirm',10)!=='DELETE')throw new InvalidArgumentException('Type DELETE to permanently delete this archived form and its results.');
+                }
                 if ($op==='remove' && audienceText($_POST,'confirm',10)!=='REMOVE') throw new InvalidArgumentException('Type REMOVE to remove this form and stop its public link.');
-                $id=$store->collectionOperation($id,$version,$op); $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','remove'=>'Removed. Existing results are retained.','restore'=>'Restored as a draft. Publish when it’s ready.',default=>'Draft copied.'};
-                if ($op==='remove') $id=0;
+                if(in_array($op,['archive','remove','restore','delete'],true)){
+                    $entry=$store->collectionResource($id,false,true);
+                    $listView=in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true)?$view:match($entry['kind']){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'};
+                    $operationRedirect=['view'=>$listView,'trash'=>in_array($op,['restore','delete'],true)?'1':'0','q'=>audienceText($_GET,'q',100),'type'=>audienceText($_GET,'type',20),'per_page'=>(int)($_GET['per_page']??100),'direction'=>($_GET['direction']??'desc')==='asc'?'asc':'desc','page'=>max(1,(int)($_GET['page']??1))];
+                }
+                $id=$store->collectionOperation($id,$version,$op); $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','archive','remove'=>'Form archived. Public collection has stopped and existing results are kept.','restore'=>'Restored as a draft. Publish when it’s ready.','delete'=>'Form and its results permanently deleted. Connections and consent history are kept.',default=>'Draft copied.'};
+                if(in_array($op,['archive','remove','delete'],true))$id=0;
             } else throw new InvalidArgumentException('Choose a supported form action.');
             if (str_contains($_SERVER['HTTP_ACCEPT']??'','application/json') && in_array($action,['collection_save','collection_operation'],true)) {
                 $saved=$id?$store->collectionResource($id):['version'=>0,'state'=>'removed'];
                 releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
-                echo json_encode(['id'=>$id,'version'=>(int)$saved['version'],'state'=>$saved['state']],JSON_THROW_ON_ERROR);return;
+                echo json_encode(['id'=>$id,'version'=>(int)$saved['version'],'state'=>$saved['state']]+($operationRedirect?['redirect'=>$url($operationRedirect)]:[]),JSON_THROW_ON_ERROR);return;
             }
-            $_SESSION['audience_message']=$message; header('Location: '.$url($id?['view'=>'form','id'=>$id]:['view'=>'forms'])); return;
+            $_SESSION['audience_message']=$message; header('Location: '.$url($operationRedirect??($id?['view'=>'form','id'=>$id]:['view'=>'forms']))); return;
         } catch (InvalidArgumentException $e) {
             if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR); return; }
             $error=$e->getMessage(); if ($action==='collection_save') $recover=$_POST;
+            if($action==='collection_operation'&&in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true))$id=0;
         }
     }
     if ($id && $available) {
@@ -91,7 +102,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $q=audienceText($_GET,'q',100); $type=audienceText($_GET,'type',20);$trash=($_GET['trash']??'')==='1';
     $creationKind=\Dnr\Http\RequestInput::enum($_GET,'kind',AUDIENCE_COLLECTION_KINDS,'hosted');
     $kinds=match($view){'surveys'=>['survey'],'landing-pages'=>['landing'],'preferences'=>['preferences'],'form-settings'=>['hosted','preferences'],default=>['hosted','embedded','popup','landing']};
-    $resources=[];$blockedSignupIds=[];$collectionPerPage=(int)($_GET['per_page']??100);if(!in_array($collectionPerPage,[10,25,50,100],true))$collectionPerPage=100;$collectionPage=1;$collectionPages=1;$collectionTotal=0;$collectionDirection=($_GET['direction']??'desc')==='asc'?'asc':'desc';
+    $resources=[];$blockedSignupIds=[];$collectionPerPage=audiencePageSize($_GET,'per_page',100);$collectionPage=1;$collectionPages=1;$collectionTotal=0;$collectionDirection=($_GET['direction']??'desc')==='asc'?'asc':'desc';
     $listQuery=['view'=>$view,'q'=>$q,'type'=>$type,'trash'=>$trash?'1':'0','per_page'=>$collectionPerPage,'direction'=>$collectionDirection];
     if ($available) {
         $sql='FROM marketing_collection_resources WHERE audience_id=? AND deleted_at IS '.($trash?'NOT NULL':'NULL').' AND kind IN ('.implode(',',array_fill(0,count($kinds),'?')).')'; $params=[$audienceId,...$kinds];
@@ -124,7 +135,8 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         if($questionFilter!==''&&(!$revisionFilter||!isset($reportDocuments[$revisionFilter])||!in_array($questionFilter,array_column($reportDocuments[$revisionFilter]['document']['questions'],'id'),true))){http_response_code(400);exit('Choose a published survey question.');}
         if($answerFilter!==''&&$questionFilter===''){http_response_code(400);exit('Choose a question for the response filter.');}
         $reportFilters=['start'=>$reportStart,'end'=>$reportEnd,'question'=>$questionFilter,'answer'=>$answerFilter,'revision'=>$revisionFilter];
-        $reportQuery=['view'=>'collection-report','id'=>$id,...array_filter($reportFilters,static fn($v)=>$v!==''&&$v!==0)];
+        $responseSize=audiencePageSize($_GET);
+        $reportQuery=['view'=>'collection-report','id'=>$id,'per_page'=>$responseSize,...array_filter($reportFilters,static fn($v)=>$v!==''&&$v!==0)];
         if(($_GET['export']??'')==='csv'){
             if(!$canManage){http_response_code(403);exit('An editor or administrator must export responses.');}
             releaseApplicationSessionLock();header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="form-responses.csv"');header('Cache-Control: no-store');
@@ -134,11 +146,11 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         }
         $responsePage=max(1,min(100000,(int)($_GET['page']??1)));
         foreach($store->collectionResponses($id,$reportFilters)as$row){
-            ++$totalResponses;if($totalResponses>($responsePage-1)*25&&$totalResponses<=$responsePage*25)$responses[]=$row;
+            ++$totalResponses;if($totalResponses>($responsePage-1)*$responseSize&&$totalResponses<=$responsePage*$responseSize)$responses[]=$row;
             $rev=(int)$row['revision_id'];$revisionTotals[$rev]=($revisionTotals[$rev]??0)+1;
             foreach($row['answers']as$key=>$value){if($value!==''&&$value!==null&&$value!==[])$questionTotals[$rev][$key]=($questionTotals[$rev][$key]??0)+1;foreach((array)$value as$answer)if(is_scalar($answer)){$answer=mb_substr((string)$answer,0,5000);$report[$rev][$key][$answer]=($report[$rev][$key][$answer]??0)+1;}}
         }
-        if($responsePage>max(1,(int)ceil($totalResponses/25))){header('Location: '.$url($reportQuery+['page'=>max(1,(int)ceil($totalResponses/25))]));return;}
+        if($responsePage>max(1,(int)ceil($totalResponses/$responseSize))){header('Location: '.$url($reportQuery+['page'=>max(1,(int)ceil($totalResponses/$responseSize))]));return;}
         $visitWhere='resource_id=?';$vp=[$id];
         if($reportStart!==''){$visitWhere.=' AND day>=?';$vp[]=$reportStart;}
         if($reportEnd!==''){$visitWhere.=' AND day<=?';$vp[]=$reportEnd;}

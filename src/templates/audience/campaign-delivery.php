@@ -1,9 +1,10 @@
 <?php
 $draft=$dispatchReview['snapshot']['draft']??$campaign['draft'];$schedule=($draft['send_time']['mode']??'now')==='schedule';
-$sendLabel=$schedule?'Schedule':'Send now';$campaignLink=$url(['view'=>'campaign','id'=>$id]);
+$sendLabel=$schedule?'Schedule':'Send now';$campaignLink=$campaign['deleted_at']?$url(['view'=>'campaigns','trash'=>'1']):$url(['view'=>'campaign','id'=>$id]);
 $dispatchForm=static function(string $action,array $extra=[])use($csrf,$id){echo $csrf;audienceInputs(['action'=>$action,'id'=>$id]+$extra);};
 ?>
-<a class="audience-back-link" href="<?= $h($campaignLink) ?>">← Back to email</a>
+<a class="audience-back-link" href="<?= $h($campaignLink) ?>">← <?= $campaign['deleted_at']?'Back to Archived':'Back to email' ?></a>
+<?php if($campaign['deleted_at']): ?><p class="audience-notice">This campaign is archived. Its reports are available, and delivery cannot resume until it is restored.</p><?php endif; ?>
 <?php if($view==='campaign-send'): ?>
 <div class="campaign-send-layout"><section class="campaign-send-review">
 <h2>Review your email</h2><p>Take a moment to check the details before you <?= $schedule?'schedule':'send' ?> your email.</p>
@@ -24,7 +25,7 @@ $dispatchForm=static function(string $action,array $extra=[])use($csrf,$id){echo
 <div class="dialog-body"><div class="campaign-send-symbol" aria-hidden="true"><?php audienceNavIcon('mail'); ?></div><p>You’re about to <?= $schedule?'schedule':'send' ?> <strong><?= $h($campaign['name']) ?></strong> to:</p><p class="campaign-send-number"><?= number_format($dispatchReview['count']??0) ?> recipients</p><p><?= $h($audience['name']) ?></p><?php if($schedule): ?><p><strong><?= $h($draft['send_time']['local']??'') ?></strong><br><?= $h($draft['send_time']['timezone']??'') ?></p><?php endif; ?><p class="audience-help"><?= $schedule?'You can pause or change this schedule before delivery begins.':'Sending starts after confirmation. Emails accepted by SES cannot be recalled.' ?></p></div>
 <footer class="dialog-actions"><button type="button" data-close-dialog>Cancel</button><button class="primary"<?= !$dispatchReview?' disabled':'' ?>><?= $sendLabel ?></button></footer>
 </form></dialog>
-<?php elseif(!$delivery): ?><div class="audience-empty"><h2>No delivery yet</h2><p>Finish your email checklist, then review and confirm delivery.</p><a class="audience-button primary" href="<?= $h($campaignLink) ?>">Edit email</a></div>
+<?php elseif(!$delivery): ?><div class="audience-empty"><h2>No delivery yet</h2><p>Finish your email checklist, then review and confirm delivery.</p><a class="audience-button primary" href="<?= $h($campaignLink) ?>"><?= $campaign['deleted_at']?'Back to Archived':'Edit email' ?></a></div>
 <?php else:
 $state=$delivery['state'];$counts=$deliveryCounts;$finished=array_sum(array_intersect_key($counts,array_flip(['accepted','development','suppressed','failed','uncertain','cancelled'])));$total=array_sum($counts);$active=in_array($state,['scheduled','sending','paused'],true);
 $when=(new DateTimeImmutable($delivery['due_at'],new DateTimeZone('UTC')))->setTimezone(new DateTimeZone($delivery['timezone']));

@@ -10,7 +10,7 @@ function expectActionIcon($condition, $message)
     }
 }
 
-foreach (['view', 'edit', 'start', 'complete', 'archive', 'restore', 'delete'] as $action) {
+foreach (['view', 'edit', 'start', 'complete', 'archive', 'restore', 'delete', 'duplicate', 'results', 'pause', 'export-csv', 'plain-text-email'] as $action) {
     $icon = actionIconSvg($action);
     expectActionIcon(str_contains($icon, '<svg'), "{$action} should render an SVG icon.");
     expectActionIcon(str_contains($icon, 'aria-hidden="true"'), "{$action} icon should be hidden from assistive technology.");

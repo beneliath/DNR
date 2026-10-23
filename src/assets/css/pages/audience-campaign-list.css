@@ -69,7 +69,7 @@
 .campaign-list-table .campaign-analytics small{font-size:calc(14px * var(--audience-font-scale,1));margin:0 0 3px}
 .campaign-recipient-count{display:block;color:var(--audience-muted);font-size:calc(12px * var(--audience-font-scale,1));margin-top:3px}
 .campaign-editor{font-size:calc(14px * var(--audience-font-scale,1));overflow-wrap:anywhere}
-.campaign-list-table .campaign-row-actions{gap:4px}
+.campaign-list-table .campaign-row-actions{gap:8px}
 .campaign-list-table .campaign-row-actions .audience-button{padding:6px 9px;font-size:calc(13px * var(--audience-font-scale,1));min-height:32px}
 .campaign-list-table .campaign-icon-button{display:inline-flex;align-items:center;justify-content:center;background:transparent}
 .campaign-list-table .campaign-icon-button:hover{background:var(--audience-hover)}

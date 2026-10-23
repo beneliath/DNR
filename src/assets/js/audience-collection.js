@@ -1,8 +1,35 @@
+import { renderAudiencePagination } from './audience-pagination.mjs';
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { initEmbeddedForm } from './audience-embedded.mjs';
 import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
 (() => {
     'use strict';
+    document.querySelectorAll('[data-collection-lifecycle]').forEach(button => button.addEventListener('click', () => {
+        const dialog = document.getElementById(`collection-${button.dataset.collectionLifecycle}`);
+        if (!dialog) return;
+        const entry = JSON.parse(button.dataset.collectionRecord);
+        dialog.querySelector('[name=id]').value = entry.id;
+        dialog.querySelector('[name=version]').value = entry.version;
+        dialog.querySelector('[data-collection-lifecycle-name]').textContent = entry.name;
+        const confirmation = dialog.querySelector('[name=confirm]');
+        if (confirmation) confirmation.value = '';
+    }));
+    const deleteForm = document.querySelector('#collection-delete form');
+    if (deleteForm) {
+        let approved = false, checking = false;
+        deleteForm.addEventListener('submit', async event => {
+            if (approved) { approved = false; return; }
+            event.preventDefault(); event.stopImmediatePropagation();
+            if (checking) return;
+            checking = true;
+            try {
+                if (await window.DnrAdminUnlock?.request()) {
+                    approved = true;
+                    deleteForm.requestSubmit(event.submitter || undefined);
+                }
+            } finally { checking = false; }
+        });
+    }
     document.querySelector('[data-copy-collection-link]')?.addEventListener('click', async () => {
         const input = document.getElementById('collection-public-url');
         const status = document.querySelector('[data-collection-copy-status]');
@@ -50,15 +77,9 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if(font==='brand')Object.assign(model,{font:config.brandFont.font,web_font:config.brandFont.data,web_font_name:config.brandFont.name});
         else if(font&&font!=='saved-brand')Object.assign(model,{font,web_font:'',web_font_name:''});
         form.querySelectorAll('[data-doc-lines]').forEach(input => { model[input.dataset.docLines] = readLines(input.value); });
-        model.messages ||= {};
-        form.querySelectorAll('[data-doc-message]').forEach(input => { model.messages[input.dataset.docMessage] = input.value; });
         model.advanced ||= {enabled:false,pages:{}};
         model.advanced.enabled = Boolean(form.querySelector('[data-advanced-enabled]')?.checked);
         form.querySelectorAll('[data-advanced-page]').forEach(input => { model.advanced.pages[input.dataset.advancedPage] = input.value; });
-        model.labels ||= {};
-        form.querySelectorAll('[data-doc-label]').forEach(input => { model.labels[input.dataset.docLabel] = input.value; });
-        model.system ||= {};
-        form.querySelectorAll('[data-doc-system]').forEach(input => { model.system[input.dataset.docSystem] = input.value; });
         const arrayKeys = new Set(Array.from(form.querySelectorAll('[data-doc-array]'), el => el.dataset.docArray));
         arrayKeys.forEach(key => { model[key] = Array.from(form.querySelectorAll(`[data-doc-array="${key}"]:checked`), el => Number(el.value)); });
         const fields = Array.from(form.querySelectorAll('[data-field]'));
@@ -100,7 +121,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     let selectedTab = config.kind === 'survey' ? 'questions' : 'design';
     const selectTab = tab => {
         selectedTab = tab;
-        if(config.kind === 'survey'){const title=document.querySelector('.audience-page-heading h1');if(title)title.textContent=({questions:'Add questions',design:'Design survey',setup:'Survey details',publish:'Share your survey',translate:'Translate it'})[tab]||'Survey';const next=document.querySelector('[data-survey-next]'), publish=document.querySelector('[data-survey-publish]');if(next){next.hidden=tab==='publish';next.textContent=tab==='questions'?'Continue to design':tab==='design'?'Continue to details':'Continue to share';}if(publish)publish.hidden=tab!=='publish';}
+        if(config.kind === 'survey'){const title=document.querySelector('.audience-page-heading h1');if(title)title.textContent=({questions:'Add questions',design:'Design survey',setup:'Survey details',publish:'Share your survey'})[tab]||'Survey';const next=document.querySelector('[data-survey-next]'), publish=document.querySelector('[data-survey-publish]');if(next){next.hidden=tab==='publish';next.textContent=tab==='questions'?'Continue to design':tab==='design'?'Continue to details':'Continue to share';}if(publish)publish.hidden=tab!=='publish';}
         const railTab = tab;
         document.querySelector('[data-collection-builder]').classList.toggle('survey-questions-active', config.kind === 'survey' && tab === 'questions');
         if (tab === 'outline') tab = 'design';
@@ -152,22 +173,20 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Sign in to MessageMonkey in another tab, then try again. Your draft is still open here.');
         const result = await response.json(); if (!response.ok || result.error) throw new Error(result.error || 'Unable to load the image.'); return result;
     };
-    const imageDialog = document.getElementById('collection-images'); let chooseImage = null; let imagePage = 1;
+    const imageDialog = document.getElementById('collection-images'); let chooseImage = null; let imagePage = 1; let imageSize = 25;
     const loadImages = async () => {
         const feedback = imageDialog.querySelector('[data-collection-image-status]'); feedback.textContent = 'Loading…';
         try {
-            const result = await api('collection_library', {search:imageDialog.querySelector('[data-collection-image-search]').value, page:imagePage});
+            const result = await api('collection_library', {search:imageDialog.querySelector('[data-collection-image-search]').value, page:imagePage, per_page:imageSize});
+            imagePage = result.page;
             const list = imageDialog.querySelector('[data-collection-image-list]'); list.replaceChildren();
             result.items.forEach(item => { const button = el('button', item.name); button.type = 'button'; button.addEventListener('click', async () => {
                 try { const image = await api('collection_library_image', {image_id:item.id}); chooseImage?.(image.image); imageDialog.close(); } catch (error) { feedback.textContent = error.message; }
             }); list.append(button); }); feedback.textContent = result.items.length ? '' : 'No images found.';
-            imageDialog.querySelector('[data-collection-image-prev]').disabled = imagePage <= 1;
-            imageDialog.querySelector('[data-collection-image-next]').disabled = imagePage * 20 >= result.total;
+            renderAudiencePagination(imageDialog.querySelector('[data-collection-image-pages]'), {total:result.total,page:imagePage,pageSize:imageSize,label:'Image library pages',onChange:({page,pageSize})=>{imagePage=page;imageSize=pageSize;loadImages();}});
         } catch (error) { feedback.textContent = error.message || 'Images are unavailable.'; }
     };
     imageDialog.querySelector('[data-collection-image-find]').addEventListener('click', () => { imagePage = 1; loadImages(); });
-    imageDialog.querySelector('[data-collection-image-prev]').addEventListener('click', () => { imagePage = Math.max(1, imagePage - 1); loadImages(); });
-    imageDialog.querySelector('[data-collection-image-next]').addEventListener('click', () => { imagePage++; loadImages(); });
     const imageButtons = (card, apply) => {
         const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse images'); browse.type = 'button';
         browse.addEventListener('click', () => { chooseImage = apply; imagePage = 1; imageDialog.showModal(); loadImages(); });
@@ -259,9 +278,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
         form.querySelectorAll('[data-doc]').forEach(input => { input.value = model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
         const font=form.querySelector('[data-collection-font]');if(font)font.value=model.web_font?(model.web_font===config.brandFont?.data?'brand':'saved-brand'):model.font;
-        form.querySelectorAll('[data-doc-label]').forEach(input => { input.value = model.labels[input.dataset.docLabel] || input.value; });
-        form.querySelectorAll('[data-doc-system]').forEach(input => { input.value = model.system[input.dataset.docSystem] || ''; });
-        form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage] || ''; });
         form.querySelectorAll('[data-advanced-page]').forEach(input => { input.value = model.advanced.pages[input.dataset.advancedPage] || ''; });
         const advanced = form.querySelector('[data-advanced-enabled]');if(advanced)advanced.checked=Boolean(model.advanced.enabled);
         form.querySelectorAll('[data-doc-lines]').forEach(input => { input.value = model[input.dataset.docLines].join('\n'); });

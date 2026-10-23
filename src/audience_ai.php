@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_pagination.php';
 
 require_once __DIR__.'/ai_coach_helpers.php';
 require_once __DIR__.'/ai_coach_history_helpers.php';
@@ -119,12 +120,12 @@ function audienceAiModelEvidence(array $evidence):array
     return $evidence;
 }
 
-function audienceAiContactPage(AudienceAiQueries $queries,array $evidence,string $tableId,int $offset):array
+function audienceAiContactPage(AudienceAiQueries $queries,array $evidence,string $tableId,int $offset,int $size=100):array
 {
     if(!in_array($tableId,array_column($evidence['tables']??[],'id'),true)||!preg_match('/^query_([0-9]+)_contacts$/D',$tableId,$match))throw new DomainException('Contact results not found.');
     $query=$evidence['queries'][(int)$match[1]]??null;
     if(!is_array($query)||$query['tool']!=='contacts')throw new DomainException('Contact results not found.');
-    $query['limit']=100;
+    $query['limit']=audiencePageSize(['per_page'=>$size],'per_page',100);
     return $queries->contactPage($query,$offset)+['id'=>$tableId];
 }
 

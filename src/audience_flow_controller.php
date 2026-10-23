@@ -13,7 +13,7 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
         try{
             if(!$available)throw new InvalidArgumentException('Automations require the qualified database update.');
             if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Reload this audience before saving.');
-            $action=audienceText($_POST,'action',40);$version=(int)($_POST['version']??0);$redirectView='flow';
+            $action=audienceText($_POST,'action',40);$version=(int)($_POST['version']??0);$redirectView='flow';$redirectUrl=null;
             if($action==='flow_create'){
                 $template=audienceText($_POST,'template',30)?:'blank';if($template!=='blank'&&!isset(audienceFlowTemplates()[$template]))throw new InvalidArgumentException('Choose an available flow template.');
                 $d=audienceFlowDefault($template);if(in_array($d['trigger']['type'],['birthday','anniversary'],true))$d['settings']['repeat']=true;
@@ -24,8 +24,19 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
                 $id=$store->saveFlow(audienceText($_POST,'name',100),$document,$id,$version);$saved=$store->flow($id);
                 if($json){$respond(['id'=>$id,'version'=>(int)$saved['version'],'document'=>$saved['document'],'errors'=>$store->flowValidate($saved['document'])]);return;}$message='Draft saved.';
             }elseif($action==='flow_operation'){
-                $op=audienceText($_POST,'operation',30);if($op==='remove'&&audienceText($_POST,'confirm',10)!=='REMOVE')throw new InvalidArgumentException('Type REMOVE to stop and remove this flow. Its history is retained.');
-                $id=$store->flowOperation($id,$version,$op,audienceText($_POST,'node',40));$message=match($op){'activate'=>'Flow turned on. New qualifying activity can enter.','pause'=>'Flow paused. Connections keep their positions.','remove'=>'Flow removed. Queued actions were cancelled.','restore'=>'Flow restored as a draft.',default=>'Flow updated.'};if($op==='remove'){$redirectView='automations';$id=0;}
+                $op=audienceText($_POST,'operation',30);
+                if($op==='remove'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can remove flows.');}
+                    requireRecentAdminElevation($url(['view'=>$view,'id'=>$id]));
+                    if(audienceText($_POST,'confirm',10)!=='REMOVE')throw new InvalidArgumentException('Type REMOVE to stop and remove this flow. Its history is retained.');
+                }
+                if($op==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can permanently delete archived flows.');}
+                    requireRecentAdminElevation($url(['view'=>$view,'id'=>$id]));
+                    if(audienceText($_POST,'confirm',10)!=='DELETE')throw new InvalidArgumentException('Type DELETE to permanently delete this archived flow and its execution history.');
+                }
+                $id=$store->flowOperation($id,$version,$op,audienceText($_POST,'node',40));$message=match($op){'activate'=>'Flow turned on. New qualifying activity can enter.','pause'=>'Flow paused. Connections keep their positions.','archive','remove'=>'Flow archived. Queued actions were cancelled.','restore'=>'Flow restored as a draft.','delete'=>'Flow permanently deleted.',default=>'Flow updated.'};
+                if(in_array($op,['archive','remove','restore','delete'],true)){$redirectView='automations';$id=0;$redirectUrl=$url(['view'=>'automations']+array_intersect_key($_GET,array_flip(['tab','trash','q','state','sort','page','per_page'])));}
             }elseif($action==='flow_classic'){
                 try{$classic=json_decode(audienceText($_POST,'classic',100000),true,32,JSON_THROW_ON_ERROR);}catch(JsonException){throw new InvalidArgumentException('Enter a valid supported classic workflow.');}
                 if(!is_array($classic))throw new InvalidArgumentException('Enter a supported classic workflow.');$d=audienceFlowClassicDocument($classic);$id=$store->saveFlow(audienceText($_POST,'name',100),$d);$message='Classic workflow converted to a private draft. Review it before turning it on.';
@@ -50,16 +61,17 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
                     }
                 });});$redirectView='flow-report';$message='Execution updated.';
             }else throw new InvalidArgumentException('Choose a supported flow action.');
-            if($json){$respond(['redirect'=>$url(array_filter(['view'=>$redirectView,'id'=>$id]))]);return;}
-            $_SESSION['audience_message']=$message;header('Location: '.$url(array_filter(['view'=>$redirectView,'id'=>$id])));return;
+            if($json){$respond(['redirect'=>$redirectUrl??$url(array_filter(['view'=>$redirectView,'id'=>$id]))]);return;}
+            $_SESSION['audience_message']=$message;header('Location: '.($redirectUrl??$url(array_filter(['view'=>$redirectView,'id'=>$id]))));return;
         }catch(InvalidArgumentException $e){$error=$e->getMessage();if($json){$respond(['error'=>$error],422);return;}if(($_POST['action']??'')==='flow_save')$recover=$_POST;}
     }
-    $flow=null;if($id&&$available){try{$flow=$store->flow($id);}catch(InvalidArgumentException){http_response_code(404);exit('This flow is unavailable.');}}
+    if($view==='automations')$id=0;
+    $flow=null;if($id&&$available){try{$flow=$store->flow($id,false,$view==='flow-report');}catch(InvalidArgumentException){http_response_code(404);exit('This flow is unavailable.');}}
     if(in_array($view,['flow','flow-report'],true)&&!$flow){http_response_code(404);exit('This flow is unavailable.');}
     if($recover&&$flow){try{$flow['document']=audienceFlowDocument(json_decode($recover['document'],true,48,JSON_THROW_ON_ERROR));$flow['version']=(int)$recover['version'];$flow['name']=audienceText($recover,'name',100);}catch(Throwable){}}
     try{$listOptions=audienceFlowListOptions($view==='automations'?$_GET:[]);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$listOptions=audienceFlowListOptions([]);}
-    $q=$view==='flow-templates'?audienceText($_GET,'q',100):$listOptions['q'];$state=$listOptions['state'];$flowSort=$listOptions['sort'];$flowOrder=match($flowSort){'updated'=>'f.updated_at DESC,f.id DESC','oldest'=>'f.created_at ASC,f.id ASC',default=>'f.created_at DESC,f.id DESC'};$classic=($_GET['tab']??'')==='classic';$trash=($_GET['trash']??'')==='1';$flows=[];$flowPage=max(1,(int)($_GET['page']??1));$flowTotal=0;
-    if($available){$where='f.audience_id=? AND f.deleted_at IS '.($trash?'NOT NULL':'NULL');$params=[$audienceId];if($q!==''){$where.=' AND LOCATE(?,f.name)>0';$params[]=$q;}if(in_array($state,['draft','running','paused'],true)){$where.=' AND f.state=?';$params[]=$state;}$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic?'true':'false')."'";$flowTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where,$params)['n'];$flowPage=min($flowPage,max(1,(int)ceil($flowTotal/25)));$flows=$store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id) started,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'active\') active,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'completed\') completed FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT 25 OFFSET ?',[...$params,($flowPage-1)*25]);}
+    $q=$view==='flow-templates'?audienceText($_GET,'q',100):$listOptions['q'];$state=$listOptions['state'];$flowSort=$listOptions['sort'];$flowOrder=match($flowSort){'updated'=>'f.updated_at DESC,f.id DESC','oldest'=>'f.created_at ASC,f.id ASC',default=>'f.created_at DESC,f.id DESC'};$classic=($_GET['tab']??'')==='classic';$trash=($_GET['trash']??'')==='1';$flows=[];$flowSize=audiencePageSize($_GET);$flowPage=max(1,(int)($_GET['page']??1));$flowTotal=0;
+    if($available){$where='f.audience_id=? AND f.deleted_at IS '.($trash?'NOT NULL':'NULL');$params=[$audienceId];if($q!==''){$where.=' AND LOCATE(?,f.name)>0';$params[]=$q;}if(in_array($state,['draft','running','paused'],true)){$where.=' AND f.state=?';$params[]=$state;}$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic?'true':'false')."'";$flowTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where,$params)['n'];$flowPage=min($flowPage,max(1,(int)ceil($flowTotal/$flowSize)));$flows=$store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id) started,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'active\') active,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'completed\') completed FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT ? OFFSET ?',[...$params,$flowSize,($flowPage-1)*$flowSize]);}
     $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$editorRecovery=null;
     $campaignOptions=$store->all("SELECT id,name,campaign_type,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.send_time.mode')) send_mode FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND campaign_type IN ('regular','plain-text') ORDER BY updated_at DESC LIMIT 500",[$audienceId]);
     $surveyOptions=$store->all("SELECT id,name FROM marketing_collection_resources WHERE audience_id=? AND kind='survey' AND deleted_at IS NULL ORDER BY name LIMIT 500",[$audienceId]);

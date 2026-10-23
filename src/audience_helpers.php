@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_pagination.php';
 
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
 
