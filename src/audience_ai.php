@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_pagination.php';
 
 require_once __DIR__.'/ai_coach_helpers.php';
 require_once __DIR__.'/ai_coach_history_helpers.php';
