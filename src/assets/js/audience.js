@@ -1018,8 +1018,10 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     });
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
     $('[data-campaign-recipient-preview]')?.addEventListener('click', async event => {
-        const form = event.target.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
-        event.target.disabled = true; try { const result = await request(form.action, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { event.target.disabled = false; }
+        const button = event.currentTarget, form = button.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
+        // The hidden field named action shadows HTMLFormElement.action. Preserve the campaign query.
+        const endpoint = form.getAttribute('action') || location.href;
+        button.disabled = true; try { const result = await request(endpoint, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
     });
     $('[data-campaign-date-preset]')?.addEventListener('change', event => { const form = event.target.form; $$('input[type=date]', form).forEach(input => { input.readOnly = !['','custom'].includes(event.target.value); if (event.target.value === '') input.value = ''; }); });
     const sendForm = $('[name=send_mode]')?.form;

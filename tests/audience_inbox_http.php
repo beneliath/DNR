@@ -123,4 +123,13 @@ $continuous=$ib->inboxList(['per_page'=>10,'page'=>99],true);
 audienceHttpExpect(count($continuous['items'])===$continuous['total']&&$continuous['page']===1,'Continuous Inbox returns the full matching queue despite old page-size preferences');
 $scrollPage=$editor($inboxPath.'&per_page=10&page=99');
 audienceHttpExpect(substr_count($scrollPage['body'],'class="inbox-thread-item')===$continuous['total']&&!str_contains($scrollPage['body'],'aria-label="Conversation pages"'),'Inbox renders every conversation in one scrollable list without pagination');
+// Leave one eligible, labelled reply for the actual restricted worker qualification.
+$conn->query("INSERT INTO marketing_contacts(audience_id,email,first_name,email_status,notes) VALUES (1,'inbox-worker-ready@example.test','Worker','subscribed','')");$workerPerson=(int)$conn->insert_id;
+$workerThread=$ib->inboxReceive('direct',0,'inbox-worker-ready@example.test','Worker','Restricted worker fixture','Synthetic inbound',hash('sha256','restricted-worker-ready'),true);
+$workerThreadRow=$ib->inboxThread($workerThread);$ib->inboxThreadOperation($workerThread,(int)$workerThreadRow['version'],'labels',['labels'=>[$label]]);
+$workerDraft=$ib->saveInboxDraft(['thread_id'=>$workerThread,'subject'=>'Restricted worker reply','body_html'=>'<p>Disposable delivery fixture</p>']);
+$conn->query("UPDATE marketing_ses_settings SET production_access=1,check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");
+$workerQueued=$ib->queueInboxDraft($workerDraft,1,$inboxAudience,'https://inbox.example.test');
+$conn->execute_query("UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY) WHERE id=?",[$workerQueued['service_mail_id']]);
+$conn->query('UPDATE marketing_ses_settings SET production_access=0 WHERE audience_id=1');
 echo 'Inbox HTTP/storage qualification passed ('.($checks-$inboxStart)." checks); no external messages sent.\n";

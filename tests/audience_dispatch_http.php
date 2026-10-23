@@ -18,19 +18,11 @@ $proofFrom=static function(array $page):string{preg_match('/name="review_proof" 
 $dispatchId=$makeDispatch('Scheduled dispatch fixture');$send=$sendPath($dispatchId);$review=$editor($send);$proof=$proofFrom($review);
 audienceHttpExpect($review['status']===200&&$proof!==''&&str_contains($review['body'],'Ready to schedule?')&&!preg_match('/Warning:|Fatal error:/',$review['body']),'Send review renders real eligible count and confirmation');
 $conn->query('UPDATE marketing_delivery_policy SET bulk_approved=0 WHERE audience_id=1');
-$blockedReview=$editor($send);
-audienceHttpExpect($proofFrom($blockedReview)===''&&str_contains($blockedReview['body'],'Campaign sending is gated'),'SES approval alone cannot authorize a campaign review');
-$testVersion=(int)$campaignStore->campaign($dispatchId)['version'];
-audienceHttpExpect($campaignStore->queueCampaignTest($dispatchId,$testVersion,['test_recipients'=>'qualification@example.test','request_key'=>bin2hex(random_bytes(32))],$dispatchAudience,$dispatchBase)===1,'Controlled tests can queue while campaign approval remains closed');
-$controlledTests=[];
-processAudienceServiceMail($conn,1,static function(array $m,string $kind)use(&$controlledTests):string{$controlledTests[]=$m['email'];return 'accepted';});
-audienceHttpExpect($controlledTests===['qualification@example.test'],'The test lane delivers only its explicit recipient with campaign approval closed');
-$transportReached=false;$transportBlocked=false;
-try{audienceSesDeliver($conn,[],'campaign',static function()use(&$transportReached){$transportReached=true;throw new RuntimeException('Transport must remain unreachable');});}catch(MailBudgetDeferredException){$transportBlocked=true;}
-audienceHttpExpect($transportBlocked&&!$transportReached,'The SES transport independently refuses campaign delivery before contacting AWS');
-$conn->query('UPDATE marketing_delivery_policy SET bulk_approved=1,daily_budget=0 WHERE audience_id=1');
-audienceHttpExpect(!$campaignStore->sendingReadiness('sender@dispatch.example',audienceJson($dispatchAudience['settings_json']))['ready'],'Campaign approval without a budget cannot authorize delivery');
-$conn->query('UPDATE marketing_delivery_policy SET daily_budget=100000 WHERE audience_id=1');
+$sesReview=$editor($send);
+audienceHttpExpect($proofFrom($sesReview)!=='','SES campaign review does not require legacy SMTP approval');
+$conn->query('UPDATE marketing_delivery_policy SET hourly_budget=0,daily_budget=0 WHERE audience_id=1');
+audienceHttpExpect($campaignStore->sendingReadiness('sender@dispatch.example',audienceJson($dispatchAudience['settings_json']))['ready'],'SES campaign readiness uses live AWS limits without separate budget caps');
+$conn->query('UPDATE marketing_delivery_policy SET bulk_approved=1,hourly_budget=100000,daily_budget=100000 WHERE audience_id=1');
 $version=(int)$campaignStore->campaign($dispatchId)['version'];$confirm=['csrf_token'=>$token,'action'=>'campaign_dispatch_confirm','id'=>$dispatchId,'version'=>$version,'review_proof'=>$proof,'confirmed'=>'1'];
 audienceHttpExpect($editor($send,array_replace($confirm,['csrf_token'=>'invalid']))['status']===400,'Send confirmation requires CSRF');
 audienceHttpExpect($reviewer($send,array_replace($confirm,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot confirm delivery');
@@ -56,12 +48,12 @@ audienceHttpExpect($op('cancel')['status']===302&&$campaignStore->campaign($disp
 audienceHttpExpect((int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=? AND state='cancelled'",[$jobId])['n']===6,'Cancellation affects only waiting recipients');
 // A new exact snapshot is required after cancellation and editing.
 $c=$campaignStore->campaign($dispatchId);$campaignStore->saveCampaignSection($dispatchId,(int)$c['version'],'send_time',['send_mode'=>'now','timezone'=>'UTC','delivery'=>'specific']);$c=$campaignStore->campaign($dispatchId);$review=$campaignStore->reviewCampaignDispatch($dispatchId,$dispatchAudience,$dispatchBase);$jobId=$campaignStore->confirmCampaignDispatch($dispatchId,(int)$c['version'],$review['proof'],$dispatchAudience,$dispatchBase);
-$conn->query('UPDATE marketing_delivery_policy SET bulk_approved=0 WHERE audience_id=1');$gatedAttempts=0;
+$conn->query('UPDATE marketing_ses_settings SET sending_enabled=0 WHERE audience_id=1');$gatedAttempts=0;
 processAudienceCampaignDelivery($conn,10,static function()use(&$gatedAttempts):string{$gatedAttempts++;return 'accepted';});
-audienceHttpExpect($gatedAttempts===0&&$campaignStore->campaignDelivery($dispatchId)['state']==='paused','Revoking approval after confirmation pauses the campaign without invoking transport');
-audienceHttpExpect((int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=? AND delivery_started_at IS NOT NULL",[$jobId])['n']===0,'The approval gate preserves all unsent recipient receipts');
-$conn->query('UPDATE marketing_delivery_policy SET bulk_approved=1 WHERE audience_id=1');
-audienceHttpExpect($op('resume')['status']===302,'An approved campaign still requires an explicit resume after a gate pause');
+audienceHttpExpect($gatedAttempts===0&&$campaignStore->campaignDelivery($dispatchId)['state']==='paused','SES disabling sending after confirmation pauses the campaign without invoking transport');
+audienceHttpExpect((int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=? AND delivery_started_at IS NOT NULL",[$jobId])['n']===0,'SES readiness preserves all unsent recipient receipts');
+$conn->query('UPDATE marketing_ses_settings SET sending_enabled=1 WHERE audience_id=1');
+audienceHttpExpect($op('resume')['status']===302,'A ready SES campaign still requires an explicit resume after a gate pause');
 $recipients=$campaignStore->all('SELECT * FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY contact_id',[$jobId]);$sealed=json_decode(\Dnr\Security\ApplicationKey::open($recipients[0]['context_ciphertext']),true);$subscription='audience_subscription.php?token='.$sealed['token'];
 $get=$reviewer($subscription);audienceHttpExpect($get['status']===200&&$campaignStore->person($dispatchPeople[0])['email_status']==='subscribed','Link scanner GET cannot unsubscribe');
 $oneClick=$reviewer($subscription,['List-Unsubscribe'=>'One-Click']);audienceHttpExpect($oneClick['status']===200&&$campaignStore->person($dispatchPeople[0])['email_status']==='unsubscribed','One-click POST persists opt-out');
