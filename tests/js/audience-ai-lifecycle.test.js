@@ -200,6 +200,39 @@ test('submission clears the prompt immediately while retaining the question and 
   const text=textOf(p.find('[data-ai-chat-transcript]'));assert.ok(text.includes('The AI service did not finish in time.'));assert.ok(text.includes('Retry'));
 });
 
+test('cancelled analytics history reopens as stopped and Retry retains its prompt',async()=>{
+  const prompt='Summarize the performance of my campaigns in last 30 days';
+  const stopped={purpose:'audience-ai',mode:'analytics',reason:'cancelled',message:'This request was stopped.'};
+  const p=page(()=>({state:'complete',question:prompt,response:stopped}),'analytics',{chat:true,window:reportWindow,
+    historyItems:[{client_request_id:'stopped',question:prompt,manual_topic:'audience-ai:analytics',created_at:'2026-10-23 20:45:11',outcome:'cancelled'}]});
+  await tick();await p.find('[data-ai-history]').children[0].children[0].listeners.click();
+  const transcript=p.find('[data-ai-chat-transcript]'),text=textOf(transcript);
+  assert.ok(text.includes(prompt));assert.ok(text.includes('Request stopped'));assert.ok(text.includes(stopped.message));
+  assert.ok(!text.includes('did not return a usable answer'));assert.ok(!text.includes('could not be completed'));
+  assert.equal(p.find('[data-ai-result]').hidden,true);
+  const form=p.find('[data-ai-form]');let resubmitted=false;form.requestSubmit=()=>{resubmitted=true;};
+  transcript.children[1].children.find(child=>child.tagName==='button').listeners.click();
+  assert.equal(resubmitted,true);assert.equal(form.elements.prompt.value,prompt);
+});
+
+test('reload recovery renders terminal cancellation and timeout without leaving the page busy',async()=>{
+  for(const [reason,message] of [['cancelled','This request was stopped.'],['timeout','The AI service did not finish in time. Please try again.']]){
+    const p=page(()=>({state:'complete',question:'Restored request',response:{purpose:'audience-ai',mode:'analytics',reason,message}}),'analytics',{
+      chat:true,window:reportWindow,pending:{uuid:'restored-terminal',mode:'analytics',started:Date.now()}
+    });await tick();
+    const text=textOf(p.find('[data-ai-chat-transcript]'));
+    assert.ok(text.includes(message));assert.ok(text.includes('Retry'));assert.ok(!text.includes('did not return a usable answer'));
+    assert.equal(p.find('[data-ai-thinking]').hidden,true);assert.equal(p.find('[data-ai-generate]').disabled,false);assert.equal(p.storage(),null);
+    if(reason==='cancelled')assert.ok(text.includes('Request stopped'));
+  }
+});
+
+test('writing cancellation stays a terminal status without exposing output',async()=>{
+  const p=page(()=>({state:'complete',response:{purpose:'audience-ai',mode:'content',reason:'cancelled',message:'This request was stopped.'}}));
+  await p.submit();assert.equal(p.find('[data-ai-status]').textContent,'This request was stopped.');
+  assert.equal(p.find('[data-ai-result]').hidden,true);assert.equal(p.find('[data-ai-form]').elements.text.value,'Private source');
+});
+
 test('saved replies display cited cards, and query results display returned contact data',async()=>{
   const legacy={...analyticsReply,evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'unrelated',label:'Audience growth',value:123,previous:null,change:null,unit:'count'}]}};
   const p=page(()=>({state:'complete',response:legacy}),'analytics',{chat:true,window:reportWindow});await p.submit();

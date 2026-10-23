@@ -1,0 +1,11 @@
+# Analytics AI cancellation/rendering fix
+
+Isolated branch: `codex/localhost-analytics-cancellation`, based on `bedfa7a61743b213a43291cd6ec211ce81651440`. This worktree contains no Qwen instruction-cleanup changes.
+
+The queue previously stored an ordinary coach response when cancelling or expiring an audience assistant request. The analytics client requires `purpose=audience-ai`, so reopening that response showed a generic unusable-answer error. Queue cancellation and expiration now preserve the server-owned assistant purpose and mode. Their atomic update predicates, ownership checks, late-answer protection, and existing deadlines remain intact. Expiration duration reflects the configured job deadline instead of always reporting 20 seconds.
+
+Authenticated audience status reads adapt older untyped cancellation/timeout responses in memory. Saved history is not rewritten, and successful or explicitly differently typed responses are not relabelled. The UI displays “Request stopped” with the cancellation message and retains the original prompt for Retry. Ordinary coach cancellation and timeout keep their existing response contracts.
+
+Verification covers synthetic cancellation before enqueue and during execution, late worker completion, expiry for analytics and writing, legacy history through the real authenticated API, owner/role isolation, and unchanged 90/20-second deadlines. The focused disposable suite also exercises ordinary coach queue, HTTP, feedback, and worker recovery. Unit contract checks, 40 existing audience validation checks, 31 audience UI lifecycle tests, six browser-bundle checks, and two source-fingerprint checks pass. The affected bundle and asset fingerprints were rebuilt. Existing coach integration fixtures emit session-cleanup warnings; the new terminal fixture cleans its session before reporting success.
+
+No database schema, prompt, model choice, thinking flag, or timeout setting changed. The worktree fix has not been applied to the running localhost service. Inspection showed localhost and account containers sharing `/Users/dgilmore/DNR/src`; updating that shared runtime would also affect those accounts. Keep the source fix separate from the dirty `codex/moed-qwen-cleanup` checkout and use the normal authorized release procedure for any runtime update.

@@ -43,13 +43,13 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     message.append(node('h2', 'You', 'sr-only'), node('p', text)); transcript.append(message);
     message.scrollIntoView({block:'nearest'});
   }
-  function failure(message, uuid, prompt = '') {
+  function failure(message, uuid, prompt = '', reason = '') {
     announce(message);
     if (!chat || shownAnswers.has(uuid)) return;
     question(prompt || questionTexts.get(uuid) || 'Saved request', uuid);
     shownAnswers.add(uuid);
     const answer=node('article',undefined,'analytics-ai-message analytics-ai-answer analytics-ai-error');
-    answer.append(node('h3','The request could not be completed'),node('p',message));
+    answer.append(node('h3',reason === 'cancelled' ? 'Request stopped' : 'The request could not be completed'),node('p',message));
     const retry=node('button','Retry');retry.type='button';
     retry.addEventListener('click',()=>{if(busy)return;form.elements.prompt.value=questionTexts.get(uuid)||prompt;form.requestSubmit();});
     answer.append(retry);transcript.append(answer);answer.scrollIntoView({block:'nearest'});status.classList.add('sr-only');
@@ -102,7 +102,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption','Accepted email by period · UTC · application-calculated')); box.append(figure);
   }
   function render(reply, uuid, prompt = '') {
-    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt); return; }
+    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt,reply?.purpose === 'audience-ai' ? reply.reason : ''); return; }
     if (reply.mode !== config.mode) { announce('This request belongs to the other assistant. Open it from the matching tab'); return; }
     if (chat && shownAnswers.has(uuid)) return;
     completed = uuid; previous = uuid; output.hidden = chat;
