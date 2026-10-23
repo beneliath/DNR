@@ -17,21 +17,30 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
     <div class="audience-settings-links"><a href="<?= $h($url(['view'=>'fields'])) ?>">Audience fields and merge tags →</a><a href="<?= $h($url(['view'=>'groups'])) ?>">Groups →</a><a href="<?= $h($url(['view'=>'forms'])) ?>">Signup forms and opt-in settings →</a><a href="<?= $h($url(['view'=>'preferences'])) ?>">Subscriber preferences →</a><?php if($canManage): ?><a href="<?= $h($url(['view'=>'jobs','kind'=>'import'])) ?>">Import history →</a><a href="<?= $h($url(['view'=>'jobs','kind'=>'export'])) ?>">Export history →</a><?php endif; ?></div>
 <?php elseif($view==='tags'): ?>
     <?php $tagSort=in_array($_GET['tag_sort']??'',['newest','oldest','name','name_desc'],true)?$_GET['tag_sort']:'newest';usort($items,static fn($a,$b)=>match($tagSort){'name'=>strnatcasecmp($a['name'],$b['name']),'name_desc'=>strnatcasecmp($b['name'],$a['name']),'oldest'=>strcmp($a['created_at']??'',$b['created_at']??'')?:$a['id']<=>$b['id'],default=>strcmp($b['created_at']??'',$a['created_at']??'')?:$b['id']<=>$a['id']});$visibleItems=array_slice($items,($listPage-1)*$listSize,$listSize); ?>
+    <?php $showTagCreated=(bool)array_filter($items,static fn($tag)=>!empty($tag['created_at'])); ?>
     <section class="audience-tags-card" aria-label="Tags">
         <div class="audience-definition-controls">
-            <form method="get" class="audience-list-search audience-definition-search"><?php audienceInputs($baseForm+['view'=>'tags','tag_sort'=>$tagSort]); ?><label class="search-with-icon"><?php audienceNavIcon('search'); ?><input type="search" autocomplete="off" name="list_search" list="tag-search-options" placeholder="Search tags" aria-label="Search tags" value="<?= $h($listSearch) ?>"></label><button class="sr-only">Search</button></form>
+            <form method="get" class="audience-list-search audience-definition-search"><?php audienceInputs($baseForm+['view'=>'tags','tag_sort'=>$tagSort,'list_size'=>$listSize]); ?><label class="search-with-icon"><?php audienceNavIcon('search'); ?><input type="search" autocomplete="off" name="list_search" list="tag-search-options" placeholder="Search tags" aria-label="Search tags" value="<?= $h($listSearch) ?>"></label><button class="sr-only">Search</button></form>
             <?php if($canDelete): ?><div class="audience-definition-toolbar"><?php include __DIR__.'/definition-selection.php'; ?></div><?php endif; ?>
-            <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+['view'=>'tags','list_search'=>$listSearch]); ?><label for="tag-sort">Sort by</label><select id="tag-sort" name="tag_sort" data-auto-submit><?php foreach(['newest'=>'Date created (newest)','oldest'=>'Date created (oldest)','name'=>'Name (A–Z)','name_desc'=>'Name (Z–A)']as$value=>$label): ?><option value="<?= $value ?>"<?= $tagSort===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form>
+            <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+['view'=>'tags','list_search'=>$listSearch,'list_size'=>$listSize]); ?><label for="tag-sort">Sort by</label><select id="tag-sort" name="tag_sort" data-auto-submit><?php foreach(['newest'=>'Date created (newest)','oldest'=>'Date created (oldest)','name'=>'Name (A–Z)','name_desc'=>'Name (Z–A)']as$value=>$label): ?><option value="<?= $value ?>"<?= $tagSort===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form>
         </div>
-        <ul class="audience-definition-grid" aria-label="Tags on this page">
-        <?php foreach($visibleItems as$tag): ?><li class="audience-definition-item<?= $canDelete?' has-selection':'' ?>" data-definition-row>
-            <?php if($canDelete): ?><div class="definition-check"><input form="definition-selection" type="checkbox" name="selected_ids[]" value="<?= (int)$tag['id'] ?>" data-definition-item aria-label="Select <?= $h($tag['name']) ?>"><input form="definition-selection" type="hidden" name="versions[<?= (int)$tag['id'] ?>]" value="<?= (int)$tag['version'] ?>"></div><?php endif; ?>
-            <div class="audience-definition-name"><a class="audience-tag" href="<?= $h($url(['tags'=>[$tag['id']]])) ?>"><?= $h($tag['name']) ?></a></div>
-            <div class="audience-definition-meta">Created <?php if(!empty($tag['created_at'])): ?><time datetime="<?= $h(substr($tag['created_at'],0,10)) ?>"><?= $h(date('F j, Y',strtotime($tag['created_at']))) ?></time><?php else: ?>—<?php endif; ?></div>
-            <div class="audience-definition-actions"><?php if($canManage): $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php';else: ?><a class="action-icon-button" href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View connections tagged <?= $h($tag['name']) ?>" data-tooltip="View connections"><?= actionIconSvg('view') ?></a><?php endif; ?></div>
-        </li><?php endforeach; ?>
-        </ul>
-        <?php if(!$visibleItems): ?><p class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></p><?php endif; ?>
+        <table class="data-table audience-table audience-tag-list" data-mm-paginated-table aria-label="Tags on this page">
+            <thead><tr>
+                <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select tag</span></th><?php endif; ?>
+                <th scope="col" class="tag-name">Tag name</th><th scope="col" class="tag-count">Connections</th>
+                <?php if($showTagCreated): ?><th scope="col" class="tag-created">Created</th><?php endif; ?>
+                <th scope="col" class="tag-actions">Actions</th>
+            </tr></thead>
+            <tbody><?php foreach($visibleItems as$tag): ?><tr data-definition-row>
+                <?php if($canDelete): ?><td class="definition-check"><input form="definition-selection" type="checkbox" name="selected_ids[]" value="<?= (int)$tag['id'] ?>" data-definition-item aria-label="Select <?= $h($tag['name']) ?>"><input form="definition-selection" type="hidden" name="versions[<?= (int)$tag['id'] ?>]" value="<?= (int)$tag['version'] ?>"></td><?php endif; ?>
+                <td class="tag-name"><a href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View connections tagged <?= $h($tag['name']) ?>"><?= $h($tag['name']) ?></a></td>
+                <td class="tag-count"><?= number_format((int)($tag['contact_count']??0)) ?></td>
+                <?php if($showTagCreated): ?><td class="tag-created"><?php if(!empty($tag['created_at'])): ?><time datetime="<?= $h(substr($tag['created_at'],0,10)) ?>"><?= $h(date('M j, Y',strtotime($tag['created_at']))) ?></time><?php else: ?><span aria-label="Creation date unavailable">—</span><?php endif; ?></td><?php endif; ?>
+                <td class="tag-actions"><?php if($canManage): $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php'; else: ?><div class="audience-tag-actions"><a class="action-icon-button" href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View connections tagged <?= $h($tag['name']) ?>" data-tooltip="View connections"><?= actionIconSvg('view') ?></a></div><?php endif; ?></td>
+            </tr><?php endforeach; ?>
+            <?php if(!$visibleItems): ?><tr><td colspan="<?= 3+(int)$canDelete+(int)$showTagCreated ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
+            </tbody>
+        </table>
     </section>
 <?php elseif($view==='groups'): ?>
     <p>Groups let connections choose their interests. Keep them separate from the tags your team applies.</p>

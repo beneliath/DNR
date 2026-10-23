@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/../src/audience_pagination.php';
+require_once __DIR__.'/../src/functions.php';
+require_once __DIR__.'/../src/audience_pagination.php';
 $checks=0;
 function paginationExpect(bool $ok,string $message):void{global $checks;if(!$ok)throw new RuntimeException($message);$checks++;}
 foreach([10,25,50,100]as$size)paginationExpect(audiencePageSize(['per_page'=>(string)$size])===$size,'Standard sizes are accepted');
@@ -17,4 +18,19 @@ foreach([0,1,70]as$total)foreach([1,2,999]as$page){
  paginationExpect($xpath->query('//button[@disabled]')->length===($current===1?1:0)+($current===$pages?1:0),'Boundaries use disabled controls');
 }
 ob_start();audiencePagination(['total'=>1,'label'=>'<script>unsafe</script>','url'=>static fn(array $p=[])=>'audience.php?'.http_build_query(['q'=>'"><script>unsafe</script>']+$p)]);$html=ob_get_clean();paginationExpect(!str_contains($html,'<script>'),'Labels and hidden filters are escaped');
+$_COOKIE=[];
+paginationExpect(audienceRememberPageSizes([],'contacts',31)===[],'Unchosen defaults are not saved');
+audienceRememberPageSizes(['per_page'=>'25'],'contacts',31);
+audienceRememberPageSizes(['segment_size'=>'10'],'segments',31);
+paginationExpect(audienceRememberPageSizes([],'contacts',31)['per_page']===25,'Connections restores its own choice');
+paginationExpect(audienceRememberPageSizes([],'segments',31)['segment_size']===10,'Segments restores a separate choice');
+paginationExpect(audienceRememberPageSizes([],'segments',32)===[],'Users do not share list preferences');
+audienceRememberPageSizes(['activity_size'=>'50'],'contact',31);
+audienceRememberPageSizes(['per_page'=>'10'],'contact',31);
+$remembered=audienceRememberPageSizes(['id'=>7],'contact',31);paginationExpect($remembered['per_page']===10&&$remembered['activity_size']===50&&$remembered['id']===7,'Independent pagers and request scope are retained');
+audienceRememberPageSizes(['kind'=>'import','history_size'=>'10'],'jobs',31);
+audienceRememberPageSizes(['kind'=>'export','history_size'=>'100'],'jobs',31);
+paginationExpect(audienceRememberPageSizes(['kind'=>'import'],'jobs',31)['history_size']===10&&audienceRememberPageSizes(['kind'=>'export'],'jobs',31)['history_size']===100,'Import and export history remember separate choices');
+foreach([[],0,20,500,'bad']as$invalid)paginationExpect(audienceRememberPageSizes(['segment_size'=>$invalid],'segments',31)['segment_size']===10,'Invalid inputs cannot replace a remembered size');
+paginationExpect(audienceRememberPageSizes(['per_page'=>100],'contacts',0)===['per_page'=>100],'Anonymous requests do not persist a choice');
 echo "MessageMonkey pagination: $checks checks passed.\n";

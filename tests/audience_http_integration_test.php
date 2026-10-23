@@ -81,7 +81,7 @@ try{
     $editor($path,['csrf_token'=>$token,'action'=>'save_segment','name'=>'HTTP segment','rules'=>json_encode($tree)]);
     $sid=(int)$conn->query("SELECT id FROM marketing_segments WHERE audience_id=1 AND name='HTTP segment'")->fetch_assoc()['id'];
     $renamed=$editor($path,['csrf_token'=>$token,'action'=>'rename_segment','id'=>$sid,'version'=>1,'name'=>'Renamed segment']);audienceHttpExpect($renamed['status']===302,'Segment rename succeeds');
-    $segmentPage=$editor('audience.php?view=segments');audienceHttpExpect(str_contains($segmentPage['body'],'Renamed segment')&&str_contains($segmentPage['body'],'Replicate Segment'),'Segment reference menu present');
+    $segmentPage=$editor('audience.php?view=segments');audienceHttpExpect(str_contains($segmentPage['body'],'Renamed segment')&&str_contains($segmentPage['body'],'data-segment-copy=')&&str_contains($segmentPage['body'],'audience-segment-table'),'Segment table and action icons present');
     $tagId=(int)$conn->query("SELECT id FROM marketing_tags WHERE audience_id=1 AND name='HTTP tag'")->fetch_assoc()['id'];
     $tagAdded=$editor($path,['csrf_token'=>$token,'action'=>'person_action','operation'=>'tag','id'=>$pid,'version'=>1,'tag_id'=>$tagId]);audienceHttpExpect($tagAdded['status']===302,'Profile adds existing tag');
     $profile=$editor('audience.php?view=contact&id='.$pid);audienceHttpExpect(str_contains($profile['body'],'Remove tag HTTP tag')&&str_contains($profile['body'],'Manage Tags')&&str_contains($profile['body'],'person-marketing-details'),'Profile has removable chips and marketing disclosure');
@@ -127,7 +127,7 @@ try{
     audienceHttpExpect($editor($path,$bulkPost)['status']===403&&(bool)$conn->execute_query('SELECT id FROM marketing_tags WHERE id=?',[$bulkTagId])->fetch_assoc(),'Bulk tag deletion requires an administrator');
     $profileStore->deleteTag($bulkTagId,1);
     $tagsBody=$editor('audience.php?view=tags')['body'];$segmentsBody=$editor('audience.php?view=segments')['body'];
-    audienceHttpExpect(!str_contains($tagsBody,'data-definition-all')&&str_contains($segmentsBody,'data-definition-item'),'Editor tag deletion controls are hidden while segment selection remains available');
+    audienceHttpExpect(!str_contains($tagsBody,'data-definition-all')&&!str_contains($segmentsBody,'data-definition-item')&&!str_contains($segmentsBody,'data-segment-delete-form'),'Editor tag and segment deletion controls are hidden');
     $profileStore->saveNote($pid,'Original note',0,0);
     $note=$conn->execute_query('SELECT id FROM marketing_notes WHERE contact_id=? ORDER BY id DESC LIMIT 1',[$pid])->fetch_assoc();
     $profileStore->saveNote($pid,'Updated note',(int)$note['id'],1);

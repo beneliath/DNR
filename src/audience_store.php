@@ -296,6 +296,23 @@ final class AudienceStore
             $this->write('UPDATE marketing_contacts SET custom_json=JSON_REMOVE(custom_json,?),version=version+1 WHERE audience_id=?',[ '$."'.$id.'"',$this->audienceId]);
         });
     }
+    /** Count only the visible saved segments using the same active-connection scope as Connections. */
+    public function segmentConnectionCounts(array $segments): array
+    {
+        if(count($segments)>100)throw new InvalidArgumentException('Count up to 100 visible segments at a time.');
+        if(!$segments)return [];
+        $catalog=$this->catalog();$tags=$this->tags();$expressions=[];$params=[];$ids=[];
+        foreach($segments as$segment){
+            $id=(int)($segment['id']??0);
+            if($id<1||(isset($segment['audience_id'])&&(int)$segment['audience_id']!==$this->audienceId))throw new InvalidArgumentException('This segment is unavailable.');
+            [$condition,$values]=audienceCompileRules(audienceLegacyRules(audienceJson($segment['filters_json']),$tags),$catalog);
+            $expressions[]='COALESCE(SUM(CASE WHEN ('.$condition.') THEN 1 ELSE 0 END),0) AS count_'.$id;
+            array_push($params,...$values);$ids[]=$id;
+        }
+        $row=$this->one('SELECT '.implode(',',$expressions).' FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL AND c.is_archived=0',[...$params,$this->audienceId]);
+        $counts=[];foreach($ids as$id)$counts[$id]=(int)($row['count_'.$id]??0);
+        return $counts;
+    }
     public function saveSegment(string $name,array $tree,int $id,int $version): int
     {
         return $this->transaction(function()use($name,$tree,$id,$version){

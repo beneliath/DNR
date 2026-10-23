@@ -1,5 +1,16 @@
 // Connections is the single pagination pattern for MessageMonkey, including async lists.
 export const audiencePageSizes = [10, 25, 50, 100];
+const preferenceKey = label => {
+  const identity = document.body?.dataset.audienceKey;
+  if (!identity) return '';
+  const url = new URL(location.href), view = url.searchParams.get('view') || 'contacts';
+  return `mm-page-size:${identity}:${view}:${label}`;
+};
+
+function rememberedSize(key) {
+  try { const size = Number(localStorage.getItem(key));return audiencePageSizes.includes(size) ? size : null; }
+  catch { return null; }
+}
 
 export function wireAudiencePagination(root = document) {
   root.addEventListener('change', event => {
@@ -8,6 +19,12 @@ export function wireAudiencePagination(root = document) {
 }
 
 export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, onChange, label = 'Results pages'}) {
+  const key = preferenceKey(label);
+  if (key && host.dataset.mmPageSizePreference !== key) {
+    host.dataset.mmPageSizePreference = key;
+    const size = rememberedSize(key);
+    if (size && size !== pageSize) { onChange({page: 1, pageSize: size});return; }
+  }
   const pages = Math.max(1, Math.ceil(total / pageSize));
   page = Math.max(1, Math.min(pages, page));
   const node = (tag, text, className) => {
@@ -22,7 +39,11 @@ export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, 
   [...new Set([...audiencePageSizes, pageSize])].sort((a,b)=>a-b).forEach(value => {
     const option = node('option', String(value));option.value = value;option.selected = value === pageSize;select.append(option);
   });
-  select.addEventListener('change', () => onChange({page: 1, pageSize: Number(select.value)}));
+  select.addEventListener('change', () => {
+    const size = Number(select.value);
+    if (key && audiencePageSizes.includes(size)) { try { localStorage.setItem(key, String(size)); } catch { /* Storage may be disabled. */ } }
+    onChange({page: 1, pageSize: size});
+  });
   sizeLabel.append(select);size.append(sizeLabel);
   const format = value => value.toLocaleString('en-US');
   const range = node('span', `${total ? format((page-1)*pageSize+1)+'–'+format(Math.min(page*pageSize,total)) : '0'} of ${format(total)}`, 'mm-pagination-range');

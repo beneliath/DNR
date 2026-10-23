@@ -1,5 +1,20 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/pagination_helpers.php';
+
+/** Each account, signed-in user, list and pagination parameter owns its preference. */
+function audienceRememberPageSizes(array $input,string $view,int $userId): array
+{
+    if($userId<1)return $input;
+    $context=in_array($view,['jobs','job'],true)&&is_string($input['kind']??null)?$input['kind']:'';
+    foreach(['per_page','list_size','segment_size','activity_size','history_size','plan_size','message_size']as$key){
+        $preference='mm_'.substr(hash('sha256',currentAccountKey().':'.$userId.':'.$view.':'.$context.':'.$key),0,24);
+        if(!array_key_exists($key,$input)&&!isset($_COOKIE['dnr_rows_per_page_'.$preference]))continue;
+        $size=paginationPageSizePreference($preference,$input[$key]??null,0,[10,25,50,100]);
+        if($size>0)$input[$key]=$size;
+    }
+    return $input;
+}
 
 /** MessageMonkey page sizes, shared by list queries and their controls. */
 function audiencePageSize(array $input, string $key='per_page', int $default=25): int
