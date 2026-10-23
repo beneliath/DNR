@@ -6,6 +6,7 @@ require_once __DIR__.'/audience_store.php';
 $db=applicationDatabaseConnection();startSecureSession();requireLogin();
 $canManage=hasRole(['admin','editor']);$canExport=$canManage;$canDelete=hasRole(['admin']);
 $view=\Dnr\Http\RequestInput::enum($_GET,'view',['home','analytics','assistant','inbox','contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report'],'contacts');
+$_GET=audienceRememberPageSizes($_GET,$view,(int)$_SESSION['user_id']);
 if(!$canDelete&&($view==='delivery'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'delivery_')))){http_response_code(403);exit('Email delivery requires an administrator.');}
 $h=static fn($value):string=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 $actor=(int)$_SESSION['user_id'];$displayName=mb_substr((string)($_SESSION['profile_display_name']??$_SESSION['username']??'Account'),0,100);
@@ -57,9 +58,9 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Audience has been consolidated. Reload this page before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
-        if($action==='delete_tag'||($action==='delete_selected_definitions'&&audienceText($_POST,'kind')==='tags')){
-            if(!$canDelete){http_response_code(403);exit('Tag deletion requires an administrator.');}
-            requireRecentAdminElevation($url(['view'=>'tags']));
+        if(in_array($action,['delete_tag','delete_segment'],true)||($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))){
+            if(!$canDelete){http_response_code(403);exit('Tag and segment deletion requires an administrator.');}
+            requireRecentAdminElevation($url(['view'=>$action==='delete_tag'||($action==='delete_selected_definitions'&&audienceText($_POST,'kind')==='tags')?'tags':'segments']));
         }
         if($error!=='')throw new InvalidArgumentException($error);
         switch($action){

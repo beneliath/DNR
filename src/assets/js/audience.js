@@ -262,7 +262,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         window.addEventListener('pageshow', refresh); refresh();
     }
     const confirmedForms = new WeakSet();
-    const approvedTagDeletes = new WeakSet(), checkingTagDeletes = new WeakSet();
+    const approvedDefinitionDeletes = new WeakSet(), checkingDefinitionDeletes = new WeakSet();
     const confirmation = el('dialog', {'aria-labelledby': 'audience-confirm-title', 'aria-describedby': 'audience-confirm-message'});
     const confirmationForm = el('form', {method: 'dialog'}), confirmationMessage = el('p', {id: 'audience-confirm-message'});
     const confirmationActions = el('div', {class: 'form-actions'});
@@ -275,19 +275,19 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         if (confirmation.returnValue === 'continue' && pending) { confirmedForms.add(pending.form); pending.form.requestSubmit(pending.submitter || undefined); }
     });
     $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
-        if (approvedTagDeletes.has(form)) { approvedTagDeletes.delete(form); return; }
-        const confirmed = confirmedForms.delete(form), tagDelete = form.hasAttribute('data-tag-delete-form');
-        if (confirmed && !tagDelete) return;
+        if (approvedDefinitionDeletes.has(form)) { approvedDefinitionDeletes.delete(form); return; }
+        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form]');
+        if (confirmed && !protectedDelete) return;
         if (event.defaultPrevented) return;
         event.preventDefault();
-        if (tagDelete) {
-            if (checkingTagDeletes.has(form)) return;
-            checkingTagDeletes.add(form);
+        if (protectedDelete) {
+            if (checkingDefinitionDeletes.has(form)) return;
+            checkingDefinitionDeletes.add(form);
             let unlocked;
             try { unlocked = await window.DnrAdminUnlock?.request(); }
-            finally { checkingTagDeletes.delete(form); }
+            finally { checkingDefinitionDeletes.delete(form); }
             if (!unlocked) return;
-            if (confirmed) { approvedTagDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
+            if (confirmed) { approvedDefinitionDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
         }
         pendingConfirmation = {form, submitter: event.submitter};
         confirmationMessage.textContent = form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();

@@ -11,6 +11,7 @@ alwaysApply: false
 - Asynchronous lists use `renderAudiencePagination()` from `src/assets/js/audience-pagination.mjs`.
 - Keep the same Items per page selector (10, 25, 50, 100), result range, Previous arrow, current page / total pages, and Next arrow. Use the shared `.mm-pagination` styles in `audience.css`.
 - Preserve filters, sorting, account scope, and independent pagination parameters. Reset to page 1 when the page size changes, validate sizes on the server, and clamp page numbers to the current result count.
+- Remember Items per page independently for each account, signed-in user, and list/pagination parameter. Restore server list choices through `audienceRememberPageSizes()` and asynchronous choices through the shared renderer; do not use one global page size.
 - Pagination owns the top separator. Mark paginated tables with `data-mm-paginated-table` so their final row and table/container bottom borders do not draw a second line.
 - Do not introduce separate pagination markup, First/Last controls, page-number inputs, or incremental Show more controls in MessageMonkey.
 - Verify multiple pages, empty results, first/last boundaries, filter retention, page-size changes, mobile layout, and both themes when changing pagination.

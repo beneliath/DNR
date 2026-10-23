@@ -1,4 +1,4 @@
-<body class="audience-app email-designer">
+<body class="audience-app email-designer" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>
