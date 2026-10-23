@@ -339,6 +339,7 @@ final class AudienceAiQueries
         if($query['tool']!=='contacts'||$offset<0||$offset>1000000)throw new InvalidArgumentException('Choose a valid contact results page.');
         [$where,$params]=$this->scope($query);
         $total=(int)$this->store->one("SELECT /*+ MAX_EXECUTION_TIME(1500) */ COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
+        if($offset>=$total)$offset=max(0,(int)ceil($total/$query['limit'])-1)*$query['limit'];
         $columns=[['key'=>'first_name','label'=>'First name'],['key'=>'last_name','label'=>'Last name'],['key'=>'email','label'=>'Email address']];
         $selection='c.id,c.first_name,c.last_name,c.email';
         $original=$this->fields[$query['field']]['original_field']??null;
@@ -346,7 +347,7 @@ final class AudienceAiQueries
         if($query['field']!==''&&!in_array($query['field'],['first_name','last_name','email'],true)){$selection.=',('.$this->fields[$query['field']]['sql'].') requested_value';$columns[]=['key'=>'requested_value','label'=>$this->fields[$query['field']]['label']];}
         $limit=$query['limit'];$rows=$this->store->all("SELECT /*+ MAX_EXECUTION_TIME(1500) */ $selection FROM marketing_contacts c WHERE $where ORDER BY c.last_name,c.first_name,c.id LIMIT $limit OFFSET $offset",$params);
         $next=$offset+count($rows);
-        return ['title'=>'Matching audience records','columns'=>$columns,'rows'=>$rows,'total'=>$total,'shown'=>count($rows),'truncated'=>$next<$total,'next_offset'=>$next<$total&&$rows?$next:null];
+        return ['title'=>'Matching audience records','columns'=>$columns,'rows'=>$rows,'total'=>$total,'shown'=>count($rows),'offset'=>$offset,'truncated'=>$next<$total,'next_offset'=>$next<$total&&$rows?$next:null];
     }
 
     private function report(array $query,string $prefix,array &$evidence):void

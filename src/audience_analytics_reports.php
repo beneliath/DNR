@@ -101,6 +101,7 @@ trait AudienceAnalyticsReports
             WHERE $scope GROUP BY r.id";
         $params=[$w['until'],$w['until'],...$params];$where=$activity==='accepted'?'1=1':$activity.'=1';
         $total=(int)$this->one("SELECT COUNT(*) n FROM ($query) observations WHERE $where",$params)['n'];
+        $page=min($page,max(1,(int)ceil($total/$size)));
         $rows=$this->all("SELECT * FROM ($query) observations WHERE $where ORDER BY id DESC LIMIT $size OFFSET ".(($page-1)*$size),$params);
         foreach($rows as&$row){
             $row['destination']='Deleted connection';

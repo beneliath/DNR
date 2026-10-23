@@ -57,6 +57,10 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Audience has been consolidated. Reload this page before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
+        if($action==='delete_tag'||($action==='delete_selected_definitions'&&audienceText($_POST,'kind')==='tags')){
+            if(!$canDelete){http_response_code(403);exit('Tag deletion requires an administrator.');}
+            requireRecentAdminElevation($url(['view'=>'tags']));
+        }
         if($error!=='')throw new InvalidArgumentException($error);
         switch($action){
             case 'save_person':
@@ -142,17 +146,17 @@ $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDE
 $sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
 $counts=$store->one("SELECT COUNT(*) records,COALESCE(SUM(email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(email_status='subscribed'),0) subscribed,COALESCE(SUM(email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL AND is_archived=0",[$audienceId]);
 [$where,$params]=$store->where($filters,$rules);$total=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
-$pageSize=(int)($_GET['per_page']??25);if(!in_array($pageSize,[10,25,50,100],true))$pageSize=25;$page=max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
+$pageSize=audiencePageSize($_GET);$page=max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
 $sort=audienceText($_GET,'sort')?:'created_at';$sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];foreach($fields as$field)if($field['field_type']==='date')$sortColumns[]='custom:'.(int)$field['id'];if(!in_array($sort,$sortColumns,true))$sort='created_at';$direction=($_GET['direction']??'desc')==='asc'?'asc':'desc';
 $connectionOrder=audienceConnectionOrder($sort,$direction,$fields);
 $rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);$rowTags=[];$rowGroups=[];
 foreach($rows as$row){$rowTags[$row['id']]=$store->all('SELECT t.id,t.name FROM marketing_tags t JOIN marketing_contact_tags ct ON ct.tag_id=t.id WHERE ct.contact_id=? AND t.audience_id=? ORDER BY t.name',[$row['id'],$audienceId]);$rowGroups[$row['id']]=$store->all('SELECT o.name,g.id category_id,g.name category FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id JOIN marketing_contact_groups cg ON cg.option_id=o.id WHERE cg.contact_id=? AND g.audience_id=? ORDER BY g.name,o.position',[$row['id'],$audienceId]);}
 $query=$filters+['rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];if($segment)$query['segment']=(int)$segment['id'];
 $contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'','timezone'=>'','is_archived'=>0,'consent_note'=>''];
-$events=[];$notes=[];$eventTotal=0;$eventPage=max(1,(int)($_GET['activity_page']??1));$tab=\Dnr\Http\RequestInput::enum($_GET,'tab',['overview','insights','notes','settings'],'overview');
+$events=[];$notes=[];$eventTotal=0;$eventSize=audiencePageSize($_GET,'activity_size');$eventPage=max(1,(int)($_GET['activity_page']??1));$tab=\Dnr\Http\RequestInput::enum($_GET,'tab',['overview','insights','notes','settings'],'overview');
 if($view==='contact'&&$id){try{$contact=array_replace($contact,$store->person($id));$eventFilter=audienceText($_GET,'activity_type');$days=(int)($_GET['activity_days']??30);if(!in_array($days,[0,7,30,90,365],true))$days=30;$activityYear=(int)($_GET['activity_year']??0);$activityRange=audienceText($_GET,'activity_range');if(preg_match('/^year:(20[0-9]{2})$/D',$activityRange,$rangeMatch))$activityYear=(int)$rangeMatch[1];elseif(in_array($activityRange,['30','90','0'],true)){$days=(int)$activityRange;$activityYear=0;}if($activityYear<2000||$activityYear>(int)gmdate('Y'))$activityYear=0;$notes=$store->all('SELECT * FROM marketing_notes WHERE contact_id=? ORDER BY id DESC',[$id]);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
 if($view==='contact'&&$id){
-    $profileActivity=$store->personActivity($id,$eventFilter,$days,$activityYear,$eventPage,$canManage);$events=$profileActivity['rows'];$eventTotal=$profileActivity['total'];$activityYears=$profileActivity['years'];
+    $profileActivity=$store->personActivity($id,$eventFilter,$days,$activityYear,$eventPage,$canManage,$eventSize);$eventPage=$profileActivity['page'];$events=$profileActivity['rows'];$eventTotal=$profileActivity['total'];$activityYears=$profileActivity['years'];
     $permissionEvent=$store->one("SELECT id,event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('contact_added','subscription_changed') ORDER BY id DESC LIMIT 1",[$id]);
     $importEvent=$store->one("SELECT id,event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('imported','contact_imported') AND JSON_EXTRACT(details_json,'$.source_metadata') IS NOT NULL ORDER BY id DESC LIMIT 1",[$id]);
     $marketingDetails=audienceMarketingDetails($contact,$permissionEvent,$importEvent);

@@ -1,0 +1,16 @@
+---
+description: Use the Audience Connections pagination throughout MessageMonkey
+globs: src/audience*.php,src/templates/audience/**,src/assets/js/audience*,src/assets/css/pages/audience*
+alwaysApply: false
+---
+
+# MessageMonkey pagination
+
+- Use the Audience → Connections pagination for every MessageMonkey list, report, gallery, history, and paginated picker, including new features.
+- Server-rendered lists call `audiencePagination()` from `src/audience_pagination.php`; its shared template is `src/templates/audience/list-pagination.php`.
+- Asynchronous lists use `renderAudiencePagination()` from `src/assets/js/audience-pagination.mjs`.
+- Keep the same Items per page selector (10, 25, 50, 100), result range, Previous arrow, current page / total pages, and Next arrow. Use the shared `.mm-pagination` styles in `audience.css`.
+- Preserve filters, sorting, account scope, and independent pagination parameters. Reset to page 1 when the page size changes, validate sizes on the server, and clamp page numbers to the current result count.
+- Pagination owns the top separator. Mark paginated tables with `data-mm-paginated-table` so their final row and table/container bottom borders do not draw a second line.
+- Do not introduce separate pagination markup, First/Last controls, page-number inputs, or incremental Show more controls in MessageMonkey.
+- Verify multiple pages, empty results, first/last boundaries, filter retention, page-size changes, mobile layout, and both themes when changing pagination.

@@ -41,12 +41,12 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     $deliveryMetric=audienceText($reportInput,'delivery_metric',30)?:'bounce_rate';$deliveryGroup=audienceText($reportInput,'delivery_group',10)?:'campaign';
     if(!in_array($deliveryMetric,['bounce_rate','bounced','unsubscribe_rate','unsubscribed','delivery_rate','delivered'],true)||!in_array($deliveryGroup,['campaign','day','week','month'],true)){http_response_code(400);$error='Choose supported delivery report controls.';$deliveryMetric='bounce_rate';$deliveryGroup='campaign';}
     if(!in_array($metric,array_keys(audienceAnalyticsMetricLabels()),true)||!in_array($group,['campaign','day','week','month'],true)){http_response_code(400);$error='Choose supported report controls.';$metric='accepted';$group='campaign';}
-    $definition=null;$customRows=[];$activityReport=null;$activity=audienceText($reportInput,'activity',20)?:'accepted';$page=max(1,(int)($reportInput['page']??1));
+    $definition=null;$customRows=[];$activityReport=null;$activitySize=audiencePageSize($reportInput);$activity=audienceText($reportInput,'activity',20)?:'accepted';$page=max(1,(int)($reportInput['page']??1));
     $linkHash=audienceText($reportInput,'link',64);
     $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=? ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
-        if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,25,$linkHash);
+        if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);
         if(in_array($section,['links','devices','insights'],true))$evidence=$store->analyticsEvidence($window);
         if($section==='links'&&($reportInput['map']??'')==='1')$clickMap=$store->analyticsClickMap($window,max(0,(int)($reportInput['delivery']??0)));
         if($section==='custom'&&$definition['dataset']==='audience')$sourceOptions=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);

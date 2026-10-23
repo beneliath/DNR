@@ -46,11 +46,12 @@ trait AudienceDesignExtras
     {
         $this->transaction(function()use($kind,$id,$commentId,$version,$resolved){$this->designOwner($kind,$id,true,true);$this->write('UPDATE marketing_design_comments SET resolved=?,version=version+1 WHERE audience_id=? AND owner_type=? AND owner_id=? AND id=? AND version=? AND parent_id IS NULL',[(int)$resolved,$this->audienceId,$kind,$id,$commentId,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This comment changed. Reload the comments.');});
     }
-    public function designLibrary(string $type,string $search='',int $page=1):array
+    public function designLibrary(string $type,string $search='',int $page=1,int $size=20):array
     {
-        if(!in_array($type,['image','section'],true))throw new InvalidArgumentException('Unknown library type.');$search=audienceDesignString($search,100);$page=max(1,$page);
+        if(!in_array($type,['image','section'],true))throw new InvalidArgumentException('Unknown library type.');$search=audienceDesignString($search,100);$size=audiencePageSize(['per_page'=>$size],'per_page',20);$page=max(1,$page);
         $total=(int)$this->one('SELECT COUNT(*) n FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0',[$this->audienceId,$type,$search])['n'];
-        return ['items'=>$this->all('SELECT id,name,item_type,version,updated_at,actor_label FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY updated_at DESC,id DESC LIMIT 20 OFFSET ?',[$this->audienceId,$type,$search,($page-1)*20]),'total'=>$total,'page'=>$page];
+        $page=min($page,max(1,(int)ceil($total/$size)));
+        return ['items'=>$this->all('SELECT id,name,item_type,version,updated_at,actor_label FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?',[$this->audienceId,$type,$search,$size,($page-1)*$size]),'total'=>$total,'page'=>$page,'per_page'=>$size];
     }
     public function designLibraryItem(int $id,bool $lock=false):array
     {

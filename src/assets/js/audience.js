@@ -1,3 +1,5 @@
+import { wireAudiencePagination } from './audience-pagination.mjs';
+wireAudiencePagination();
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
 import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
@@ -154,7 +156,11 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     const button = (text, action, label = text) => el('button', {type: 'button', onclick: action, 'aria-label': label}, text);
     const setValue = (form, name, value) => { const control = form?.elements.namedItem(name); if (control) control.value = value ?? ''; };
     const hidden = (name, value) => el('input', {type: 'hidden', name, value});
-    $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', event => { event.preventDefault(); show(b.dataset.openDialog); }));
+    $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', async event => {
+        event.preventDefault();
+        if (b.hasAttribute('data-admin-unlock-required') && !(await window.DnrAdminUnlock?.request())) return;
+        show(b.dataset.openDialog);
+    }));
     document.addEventListener('invalid', event => {
         let details = event.target.closest('details');
         while (details) { details.open = true; details = details.parentElement.closest('details'); }
@@ -256,6 +262,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         window.addEventListener('pageshow', refresh); refresh();
     }
     const confirmedForms = new WeakSet();
+    const approvedTagDeletes = new WeakSet(), checkingTagDeletes = new WeakSet();
     const confirmation = el('dialog', {'aria-labelledby': 'audience-confirm-title', 'aria-describedby': 'audience-confirm-message'});
     const confirmationForm = el('form', {method: 'dialog'}), confirmationMessage = el('p', {id: 'audience-confirm-message'});
     const confirmationActions = el('div', {class: 'form-actions'});
@@ -267,10 +274,22 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         const pending = pendingConfirmation; pendingConfirmation = null;
         if (confirmation.returnValue === 'continue' && pending) { confirmedForms.add(pending.form); pending.form.requestSubmit(pending.submitter || undefined); }
     });
-    $$('form[data-confirm]').forEach(form => form.addEventListener('submit', event => {
-        if (confirmedForms.has(form)) { confirmedForms.delete(form); return; }
+    $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
+        if (approvedTagDeletes.has(form)) { approvedTagDeletes.delete(form); return; }
+        const confirmed = confirmedForms.delete(form), tagDelete = form.hasAttribute('data-tag-delete-form');
+        if (confirmed && !tagDelete) return;
         if (event.defaultPrevented) return;
-        event.preventDefault(); pendingConfirmation = {form, submitter: event.submitter};
+        event.preventDefault();
+        if (tagDelete) {
+            if (checkingTagDeletes.has(form)) return;
+            checkingTagDeletes.add(form);
+            let unlocked;
+            try { unlocked = await window.DnrAdminUnlock?.request(); }
+            finally { checkingTagDeletes.delete(form); }
+            if (!unlocked) return;
+            if (confirmed) { approvedTagDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
+        }
+        pendingConfirmation = {form, submitter: event.submitter};
         confirmationMessage.textContent = form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
     }));
     $$('[data-filter-search]').forEach(input => input.addEventListener('input', () => {
@@ -944,12 +963,38 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         for (const [name, value] of data) if (name.startsWith('selected[') || name.startsWith('versions[') || name.startsWith('selection_')) holder.append(hidden(name, value));
     };
     $$('[data-open-dialog="campaign-move"]').forEach(button => button.addEventListener('click', () => populateCampaignSelection($('#campaign-move form'))));
-    $('[data-campaign-delete-selected]')?.addEventListener('click', () => {
-        const form = $('[data-campaign-operation-form]'); populateCampaignSelection(form); setValue(form, 'operation', 'delete'); form.dataset.confirm = 'Delete the selected campaigns?'; form.requestSubmit();
+    const openCampaignLifecycle = async (operation, row = null) => {
+        const dialog = $(`#campaign-${operation}`);
+        if (!dialog) return;
+        const form = $('form', dialog);
+        if (!form || (operation === 'delete' && !(await window.DnrAdminUnlock?.request()))) return;
+        populateCampaignSelection(form, row);
+        $('[data-campaign-lifecycle-summary]', form).textContent = row ? row.name : $('[data-campaign-selection-count]')?.textContent || '';
+        if (form.elements.confirm) form.elements.confirm.value = '';
+        show(dialog.id);
+    };
+    $$('[data-campaign-lifecycle-selected]').forEach(button => button.addEventListener('click', () => openCampaignLifecycle(button.dataset.campaignLifecycleSelected)));
+    $$('[data-campaign-delete-form],[data-flow-delete-form]').forEach(deleteForm => {
+        let approved = false, checking = false;
+        deleteForm.addEventListener('submit', async event => {
+            if (approved) { approved = false; return; }
+            event.preventDefault(); event.stopImmediatePropagation();
+            if (checking) return;
+            checking = true;
+            try {
+                if (await window.DnrAdminUnlock?.request()) {
+                    approved = true;
+                    deleteForm.requestSubmit(event.submitter || undefined);
+                }
+            } finally { checking = false; }
+        });
     });
-    $$('[data-campaign-row]').forEach(button => button.addEventListener('click', () => {
+    $$('[data-campaign-row]').forEach(button => button.addEventListener('click', async () => {
         const row = JSON.parse(button.dataset.campaignRow), operation = button.dataset.campaignOp;
         hideCampaignPopovers();
+        if (['archive','restore','delete'].includes(operation)) {
+            await openCampaignLifecycle(operation, row); return;
+        }
         if (operation === 'rename' || operation === 'move') {
             const dialog = operation === 'rename' ? 'campaign-rename' : 'campaign-move';
             const form = $(`#${dialog} form`); populateCampaignSelection(form, row);
@@ -957,8 +1002,6 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
             show(dialog); return;
         }
         const form = $('[data-campaign-operation-form]'); populateCampaignSelection(form, row); setValue(form, 'operation', operation);
-        form.dataset.confirm = `Delete “${row.name}”?`;
-        if (operation === 'replicate') confirmedForms.add(form);
         form.requestSubmit();
     }));
     $$('[data-campaign-cancel-section]').forEach(button => button.addEventListener('click', () => { button.form.reset(); button.closest('details').open = false; }));

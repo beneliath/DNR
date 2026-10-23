@@ -2,13 +2,14 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {runInNewContext} = require('node:vm');
-const source = readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-ai.js'),'utf8');
+const source = readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-pagination.mjs'),'utf8').replace(/^export /gm,'')+'\n'+readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-ai.js'),'utf8').replace(/^import .*$/gm,'');
 class Element {
   constructor(){this.listeners={};this.children=[];this.hidden=true;this.value='';this.textContent='';this.dataset={};this.style={setProperty(){}};this.scrollHeight=44;this.classList={toggle(){},add(){}};}
   addEventListener(type,callback){this.listeners[type]=callback;}
   append(...children){this.children.push(...children);}
   replaceChildren(...children){this.children=children;}
   setAttribute(name,value){(this.attributes??={})[name]=value;}
+  querySelectorAll(){return this.children.flatMap(child=>[...(['button','select'].includes(child.tagName)?[child]:[]),...child.querySelectorAll()]);}
   closest(){return null;}
   focus(){}
   scrollIntoView(){}
@@ -20,7 +21,7 @@ function page(fetcher, mode='content', options={}){
   const root={querySelector:find,querySelectorAll:selector=>selector==='[data-ai-starter]'?options.starters||[]:[],setAttribute(name,value){(this.attributes??={})[name]=value;},closest(){return null;},hasAttribute:()=>!!options.chat,style:{setProperty(){}},classList:{toggle(){}},getBoundingClientRect:()=>({top:160})};
   const dialog=find('[data-ai-history-confirm]');dialog.showModal=()=>{dialog.open=true;Promise.resolve(options.confirm?options.confirm():true).then(confirmed=>{dialog.returnValue=confirmed?'confirm':'cancel';dialog.open=false;dialog.listeners.close();});};
   let saved=options.pending?JSON.stringify(options.pending):null,sequence=0,unlockRequests=0;const requests=[];const storage=options.storage||new Map();
-  const context={document:{getElementById:()=>({textContent:JSON.stringify({mode,key:'account-role-session',endpoint:'audience_ai_api.php',enabled:true,window:options.window||{start:'2026-01-01'}})}),querySelector:selector=>selector==='[data-ai-root]'?root:selector==='[data-ai-history-confirm]'&&options.omitConfirmation?null:options.chat||options.historyItems?find(selector):null,createElement:()=>new Element(),createTextNode:text=>Object.assign(new Element(),{textContent:text}),createElementNS:(_,tag)=>Object.assign(new Element(),{tagName:tag}),addEventListener(){}},
+  const context={document:{getElementById:()=>({textContent:JSON.stringify({mode,key:'account-role-session',endpoint:'audience_ai_api.php',enabled:true,window:options.window||{start:'2026-01-01'}})}),querySelector:selector=>selector==='[data-ai-root]'?root:selector==='[data-ai-history-confirm]'&&options.omitConfirmation?null:options.chat||options.historyItems?find(selector):null,createElement:tag=>Object.assign(new Element(),{tagName:tag}),createTextNode:text=>Object.assign(new Element(),{textContent:text}),createElementNS:(_,tag)=>Object.assign(new Element(),{tagName:tag}),addEventListener(){}},
     FormData:class{constructor(){return [['text',form.elements.text.value],['prompt',form.elements.prompt.value],['operation',mode==='analytics'?'analyze':'rewrite']][Symbol.iterator]();}},
     crypto:{randomUUID:()=> `01234567-1234-1234-1234-${String(++sequence).padStart(12,'0')}`},sessionStorage:{getItem:()=>saved,setItem:(_,value)=>{saved=value;},removeItem:()=>{saved=null;}},
     localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},window:{addEventListener(){},DnrAdminUnlock:options.omitUnlock?undefined:{request:async()=>{unlockRequests++;return options.unlock?options.unlock():true;}}},Event:class{constructor(type){this.type=type;}},
@@ -211,21 +212,22 @@ test('saved replies display cited cards, and query results display returned cont
   assert.equal(textOf(q.find('[data-ai-chat-transcript]')).includes('could not be displayed'),false);
 });
 
-test('contact pagination appends the remaining matches without submitting another AI request',async()=>{
+test('contact pagination replaces pages without submitting another AI request',async()=>{
   const rows=Array.from({length:30},(_,index)=>({name:`Contact ${index+1}`,email:`person${index+1}@example.test`}));
-  const table={id:'query_0_contacts',title:'Matching audience records',total:30,shown:5,truncated:true,next_offset:5,columns:[{key:'name',label:'Name'},{key:'email',label:'Email'}],rows:rows.slice(0,5)};
+  const table={id:'query_0_contacts',title:'Matching audience records',total:30,shown:10,truncated:true,next_offset:10,columns:[{key:'name',label:'Name'},{key:'email',label:'Email'}],rows:rows.slice(0,10)};
   const result={...analyticsReply,observations:[],evidence:{...analyticsReply.evidence,facts:[],tables:[table]}};
-  const p=page(url=>url.includes('action=contacts')?{table:{...table,rows:rows.slice(5),shown:25,truncated:false,next_offset:null}}:{state:'complete',response:result},'analytics',{chat:true,window:reportWindow});
+  const p=page(url=>url.includes('action=contacts')?{table:{...table,offset:10,rows:rows.slice(10,20),shown:10,truncated:true,next_offset:20}}:{state:'complete',response:result},'analytics',{chat:true,window:reportWindow});
   await p.submit();
   const answer=p.find('[data-ai-chat-transcript]').children[1];
-  const more=answer.children.find(item=>item.textContent==='Show more results');
-  assert.ok(more);assert.ok(textOf(answer).includes('Showing 5 of 30'));
+  const pager=answer.children.find(item=>item.dataset.mmPagination==='');
+  assert.ok(pager);assert.ok(textOf(answer).includes('Showing 10 of 30'));
   p.find('[data-ai-form]').elements.prompt.value='An unsent follow-up';
-  await more.listeners.click();
-  assert.ok(textOf(answer).includes('Showing 30 of 30'));assert.ok(textOf(answer).includes('person30@example.test'));
-  assert.equal(more.hidden,true);assert.equal(p.find('[data-ai-form]').elements.prompt.value,'An unsent follow-up');
+  await pager.children[2].children[2].listeners.click();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.ok(textOf(answer).includes('person20@example.test'));assert.ok(!textOf(answer).includes('person1@example.test'));
+  assert.ok(textOf(pager).includes('2 / 3'));assert.equal(p.find('[data-ai-form]').elements.prompt.value,'An unsent follow-up');
   assert.equal(p.requests.filter(request=>request.options?.method==='POST').length,1);
-  assert.ok(p.requests.some(request=>request.url.includes('table_id=query_0_contacts&offset=5')));
+  assert.ok(p.requests.some(request=>request.url.includes('table_id=query_0_contacts&offset=10&per_page=10')));
 });
 
 test('clarification is displayed as a question without unrelated metric cards',async()=>{

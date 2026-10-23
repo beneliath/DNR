@@ -81,6 +81,11 @@ if($isPost){
             case 'campaign_section':$store->saveCampaignSection($id,$version,audienceText($_POST,'section'),$_POST);$redirect=$url(['view'=>'campaign','id'=>$id]);$message='Changes saved.';break;
             case 'campaign_operation':
                 $operation=audienceText($_POST,'operation');$selected=audienceIds($_POST['selected']??[]);$versions=is_array($_POST['versions']??null)?$_POST['versions']:[];
+                if($operation==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can permanently delete archived campaigns.');}
+                    requireRecentAdminElevation($campaignUrl());
+                    if(audienceText($_POST,'confirm',10)!=='DELETE')throw new InvalidArgumentException('Type DELETE to permanently delete the selected archived campaigns.');
+                }
                 if(($_POST['selection_scope']??'')==='all'){
                     $selectionFilters=audienceCampaignFilters(audienceJson(audienceText($_POST,'selection_filters',3000)));
                     [$selectionWhere,$selectionParams]=audienceCampaignWhere($audienceId,$selectionFilters);
@@ -89,7 +94,7 @@ if($isPost){
                     $matching=array_map('intval',array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $selectionWhere",$selectionParams),'id'));
                     if(array_diff($selected,$matching))throw new InvalidArgumentException('The selected results changed. Reload before continuing.');
                 }
-                $new=$store->campaignOperation($operation,$selected,$versions,$_POST);$message=match($operation){'rename'=>'Campaign renamed.','move'=>'Campaigns moved.','delete'=>'Campaigns deleted.',default=>'Draft replicated.'};if($new)$redirect=$url(['view'=>'campaign','id'=>$new]);break;
+                $new=$store->campaignOperation($operation,$selected,$versions,$_POST);$message=match($operation){'rename'=>'Campaign renamed.','move'=>'Campaigns moved.','archive'=>'Campaigns archived.','restore'=>'Campaigns restored. Restoring does not resume delivery.','delete'=>'Campaigns permanently deleted.',default=>'Draft replicated.'};if($new)$redirect=$url(['view'=>'campaign','id'=>$new]);break;
             default:throw new InvalidArgumentException('Unknown campaign action.');
         }
         $_SESSION['audience_message']=$message;header('Location: '.$redirect);exit;
@@ -103,9 +108,10 @@ $folders=$store->campaignFolders();
 $recentCampaigns=$canManage?$store->all('SELECT id,name,version,status FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY updated_at DESC,id DESC LIMIT 3',[$audienceId]):[];
 [$campaignWhere,$campaignParams]=audienceCampaignWhere($audienceId,$campaignFilters);
 $campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
-$campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/25)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
+$campaignSize=(int)$campaignFilters['per_page'];
+$campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/$campaignSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
 $dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
-$campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT 25 OFFSET ?",[...$campaignParams,($campaignPage-1)*25]),'id');
+$campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT ? OFFSET ?",[...$campaignParams,$campaignSize,($campaignPage-1)*$campaignSize]),'id');
 $campaignRowsById=[];$campaignRows=[];
 if($campaignRowIds)foreach($store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds])as$campaignRow)$campaignRowsById[$campaignRow['id']]=$campaignRow;
 foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRowId]))$campaignRows[]=$campaignRowsById[$campaignRowId];
@@ -121,7 +127,8 @@ if($campaignFilters['layout']==='calendar'){
 }
 $campaign=null;$recipientCount=null;$targetError='';
 if(in_array($view,['campaign','campaign-review','campaign-send','campaign-delivery'],true)){
-    try{$campaign=$store->campaign($id);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
+    try{$campaign=$store->campaign($id,false,$view==='campaign-delivery');}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
+    if($campaign['deleted_at'])$canSend=false;
     if(!empty($campaign['draft']['recipients_saved']))try{[$targetWhere,$targetParams]=$store->campaignTarget($campaign['draft']);$recipientCount=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $targetWhere",$targetParams)['n'];}catch(InvalidArgumentException $e){$targetError=$e->getMessage();}
 }
 // Shared shell dependencies, without loading a page of unrelated Connections.
@@ -135,8 +142,9 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
     if($view==='campaign-plan'){try{$plan=$store->campaignPlan($id);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
     $planSearch=audienceText($_GET,'plan_search',100);$planSort=in_array($_GET['plan_sort']??'',['updated_at','name'],true)?$_GET['plan_sort']:'updated_at';$planDirection=($_GET['plan_direction']??'desc')==='asc'?'asc':'desc';
     $planTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL AND LOCATE(?,name)>0',[$audienceId,$planSearch])['n'];
-    $planPage=max(1,min(max(1,(int)ceil($planTotal/25)),\Dnr\Http\RequestInput::positiveInt($_GET,'plan_page')??1));
-    $planRows=$store->all("SELECT * FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY $planSort $planDirection,id $planDirection LIMIT 25 OFFSET ?",[$audienceId,$planSearch,($planPage-1)*25]);
+    $planSize=audiencePageSize($_GET,'plan_size');
+    $planPage=max(1,min(max(1,(int)ceil($planTotal/$planSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'plan_page')??1));
+    $planRows=$store->all("SELECT * FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY $planSort $planDirection,id $planDirection LIMIT ? OFFSET ?",[$audienceId,$planSearch,$planSize,($planPage-1)*$planSize]);
     $planChoices=$store->all('SELECT id,name FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);
     $planWhere=$plan?' AND t.plan_id=?':'';$planParams=$plan?[$id]:[];
     [$plannerStart,$plannerEnd]=audienceCampaignPlannerRange($plannerDate,$plannerScale);
@@ -177,12 +185,12 @@ if(in_array($view,['content','brand'],true)){
     if($view==='content'){$contentLibrary=$store->contentList($_GET);$contentId=\Dnr\Http\RequestInput::positiveInt($_GET,'item')??0;if($contentId){try{$contentItem=$store->designLibraryItem($contentId);$contentItem['usage']=$store->contentUsage($contentItem);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}}
     else{$brandTemplates=$store->all('SELECT id,name,version FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);$brandPreview=$store->brandedDesign(audienceDesignStarters()['newsletter']['design'],$brand,!empty($brand['logo']));}
 }
-$publication=$campaign?$store->campaignPublication((int)$campaign['id']):null;
+$publication=$campaign&&!$campaign['deleted_at']?$store->campaignPublication((int)$campaign['id']):null;
 $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$id):[];
 $campaignMergeTags=$store->campaignMergeTags();
 $previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
 $sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
-$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc'],$changes));
+$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc','plan_size'=>$planSize??25],$changes));
 $pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>
