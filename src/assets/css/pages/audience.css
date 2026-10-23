@@ -1077,7 +1077,7 @@ html body .content-filters .content-filter-apply-reminder{background:var(--audie
 .collection-survey-builder{grid-template-columns:360px minmax(0,1fr)}
 .collection-survey-builder.survey-questions-active{display:block;background:var(--audience-surface)}
 .collection-survey-builder.survey-questions-active .collection-controls{position:static;max-height:none;max-width:1050px;margin:0 auto;border:0;padding:32px 24px;width:100%;overflow:visible}
-.collection-survey-builder.survey-questions-active .collection-preview{display:none}
+.collection-survey-builder.survey-questions-active .collection-preview:not(.preview-focus){display:none}
 .collection-survey-builder .collection-question{padding:0;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:0;border:0;background:transparent;margin:24px 0 40px}
 .collection-question>.collection-list-head{grid-column:1/-1;border-top:1px solid var(--audience-primary);padding:12px 0;margin:0}
 .collection-question-main,.collection-question-settings{padding:24px;background:var(--audience-surface);border:1px solid var(--audience-border);min-width:0}
