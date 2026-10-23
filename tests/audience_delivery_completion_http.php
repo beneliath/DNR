@@ -57,11 +57,16 @@ $httpEncoded=rtrim(strtr(base64_encode('http://legacy.example.test/news'),'+/','
 $httpClick='audience_track.php?'.http_build_query(['token'=>$ctx['token'],'url'=>$httpEncoded,'sig'=>hash_hmac('sha256',$httpEncoded,$snap['tracking_key'])]);
 $httpRedirect=$public($httpClick);
 audienceHttpExpect($httpRedirect['status']===302&&str_contains($httpRedirect['headers'],'Location: http://legacy.example.test/news'),'Signed HTTP links redirect to the authored destination without fetching it');
+// Exercise the legacy fallback even when an earlier suite published a preference center.
+$runtimeCenters=$campaignStore->all("SELECT id FROM marketing_collection_resources WHERE audience_id=1 AND kind='preferences' AND state='published' AND deleted_at IS NULL");
+try{
+foreach($runtimeCenters as$center)$campaignStore->write("UPDATE marketing_collection_resources SET state='draft' WHERE id=?",[$center['id']]);
 $prefs='audience_subscription.php?token='.$ctx['token'].'&preferences=1';$prefsPage=$editor($prefs);$prefsCsrf=audienceHttpCsrf($prefsPage);$person=$campaignStore->person((int)$rr['contact_id']);$tagsBefore=$person['tag_ids'];
 audienceHttpExpect($prefsPage['status']===200&&str_contains($prefsPage['body'],'Update your preferences')&&!preg_match('/Warning:|Fatal error:/',$prefsPage['body']),'Private preferences renders');
 audienceHttpExpect($editor($prefs,['csrf_token'=>'bad','preference_action'=>'save','version'=>$person['version']])['status']===400,'Preferences require CSRF');
 $res=$editor($prefs,['csrf_token'=>$prefsCsrf,'preference_action'=>'save','version'=>$person['version'],'first_name'=>'Updated by recipient','last_name'=>'Test','timezone'=>'Asia/Tokyo','email'=>'attacker@example.test','email_status'=>'cleaned','tag_ids'=>[]]);$person=$campaignStore->person((int)$rr['contact_id']);
 audienceHttpExpect($res['status']===200&&$person['first_name']==='Updated by recipient'&&$person['email']===$ctx['context']['EMAIL']&&$person['email_status']==='subscribed'&&$person['tag_ids']===$tagsBefore,'Preferences preserve email, consent and private tags');
+}finally{foreach($runtimeCenters as$center)$campaignStore->write("UPDATE marketing_collection_resources SET state='published' WHERE id=?",[$center['id']]);}
 $public('audience_subscription.php?token='.$ctx['token'],['List-Unsubscribe'=>'One-Click']);$campaignStore->requestSubscriptionConfirmation((int)$rr['contact_id'],$dispatchBase);$confirmMail=$campaignStore->one("SELECT * FROM marketing_service_mail WHERE kind='confirmation' ORDER BY id DESC LIMIT 1");$payload=audienceJson(\Dnr\Security\ApplicationKey::open($confirmMail['payload_ciphertext']));preg_match('/confirm=([a-f0-9]{64})/',$payload['message']['text'],$match);$confirmationToken=$match[1];
 audienceHttpExpect(!$campaignStore->confirmSubscription($confirmationToken)&&$public('audience_subscription.php?confirm='.$confirmationToken)['status']===200,'Undelivered confirmation and GET do not subscribe');
 processAudienceServiceMail($conn,5,static fn()=> 'development');audienceHttpExpect(!$campaignStore->confirmSubscription($confirmationToken),'Development receipt cannot grant consent');
