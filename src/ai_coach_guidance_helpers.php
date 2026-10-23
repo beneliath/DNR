@@ -62,6 +62,40 @@ function aiCoachAnswerHistory(array $request): array
     return aiCoachPageExplanation($request) ? [] : array_slice($request['history'], -4);
 }
 
+/** Empty means this built-in question was already asked. Null defers to the
+ * model when a different prior question needs semantic goal resolution. */
+function aiCoachClarificationQuestion(array $request, string $question): ?string
+{
+    if ($question === '') return '';
+    $prompt = aiCoachNormalize(explode('?', $question, 2)[0]);
+    $otherQuestion = false;
+    foreach (array_reverse($request['history'] ?? []) as $message) {
+        if ($message['role'] !== 'assistant') continue;
+        if ((!isset($message['page']) || $message['page'] === $request['page'])
+            && $prompt !== '' && str_contains(aiCoachNormalize($message['content']), $prompt)) return '';
+        if (str_contains($message['content'], '?')) $otherQuestion = true;
+    }
+    return $otherQuestion ? null : $question;
+}
+
+/** Consecutive failure-diagnosis turns on the same form share one clarification.
+ * A different intent or an explicitly different form starts a separate context. */
+function aiCoachDiagnosticClarificationUsed(array $request): bool
+{
+    if (($request['history'] ?? []) === [] || aiCoachIntentMode($request) !== 'troubleshoot') return false;
+    $asked = false;
+    foreach (array_reverse($request['history']) as $message) {
+        if (isset($message['page']) && $message['page'] !== $request['page']) return false;
+        if ($message['role'] === 'assistant') {
+            $asked = $asked || str_contains($message['content'], '?');
+        } else {
+            if (aiCoachIntentMode(['question'=>$message['content']]) !== 'troubleshoot') return false;
+            if ($asked) return true;
+        }
+    }
+    return false;
+}
+
 function aiCoachLocationContext(array $request): array
 {
     $previous = null;
@@ -182,7 +216,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     if (preg_match('/^(?:how many\b|(?:what is|what s) (?:the )?(?:total(?: number)?|number|count) of\b|(?:please )?(?:count|total)\b)/', $q)
         && preg_match('/\b(engagements?|events?|tasks?|contacts?|organizations?|inquiries|presentations?)\b/', $q)
         && !preg_match('/\b(can|could|may|should|allowed|maximum|minimum|limit|per|need|require|required)\b/', $q)) {
-        return ['message'=>'I can explain MOED’s controls, but I cannot read or count your live records. I cannot determine that total from the page or conversation. A manual description of a summary is not your actual record count.',
+        return ['message'=>'I can explain MOED’s controls, but I cannot read or count your live records. The Calendar can display real record counts, but I do not receive those totals. Events and engagements are the same event records; events can span months, so adding monthly counts cannot establish a distinct multi-month total.',
             'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'engine'=>'live-data-boundary'];
     }
     // Preserve grounded current-page explanations. Structural metadata alone
@@ -190,11 +224,13 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     $element = '(?:this|that) (?:button|field|control|section|part(?: of (?:the |this )?(?:interface|screen|page))?)';
     if ((!aiCoachPageExplanation($request) || $request['page'] === 'other')
         && preg_match('/^(?:what does '.$element.' do|what is '.$element.'(?: for)?|what is the (?:purpose|function) of '.$element.'|explain '.$element.')(?: please)?$/', $q)) {
-        return ['message'=>'Please tell me the button, field, or section label you mean. I receive page information, but I cannot see where you are pointing.',
-            'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'engine'=>'interface-clarification'];
+        $question = aiCoachClarificationQuestion($request, 'What is the button, field, or section label? Copy its exact text, for example Save Changes; if there is no label, describe the control and its location.');
+        if ($question === null) return null;
+        return ['message'=>'I receive page information, but I cannot see where you are pointing.',
+            'question'=>$question, 'sources'=>[], 'mode'=>'conversation', 'engine'=>'interface-clarification'];
     }
     if (preg_match('/^(thanks|thank you|thank you very much|thanks that helped|great thanks|got it|ok|okay|hello|hi|hey)$/', $q)) {
-        return ['message' => preg_match('/^(hello|hi|hey)$/', $q) ? 'Hello! What would you like to learn about MOED?' : 'You’re welcome. I’m here when you need help with the next step.',
+        return ['message' => preg_match('/^(hello|hi|hey)$/', $q) ? 'Hello! I can explain MOED’s features or guide you through a task.' : 'You’re welcome. I’m here when you need help with the next step.',
             'question' => '', 'sources' => [], 'mode' => 'conversation', 'engine' => 'conversation'];
     }
     $contextQuestion = aiCoachContextQuestion($request);
@@ -234,7 +270,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     }
     if (preg_match('/\b(closeout|close out|financial reminder)\b/', $q)
         && preg_match('/\b(remove|archive|delete|disable|bypass|skip|turn off|stop|do not want|don t want)\b/', $q)) {
-        return ['message' => 'The built-in financial closeout reminder is required. It cannot be removed or archived to bypass closeout. Are you trying to complete a closeout, or change an optional Standard Event Task?',
+        return ['message' => 'The built-in financial closeout reminder is required. It cannot be removed or archived to bypass closeout.',
             'question' => '', 'sources' => aiCoachSources(aiCoachRetrieve('financial closeout reminder required')), 'mode' => 'guide', 'engine' => 'verified-capabilities'];
     }
     if (preg_match('/^(what (time|date) is it|what is (the time|today s date)|what day is it)( now| today)?$/', $q)) {
@@ -254,7 +290,11 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
             'question'=>'','sources'=>aiCoachSources(aiCoachRetrieve('PowerPoint 500 MB')), 'mode'=>'manual','engine'=>'verified-file-limits'];
     }
     if (preg_match('/^(can i |how do i |how can i )?(add|write|record)( some| a)? notes?$/', $q)) {
-        return ['message'=>'MOED has task Notes, Chron Log entries, and speaker-notes PDFs on presentations. Which kind of note do you want to add?', 'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'engine'=>'intent-clarification'];
+        $question = aiCoachClarificationQuestion($request, 'Do you mean task Notes, a Chron Log entry about an event, or a speaker-notes PDF for a presentation? Choose one, or describe what the notes are for.');
+        if ($question === null) return null;
+        return ['message'=>$question === ''
+            ? 'Task Notes belong to a task, Chron Log entries record event activity, and speaker-notes PDFs belong to a presentation. I cannot select one of those procedures from the details available.'
+            : 'MOED stores notes in different places depending on their purpose.', 'question'=>$question, 'sources'=>[], 'mode'=>'conversation', 'engine'=>'intent-clarification'];
     }
     if (!aiCoachCreationIntent($q) && preg_match('/\b(booked|agreed)\b/', $q) && preg_match('/\b(visit|conference|event)\b/', $q) && preg_match('/\b(schedule|system|enter|add|record|start)\b/', $q)) {
         return ['message'=>'If this already has a Booking Pipeline inquiry, open that inquiry and select Convert to Engagement after its organization, title, and preferred dates are ready. Otherwise, open Engagements and select + New Engagement, then complete the event form. Archiving an inquiry is not a step for putting a visit on the schedule.',
@@ -285,7 +325,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     }
 
     $workflow = in_array(aiCoachIntentMode($request), ['explain','ambiguous','troubleshoot'], true) && $q !== 'Understand Waiting Tasks' ? '' : aiCoachMatchWorkflow($contextQuestion);
-    if ($workflow === 'attachments') return ['message' => 'Speaker-notes PDFs and PowerPoint files are separate attachments on each presentation. Which one would you like to work on first?',
+    if ($workflow === 'attachments') return ['message' => 'Speaker-notes PDFs and PowerPoint files are separate attachments on each presentation. File selection prepares the uploads; successful Save Changes saves them.',
         'question' => '', 'sources' => aiCoachSources(aiCoachRetrieve('PDF Speaker Notes PPT Slidedeck')), 'mode' => 'guide', 'workflow_options' => ['notes', 'presentation']];
     if ($workflow !== '') return aiCoachWorkflowReply($workflow, $request);
     $procedure = aiCoachProcedureReply($request);
