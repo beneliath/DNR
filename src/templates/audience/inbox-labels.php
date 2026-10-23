@@ -1,4 +1,4 @@
-<section class="inbox-label-library" aria-labelledby="inbox-label-heading">
+<section class="inbox-labels-library" aria-labelledby="inbox-label-heading">
     <header class="inbox-library-heading"><div><h1 id="inbox-label-heading">Labels <span><?= count($labels) ?></span></h1><p>Keep related conversations together.</p></div><a class="button primary" href="<?= $h($url(['panel'=>'labels','new'=>1])) ?>">+ Add label</a></header>
     <div class="inbox-label-grid">
         <?php foreach($labels as$l): ?>

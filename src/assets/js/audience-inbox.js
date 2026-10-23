@@ -218,7 +218,7 @@
     event.preventDefault(); search.focus();
   });
   document.addEventListener('click',event => {
-    document.querySelectorAll('.inbox-label-picker[open],.inbox-sender-details[open]').forEach(details => { if (!details.contains(event.target)) details.open = false; });
+    document.querySelectorAll('.inbox-labels-picker[open],.inbox-sender-details[open]').forEach(details => { if (!details.contains(event.target)) details.open = false; });
   });
   let timer;
   const recipients = document.querySelector('[data-inbox-recipient-search]');

@@ -25,7 +25,7 @@ function audienceInboxAlertEmail(string $url,bool $sample=false,string $kind='in
 <tr><td height="16" style="height:16px"></td></tr>
 <tr><td class="inbox-email-content" bgcolor="#ffffff" style="padding:34px 32px;border:1px solid #dfe4ec;border-radius:14px;background:#ffffff">
 <?php if($sample): ?><span style="display:inline-block;padding:5px 10px;border-radius:6px;background:#eff4ff;color:#2457d6;font-size:12px;font-weight:700">SAMPLE NOTIFICATION</span><?php endif; ?>
-<h1 style="margin:18px 0 14px;color:#172033;font-size:28px;line-height:1.25;font-weight:700">Your Inbox has new activity</h1>
+<h1 style="margin:18px 0 14px;color:#172033;font-size:28px;line-height:1.25;font-weight:700">Your Inbox Has New Activity</h1>
 <p style="margin:0 0 16px;color:#424d61;font-size:16px;line-height:1.7"><?= $h($intro) ?></p>
 <p style="margin:0 0 28px;color:#667085;font-size:15px;line-height:1.7">Open the conversation to read the message, reply, or leave a note for your team.</p>
 <table role="presentation"><tr><td bgcolor="#2457d6" style="padding:14px 24px;border-radius:9px;background:#2457d6"><a href="<?= $safeUrl ?>" style="display:inline-block;color:#ffffff;font-size:16px;font-weight:700;line-height:1.3;text-decoration:none">Open Inbox &#8594;</a></td></tr></table>
