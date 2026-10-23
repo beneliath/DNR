@@ -284,7 +284,7 @@ foreach(['forms','landing-pages']as$largeView)foreach(['asc','desc']as$largeDire
     $largePage=$editor('audience.php?'.http_build_query(['view'=>$largeView,'q'=>'Large landing fixture','direction'=>$largeDirection,'per_page'=>10]));
     $largeDom=new DOMDocument();@$largeDom->loadHTML($largePage['body']);$largeXpath=new DOMXPath($largeDom);$largeNames=array_map(static fn($n)=>$n->textContent,iterator_to_array($largeXpath->query('//table[contains(@class,"collection-table")]/tbody/tr/td[1]//strong')));
     $expectedLargeNames=array_map(static fn($n)=>'Large landing fixture '.sprintf('%02d',$n),$largeDirection==='asc'?range(1,10):range(12,3));
-    audienceHttpExpect($largePage['status']===200&&$largeNames===$expectedLargeNames&&str_contains($largePage['body'],'Page 1 of 2'),'Large landing documents render with exact order and pagination: '.$largeView.' '.$largeDirection);
+    audienceHttpExpect($largePage['status']===200&&$largeNames===$expectedLargeNames&&str_contains($largePage['body'],'1 / 2'),'Large landing documents render with exact order and pagination: '.$largeView.' '.$largeDirection);
 }
 $largeNext=$editor('audience.php?view=landing-pages&q=Large+landing+fixture&per_page=10&page=2&direction=asc');
 audienceHttpExpect($largeNext['status']===200&&str_contains($largeNext['body'],'<strong>Large landing fixture 11</strong>')&&str_contains($largeNext['body'],'<strong>Large landing fixture 12</strong>')&&!str_contains($largeNext['body'],'<strong>Large landing fixture 01</strong>'),'Large landing second page preserves its filter and remaining rows');

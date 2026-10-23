@@ -11,6 +11,8 @@ $client=static function(string $path,?array $post=null)use($cookie):array{$curl=
 try{
  $login=$client('login.php');$login=$client('login.php',['csrf_token'=>paginationCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);paginationHttpExpect($login['status']===302,'Editor fixture login');
  $store=new AudienceStore($db,1,$actor,'Pagination fixture');$people=[];$flowIds=[];$formIds=[];$threads=[];
+ // Other integration suites can leave valid export jobs in this shared disposable database.
+ $exportHistoryTotal=70+(int)$store->one("SELECT COUNT(*) n FROM marketing_jobs WHERE audience_id=1 AND job_type='export' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(params_json,'$.history_deleted')),'0') NOT IN ('1','true')")['n'];
  $doc=audienceFlowDefault();$doc['trigger']=['type'=>'manual'];$doc['nodes']=[['id'=>'finish','type'=>'exit']];$doc['start']='finish';
  for($i=1;$i<=70;$i++){
   $name=$prefix.' '.str_pad((string)$i,3,'0',STR_PAD_LEFT);
@@ -50,7 +52,7 @@ try{
   $response=$client('audience.php?'.http_build_query($params+[$sizeKey=>$size,$pageKey=>2]));paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),$name.' renders page size '.$size.' without runtime errors');
   if(getenv('DNR_PAGINATION_CAPTURE')==='1'&&$size===50){$folder='/tmp/mm-pagination-review';if(!is_dir($folder))mkdir($folder,0700);file_put_contents($folder.'/'.strtolower(str_replace(' ','-',$name)).'.html',$response['body']);}
   $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);$nav=$xpath->query('//nav[@data-mm-pagination and @aria-label="'.$label.'"]')->item(0);paginationHttpExpect($nav!==null,$name.' uses the shared pager');
-  $range=$xpath->query('.//*[@class="mm-pagination-range"]',$nav)->item(0)->textContent;paginationHttpExpect(trim($range)===($size===10?'11–20 of 70':'51–70 of 70'),$name.' reflects the actual requested slice: '.$range);
+  $range=$xpath->query('.//*[@class="mm-pagination-range"]',$nav)->item(0)->textContent;$expectedTotal=$name==='Export history'?$exportHistoryTotal:70;$expectedRange=($size+1).'–'.min($size*2,$expectedTotal).' of '.$expectedTotal;paginationHttpExpect(trim($range)===$expectedRange,$name.' reflects the actual requested slice: '.$range);
   if($rows!==null)paginationHttpExpect($xpath->query($rows)->length===($size===10?10:20),$name.' query returns the requested number of records');
   foreach($xpath->query('.//a',$nav)as$link){parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$query);foreach($params as$key=>$value)paginationHttpExpect((string)($query[$key]??'')===(string)$value,$name.' retains '.$key);}
  }

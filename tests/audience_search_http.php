@@ -10,7 +10,8 @@ $conn->execute_query('UPDATE marketing_contacts SET deleted_at=UTC_TIMESTAMP() W
 $searchTitle=$searchTerm.' <script>literal</script>';
 $searchCampaign=$campaignStore->createCampaign(['name'=>$searchTitle,'campaign_type'=>'regular']);
 $searchRemovedCampaign=$campaignStore->createCampaign(['name'=>$searchTerm.' removed','campaign_type'=>'regular']);
-$campaignStore->campaignOperation('delete',[$searchRemovedCampaign],[$searchRemovedCampaign=>1]);
+$campaignStore->campaignOperation('archive',[$searchRemovedCampaign],[$searchRemovedCampaign=>1]);
+$campaignStore->campaignOperation('delete',[$searchRemovedCampaign],[$searchRemovedCampaign=>2]);
 $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Search isolation fixture',JSON_OBJECT())");$searchForeignId=(int)$conn->insert_id;
 $searchForeign=new AudienceStore($conn,$searchForeignId,1,'Search fixture');
 $searchForeign->savePerson(['email'=>'foreign-search-'.$suffix.'@example.test','first_name'=>$searchTerm,'email_status'=>'non-subscribed']);
