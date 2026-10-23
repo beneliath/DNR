@@ -45,7 +45,6 @@ try{
   ['Runs',['view'=>'flow-report','id'=>$flow],'Execution pages','page','per_page','//*[contains(concat(" ",normalize-space(@class)," ")," flow-run ")]'],
   ['Contact activity',['view'=>'contact','id'=>$person,'activity_type'=>'pagination_fixture','activity_days'=>0],'Connection activity pages','activity_page','activity_size',null],
   ['Export history',['view'=>'jobs','kind'=>'export'],'Export history pages','history_page','history_size',null],
-  ['Conversations',['view'=>'inbox','q'=>$prefix],'Conversation pages','page','per_page',null],
   ['Conversation messages',['view'=>'inbox','thread'=>$thread],'Conversation message pages','message_page','message_size',null],
  ];
  foreach($cases as[$name,$params,$label,$pageKey,$sizeKey,$rows])foreach([10,50]as$size){
@@ -55,6 +54,16 @@ try{
   $range=$xpath->query('.//*[@class="mm-pagination-range"]',$nav)->item(0)->textContent;$expectedTotal=$name==='Export history'?$exportHistoryTotal:70;$expectedRange=($size+1).'–'.min($size*2,$expectedTotal).' of '.$expectedTotal;paginationHttpExpect(trim($range)===$expectedRange,$name.' reflects the actual requested slice: '.$range);
   if($rows!==null)paginationHttpExpect($xpath->query($rows)->length===($size===10?10:20),$name.' query returns the requested number of records');
   foreach($xpath->query('.//a',$nav)as$link){parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$query);foreach($params as$key=>$value)paginationHttpExpect((string)($query[$key]??'')===(string)$value,$name.' retains '.$key);}
+ }
+ foreach([10,50]as$size){
+  $response=$client('audience.php?'.http_build_query(['view'=>'inbox','q'=>$prefix,'per_page'=>$size,'page'=>2]));
+  paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),'Continuous conversation list renders without runtime errors');
+  $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);
+  $rows=$xpath->query('//a[contains(concat(" ",normalize-space(@class)," ")," inbox-thread-item ")]');
+  paginationHttpExpect($rows->length===70,'Conversation list includes all 70 matching threads despite stale page and size parameters');
+  paginationHttpExpect($xpath->query('//nav[@data-mm-pagination and @aria-label="Conversation pages"]')->length===0,'Continuous conversation list has no pager');
+  paginationHttpExpect($xpath->query('//a[contains(concat(" ",normalize-space(@class)," ")," inbox-thread-item ") and @aria-current]')->length===0,'Landing does not select a conversation');
+  paginationHttpExpect(str_contains($response['body'],'Choose a conversation'),'Unselected conversation reader shows selection guidance');
  }
  foreach([10,50]as$size){$a=$store->designLibrary('image',$prefix,1,$size);$b=$store->designLibrary('image',$prefix,2,$size);paginationHttpExpect(count($a['items'])===$size&&count($b['items'])===min($size,70-$size)&&!array_intersect(array_column($a['items'],'id'),array_column($b['items'],'id')),'Image/section library uses disjoint pages at size '.$size);}
  require_once __DIR__.'/audience_analytics_fixtures.php';audienceAnalyticsFixture($store,'Pagination analytics');

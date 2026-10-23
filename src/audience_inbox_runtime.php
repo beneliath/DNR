@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_store.php';
+require_once __DIR__.'/audience_inbox_email.php';
 
 /** Consume a signed Inbox route before the ordinary Engagement/Inquiry filing path. */
 function processAudienceInboxInbound(mysqli $db,int $id):?string
@@ -54,7 +55,7 @@ function audienceInboxDeliveryMessage(array $message):array
 {
     $files=[];$total=0;
     foreach($message['attachments']??[]as$file){$bytes=base64_decode($file['data_base64']??'',true);if($bytes===false)throw new DomainException('Invalid frozen attachment.');$attachment=audienceInboxAttachment($file['filename']??'',$bytes,false);$total+=$attachment['size'];if($total>AUDIENCE_INBOX_ATTACHMENTS_BYTES||count($files)>=10)throw new DomainException('Inbox attachments exceed the delivery limit.');$files[]=$attachment;}
-    $message['attachments']=$files;return $message;
+    $message['attachments']=[...$files,...audienceInboxAlertInlineImages($message['inline_images']??[])];return $message;
 }
 
 /** Retain signed test/Inbox receipts without replaying mail or changing test-recipient consent. */
@@ -88,7 +89,7 @@ function queueAudienceInboxAlerts(mysqli $db,int $limit=10):int
         $count+=$store->transaction(function()use($store,$row,$s){$n=$store->one('SELECT * FROM marketing_inbox_notifications WHERE id=? AND audience_id=1 FOR UPDATE',[$row['id']]);if(!$n||$n['read_at']||$n['email_checked_at'])return 0;
             $u=$store->one("SELECT u.id,u.email FROM users u JOIN marketing_inbox_user_settings p ON p.user_id=u.id AND p.audience_id=1 AND p.email_alerts=1 WHERE u.id=? AND u.role IN ('admin','editor') AND u.account_status='active' AND u.email_verified_at IS NOT NULL",[$n['user_id']]);if(!$u)return 0;
             $url=rtrim(accountPrimaryPublicUrl(),'/').'/audience.php?view=inbox&thread='.$n['thread_id'];$messageId='<inbox-alert-'.bin2hex(random_bytes(24)).'@message-monkey.invalid>';
-            $message=['email'=>audienceInboxEmail($u['email']),'subject'=>'New activity in MessageMonkey Inbox','text'=>'New Inbox activity is ready to review: '.$url,'html'=>null,'from_email'=>$s['from_email'],'from_name'=>'MessageMonkey Inbox','message_id'=>$messageId,'ses_binding'=>audienceSesBinding($s),'inbox_notification_user'=>(int)$u['id'],'inbox_notification_id'=>(int)$n['id']];
+            $message=['email'=>audienceInboxEmail($u['email'])]+audienceInboxAlertEmail($url,false,$n['kind'])+['from_email'=>$s['from_email'],'from_name'=>'MessageMonkey Inbox','message_id'=>$messageId,'ses_binding'=>audienceSesBinding($s),'inbox_notification_user'=>(int)$u['id'],'inbox_notification_id'=>(int)$n['id']];
             $sealed=\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR));
             $store->write("INSERT INTO marketing_service_mail(audience_id,kind,actor_id,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (1,'inbox-alert',?,'Inbox notifications',?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY))",[$u['id'],hash('sha256','inbox-alert:'.$n['id']),$sealed,$messageId]);$mail=(int)$store->db->insert_id;
             $store->write('UPDATE marketing_inbox_notifications SET email_mail_id=?,email_checked_at=UTC_TIMESTAMP() WHERE id=? AND audience_id=1',[$mail,$n['id']]);return 1;

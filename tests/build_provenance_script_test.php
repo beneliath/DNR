@@ -109,10 +109,13 @@ expectBuildProvenanceScript(
     'the s1 workflow should reject ambiguous source and stale previews, then verify provenance, migrations, health, and readiness.'
 );
 expectBuildProvenanceScript(
-    str_contains($readme, '`[super].[major].[minor]` = `x.y.z`')
+    str_contains($readme, '`[major].[minor].[patch]` = `x.y.z`')
+        && str_contains($readme, 'a major release is `(x+1).0.0`')
+        && str_contains($readme, 'a minor release is' . "\n" . '`x.(y+1).0`')
+        && str_contains($readme, 'a patch release is `x.y.(z+1)`')
         && str_contains($readme, '`1.10.3` becomes `1.10.4`')
         && str_contains($readme, './scripts/deploy_s1.sh "$(git rev-parse HEAD)"'),
-    'release and deployment documentation should preserve the project version ontology and one-command s1 path.'
+    'release and deployment documentation should describe SemVer increments and the one-command s1 path.'
 );
 
 echo "Build provenance script tests passed.\n";

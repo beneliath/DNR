@@ -18,13 +18,23 @@ Use the running development app's source bind mounts. For PHP source changes, re
 
 Run focused checks, confirm that the local server serves the updated asset fingerprints, and verify the requested behavior on the actual page before reporting it ready. A sample demo is not evidence that the local application has been updated. See the persistent [local development deployment rule](../.cursor/rules/local-development-deployment.mdc).
 
-## Minor bump deployment shorthand
+## SemVer deployment shorthands
 
-Going forward, the instruction **"do a minor bump deployment"** means:
+As of October 23, 2026, release instructions use **Major.Minor.Patch** (`x.y.z`):
 
-> Do the following in order: increase the patch version from x.y.z to x.y.(z+1). Commit all pending project changes, including the version bump, on the current working branch. Merge that branch into main, then push main to every configured remote. After all pushes succeed, trigger the established s1 (192.168.1.150) deployment workflow for that exact main commit. Monitor the deployment through completion and report the result.
+| Requested deployment | Version transition | Example from `2.6.25` | Preparation command |
+| --- | --- | --- | --- |
+| Major deployment / major bump deployment | `(x+1).0.0` | `3.0.0` | `scripts/prepare_release major --base-ref origin/main` |
+| Minor deployment / minor bump deployment | `x.(y+1).0` | `2.7.0` | `scripts/prepare_release minor --base-ref origin/main` |
+| Patch deployment / patch bump deployment | `x.y.(z+1)` | `2.6.26` | `scripts/prepare_release patch --base-ref origin/main` |
 
-Invoking this shorthand authorizes the complete sequence, including the merge, all configured remote pushes, and the s1 deployment, without separate confirmation for each step. The project's word `minor` means the patch increment `x.y.(z+1)`. All pending project changes includes modified files, deletions, and untracked files. Every configured remote currently includes `origin` and `gitlab`; resolve the full set from Git configuration when executing the request.
+A major increment resets both lower components; a minor increment resets the patch component. These definitions replace the former project-specific numbering terminology. Application and Mattermost plugin bumps follow the same increments.
+
+Each deployment instruction means:
+
+> Do the following in order: increase the version using the requested SemVer increment above. Commit all pending project changes, including the version bump, on the current working branch. Merge that branch into main, then push main to every configured remote. After all pushes succeed, trigger the established s1 (192.168.1.150) deployment workflow for that exact main commit. Monitor the deployment through completion and report the result.
+
+Invoking a deployment shorthand authorizes the complete sequence, including the merge, all configured remote pushes, and the s1 deployment, without separate confirmation for each step. All pending project changes includes modified files, deletions, and untracked files. Every configured remote currently includes `origin` and `gitlab`; resolve the full set from Git configuration when executing the request.
 
 Follow the detailed workflow below, preserving its protected merge checks, successful final-main CI, release-tag publication, remote verification, and verified backup before upgrade. Commit the pending work and version bump on the working branch before merging. Deploy only the exact final merged `main` SHA after all required pushes and checks succeed. If a required stage fails, report it and resolve it before deployment. Monitor through completion and report the release version, deployed SHA, remote synchronization, and deployment/readiness result.
 
@@ -32,10 +42,10 @@ The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.m
 
 ### Standing destination authorization
 
-The user reaffirmed on September 24, 2026 that **"do a minor bump deployment"**,
-**"do a major bump deployment"**, and **"do a super bump deployment"** each include
-the following destination-specific authorization, as do requests to continue those
-deployments:
+The user reaffirmed the following destination-specific authorization on September
+24, 2026. It continues to apply to major, minor, and patch deployment requests and
+requests to continue those deployments; the October 23 SemVer change updates only
+the version names and increments:
 
 > I authorize publishing all pending project source and release artifacts, including
 > the release branch, main, and version tag, to GitHub `beneliath/DNR`
@@ -54,33 +64,9 @@ readiness checks remain mandatory. Project rules cannot override external approv
 decisions. If an external approval system rejects an action, respect the block and
 identify it accurately rather than suggesting the user's directive was incomplete.
 
-## Major bump deployment shorthand
-
-Going forward, the instruction **"do a major bump deployment"** means:
-
-> Do the following in order: increase the patch version from x.y.z to x.(y+1).0. Commit all pending project changes, including the version bump, on the current working branch. Merge that branch into main, then push main to every configured remote. After all pushes succeed, trigger the established s1 (192.168.1.150) deployment workflow for that exact main commit. Monitor the deployment through completion and report the result.
-
-The numeric transition is authoritative: the project's `major` bump increments `y` and resets `z` to zero, producing `x.(y+1).0`. Use `scripts/prepare_release major --base-ref origin/main` to prepare this version.
-
-Invoking this shorthand authorizes the complete sequence without separate confirmation for each step. The scope of pending changes and configured remotes, protected merge checks, successful final-main CI, release-tag publication, remote verification, verified backup before upgrade, failure handling, and monitoring/reporting requirements are the same as for the minor bump deployment above. Deploy the exact final merged `main` SHA to s1 at `192.168.1.150` only after all required pushes and checks succeed.
-
-The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
-
-## Super bump deployment shorthand
-
-Going forward, the instruction **"do a super bump deployment"** means:
-
-> Do the following in order: increase the patch version from x.y.z to (x+1).0.0. Commit all pending project changes, including the version bump, on the current working branch. Merge that branch into main, then push main to every configured remote. After all pushes succeed, trigger the established s1 (192.168.1.150) deployment workflow for that exact main commit. Monitor the deployment through completion and report the result.
-
-The numeric transition is authoritative: the project's `super` bump increments `x` and resets both `y` and `z` to zero, producing `(x+1).0.0`. Use `scripts/prepare_release super --base-ref origin/main` to prepare this version.
-
-Invoking this shorthand authorizes the complete sequence without separate confirmation for each step. The scope of pending changes and configured remotes, protected merge checks, successful final-main CI, release-tag publication, remote verification, verified backup before upgrade, failure handling, and monitoring/reporting requirements are the same as for the minor bump deployment above. Deploy the exact final merged `main` SHA to s1 at `192.168.1.150` only after all required pushes and checks succeed.
-
-The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
-
 ## Deployment notice and save window
 
-At the **beginning** of any minor, major, or super bump deployment workflow, before version preparation or Git/CI work, run:
+At the **beginning** of any major, minor, or patch deployment workflow, before version preparation or Git/CI work, run:
 
 ```sh
 ./scripts/deployment_notice.sh start
@@ -110,15 +96,15 @@ The first rollout of the two-stage behavior requires the new status endpoint and
 
 ### Bounded end-to-end runner
 
-For an authorized minor, major, or super bump deployment, use the release runner
+For an authorized major, minor, or patch deployment, use the release runner
 instead of manually polling each protected check and deployment phase:
 
 ```sh
-python3 scripts/release_s1.py minor --summary "concise release behavior"
+python3 scripts/release_s1.py patch --summary "concise release behavior"
 ```
 
-Use `major` or `super` for those project bump conventions and add
-`--plugin-bump minor|major|super` only when the Mattermost plugin changed. The
+Use `major` or `minor` for the corresponding SemVer increments and add
+`--plugin-bump major|minor|patch` only when the Mattermost plugin changed. The
 summary becomes the commit and PR title. `--plan` validates the local branch and
 remote configuration without changing files, publishing, or contacting s1.
 
@@ -143,8 +129,8 @@ Before starting the deployment notice, the runner checks AI Coach procedure, for
 and application-map source hashes. Refresh stale reviewed hashes and regenerate the
 application map before retrying the release.
 
-1. Start the deployment notice above, then fetch current `origin/main` and work on a feature/release branch. Near release preparation, run `scripts/prepare_release minor --base-ref origin/main` for a minor bump deployment, `scripts/prepare_release major --base-ref origin/main` for a major bump deployment, or `scripts/prepare_release super --base-ref origin/main` for a super bump deployment. The project vocabulary is `minor` = x.y.(z+1), `major` = x.(y+1).0, `super` = (x+1).0.0. Repeating the same preparation does not allocate another version. `scripts/prepare_release check` is read-only.
-2. If the plugin changes, add `--plugin-bump minor` (or the intended project bump). `mattermost-plugin/plugin.json` is authoritative; the Makefile and compiled client User-Agent derive their version from it.
+1. Start the deployment notice above, then fetch current `origin/main` and work on a feature/release branch. Near release preparation, run `scripts/prepare_release major|minor|patch --base-ref origin/main`, choosing one increment from the SemVer table above. Repeating the same preparation does not allocate another version. `scripts/prepare_release check` is read-only.
+2. If the plugin changes, add `--plugin-bump patch` (or the intended SemVer increment). `mattermost-plugin/plugin.json` is authoritative; the Makefile and compiled client User-Agent derive their version from it.
 3. Apply the [Comprehensive Guide version requirement](#comprehensive-guide-version-for-s1) after finalizing the release version. Commit all pending project changes, including the version bump and any rebuilt guide, on the current working branch before merging. Publish the working branch as needed for the protected PR workflow.
 4. Review the PR and merge when authorized; invoking any of the deployment shorthands above supplies that authorization. `scripts/merge_pr.sh PR_NUMBER` requests squash auto-merge for the observed PR head. Repository auto-merge must be enabled by an owner if this optional feature is used. No administrator bypass, reviewer requirement, or merge queue is added. Keep the six required checks and strict up-to-date protection.
 5. Wait for **CI on the final merged main SHA**, including `release-image`. That job builds or reuses commit-tagged application, ingress, database and Proton Bridge images, scans their software inventories, exercises the application image, rehearses the native backup/restore gate on its disposable database, and uploads `release-SHA`. Only a successful run qualifies its manifest. Registry access errors stop a retry instead of rebuilding over a possibly existing tag.

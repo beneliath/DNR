@@ -1,5 +1,6 @@
 import importlib.machinery
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -24,25 +25,45 @@ loader.exec_module(prepare)
 
 class BoundedReleaseRunner(unittest.TestCase):
     def test_resume_preserves_unpublished_version_and_rejects_published_or_wrong_versions(self):
+        for kind, expected, wrong_kind in (
+            ('major', '3.0.0', 'minor'),
+            ('minor', '2.6.0', 'patch'),
+            ('patch', '2.5.10', 'major'),
+        ):
+            with self.subTest(bump=kind):
+                self.check_resume(kind, expected, wrong_kind)
+
+    def check_resume(self, kind, expected, wrong_kind):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'VERSION').write_text('2.5.1\n')
-            args = SimpleNamespace(resume_version='2.5.1', bump='minor', plugin_bump=None)
+            (root / 'VERSION').write_text(expected + '\n')
+            args = SimpleNamespace(resume_version=expected, bump=kind, plugin_bump=None)
             def git(*command):
-                return {'origin/main:VERSION': '2.5.1', 'deployed:VERSION': '2.5.0'}.get(command[-1], '')
+                return {'origin/main:VERSION': expected, 'deployed:VERSION': '2.5.9'}.get(command[-1], '')
             with patch.object(release_s1, 'ROOT', root), patch.object(release_s1, 'git', side_effect=git), patch.object(release_s1, 'run') as run:
                 release_s1.prepare_version(args, 'deployed')
                 run.assert_called_once_with(['scripts/prepare_release', 'check', '--base-ref', 'deployed'])
-                args.resume_version = '2.5.2'
+                args.resume_version = '9.9.9'
                 with self.assertRaisesRegex(ValueError, 'same prepared version'):
                     release_s1.prepare_version(args, 'deployed')
-                args.resume_version = '2.5.1'
+                args.resume_version = expected
                 with patch.object(release_s1, 'git', side_effect=lambda *c: 'published' if c[0] == 'ls-remote' else git(*c)):
                     with self.assertRaisesRegex(ValueError, 'already published'):
                         release_s1.prepare_version(args, 'deployed')
-                args.bump = 'major'
+                args.bump = wrong_kind
                 with self.assertRaisesRegex(ValueError, 'requested bump'):
                     release_s1.prepare_version(args, 'deployed')
+
+    def test_cli_uses_semver_bumps_for_application_and_plugin(self):
+        for kind in ('major', 'minor', 'patch'):
+            with self.subTest(bump=kind):
+                args = release_s1.parse_args([kind, '--plugin-bump', kind, '--summary', 'SemVer release'])
+                self.assertEqual((args.bump, args.plugin_bump), (kind, kind))
+        for arguments in (['super'], ['patch', '--plugin-bump', 'super']):
+            with self.subTest(arguments=arguments), patch('sys.stderr', new_callable=io.StringIO), \
+                    self.assertRaises(SystemExit) as error:
+                release_s1.parse_args([*arguments, '--summary', 'SemVer release'])
+            self.assertEqual(error.exception.code, 2)
 
     def test_qualification_only_retains_release_without_deploying(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -118,10 +139,10 @@ class ReleaseWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'timezone'):
             timestamp_utc('2026-09-05T13:51:40')
 
-    def test_project_version_vocabulary(self):
-        self.assertEqual(prepare.bump('1.11.6','minor'),'1.11.7')
-        self.assertEqual(prepare.bump('1.11.6','major'),'1.12.0')
-        self.assertEqual(prepare.bump('1.11.6','super'),'2.0.0')
+    def test_semver_increments_reset_lower_components(self):
+        self.assertEqual(prepare.bump('1.11.6','major'),'2.0.0')
+        self.assertEqual(prepare.bump('1.11.6','minor'),'1.12.0')
+        self.assertEqual(prepare.bump('1.11.6','patch'),'1.11.7')
         with self.assertRaises(ValueError): prepare.version('1.01.6')
     def test_release_manifest_rejects_unqualified_inputs(self):
         m=dict(format=1,commit='a'*40,version=(ROOT/'VERSION').read_text().strip(),
@@ -134,15 +155,47 @@ class ReleaseWorkflow(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError): release_manifest.validate(dict(m,**{field:bad}))
         with self.assertRaises(ValueError): release_manifest.validate(m,expected='d'*40)
     def test_preparation_is_idempotent(self):
+        for kind, expected, plugin_expected in (
+            ('major', '2.0.0', '1.0.0'),
+            ('minor', '1.12.0', '0.5.0'),
+            ('patch', '1.11.7', '0.4.7'),
+        ):
+            with self.subTest(bump=kind):
+                self.check_preparation(kind, expected, plugin_expected)
+
+    def check_preparation(self, kind, expected, plugin_expected):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'mattermost-plugin').mkdir()
             (root/'VERSION').write_text('1.11.6\n'); (root/'mattermost-plugin/plugin.json').write_text('{"version":"0.4.6"}\n')
-            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',return_value='1.11.6'), patch.object(prepare.subprocess,'run'), patch.object(sys,'argv',['prepare_release','minor']):
+            def git(*args):
+                return '{"version":"0.4.6"}' if args[-1].endswith('plugin.json') else '1.11.6'
+            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',side_effect=git), patch.object(prepare.subprocess,'run'), patch.object(sys,'argv',['prepare_release',kind,'--plugin-bump',kind]):
                 prepare.main(); prepare.main()
-                self.assertEqual((root/'VERSION').read_text(),'1.11.7\n')
-            before=(root/'VERSION').read_bytes()
-            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',return_value='1.11.6'), patch.object(prepare.subprocess,'run'), patch.object(sys,'argv',['prepare_release','check']): prepare.main()
-            self.assertEqual((root/'VERSION').read_bytes(),before)
+                self.assertEqual((root/'VERSION').read_text(),expected + '\n')
+                self.assertEqual(json.loads((root/'mattermost-plugin/plugin.json').read_text())['version'],plugin_expected)
+            before={path:path.read_bytes() for path in (root/'VERSION',root/'mattermost-plugin/plugin.json')}
+            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',side_effect=git), patch.object(prepare.subprocess,'run'), patch.object(sys,'argv',['prepare_release','check']): prepare.main()
+            for path, content in before.items():
+                self.assertEqual(path.read_bytes(),content)
+
+    def test_preparation_rejects_retired_super_bump_before_accessing_release_state(self):
+        for arguments in (['super'], ['patch', '--plugin-bump', 'super']):
+            with self.subTest(arguments=arguments), patch.object(sys,'argv',['prepare_release',*arguments]), \
+                    patch('sys.stderr',new_callable=io.StringIO), patch.object(prepare,'git') as git, \
+                    self.assertRaises(SystemExit) as error:
+                prepare.main()
+            self.assertEqual(error.exception.code,2)
+            git.assert_not_called()
+
+    def test_different_prepared_bump_is_rejected_without_writing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'VERSION').write_text('1.12.0\n')
+            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',return_value='1.11.6'), \
+                    patch.object(sys,'argv',['prepare_release','patch']), \
+                    self.assertRaisesRegex(ValueError,'different release bump'):
+                prepare.main()
+            self.assertEqual((root/'VERSION').read_text(),'1.12.0\n')
     def test_host_moved_main_fails_before_checkout_or_writer_stop(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'.git').mkdir()
@@ -171,7 +224,7 @@ class ReleaseWorkflow(unittest.TestCase):
             (root/'mattermost-plugin/plugin.json').write_text('{"version":"0.5.0"}\n')
             def git(*args):
                 return '{"version":"0.4.6"}' if args[-1].endswith('plugin.json') else '1.11.6'
-            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',side_effect=git), patch.object(sys,'argv',['prepare_release','minor','--plugin-bump','minor']), self.assertRaises(ValueError):
+            with patch.object(prepare,'ROOT',root), patch.object(prepare,'git',side_effect=git), patch.object(sys,'argv',['prepare_release','patch','--plugin-bump','patch']), self.assertRaises(ValueError):
                 prepare.main()
             self.assertEqual((root/'VERSION').read_text(),'1.11.6\n')
 

@@ -3,6 +3,13 @@ declare(strict_types=1);
 
 trait AudienceInboxCompose
 {
+    public function inboxDrafts(string $query=''):array
+    {
+        $query=audienceText(['q'=>$query],'q',100);
+        $where="d.audience_id=? AND d.actor_id=? AND d.state='draft'";$parameters=[$this->audienceId,$this->actorId];
+        if($query!==''){$where.=' AND (LOCATE(?,d.subject)>0 OR LOCATE(?,d.body_html)>0 OR LOCATE(?,c.email)>0 OR LOCATE(?,CONCAT_WS(\' \',c.first_name,c.last_name))>0 OR LOCATE(?,t.sender_email)>0 OR LOCATE(?,t.sender_name)>0)';array_push($parameters,$query,$query,$query,$query,$query,$query);}
+        return $this->all("SELECT d.id,d.thread_id,d.subject,d.updated_at,LEFT(d.body_html,2000) preview_html,COALESCE(NULLIF(CONCAT_WS(' ',c.first_name,c.last_name),''),t.sender_name,'') recipient_name,COALESCE(c.email,t.sender_email,'') recipient_email FROM marketing_inbox_drafts d LEFT JOIN marketing_contacts c ON c.audience_id=d.audience_id AND c.id=d.contact_id AND c.deleted_at IS NULL LEFT JOIN marketing_inbox_threads t ON t.audience_id=d.audience_id AND t.id=d.thread_id WHERE $where ORDER BY d.updated_at DESC,d.id DESC",$parameters);
+    }
     public function inboxRecipients(string $query):array
     {
         $query=trim($query);if(mb_strlen($query)>100)throw new InvalidArgumentException('Keep this search under 100 characters.');
