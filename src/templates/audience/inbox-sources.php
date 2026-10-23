@@ -1,7 +1,6 @@
 <h1>Manage sources</h1>
 <div class="inbox-source-workspace">
 <section class="inbox-routing-card" aria-labelledby="inbox-routing-title">
-<span class="inbox-source-icon" aria-hidden="true">✉</span>
 <h2 id="inbox-routing-title">Forward mail to Inbox</h2>
 <p>Use this account’s receiving address for direct messages. Send a test from an external mailbox, such as Gmail or Outlook, and refresh this page to check receipt and sender authentication.</p>
 <p>Preparing an address does not connect email sources or send an email. Test messages stay in Incoming Mail review until routing is connected.</p>

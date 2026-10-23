@@ -63,7 +63,7 @@ if(in_array($view,['home','analytics'],true)){
 <a class="audience-skip" href="#audience-content">Skip to main content</a>
 <header class="audience-topbar">
     <button type="button" class="audience-mobile-menu-button" data-audience-nav-toggle aria-controls="audience-sidebar" aria-expanded="false" aria-label="Open MessageMonkey navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-    <div class="audience-brand"><a class="audience-logo-wrap" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo.svg'); ?></a><span>MOED MessageMonkey</span></div>
+    <div class="audience-brand"><a class="audience-logo-wrap" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><span>MOED MessageMonkey</span></div>
     <button type="button" class="audience-global-search" data-global-search-open aria-label="Search MessageMonkey" aria-haspopup="dialog" aria-controls="audience-search"><?php audienceNavIcon('search'); ?><span>Search...</span></button>
     <?php include __DIR__.'/account-tools.php'; ?>
 </header>
@@ -88,7 +88,7 @@ if(in_array($view,['home','analytics'],true)){
 <main id="audience-content" class="audience-content">
     <div class="audience-page-heading<?= $view==='home'?' analytics-home-heading':($view==='campaigns'?' campaign-list-heading':'') ?>">
         <?php if($view==='flow-templates'&&!empty($flowPreview)): ?><div class="flow-preview-heading"><a href="<?= $h($url(['view'=>'flow-templates'])) ?>" data-flow-catalog-back aria-label="Back to flow templates">←</a><div><nav class="flow-preview-breadcrumbs" aria-label="Breadcrumbs"><a href="<?= $h($url(['view'=>'automations'])) ?>">Automation flows</a><span>/</span><a data-flow-catalog-back href="<?= $h($url(['view'=>'flow-templates'])) ?>">Flow templates</a></nav><h1><?= $h($pageTitle) ?></h1></div></div><?php else: ?><div<?= $view==='form'?' class="collection-editor-heading"':'' ?>>
-            <?php if($view==='form'): ?><a class="audience-logo-wrap collection-editor-logo" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo.svg'); ?></a><?php endif; ?>
+            <?php if($view==='form'): ?><a class="audience-logo-wrap collection-editor-logo" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><?php endif; ?>
             <h1><?= $h($pageTitle) ?><?php if($isAiAnalytics): ?><span class="analytics-ai-beta">Beta</span><?php endif; ?></h1>
         </div><?php endif; ?>
         <?php if($view==='home'): ?><div class="analytics-home-date-tools"><?php include __DIR__.'/analytics-filters.php'; ?></div><?php endif; ?>

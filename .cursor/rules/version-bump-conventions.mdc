@@ -1,11 +1,13 @@
 ---
-description: Apply the DNR version-bump numbering conventions
+description: Apply SemVer major, minor, and patch version increments
 alwaysApply: true
 ---
 
-# Version Bump Conventions
+# SemVer Version Bump Conventions
 
-- In this project, a **minor version bump** always means `[x].[y].[z+1]`.
-- Example: `1.10.21` becomes `1.10.22`.
-- A **major version bump** always means `[x].[y+1].0`.
-- A **super version bump** always means `[x+1].0.0`.
+- Use **Major.Minor.Patch** (`x.y.z`) for application and plugin versions.
+- A **major deployment** or **major version bump** increments `x` and resets `y` and `z`: `(x+1).0.0` (for example, `2.6.25` → `3.0.0`).
+- A **minor bump deployment** or **minor version bump** increments `y` and resets `z`: `x.(y+1).0` (for example, `2.6.25` → `2.7.0`).
+- A **patch deployment** or **patch version bump** increments `z`: `x.y.(z+1)` (for example, `2.6.25` → `2.6.26`).
+- These conventions replace the former project-specific numbering terminology as of October 23, 2026. Use `major`, `minor`, or `patch` with the release tools.
+- Defining or discussing these conventions does not request a version bump or deployment.

@@ -44,9 +44,15 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The October 13, 2026 edition applies to application version **2.5.13** and
+The October 23, 2026 edition applies to application version **2.7.0** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
+
+The operator appendix now documents Major.Minor.Patch versioning. The Inbox uses
+a conversation list and content pane, with explicit selection before reading,
+private drafts in the same layout, and archived reusable reply templates.
+Screenshots retain their recorded capture dates; the version and operator
+appendix were refreshed for this release.
 
 The Tasks sidebar badge now counts only the signed-in user's assigned active
 tasks that are overdue or due today, including Waiting tasks. Future-dated and
