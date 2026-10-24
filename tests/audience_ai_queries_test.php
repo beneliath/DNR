@@ -132,6 +132,10 @@ $expect(audienceAiReply($raw($direct),['mode'=>'analytics','operation'=>'analyze
 $expect($params[0]===73&&!str_contains($sql,'john%_smith')&&in_array('%john!%!_smith%',$params,true),'Account scope and literal wildcard search use bound parameters.');
 $report=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'limit'=>5])]]);
 $expect(count($report['facts'])===1&&str_contains($report['facts'][0]['label'],'Total sends'),'Report queries return only requested metrics.');
+$expect(str_contains($report['scope_description'],'Email reports exclude test emails'),'Report scope visibly distinguishes campaign-recipient data from test activity.');
+$expect(str_contains(implode(' ',$report['limitations']),'acceptance is not confirmed delivery'),'Email evidence distinguishes provider acceptance from receipt-confirmed delivery.');
+$growthScope=$tools->execute(['queries'=>[['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['added'],'limit'=>5]]]);
+$expect(!str_contains($growthScope['scope_description'],'test emails')&&!str_contains(implode(' ',$growthScope['limitations']),'Provider acceptance'),'Email-specific scope does not contaminate audience-growth reports.');
 $recent=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','dimension'=>'links','recent_campaigns'=>3])]]);
 $expect($recent['window']['messages_mode']==='selected'&&$recent['window']['messages']===[7,8,9],'Recent-campaign selection is passed to the native tracking query.');
 $period=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'last_days'=>30])]]);
