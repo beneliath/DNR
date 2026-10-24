@@ -2,6 +2,7 @@ import { wireAudiencePagination } from './audience-pagination.mjs';
 wireAudiencePagination();
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
+import { fitBrandLogoPreview } from './audience-logo-preview.mjs';
 import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
 (() => {
     'use strict';
@@ -276,7 +277,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     });
     $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
         if (approvedDefinitionDeletes.has(form)) { approvedDefinitionDeletes.delete(form); return; }
-        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form]');
+        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form], [data-audience-protected-form]');
         if (confirmed && !protectedDelete) return;
         if (event.defaultPrevented) return;
         event.preventDefault();
@@ -608,7 +609,12 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         row.append(hidden('', option.id || 0), el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group choice name'}));
         row.append(button('↑', event => { if (row.previousElementSibling) row.previousElementSibling.before(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice up'));
         row.append(button('↓', event => { if (row.nextElementSibling) row.nextElementSibling.after(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice down'));
-        row.append(button('×', () => { const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus(); }, 'Remove group choice'));
+        const remove = button('×', async () => {
+            if (option.id && !(await window.DnrAdminUnlock?.request())) return;
+            const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus();
+        }, 'Remove group choice');
+        if (option.id) { remove.setAttribute('data-admin-unlock-required', ''); remove.hidden = !config.canDelete; }
+        row.append(remove);
         groupOptions.append(row); renumberOptions();
     };
     $('[data-add-group-option]')?.addEventListener('click', () => { addGroupOption(); $('[data-group-option]:last-child input[type=text]', groupOptions)?.focus(); });
@@ -1090,19 +1096,37 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('input[type=file]').forEach(input=>enhanceAudienceFileInput(input));
     $$('[data-brand-form] input[type=color]').forEach(input => enhanceColorInput(input,{tile:true}));
     const contentStatus = (form, message) => { const status = $('[data-content-status]', form); if (status) status.textContent = message; };
+    const brandDirtyStates = new WeakMap();
+    $$('[data-brand-form]').forEach(form => {
+        const controls = Array.from(form.elements).filter(input => input.name && !['csrf_token','action','version'].includes(input.name) && !['file','submit','button'].includes(input.type));
+        const value = input => ['checkbox','radio'].includes(input.type) ? input.checked : input.value;
+        const saved = new Map(controls.map(input => [input, value(input)]));
+        const buttons = $$('[data-brand-save]').filter(button => button.form === form);
+        const status = $('[data-brand-unsaved-status]', form); let previous = false;
+        const update = () => {
+            const dirty = form.dataset.brandRecovery === '1' || controls.some(input => value(input) !== saved.get(input));
+            buttons.forEach(button => button.classList.toggle('brand-save-unsaved', dirty));
+            if (status && dirty !== previous) status.textContent = dirty ? 'Unsaved brand settings.' : 'No unsaved brand settings.';
+            previous = dirty;
+        };
+        brandDirtyStates.set(form, update); form.addEventListener('input', update); form.addEventListener('change', update);
+        form.addEventListener('reset', () => queueMicrotask(update)); update();
+    });
     const brandLogoDimensions = (form,key) => {
         const preview=$(`[data-content-preview="${key}"]`,form),label=$(`[data-brand-logo-dimensions="${key}"]`,form);
         if(label)label.textContent=form.elements[key].value&&preview?.naturalWidth?`${preview.naturalWidth} × ${preview.naturalHeight}${form.elements[key].value.startsWith('data:image/svg+xml;')?' · SVG (vector)':' pixels'}`:'';
     };
     $$('[data-brand-form] [data-content-preview]').forEach(preview=>{
-        const update=()=>brandLogoDimensions(preview.closest('form'),preview.dataset.contentPreview);
+        const update=()=>{brandLogoDimensions(preview.closest('form'),preview.dataset.contentPreview);fitBrandLogoPreview(preview);};
         preview.addEventListener('load',update);update();
+        const stage=preview.closest('.content-brand-logo-stage');if(stage&&typeof ResizeObserver!=='undefined')new ResizeObserver(()=>fitBrandLogoPreview(preview)).observe(stage);
     });
     const setContentImage = (form, key, value) => {
         form.elements[key].value = value;
         const preview = $(`[data-content-preview="${key}"]`, form);
-        if (preview) { preview.src = value; preview.hidden = !value; }
+        if (preview) { preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
         if(!value)brandLogoDimensions(form,key);
+        brandDirtyStates.get(form)?.();
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
             if (form.elements[key].value !== value) return;
@@ -1133,7 +1157,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('[data-content-upload],[data-brand-font]').forEach(input => input.addEventListener('change', async () => {
         const form = input.form; if (!form) return;
         const state=contentUploads.get(form),token={};
-        if(!state.pending.size){state.buttons=$$('button:not([type]),button[type="submit"],input[type="submit"]',form).map(button=>[button,button.disabled]);state.buttons.forEach(([button])=>button.disabled=true);}
+        if(!state.pending.size){state.buttons=Array.from(form.elements).filter(button=>button.matches('button,input')&&button.type==='submit').map(button=>[button,button.disabled]);state.buttons.forEach(([button])=>button.disabled=true);}
         state.pending.set(input,token);form.setAttribute('aria-busy','true');
         try {
             const file = selectedUploadFile(input); if (!file) return;
@@ -1184,6 +1208,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
                 setFileDropStatus(input,`${prepared.name} — ready to save.`);
                 contentStatus(form,'Logo ready. Both logos use the default logo’s pixel dimensions. Save to keep your changes.');return;
             }
+            brandDirtyStates.get(form)?.();
             setFileDropStatus(input,`${prepared.name} · ${prepared.optimized?imageFileSize(prepared.originalBytes)+' → ':''}${imageFileSize(prepared.bytes)} — ready to save.`);
             contentStatus(form,prepared.optimized?`Image optimized: ${imageFileSize(prepared.originalBytes)} → ${imageFileSize(prepared.bytes)} · ${prepared.width} × ${prepared.height} pixels. Save to keep this version.`:`Image ready · ${imageFileSize(prepared.bytes)}. Save to keep your changes.`);
         } catch(error) { if(state.pending.get(input)===token){input.value='';setFileDropStatus(input,error.message,true);contentStatus(form,error.message);} }
@@ -1194,6 +1219,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         if(input){finishContentUpload(button.form,input,contentUploads.get(button.form).pending.get(input));input.value='';setFileDropStatus(input);}
         setContentImage(button.form, button.dataset.contentClear, '');
         if(button.dataset.contentClear==='web_font'){button.form.elements.web_font_name.value='';button.form.elements.font_license.checked=false;}
+        brandDirtyStates.get(button.form)?.();
         contentStatus(button.form, 'Removed from this form. Save to keep the change.');
     }));
     const contentEditor = $('[data-content-editor]');

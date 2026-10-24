@@ -58,9 +58,18 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Audience has been consolidated. Reload this page before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
-        if(in_array($action,['delete_tag','delete_segment'],true)||($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))){
-            if(!$canDelete){http_response_code(403);exit('Tag and segment deletion requires an administrator.');}
-            requireRecentAdminElevation($url(['view'=>$action==='delete_tag'||($action==='delete_selected_definitions'&&audienceText($_POST,'kind')==='tags')?'tags':'segments']));
+        $protectedViews=['delete_tag'=>'tags','delete_segment'=>'segments','delete_group'=>'groups','delete_field'=>'fields','undo_import'=>'job','delete_export_history'=>'jobs'];
+        $protectedView=$protectedViews[$action]??null;
+        if($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))$protectedView=audienceText($_POST,'kind');
+        if($action==='save_group'&&$id){
+            $oldOptions=$store->all('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.id=? AND g.audience_id=?',[$id,$audienceId]);
+            $keptOptions=[];foreach(is_array($_POST['options']??null)?$_POST['options']:[]as$option)if(is_array($option)&&is_string($option['name']??null)&&trim($option['name'])!=='')$keptOptions[]=(int)($option['id']??0);
+            if(array_diff(array_map('intval',array_column($oldOptions,'id')),$keptOptions))$protectedView='groups';
+        }
+        if($protectedView!==null){
+            if(!$canDelete){http_response_code(403);exit('This operation requires an administrator and Admin Unlock.');}
+            $return=['view'=>$protectedView];if($action==='undo_import')$return['id']=$id;if($action==='delete_export_history')$return['kind']='export';
+            requireRecentAdminElevation($url($return));
         }
         if($error!=='')throw new InvalidArgumentException($error);
         switch($action){
@@ -97,6 +106,7 @@ if($isPost){
             case 'preview_segment':
                 [$where,$params]=$store->where($filters,$rules);$count=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];$sample=$store->all("SELECT c.id,c.email,c.first_name,c.last_name FROM marketing_contacts c WHERE $where ORDER BY c.id DESC LIMIT 10",$params);releaseApplicationSessionLock();header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['count'=>$count,'people'=>$sample],JSON_THROW_ON_ERROR);exit;
             case 'queue_export':$id=$store->queueSelection('export','Connections export',$store->selectedWhere($_POST,$filters,$rules));$redirect=$url(['view'=>'job','id'=>$id]);break;
+            case 'unsubscribe_emails':$id=$store->queueEmailUnsubscribe(audienceText($_POST,'emails',1300000));$redirect=$url(['view'=>'job','id'=>$id]);break;
             case 'bulk':
                 $operation=audienceText($_POST,'operation');if(!in_array($operation,['archive','restore','unsubscribe','tag','untag','group','ungroup','delete'],true))throw new InvalidArgumentException('Choose a bulk action.');
                 if($operation==='delete'&&(!$canDelete||audienceText($_POST,'confirm_text')!=='DELETE'))throw new InvalidArgumentException('An administrator must type DELETE to permanently remove selected connections.');
@@ -164,15 +174,15 @@ if($view==='contact'&&$id){
 }
 if($isPost&&$error!==''&&($_POST['action']??'')==='save_person'){$view='contact';$contact=array_replace($contact,array_intersect_key($_POST,$contact));}
 $job=null;if(in_array($view,['job','import'],true)&&$id){try{$job=$store->job($id);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
-$pageTitle=match($view){'tags'=>'Tags','groups'=>'Groups','fields'=>'Audience fields and merge tags','segments'=>'Segments','contact'=>$id?'Connection profile':'Add a single connection','settings'=>'Audience settings','import'=>'Import Connections','jobs'=>(($_GET['kind']??'import')==='export'?'Export history':'Import history'),'job'=>$job['name']??'Operation',default=>$filters['archived']==='1'?'Archived connections':'Connections'};
+$pageTitle=match($view){'tags'=>'Tags','groups'=>'Groups','fields'=>'Fields and merge tags','segments'=>'Segments','contact'=>$id?'Connection profile':'Add a single connection','settings'=>'Audience settings','import'=>'Import Connections','jobs'=>(($_GET['kind']??'import')==='export'?'Export history':'Import history'),'job'=>$job['name']??'Operation',default=>$filters['archived']==='1'?'Archived connections':'Connections'};
 $editorRecovery=null;
 if($isPost&&$error!==''){
-    $recoveryDialogs=['save_tag'=>'tag-editor','save_group'=>'group-editor','save_field'=>'field-editor','save_segment'=>'segment-builder','rename_segment'=>'rename-segment','bulk_tag_paste'=>'bulk-tag'];
+    $recoveryDialogs=['save_tag'=>'tag-editor','save_group'=>'group-editor','save_field'=>'field-editor','save_segment'=>'segment-builder','rename_segment'=>'rename-segment','bulk_tag_paste'=>'bulk-tag','unsubscribe_emails'=>'unsubscribe-emails'];
     $failedAction=is_string($_POST['action']??null)?$_POST['action']:'';
     if(isset($recoveryDialogs[$failedAction])){
         $values=[];
         foreach(['id','version','name','display_type','label','merge_tag','field_type','position','default_value','options_text','required','is_public','tag_id','operation','emails']as$key){
-            if(isset($_POST[$key])&&is_scalar($_POST[$key]))$values[$key]=mb_substr((string)$_POST[$key],0,$key==='emails'?200000:10000);
+            if(isset($_POST[$key])&&is_scalar($_POST[$key]))$values[$key]=mb_substr((string)$_POST[$key],0,$key==='emails'?($failedAction==='unsubscribe_emails'?1300000:200000):10000);
         }
         foreach(['required','is_public']as$key)$values[$key]=$values[$key]??'0';
         if(is_array($_POST['options']??null)){

@@ -26,7 +26,7 @@ function audienceSearchCategories(): array
 function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): array
 {
     $pages=[];
-    foreach(['home'=>'Home','analytics'=>'Analytics','contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Audience fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
+    foreach(['home'=>'Home','analytics'=>'Analytics','contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
         $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     }
     foreach(['automations'=>'Automations','flow-templates'=>'Flow templates','forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];

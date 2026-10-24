@@ -114,8 +114,8 @@
 .inbox-main form { margin: 0 0 20px; }
 .inbox-main button, .inbox-main .button { border: 1px solid #bdcbcb; border-radius: 6px; background: var(--inbox-surface); color: var(--inbox-ink); font: inherit; font-size: var(--inbox-font-body); font-weight: 550; padding: 9px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; line-height: 1.4; gap: 7px; }
 .inbox-main button:hover, .inbox-main .button:hover { background: var(--inbox-tint); }
-.inbox-main .primary { background: var(--inbox-accent); color: #fff; border-color: var(--inbox-accent); }
-.inbox-main .primary:hover { filter: brightness(.92); background: var(--inbox-accent); }
+
+
 .inbox-main button:disabled { opacity: .45; cursor: not-allowed; }
 .inbox-main :focus-visible, .inbox-sidebar a:focus-visible, .inbox-top a:focus-visible, .inbox-top button:focus-visible, .inbox-list :focus-visible { outline: 2px solid var(--inbox-accent); outline-offset: 3px; }
 .inbox-main .inbox-icon-button, .inbox-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 5px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--inbox-muted); text-decoration: none; flex-shrink: 0; }
@@ -360,7 +360,7 @@ html.dark-mode .audience-inbox-app, body.dark-mode.audience-inbox-app {
     --inbox-note: #373426;
     --inbox-nav-active: #355653;
 }
-html.dark-mode .inbox-compose, html.dark-mode .inbox-main .primary { color: #122b2b!important; }
+html.dark-mode .inbox-compose { color: #122b2b!important; }
 html.dark-mode .inbox-main button, html.dark-mode .inbox-main .button { border-color: var(--inbox-line); }
 html.dark-mode .inbox-avatar { background: #354b4b; color: #bfd4d2; }
 html.dark-mode .inbox-avatar-contact { background: #423a50; color: #d4c1e8; }

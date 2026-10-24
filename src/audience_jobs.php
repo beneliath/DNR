@@ -52,6 +52,15 @@ trait AudienceJobs
             $this->write('UPDATE marketing_jobs SET params_json=?,state=? WHERE id=?',[json_encode($params,JSON_THROW_ON_ERROR),$start?'queued':'draft',$id]);
         });
     }
+    public function queueEmailUnsubscribe(string $input):int
+    {
+        $emails=audienceUnsubscribeAddresses($input);
+        $placeholders=implode(',',array_fill(0,count($emails),'?'));
+        return $this->queueSelection('bulk','Unsubscribe emails',[
+            "c.audience_id=? AND c.deleted_at IS NULL AND c.email_status NOT IN ('unsubscribed','cleaned') AND c.email IN ($placeholders)",
+            [$this->audienceId,...$emails],
+        ],['action'=>'unsubscribe']);
+    }
     public function queueSelection(string $type,string $name,array $where,array $params=[]):int
     {
         if(!in_array($type,['export','bulk'],true))throw new InvalidArgumentException('Invalid operation.');

@@ -11,9 +11,9 @@ $brandValues['web_font_name']=audienceFontName((string)($brandValues['web_font']
 ?>
 <div class="content-brand-layout">
 <section class="audience-panel content-brand-settings">
-<h2>Your brand</h2>
+<div class="content-brand-heading"><h2>Your brand</h2><button type="submit" form="brand-settings-form" class="primary" data-brand-save aria-describedby="brand-unsaved-status"<?= !$canEditBrand?' disabled':'' ?>>Save brand settings</button></div>
 <p>Set your logos, fonts, colors and button styles. Apply them to a saved template when you are ready.</p>
-<form method="post" data-brand-form>
+<form method="post" id="brand-settings-form" data-brand-form data-brand-recovery="<?= ($campaignRecovery['action']??'')==='brand_save'?'1':'0' ?>">
 <?php $contentForm('brand_save',['version'=>$contentContext['version']]); ?>
 <fieldset<?= !$canEditBrand?' disabled':'' ?>>
 <div class="content-brand-sections">
@@ -27,14 +27,14 @@ $brandValues['web_font_name']=audienceFontName((string)($brandValues['web_font']
 </section>
 <section class="content-brand-section content-brand-wide" aria-labelledby="brand-logos-title">
 <h3 id="brand-logos-title">Logos</h3>
-<p class="audience-help">Both logos use the default logo’s pixel dimensions. The secondary logo is centered with transparent padding to preserve its proportions.</p>
+<p class="audience-help">Previews fit each logo’s artwork while preserving its proportions. Saved logos keep their matching dimensions.</p>
 <div class="content-brand-logo-grid">
 <?php foreach(['logo'=>'Default logo','secondary_logo'=>'Secondary logo']as$key=>$label): ?>
 <div class="content-brand-upload">
 <?php $uploadId='brand-'.$key.'-file';$uploadLabel=$label;$uploadKey=$key;$uploadAccept='image/svg+xml,.svg,image/png,image/jpeg,image/webp';$uploadHelp='SVG up to 2 MB stays vector · PNG, JPEG or WebP up to 20 MB';$uploadTypes='Choose an SVG, PNG, JPEG or WebP logo.';include __DIR__.'/file-drop.php'; ?>
 <input type="hidden" name="<?= $key ?>" value="<?= $h($brandValues[$key]??'') ?>">
 <div class="content-brand-logo-actions">
-<img class="content-logo-preview" alt="<?= $label ?> preview" data-content-preview="<?= $key ?>" src="<?= $h($brandValues[$key]??'') ?>"<?= empty($brandValues[$key])?' hidden':'' ?>>
+<div class="content-brand-logo-stage"<?= empty($brandValues[$key])?' hidden':'' ?>><img class="content-logo-preview" alt="<?= $label ?> preview" data-content-preview="<?= $key ?>" src="<?= $h($brandValues[$key]??'') ?>"<?= empty($brandValues[$key])?' hidden':'' ?>></div>
 <span class="audience-help" data-brand-logo-dimensions="<?= $key ?>"></span>
 <button type="button" data-content-clear="<?= $key ?>">Remove <?= strtolower($label) ?></button>
 </div>
@@ -73,7 +73,8 @@ $brandValues['web_font_name']=audienceFontName((string)($brandValues['web_font']
 </section>
 </div>
 <p role="status" data-content-status></p>
-<div class="dialog-actions"><button class="primary">Save brand settings</button></div>
+<span id="brand-unsaved-status" class="sr-only" role="status" data-brand-unsaved-status></span>
+<div class="dialog-actions"><button type="submit" class="primary" data-brand-save aria-describedby="brand-unsaved-status">Save brand settings</button></div>
 </fieldset>
 </form>
 <?php if($canManage): ?>

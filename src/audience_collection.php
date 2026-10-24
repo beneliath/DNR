@@ -43,7 +43,7 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
         'messages'=>audienceCollectionMessages(), 'advanced'=>['enabled'=>false,'pages'=>['signup'=>'','thanks'=>'','confirm'=>'','unsubscribe'=>'']],
         'required'=>['email'], 'group_ids'=>[], 'tag_ids'=>[], 'permissions'=>[],
         'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
-        'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'description'=>'', 'favicon'=>'',
+        'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'logo_resized'=>false, 'description'=>'', 'favicon'=>'',
         'labels'=>['email'=>'Email address','first_name'=>'First name','last_name'=>'Last name','phone'=>'Phone number'],
         'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from this audience.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
         'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How was your experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
@@ -90,6 +90,7 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     $d['embedded']=audienceCollectionEmbedOptions($input['embedded']??[]);
     foreach (['logo','favicon'] as $key) $d[$key]=audienceCollectionUrl($input[$key]??'',true);
     $d['logo_width']=audienceDesignNumber($input['logo_width']??240,40,1200);
+    $d['logo_resized']=!empty($input['logo_resized']);
     $d['opt_in']=in_array($input['opt_in']??'', ['single','double'],true)?$input['opt_in']:'double';
     $available=['email','first_name','last_name']; $must=['email'];
     foreach ($fields as $f) if ($f['is_public']) { $key='custom:'.$f['id']; $available[]=$key; if ($f['required']) $must[]=$key; }
@@ -133,7 +134,9 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     }
     foreach (array_slice(is_array($input['sections']??null)?$input['sections']:[],0,30) as $s) {
         if (!is_array($s) || !in_array($s['type']??'', ['heading','text','image','button','divider'],true)) throw new InvalidArgumentException('Choose a supported section.');
-        $d['sections'][]=['type'=>$s['type'],'text'=>audienceCollectionText($s['text']??'',5000),'url'=>audienceCollectionUrl($s['url']??'',$s['type']==='image')];
+        $section=['type'=>$s['type'],'text'=>audienceCollectionText($s['text']??'',5000),'url'=>audienceCollectionUrl($s['url']??'',$s['type']==='image')];
+        if($s['type']==='image'&&isset($s['width'])&&$s['width']!=='')$section['width']=audienceDesignNumber($s['width'],40,1200);
+        $d['sections'][]=$section;
     }
     $d['questions']=[]; $ids=[];
     foreach (array_slice(is_array($input['questions']??null)?$input['questions']:[],0,30) as $q) {
