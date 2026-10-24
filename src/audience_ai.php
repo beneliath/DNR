@@ -22,6 +22,29 @@ function audienceAiCanDeleteOwnRequests(string $role):bool
     return in_array($role,['superadmin','admin','editor'],true);
 }
 
+/** Old queue cancellations/timeouts predate assistant-specific terminal replies.
+ * Adapt only owner-scoped audience status reads; never rewrite saved history. */
+function audienceAiNormalizeStatus(array $status, string $mode): array
+{
+    $reply = $status['response'] ?? null;
+    if (in_array($mode, ['analytics', 'content'], true) && ($status['state'] ?? '') === 'complete'
+        && is_array($reply) && !isset($reply['purpose'])
+        && in_array($reply['reason'] ?? '', ['cancelled', 'timeout'], true)) {
+        $terminal = aiCoachTerminalReply('audience-ai:'.$mode, $reply['reason']);
+        foreach (['failure', 'telemetry', 'history_saved'] as $key) {
+            if (array_key_exists($key, $reply)) $terminal[$key] = $reply[$key];
+        }
+        $status['response'] = $terminal;
+    }
+    return $status;
+}
+
+function audienceAiRequestStatus(mysqli $conn, int $userId, string $role, string $requestId, string $mode): ?array
+{
+    $status = aiCoachRequestStatus($conn, $userId, $role, $requestId);
+    return $status === null ? null : audienceAiNormalizeStatus($status, $mode);
+}
+
 /** Separate purpose, permissions and output contract; inference uses the existing coach queue. */
 function audienceAiRequest(array $input,string $role):array
 {

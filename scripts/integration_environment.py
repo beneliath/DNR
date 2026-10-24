@@ -254,7 +254,7 @@ def main():
                     'web', 'php', '/opt/dnr/tests/presentation_slidedeck_http_integration_test.php'], cwd=ROOT, env=env, check=True)
                 return
             if coach_only:
-                for suite in ('ai_coach_http_integration_test.php', 'ai_coach_queue_integration_test.php', 'ai_coach_feedback_integration_test.php'):
+                for suite in ('ai_coach_http_integration_test.php', 'ai_coach_queue_integration_test.php', 'audience_ai_terminal_http_integration_test.php', 'ai_coach_feedback_integration_test.php'):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
