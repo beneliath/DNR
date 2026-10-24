@@ -1,6 +1,6 @@
 # MOED runtime instruction cleanup — October 23, 2026
 
-Implemented on `codex/moed-qwen-cleanup`, based on `bedfa7a61743b213a43291cd6ec211ce81651440`. The localhost cancellation fix remains on its separate branch. This cleanup was not deployed; persistent runtime configuration and business records were not changed.
+Implemented on `codex/moed-qwen-cleanup`, based on `bedfa7a61743b213a43291cd6ec211ce81651440`. The localhost cancellation fix remains on its separate branch. Initial qualification changed no persistent runtime configuration or business records. The cleanup was subsequently applied to localhost:8080 through read-only source overrides for the primary web service and both coach workers; no production deployment occurred.
 
 ## Behavior
 
@@ -53,6 +53,16 @@ Raw core replies with nonempty question fields increased from 2/10 to 4/10; the 
 | Additional affiliation | Keeps one person and the additional organization's own role/title, without inventing primary-role choices. |
 
 Nine focused PHP test files pass: helpers, clarification, interface references, regression, live counts, location, sources, presentation intents, and presentation deletion. Routing/retrieval checks pass 123/123, source-fingerprint tests 2/2, and coach JavaScript tests 20/20. Tests cover incomplete replies, differently worded diagnostic questions, intervening limitations, distinct contexts, supplied errors, permissions, and unchanged inference defaults. Worker source/configuration fingerprints and Qwen metadata were unchanged before/after synthetic inference. Tests did not enter business-data or request-history endpoints.
+
+## Localhost browser verification
+
+The requested sequence passed on the running localhost:8080 application with the cancellation fix mounted separately:
+
+- In a new AI Coach conversation on User Manual, “Saving a task failed. Can you diagnose the cause? I haven’t provided the error text.” received one necessary question: “What exact error appeared? Copy its text and any named field; if no message appeared, say so and describe what happened instead.” The coach stated that it could not determine the cause.
+- The incomplete reply “It still failed. I don’t have the error text.” received “The cause remains unknown. Documented requirements describe possible conditions, not which one occurred.” There was no second question or invented diagnosis.
+- In Analytics AI, the campaign-summary request displayed “Request stopped” and Retry immediately after Stop and after reloading and reopening its saved history entry. This required a separate cancellation-branch UI correction and a local ingress asset override; neither is included in this Qwen branch.
+
+The running web container also passed the clarification and terminal-response contract tests. Primary web, both workers, and ingress were healthy, and the five Qwen runtime PHP/catalog files matched this branch. These browser checks created ordinary request-history entries without editing business records. No additional inference or model/thinking comparison was run beyond the requested live sequence.
 
 ## Remaining limitations
 
