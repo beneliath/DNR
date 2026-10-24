@@ -83,12 +83,32 @@ test('chat shows working animation immediately, then preserves follow-up turns a
   assert.notEqual(firstCard.children[0].id,secondCard.children[0].id);
 });
 
-test('stopping chat hides the animation and prevents a late answer from entering the conversation',async()=>{
-  let finish;const p=page((url,options)=>JSON.parse(options.body).action==='cancel'?{saved:true}:new Promise(resolve=>{finish=resolve;}),'analytics',{chat:true,window:reportWindow});
-  const submitting=p.submit();await p.find('[data-ai-stop]').listeners.click();
-  assert.equal(p.find('[data-ai-thinking]').hidden,true);
+test('stopping chat immediately shows a stopped card with Retry and ignores late answers',async()=>{
+  let finish,cancel;const p=page((url,options)=>new Promise(resolve=>{if(JSON.parse(options.body).action==='cancel')cancel=resolve;else finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const prompt='Summarize my campaigns';p.find('[data-ai-form]').elements.prompt.value=prompt;
+  const submitting=p.submit();const stopping=p.find('[data-ai-stop]').listeners.click();
+  const transcript=p.find('[data-ai-chat-transcript]');
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);assert.equal(p.find('[data-ai-generate]').disabled,false);
+  assert.equal(p.storage(),null);assert.equal(transcript.children.length,2);
+  assert.match(textOf(transcript),/Request stopped.*This request was stopped.*Retry/);
+  assert.ok(!textOf(transcript).includes('could not be completed'));
+  await tick();cancel({saved:true});await stopping;
   finish({state:'complete',response:analyticsReply});await submitting;
-  assert.equal(p.find('[data-ai-chat-transcript]').children.length,1);
+  assert.equal(transcript.children.length,2);assert.ok(!textOf(transcript).includes('Observed results'));
+  const form=p.find('[data-ai-form]');let resubmitted=false;form.requestSubmit=()=>{resubmitted=true;};
+  transcript.children[1].children.find(child=>child.tagName==='button').listeners.click();
+  assert.equal(resubmitted,true);assert.equal(form.elements.prompt.value,prompt);
+  assert.ok(p.requests.filter(request=>request.url.endsWith('?action=history')).length>=2);
+});
+
+test('finishing cancellation after New chat does not restore the stopped conversation',async()=>{
+  let finish,cancel;const p=page((url,options)=>new Promise(resolve=>{if(JSON.parse(options.body).action==='cancel')cancel=resolve;else finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const submitting=p.submit();const stopping=p.find('[data-ai-stop]').listeners.click();
+  await p.find('[data-ai-new]').listeners.click();
+  cancel({saved:true});await stopping;finish({state:'complete',response:analyticsReply});await submitting;
+  assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);
+  assert.equal(p.find('[data-ai-welcome]').hidden,false);
+  assert.equal(p.find('[data-ai-status]').textContent,'Ready for a new request');
 });
 
 test('an audience answer retains follow-up context when its data scope differs from the report pane',async()=>{
@@ -198,6 +218,39 @@ test('submission clears the prompt immediately while retaining the question and 
   assert.equal(p.find('[data-ai-form]').elements.prompt.value,'');assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Find John Smith'));
   await tick();finish({state:'complete',response:{purpose:'audience-ai',mode:'analytics',reason:'unavailable',message:'The AI service did not finish in time.'}});await pending;
   const text=textOf(p.find('[data-ai-chat-transcript]'));assert.ok(text.includes('The AI service did not finish in time.'));assert.ok(text.includes('Retry'));
+});
+
+test('cancelled analytics history reopens as stopped and Retry retains its prompt',async()=>{
+  const prompt='Summarize the performance of my campaigns in last 30 days';
+  const stopped={purpose:'audience-ai',mode:'analytics',reason:'cancelled',message:'This request was stopped.'};
+  const p=page(()=>({state:'complete',question:prompt,response:stopped}),'analytics',{chat:true,window:reportWindow,
+    historyItems:[{client_request_id:'stopped',question:prompt,manual_topic:'audience-ai:analytics',created_at:'2026-10-23 20:45:11',outcome:'cancelled'}]});
+  await tick();await p.find('[data-ai-history]').children[0].children[0].listeners.click();
+  const transcript=p.find('[data-ai-chat-transcript]'),text=textOf(transcript);
+  assert.ok(text.includes(prompt));assert.ok(text.includes('Request stopped'));assert.ok(text.includes(stopped.message));
+  assert.ok(!text.includes('did not return a usable answer'));assert.ok(!text.includes('could not be completed'));
+  assert.equal(p.find('[data-ai-result]').hidden,true);
+  const form=p.find('[data-ai-form]');let resubmitted=false;form.requestSubmit=()=>{resubmitted=true;};
+  transcript.children[1].children.find(child=>child.tagName==='button').listeners.click();
+  assert.equal(resubmitted,true);assert.equal(form.elements.prompt.value,prompt);
+});
+
+test('reload recovery renders terminal cancellation and timeout without leaving the page busy',async()=>{
+  for(const [reason,message] of [['cancelled','This request was stopped.'],['timeout','The AI service did not finish in time. Please try again.']]){
+    const p=page(()=>({state:'complete',question:'Restored request',response:{purpose:'audience-ai',mode:'analytics',reason,message}}),'analytics',{
+      chat:true,window:reportWindow,pending:{uuid:'restored-terminal',mode:'analytics',started:Date.now()}
+    });await tick();
+    const text=textOf(p.find('[data-ai-chat-transcript]'));
+    assert.ok(text.includes(message));assert.ok(text.includes('Retry'));assert.ok(!text.includes('did not return a usable answer'));
+    assert.equal(p.find('[data-ai-thinking]').hidden,true);assert.equal(p.find('[data-ai-generate]').disabled,false);assert.equal(p.storage(),null);
+    if(reason==='cancelled')assert.ok(text.includes('Request stopped'));
+  }
+});
+
+test('writing cancellation stays a terminal status without exposing output',async()=>{
+  const p=page(()=>({state:'complete',response:{purpose:'audience-ai',mode:'content',reason:'cancelled',message:'This request was stopped.'}}));
+  await p.submit();assert.equal(p.find('[data-ai-status]').textContent,'This request was stopped.');
+  assert.equal(p.find('[data-ai-result]').hidden,true);assert.equal(p.find('[data-ai-form]').elements.text.value,'Private source');
 });
 
 test('saved replies display cited cards, and query results display returned contact data',async()=>{

@@ -31,12 +31,32 @@ function aiCoachEnqueue(mysqli $conn, int $id, array $request): bool
     } finally { $conn->query("SELECT RELEASE_LOCK('dnr_coach_admission')"); }
 }
 
+/** Queue terminal replies retain the assistant contract independently of inference. */
+function aiCoachTerminalReply(string $topic, string $reason): array
+{
+    if (in_array($topic, ['audience-ai:analytics', 'audience-ai:content'], true)) {
+        $reply = ['purpose'=>'audience-ai', 'mode'=>substr($topic, strlen('audience-ai:')),
+            'message'=>$reason === 'cancelled' ? 'This request was stopped.' : 'The AI service did not finish in time. Please try again.',
+            'reason'=>$reason, 'sources'=>[], 'question'=>''];
+        if ($reason === 'timeout') $reply['failure'] = ['code'=>'timeout', 'stage'=>'queue-or-answer'];
+        return $reply;
+    }
+    return $reason === 'cancelled'
+        ? ['message'=>'This answer was cancelled. You can ask another question whenever you are ready.', 'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'reason'=>'cancelled']
+        : aiCoachFallback([], 'timeout') + ['failure'=>['code'=>'timeout', 'stage'=>'queue-or-answer']];
+}
+
 function aiCoachExpireJobs(mysqli $conn): void
 {
-    $reply = aiCoachFallback([], 'timeout') + ['failure' => ['code' => 'timeout', 'stage' => 'queue-or-answer']];
+    $replies = array_map(static fn($topic): string => json_encode(aiCoachTerminalReply($topic, 'timeout'), JSON_THROW_ON_ERROR),
+        ['audience-ai:analytics', 'audience-ai:content', '']);
     aiCoachRetryDatabase(static fn()=>$conn->execute_query("UPDATE ai_coach_requests r JOIN ai_coach_jobs j ON j.request_id=r.id
-        SET r.outcome='unavailable',r.response_json=?,r.duration_ms=20000,r.completed_at=UTC_TIMESTAMP(6),j.state='expired'
-        WHERE r.outcome='pending' AND j.state IN ('queued','generating') AND j.deadline_at<=UTC_TIMESTAMP(6)", [json_encode($reply, JSON_THROW_ON_ERROR)]));
+        SET r.outcome='unavailable',r.response_json=CASE
+            WHEN r.guided_step='audience-ai' AND r.manual_topic='audience-ai:analytics' THEN ?
+            WHEN r.guided_step='audience-ai' AND r.manual_topic='audience-ai:content' THEN ? ELSE ? END,
+            r.duration_ms=GREATEST(0,TIMESTAMPDIFF(MICROSECOND,r.created_at,j.deadline_at) DIV 1000),
+            r.completed_at=UTC_TIMESTAMP(6),j.state='expired'
+        WHERE r.outcome='pending' AND j.state IN ('queued','generating') AND j.deadline_at<=UTC_TIMESTAMP(6)", $replies));
 }
 
 function aiCoachClaimJob(mysqli $conn): ?array
@@ -79,11 +99,15 @@ function aiCoachFinishJob(mysqli $conn, array $job, array $reply, int $elapsedMs
 
 function aiCoachCancelRequest(mysqli $conn, int $userId, string $role, string $requestId): bool
 {
-    $reply = ['message' => 'This answer was cancelled. You can ask another question whenever you are ready.', 'question' => '', 'sources' => [], 'mode' => 'conversation', 'reason' => 'cancelled'];
+    $replies = array_map(static fn($topic): string => json_encode(aiCoachTerminalReply($topic, 'cancelled'), JSON_THROW_ON_ERROR),
+        ['audience-ai:analytics', 'audience-ai:content', '']);
     aiCoachRetryDatabase(static fn()=>$conn->execute_query("UPDATE ai_coach_requests r LEFT JOIN ai_coach_jobs j ON j.request_id=r.id
-        SET r.outcome='cancelled',r.response_json=?,r.completed_at=UTC_TIMESTAMP(6),j.state='cancelled'
+        SET r.outcome='cancelled',r.response_json=CASE
+            WHEN r.guided_step='audience-ai' AND r.manual_topic='audience-ai:analytics' THEN ?
+            WHEN r.guided_step='audience-ai' AND r.manual_topic='audience-ai:content' THEN ? ELSE ? END,
+            r.completed_at=UTC_TIMESTAMP(6),j.state='cancelled'
         WHERE r.user_id=? AND r.user_role=? AND r.client_request_id=? AND r.outcome='pending'",
-        [json_encode($reply, JSON_THROW_ON_ERROR), $userId, $role, $requestId]));
+        [...$replies, $userId, $role, $requestId]));
     return $conn->affected_rows > 0;
 }
 

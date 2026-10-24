@@ -130,6 +130,7 @@ run_integration_suite() {
         return
     fi
     if [ "$test_name" = 'ai_coach_http_integration_test.php' ] \
+        || [ "$test_name" = 'audience_ai_terminal_http_integration_test.php' ] \
         || [ "$test_name" = 'bulk_delete_http_integration_test.php' ] \
         || [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
         || [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
