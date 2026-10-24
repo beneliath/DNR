@@ -16,7 +16,8 @@ foreach (['admin', 'editor', 'reviewer'] as $role) {
                 'ui'=>['observed'=>true, 'visible_controls'=>['edit-event']]], $role);
             $reply = aiCoachImmediateReply($request, false);
             checkReference(($reply['engine'] ?? '') === 'interface-clarification', 'Unnamed UI reference must clarify');
-            checkReference(str_contains($reply['message'], 'label'), 'Ask for the missing label');
+            checkReference(str_contains($reply['question'], 'label'), 'Ask for the missing label in the question field');
+            checkReference(!str_contains($reply['message'], '?'), 'Keep clarification out of the explanation');
             checkReference($reply['sources'] === [] && empty($reply['start_workflow']), 'Do not invent citations or actions');
             checkReference(!str_contains($reply['message'], 'Dashboard'), 'Do not repeat stale page explanations');
         }
