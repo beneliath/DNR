@@ -70,9 +70,29 @@ if($isPost){
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
             case 'brand_apply':$store->applyBrand((int)audienceText($_POST,'template_id',12),$version,($_POST['include_logo']??'')==='1');$redirect=$url(['view'=>'templates','tab'=>'saved']);$message='Brand applied. The previous template revision is retained.';break;
             case 'campaign_plan_save':$planId=$store->saveCampaignPlan($_POST,$id,$version);$redirect=$url(['view'=>'campaign-plan','id'=>$planId]);$message='Campaign plan saved.';break;
-            case 'campaign_plan_operation':$new=$store->campaignPlanOperation($id,$version,audienceText($_POST,'operation'));$redirect=$url($new?['view'=>'campaign-plan','id'=>$new]:['view'=>'campaign-manager']);$message='Campaign plan updated.';break;
+            case 'campaign_plan_operation':
+                $operation=audienceText($_POST,'operation');
+                $listParams=['view'=>'campaign-manager','planner_layout'=>'list','plan_trash'=>in_array($operation,['restore','delete'],true)?'1':'0'];
+                foreach(['plan_search'=>100,'plan_sort'=>20,'plan_direction'=>4,'plan_size'=>3,'plan_page'=>8]as$key=>$limit){$value=audienceText($_POST,$key,$limit);if($value!=='')$listParams[$key]=$value;}
+                if($operation==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Deleting a campaign plan requires an administrator and Admin Unlock.');}
+                    requireRecentAdminElevation($url($listParams));
+                }
+                $new=$store->campaignPlanOperation($id,$version,$operation);
+                $redirect=$url($new?['view'=>'campaign-plan','id'=>$new]:$listParams);
+                $message=match($operation){'archive'=>'Campaign plan archived. Its touchpoints and emails are preserved.','restore'=>'Campaign plan restored.','delete'=>'Campaign plan deleted. Its touchpoints and emails were kept.',default=>'Campaign plan replicated.'};
+                break;
             case 'campaign_touchpoint_save':$store->saveCampaignTouchpoint($_POST,$id,$version);$planId=(int)audienceText($_POST,'plan_id',12);$redirect=$url($planId?['view'=>'campaign-plan','id'=>$planId]:['view'=>'campaign-manager']);$message='Touchpoint saved.';break;
-            case 'campaign_touchpoint_operation':$store->campaignTouchpointOperation($id,$version,audienceText($_POST,'operation'));$planId=(int)audienceText($_POST,'plan_id',12);$redirect=$url($planId?['view'=>'campaign-plan','id'=>$planId]:['view'=>'campaign-manager']);$message='Touchpoint updated.';break;
+            case 'campaign_touchpoint_operation':
+                $operation=audienceText($_POST,'operation');$planId=(int)audienceText($_POST,'plan_id',12);
+                $touchpointReturn=['view'=>'campaign-manager','planner_layout'=>'agenda','touchpoint_trash'=>in_array($operation,['restore','delete'],true)?'1':'0'];
+                if($operation==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Deleting a touchpoint requires an administrator and Admin Unlock.');}
+                    requireRecentAdminElevation($url($touchpointReturn));
+                }
+                $store->campaignTouchpointOperation($id,$version,$operation);
+                $redirect=$url($planId?['view'=>'campaign-plan','id'=>$planId]:$touchpointReturn);
+                $message=match($operation){'archive'=>'Touchpoint archived.','restore'=>'Touchpoint restored.','delete'=>'Touchpoint deleted. Its email, if any, was kept.',default=>'Touchpoint replicated.'};break;
             case 'campaign_publication':$store->saveCampaignPublication($id,$version,$_POST,$audience);$redirect=$url(['view'=>'campaign','id'=>$id]);$message='Browser version settings saved.';break;
             case 'campaign_comment':$store->addDesignComment('campaign',$id,$_POST);$redirect=$url(['view'=>'campaign-review','id'=>$id]);$message='Comment added.';break;
             case 'campaign_create':$id=$store->createCampaign($_POST);$redirect=$url(['view'=>'campaign','id'=>$id]);$message='Draft created.';break;
@@ -141,14 +161,18 @@ $plannerDate=audienceText($_GET,'day')?:$month->format('Y-m-d');try{audienceCamp
 if(in_array($view,['campaign-manager','campaign-plan'],true)){
     if($view==='campaign-plan'){try{$plan=$store->campaignPlan($id);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
     $planSearch=audienceText($_GET,'plan_search',100);$planSort=in_array($_GET['plan_sort']??'',['updated_at','name'],true)?$_GET['plan_sort']:'updated_at';$planDirection=($_GET['plan_direction']??'desc')==='asc'?'asc':'desc';
-    $planTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL AND LOCATE(?,name)>0',[$audienceId,$planSearch])['n'];
+    $planArchived=($_GET['plan_trash']??'0')==='1';
+    $planListWhere='audience_id=? AND deleted_at IS '.($planArchived?'NOT NULL':'NULL')." AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(data_json,'$._permanently_deleted')),'0') NOT IN ('1','true') AND LOCATE(?,name)>0";
+    $planTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_campaign_plans WHERE '.$planListWhere,[$audienceId,$planSearch])['n'];
     $planSize=audiencePageSize($_GET,'plan_size');
     $planPage=max(1,min(max(1,(int)ceil($planTotal/$planSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'plan_page')??1));
-    $planRows=$store->all("SELECT * FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY $planSort $planDirection,id $planDirection LIMIT ? OFFSET ?",[$audienceId,$planSearch,$planSize,($planPage-1)*$planSize]);
+    $planRows=$store->all("SELECT * FROM marketing_campaign_plans WHERE $planListWhere ORDER BY $planSort $planDirection,id $planDirection LIMIT ? OFFSET ?",[$audienceId,$planSearch,$planSize,($planPage-1)*$planSize]);
     $planChoices=$store->all('SELECT id,name FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);
     $planWhere=$plan?' AND t.plan_id=?':'';$planParams=$plan?[$id]:[];
     [$plannerStart,$plannerEnd]=audienceCampaignPlannerRange($plannerDate,$plannerScale);
-    $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id WHERE t.audience_id=? AND t.deleted_at IS NULL $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->format('Y-m-d'),$plannerStart->format('Y-m-d')]);
+    $touchpointArchived=$plannerLayout==='agenda'&&($_GET['touchpoint_trash']??'0')==='1';
+    $touchpointStateWhere=$touchpointArchived?"t.deleted_at IS NOT NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(t.data_json,'$._permanently_deleted')),'0') NOT IN ('1','true')":'t.deleted_at IS NULL AND (t.plan_id IS NULL OR p.deleted_at IS NULL)';
+    $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id LEFT JOIN marketing_campaign_plans p ON p.id=t.plan_id AND p.audience_id=t.audience_id WHERE t.audience_id=? AND $touchpointStateWhere $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->format('Y-m-d'),$plannerStart->format('Y-m-d')]);
     $plannerEmails=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);
 }
 $deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
@@ -190,7 +214,7 @@ $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$i
 $campaignMergeTags=$store->campaignMergeTags();
 $previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
 $sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
-$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc','plan_size'=>$planSize??25],$changes));
+$managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc','plan_size'=>$planSize??25,'plan_trash'=>!empty($planArchived)?'1':'0','touchpoint_trash'=>!empty($touchpointArchived)?'1':'0'],$changes));
 $pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>

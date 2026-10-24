@@ -10,11 +10,22 @@ import re
 import secrets
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
 from deployment_backup import crypto_command, fingerprint, query, sha, stop_process
 from online_recovery_backup import restored_database
+
+
+def runtime_file(config, receipt, name, legacy):
+    relative = Path(receipt.get('runtime_files', {}).get(name, legacy))
+    if relative.is_absolute() or '..' in relative.parts:
+        raise ValueError('Unsafe recovered runtime file path')
+    path = config / relative
+    if not path.resolve().is_relative_to(config.resolve()) or path.is_symlink() or not path.is_file():
+        raise ValueError('Required recovered runtime file is missing')
+    return path
 
 
 def make_source_readable(source):
@@ -75,6 +86,11 @@ def drill(directory, password, app_image=None, database_image=None):
             from integration_environment import allocate_test_networks
             ids = subprocess.check_output(['docker', 'network', 'ls', '-q'], text=True).split()
             existing = json.loads(subprocess.check_output(['docker', 'network', 'inspect', *ids])) if ids else []
+            # Include host/LAN/VPN routes as well as every Docker network, even
+            # networks whose reserved containers are currently stopped.
+            routes = json.loads(subprocess.check_output(['ip', '-j', 'route'], text=True)) if sys.platform == 'linux' else []
+            existing += [{'IPAM': {'Config': [{'Subnet': route['dst']}]}} for route in routes
+                         if route.get('dst') and route['dst'] != 'default']
             subnet = str(allocate_test_networks(existing)['backend'])
             subprocess.run(['docker', 'network', 'create', '--internal', '--subnet', subnet, '--label', label, network], check=True, stdout=subprocess.DEVNULL)
             for volume in volumes:
@@ -88,6 +104,10 @@ def drill(directory, password, app_image=None, database_image=None):
             with restored_database(directory/'database.sql.gz.dnrenc', database, image, password, working, token, network=network) as db:
                 if fingerprint(db) != receipt['database_state']:
                     raise ValueError('Restored database differs from the recovery snapshot')
+                account_key = query(db, 'SELECT account_key FROM dnr.account_profile WHERE id=1')
+                if receipt.get('account_key') and account_key != receipt['account_key']:
+                    raise ValueError('Restored account differs from the NAS receipt')
+                marketing_tables = int(query(db, "SELECT COUNT(*) FROM information_schema.tables WHERE TABLE_SCHEMA='dnr' AND LEFT(TABLE_NAME,10)='marketing_'"))
                 app_password = secrets.token_hex(32)
                 secret = working / 'app-password'; secret.write_text(app_password); secret.chmod(0o644)
                 query(db, f"CREATE USER 'dnrdrill'@'%' IDENTIFIED BY '{app_password}'; GRANT SELECT,INSERT,UPDATE,DELETE ON dnr.* TO 'dnrdrill'@'%';")
@@ -105,10 +125,8 @@ def drill(directory, password, app_image=None, database_image=None):
                     expected[key] = checksum
                 # Verify all restored encryption dependencies, rather than replacing
                 # original users' keys or reusing production accounts for the drill.
-                key = config/'secrets/dnr_2fa_encryption_key'
-                routing = config/'secrets/dnr_inbound_routing_key'
-                if not key.is_file() or not routing.is_file():
-                    raise ValueError('Required application encryption secrets are missing')
+                key = runtime_file(config, receipt, 'DNR_2FA_ENCRYPTION_KEY_FILE', 'secrets/dnr_2fa_encryption_key')
+                routing = runtime_file(config, receipt, 'DNR_INBOUND_ROUTING_KEY_FILE', 'secrets/dnr_inbound_routing_key')
                 for path in (key, routing): path.chmod(0o644)
                 command = ['docker','run','-d','--name',web,'--label',label,'--network',network,
                     '--read-only','--cap-drop','ALL','--cap-add','CHOWN','--cap-add','DAC_OVERRIDE','--cap-add','NET_BIND_SERVICE','--cap-add','SETUID','--cap-add','SETGID','--security-opt','no-new-privileges',
@@ -126,9 +144,12 @@ def drill(directory, password, app_image=None, database_image=None):
                     '-e','DNR_INBOUND_ROUTING_KEY_FILE=/run/secrets/drill-routing',
                     '-e','DNR_MAIL_TRANSPORT=disabled','-e','DNR_REQUIRE_HTTPS=0',
                     '-e','DNR_PUBLIC_BASE_URL=http://127.0.0.1','-e','DNR_AI_COACH_ENABLED=0',
+                    '-e','DNR_ACCOUNTS_ENABLED=0','-e','DNR_ACCOUNT_MAIL_ENABLED=0',
+                    '-e','DNR_ACCOUNT_KEY=' + account_key,
                     '-e','DNR_RESTORE_DRILL=isolated',
                     image]
-                application = config/'deployments/moed/application.yaml'
+                application = (runtime_file(config, receipt, 'DNR_CONFIG_FILE', 'deployments/moed/application.yaml')
+                               if receipt.get('runtime_files', {}).get('DNR_CONFIG_FILE') else config/'deployments/moed/application.yaml')
                 if application.is_file():
                     application.chmod(0o644)
                     command[-1:-1] = ['--mount',f'type=bind,src={application},dst=/run/dnr/config/application.yaml,readonly','-e','DNR_CONFIG_FILE=/run/dnr/config/application.yaml']
@@ -146,9 +167,17 @@ def drill(directory, password, app_image=None, database_image=None):
                 if 'name="password"' not in result.stdout: raise ValueError('Replacement sign-in page is unavailable')
                 result = subprocess.run(['docker','exec','-u','www-data',web,'php','/opt/dnr/drill.php'],capture_output=True,text=True)
                 if result.returncode:
-                    raise ValueError('Replacement encryption or authenticated application checks failed')
+                    try:
+                        failure = json.loads(result.stderr.strip().splitlines()[-1])
+                        phase = failure['failure_stage']
+                        if not re.fullmatch(r'[a-zA-Z0-9_:/?.=-]{1,120}', phase):
+                            raise ValueError('Invalid diagnostic stage')
+                    except (ValueError, KeyError, IndexError):
+                        phase = 'unknown'
+                    raise ValueError('Replacement application checks failed at ' + phase)
                 application_checks = json.loads(result.stdout)
                 return dict(**application_checks, verified_at=__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
+                            account_key=account_key, message_monkey_tables=marketing_tables,
                             database_matches=True, persistent_files=len(expected), source_restored=True,
                             configuration_restored=True, application_ready=True,
                             sign_in_page_verified=True, outbound_network_blocked=True,

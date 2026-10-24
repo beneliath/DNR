@@ -21,7 +21,7 @@ def main():
     if begin in original or end in original:
         raise SystemExit('A recovery schedule already exists. Inspect it instead of adding a duplicate.')
     entries=(begin+'\n'
-        '*/30 * * * * /usr/bin/python3 '+str(runner)+' 2>&1 | /usr/bin/logger -t moed-recovery\n'
+        '11 */4 * * * /usr/bin/python3 '+str(runner)+' 2>&1 | /usr/bin/logger -t moed-recovery\n'
         '*/5 * * * * /usr/bin/python3 '+str(runner)+' --check >/dev/null 2>&1 || /usr/bin/logger -p user.err -t moed-recovery "Recovery target missed or latest backup attempt failed; inspect ~/.local/state/moed-backup/status.json"\n'+end+'\n')
     state=Path.home()/'.local/state/moed-backup'
     backup=state/'crontab-before-recovery.txt'
@@ -32,7 +32,7 @@ def main():
     subprocess.run(['crontab','-'],input=original.rstrip()+'\n\n'+entries,text=True,check=True)
     installed=subprocess.check_output(['crontab','-l'],text=True)
     if entries not in installed: raise SystemExit('Installed schedule verification failed')
-    print('Recovery runs every 30 minutes, with a freshness check every five minutes. Existing cron entries preserved.')
+    print('Recovery runs every four hours at eleven minutes past, with a freshness check every five minutes. Existing cron entries preserved.')
 
 
 if __name__=='__main__': main()

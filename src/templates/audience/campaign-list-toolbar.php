@@ -1,5 +1,5 @@
 <?php $campaignArchived=($campaignFilters['trash']??'0')==='1'; ?>
-<nav class="campaign-archive-tabs" aria-label="Campaign lists"><?php foreach(['0'=>'Active','1'=>'Archived']as$archiveValue=>$archiveLabel): ?><a class="audience-button" href="<?= $h($campaignUrl(['trash'=>$archiveValue,'page'=>1])) ?>"<?= $campaignFilters['trash']===(string)$archiveValue?' aria-current="page"':'' ?>><?= $archiveLabel ?></a><?php endforeach; ?></nav>
+<nav class="campaign-archive-tabs audience-lifecycle-tabs" aria-label="Campaign lists"><?php foreach(['0'=>'Active','1'=>'Archive']as$archiveValue=>$archiveLabel): ?><a href="<?= $h($campaignUrl(['trash'=>$archiveValue,'page'=>1])) ?>"<?= $campaignFilters['trash']===(string)$archiveValue?' aria-current="page"':'' ?>><?= $archiveLabel ?></a><?php endforeach; ?></nav>
 <?php if($campaignArchived): ?><p class="audience-help campaign-archive-help">Archived campaigns keep their content and reports. Restore a campaign to bring it back to Active. Restoring does not resume delivery.</p><?php endif; ?>
 <div class="campaign-list-toolbar">
 <form method="get" class="campaign-filters" id="campaign-filters">

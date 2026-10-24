@@ -55,8 +55,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-planner']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-planner|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -118,7 +118,7 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
-        if sys.argv[1:] == ['audience']:
+        if sys.argv[1:] in (['audience'], ['audience-planner']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
@@ -132,6 +132,13 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if sys.argv[1:] == ['audience-planner']:
+                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
+                    '/opt/dnr/tests/audience_planner_lifecycle_http_integration_test.php'],
+                    cwd=ROOT, env=env, check=True)
+                return
             if sys.argv[1:] == ['audience']:
                 for suite in ('audience_stage1b_test.php', 'audience_export_integration_test.php', 'audience_http_integration_test.php', 'audience_tag_unlock_http_integration_test.php', 'audience_pagination_http_integration_test.php'):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',

@@ -137,9 +137,9 @@ trait AudienceCampaignAdvanced
         }
         return $draft;
     }
-    public function campaignPlan(int $id,bool $lock=false):array
+    public function campaignPlan(int $id,bool $lock=false,bool $includeArchived=false):array
     {
-        $row=$this->one('SELECT * FROM marketing_campaign_plans WHERE audience_id=? AND id=? AND deleted_at IS NULL'.($lock?' FOR UPDATE':''),[$this->audienceId,$id]);if(!$row)throw new InvalidArgumentException('This campaign plan is unavailable.');$row['data']=audienceJson($row['data_json']);return $row;
+        $row=$this->one('SELECT * FROM marketing_campaign_plans WHERE audience_id=? AND id=?'.($includeArchived?'':' AND deleted_at IS NULL').($lock?' FOR UPDATE':''),[$this->audienceId,$id]);if(!$row)throw new InvalidArgumentException('This campaign plan is unavailable.');$row['data']=audienceJson($row['data_json']);if(!empty($row['data']['_permanently_deleted']))throw new InvalidArgumentException('This campaign plan is unavailable.');return $row;
     }
     public function saveCampaignPlan(array $input,int $id,int $version):int
     {
@@ -149,7 +149,20 @@ trait AudienceCampaignAdvanced
     }
     public function campaignPlanOperation(int $id,int $version,string $operation):?int
     {
-        return $this->transaction(function()use($id,$version,$operation){$row=$this->campaignPlan($id,true);if((int)$row['version']!==$version)throw new InvalidArgumentException('This plan changed. Reload before continuing.');if($operation==='replicate'){$this->write('INSERT INTO marketing_campaign_plans(audience_id,name,data_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,mb_substr($row['name'],0,90).' (copy)',$row['data_json'],$this->actorLabel]);return (int)$this->db->insert_id;}if($operation!=='delete')throw new InvalidArgumentException('Unknown plan action.');$this->write('UPDATE marketing_campaign_touchpoints SET plan_id=NULL,version=version+1 WHERE audience_id=? AND plan_id=?',[$this->audienceId,$id]);$this->write('UPDATE marketing_campaign_plans SET deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$id]);return null;});
+        if(!in_array($operation,['replicate','archive','restore','delete'],true))throw new InvalidArgumentException('Unknown plan action.');
+        return $this->transaction(function()use($id,$version,$operation){
+            $row=$this->campaignPlan($id,true,in_array($operation,['restore','delete'],true));
+            if((int)$row['version']!==$version)throw new InvalidArgumentException('This plan changed. Reload before continuing.');
+            if($operation==='replicate'){$this->write('INSERT INTO marketing_campaign_plans(audience_id,name,data_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,mb_substr($row['name'],0,90).' (copy)',$row['data_json'],$this->actorLabel]);return (int)$this->db->insert_id;}
+            if(in_array($operation,['restore','delete'],true)&&$row['deleted_at']===null)throw new InvalidArgumentException('Archive this campaign plan first.');
+            if($operation==='archive')$this->write('UPDATE marketing_campaign_plans SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
+            elseif($operation==='restore')$this->write('UPDATE marketing_campaign_plans SET deleted_at=NULL,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
+            else{
+                $this->write('UPDATE marketing_campaign_touchpoints SET plan_id=NULL,version=version+1 WHERE audience_id=? AND plan_id=?',[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_campaign_plans SET name='Deleted campaign plan',data_json=JSON_OBJECT('_permanently_deleted',true),actor_label=?,version=version+1 WHERE audience_id=? AND id=?",[$this->actorLabel,$this->audienceId,$id]);
+            }
+            return null;
+        });
     }
     public function saveCampaignTouchpoint(array $input,int $id,int $version):int
     {
@@ -162,7 +175,23 @@ trait AudienceCampaignAdvanced
     }
     public function campaignTouchpointOperation(int $id,int $version,string $operation):?int
     {
-        return $this->transaction(function()use($id,$version,$operation){$row=$this->one('SELECT * FROM marketing_campaign_touchpoints WHERE audience_id=? AND id=? AND deleted_at IS NULL FOR UPDATE',[$this->audienceId,$id]);if(!$row||(int)$row['version']!==$version)throw new InvalidArgumentException('This touchpoint changed. Reload before continuing.');if($operation==='replicate'){$this->write('INSERT INTO marketing_campaign_touchpoints(audience_id,plan_id,campaign_id,touchpoint_type,name,start_at,end_at,state,data_json,actor_label) VALUES (?,?,?,?,?,?,?,\'not-started\',?,?)',[$this->audienceId,$row['plan_id'],$row['campaign_id'],$row['touchpoint_type'],mb_substr($row['name'],0,90).' (copy)',$row['start_at'],$row['end_at'],$row['data_json'],$this->actorLabel]);return (int)$this->db->insert_id;}if($operation!=='delete')throw new InvalidArgumentException('Unknown touchpoint action.');$this->write('UPDATE marketing_campaign_touchpoints SET deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$id]);return null;});
+        if(!in_array($operation,['replicate','archive','restore','delete'],true))throw new InvalidArgumentException('Unknown touchpoint action.');
+        return $this->transaction(function()use($id,$version,$operation){
+            $row=$this->one('SELECT * FROM marketing_campaign_touchpoints WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,$id]);
+            if(!$row||!empty(audienceJson($row['data_json'])['_permanently_deleted']))throw new InvalidArgumentException('This touchpoint is unavailable.');
+            if((int)$row['version']!==$version)throw new InvalidArgumentException('This touchpoint changed. Reload before continuing.');
+            if(in_array($operation,['replicate','archive'],true)&&$row['deleted_at']!==null)throw new InvalidArgumentException('Restore this touchpoint first.');
+            if($operation==='restore'){
+                if($row['deleted_at']===null)throw new InvalidArgumentException('This touchpoint is already active.');
+                if($row['plan_id'])$this->campaignPlan((int)$row['plan_id'],true);
+                $this->write('UPDATE marketing_campaign_touchpoints SET deleted_at=NULL,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
+            }elseif($operation==='replicate'){
+                if($row['plan_id'])$this->campaignPlan((int)$row['plan_id'],true);
+                $this->write('INSERT INTO marketing_campaign_touchpoints(audience_id,plan_id,campaign_id,touchpoint_type,name,start_at,end_at,state,data_json,actor_label) VALUES (?,?,?,?,?,?,?,\'not-started\',?,?)',[$this->audienceId,$row['plan_id'],$row['campaign_id'],$row['touchpoint_type'],mb_substr($row['name'],0,90).' (copy)',$row['start_at'],$row['end_at'],$row['data_json'],$this->actorLabel]);return (int)$this->db->insert_id;
+            }elseif($operation==='archive')$this->write('UPDATE marketing_campaign_touchpoints SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
+            else $this->write("UPDATE marketing_campaign_touchpoints SET name='Deleted touchpoint',plan_id=NULL,campaign_id=NULL,data_json=JSON_OBJECT('_permanently_deleted',true),deleted_at=COALESCE(deleted_at,UTC_TIMESTAMP(6)),actor_label=?,version=version+1 WHERE audience_id=? AND id=?",[$this->actorLabel,$this->audienceId,$id]);
+            return null;
+        });
     }
     public function campaignPublication(int $id):?array
     {

@@ -11,14 +11,15 @@ import smtplib
 import ssl
 import subprocess
 import sys
-from run_nas_recovery import age_seconds, resolve_service, write_status
+from run_nas_recovery import age_seconds, resolve_service, write_status, coverage_current
+from recovery_accounts import account_directory
 import run_nas_recovery
 
 ALERT_RECIPIENT = 'admin@beneliath.com'
 MAX_SNAPSHOT_AGE_SECONDS = getattr(run_nas_recovery, 'MAX_SNAPSHOT_AGE_SECONDS', 3600)
 
 
-def recovery_health(status):
+def recovery_health(status, expected_keys=None):
     try:
         timestamp = status.get('last_success', {}).get('snapshot_started_at')
         then = datetime.datetime.fromisoformat(timestamp) if timestamp else None
@@ -26,7 +27,8 @@ def recovery_health(status):
         valid_time = then is not None and then.tzinfo is not None and then <= datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=2)
     except (TypeError, ValueError):
         age = None; valid_time = False
-    healthy = valid_time and age is not None and age <= MAX_SNAPSHOT_AGE_SECONDS and not status.get('last_error')
+    keys = expected_keys if expected_keys is not None else status.get('expected_account_keys', [])
+    healthy = valid_time and age is not None and age <= MAX_SNAPSHOT_AGE_SECONDS and coverage_current(status, keys)
     success = status.get('last_success', {})
     return {'Status': 'Healthy' if healthy else 'Attention required',
             'Snapshot age, minutes': round(age / 60, 1) if age is not None else 'No verified copy',
@@ -36,6 +38,8 @@ def recovery_health(status):
             'Last failure': status.get('last_error', {}).get('type', 'None'),
             'Alert recipient': ALERT_RECIPIENT,
             'Freshness limit, minutes': MAX_SNAPSHOT_AGE_SECONDS // 60,
+            'Accounts covered': len(success.get('accounts', {})),
+            'Accounts expected': len(keys),
             'Off-site protection': 'Separate destination not configured'}
 
 
@@ -128,6 +132,7 @@ def publish_health(project, health):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compose-project', default='moed')
+    parser.add_argument('--project', type=Path, default=Path('/home/dgilmore/moed'))
     parser.add_argument('--check-only', action='store_true')
     parser.add_argument('--verify-delivery', action='store_true')
     args = parser.parse_args()
@@ -137,7 +142,12 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         path = state / 'status.json'
         status = json.loads(path.read_text()) if path.exists() else {}
-        health = recovery_health(status); healthy = health['Status'] == 'Healthy'
+        try:
+            keys = [a['key'] for a in account_directory(args.project, args.compose_project)]
+        except Exception:
+            keys = []  # Discovery failure must never report complete coverage.
+            status['last_error'] = {'type': 'AccountCoverageError'}
+        health = recovery_health(status, keys); healthy = health['Status'] == 'Healthy'
         if args.check_only:
             print(health['Status']); return 0 if healthy else 1
         if args.verify_delivery:
