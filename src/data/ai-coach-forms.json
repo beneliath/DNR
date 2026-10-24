@@ -171,7 +171,7 @@
           ],
           "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
           "message": "Waiting does not lock the task’s status. Waiting On is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
-          "question": "What message does MOED show when you try to save?"
+          "question": "What exact error does MOED show when you save? Copy its text and any field label; if no error appears, say so and describe what happens instead."
         },
         {
           "id": "leave-waiting",
