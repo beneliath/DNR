@@ -1,0 +1,46 @@
+{
+  "started_at": "2026-10-24T20:43:17.581783+00:00",
+  "nas_source": "//192.168.1.18/MOED_Backups",
+  "accounts": {
+    "shalom-in-messiah": {
+      "encryption_verified": true,
+      "administrator_password_and_mfa_verified": true,
+      "record_pages_verified": true,
+      "message_monkey_page_verified": true,
+      "verified_at": "2026-10-24T20:44:37.728477+00:00",
+      "account_key": "shalom-in-messiah",
+      "message_monkey_tables": 67,
+      "database_matches": true,
+      "persistent_files": 135,
+      "source_restored": true,
+      "configuration_restored": true,
+      "application_ready": true,
+      "sign_in_page_verified": true,
+      "outbound_network_blocked": true,
+      "elapsed_seconds": 76.4,
+      "remote_directory": "20261024T203544Z-73e3bc2c-5c21dbc7cd75e4d2",
+      "nas_download_verified": true
+    },
+    "test-account": {
+      "encryption_verified": true,
+      "administrator_password_and_mfa_verified": true,
+      "record_pages_verified": true,
+      "message_monkey_page_verified": true,
+      "verified_at": "2026-10-24T20:45:25.510832+00:00",
+      "account_key": "test-account",
+      "message_monkey_tables": 67,
+      "database_matches": true,
+      "persistent_files": 196,
+      "source_restored": true,
+      "configuration_restored": true,
+      "application_ready": true,
+      "sign_in_page_verified": true,
+      "outbound_network_blocked": true,
+      "elapsed_seconds": 45.8,
+      "remote_directory": "20261024T203755Z-82872f65-61e3676af92a2e00",
+      "nas_download_verified": true
+    }
+  },
+  "complete": true,
+  "completed_at": "2026-10-24T20:45:26.020381+00:00"
+}

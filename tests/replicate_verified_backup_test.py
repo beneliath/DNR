@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
-from replicate_verified_backup import inventory, replicate, SMB
+from replicate_verified_backup import inventory, replicate, retrieve, SMB
 
 
 class FakeSMB:
@@ -29,6 +29,22 @@ class FakeSMB:
 
 
 class ReplicationTests(unittest.TestCase):
+    def test_retrieval_uses_trusted_ledger_and_rejects_tampering(self):
+        for name in ('uploaded-files.tar.gz.dnrenc','recovery-config.tar.gz.dnrenc','application-source.tar.dnrenc'):
+            (self.directory/name).write_bytes(b'fixture')
+        metadata=lambda name:dict(backup_path=str(self.directory/name),backup_sha256=hashlib.sha256(b'fixture').hexdigest())
+        self.receipt['persistent_files']=metadata('uploaded-files.tar.gz.dnrenc')
+        self.receipt['recovery_files']={name:metadata(name) for name in ('recovery-config.tar.gz.dnrenc','application-source.tar.dnrenc')}
+        self.write_receipt()
+        smb=FakeSMB(); remote=replicate(self.directory,smb); files=inventory(self.directory)
+        root=Path(self.temporary.name)
+        retrieve(remote,smb,root/'retrieved',files)
+        self.assertEqual((root/'retrieved/database.sql.gz.dnrenc').read_bytes(),self.archive.read_bytes())
+        smb.files[remote+'/database.sql.gz.dnrenc']=b'changed'
+        with self.assertRaises(ValueError): retrieve(remote,smb,root/'corrupt',files)
+        smb.files[remote+'/replica.json']=json.dumps(dict(source_backup_id=self.directory.name,files={},readback_verified=True)).encode()
+        with self.assertRaises(ValueError): retrieve(remote,smb,root/'marker-tampered',files)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

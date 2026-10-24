@@ -19,7 +19,7 @@ try{
   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);
   for(const button of await row.locator('a,button').all()){assert.ok(await button.getAttribute('aria-label'));assert.ok(await button.getAttribute('data-tooltip'));assert.equal(await button.locator('svg').count(),1);const box=await button.boundingBox();assert.equal(box.height,44);assert.equal(box.width,44);await button.hover();await page.waitForTimeout(180);assert.equal(await button.evaluate(n=>getComputedStyle(n).backgroundColor),dark?'rgb(19, 78, 74)':'rgb(204, 251, 241)');}
   if(tab==='active'){
-   const edit=await row.locator('[data-campaign-action=edit]').boundingBox(),report=await page.locator('.campaign-row-actions').nth(2).locator('[data-campaign-action=report]').boundingBox();assert.equal(edit.x-report.x,52,'Report is one icon column left of Edit');
+   const edit=await row.locator('[data-campaign-action=edit]').boundingBox(),report=await page.locator('.campaign-row-actions').nth(2).locator('[data-campaign-action=report]').boundingBox();assert.equal(edit.x-report.x,60,'Report is one icon column left of Edit with the shared 16px gap');
   }
   if(role!=='reviewer'){
    await page.locator('[data-campaign-select-item][value="8"]').check();

@@ -1,4 +1,6 @@
 import { wireAudiencePagination } from './audience-pagination.mjs';
+import { wireMessageMonkeyUiStandards } from './audience-ui-standards.mjs';
+wireMessageMonkeyUiStandards();
 wireAudiencePagination();
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
@@ -277,7 +279,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     });
     $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
         if (approvedDefinitionDeletes.has(form)) { approvedDefinitionDeletes.delete(form); return; }
-        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form], [data-audience-protected-form]');
+        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form], [data-audience-protected-form]') || event.submitter?.matches('[data-touchpoint-delete][data-admin-unlock-required]');
         if (confirmed && !protectedDelete) return;
         if (event.defaultPrevented) return;
         event.preventDefault();
@@ -291,7 +293,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
             if (confirmed) { approvedDefinitionDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
         }
         pendingConfirmation = {form, submitter: event.submitter};
-        confirmationMessage.textContent = form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
+        confirmationMessage.textContent = event.submitter?.dataset.confirmMessage || form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
     }));
     $$('[data-filter-search]').forEach(input => input.addEventListener('input', () => {
         const panel = input.closest('[data-filter-panel]');

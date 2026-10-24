@@ -36,6 +36,29 @@ backup remains separate from the scheduler's retention inventory.
 
 ## What each run verifies
 
+### Account coverage (October 24, 2026)
+
+The periodic job discovers accounts from the primary account directory on every
+run. It creates a separate recovery set for Shalom in Messiah and Test Account,
+and automatically includes newly provisioned accounts. It checks the database's
+account identity and running release before capture. Each set includes that
+account's database, MessageMonkey tables, registered uploaded files, runtime
+configuration and mounted secrets, including its own application encryption key.
+Member deployment metadata and the effective Compose configuration are included.
+
+The job reports success only after **every discovered account** has a verified
+NAS copy. Both five-minute checks compare coverage with the current directory;
+a missing/new account, stale account copy, directory failure or failed attempt
+requires attention. An offline or transitioning account causes an explicit
+coverage failure; the scheduler does not start disabled accounts or silently
+exclude them. Previously recorded copies are retained, including inactive
+accounts' last copies. Deleted directory entries no longer require new snapshots.
+
+The existing four-hour schedule and 270-minute freshness limit are unchanged.
+Retention now applies **independently to each account**: seven days of every copy,
+one copy per UTC day through day 30, a minimum of two available NAS copies, and
+four local copies. Legacy untagged scheduler entries belong to the primary account.
+
 1. Check the separately protected backup-key copy still exists on the NAS with its
    recorded hash and matches the current backup key's local coverage receipt.
 2. Hold the deployment lock to exclude schema/release changes. Require InnoDB
@@ -61,7 +84,7 @@ original key would make these encrypted copies unrecoverable.
 Keep every scheduled copy for seven days, then the newest copy per UTC day through
 30 days, always keeping at least two copies. Pruning only affects replicas recorded
 by this scheduler, validates their receipts, and journals interrupted deletion.
-Four verified local snapshots are retained. Manual backups and protected key
+Four verified local snapshots per account are retained. Manual backups and protected key
 archives are not automatically deleted. Failed pending uploads may need manual
 inspection and cleanup. The backup account can delete its own share's files;
 separate NAS snapshots or immutable/off-site copies remain a useful additional
@@ -85,7 +108,38 @@ every run; its installer deliberately refuses duplicate managed entries. Inspect
 After changing the backup encryption key, rerun `recovery_key_setup.py` interactively
 before expecting scheduled backups to resume successfully.
 
+To verify complete application restores from the latest NAS copies of **all**
+accounts, run on s1:
+
+```sh
+python3 ~/.local/lib/moed-recovery/v1/verify_nas_recovery.py \
+  --report ~/.local/state/moed-backup/restore-drill-YYYYMMDD.json
+```
+
+This takes the scheduler lock to prevent pruning, downloads each published set
+from the NAS, and checks its completion marker and every file against the
+host's recorded hash inventory before decrypting. Each restore uses a fresh
+database and volumes on a private internal network with no published ports or
+mail workers. Linux host routes and all Docker subnet reservations are excluded
+when choosing the drill network. Live account databases and files are never
+restore targets. The report records account identity, database fingerprint,
+MessageMonkey table count, file integrity, encrypted-record access and synthetic
+administrator password/MFA sign-in. Temporary restored data and Docker resources
+are removed after each account. Reports contain no account records or secrets.
+
 ## Recovery drill and remaining limits
+
+On October 24, 2026, fresh periodic recovery sets for **both Shalom in Messiah and
+Test Account** were downloaded from the NAS and restored into disposable isolated
+applications on s1. Both passed the complete database fingerprint, encrypted-record
+verification, administrator password/MFA sign-in, record pages and MessageMonkey
+home page. Each contained all 67 MessageMonkey tables; 135 primary-account and
+196 Test Account persistent files passed integrity checks. The restores took
+76.4 and 45.8 seconds respectively, excluding NAS download time. Live accounts
+remained ready on release 2.7.6. The sanitized results are saved in
+[data-recovery-drill-2026-10-24.json](data-recovery-drill-2026-10-24.json).
+The verifier now discovers encrypted tables' primary keys, including the
+MessageMonkey tables keyed by `audience_id`.
 
 `scripts/recovery_restore_drill.py` now automates a replacement application restore:
 it authenticates archive checksums, restores and fingerprints a fresh database,

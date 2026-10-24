@@ -11,14 +11,28 @@ from recovery_monitor import recovery_health, alert_due, send_alert, ALERT_RECIP
 class MonitorTests(unittest.TestCase):
     def test_health_requires_fresh_verified_success_and_no_error(self):
         now=datetime.datetime.now(datetime.timezone.utc)
-        status={'last_success':{'snapshot_started_at':now.isoformat(),'completed_at':now.isoformat()}}
+        status={'expected_account_keys':['primary'], 'last_success':{'snapshot_started_at':now.isoformat(),'completed_at':now.isoformat(),
+            'accounts':{'primary':{'snapshot_started_at':now.isoformat(),'remote_directory':'verified-copy'}}}}
         self.assertEqual(recovery_health(status)['Status'],'Healthy')
         status['last_error']={'type':'RuntimeError'}
         self.assertEqual(recovery_health(status)['Status'],'Attention required')
         for timestamp in ('invalid', (now+datetime.timedelta(hours=1)).isoformat(), now.replace(tzinfo=None).isoformat()):
             self.assertEqual(recovery_health({'last_success':{'snapshot_started_at':timestamp}})['Status'],'Attention required')
         self.assertEqual(recovery_health({})['Status'],'Attention required')
-        status={'last_success':{'snapshot_started_at':(now-datetime.timedelta(hours=2)).isoformat()}}
+        status={'last_success':{'snapshot_started_at':(now-datetime.timedelta(hours=5)).isoformat()}}
+        self.assertEqual(recovery_health(status)['Status'],'Attention required')
+
+    def test_missing_new_or_stale_account_is_unhealthy(self):
+        now=datetime.datetime.now(datetime.timezone.utc)
+        accounts={key:{'snapshot_started_at':now.isoformat(),'remote_directory':key} for key in ('primary','test-account')}
+        status={'expected_account_keys':list(accounts),'last_success':{'snapshot_started_at':now.isoformat(),'accounts':accounts}}
+        self.assertEqual(recovery_health(status)['Status'],'Healthy')
+        self.assertEqual(recovery_health(status,['primary','test-account','new-account'])['Status'],'Attention required')
+        accounts['test-account']['snapshot_started_at']=(now-datetime.timedelta(minutes=271)).isoformat()
+        self.assertEqual(recovery_health(status)['Status'],'Attention required')
+        accounts['test-account']['snapshot_started_at']=(now-datetime.timedelta(minutes=269)).isoformat()
+        self.assertEqual(recovery_health(status)['Status'],'Healthy')
+        del accounts['test-account']
         self.assertEqual(recovery_health(status)['Status'],'Attention required')
 
     def test_alerts_are_deduplicated_and_recovery_is_sent_once(self):

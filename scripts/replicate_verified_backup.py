@@ -112,6 +112,28 @@ def replicate(directory, smb):
     return final
 
 
+def retrieve(remote, smb, destination, expected_files):
+    """Retrieve a published set, anchored to the scheduler's local hash ledger."""
+    if not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}-[a-f0-9]{16}', remote):
+        raise ValueError('Unsafe NAS recovery directory')
+    allowed = {'database.sql.gz.dnrenc', 'uploaded-files.tar.gz.dnrenc',
+               'recovery-config.tar.gz.dnrenc', 'application-source.tar.dnrenc', 'receipt.json'}
+    if set(expected_files) != allowed:
+        raise ValueError('A complete recovery set is required')
+    destination.mkdir(mode=0o700)
+    marker = destination / 'replica.json'
+    smb.run(f'get {remote}/replica.json {marker}')
+    completion = json.loads(marker.read_text())
+    if completion.get('readback_verified') is not True or completion.get('source_backup_id') != remote[:-17] or completion.get('files') != expected_files:
+        raise ValueError('NAS completion marker differs from the scheduler ledger')
+    for name, expected in expected_files.items():
+        local = destination / name
+        smb.run(f'get {remote}/{name} {local}')
+        if local.stat().st_size != expected['bytes'] or sha(local) != expected['sha256']:
+            raise ValueError('Retrieved NAS recovery set differs from its verified inventory')
+    return destination
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path)

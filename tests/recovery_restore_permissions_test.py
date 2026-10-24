@@ -5,10 +5,21 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from recovery_restore_drill import make_source_readable
+from recovery_restore_drill import make_source_readable, runtime_file
 
 
 class RecoverySourcePermissions(unittest.TestCase):
+    def test_member_uses_its_own_key_and_rejects_escape(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            key=root/'var/accounts/test-account/key'; key.parent.mkdir(parents=True); key.write_text('fixture')
+            name='DNR_2FA_ENCRYPTION_KEY_FILE'
+            receipt={'runtime_files':{name:'var/accounts/test-account/key'}}
+            self.assertEqual(runtime_file(root,receipt,name,'secrets/default'),key)
+            for invalid in ('../outside','/etc/passwd','missing'):
+                receipt['runtime_files'][name]=invalid
+                with self.assertRaises(ValueError): runtime_file(root,receipt,name,'secrets/default')
+
     def test_private_extraction_becomes_readable_without_exposing_secrets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

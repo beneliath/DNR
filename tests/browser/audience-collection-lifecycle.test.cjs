@@ -18,7 +18,7 @@ try{for(const dark of [false,true]){
   await go(role,tab);assert.equal(await page.locator('[data-collection-lifecycle="archive"]').count(),role!=='reviewer'&&tab==='active'?2:0);assert.equal(await page.locator('[data-collection-lifecycle="delete"]').count(),role==='admin'&&tab==='archived'?2:0);assert.equal(await page.locator('.collection-row-actions [name=operation][value=restore]').count(),role!=='reviewer'&&tab==='archived'?2:0);checks++;
  }
  for(const view of ['forms','landing-pages','surveys','preferences','form-settings'])for(const width of [390,1024,1600]){
-  await page.setViewportSize({width,height:1000});await go('admin','archived',view);assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false,view+' keeps wide tables inside their scroller');assert.equal(await page.locator('a[aria-current=page]').filter({hasText:'Archived'}).count(),1);checks++;
+  await page.setViewportSize({width,height:1000});await go('admin','archived',view);assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false,view+' keeps wide tables inside their scroller');assert.equal(await page.locator('a[aria-current=page]').filter({hasText:'Archive'}).count(),1);checks++;
  }
  await page.setViewportSize({width:1600,height:1000});await go('editor');
  const archive=page.locator('[data-collection-lifecycle="archive"]').first();await archive.click();const archiveDialog=page.locator('#collection-archive');await archiveDialog.waitFor({state:'visible'});assert.equal(await archiveDialog.locator('[name=id]').inputValue(),'7');await archiveDialog.locator('[data-close-dialog]').last().click();assert.equal(posts.length,0);checks++;

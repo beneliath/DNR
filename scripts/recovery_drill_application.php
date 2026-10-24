@@ -5,14 +5,20 @@ declare(strict_types=1);
 if (getenv('DNR_RESTORE_DRILL') !== 'isolated') {
     throw new RuntimeException('An isolated restore drill is required.');
 }
+$phase = 'bootstrap';
+try {
 require '/var/www/html/bootstrap.php';
 require '/var/www/html/two_factor_helpers.php';
 require '/var/www/html/key_rotation_helpers.php';
 
 foreach (APPLICATION_ENCRYPTED_COLUMNS as $table => $column) {
+    $phase = 'encrypted_records:'.$table;
+    $keys = $conn->execute_query("SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND CONSTRAINT_NAME='PRIMARY' ORDER BY ORDINAL_POSITION",[$table])->fetch_all(MYSQLI_ASSOC);
+    $primary = (string)($keys[0]['COLUMN_NAME'] ?? '');
+    if (count($keys) !== 1 || !preg_match('/\A[a-z_]+\z/D',$primary)) throw new RuntimeException('Unsupported encrypted-record primary key.');
     $cursor = 0;
     do {
-        $rows = $conn->execute_query("SELECT id, `$column` AS payload FROM `$table` WHERE id>? AND `$column` IS NOT NULL AND `$column`<>'' ORDER BY id LIMIT 100", [$cursor])->fetch_all(MYSQLI_ASSOC);
+        $rows = $conn->execute_query("SELECT `$primary` AS id, `$column` AS payload FROM `$table` WHERE `$primary`>? AND `$column` IS NOT NULL AND `$column`<>'' ORDER BY `$primary` LIMIT 100", [$cursor])->fetch_all(MYSQLI_ASSOC);
         foreach ($rows as $row) {
             $plaintext = Dnr\Security\ApplicationKey::open($row['payload']);
             sodium_memzero($plaintext);
@@ -23,6 +29,7 @@ foreach (APPLICATION_ENCRYPTED_COLUMNS as $table => $column) {
 
 // Exercise the real password/MFA flow with a new synthetic account. Original
 // users, passwords and encrypted secrets are preserved in the restored copy.
+$phase = 'synthetic_user';
 $username = 'restore-drill-' . bin2hex(random_bytes(8));
 $password = 'Drill!' . bin2hex(random_bytes(24));
 $conn->execute_query("INSERT INTO users (username,password,role,email,account_status,email_verified_at) VALUES (?,?,'admin',?,'active',UTC_TIMESTAMP())", [$username,password_hash($password,PASSWORD_DEFAULT),$username.'@example.invalid']);
@@ -47,17 +54,25 @@ $csrf = static function(array $response): string {
     return html_entity_decode($match[1],ENT_QUOTES);
 };
 try {
+    $phase = 'password_login';
     $login = $request('login.php');
     $response = $request('login.php',['csrf_token'=>$csrf($login),'username'=>$username,'password'=>$password]);
     if (!str_contains($response['headers'],'Location: verify_2fa.php')) throw new RuntimeException('Replacement password login failed.');
+    $phase = 'mfa_login';
     $form = $request('verify_2fa.php');
     $response = $request('verify_2fa.php',['csrf_token'=>$csrf($form),'authentication_code'=>createTotp($secret,$username)->now()]);
     if (!str_contains($response['headers'],'Location: dashboard.php')) throw new RuntimeException('Replacement MFA login failed.');
-    foreach (['dashboard.php','organizations.php','contacts.php','engagements.php'] as $path) {
+    foreach (['dashboard.php','organizations.php','contacts.php','engagements.php','audience.php?view=home'] as $path) {
+        $phase = 'record_page:'.$path;
         if ($request($path)['status'] !== 200) throw new RuntimeException('A replacement record page is unavailable.');
     }
-    echo json_encode(['encryption_verified'=>true,'administrator_password_and_mfa_verified'=>true,'record_pages_verified'=>true],JSON_THROW_ON_ERROR)."\n";
+    echo json_encode(['encryption_verified'=>true,'administrator_password_and_mfa_verified'=>true,'record_pages_verified'=>true,'message_monkey_page_verified'=>true],JSON_THROW_ON_ERROR)."\n";
 } finally {
     unlink($cookie);
     $conn->execute_query('DELETE FROM users WHERE id=?',[$userId]);
+}
+} catch (Throwable $error) {
+    // Report only a fixed stage and exception class, never records or secrets.
+    fwrite(STDERR,json_encode(['failure_stage'=>$phase,'error_type'=>get_class($error)],JSON_THROW_ON_ERROR)."\n");
+    exit(1);
 }
