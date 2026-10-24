@@ -1,3 +1,4 @@
+import { audiencePageSizes, renderAudiencePagination } from './audience-pagination.mjs';
 (() => {
   'use strict';
   const configNode = document.getElementById('audience-ai-config');
@@ -12,6 +13,7 @@
   const transcript = chat ? find('[data-ai-chat-transcript]') : null;
   const shownQuestions = new Set(), shownAnswers = new Set(), questionTexts = new Map();
   const resetHistoryButton = document.querySelector('[data-ai-history-reset]');
+  const historyConfirmation = document.querySelector('[data-ai-history-confirm]');
   const historyResetKey = `moed-audience-ai-history-reset-${config.key}-${config.mode}`;
   const historyHiddenKey = `${historyResetKey}-hidden`;
   let historyItems = [], historyCutoff = '';
@@ -41,13 +43,13 @@
     message.append(node('h2', 'You', 'sr-only'), node('p', text)); transcript.append(message);
     message.scrollIntoView({block:'nearest'});
   }
-  function failure(message, uuid, prompt = '') {
+  function failure(message, uuid, prompt = '', reason = '') {
     announce(message);
     if (!chat || shownAnswers.has(uuid)) return;
     question(prompt || questionTexts.get(uuid) || 'Saved request', uuid);
     shownAnswers.add(uuid);
     const answer=node('article',undefined,'analytics-ai-message analytics-ai-answer analytics-ai-error');
-    answer.append(node('h3','The request could not be completed'),node('p',message));
+    answer.append(node('h3',reason === 'cancelled' ? 'Request stopped' : 'The request could not be completed'),node('p',message));
     const retry=node('button','Retry');retry.type='button';
     retry.addEventListener('click',()=>{if(busy)return;form.elements.prompt.value=questionTexts.get(uuid)||prompt;form.requestSubmit();});
     answer.append(retry);transcript.append(answer);answer.scrollIntoView({block:'nearest'});status.classList.add('sr-only');
@@ -100,7 +102,7 @@
     const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption','Accepted email by period · UTC · application-calculated')); box.append(figure);
   }
   function render(reply, uuid, prompt = '') {
-    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt); return; }
+    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt,reply?.purpose === 'audience-ai' ? reply.reason : ''); return; }
     if (reply.mode !== config.mode) { announce('This request belongs to the other assistant. Open it from the matching tab'); return; }
     if (chat && shownAnswers.has(uuid)) return;
     completed = uuid; previous = uuid; output.hidden = chat;
@@ -120,23 +122,27 @@
       chart(evidence,box);
       for (const result of evidence.tables || []) {
         const scroll=node('div',undefined,'analytics-ai-table-scroll'),table=node('table'),caption=node('caption');scroll.id=`ai-evidence-${uuid}-${result.id}`;
-        let loaded=result.rows.length,next=result.next_offset;
+        let loaded=result.rows.length;
         const updateCaption=total=>{caption.textContent=Number.isInteger(total)?`${result.title} · Showing ${loaded} of ${total}`:result.title;};updateCaption(result.total);table.append(caption);
         const header=node('tr');result.columns.forEach(column=>{const cell=node('th',column.label);cell.setAttribute('scope','col');header.append(cell);});const head=node('thead');head.append(header);table.append(head);
         const body=node('tbody');const appendRows=rows=>rows.forEach(row=>{const line=node('tr');result.columns.forEach(column=>line.append(node('td',String(row[column.key]??''))));body.append(line);});appendRows(result.rows);table.append(body);scroll.append(table);box.append(scroll);
-        // Older saved replies used a smaller first page and have no explicit cursor.
-        if(next===undefined&&Number.isInteger(result.total)&&loaded<result.total)next=loaded;
-        if(Number.isInteger(next)){
-          const more=node('button','Show more results'),notice=node('p','','ai-scope');more.type='button';notice.setAttribute('role','status');box.append(more,notice);
-          more.addEventListener('click',async()=>{
-            more.disabled=true;more.textContent='Loading…';notice.textContent='';
-            try{
-              const response=await api(null,`?action=contacts&request_id=${encodeURIComponent(uuid)}&table_id=${encodeURIComponent(result.id)}&offset=${next}`);
+        if (/^query_[0-9]+_contacts$/.test(result.id) && Number.isInteger(result.total)) {
+          table.dataset.mmPaginatedTable='';
+          const pages=node('div'),notice=node('p','','ai-scope');notice.setAttribute('role','status');box.append(pages,notice);
+          let currentPage=1,pageSize=audiencePageSizes.find(size=>size>=loaded)||100,total=result.total;
+          const load=async next=>{
+            pages.querySelectorAll('button,select').forEach(control=>control.disabled=true);notice.textContent='Loading';
+            try {
+              const response=await api(null,`?action=contacts&request_id=${encodeURIComponent(uuid)}&table_id=${encodeURIComponent(result.id)}&offset=${(next.page-1)*next.pageSize}&per_page=${next.pageSize}`);
               if(response.table?.id!==result.id||!Array.isArray(response.table.rows))throw new Error('The contact results could not be loaded.');
-              appendRows(response.table.rows);loaded+=response.table.rows.length;next=response.table.next_offset;updateCaption(response.table.total);more.hidden=!Number.isInteger(next);
-            }catch(error){notice.textContent=error.message;}
-            finally{more.disabled=false;more.textContent='Show more results';}
-          });
+              currentPage=Math.floor(response.table.offset/next.pageSize)+1;pageSize=next.pageSize;total=response.table.total;
+              body.replaceChildren();appendRows(response.table.rows);loaded=response.table.rows.length;updateCaption(total);notice.textContent='';
+            } catch(error) { notice.textContent=error.message; }
+            finally { draw(); }
+          };
+          const draw=()=>renderAudiencePagination(pages,{total,page:currentPage,pageSize,label:'Audience result pages',onChange:load});
+          draw();
+          if(loaded<Math.min(pageSize,total))load({page:1,pageSize});
         }
         if (!result.rows.length) box.append(node('p','No audience records matched this lookup.'));
       }
@@ -167,12 +173,19 @@
     const list = document.querySelector('[data-ai-history]'); if (!list) return;
       const items = historyItems.filter(item => item.created_at > historyCutoff && !hiddenRequests.has(item.client_request_id)); list.replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = items.length>0;
       if (resetHistoryButton) { resetHistoryButton.hidden = !canRemoveHistory; resetHistoryButton.disabled = items.length === 0 || historyChangePending; }
-      items.forEach(item => { const li=node('li');const button=node('button',item.question,'ai-history-open');button.type='button';if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
+      items.forEach(item => { const li=node('li');const button=node('button',undefined,'ai-history-open');button.type='button';button.setAttribute('aria-label',item.question);button.append(node('span',item.question),node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
           if(busy&&active===item.client_request_id){question(item.question,item.client_request_id);return;}
           if(busy){generation++;active='';clearPending();setBusy(false);}
           const token=++generation;previous='';completed='';output.hidden=true;resetChat();question(item.question,item.client_request_id);
+          displayedRequest=item.client_request_id;renderHistory();
           try{
             const result=await api(null,`?request_id=${encodeURIComponent(item.client_request_id)}`);if(token!==generation)return;
+            if(config.mode==='content'){
+              const input=result.input;
+              const defaults={text:'',subject:'',prompt:item.question,operation:'write',tone:'friendly'};
+              for(const [name,fallback]of Object.entries(defaults))if(form.elements[name])form.elements[name].value=typeof input?.[name]==='string'?input[name]:fallback;
+              displayedRequest=item.client_request_id;
+            }
             if(result.state==='complete'){complete({...result,question:item.question},item.client_request_id);}
             else if(result.state==='pending'){
               active=item.client_request_id;setBusy(true);announce('Your request is being processed');
@@ -180,26 +193,55 @@
               try{sessionStorage.setItem(storageKey,JSON.stringify({uuid:active,started,mode:config.mode}));}catch{/* Recovery is optional. */}
               return poll(active,token,started);
             }else failure('This request was interrupted. Please retry it.',item.client_request_id,item.question);
+            if(config.mode==='content'&&!result.input)announce('Original source text is unavailable for this older request.');
           }catch(error){if(token===generation)failure(error.message,item.client_request_id,item.question);}
         });
         li.append(button);
         if (canRemoveHistory) {
-          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Remove from recent requests (Admin Unlock required)';remove.setAttribute('aria-label',`Remove request: ${item.question}`);remove.setAttribute('data-admin-unlock-required','');
+          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete response permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete response: ${item.question}`);
           const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
-          remove.addEventListener('click',()=>changeHistory(()=>{hiddenRequests.add(item.client_request_id);try{localStorage.setItem(historyHiddenKey,JSON.stringify([...hiddenRequests].slice(-200)));}catch{/* Current-page removal remains available. */}announce('Request removed from the list.');}));
+          remove.addEventListener('click',()=>changeHistory('delete',async()=>{
+            await api({action:'delete',request_id:item.client_request_id,confirmed:true});
+            hiddenRequests.add(item.client_request_id);
+            historyItems=historyItems.filter(saved=>saved.client_request_id!==item.client_request_id);
+            if([active,displayedRequest,completed,previous].includes(item.client_request_id)){
+              generation++;active='';displayedRequest='';completed='';previous='';clearPending();setBusy(false);resetChat();output.hidden=true;find('[data-ai-check-result]').hidden=true;
+              if(config.mode==='content')for(const name of ['text','subject','prompt'])form.elements[name].value='';
+            }
+            announce('Response permanently deleted.');
+          }));
           li.append(remove);
         }
-        li.append(node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));list.append(li); });
+        list.append(li); });
   }
-  async function changeHistory(change) {
+  function confirmHistoryChange(kind) {
+    if (!historyConfirmation?.showModal) return Promise.resolve(false);
+    const deleting=kind==='delete';
+    document.querySelector('[data-ai-history-confirm-message]').textContent=deleting
+      ? 'This will permanently delete this AI request, its source text, and its response. This cannot be undone.'
+      : 'Reset the recent requests shown in this browser? Saved responses will be retained.';
+    document.querySelector('[data-ai-history-confirm-submit]').textContent=deleting?'Delete permanently':'Reset list';
+    historyConfirmation.returnValue='';
+    return new Promise(resolve=>{
+      historyConfirmation.addEventListener('close',()=>resolve(historyConfirmation.returnValue==='confirm'),{once:true});
+      historyConfirmation.showModal();
+    });
+  }
+  async function changeHistory(kind,change) {
     if (!canRemoveHistory || historyChangePending) return;
+    let changed=false;
     historyChangePending = true;
     if (resetHistoryButton) resetHistoryButton.disabled = true;
     try {
-      if (!(await window.DnrAdminUnlock?.request()) || !canRemoveHistory) return;
-      change();
-    } catch { announce('Unable to verify Admin Unlock. The request list is unchanged.'); }
-    finally { historyChangePending = false; renderHistory(); }
+      if (!(await confirmHistoryChange(kind)) || !canRemoveHistory) return;
+      await change();
+      changed=true;
+    } catch (error) { announce(`Unable to change recent requests. ${error.message}`); }
+    finally {
+      historyChangePending=false;
+      if(changed)renderHistory();
+      else if(resetHistoryButton)resetHistoryButton.disabled=!historyItems.some(item=>item.created_at>historyCutoff&&!hiddenRequests.has(item.client_request_id));
+    }
   }
   async function history() {
     try {
@@ -207,7 +249,7 @@
       if(chat&&active){const item=historyItems.find(item=>item.client_request_id===active);if(item)question(item.question,active);}
     } catch { /* History failure never prevents manual editing. */ }
   }
-  resetHistoryButton?.addEventListener('click', () => changeHistory(() => {
+  resetHistoryButton?.addEventListener('click', () => changeHistory('reset',() => {
     historyCutoff = historyItems.reduce((latest, item) => item.created_at > latest ? item.created_at : latest, historyCutoff);
     try { localStorage.setItem(historyResetKey, historyCutoff); } catch { /* The current list can still be reset. */ }
     announce('Request list reset. Saved requests remain available for review.');
@@ -233,9 +275,11 @@
     if(token===generation){clearPending();active='';setBusy(false);failure('The AI service did not finish in time. Please try again.',uuid);history();}
   }
   async function stop() {
-    const uuid=active;generation++;active='';clearPending();setBusy(false);
+    const uuid=active,token=++generation;active='';clearPending();setBusy(false);
+    if(chat&&uuid)failure('This request was stopped.',uuid,'','cancelled');
+    else announce('Request stopped. Your content is unchanged');
     if(uuid)try{await api({action:'cancel',request_id:uuid});}catch{ /* Worker deadline also prevents late publication. */ }
-    announce('Request stopped. Your content is unchanged');
+    if(uuid&&token===generation)history();
   }
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
@@ -255,13 +299,16 @@
     }catch(error){if(token===generation){active='';setBusy(false);clearPending();failure(error.message,uuid,values.prompt);}}
   });
   find('[data-ai-stop]').addEventListener('click',stop);
-  find('[data-ai-new]').addEventListener('click',async()=>{generation++;if(busy)await stop();previous='';completed='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();announce('Ready for a new request');});
+  find('[data-ai-new]').addEventListener('click',async()=>{generation++;if(busy)await stop();previous='';completed='';displayedRequest='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();if(!chat){for(const name of ['text','subject','prompt'])form.elements[name].value='';renderHistory();form.elements.prompt.focus();}announce('Ready for a new request');});
   root.querySelectorAll('[data-ai-starter]').forEach(button=>button.addEventListener('click',()=>{if(busy)return;if(chat&&button.dataset.aiWindow)updateScope(JSON.parse(button.dataset.aiWindow));form.elements.prompt.value=button.textContent;form.elements.prompt.dispatchEvent(new Event('input'));form.elements.prompt.focus();}));
   if (chat) {
     const resize = () => { const input=form.elements.prompt; input.style.height='auto'; input.style.height=`${Math.min(160,input.scrollHeight)}px`; };
     form.elements.prompt.addEventListener('input',resize); resize();
     form.elements.prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
-    find('[data-ai-history-toggle]').addEventListener('click',event=>{const button=event.currentTarget,panel=find('#analytics-ai-history');panel.hidden=!panel.hidden;root.classList.toggle('history-collapsed',panel.hidden);button.setAttribute('aria-expanded',String(!panel.hidden));button.querySelector('span').textContent=panel.hidden?'Show chat history':'Hide chat history';});
+  }
+  const historyToggle=find('[data-ai-history-toggle]'),historyPanel=find('[data-ai-history-panel]');
+  if(historyToggle&&historyPanel){
+    historyToggle.addEventListener('click',event=>{const button=event.currentTarget;historyPanel.hidden=!historyPanel.hidden;root.classList.toggle('history-collapsed',historyPanel.hidden);button.setAttribute('aria-expanded',String(!historyPanel.hidden));button.querySelector('span').textContent=`${historyPanel.hidden?'Show':'Hide'} ${chat?'chat':'request'} history`;});
     const measure = () => root.style.setProperty('--analytics-ai-offset',`${Math.max(0,root.getBoundingClientRect().top)}px`);
     window.addEventListener('resize',measure); measure();
   }

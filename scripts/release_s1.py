@@ -121,7 +121,7 @@ def prepare_version(args, deployed):
         raise ValueError('Resume requires the same prepared version on main, without a plugin bump')
     previous = git('show', deployed + ':VERSION')
     parts = list(map(int, previous.split('.')))
-    index = {'super': 0, 'major': 1, 'minor': 2}[args.bump]
+    index = {'major': 0, 'minor': 1, 'patch': 2}[args.bump]
     parts[index] += 1
     for following in range(index + 1, 3):
         parts[following] = 0
@@ -262,9 +262,9 @@ def write_receipt(data):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('bump', choices=('minor', 'major', 'super'))
+    parser.add_argument('bump', choices=('major', 'minor', 'patch'))
     parser.add_argument('--summary', required=True, help='Concise release behavior for the commit and PR')
-    parser.add_argument('--plugin-bump', choices=('minor', 'major', 'super'))
+    parser.add_argument('--plugin-bump', choices=('major', 'minor', 'patch'))
     parser.add_argument('--resume-version', help='Continue an already merged, untagged version after an interruption')
     parser.add_argument('--ci-timeout-minutes', type=int, default=90)
     parser.add_argument('--plan', action='store_true', help='Validate local configuration and print the bounded stages')

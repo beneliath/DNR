@@ -38,6 +38,22 @@ $factory=static fn($service,$settings,$credentials)=>$service==='ses'?$fakeSes:n
 $db->query("UPDATE marketing_ses_settings SET check_state='queued' WHERE audience_id=1");
 if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1)throw new RuntimeException('SES check worker could not claim setup.');
 if($db->query('SELECT check_state FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['check_state']!=='ready')throw new RuntimeException('SES check failed.');
+$idleChecks=$fakeSes->checks;
+if(processAudienceSesSetup($db,1,$factory)!==0||$fakeSes->checks!==$idleChecks)throw new RuntimeException('Fresh idle SES connection was checked unnecessarily.');
+$db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 11 MINUTE) WHERE audience_id=1");
+if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1||$fakeSes->checks!==$idleChecks+1)throw new RuntimeException('Idle SES connection was not refreshed before signup readiness expired.');
+$idleSettings=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();
+if(audienceSesReasons($idleSettings,$ses['from_email'])||$fakeSes->sent)throw new RuntimeException('Idle refresh did not restore readiness without sending email.');
+$fakeSes->verified=false;
+$db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 11 MINUTE) WHERE audience_id=1");
+processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none']);
+$idleSettings=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();
+if($idleSettings['check_state']!=='attention'||!audienceSesReasons($idleSettings,$ses['from_email'])||$fakeSes->sent)throw new RuntimeException('Failed idle verification did not block signup without sending email.');
+if(processAudienceSesSetup($db,1,$factory)!==0)throw new RuntimeException('Failed connection was automatically retried without an administrator check.');
+$fakeSes->verified=true;
+$db->query("UPDATE marketing_ses_settings SET check_state='queued' WHERE audience_id=1");
+processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none']);
+echo "Idle SES readiness refresh, fresh-check suppression and failed-verification gate passed.\n";
 $beforeChecks=$fakeSes->checks;
 $db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR) WHERE audience_id=1");
 $refreshed=audienceSesWorkerReady($db,1,$ses['from_email'],audienceSesBinding($ses),$factory,static fn()=>['v=DMARC1; p=none']);
@@ -158,6 +174,24 @@ if(!$workerInbox->inboxAvailable())throw new RuntimeException('Inbox runtime was
 $workerInbox->inboxSettings();$db->query('SELECT role,email,email_verified_at,account_status FROM users LIMIT 1');
 $db->query('SELECT id FROM marketing_inbox_delivery_events LIMIT 1');
 foreach(["UPDATE marketing_inbox_settings SET gateway_confirmed=1 WHERE 1=0","INSERT INTO marketing_inbox_templates(audience_id,name,subject,body_html) VALUES (1,'Forbidden worker authoring','','')"]as$sql){try{$db->query($sql);throw new RuntimeException('Inbox worker gained authoring privileges.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}}
+// Exercise the real eligibility path, not just SELECTs against a few tables.
+$reply=$db->query("SELECT m.* FROM marketing_service_mail m JOIN marketing_contacts c ON c.id=m.contact_id WHERE m.kind='inbox' AND c.email='inbox-worker-ready@example.test' ORDER BY m.id DESC LIMIT 1")->fetch_assoc();
+if(!$reply)throw new RuntimeException('Restricted Inbox fixture missing.');
+$message=json_decode(\Dnr\Security\ApplicationKey::open($reply['payload_ciphertext']),true)['message'];
+audienceInboxServiceReady($db,$reply,$message);
+try{$db->query('SELECT label_id FROM marketing_inbox_thread_labels LIMIT 0');throw new RuntimeException('Delivery acquired unnecessary UI label access.');}catch(mysqli_sql_exception $e){if(!in_array($e->getCode(),[1142,1143],true))throw $e;}
+$missing=$message;$missing['inbox_thread_id']=2147483647;
+try{audienceInboxServiceReady($db,$reply,$missing);throw new RuntimeException('Missing conversation was allowed.');}catch(InvalidArgumentException){}
+$queuedForLater=$db->query("SELECT id,next_attempt_at FROM marketing_service_mail WHERE state='queued'")->fetch_all(MYSQLI_ASSOC);
+foreach($queuedForLater as$fixture)$db->execute_query('UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY) WHERE id=?',[$fixture['id']]);
+// Freeze the current synthetic sender binding, just as a fresh queued reply does.
+$message['ses_binding']=audienceSesBinding($db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc());
+$db->execute_query("UPDATE marketing_service_mail SET state='queued',next_attempt_at=UTC_TIMESTAMP(),payload_ciphertext=? WHERE id=?",[\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR)),$reply['id']]);
+$replySent=0;processAudienceServiceMail($db,1,static function($outgoing,$kind)use(&$replySent,$db,$factory):string{if($kind!=='inbox'||$outgoing['email']!=='inbox-worker-ready@example.test')throw new RuntimeException('Unexpected fixture recipient.');$replySent++;return audienceSesDeliver($db,$outgoing,$kind,$factory);});
+$replyResult=$db->execute_query('SELECT state,error_message FROM marketing_service_mail WHERE id=?',[$reply['id']])->fetch_assoc();
+if($replySent!==1||$replyResult['state']!=='accepted'||$replyResult['error_message']!=='')throw new RuntimeException('Restricted worker could not prepare and deliver a labelled Inbox reply: '.$replyResult['error_message']);
+foreach($queuedForLater as$fixture)if((int)$fixture['id']!==(int)$reply['id'])$db->execute_query('UPDATE marketing_service_mail SET next_attempt_at=? WHERE id=?',[$fixture['next_attempt_at'],$fixture['id']]);
+echo "Inbox restricted worker prepares and delivers a labelled reply without UI privileges; missing threads fail closed.\n";
 echo "Inbox worker read/receipt privileges and source/template authoring separation passed.\n";
 
 require_once '/var/www/html/audience_notification_runtime.php';

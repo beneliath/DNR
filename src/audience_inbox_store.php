@@ -85,7 +85,23 @@ trait AudienceInbox
     {
         return $this->all("SELECT l.*,COUNT(t.id) message_count FROM marketing_inbox_labels l LEFT JOIN marketing_inbox_thread_labels tl ON tl.audience_id=l.audience_id AND tl.label_id=l.id LEFT JOIN marketing_inbox_threads t ON t.id=tl.thread_id AND t.audience_id=tl.audience_id AND t.status<>'trash' AND t.last_message_id>0 WHERE l.audience_id=? AND l.deleted_at IS NULL GROUP BY l.id ORDER BY l.name,l.id",[$this->audienceId]);
     }
-    public function inboxTemplates():array{return $this->all('SELECT * FROM marketing_inbox_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$this->audienceId]);}
+    public function inboxTemplates(bool $archived=false):array{return $this->all('SELECT * FROM marketing_inbox_templates WHERE audience_id=? AND deleted_at IS '.($archived?'NOT NULL':'NULL').' ORDER BY name,id',[$this->audienceId]);}
+    public function inboxTemplateOperation(int $id,int $version,string $operation):void
+    {
+        if(!in_array($operation,['archive','restore','delete'],true))throw new InvalidArgumentException('Invalid message template action.');
+        $this->transaction(function()use($id,$version,$operation){
+            $row=$this->one('SELECT version,deleted_at FROM marketing_inbox_templates WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,$id]);
+            if(!$row||(int)$row['version']!==$version)throw new InvalidArgumentException('This template changed. Reload before trying again.');
+            $archived=$row['deleted_at']!==null;
+            if($operation==='delete'){
+                if(!$archived)throw new InvalidArgumentException('Archive this template before permanently deleting it.');
+                $this->write('DELETE FROM marketing_inbox_templates WHERE audience_id=? AND id=? AND version=?',[$this->audienceId,$id,$version]);
+            }else{
+                if(($operation==='archive')===$archived)throw new InvalidArgumentException('This template changed. Reload before trying again.');
+                $this->write('UPDATE marketing_inbox_templates SET deleted_at='.($operation==='archive'?'UTC_TIMESTAMP()':'NULL').',version=version+1 WHERE audience_id=? AND id=? AND version=?',[$this->audienceId,$id,$version]);
+            }
+        });
+    }
     public function saveInboxNamed(string $kind,array $input,int $id=0,int $version=0):int
     {
         if(!in_array($kind,['label','template'],true))throw new InvalidArgumentException('Invalid Inbox item.');
@@ -98,32 +114,36 @@ trait AudienceInbox
             if($id){$row=$this->one("SELECT id,version FROM $table WHERE audience_id=? AND id=? AND deleted_at IS NULL FOR UPDATE",[$this->audienceId,$id]);if(!$row||(int)$row['version']!==$version)throw new InvalidArgumentException('This item changed. Reload before saving.');
                 $this->write("UPDATE $table SET name=?,version=version+1".($kind==='template'?',subject=?,body_html=?':'').' WHERE audience_id=? AND id=?',$kind==='template'?[$name,$subject,$html,$this->audienceId,$id]:[$name,$this->audienceId,$id]);return $id;}
             $old=$this->one("SELECT id FROM $table WHERE audience_id=? AND name=? AND deleted_at IS NOT NULL FOR UPDATE",[$this->audienceId,$name]);
-            if($old){$this->write("UPDATE $table SET deleted_at=NULL,version=version+1".($kind==='template'?',subject=?,body_html=?':'').' WHERE audience_id=? AND id=?',$kind==='template'?[$subject,$html,$this->audienceId,$old['id']]:[$this->audienceId,$old['id']]);return (int)$old['id'];}
+            if($old){if($kind==='template')throw new InvalidArgumentException('A template with this name is archived. Restore it from Archived or choose another name.');$this->write("UPDATE $table SET deleted_at=NULL,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$old['id']]);return (int)$old['id'];}
             if($kind==='template')$this->write("INSERT INTO $table(audience_id,name,subject,body_html) VALUES (?,?,?,?)",[$this->audienceId,$name,$subject,$html]);else $this->write("INSERT INTO $table(audience_id,name) VALUES (?,?)",[$this->audienceId,$name]);return (int)$this->db->insert_id;
         });
     }
     public function removeInboxNamed(string $kind,int $id,int $version):void
     {
+        if($kind==='template'){$this->inboxTemplateOperation($id,$version,'delete');return;}
         $table=match($kind){'label'=>'marketing_inbox_labels','template'=>'marketing_inbox_templates',default=>throw new InvalidArgumentException('Invalid Inbox item.')};
         $this->write("UPDATE $table SET deleted_at=UTC_TIMESTAMP(),version=version+1 WHERE audience_id=? AND id=? AND version=? AND deleted_at IS NULL",[$this->audienceId,$id,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This item changed. Reload before removing it.');
     }
-    public function inboxList(array $input):array
+    public function inboxList(array $input,bool $continuous=false):array
     {
         $status=in_array($input['status']??'todo',['todo','done','trash','all'],true)?($input['status']??'todo'):'todo';
         $source=in_array($input['source']??'',['email','contact','survey','direct'],true)?$input['source']:'';
         $q=audienceText($input,'q',100);$label=max(0,(int)($input['label']??0));$unread=($input['unread']??'')==='1';
         $where='t.audience_id=? AND t.last_message_id>0';$p=[$this->audienceId];
-        if($status!=='all'){$where.=' AND t.status=?';$p[]=$status;}
+        if($status!=='all'){$where.=' AND t.status=?';$p[]=$status;}else$where.=" AND t.status<>'trash'";
         if($source!==''){$where.=' AND t.source=?';$p[]=$source;}
         if($label){$where.=' AND EXISTS(SELECT 1 FROM marketing_inbox_thread_labels tl JOIN marketing_inbox_labels l ON l.audience_id=tl.audience_id AND l.id=tl.label_id AND l.deleted_at IS NULL WHERE tl.audience_id=t.audience_id AND tl.thread_id=t.id AND tl.label_id=?)';$p[]=$label;}
         if($q!==''){$where.=' AND (LOCATE(?,t.subject)>0 OR LOCATE(?,t.sender_email)>0 OR LOCATE(?,t.sender_name)>0 OR EXISTS(SELECT 1 FROM marketing_inbox_messages sm WHERE sm.audience_id=t.audience_id AND sm.thread_id=t.id AND LOCATE(?,sm.body_text)>0))';array_push($p,$q,$q,$q,$q);}
         $read='COALESCE((SELECT last_read_id FROM marketing_inbox_read_state rs WHERE rs.audience_id=t.audience_id AND rs.thread_id=t.id AND rs.user_id='.(int)$this->actorId.'),0)';
         if($unread)$where.=" AND t.last_message_id>$read";
-        $total=(int)$this->one("SELECT COUNT(*) n FROM marketing_inbox_threads t WHERE $where",$p)['n'];$page=max(1,min(max(1,(int)ceil($total/25)),(int)($input['page']??1)));
-        $items=$this->all("SELECT t.*,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC LIMIT 25 OFFSET ?",[...$p,($page-1)*25]);
-        $counts=['todo'=>0,'done'=>0,'trash'=>0,'all'=>0];foreach($this->all('SELECT status,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 GROUP BY status',[$this->audienceId])as$r){$counts[$r['status']]=(int)$r['n'];$counts['all']+=(int)$r['n'];}
+        $size=audiencePageSize($input);$total=(int)$this->one("SELECT COUNT(*) n FROM marketing_inbox_threads t WHERE $where",$p)['n'];$page=$continuous?1:max(1,min(max(1,(int)ceil($total/$size)),(int)($input['page']??1)));
+        $items=$this->all("SELECT t.*,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC".($continuous?'':' LIMIT ? OFFSET ?'),$continuous?$p:[...$p,$size,($page-1)*$size]);
+        $itemLabels=[];
+        if($items){$ids=array_column($items,'id');foreach($this->all('SELECT tl.thread_id,l.name FROM marketing_inbox_thread_labels tl JOIN marketing_inbox_labels l ON l.id=tl.label_id AND l.audience_id=tl.audience_id AND l.deleted_at IS NULL WHERE tl.audience_id=? AND tl.thread_id IN ('.implode(',',array_fill(0,count($ids),'?')).') ORDER BY l.name',[$this->audienceId,...$ids])as$l)$itemLabels[$l['thread_id']][]=$l['name'];}
+        foreach($items as&$item)$item['labels']=$itemLabels[$item['id']]??[];unset($item);
+        $counts=['todo'=>0,'done'=>0,'trash'=>0,'all'=>0];foreach($this->all('SELECT status,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 GROUP BY status',[$this->audienceId])as$r){$counts[$r['status']]=(int)$r['n'];if($r['status']!=='trash')$counts['all']+=(int)$r['n'];}
         $sources=['email'=>0,'contact'=>0,'survey'=>0,'direct'=>0];foreach($this->all("SELECT source,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 AND status<>'trash' GROUP BY source",[$this->audienceId])as$r)$sources[$r['source']]=(int)$r['n'];
-        return compact('items','total','page','status','source','q','label','unread','counts','sources');
+        return ['per_page'=>$size]+compact('items','total','page','status','source','q','label','unread','counts','sources');
     }
     public function inboxThread(int $id,bool $lock=false):array
     {
@@ -133,10 +153,10 @@ trait AudienceInbox
         $t['labels']=array_map('intval',array_column($this->all('SELECT label_id FROM marketing_inbox_thread_labels WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]),'label_id'));
         return $t;
     }
-    public function inboxMessages(int $thread,int $before=0):array
+    public function inboxMessages(int $thread,int $before=0,int $page=1,int $size=100):array
     {
-        $this->inboxThread($thread);
-        $messages=$this->all('SELECT m.*,s.state delivery_state,s.error_message delivery_error,s.provider_message_id FROM marketing_inbox_messages m LEFT JOIN marketing_service_mail s ON s.id=m.service_mail_id AND s.audience_id=m.audience_id WHERE m.audience_id=? AND m.thread_id=?'.($before?' AND m.id<?':'').' ORDER BY m.id DESC LIMIT 100',$before?[$this->audienceId,$thread,$before]:[$this->audienceId,$thread]);
+        $this->inboxThread($thread);$size=audiencePageSize(['per_page'=>$size],'per_page',100);$page=max(1,$page);
+        $messages=$this->all('SELECT m.*,s.state delivery_state,s.error_message delivery_error,s.provider_message_id FROM marketing_inbox_messages m LEFT JOIN marketing_service_mail s ON s.id=m.service_mail_id AND s.audience_id=m.audience_id WHERE m.audience_id=? AND m.thread_id=?'.($before?' AND m.id<?':'').' ORDER BY m.id DESC LIMIT ? OFFSET ?',[...($before?[$this->audienceId,$thread,$before]:[$this->audienceId,$thread]),$size,($page-1)*$size]);
         foreach($messages as&$m){$m['delivery_events']=$m['service_mail_id']?$this->all('SELECT event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id=? ORDER BY id',[$this->audienceId,$m['service_mail_id']]):[];$m['attachments']=$this->all('SELECT id,filename,mime_type,byte_size FROM marketing_inbox_attachments WHERE audience_id=? AND message_id=? ORDER BY id',[$this->audienceId,$m['id']]);}unset($m);
         return array_reverse($messages);
     }

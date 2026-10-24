@@ -71,7 +71,8 @@ trait AudienceFlows
     public function flowOperation(int $id,int $version,string $op,string $node=''): int
     {
         return $this->flowLock($id,function()use($id,$version,$op,$node):int{return $this->transaction(function()use($id,$version,$op,$node):int{
-            $row=$this->flow($id,true,$op==='restore');if((int)$row['version']!==$version)throw new InvalidArgumentException('This flow changed. Reload before trying again.');
+            $row=$this->flow($id,true,in_array($op,['restore','delete'],true));if((int)$row['version']!==$version)throw new InvalidArgumentException('This flow changed. Reload before trying again.');
+            if(in_array($op,['restore','delete'],true)&&!$row['deleted_at'])throw new InvalidArgumentException('Only archived flows can be restored or permanently deleted.');
             if($op==='replicate')return $this->saveFlow(mb_substr($row['name'].' (copy)',0,100),$row['document']);
             if($op==='activate'){
                 if(function_exists('isRestrictedDemoSession')&&isRestrictedDemoSession()||function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())throw new InvalidArgumentException('Starting a flow requires an unrestricted editor or administrator.');
@@ -92,12 +93,22 @@ trait AudienceFlows
             }elseif($op==='pause')$this->write("UPDATE marketing_flows SET state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             elseif(in_array($op,['pause_node','resume_node'],true)){
                 if(!in_array($node,array_column($row['document']['nodes'],'id'),true))throw new InvalidArgumentException('Choose an available step.');$nodes=$row['paused_nodes'];$nodes=$op==='pause_node'?array_values(array_unique([...$nodes,$node])):array_values(array_diff($nodes,[$node]));$this->write('UPDATE marketing_flows SET paused_nodes_json=?,version=version+1 WHERE audience_id=? AND id=?',[json_encode($nodes,JSON_THROW_ON_ERROR),$this->audienceId,$id]);
-            }elseif($op==='remove'){
+            }elseif(in_array($op,['archive','remove'],true)){
                 $this->write("UPDATE marketing_flows SET state='paused',deleted_at=UTC_TIMESTAMP(),version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
                 $this->write("UPDATE marketing_flow_runs SET state='exited',ended_at=UTC_TIMESTAMP(),error_message='Flow removed' WHERE audience_id=? AND flow_id=? AND state IN ('active','failed')",[$this->audienceId,$id]);
-                $this->write("UPDATE marketing_campaign_deliveries d JOIN marketing_flow_runs r ON r.id=d.flow_run_id SET d.state='cancelled',d.version=d.version+1 WHERE r.audience_id=? AND r.flow_id=? AND d.state IN ('scheduled','sending','paused')",[$this->audienceId,$id]);
-                $this->write("UPDATE marketing_campaign_recipients p JOIN marketing_campaign_deliveries d ON d.id=p.delivery_id JOIN marketing_flow_runs r ON r.id=d.flow_run_id SET p.state='cancelled' WHERE r.audience_id=? AND r.flow_id=? AND p.state='queued'",[$this->audienceId,$id]);
-            }elseif($op==='restore')$this->write("UPDATE marketing_flows SET state='draft',deleted_at=NULL,published_revision=NULL,cursor_json=JSON_OBJECT(),version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_campaign_deliveries d JOIN marketing_flow_runs r ON r.id=d.flow_run_id AND r.audience_id=d.audience_id SET d.state='cancelled',d.version=d.version+1 WHERE r.audience_id=? AND r.flow_id=? AND d.state IN ('scheduled','sending','paused')",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_campaign_recipients p JOIN marketing_campaign_deliveries d ON d.id=p.delivery_id AND d.audience_id=p.audience_id JOIN marketing_flow_runs r ON r.id=d.flow_run_id AND r.audience_id=d.audience_id SET p.state='cancelled' WHERE r.audience_id=? AND r.flow_id=? AND p.state='queued'",[$this->audienceId,$id]);
+            }elseif($op==='restore')$this->write("UPDATE marketing_flows SET state='draft',deleted_at=NULL,published_revision=NULL,cursor_json=JSON_OBJECT(),paused_nodes_json=JSON_ARRAY(),version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
+            elseif($op==='delete'){
+                if($this->one("SELECT p.id FROM marketing_campaign_recipients p JOIN marketing_campaign_deliveries d ON d.id=p.delivery_id AND d.audience_id=p.audience_id JOIN marketing_flow_runs r ON r.id=d.flow_run_id AND r.audience_id=d.audience_id WHERE r.audience_id=? AND r.flow_id=? AND p.state='processing' LIMIT 1",[$this->audienceId,$id]))throw new InvalidArgumentException('Wait for processing email receipts to finish before deleting this flow.');
+                // Delivery snapshots and recipient tokens remain valid for sent mail and opt-outs.
+                $this->write("UPDATE marketing_campaign_recipients p JOIN marketing_campaign_deliveries d ON d.id=p.delivery_id AND d.audience_id=p.audience_id JOIN marketing_flow_runs r ON r.id=d.flow_run_id AND r.audience_id=d.audience_id SET p.state='cancelled' WHERE r.audience_id=? AND r.flow_id=? AND p.state='queued'",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_campaign_deliveries d JOIN marketing_flow_runs r ON r.id=d.flow_run_id AND r.audience_id=d.audience_id SET d.state='cancelled',d.version=d.version+1 WHERE r.audience_id=? AND r.flow_id=? AND d.state IN ('scheduled','sending','paused')",[$this->audienceId,$id]);
+                $this->write('DELETE s FROM marketing_flow_steps s JOIN marketing_flow_runs r ON r.id=s.run_id AND r.audience_id=s.audience_id WHERE r.audience_id=? AND r.flow_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_flow_runs WHERE audience_id=? AND flow_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_flow_revisions WHERE audience_id=? AND flow_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_flows WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
+            }
             else throw new InvalidArgumentException('Choose a supported flow action.');
             return $id;
         });});
@@ -115,14 +126,14 @@ trait AudienceFlows
     }
     public function flowReport(int $id,array $input=[]): array
     {
-        $this->flow($id);$node=audienceText($input,'node',40);$state=audienceText($input,'state',20);$page=max(1,(int)($input['page']??1));
+        $size=audiencePageSize($input);$this->flow($id,false,true);$node=audienceText($input,'node',40);$state=audienceText($input,'state',20);$page=max(1,(int)($input['page']??1));
         $where='r.audience_id=? AND r.flow_id=?';$params=[$this->audienceId,$id];
         if(in_array($state,['active','completed','exited','failed'],true)){$where.=' AND r.state=?';$params[]=$state;}
         if($node!==''){$where.=' AND EXISTS(SELECT 1 FROM marketing_flow_steps s WHERE s.run_id=r.id AND s.node_key=?)';$params[]=$node;}
-        $total=(int)$this->one('SELECT COUNT(*) n FROM marketing_flow_runs r WHERE '.$where,$params)['n'];$page=min($page,max(1,(int)ceil($total/25)));
-        $runs=$this->all('SELECT r.*,c.email,c.first_name,c.last_name,c.deleted_at FROM marketing_flow_runs r JOIN marketing_contacts c ON c.id=r.contact_id WHERE '.$where.' ORDER BY r.id DESC LIMIT 25 OFFSET ?',[...$params,($page-1)*25]);
+        $total=(int)$this->one('SELECT COUNT(*) n FROM marketing_flow_runs r WHERE '.$where,$params)['n'];$page=min($page,max(1,(int)ceil($total/$size)));
+        $runs=$this->all('SELECT r.*,c.email,c.first_name,c.last_name,c.deleted_at FROM marketing_flow_runs r JOIN marketing_contacts c ON c.id=r.contact_id WHERE '.$where.' ORDER BY r.id DESC LIMIT ? OFFSET ?',[...$params,$size,($page-1)*$size]);
         foreach($runs as&$run)$run['steps']=$this->all('SELECT node_key,state,result_json,created_at,completed_at FROM marketing_flow_steps WHERE audience_id=? AND run_id=? ORDER BY id',[$this->audienceId,$run['id']]);unset($run);
         return ['totals'=>$this->all('SELECT state,COUNT(*) n FROM marketing_flow_runs WHERE audience_id=? AND flow_id=? GROUP BY state',[$this->audienceId,$id]),
-            'nodes'=>$this->all('SELECT s.node_key,s.state,COUNT(*) n FROM marketing_flow_steps s JOIN marketing_flow_runs r ON r.id=s.run_id WHERE r.audience_id=? AND r.flow_id=? GROUP BY s.node_key,s.state',[$this->audienceId,$id]),'runs'=>$runs,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/25))];
+            'nodes'=>$this->all('SELECT s.node_key,s.state,COUNT(*) n FROM marketing_flow_steps s JOIN marketing_flow_runs r ON r.id=s.run_id WHERE r.audience_id=? AND r.flow_id=? GROUP BY s.node_key,s.state',[$this->audienceId,$id]),'runs'=>$runs,'total'=>$total,'page'=>$page,'per_page'=>$size,'pages'=>max(1,(int)ceil($total/$size))];
     }
 }

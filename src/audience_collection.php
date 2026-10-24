@@ -43,7 +43,7 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
         'messages'=>audienceCollectionMessages(), 'advanced'=>['enabled'=>false,'pages'=>['signup'=>'','thanks'=>'','confirm'=>'','unsubscribe'=>'']],
         'required'=>['email'], 'group_ids'=>[], 'tag_ids'=>[], 'permissions'=>[],
         'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
-        'font'=>'Arial', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'description'=>'', 'favicon'=>'',
+        'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'description'=>'', 'favicon'=>'',
         'labels'=>['email'=>'Email address','first_name'=>'First name','last_name'=>'Last name','phone'=>'Phone number'],
         'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from this audience.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
         'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How was your experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
@@ -60,9 +60,9 @@ function audienceCollectionText(mixed $value, int $limit): string
 
 function audienceCollectionUrl(mixed $value, bool $image = false): string
 {
-    $url=audienceCollectionText($value, $image?1500000:2000);
+    $url=audienceCollectionText($value, $image?2700000:2000);
     if ($url==='') return '';
-    if ($image && preg_match('~^data:image/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$~D',$url)) return $url;
+    if ($image && str_starts_with($url,'data:')) return audienceDesignImage($url,2000000,true);
     if (!filter_var($url,FILTER_VALIDATE_URL) || parse_url($url,PHP_URL_SCHEME)!=='https' || parse_url($url,PHP_URL_USER)!==null || parse_url($url,PHP_URL_PASS)!==null) throw new InvalidArgumentException('Use a full HTTPS address.');
     return $url;
 }
@@ -82,11 +82,14 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
         $d[$key]=audienceCollectionText($input[$key]??$d[$key],7);
         if (!preg_match('/^#[0-9a-fA-F]{6}$/D',$d[$key])) throw new InvalidArgumentException('Choose a six-digit color.');
     }
-    $d['font']=in_array($input['font']??'', ['Arial','Georgia','Verdana'],true)?$input['font']:'Arial';
+    $d['font']=in_array($input['font']??'', ['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$input['font']:'Arial';
+    $d['web_font']=audienceDesignWebFont($input['web_font']??'');
+    $d['web_font_name']=$d['web_font']!==''?audienceCollectionText($input['web_font_name']??'',255):'';
     $width=$input['width']??$d['width'];
     $d['width']=$kind==='embedded'&&($width===''||$width===0)?0:max(320,min(1200,(int)$width));
     $d['embedded']=audienceCollectionEmbedOptions($input['embedded']??[]);
     foreach (['logo','favicon'] as $key) $d[$key]=audienceCollectionUrl($input[$key]??'',true);
+    $d['logo_width']=audienceDesignNumber($input['logo_width']??240,40,1200);
     $d['opt_in']=in_array($input['opt_in']??'', ['single','double'],true)?$input['opt_in']:'double';
     $available=['email','first_name','last_name']; $must=['email'];
     foreach ($fields as $f) if ($f['is_public']) { $key='custom:'.$f['id']; $available[]=$key; if ($f['required']) $must[]=$key; }
@@ -209,11 +212,16 @@ trait AudienceCollection
     public function collectionOperation(int $id, int $version, string $operation): int
     {
         return $this->transaction(function() use($id,$version,$operation) {
-            $r=$this->collectionResource($id,true,$operation==='restore');
+            $r=$this->collectionResource($id,true,in_array($operation,['restore','delete'],true));
             if ((int)$r['version']!==$version) throw new InvalidArgumentException('This form changed. Reload before continuing.');
+            if(in_array($operation,['restore','delete'],true)&&!$r['deleted_at'])throw new InvalidArgumentException('Only archived forms can be restored or permanently deleted.');
             if ($operation==='replicate') return $this->saveCollection(['kind'=>$r['kind'],'name'=>mb_substr($r['name'],0,90).' (copy)','document'=>$r['draft']]);
-            if ($operation==='restore') {
-                if(!$r['deleted_at'])throw new InvalidArgumentException('This form is not removed.');
+            if($operation==='delete'){
+                $this->write('DELETE FROM marketing_collection_responses WHERE audience_id=? AND resource_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_collection_visits WHERE resource_id=?',[$id]);
+                $this->write('DELETE FROM marketing_collection_revisions WHERE audience_id=? AND resource_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_collection_resources WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
+            } elseif ($operation==='restore') {
                 $this->write("UPDATE marketing_collection_resources SET deleted_at=NULL,state='draft',published_revision=NULL,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             } elseif ($operation==='publish') {
                 $doc=audienceCollectionDocument($r['draft'],$r['kind'],$this->fields(),$this->groups(),$this->tags());
@@ -222,7 +230,7 @@ trait AudienceCollection
                 $revision=(int)$this->db->insert_id;
                 $this->write("UPDATE marketing_collection_resources SET state='published',published_revision=?,version=version+1 WHERE audience_id=? AND id=?",[$revision,$this->audienceId,$id]);
             } elseif ($operation==='pause') $this->write("UPDATE marketing_collection_resources SET state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
-            elseif ($operation==='remove') $this->write("UPDATE marketing_collection_resources SET deleted_at=UTC_TIMESTAMP(),state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
+            elseif (in_array($operation,['archive','remove'],true)) $this->write("UPDATE marketing_collection_resources SET deleted_at=UTC_TIMESTAMP(),state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             else throw new InvalidArgumentException('Choose a supported form action.');
             return $id;
         });

@@ -42,7 +42,8 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     ?>
     <!doctype html><html lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
     <style nonce="<?= $h($nonce) ?>">
-    :root{--collection-accent:<?= $d['color'] ?>;--collection-background:<?= $d['background'] ?>;--collection-text:<?= $d['text_color'] ?>;--collection-font:<?= $d['font'] ?>;--collection-width:<?= $d['width']?(int)$d['width'].'px':'100%' ?>}
+    <?php if($d['web_font']!==''): ?>@font-face{font-family:MOEDCollectionBrandFont;src:url(<?= audienceDesignWebFont($d['web_font']) ?>);font-display:swap}<?php endif; ?>
+    :root{--collection-accent:<?= $d['color'] ?>;--collection-background:<?= $d['background'] ?>;--collection-text:<?= $d['text_color'] ?>;--collection-font:<?= $d['web_font']!==''?'MOEDCollectionBrandFont,':'' ?><?= $d['font'] ?>;--collection-width:<?= $d['width']?(int)$d['width'].'px':'100%' ?><?php if($r['kind']==='landing'): ?>;--collection-logo-width:<?= (int)$d['logo_width'] ?>px;--collection-logo-height:none<?php endif; ?>}
     <?php if(!$embedded||!$embedOptions['remove_css']): ?>
     <?= file_get_contents(__DIR__.'/assets/css/pages/audience-collection-public.min.css') ?>
     <?php // Keep branded public pages self-contained; share only native-control normalization. ?>

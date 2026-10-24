@@ -1,6 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+test('font selection matches computed font stacks to system and Brand Kit choices',async()=>{
+  const {matchingFontChoice}=await import('../../src/assets/js/audience-designer-fonts.mjs');
+  const choices={Arial:'Arial','Times New Roman':'Times New Roman','MOEDBrandFont,Tahoma':'Ubuntu Light (Brand Kit)'};
+  assert.equal(matchingFontChoice('arial, sans-serif',choices),'Arial');
+  assert.equal(matchingFontChoice('"Times New Roman", serif',choices),'Times New Roman');
+  assert.equal(matchingFontChoice('MOEDBrandFont, Tahoma',choices),'MOEDBrandFont,Tahoma');
+  assert.equal(matchingFontChoice('"Helvetica Neue", sans-serif',choices),'Helvetica Neue');
+});
+
 test('explicit editor palette choices stop inheriting while block overrides leave the defaults alone', async()=>{
   const {setDesignColor}=await import('../../src/assets/js/audience-design-model.mjs');
   const design={styles:{link:'#3261b5',button:'#c10304',buttonText:'#ffffff',brandColors:{link:true,button:true,buttonText:true}}};

@@ -1,5 +1,6 @@
 import { mountTextColor } from './audience-richtext-colors.mjs';
 import { mountRichImageTools, normalizeRichImage } from './audience-richtext-images.mjs';
+import { firstFontFamily, matchingFontChoice } from './audience-designer-fonts.mjs';
 
 const tags = new Set(['p','div','span','font','br','hr','h1','h2','h3','h4','blockquote','strong','b','em','i','u','s','ul','ol','li','a','img']);
 const css = /^(?:color|background-color|font-family|font-size|font-weight|font-style|text-decoration|text-align|direction|line-height|letter-spacing)\s*:/i;
@@ -104,13 +105,44 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   const rich=el('div',undefined,'designer-rich-text');rich.contentEditable='true';rich.setAttribute('role','textbox');rich.setAttribute('aria-label','Text');rich.setAttribute('aria-multiline','true');
   if(block.html)setRichContent(rich,block.html);else (block.text||'').split(/\r?\n/).forEach((line,index)=>{if(index)rich.append(el('br'));rich.append(document.createTextNode(line));});
   const applyStyles=()=>applyRichStyles(rich);
-  let range=null,applying=false,lastHtml=rich.innerHTML;
+  let range=null,applying=false,lastHtml=rich.innerHTML,fontSelect=null;
+  const fontChoices=fonts||Object.fromEntries(['Arial','Georgia','Verdana','Tahoma','Times New Roman'].map(value=>[value,value]));
+  const selectionFont=()=>{
+    const element=node=>node.nodeType===Node.ELEMENT_NODE?node:node.parentElement;
+    const family=node=>firstFontFamily(getComputedStyle(element(node)||rich).fontFamily);
+    if(range.collapsed){
+      let node=range.startContainer;
+      if(node.nodeType===Node.ELEMENT_NODE&&node.childNodes.length)node=node.childNodes[Math.min(range.startOffset,node.childNodes.length-1)];
+      return family(node);
+    }
+    const walker=document.createTreeWalker(rich,NodeFilter.SHOW_TEXT);let node,selected;
+    while((node=walker.nextNode())){
+      if(!node.textContent.trim()||!range.intersectsNode(node))continue;
+      const start=node===range.startContainer?range.startOffset:0,end=node===range.endContainer?range.endOffset:node.length;
+      if(end<=start)continue;
+      const current=family(node);
+      if(selected!==undefined&&current.toLowerCase()!==selected.toLowerCase())return null;
+      selected=current;
+    }
+    return selected??family(range.startContainer);
+  };
+  const syncFont=()=>{
+    if(!fontSelect)return;
+    const family=selectionFont(),value=family===null?'':matchingFontChoice(family,fontChoices);
+    fontSelect.options[0].textContent=family===null?'Mixed fonts':'Font';
+    const current=fontSelect.querySelector('[data-current-font]');if(current&&current.value!==value)current.remove();
+    if(value&&![...fontSelect.options].some(option=>option.value===value)){
+      const option=el('option',value);option.value=value;option.dataset.currentFont='';fontSelect.append(option);
+    }
+    fontSelect.value=value;
+  };
   const past=[],future=[],stateButtons=[];
   const source=el('textarea',undefined,'designer-rich-source');source.setAttribute('aria-label','Text HTML source');source.hidden=true;source.spellcheck=false;
   const remember=()=>{
     const selection=window.getSelection();
     if(!applying&&document.activeElement===rich&&selection?.rangeCount&&rich.contains(selection.anchorNode)&&rich.contains(selection.focusNode)){
       range=selection.getRangeAt(0).cloneRange();onSelection(range);
+      syncFont();
       for(const [control,name]of stateButtons)control.setAttribute('aria-pressed',String(document.queryCommandState(name)));
     }
   };
@@ -172,7 +204,7 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     const input=el('select');input.setAttribute('aria-label',label);input.title=label;for(const [value,text]of options){const option=el('option',text);option.value=value;input.append(option);}input.onpointerdown=remember;input.onchange=()=>{fn(input.value);};row.append(input);return input;
   };
   select('Formatting style',[['','Default Text'],['p','Paragraph'],['h1','Heading 1'],['h2','Heading 2'],['h3','Heading 3'],['h4','Heading 4'],['blockquote','Quote']],value=>value&&command('formatBlock',value));
-  select('Selected text font',[['','Font'],...Object.entries(fonts||Object.fromEntries(['Arial','Georgia','Verdana','Tahoma','Times New Roman'].map(v=>[v,v])))],value=>value&&edit(()=>{
+  fontSelect=select('Selected text font',[['','Font'],...Object.entries(fontChoices)],value=>value&&edit(()=>{
     onFont(value);document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,value);
   }));
   select('Selected text size',[['','Size'],...[8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,35,36,40,44,48,54,60,66,72,80,88,96].map(v=>[String(v),String(v)])],value=>value&&edit(()=>{
@@ -211,6 +243,8 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   };
   row=first;
   const undo=tool('Undo text change','',()=>travel(past,future),'undo'),redo=tool('Redo text change','',()=>travel(future,past),'redo');undo.disabled=redo.disabled=true;
+  undo.classList.add('audience-history-action');redo.classList.add('audience-history-action');
+  undo.title='Undo';redo.title='Redo';
   tool('Strikethrough','S̶',()=>command('strikeThrough'));
   const collapse=button('▴',()=>{second.hidden=!second.hidden;collapse.textContent=second.hidden?'▾':'▴';collapse.setAttribute('aria-expanded',String(!second.hidden));collapse.setAttribute('aria-label',second.hidden?'Expand text toolbar':'Collapse text toolbar');});collapse.className='designer-rich-collapse';collapse.setAttribute('aria-label','Collapse text toolbar');collapse.setAttribute('aria-expanded','true');first.append(collapse);
   rich.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopPropagation();e.shiftKey?travel(future,past):travel(past,future);}},{signal});

@@ -4,6 +4,9 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
 {
     $audienceId=$store->audienceId;$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[])=>'audience.php'.($p?'?'.http_build_query($p):'');
+    $folderFilter=$_GET['folder']??'';
+    if(!is_string($folderFilter)||!mb_check_encoding($folderFilter,'UTF-8')||mb_strlen($folderFilter)>100)$folderFilter='';
+    $templateListUrl=static fn(string $tab='saved')=>$url(['view'=>'templates','tab'=>$tab]+($folderFilter!==''?['folder'=>$folderFilter]:[]));
     $kind=($_GET['kind']??'')==='template'?'template':'campaign';$starters=audienceDesignStarters();
     $brand=$store->contentSettings()['settings']['brand']??[];
     foreach($starters as&$starter)$starter['design']=audienceDesignBrandDefaults($starter['design'],$brand);unset($starter);
@@ -19,7 +22,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     if($_SERVER['REQUEST_METHOD']==='POST'){
         requireValidCsrfToken();if(!$canManage){http_response_code(403);exit('You do not have permission to edit email designs.');}
         try{
-            $action=audienceText($_POST,'action');if(str_starts_with($action,'design_')){$owner=$store->designOwner($kind,$id);if($kind==='campaign')$store->campaignDesign($owner,$variant);}$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;$redirect=$url(['view'=>'templates','tab'=>'saved']);
+            $action=audienceText($_POST,'action');if(str_starts_with($action,'design_')){$owner=$store->designOwner($kind,$id);if($kind==='campaign')$store->campaignDesign($owner,$variant);}$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;$redirect=$templateListUrl();
             if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Reload the canonical audience before saving.');
             if($action==='design_test'){
                 if(isRestrictedDemoSession()||!accountSecurityAccessAllowed())$respond(['error'=>'Sending requires an unrestricted editor or administrator.'],403);
@@ -51,10 +54,17 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
             elseif($action==='design_comments'){$respond(['comments'=>$store->designComments($kind,$id)]);}
             elseif($action==='design_comment_add'){$store->addDesignComment($kind,$id,$_POST);$respond(['comments'=>$store->designComments($kind,$id)]);}
             elseif($action==='design_comment_resolve'){$store->resolveDesignComment($kind,$id,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'comment_version')??0,($_POST['resolved']??'')==='1');$respond(['comments'=>$store->designComments($kind,$id)]);}
-            elseif($action==='design_library'){$respond($store->designLibrary(audienceText($_POST,'type'),audienceText($_POST,'search',100),\Dnr\Http\RequestInput::positiveInt($_POST,'page')??1));}
+            elseif($action==='design_library'){$respond($store->designLibrary(audienceText($_POST,'type'),audienceText($_POST,'search',100),\Dnr\Http\RequestInput::positiveInt($_POST,'page')??1,audiencePageSize($_POST)));}
             elseif($action==='design_library_get'){$respond(['item'=>$store->designLibraryItem(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0)]);}
             elseif($action==='design_library_save'){$item=$store->saveDesignLibrary(audienceText($_POST,'type'),audienceText($_POST,'name',100),audienceJson(audienceDesignPayload($_POST['data']??'')));$respond(['id'=>$item]);}
-            elseif($action==='design_library_operation'){$store->operateDesignLibrary(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'item_version')??0,audienceText($_POST,'operation'),audienceText($_POST,'name',100));$respond(['saved'=>true]);}
+            elseif($action==='design_library_operation'){
+                $operation=audienceText($_POST,'operation');
+                if($operation==='delete'){
+                    if(!$canDelete)$respond(['error'=>'Only administrators can move files to Trash.'],403);
+                    requireRecentAdminElevation($url(['view'=>'content']));
+                }
+                $store->operateDesignLibrary(\Dnr\Http\RequestInput::positiveInt($_POST,'item_id')??0,\Dnr\Http\RequestInput::positiveInt($_POST,'item_version')??0,$operation,audienceText($_POST,'name',100));$respond(['saved'=>true]);
+            }
             elseif($action==='design_code_validate'){$safe=audienceDesignSafeCode(audienceText($_POST,'code',1000000));$respond(['warnings'=>$safe['warnings'],'regions'=>$safe['regions']]);}
             elseif($action==='design_template'){
                 // Save only the scoped, version-matched persisted snapshot, never a foreign ID.
@@ -79,6 +89,12 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
             }elseif($action==='template_create'){
                 $starter=audienceText($_POST,'starter');if(!isset($starters[$starter]))throw new InvalidArgumentException('Choose a starter template.');
                 $tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:$starters[$starter]['name'],$starters[$starter]['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
+            }elseif($action==='template_folder'){
+                $store->emailTemplateFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);
+                $message='Template folders updated.';$redirect=$templateListUrl(($_GET['tab']??'')==='archived'?'archived':'saved');
+            }elseif($action==='template_bulk_move'){
+                if(!is_array($_POST['selected']??null)||!is_array($_POST['versions']??null))throw new InvalidArgumentException('Choose saved templates to move.');
+                $store->moveEmailTemplates($_POST['selected'],$_POST['versions'],audienceText($_POST,'folder',100));$message='Selected templates moved.';
             }elseif($action==='template_operation'){
                 $op=audienceText($_POST,'operation');
                 if($op==='delete'){
@@ -87,15 +103,17 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 }
                 $result=$store->emailTemplateOperation($op,$id,$version,$_POST);
                 $message=match($op){'archive'=>'Template archived. Existing campaign designs are preserved.','restore'=>'Template restored.','delete'=>'Template permanently deleted. Existing campaign designs are preserved.',default=>'Template updated.'};
-                if($op==='delete')$redirect=$url(['view'=>'templates','tab'=>'archived']);
+                if($op==='delete')$redirect=$templateListUrl('archived');
                 if($op==='campaign')$redirect=$url(['view'=>'designer','id'=>$result]);
                 elseif($op==='replicate')$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$result]);
             }else throw new InvalidArgumentException('Unknown design action.');
-            $_SESSION['audience_message']=$action==='template_operation'?$message:'Template saved.';header('Location: '.$redirect);exit;
+            $_SESSION['audience_message']=in_array($action,['template_operation','template_folder','template_bulk_move'],true)?$message:'Template saved.';header('Location: '.$redirect);exit;
         }catch(InvalidArgumentException $e){if($jsonRequest)$respond(['error'=>$e->getMessage()],422);$error=$e->getMessage();}
         catch(Throwable $e){applicationLog('error','Email design operation failed',['error'=>$e->getMessage()]);if($jsonRequest)$respond(['error'=>'Unable to save. Your edits are still here. Try again.'],500);$error='Unable to save. Try again.';}
     }
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
+    $templateFolderContext=$store->contentSettings();$templateFolders=$store->emailTemplateFolders($templateFolderContext['settings']);
+    $templateFolderFilter=$folderFilter==='unfiled'||in_array($folderFilter,$templateFolders,true)?$folderFilter:'';
     $archivedTemplates=$view==='templates'&&($_GET['tab']??'')==='archived';
     $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json,deleted_at FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS '.($archivedTemplates?'NOT NULL':'NULL'),[$audienceId]);
     // Embedded photographs must not become MySQL filesort payloads.

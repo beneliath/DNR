@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     --ignore-platform-req=ext-zip \
     --classmap-authoritative
 
-FROM php:8.5-apache@sha256:609de4eac65a03f20975441c9c3f313811d785575f0d02413c630753ab5c5532
+FROM php:8.5.12-apache@sha256:e25ab14ef2cfec3bab9dd66c6cf871691146f428fbd72241b1a2c38fcacf92f5
 
 # PHP 8.5 includes OPcache in the binary; do not build it as a shared extension.
 # Install the extensions used by the database and PDF export dependencies,

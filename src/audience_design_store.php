@@ -30,13 +30,21 @@ trait AudienceDesignExtras
     {
         return $this->transaction(function()use($kind,$id,$version,$revisionId,$variant){$this->designOwner($kind,$id,true,true);$revision=$this->one('SELECT design_json FROM marketing_design_revisions WHERE audience_id=? AND owner_type=? AND owner_id=? AND id=?',[$this->audienceId,$kind,$id,$revisionId]);if(!$revision)throw new InvalidArgumentException('This revision is unavailable.');$raw=audienceJson($revision['design_json']);if((int)($raw['_campaign_variant']??0)!==$variant)throw new InvalidArgumentException('Choose a revision for this content variation.');$design=audienceDesign($raw);$next=$this->saveEmailDesign($kind,$id,$version,$design,$variant);return ['version'=>$next,'design'=>$design];});
     }
+    private function designCommentOwner(string $kind,int $id,bool $editable=false):array
+    {
+        // Team review also supports plain-text campaigns; visual design operations do not.
+        if($kind!=='campaign')return $this->designOwner($kind,$id,$editable,$editable);
+        $row=$this->campaign($id,$editable);
+        if($editable&&$row['status']!=='draft')throw new InvalidArgumentException('Only email drafts can be commented on.');
+        return $row;
+    }
     public function designComments(string $kind,int $id):array
     {
-        $this->designOwner($kind,$id);return $this->all('SELECT * FROM marketing_design_comments WHERE audience_id=? AND owner_type=? AND owner_id=? ORDER BY created_at,id LIMIT 500',[$this->audienceId,$kind,$id]);
+        $this->designCommentOwner($kind,$id);return $this->all('SELECT * FROM marketing_design_comments WHERE audience_id=? AND owner_type=? AND owner_id=? ORDER BY created_at,id LIMIT 500',[$this->audienceId,$kind,$id]);
     }
     public function addDesignComment(string $kind,int $id,array $input):void
     {
-        $this->transaction(function()use($kind,$id,$input){$this->designOwner($kind,$id,true,true);$body=audienceText($input,'body',4000);if($body==='')throw new InvalidArgumentException('Enter a comment.');$parent=\Dnr\Http\RequestInput::positiveInt($input,'parent_id')??0;$key=audienceText($input,'block_key',80);
+        $this->transaction(function()use($kind,$id,$input){$this->designCommentOwner($kind,$id,true);$body=audienceText($input,'body',4000);if($body==='')throw new InvalidArgumentException('Enter a comment.');$parent=\Dnr\Http\RequestInput::positiveInt($input,'parent_id')??0;$key=audienceText($input,'block_key',80);
             if($parent&&!$this->one('SELECT id FROM marketing_design_comments WHERE audience_id=? AND owner_type=? AND owner_id=? AND id=? AND parent_id IS NULL',[$this->audienceId,$kind,$id,$parent]))throw new InvalidArgumentException('This comment thread is unavailable.');
             if($key!==''&&!preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$key))throw new InvalidArgumentException('Invalid block reference.');
             $this->write('INSERT INTO marketing_design_comments(audience_id,owner_type,owner_id,parent_id,block_key,body,actor_user_id,actor_label) VALUES (?,?,?,?,?,?,?,?)',[$this->audienceId,$kind,$id,$parent?:null,$key,$body,$this->actorId,$this->actorLabel]);
@@ -44,13 +52,14 @@ trait AudienceDesignExtras
     }
     public function resolveDesignComment(string $kind,int $id,int $commentId,int $version,bool $resolved):void
     {
-        $this->transaction(function()use($kind,$id,$commentId,$version,$resolved){$this->designOwner($kind,$id,true,true);$this->write('UPDATE marketing_design_comments SET resolved=?,version=version+1 WHERE audience_id=? AND owner_type=? AND owner_id=? AND id=? AND version=? AND parent_id IS NULL',[(int)$resolved,$this->audienceId,$kind,$id,$commentId,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This comment changed. Reload the comments.');});
+        $this->transaction(function()use($kind,$id,$commentId,$version,$resolved){$this->designCommentOwner($kind,$id,true);$this->write('UPDATE marketing_design_comments SET resolved=?,version=version+1 WHERE audience_id=? AND owner_type=? AND owner_id=? AND id=? AND version=? AND parent_id IS NULL',[(int)$resolved,$this->audienceId,$kind,$id,$commentId,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This comment changed. Reload the comments.');});
     }
-    public function designLibrary(string $type,string $search='',int $page=1):array
+    public function designLibrary(string $type,string $search='',int $page=1,int $size=20):array
     {
-        if(!in_array($type,['image','section'],true))throw new InvalidArgumentException('Unknown library type.');$search=audienceDesignString($search,100);$page=max(1,$page);
+        if(!in_array($type,['image','section'],true))throw new InvalidArgumentException('Unknown library type.');$search=audienceDesignString($search,100);$size=audiencePageSize(['per_page'=>$size],'per_page',20);$page=max(1,$page);
         $total=(int)$this->one('SELECT COUNT(*) n FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0',[$this->audienceId,$type,$search])['n'];
-        return ['items'=>$this->all('SELECT id,name,item_type,version,updated_at,actor_label FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY updated_at DESC,id DESC LIMIT 20 OFFSET ?',[$this->audienceId,$type,$search,($page-1)*20]),'total'=>$total,'page'=>$page];
+        $page=min($page,max(1,(int)ceil($total/$size)));
+        return ['items'=>$this->all('SELECT id,name,item_type,version,updated_at,actor_label FROM marketing_design_library WHERE audience_id=? AND item_type=? AND deleted_at IS NULL AND LOCATE(?,name)>0 ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?',[$this->audienceId,$type,$search,$size,($page-1)*$size]),'total'=>$total,'page'=>$page,'per_page'=>$size];
     }
     public function designLibraryItem(int $id,bool $lock=false):array
     {

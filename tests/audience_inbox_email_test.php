@@ -1,0 +1,30 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../src/audience_inbox_email.php';
+$checks=0;
+$expect=static function(bool $ok,string $message)use(&$checks):void{if(!$ok)throw new RuntimeException($message);$checks++;};
+$url='https://example.test/audiences/audience.php?view=inbox&thread=42';
+putenv('DNR_PUBLIC_BASE_URL=https://example.test/a/shalom-in-messiah');
+$email=audienceInboxAlertEmail($url,true);
+$expect(str_starts_with($email['subject'],'[Sample]'),'Samples are clearly labeled');
+$expect(str_contains($email['text'],$url)&&str_contains($email['html'],'Open Inbox'),'Both alternatives contain an Inbox destination');
+$expect(str_contains($email['html'],'#f6f7fb')&&str_contains($email['html'],'#2457d6'),'Alert uses the digest palette');
+$expect(str_contains($email['html'],'view=inbox&amp;thread=42'),'HTML URLs are escaped');
+$images=audienceInboxAlertInlineImages($email['inline_images']);
+$expect($images===[],'New notifications have no embedded logo attachments');
+$doc=new DOMDocument();@$doc->loadHTML($email['html']);
+foreach($doc->getElementsByTagName('img')as$img)$expect(str_starts_with($img->getAttribute('src'),'https://'),'Every email graphic loads from a remote HTTPS URL');
+$expect(str_contains($email['html'],'/assets/dnr-logo-email.svg?'),'MOED masthead uses the remote SVG logo');
+$logo=new DOMDocument();$expect($logo->load(__DIR__.'/../src/assets/dnr-logo-email.svg')&&$logo->documentElement->localName==='svg'&&$logo->getElementsByTagName('image')->length===0,'MOED email logo is a standalone vector SVG');
+$expect(str_contains($email['html'],'/assets/audience-logo-email.png?'),'Header uses the transparent monkey PNG for email client compatibility');
+$expect(!preg_match('/(?:url\(|@import)/i',$email['html']),'Email styling loads no remote graphics or fonts');
+$monkey=imagecreatefrompng(__DIR__.'/../src/assets/audience-logo-email.png');
+$expect($monkey!==false&&imagecolorsforindex($monkey,imagecolorat($monkey,0,0))['alpha']===127,'Monkey logo canvas is transparent');
+$raw=smtpMessageData('team@example.test','MOED','person@example.test',$email['subject'],$email['text'],'',$email['html'],null,'<sample@example.test>',$images);
+$expect(str_contains($raw,'multipart/alternative')&&!str_contains($raw,'Content-ID:')&&!str_contains($raw,'multipart/related'),'MIME carries HTML and plain text without embedded images');
+$expect(count(audienceInboxAlertInlineImages([emailBrandInlineImage()]))===1,'Older queued notifications can still deliver their embedded artwork');
+$real=audienceInboxAlertEmail($url,false,'comment');
+$expect(!str_contains($real['subject'],'[Sample]')&&str_contains($real['text'],'internal note'),'Actual note notifications use the branded renderer without sample copy');
+try{audienceInboxAlertEmail('javascript:alert(1)');throw new RuntimeException('Unsafe URL accepted');}catch(InvalidArgumentException){$checks++;}
+echo "Inbox HTML notification passed ($checks checks).\n";

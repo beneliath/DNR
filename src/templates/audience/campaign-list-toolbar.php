@@ -1,6 +1,9 @@
+<?php $campaignArchived=($campaignFilters['trash']??'0')==='1'; ?>
+<nav class="campaign-archive-tabs" aria-label="Campaign lists"><?php foreach(['0'=>'Active','1'=>'Archived']as$archiveValue=>$archiveLabel): ?><a class="audience-button" href="<?= $h($campaignUrl(['trash'=>$archiveValue,'page'=>1])) ?>"<?= $campaignFilters['trash']===(string)$archiveValue?' aria-current="page"':'' ?>><?= $archiveLabel ?></a><?php endforeach; ?></nav>
+<?php if($campaignArchived): ?><p class="audience-help campaign-archive-help">Archived campaigns keep their content and reports. Restore a campaign to bring it back to Active. Restoring does not resume delivery.</p><?php endif; ?>
 <div class="campaign-list-toolbar">
 <form method="get" class="campaign-filters" id="campaign-filters">
-<?php audienceInputs(['view'=>'campaigns','layout'=>$campaignFilters['layout'],'month'=>$campaignFilters['month'],'direction'=>$campaignFilters['direction'],'date_field'=>$campaignFilters['date_field'],'start'=>$campaignFilters['start'],'end'=>$campaignFilters['end'],'date_preset'=>$campaignFilters['date_preset']??'','holidays'=>$campaignFilters['holidays']??'0','sort'=>$campaignFilters['sort']]); ?>
+<?php audienceInputs(['view'=>'campaigns','trash'=>$campaignFilters['trash'],'layout'=>$campaignFilters['layout'],'month'=>$campaignFilters['month'],'direction'=>$campaignFilters['direction'],'date_field'=>$campaignFilters['date_field'],'start'=>$campaignFilters['start'],'end'=>$campaignFilters['end'],'date_preset'=>$campaignFilters['date_preset']??'','holidays'=>$campaignFilters['holidays']??'0','sort'=>$campaignFilters['sort']]); ?>
 <label class="campaign-search"><?php audienceNavIcon('search'); ?><span class="sr-only">Search campaigns</span><input type="search" autocomplete="off" list="campaign-search-options" name="search" value="<?= $h($campaignFilters['search']) ?>" placeholder="Search..."></label>
 <div class="campaign-filter-row">
 <?php foreach(['type'=>['Type',[''=>'All']+$campaignTypes],'status'=>['Status',[''=>'All','draft'=>'Draft','ongoing'=>'Ongoing','scheduled'=>'Scheduled','completed'=>'Completed']]]as$key=>[$label,$options]): ?>
@@ -16,7 +19,7 @@
 <?php if($canManage): ?><button type="button" class="campaign-menu-footer" data-campaign-folder='{"id":0,"version":0,"name":""}'>+ Create folder</button><?php endif; ?>
 </div>
 <button type="button" class="campaign-filter" data-open-dialog="campaign-date">Date: <strong><?= $h(($campaignFilters['date_preset']??'')!==''?(audienceCampaignDatePresets()[$campaignFilters['date_preset']]??'Custom'):($campaignFilters['start']||$campaignFilters['end']?'Custom':'All')) ?></strong><?php audienceNavIcon('chevron'); ?></button>
-<a href="<?= $h($url(['view'=>'campaigns','layout'=>$campaignFilters['layout']])) ?>">Clear all</a>
+<a href="<?= $h($url(['view'=>'campaigns','trash'=>$campaignFilters['trash'],'layout'=>$campaignFilters['layout']])) ?>">Clear all</a>
 
 </div><button class="sr-only" type="submit">Search campaigns</button>
 </form>

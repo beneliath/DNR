@@ -60,10 +60,17 @@ if(process.env.DNR_EXPORT_AUTOMATION_FIXTURES){fs.writeFileSync(process.env.DNR_
                         assert.equal(await page.locator('.flow-overview-row').count(),2,label+': flow rows');
                         assert.equal(await page.getByRole('combobox',{name:'Sort by:',exact:true}).count(),1,label+': real sort control');
                         if(kind!=='overview-trash'){
-                            await page.locator('.flow-overview-row .audience-menu summary').first().click();await page.getByRole('button',{name:'Remove',exact:true}).filter({visible:true}).click();
-                            assert.equal(await page.locator('#flow-list-remove').evaluate(e=>e.open),true,label+': removal has review dialog');
-                            assert.equal(await page.locator('#flow-list-remove input[name=id]').inputValue(),'1',label+': correct flow identity');
-                            assert.equal(await page.locator('[data-flow-remove-title]').textContent(),'Welcome & community',label+': safe contextual flow name');
+                            const rowActions=page.locator('.flow-overview-row-actions').first();
+                            assert.equal(await rowActions.locator('details').count(),0,label+': actions are directly available');
+                            for(const action of await rowActions.locator('a,button').all()){
+                                assert.equal(await action.locator('svg.action-icon').count(),1,label+': every action has its own icon');
+                                assert.ok(await action.getAttribute('data-tooltip'),label+': every action has a tooltip');
+                                assert.ok(await action.getAttribute('aria-label'),label+': every action has an accessible name');
+                            }
+                            await page.locator('[data-flow-lifecycle="archive"]').first().click();
+                            assert.equal(await page.locator('#flow-archive').evaluate(e=>e.open),true,label+': archive has a review dialog');
+                            assert.equal(await page.locator('#flow-archive input[name=id]').inputValue(),'1',label+': correct flow identity');
+                            assert.equal(await page.locator('#flow-archive [data-flow-lifecycle-name]').textContent(),'Welcome & community',label+': contextual flow name');
                             await page.getByRole('button',{name:'Cancel',exact:true}).filter({visible:true}).click();
                         }
                     }else assert.equal(await page.locator('.flow-overview-empty').isVisible(),true,label+': useful filtered empty state');

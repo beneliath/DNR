@@ -2,7 +2,7 @@
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
 require_once $source.'/audience_inbox_runtime.php';require_once $source.'/audience_inbox_public.php';require_once $source.'/inbound_email_helpers.php';
 $inboxStart=$checks;$inboxPath='audience.php?view=inbox';$inboxPage=$editor($inboxPath);$inboxCsrf=audienceHttpCsrf($inboxPage);
-audienceHttpExpect($inboxPage['status']===200&&str_contains($inboxPage['body'],'Manage one-to-one conversations'),'Standalone Inbox renders');
+audienceHttpExpect($inboxPage['status']===200&&str_contains($inboxPage['body'],'Choose a conversation'),'Standalone Inbox renders without selecting a conversation');
 foreach(['','&panel=sources','&panel=labels','&panel=templates','&panel=compose','&panel=notifications','&inbox_api=notifications','&inbox_api=recipients&q=fixture']as$tail)audienceHttpExpect($reviewer($inboxPath.$tail)['status']===403,'Reviewer cannot access Inbox private surfaces '.$tail);
 foreach(['sources','labels','templates','compose','notifications','drafts']as$panel){$page=$editor($inboxPath.'&panel='.$panel);audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Inbox panel renders '.$panel);}
 $sourcePanel=$editor($inboxPath.'&panel=sources');
@@ -38,10 +38,34 @@ $unknown=$ib->inboxReceive('contact',0,'inbox-person@example.test','Claimed send
 $comment=$ib->inboxComment($tid,'<p>Private team note</p>');$ib->inboxComment($tid,'<p>Private reply</p>',$comment);
 $label=$ib->saveInboxNamed('label',['name'=>'Stage6 label']);$thread=$ib->inboxThread($tid);$ib->inboxThreadOperation($tid,(int)$thread['version'],'labels',['labels'=>[$label]]);
 audienceHttpExpect((int)$ib->inboxList(['label'=>$label])['total']===1,'Label filter uses native assignments');
+$filteredInbox=$inboxPath.'&source=direct&label='.$label;
+$workspace=$editor($filteredInbox);
+audienceHttpExpect($workspace['status']===200&&str_contains($workspace['body'],'"thread":0')&&!str_contains($workspace['body'],'data-inbox-inline')&&str_contains($workspace['body'],'Choose a conversation'),'Filtered Inbox leaves conversations unselected until the user chooses one');
+$openedWorkspace=$editor($filteredInbox.'&thread='.$tid);audienceHttpExpect(str_contains($openedWorkspace['body'],'data-inbox-inline')&&str_contains($openedWorkspace['body'],'Mark as unread'),'An explicitly chosen conversation opens with reply and unread controls');
+audienceHttpExpect(str_contains($workspace['body'],'inbox-label-tag">Stage6 label')&&str_contains($workspace['body'],'data-inbox-time="short"'),'Conversation list shows assigned labels and machine-readable message times');
+$thread=$ib->inboxThread($tid);$completed=$editor($filteredInbox,['csrf_token'=>$inboxCsrf,'action'=>'inbox_thread','thread_id'=>$tid,'version'=>$thread['version'],'operation'=>'done']);
+audienceHttpExpect($completed['status']===302&&str_contains($completed['headers'],'source=direct')&&str_contains($completed['headers'],'label='.$label)&&!str_contains($completed['headers'],'thread='),'Completing a conversation returns to its filtered queue');
+$thread=$ib->inboxThread($tid);$ib->inboxThreadOperation($tid,(int)$thread['version'],'todo');
+$unreadResult=$editor($filteredInbox,['csrf_token'=>$inboxCsrf,'action'=>'inbox_read','thread_id'=>$tid,'read'=>'0']);
+audienceHttpExpect($unreadResult['status']===302&&str_contains($unreadResult['headers'],'selection=none'),'Mark unread clears the reader selection');
+$unselected=$editor($filteredInbox.'&selection=none');
+audienceHttpExpect(str_contains($unselected['body'],'"thread":0')&&str_contains($unselected['body'],'Choose a conversation'),'An explicitly cleared selection does not reopen and reread the conversation');
 $thread=$ib->inboxThread($tid);$stale=false;try{$ib->inboxThreadOperation($tid,1,'done');}catch(InvalidArgumentException){$stale=true;}audienceHttpExpect($stale,'Stale status updates are rejected');
 $ib->inboxMarkRead($tid,true);audienceHttpExpect((int)$ib->inboxList(['label'=>$label,'unread'=>'1'])['total']===0,'Read state belongs to current user');$ib->inboxMarkRead($tid,false);
 $owner=new AudienceStore($conn,1,$actor+1,'Other user');$privateDraft=$ib->saveInboxDraft(['contact_id'=>$inboxPerson,'subject'=>'Hello *|FNAME|*','body_html'=>'<p>Personal message</p>','include_optout'=>'1']);$denied=false;try{$owner->inboxDraft($privateDraft);}catch(InvalidArgumentException){$denied=true;}audienceHttpExpect($denied,'Draft privacy applies across users in same account');
 $unknownDraft=$ib->saveInboxDraft(['thread_id'=>$unknown,'subject'=>'Reply to claimed sender','body_html'=>'<p>Unsent</p>']);$unknownPage=$editor($inboxPath.'&panel=compose&draft='.$unknownDraft);audienceHttpExpect($unknownPage['status']===200&&str_contains($unknownPage['body'],'<strong>inbox-person@example.test</strong>'),'Saved draft retains unlinked thread recipient display');
+$draftPage=$editor($inboxPath.'&panel=drafts');$draftDoc=new DOMDocument();@$draftDoc->loadHTML($draftPage['body']);$draftXPath=new DOMXPath($draftDoc);
+audienceHttpExpect(str_contains($draftPage['body'],'aria-label="Conversations"')&&str_contains($draftPage['body'],'inbox-draft-workspace')&&!str_contains($draftPage['body'],'inbox-has-panel'),'Drafts use the shared conversation list and content panes');
+audienceHttpExpect($draftXPath->query('//form[@data-inbox-compose]')->length===0&&str_contains($draftPage['body'],'Choose a draft'),'Drafts wait for an explicit selection and display guidance');
+audienceHttpExpect(!in_array($privateDraft,array_map('intval',array_column($owner->inboxDrafts(),'id')),true),'The draft list excludes another user’s private drafts');
+$searchedDrafts=$editor($inboxPath.'&panel=drafts&draft_q=Hello');$searchDoc=new DOMDocument();@$searchDoc->loadHTML($searchedDrafts['body']);$searchXPath=new DOMXPath($searchDoc);
+audienceHttpExpect($searchXPath->query('//a[@data-inbox-draft-id]')->length===1&&(int)$searchXPath->query('//a[@data-inbox-draft-id]')->item(0)->getAttribute('data-inbox-draft-id')===$privateDraft&&$searchXPath->query('//form[@data-inbox-compose]')->length===0,'Draft search filters the list without selecting a draft');
+$emptyDrafts=$editor($inboxPath.'&panel=drafts&draft_q=no-such-draft-fixture');audienceHttpExpect(str_contains($emptyDrafts['body'],'No matching drafts')&&!str_contains($emptyDrafts['body'],'data-inbox-compose'),'Draft search has a safe empty state without opening unrelated content');
+$savedDraft=$editor($inboxPath.'&panel=drafts&draft='.$unknownDraft,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_draft_save','draft_id'=>$unknownDraft,'version'=>1,'subject'=>'Reply to claimed sender','body_html'=>'<p>Unsent</p>']);$savedDraftData=json_decode($savedDraft['body'],true);
+audienceHttpExpect($savedDraft['status']===200&&str_contains($savedDraftData['redirect']??'','panel=drafts')&&(int)($savedDraftData['draft']['version']??0)===2,'Saving a selected draft keeps the shared Drafts workspace and advances its version');
+$discardDraft=$ib->saveInboxDraft(['contact_id'=>$inboxPerson,'subject'=>'Disposable layout draft','body_html'=>'<p>Unsent draft to discard.</p>']);
+$discarded=$editor($inboxPath.'&panel=drafts&draft='.$discardDraft,['csrf_token'=>$inboxCsrf,'action'=>'inbox_draft_discard','draft_id'=>$discardDraft,'version'=>1]);
+audienceHttpExpect($discarded['status']===302&&str_contains($discarded['headers'],'panel=drafts')&&!in_array($discardDraft,array_map('intval',array_column($ib->inboxDrafts(),'id')),true),'Discarding a draft returns to the remaining private drafts');
 $conn->query('UPDATE marketing_ses_settings SET production_access=0 WHERE audience_id=1');$beforeMail=(int)$ib->one('SELECT COUNT(*) n FROM marketing_service_mail')['n'];$gated=false;try{$ib->queueInboxDraft($privateDraft,1,$inboxAudience,'https://inbox.example.test');}catch(InvalidArgumentException){$gated=true;}audienceHttpExpect($gated&&(int)$ib->one('SELECT COUNT(*) n FROM marketing_service_mail')['n']===$beforeMail,'AWS gate prevents queue creation');
 $conn->query("UPDATE marketing_ses_settings SET enabled=1,production_access=1,sending_enabled=1,max_daily=100000,max_rate=10,check_state='ready',checked_at=UTC_TIMESTAMP(),subscription_arn='arn:fixture-confirmed' WHERE audience_id=1");$conn->query('UPDATE marketing_inbox_settings SET gateway_confirmed=1 WHERE audience_id=1');
 $queued=$ib->queueInboxDraft($privateDraft,1,$inboxAudience,'https://inbox.example.test');$again=$ib->queueInboxDraft($privateDraft,1,$inboxAudience,'https://inbox.example.test');audienceHttpExpect($queued===$again,'Double submission yields one encrypted queue item');
@@ -92,5 +116,20 @@ $inboxEventsBefore=(int)$ib->one('SELECT COUNT(*) n FROM marketing_inbox_deliver
 audienceHttpExpect(audienceSnsReceive($ib,$signedInboxEvent('signed-unmapped-test',str_repeat('e',64)),$inboxCertificateFetch)==='ignored'&&(int)$ib->one('SELECT COUNT(*) n FROM marketing_inbox_delivery_events WHERE service_mail_id=?',[$job['id']])['n']===$inboxEventsBefore,'Verified unmatched receipt is ignored without throwing or creating delivery evidence');
 foreach(['&thread='.$tid,'&panel=compose&draft='.$privateDraft]as$tail){$page=$editor($inboxPath.$tail);audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Conversation and draft render without errors');}
 $foreignThread=$otherStore->inboxReceive('direct',0,'foreign@example.test','','Foreign subject','Foreign body',hash('sha256','foreign-inbox'),false);$denied=$editor($inboxPath.'&inbox_api=thread&thread='.$foreignThread);audienceHttpExpect($denied['status']===422&&!str_contains($denied['body'],'Foreign body'),'Cross-audience thread lookup fails closed');
+$conn->query('UPDATE marketing_ses_settings SET production_access=0 WHERE audience_id=1');
+$allConversations=$ib->inboxList(['status'=>'all'],true);audienceHttpExpect($allConversations['counts']['all']===$allConversations['total']&&!in_array('trash',array_column($allConversations['items'],'status'),true),'All conversations and its total exclude conversations held in Trash');
+for($scrollIndex=0;$scrollIndex<26;$scrollIndex++)$ib->inboxReceive('direct',0,'scroll-'.$scrollIndex.'@example.test','Scroll fixture '.$scrollIndex,'Scroll queue '.$scrollIndex,'Continuous scrolling fixture',hash('sha256','inbox-scroll-'.$scrollIndex),false);
+$continuous=$ib->inboxList(['per_page'=>10,'page'=>99],true);
+audienceHttpExpect(count($continuous['items'])===$continuous['total']&&$continuous['page']===1,'Continuous Inbox returns the full matching queue despite old page-size preferences');
+$scrollPage=$editor($inboxPath.'&per_page=10&page=99');
+audienceHttpExpect(substr_count($scrollPage['body'],'class="inbox-thread-item')===$continuous['total']&&!str_contains($scrollPage['body'],'aria-label="Conversation pages"'),'Inbox renders every conversation in one scrollable list without pagination');
+// Leave one eligible, labelled reply for the actual restricted worker qualification.
+$conn->query("INSERT INTO marketing_contacts(audience_id,email,first_name,email_status,notes) VALUES (1,'inbox-worker-ready@example.test','Worker','subscribed','')");$workerPerson=(int)$conn->insert_id;
+$workerThread=$ib->inboxReceive('direct',0,'inbox-worker-ready@example.test','Worker','Restricted worker fixture','Synthetic inbound',hash('sha256','restricted-worker-ready'),true);
+$workerThreadRow=$ib->inboxThread($workerThread);$ib->inboxThreadOperation($workerThread,(int)$workerThreadRow['version'],'labels',['labels'=>[$label]]);
+$workerDraft=$ib->saveInboxDraft(['thread_id'=>$workerThread,'subject'=>'Restricted worker reply','body_html'=>'<p>Disposable delivery fixture</p>']);
+$conn->query("UPDATE marketing_ses_settings SET production_access=1,check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");
+$workerQueued=$ib->queueInboxDraft($workerDraft,1,$inboxAudience,'https://inbox.example.test');
+$conn->execute_query("UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY) WHERE id=?",[$workerQueued['service_mail_id']]);
 $conn->query('UPDATE marketing_ses_settings SET production_access=0 WHERE audience_id=1');
 echo 'Inbox HTTP/storage qualification passed ('.($checks-$inboxStart)." checks); no external messages sent.\n";

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Audience HTTP tests skipped (disposable environment required).\n");
+// Sub-suites print progress before later checks update synthetic session state.
+ob_start();
 $source=getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src';require_once $source.'/bootstrap.php';require_once $source.'/audience_store.php';require_once __DIR__.'/integration_auth_helpers.php';
 $conn=applicationDatabaseConnection();$checks=0;
 function audienceHttpExpect(bool $condition,string $message):void{global $checks;if(!$condition)throw new RuntimeException($message);$checks++;}
@@ -75,11 +77,11 @@ try{
     audienceHttpExpect($recovery&&$recovery['dialog']==='field-editor'&&$recovery['values']['version']==='7'&&$recovery['values']['label']==='Keep this label','Field recovery preserves stale version instead of silently refreshing it');
     $invalidPaste=$editor('audience.php?view=import',['csrf_token'=>$token,'action'=>'import_upload','paste'=>'Keep this incomplete header']);
     audienceHttpExpect(str_contains($invalidPaste['body'],'>Keep this incomplete header</textarea>')&&!preg_match('/(?:Warning|Fatal error):/',$invalidPaste['body']),'Invalid paste remains editable');
-    $tagsPage=$editor('audience.php?view=tags');audienceHttpExpect(str_contains($tagsPage['body'],'audience-split-button')&&str_contains($tagsPage['body'],'Export as CSV')&&str_contains($tagsPage['body'],'Send regular email'),'Tag reference menu present');audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$tagsPage['body']),'Populated Tags render without warnings');
+    $tagsPage=$editor('audience.php?view=tags');audienceHttpExpect(str_contains($tagsPage['body'],'data-tag-edit=')&&str_contains($tagsPage['body'],'data-tooltip="Export as CSV"')&&str_contains($tagsPage['body'],'data-tooltip="Send regular email"'),'Tag action icons present');audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$tagsPage['body']),'Populated Tags render without warnings');
     $editor($path,['csrf_token'=>$token,'action'=>'save_segment','name'=>'HTTP segment','rules'=>json_encode($tree)]);
     $sid=(int)$conn->query("SELECT id FROM marketing_segments WHERE audience_id=1 AND name='HTTP segment'")->fetch_assoc()['id'];
     $renamed=$editor($path,['csrf_token'=>$token,'action'=>'rename_segment','id'=>$sid,'version'=>1,'name'=>'Renamed segment']);audienceHttpExpect($renamed['status']===302,'Segment rename succeeds');
-    $segmentPage=$editor('audience.php?view=segments');audienceHttpExpect(str_contains($segmentPage['body'],'Renamed segment')&&str_contains($segmentPage['body'],'Replicate Segment'),'Segment reference menu present');
+    $segmentPage=$editor('audience.php?view=segments');audienceHttpExpect(str_contains($segmentPage['body'],'Renamed segment')&&str_contains($segmentPage['body'],'data-segment-copy=')&&str_contains($segmentPage['body'],'audience-segment-table'),'Segment table and action icons present');
     $tagId=(int)$conn->query("SELECT id FROM marketing_tags WHERE audience_id=1 AND name='HTTP tag'")->fetch_assoc()['id'];
     $tagAdded=$editor($path,['csrf_token'=>$token,'action'=>'person_action','operation'=>'tag','id'=>$pid,'version'=>1,'tag_id'=>$tagId]);audienceHttpExpect($tagAdded['status']===302,'Profile adds existing tag');
     $profile=$editor('audience.php?view=contact&id='.$pid);audienceHttpExpect(str_contains($profile['body'],'Remove tag HTTP tag')&&str_contains($profile['body'],'Manage Tags')&&str_contains($profile['body'],'person-marketing-details'),'Profile has removable chips and marketing disclosure');
@@ -117,14 +119,15 @@ try{
     $after=$profileStore->person($pid);audienceHttpExpect($after['group_ids']===[]&&$after['tag_ids']===$before['tag_ids']&&$after['email_status']==='subscribed','Group edits do not remove tags or consent');
     $conn->execute_query("INSERT INTO marketing_contact_events(contact_id,actor_label,event_type,details_json,created_at) VALUES (?,'Historical fixture','contact_updated','{}','2020-06-15 10:00:00')",[$pid]);
     $yearPage=$editor($profilePath.'&activity_range=year:2020');
-    audienceHttpExpect(str_contains($yearPage['body'],'Historical fixture')&&str_contains($yearPage['body'],'year:2020" selected')&&str_contains($yearPage['body'],'1 events'),'Activity year filter returns the selected calendar year only');
+    audienceHttpExpect(str_contains($yearPage['body'],'Historical fixture')&&str_contains($yearPage['body'],'year:2020" selected')&&str_contains($yearPage['body'],'1–1 of 1'),'Activity year filter returns the selected calendar year only');
     $bulkTagId=$profileStore->saveTag('HTTP bulk delete',0,0);
     $bulkPost=['csrf_token'=>$token,'action'=>'delete_selected_definitions','kind'=>'tags','selected_ids'=>[$bulkTagId],'versions'=>[$bulkTagId=>1]];
     audienceHttpExpect($reviewer($path,array_replace($bulkPost,['csrf_token'=>$reviewToken]))['status']===403,'Bulk definition deletion denies reviewers');
     audienceHttpExpect($editor($path,array_replace($bulkPost,['csrf_token'=>'invalid']))['status']===400,'Bulk definition deletion requires CSRF');
-    audienceHttpExpect($editor($path,$bulkPost)['status']===302&&!$conn->execute_query('SELECT id FROM marketing_tags WHERE id=?',[$bulkTagId])->fetch_assoc(),'Bulk definition deletion succeeds for editor');
+    audienceHttpExpect($editor($path,$bulkPost)['status']===403&&(bool)$conn->execute_query('SELECT id FROM marketing_tags WHERE id=?',[$bulkTagId])->fetch_assoc(),'Bulk tag deletion requires an administrator');
+    $profileStore->deleteTag($bulkTagId,1);
     $tagsBody=$editor('audience.php?view=tags')['body'];$segmentsBody=$editor('audience.php?view=segments')['body'];
-    audienceHttpExpect(str_contains($tagsBody,'data-definition-all')&&str_contains($segmentsBody,'data-definition-item'),'Tags and Segments have page selection controls');
+    audienceHttpExpect(!str_contains($tagsBody,'data-definition-all')&&!str_contains($segmentsBody,'data-definition-item')&&!str_contains($segmentsBody,'data-segment-delete-form'),'Editor tag and segment deletion controls are hidden');
     $profileStore->saveNote($pid,'Original note',0,0);
     $note=$conn->execute_query('SELECT id FROM marketing_notes WHERE contact_id=? ORDER BY id DESC LIMIT 1',[$pid])->fetch_assoc();
     $profileStore->saveNote($pid,'Updated note',(int)$note['id'],1);
@@ -161,7 +164,7 @@ try{
     audienceHttpExpect($editor($campaignPath,$op)['status']===302&&(int)$campaignStore->campaign($cid)['folder_id']===$fid,'Move campaign to folder');
     $replicated=$editor($campaignPath,array_replace($op,['operation'=>'replicate','versions'=>[$cid=>6]]));preg_match('/id=(\d+)/',$replicated['headers'],$cm);$copyId=(int)($cm[1]??0);$copy=$campaignStore->campaign($copyId);audienceHttpExpect($copy['status']==='draft'&&$copy['sent_at']===null&&$copy['draft']===$campaignStore->campaign($cid)['draft'],'Replicate copies draft content without delivery state');
     $rename=$editor($campaignPath,array_replace($op,['operation'=>'rename','versions'=>[$cid=>6],'name'=>'Renamed draft']));audienceHttpExpect($rename['status']===302&&$campaignStore->campaign($cid)['name']==='Renamed draft','Rename draft');
-    $failedBulk=$editor($campaignPath,array_replace($op,['operation'=>'delete','selected'=>[$cid,$copyId],'versions'=>[$cid=>7,$copyId=>99]]));audienceHttpExpect(str_contains($failedBulk['body'],'selected campaign changed')&&$campaignStore->campaign($cid)['deleted_at']===null,'Stale bulk action is atomic');
+    $failedBulk=$editor($campaignPath,array_replace($op,['operation'=>'archive','selected'=>[$cid,$copyId],'versions'=>[$cid=>7,$copyId=>99]]));audienceHttpExpect(str_contains($failedBulk['body'],'selected campaign changed')&&$campaignStore->campaign($cid)['deleted_at']===null,'Stale bulk action is atomic');
     $foreignCampaign=$otherStore->createCampaign(['name'=>'Foreign campaign','campaign_type'=>'regular']);$foreignFolder=$otherStore->saveCampaignFolder(['name'=>'Foreign folder'],0,0);
     audienceHttpExpect($editor('audience.php?view=campaign&id='.$foreignCampaign)['status']===404,'Foreign campaign cannot be read');
     $foreignMove=$editor($campaignPath,array_replace($op,['versions'=>[$cid=>7],'folder_id'=>$foreignFolder]));audienceHttpExpect(str_contains($foreignMove['body'],'folder is unavailable')&&(int)$campaignStore->campaign($cid)['folder_id']===$fid,'Foreign folder cannot be assigned');
@@ -169,19 +172,19 @@ try{
     $filtered=$editor($campaignPath.'&search=does-not-match');audienceHttpExpect(!str_contains($filtered['body'],'class="campaign-name"'),'Search removes nonmatching rows');
     $folderDeleted=$editor($campaignPath,['csrf_token'=>$token,'action'=>'campaign_folder_delete','id'=>$fid,'version'=>1]);audienceHttpExpect($folderDeleted['status']===302&&$campaignStore->campaign($cid)['folder_id']===null&&$campaignStore->campaign($copyId)['folder_id']===null,'Delete folder preserves campaigns and unfiles them');
     $latest=$campaignStore->campaign($cid);$copy=$campaignStore->campaign($copyId);
-    $deleted=$editor($campaignPath,array_replace($op,['operation'=>'delete','selected'=>[$cid,$copyId],'versions'=>[$cid=>$latest['version'],$copyId=>$copy['version']]]));audienceHttpExpect($deleted['status']===302&&$editor($campaignProfile)['status']===404,'Bulk deletion removes campaigns from active routes');
+    $deleted=$editor($campaignPath,array_replace($op,['operation'=>'archive','selected'=>[$cid,$copyId],'versions'=>[$cid=>$latest['version'],$copyId=>$copy['version']]]));audienceHttpExpect($deleted['status']===302&&$editor($campaignProfile)['status']===404,'Bulk archiving removes campaigns from active routes');
     audienceHttpExpect(!str_contains($reviewer($campaignPath)['body'],'data-campaign-select-item'),'Reviewer has no selection mutation controls');
     $batchA=$campaignStore->createCampaign(['name'=>'Snapshot group A','campaign_type'=>'regular']);$batchB=$campaignStore->createCampaign(['name'=>'Snapshot group B','campaign_type'=>'regular']);
     $snapshot=[$batchA=>1,$batchB=>1];$batchLate=$campaignStore->createCampaign(['name'=>'Snapshot group late','campaign_type'=>'regular']);
-    $allPost=['csrf_token'=>$token,'action'=>'campaign_operation','operation'=>'delete','selection_scope'=>'all','selection_filters'=>json_encode(audienceCampaignFilters(['search'=>'Snapshot group'])),'selection_snapshot'=>json_encode($snapshot)];
+    $allPost=['csrf_token'=>$token,'action'=>'campaign_operation','operation'=>'archive','selection_scope'=>'all','selection_filters'=>json_encode(audienceCampaignFilters(['search'=>'Snapshot group'])),'selection_snapshot'=>json_encode($snapshot)];
     audienceHttpExpect($editor($campaignPath,$allPost)['status']===302&&$campaignStore->campaign($batchLate)['deleted_at']===null,'All-matching selection does not silently include later campaigns');
-    audienceHttpExpect($editor('audience.php?view=campaign&id='.$batchA)['status']===404&&$editor('audience.php?view=campaign&id='.$batchB)['status']===404,'All-matching snapshot deletes its selected records');
+    audienceHttpExpect($editor('audience.php?view=campaign&id='.$batchA)['status']===404&&$editor('audience.php?view=campaign&id='.$batchB)['status']===404,'All-matching snapshot archives its selected records');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent',sent_at=UTC_TIMESTAMP() WHERE id=?",[$batchLate]);
     $sentCopy=$campaignStore->campaignOperation('replicate',[$batchLate],[$batchLate=>1]);$replica=$campaignStore->campaign($sentCopy);
     audienceHttpExpect($replica['status']==='draft'&&$replica['sent_at']===null,'Replicate sent record resets status and send date');
     $sentEdit=$editor('audience.php?view=campaign&id='.$batchLate,array_replace($section,['id'=>$batchLate,'version'=>1,'subject'=>'Cannot edit sent content']));audienceHttpExpect(str_contains($sentEdit['body'],'Only drafts can be edited'),'Sent content is immutable');
     $conn->execute_query("UPDATE marketing_campaigns SET status='scheduled' WHERE id=?",[$batchLate]);
-    $scheduledDelete=$editor($campaignPath,['csrf_token'=>$token,'action'=>'campaign_operation','operation'=>'delete','selected'=>[$batchLate],'versions'=>[$batchLate=>1]]);audienceHttpExpect(str_contains($scheduledDelete['body'],'Pause delivery')&&$campaignStore->campaign($batchLate)['deleted_at']===null,'Scheduled campaigns cannot be deleted while active');
+    $scheduledDelete=$editor($campaignPath,['csrf_token'=>$token,'action'=>'campaign_operation','operation'=>'archive','selected'=>[$batchLate],'versions'=>[$batchLate=>1]]);audienceHttpExpect(str_contains($scheduledDelete['body'],'Pause delivery')&&$campaignStore->campaign($batchLate)['deleted_at']===null,'Scheduled campaigns cannot be archived while active');
     $targeted=$editor($campaignPath,array_replace($create,['name'=>'Targeted draft','target'=>'tag:'.$targetTag]));preg_match('/id=(\d+)/',$targeted['headers'],$cm);$targetedId=(int)($cm[1]??0);audienceHttpExpect($targeted['status']===302&&$campaignStore->campaign($targetedId)['draft']['target']==='tag:'.$targetTag,'Tag menu target persists into new draft');
     $invalidTarget=$editor($campaignPath,array_replace($create,['target'=>'segment:99999999']));audienceHttpExpect(str_contains($invalidTarget['body'],'selected segment is unavailable'),'Removed target cannot silently broaden a new draft');
     $tagScreen=$editor('audience.php?view=tags')['body'];audienceHttpExpect(str_contains($tagScreen,'target=tag%3A')&&str_contains($tagScreen,'email_type=plain-text'),'Tag menus expose targeted draft entry points');
@@ -267,6 +270,25 @@ try{
     audienceHttpExpect($expiredDelete['status']===302&&str_contains($expiredDelete['headers'],'admin_elevation.php')&&$campaignStore->one('SELECT id FROM marketing_email_templates WHERE id=?',[$expiryTemplate]),'Expired unlock cannot delete an archived template');
     $starter=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_create','starter'=>'event']);audienceHttpExpect($starter['status']===302&&str_contains($starter['headers'],'kind=template'),'Starter template opens designer');
     $plain=$campaignStore->createCampaign(['name'=>'Plain fixture','campaign_type'=>'plain-text']);audienceHttpExpect($editor('audience.php?view=designer&id='.$plain)['status']===404,'Plain-text campaign cannot use visual editor');
+    $campaignStore->saveCampaignSection($plain,1,'content',['text'=>"Plain preview <script>not markup</script> & line one\nLine two"]);
+    $plainReview='audience.php?view=campaign-review&id='.$plain;
+    $preview=$editor($plainReview);
+    audienceHttpExpect($preview['status']===200&&str_contains($preview['body'],"Plain preview &lt;script&gt;not markup&lt;/script&gt; &amp; line one\nLine two"),'Plain-text Preview renders escaped content and preserves line breaks');
+    audienceHttpExpect(str_contains($preview['body'],'No comments yet.')&&str_contains($preview['body'],'Add a comment'),'Plain-text draft exposes team review');
+    $plainComment=['csrf_token'=>$token,'action'=>'campaign_comment','id'=>$plain,'body'=>'Plain-text review comment'];
+    audienceHttpExpect($editor($plainReview,$plainComment)['status']===302&&str_contains($editor($plainReview)['body'],'Plain-text review comment'),'Plain-text review comment saves and reloads');
+    $plainComments=$campaignStore->designComments('campaign',$plain);
+    $campaignStore->resolveDesignComment('campaign',$plain,(int)$plainComments[0]['id'],1,true);
+    audienceHttpExpect(str_contains($editor($plainReview)['body'],'<small>Resolved</small>'),'Plain-text comments can be resolved');
+    audienceHttpExpect($reviewer($plainReview)['status']===200&&!str_contains($reviewer($plainReview)['body'],'Add a comment'),'Read-only users can view plain-text reviews');
+    audienceHttpExpect($reviewer($plainReview,array_replace($plainComment,['csrf_token'=>$reviewToken]))['status']===403,'Read-only users cannot add plain-text comments');
+    audienceHttpExpect($editor($plainReview,array_replace($plainComment,['csrf_token'=>'invalid']))['status']===400,'Plain-text comments require CSRF');
+    $foreignPlain=$otherStore->createCampaign(['name'=>'Foreign plain review','campaign_type'=>'plain-text']);
+    audienceHttpExpect($editor('audience.php?view=campaign-review&id='.$foreignPlain)['status']===404,'Plain-text review remains audience scoped');
+    $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$plain]);
+    audienceHttpExpect($editor($plainReview)['status']===200&&!str_contains($editor($plainReview)['body'],'Add a comment'),'Sent plain-text review remains readable without editing controls');
+    $blockedPlainComment=$editor($plainReview,$plainComment);
+    audienceHttpExpect($blockedPlainComment['status']===200&&str_contains($blockedPlainComment['body'],'Only email drafts can be commented on.')&&count($campaignStore->designComments('campaign',$plain))===1,'Sent plain-text campaigns reject new comments');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$designCampaign]);audienceHttpExpect($editor($designPath,array_replace($designPost,['version'=>2]))['status']===422,'Sent designs cannot be overwritten');
 
     $recentReuse=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_from_campaign','id'=>$designCampaign]);
@@ -320,8 +342,14 @@ try{
     $section['rows'][0]['condition']=['match'=>'all','rules'=>[['field'=>'tag:99999999','operator'=>'is','value'=>'1']]];
     audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_save','type'=>'section','name'=>'Invalid section','data'=>json_encode($section)])['status']===422,'Unavailable dynamic condition cannot be saved in a section');
     $renamedAsset=$editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'rename','name'=>'Renamed image']);audienceHttpExpect($renamedAsset['status']===200,'Library rename checks current version');
-    audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'delete'])['status']===422,'Stale library operation rejected');
-    audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>2,'operation'=>'delete'])['status']===200,'Library delete succeeds with current version');
+    $libraryDelete=['csrf_token'=>$token,'action'=>'design_library_operation','item_id'=>$assetId,'item_version'=>1,'operation'=>'delete'];
+    audienceHttpExpect($editor($advancedPath,$libraryDelete)['status']===403,'Editors cannot bypass content Trash protection through the designer API');
+    $libraryDelete['csrf_token']=audienceHttpCsrf($admin($advancedPath));$lockedLibraryDelete=$admin($advancedPath,$libraryDelete);
+    audienceHttpExpect($lockedLibraryDelete['status']===302&&str_contains($lockedLibraryDelete['headers'],'admin_elevation.php'),'Designer library deletion requires admin unlock');
+    session_name($adminSessionName);session_id($adminSessionId);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();
+    audienceHttpExpect($admin($advancedPath,$libraryDelete)['status']===422,'Unlocked library deletion rejects stale versions');
+    audienceHttpExpect($admin($advancedPath,array_replace($libraryDelete,['item_version'=>2]))['status']===200,'Unlocked administrator library deletion succeeds with the current version');
+    session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);session_write_close();
     audienceHttpExpect($editor($advancedPath,['csrf_token'=>$token,'action'=>'design_library_get','item_id'=>$assetId])['status']===422,'Deleted library item is unavailable');
     $personId=$campaignStore->savePerson(['email'=>'designer-person@example.test','first_name'=>'Ada','last_name'=>'Lovelace','email_status'=>'non-subscribed']);
     $personalized=$editor($advancedPath,['csrf_token'=>$token,'action'=>'design_preview','design'=>json_encode($restoreData['design']),'live'=>'1','person_id'=>$personId]);$personalData=json_decode($personalized['body'],true);audienceHttpExpect(str_contains($personalData['html'],'Hello Ada')&&!str_contains($personalData['html'],'Hello *|FNAME|*'),'Recipient preview resolves scoped native Connections');
@@ -353,6 +381,8 @@ try{
     $mobileResponse=$editor('audience.php?view=designer&kind=template&id='.$importId,['csrf_token'=>$token,'action'=>'design_preview','design'=>json_encode($mobileDoc)]);$mobileHtml=json_decode($mobileResponse['body'],true)['html'];audienceHttpExpect(str_contains($mobileHtml,'font-size:21px!important')&&str_contains($mobileHtml,'padding:10px!important'),'Rendered mobile styles survive the real HTTP JSON boundary');
     require __DIR__.'/audience_campaign_completion_http.php';
     require __DIR__.'/audience_content_http.php';
+    require __DIR__.'/audience_template_folders_http.php';
+    require __DIR__.'/audience_template_bulk_move_http.php';
     require __DIR__.'/audience_delivery_setup_http.php';
     require __DIR__.'/audience_dispatch_http.php';
     require __DIR__.'/audience_search_http.php';

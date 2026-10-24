@@ -4,7 +4,7 @@ require_once __DIR__.'/audience_design_advanced.php';
 
 function audienceDesignRichImage(DOMElement $node):string
 {
-    try{$source=audienceDesignImage($node->getAttribute('src'));}catch(InvalidArgumentException){return '';}
+    try{$source=audienceDesignImage($node->getAttribute('src'),2000000,true);}catch(InvalidArgumentException){return '';}
     if($source==='')return '';
     $css=[];foreach(explode(';',$node->getAttribute('style'))as$declaration){$pair=explode(':',$declaration,2);if(count($pair)===2)$css[strtolower(trim($pair[0]))]=trim($pair[1]);}
     $width=$node->getAttribute('width')?:preg_replace('/px$/','',$css['width']??'');
@@ -150,11 +150,87 @@ trait AudienceDesigns
     public function createEmailTemplate(string $name,array $design,string $folder=''):int
     {
         $name=trim($name);$folder=trim($folder);if($name===''||mb_strlen($name)>100||mb_strlen($folder)>100)throw new InvalidArgumentException('Enter a template name and folder of up to 100 characters.');
-        $design=audienceDesign($design);$this->validateDesignConditions($design);$this->write('INSERT INTO marketing_email_templates(audience_id,name,folder,design_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,$folder,json_encode($design,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;
+        $design=audienceDesign($design);$this->validateDesignConditions($design);
+        return $this->transaction(function()use($name,$folder,$design){
+            // Folder membership and folder removal share the audience lock.
+            $context=$this->contentSettings(true);
+            if($folder!==''){
+                $folders=$this->emailTemplateFolders($context['settings'],true);
+                if(!in_array($folder,$folders,true)){
+                    if(strtolower($folder)==='unfiled'||count($folders)>=100)throw new InvalidArgumentException('Choose a folder name other than Unfiled; up to 100 folders are supported.');
+                    $folders[]=$folder;sort($folders);
+                }
+                if(($context['settings']['template_folders']??[])!==$folders){
+                    $settings=$context['settings'];$settings['template_folders']=$folders;
+                    $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);
+                }
+            }
+            $this->write('INSERT INTO marketing_email_templates(audience_id,name,folder,design_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,$folder,json_encode($design,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;
+        });
+    }
+    public function emailTemplateFolders(array $settings,bool $lock=false):array
+    {
+        // Include folders assigned before explicit folder management existed,
+        // including folders whose only remaining templates are archived.
+        $assigned=$this->all("SELECT folder FROM marketing_email_templates WHERE audience_id=? AND folder<>''".($lock?' FOR UPDATE':''),[$this->audienceId]);
+        $folders=array_values(array_unique([...($settings['template_folders']??[]),...array_column($assigned,'folder')]));sort($folders);return $folders;
+    }
+    public function emailTemplateFolder(string $operation,string $name,string $newName,int $version):void
+    {
+        $name=audienceText(['name'=>$name],'name',100);$newName=audienceText(['name'=>$newName],'name',100);
+        if($name===''||!in_array($operation,['create','rename','delete'],true)||($operation==='rename'&&$newName===''))throw new InvalidArgumentException('Choose a folder and valid name.');
+        $this->transaction(function()use($operation,$name,$newName,$version){
+            $context=$this->contentSettings(true);
+            if($context['version']!==$version)throw new InvalidArgumentException('Template folders changed. Reload before continuing.');
+            $settings=$context['settings'];$folders=$this->emailTemplateFolders($settings,true);
+            if(strtolower($operation==='rename'?$newName:$name)==='unfiled')throw new InvalidArgumentException('Unfiled is reserved for templates without a folder.');
+            if($operation==='create'){
+                if(in_array($name,$folders,true)||count($folders)>=100)throw new InvalidArgumentException('Choose a unique folder name; up to 100 folders are supported.');$folders[]=$name;
+            }else{
+                if(!in_array($name,$folders,true))throw new InvalidArgumentException('This folder is unavailable.');
+                if($operation==='rename'&&in_array($newName,$folders,true))throw new InvalidArgumentException('That folder already exists.');
+                if($operation==='delete'&&$this->one('SELECT id FROM marketing_email_templates WHERE audience_id=? AND BINARY folder=? LIMIT 1 FOR UPDATE',[$this->audienceId,$name]))throw new InvalidArgumentException('This folder contains templates, including any archived templates. Move its templates out before deleting the folder.');
+                $folders=array_values(array_filter($folders,static fn($folder)=>$folder!==$name));
+                if($operation==='rename'){
+                    $folders[]=$newName;
+                    $this->write('UPDATE marketing_email_templates SET folder=?,actor_label=?,version=version+1 WHERE audience_id=? AND BINARY folder=?',[$newName,$this->actorLabel,$this->audienceId,$name]);
+                }
+            }
+            sort($folders);$settings['template_folders']=$folders;
+            $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);
+        });
+    }
+    public function moveEmailTemplates(array $ids,array $versions,string $folder):void
+    {
+        $ids=audienceIds($ids);sort($ids);$folder=audienceText(['folder'=>$folder],'folder',100);
+        if(!$ids||count($ids)>5000)throw new InvalidArgumentException('Choose up to 5,000 saved templates to move.');
+        $this->transaction(function()use($ids,$versions,$folder){
+            $context=$this->contentSettings(true);$folders=$this->emailTemplateFolders($context['settings'],true);
+            if($folder!==''&&!in_array($folder,$folders,true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
+            foreach($ids as$id){$row=$this->emailTemplate($id,true,true);
+                if((int)$row['version']!==(\Dnr\Http\RequestInput::positiveInt($versions,(string)$id)??0))throw new InvalidArgumentException('This template changed. Reload before continuing.');
+                if($row['deleted_at']!==null)throw new InvalidArgumentException('Restore this archived template before using or changing it.');
+            }
+            // Keep legacy folders after their last member is moved out.
+            if(($context['settings']['template_folders']??[])!==$folders){
+                $context['settings']['template_folders']=$folders;
+                $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($context['settings'],JSON_THROW_ON_ERROR),$this->audienceId]);
+            }
+            foreach($ids as$id)$this->write('UPDATE marketing_email_templates SET folder=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$folder,$this->actorLabel,$this->audienceId,$id]);
+        });
     }
     public function emailTemplateOperation(string $operation,int $id,int $version,array $input):int
     {
+        if($operation==='folder'){$this->moveEmailTemplates([$id],[$id=>$version],audienceText($input,'folder',100));return $id;}
         return $this->transaction(function()use($operation,$id,$version,$input){
+            if(in_array($operation,['replicate','delete'],true))$context=$this->contentSettings(true);
+            if($operation==='delete'){
+                $folders=$this->emailTemplateFolders($context['settings'],true);
+                if(($context['settings']['template_folders']??[])!==$folders){
+                    $context['settings']['template_folders']=$folders;
+                    $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($context['settings'],JSON_THROW_ON_ERROR),$this->audienceId]);
+                }
+            }
             $row=$this->emailTemplate($id,true,true);if((int)$row['version']!==$version)throw new InvalidArgumentException('This template changed. Reload before continuing.');
             $archived=$row['deleted_at']!==null;
             if($archived&&!in_array($operation,['restore','delete'],true))throw new InvalidArgumentException('Restore this archived template before using or changing it.');
@@ -168,7 +244,7 @@ trait AudienceDesigns
             }elseif($operation==='archive'||$operation==='restore'){
                 $this->write('UPDATE marketing_email_templates SET deleted_at='.($operation==='archive'?'UTC_TIMESTAMP(6)':'NULL').',actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$this->actorLabel,$this->audienceId,$id]);
             }
-            elseif($operation==='rename'||$operation==='folder'){$key=$operation==='rename'?'name':'folder';$value=audienceText($input,$key,100);if($key==='name'&&$value==='')throw new InvalidArgumentException('Enter a template name.');$this->write("UPDATE marketing_email_templates SET $key=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?",[$value,$this->actorLabel,$this->audienceId,$id]);}
+            elseif($operation==='rename'){$value=audienceText($input,'name',100);if($value==='')throw new InvalidArgumentException('Enter a template name.');$this->write('UPDATE marketing_email_templates SET name=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$value,$this->actorLabel,$this->audienceId,$id]);}
             else throw new InvalidArgumentException('Unknown template action.');return $id;
         });
     }

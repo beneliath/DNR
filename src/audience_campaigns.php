@@ -4,9 +4,9 @@ declare(strict_types=1);
 /** Native campaign management. This surface cannot enqueue or send mail. */
 trait AudienceCampaigns
 {
-    public function campaign(int $id, bool $lock=false): array
+    public function campaign(int $id, bool $lock=false, bool $includeArchived=false): array
     {
-        $row=$this->one('SELECT * FROM marketing_campaigns WHERE audience_id=? AND id=? AND deleted_at IS NULL'.($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
+        $row=$this->one("SELECT * FROM marketing_campaigns WHERE audience_id=? AND id=? AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$._permanently_deleted')),'0') NOT IN ('1','true')".($includeArchived?'':' AND deleted_at IS NULL').($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
         if(!$row)throw new InvalidArgumentException('This campaign is unavailable.');
         $row['draft']=audienceJson($row['draft_json']);return $row;
     }
@@ -74,28 +74,56 @@ trait AudienceCampaigns
     /** Atomic version checks prevent partial bulk writes and stale selection changes. */
     public function campaignOperation(string $operation,array $ids,array $versions,array $input=[]): ?int
     {
-        if(!in_array($operation,['rename','replicate','move','delete'],true))throw new InvalidArgumentException('Unknown campaign operation.');
+        if(!in_array($operation,['rename','replicate','move','archive','restore','delete'],true))throw new InvalidArgumentException('Unknown campaign operation.');
         $ids=audienceIds($ids);sort($ids);if(!$ids||count($ids)>5000)throw new InvalidArgumentException('Select between 1 and 5,000 campaigns.');
         if(in_array($operation,['rename','replicate'],true)&&count($ids)!==1)throw new InvalidArgumentException('Select one campaign.');
+        $locks=[];
+        try{
+        // Serialize lifecycle changes with the mail worker, including its network send.
+        if(in_array($operation,['archive','restore','delete'],true)&&$this->campaignDispatchAvailable())foreach($ids as$id)$locks[]=audienceDispatchLock($this->db,$this->audienceId,$id);
         return $this->transaction(function()use($operation,$ids,$versions,$input){
             $folder=(int)audienceText($input,'folder_id',12);if($operation==='move')$this->campaignFolder($folder);
-            $rows=[];foreach($ids as$id){$row=$this->campaign($id,true);if((int)$row['version']!==(int)($versions[$id]??0))throw new InvalidArgumentException('A selected campaign changed. Reload before continuing.');$rows[]=$row;}
+            $rows=[];foreach($ids as$id){
+                $row=$this->campaign($id,true,in_array($operation,['restore','delete'],true));
+                if((int)$row['version']!==(int)($versions[$id]??0))throw new InvalidArgumentException('A selected campaign changed. Reload before continuing.');
+                if(in_array($operation,['restore','delete'],true)&&!$row['deleted_at'])throw new InvalidArgumentException('Only archived campaigns can be restored or permanently deleted.');
+                if(in_array($operation,['archive','delete'],true)){
+                    if(in_array($row['status'],['scheduled','sending'],true))throw new InvalidArgumentException('Pause delivery before archiving this campaign.');
+                    if($this->campaignDispatchAvailable()&&$this->one("SELECT d.id FROM marketing_campaign_deliveries d WHERE d.audience_id=? AND d.campaign_id=? AND (d.state IN ('scheduled','sending') OR EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=d.id AND r.audience_id=d.audience_id AND r.state='processing')) LIMIT 1",[$this->audienceId,$id]))throw new InvalidArgumentException('Pause delivery and wait for processing messages to finish before archiving or deleting this campaign.');
+                }
+                $rows[]=$row;
+            }
             foreach($rows as$row){$id=(int)$row['id'];
                 if($operation==='rename'){$name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter a campaign name.');$this->write('UPDATE marketing_campaigns SET name=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$name,$this->actorLabel,$id,$this->audienceId]);}
                 elseif($operation==='replicate'){$copy=$row['draft'];unset($copy['delivery'],$copy['winner'],$copy['public_key'],$copy['experiment'],$copy['design_variants']);$this->write("INSERT INTO marketing_campaigns(audience_id,name,campaign_type,folder_id,draft_json,actor_label) VALUES (?,?,?,?,?,?)",[$this->audienceId,mb_substr($row['name'],0,89).' (copy 01)',$row['campaign_type'],$row['folder_id'],json_encode((object)$copy,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;}
                 elseif($operation==='move')$this->write('UPDATE marketing_campaigns SET folder_id=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$folder?:null,$this->actorLabel,$id,$this->audienceId]);
-                else{if(in_array($row['status'],['scheduled','sending'],true))throw new InvalidArgumentException('Pause delivery before deleting this campaign.');$this->write('UPDATE marketing_campaigns SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);}
+                elseif($operation==='archive')$this->write('UPDATE marketing_campaigns SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);
+                elseif($operation==='restore')$this->write('UPDATE marketing_campaigns SET deleted_at=NULL,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);
+                else{
+                    // Keep immutable delivery evidence and recipient tokens for old unsubscribe
+                    // links. Erase the editable campaign definition and make restoration impossible.
+                    if($this->campaignDispatchAvailable()){
+                        $this->write("UPDATE marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id SET r.state='cancelled',r.error_message='Campaign permanently deleted.' WHERE d.audience_id=? AND d.campaign_id=? AND r.state='queued'",[$this->audienceId,$id]);
+                        $this->write("UPDATE marketing_campaign_deliveries SET state='cancelled',version=version+1 WHERE audience_id=? AND campaign_id=? AND state='paused'",[$this->audienceId,$id]);
+                    }
+                    $this->write("UPDATE marketing_campaign_publications SET enabled=0,archive_listed=0,title='Deleted campaign',description='',image_data='',html='',version=version+1 WHERE audience_id=? AND campaign_id=?",[$this->audienceId,$id]);
+                    $this->write('UPDATE marketing_campaign_touchpoints SET campaign_id=NULL,version=version+1 WHERE audience_id=? AND campaign_id=?',[$this->audienceId,$id]);
+                    $this->write("UPDATE marketing_campaigns SET name='Deleted campaign',folder_id=NULL,draft_json=JSON_OBJECT('_permanently_deleted',true),actor_label=?,version=version+1 WHERE id=? AND audience_id=?",[$this->actorLabel,$id,$this->audienceId]);
+                }
             }return null;
         });
+        }finally{foreach(array_reverse($locks)as$lock)$this->db->execute_query('SELECT RELEASE_LOCK(?)',[$lock]);}
     }
 }
 
 function audienceCampaignFilters(array $input): array
 {
-    $filters=[];foreach(['search','type','status','folder','date_field','start','end','sort','direction','layout','month','date_preset','holidays']as$key)$filters[$key]=audienceText($input,$key,$key==='search'?100:40);
+    $filters=[];foreach(['search','type','status','folder','date_field','start','end','sort','direction','layout','month','date_preset','holidays','trash']as$key)$filters[$key]=audienceText($input,$key,$key==='search'?100:40);
     foreach(['type'=>['','regular','plain-text'],'status'=>['','draft','ongoing','scheduled','completed'],'date_field'=>['updated_at','created_at','sent_at'],'sort'=>['updated_at','created_at','sent_at','name'],'direction'=>['desc','asc'],'layout'=>['list','calendar']]as$key=>$allowed)if(!in_array($filters[$key],$allowed,true))$filters[$key]=$allowed[0];
     if(!array_key_exists($filters['date_preset'],audienceCampaignDatePresets()))$filters['date_preset']='';
     $filters['holidays']=$filters['holidays']==='1'?'1':'0';
+    $filters['trash']=$filters['trash']==='1'?'1':'0';
+    $filters['per_page']=(string)audiencePageSize($input);
     if($filters['date_preset']!==''&&$filters['date_preset']!=='custom')[$filters['start'],$filters['end']]=audienceCampaignDateRange($filters['date_preset']);
     if(!preg_match('/^(?:|unfiled|[1-9][0-9]*)$/D',$filters['folder']))$filters['folder']='';
     foreach(['start','end']as$key)if($filters[$key]!==''&&(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$filters[$key])||date('Y-m-d',strtotime($filters[$key])?:0)!==$filters[$key]))throw new InvalidArgumentException('Enter a valid date range.');
@@ -105,9 +133,13 @@ function audienceCampaignFilters(array $input): array
 }
 function audienceCampaignWhere(int $audienceId,array $filters): array
 {
-    $sql='c.audience_id=? AND c.deleted_at IS NULL';$params=[$audienceId];
+    $archived=($filters['trash']??'0')==='1';
+    $sql='c.audience_id=? AND c.deleted_at IS '.($archived?'NOT NULL':'NULL');$params=[$audienceId];
+    // Keep large design JSON out of the sorted row set. A direct JSON predicate
+    // makes MySQL carry entire archived designs through the list's filesort.
+    if($archived){$sql.=" AND c.id NOT IN (SELECT erased.id FROM marketing_campaigns erased WHERE erased.audience_id=? AND erased.deleted_at IS NOT NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(erased.draft_json,'$._permanently_deleted')),'0') IN ('1','true'))";$params[]=$audienceId;}
     if($filters['search']!==''){$sql.=' AND LOCATE(?,c.name)>0';$params[]=$filters['search'];}
-    if($filters['type']!==''){$sql.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.experiment.kind')),c.campaign_type)=?";$params[]=$filters['type'];}
+    if($filters['type']!==''){$sql.=" AND c.id IN (SELECT typed.id FROM marketing_campaigns typed WHERE typed.audience_id=? AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(typed.draft_json,'$.experiment.kind')),typed.campaign_type)=?)";$params[]=$audienceId;$params[]=$filters['type'];}
     $statuses=['draft'=>['draft'],'ongoing'=>['sending','paused'],'scheduled'=>['scheduled'],'completed'=>['sent']];
     if(isset($statuses[$filters['status']])){$values=$statuses[$filters['status']];$sql.=' AND c.status IN ('.implode(',',array_fill(0,count($values),'?')).')';array_push($params,...$values);}
     if($filters['folder']==='unfiled')$sql.=' AND c.folder_id IS NULL';elseif($filters['folder']!==''){$sql.=' AND c.folder_id=?';$params[]=(int)$filters['folder'];}

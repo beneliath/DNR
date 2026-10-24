@@ -3,6 +3,13 @@ declare(strict_types=1);
 
 trait AudienceInboxCompose
 {
+    public function inboxDrafts(string $query=''):array
+    {
+        $query=audienceText(['q'=>$query],'q',100);
+        $where="d.audience_id=? AND d.actor_id=? AND d.state='draft'";$parameters=[$this->audienceId,$this->actorId];
+        if($query!==''){$where.=' AND (LOCATE(?,d.subject)>0 OR LOCATE(?,d.body_html)>0 OR LOCATE(?,c.email)>0 OR LOCATE(?,CONCAT_WS(\' \',c.first_name,c.last_name))>0 OR LOCATE(?,t.sender_email)>0 OR LOCATE(?,t.sender_name)>0)';array_push($parameters,$query,$query,$query,$query,$query,$query);}
+        return $this->all("SELECT d.id,d.thread_id,d.subject,d.updated_at,LEFT(d.body_html,2000) preview_html,COALESCE(NULLIF(CONCAT_WS(' ',c.first_name,c.last_name),''),t.sender_name,'') recipient_name,COALESCE(c.email,t.sender_email,'') recipient_email FROM marketing_inbox_drafts d LEFT JOIN marketing_contacts c ON c.audience_id=d.audience_id AND c.id=d.contact_id AND c.deleted_at IS NULL LEFT JOIN marketing_inbox_threads t ON t.audience_id=d.audience_id AND t.id=d.thread_id WHERE $where ORDER BY d.updated_at DESC,d.id DESC",$parameters);
+    }
     public function inboxRecipients(string $query):array
     {
         $query=trim($query);if(mb_strlen($query)>100)throw new InvalidArgumentException('Keep this search under 100 characters.');
@@ -45,7 +52,10 @@ trait AudienceInboxCompose
     public function inboxRecipientEligibility(array $draft):array
     {
         $person=$draft['contact_id']?$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL',[$this->audienceId,$draft['contact_id']]):null;
-        $reasons=[];$thread=$draft['thread_id']?$this->inboxThread((int)$draft['thread_id']):null;
+        // Delivery only needs recipient identity and status, not UI labels or contact decoration.
+        // Keep this path usable by the restricted mail worker without granting label access.
+        $reasons=[];$thread=$draft['thread_id']?$this->one('SELECT sender_email,status FROM marketing_inbox_threads WHERE audience_id=? AND id=?',[$this->audienceId,(int)$draft['thread_id']]):null;
+        if($draft['thread_id']&&!$thread)throw new InvalidArgumentException('This conversation is unavailable in this audience.');
         if(!$person)$reasons[]='Link this sender to a subscribed connection before sending.';
         elseif($person['is_archived']||$person['email_status']!=='subscribed')$reasons[]='This connection is archived, cleaned, or is not subscribed to email.';
         if($person){$hash=hash('sha256',strtolower($person['email']));

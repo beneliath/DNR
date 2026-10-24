@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_pagination.php';
 
 require_once __DIR__.'/ai_coach_helpers.php';
 require_once __DIR__.'/ai_coach_history_helpers.php';
@@ -14,6 +15,34 @@ function audienceAiCanAccess(string $role,string $mode):bool
         'content'=>in_array($role,['admin','editor'],true),
         default=>false,
     };
+}
+
+function audienceAiCanDeleteOwnRequests(string $role):bool
+{
+    return in_array($role,['superadmin','admin','editor'],true);
+}
+
+/** Old queue cancellations/timeouts predate assistant-specific terminal replies.
+ * Adapt only owner-scoped audience status reads; never rewrite saved history. */
+function audienceAiNormalizeStatus(array $status, string $mode): array
+{
+    $reply = $status['response'] ?? null;
+    if (in_array($mode, ['analytics', 'content'], true) && ($status['state'] ?? '') === 'complete'
+        && is_array($reply) && !isset($reply['purpose'])
+        && in_array($reply['reason'] ?? '', ['cancelled', 'timeout'], true)) {
+        $terminal = aiCoachTerminalReply('audience-ai:'.$mode, $reply['reason']);
+        foreach (['failure', 'telemetry', 'history_saved'] as $key) {
+            if (array_key_exists($key, $reply)) $terminal[$key] = $reply[$key];
+        }
+        $status['response'] = $terminal;
+    }
+    return $status;
+}
+
+function audienceAiRequestStatus(mysqli $conn, int $userId, string $role, string $requestId, string $mode): ?array
+{
+    $status = aiCoachRequestStatus($conn, $userId, $role, $requestId);
+    return $status === null ? null : audienceAiNormalizeStatus($status, $mode);
 }
 
 /** Separate purpose, permissions and output contract; inference uses the existing coach queue. */
@@ -114,12 +143,12 @@ function audienceAiModelEvidence(array $evidence):array
     return $evidence;
 }
 
-function audienceAiContactPage(AudienceAiQueries $queries,array $evidence,string $tableId,int $offset):array
+function audienceAiContactPage(AudienceAiQueries $queries,array $evidence,string $tableId,int $offset,int $size=100):array
 {
     if(!in_array($tableId,array_column($evidence['tables']??[],'id'),true)||!preg_match('/^query_([0-9]+)_contacts$/D',$tableId,$match))throw new DomainException('Contact results not found.');
     $query=$evidence['queries'][(int)$match[1]]??null;
     if(!is_array($query)||$query['tool']!=='contacts')throw new DomainException('Contact results not found.');
-    $query['limit']=100;
+    $query['limit']=audiencePageSize(['per_page'=>$size],'per_page',100);
     return $queries->contactPage($query,$offset)+['id'=>$tableId];
 }
 
@@ -276,5 +305,21 @@ function audienceAiGenerate(array $stored,float $deadline,?callable $cancelled=n
 
 function audienceAiOwnedRequest(mysqli $db,int $actor,string $role,string $uuid):?array
 {
-    return $db->execute_query("SELECT id,manual_topic,question FROM ai_coach_requests WHERE user_id=? AND user_role=? AND client_request_id=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics')",[$actor,$role,$uuid])->fetch_assoc();
+    return $db->execute_query("SELECT id,manual_topic,question,ui_state_json FROM ai_coach_requests WHERE user_id=? AND user_role=? AND client_request_id=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics')",[$actor,$role,$uuid])->fetch_assoc();
+}
+
+/** Read only the writing contract, after the caller has verified request ownership. */
+function audienceAiSavedWritingInput(mysqli $db,array $owned,string $role,string $uuid):?array
+{
+    if($owned['manual_topic']!=='audience-ai:content')return null;
+    $ui=audienceJson($owned['ui_state_json']);$input=$ui['writing_input']??null;
+    if(!is_array($input)){
+        // Existing requests retain the validated source in their queue record.
+        $job=$db->execute_query('SELECT request_json FROM ai_coach_jobs WHERE request_id=?',[$owned['id']])->fetch_assoc();
+        $input=$job?audienceJson($job['request_json']):null;
+    }
+    if(!is_array($input)||!array_key_exists('text',$input))return null;
+    try{$input=audienceAiRequest(array_replace($input,['mode'=>'content','request_id'=>$uuid]),$role);}
+    catch(InvalidArgumentException|DomainException){return null;}
+    return array_intersect_key($input,array_flip(['text','subject','prompt','operation','tone']));
 }

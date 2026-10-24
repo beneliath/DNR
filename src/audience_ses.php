@@ -69,8 +69,11 @@ function processAudienceSesSetup(mysqli $db,int $limit=1,?callable $factory=null
 {
     if((function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())||!audienceSesInstalled($db))return 0;
     $db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='The connection check stopped. Check again.' WHERE check_state='checking' AND check_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 5 MINUTE)");
-    $row=$db->query("SELECT audience_id,generation FROM marketing_ses_settings WHERE check_state='queued' AND enabled=1 ORDER BY audience_id LIMIT 1")->fetch_assoc();if(!$row)return 0;
-    $db->execute_query("UPDATE marketing_ses_settings SET check_state='checking',check_started_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=? AND check_state='queued'",[$row['audience_id'],$row['generation']]);if($db->affected_rows!==1)return 0;
+    // Refresh idle connections before their 15-minute readiness window expires.
+    // Public double-opt-in forms cannot enqueue mail to trigger a send-time refresh.
+    $due="enabled=1 AND (check_state='queued' OR (check_state='ready' AND checked_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 10 MINUTE)))";
+    $row=$db->query("SELECT audience_id,generation FROM marketing_ses_settings WHERE $due ORDER BY (check_state='queued') DESC,checked_at,audience_id LIMIT 1")->fetch_assoc();if(!$row)return 0;
+    $db->execute_query("UPDATE marketing_ses_settings SET check_state='checking',check_started_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=? AND $due",[$row['audience_id'],$row['generation']]);if($db->affected_rows!==1)return 0;
     try{audienceSesCheck($db,(int)$row['audience_id'],$factory,$resolve);}catch(Throwable){$db->execute_query("UPDATE marketing_ses_settings SET check_state='attention',checked_at=NULL,error_message='Unable to verify SES. Check the credentials, IAM permissions, Region, sender domain and event destination.' WHERE audience_id=? AND generation=?",[$row['audience_id'],$row['generation']]);}return 1;
 }
 trait AudienceSesSetup

@@ -1,10 +1,17 @@
+import { wireAudiencePagination } from './audience-pagination.mjs';
+wireAudiencePagination();
 import { enhanceColorInput } from './audience-color-picker.mjs';
-import { prepareAudienceImage, imageFileSize } from './audience-image-upload.mjs';
-import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
+import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
+import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
 (() => {
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    // A pointer click can retain :focus-visible on a checkbox already focused by the keyboard.
+    document.addEventListener('pointerdown', () => document.body.classList.add('audience-pointer-input'), true);
+    document.addEventListener('keydown', event => {
+        if (!['Shift','Control','Alt','Meta'].includes(event.key)) document.body.classList.remove('audience-pointer-input');
+    }, true);
     // Match the shared shell's fixed account/preview stack, including wrapped mobile labels.
     const accountBanner = $('.account-identity-banner');
     const previewBanner = $('[data-role-preview-banner]');
@@ -149,7 +156,11 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
     const button = (text, action, label = text) => el('button', {type: 'button', onclick: action, 'aria-label': label}, text);
     const setValue = (form, name, value) => { const control = form?.elements.namedItem(name); if (control) control.value = value ?? ''; };
     const hidden = (name, value) => el('input', {type: 'hidden', name, value});
-    $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', event => { event.preventDefault(); show(b.dataset.openDialog); }));
+    $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', async event => {
+        event.preventDefault();
+        if (b.hasAttribute('data-admin-unlock-required') && !(await window.DnrAdminUnlock?.request())) return;
+        show(b.dataset.openDialog);
+    }));
     document.addEventListener('invalid', event => {
         let details = event.target.closest('details');
         while (details) { details.open = true; details = details.parentElement.closest('details'); }
@@ -243,7 +254,7 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
             actions.hidden = selected === 0;
             count.textContent = `${selected} Selected`;
             $('button[type="submit"]', definitionSelection).disabled = selected === 0;
-            items.forEach(item => item.closest('tr')?.classList.toggle('definition-selected', item.checked));
+            items.forEach(item => item.closest('[data-definition-row],tr')?.classList.toggle('definition-selected', item.checked));
         };
         all.addEventListener('change', () => { items.forEach(item => { item.checked = all.checked; }); refresh(); });
         items.forEach(item => item.addEventListener('change', refresh));
@@ -251,6 +262,7 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
         window.addEventListener('pageshow', refresh); refresh();
     }
     const confirmedForms = new WeakSet();
+    const approvedDefinitionDeletes = new WeakSet(), checkingDefinitionDeletes = new WeakSet();
     const confirmation = el('dialog', {'aria-labelledby': 'audience-confirm-title', 'aria-describedby': 'audience-confirm-message'});
     const confirmationForm = el('form', {method: 'dialog'}), confirmationMessage = el('p', {id: 'audience-confirm-message'});
     const confirmationActions = el('div', {class: 'form-actions'});
@@ -262,10 +274,22 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
         const pending = pendingConfirmation; pendingConfirmation = null;
         if (confirmation.returnValue === 'continue' && pending) { confirmedForms.add(pending.form); pending.form.requestSubmit(pending.submitter || undefined); }
     });
-    $$('form[data-confirm]').forEach(form => form.addEventListener('submit', event => {
-        if (confirmedForms.has(form)) { confirmedForms.delete(form); return; }
+    $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
+        if (approvedDefinitionDeletes.has(form)) { approvedDefinitionDeletes.delete(form); return; }
+        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form]');
+        if (confirmed && !protectedDelete) return;
         if (event.defaultPrevented) return;
-        event.preventDefault(); pendingConfirmation = {form, submitter: event.submitter};
+        event.preventDefault();
+        if (protectedDelete) {
+            if (checkingDefinitionDeletes.has(form)) return;
+            checkingDefinitionDeletes.add(form);
+            let unlocked;
+            try { unlocked = await window.DnrAdminUnlock?.request(); }
+            finally { checkingDefinitionDeletes.delete(form); }
+            if (!unlocked) return;
+            if (confirmed) { approvedDefinitionDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
+        }
+        pendingConfirmation = {form, submitter: event.submitter};
         confirmationMessage.textContent = form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
     }));
     $$('[data-filter-search]').forEach(input => input.addEventListener('input', () => {
@@ -939,12 +963,38 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
         for (const [name, value] of data) if (name.startsWith('selected[') || name.startsWith('versions[') || name.startsWith('selection_')) holder.append(hidden(name, value));
     };
     $$('[data-open-dialog="campaign-move"]').forEach(button => button.addEventListener('click', () => populateCampaignSelection($('#campaign-move form'))));
-    $('[data-campaign-delete-selected]')?.addEventListener('click', () => {
-        const form = $('[data-campaign-operation-form]'); populateCampaignSelection(form); setValue(form, 'operation', 'delete'); form.dataset.confirm = 'Delete the selected campaigns?'; form.requestSubmit();
+    const openCampaignLifecycle = async (operation, row = null) => {
+        const dialog = $(`#campaign-${operation}`);
+        if (!dialog) return;
+        const form = $('form', dialog);
+        if (!form || (operation === 'delete' && !(await window.DnrAdminUnlock?.request()))) return;
+        populateCampaignSelection(form, row);
+        $('[data-campaign-lifecycle-summary]', form).textContent = row ? row.name : $('[data-campaign-selection-count]')?.textContent || '';
+        if (form.elements.confirm) form.elements.confirm.value = '';
+        show(dialog.id);
+    };
+    $$('[data-campaign-lifecycle-selected]').forEach(button => button.addEventListener('click', () => openCampaignLifecycle(button.dataset.campaignLifecycleSelected)));
+    $$('[data-campaign-delete-form],[data-flow-delete-form]').forEach(deleteForm => {
+        let approved = false, checking = false;
+        deleteForm.addEventListener('submit', async event => {
+            if (approved) { approved = false; return; }
+            event.preventDefault(); event.stopImmediatePropagation();
+            if (checking) return;
+            checking = true;
+            try {
+                if (await window.DnrAdminUnlock?.request()) {
+                    approved = true;
+                    deleteForm.requestSubmit(event.submitter || undefined);
+                }
+            } finally { checking = false; }
+        });
     });
-    $$('[data-campaign-row]').forEach(button => button.addEventListener('click', () => {
+    $$('[data-campaign-row]').forEach(button => button.addEventListener('click', async () => {
         const row = JSON.parse(button.dataset.campaignRow), operation = button.dataset.campaignOp;
         hideCampaignPopovers();
+        if (['archive','restore','delete'].includes(operation)) {
+            await openCampaignLifecycle(operation, row); return;
+        }
         if (operation === 'rename' || operation === 'move') {
             const dialog = operation === 'rename' ? 'campaign-rename' : 'campaign-move';
             const form = $(`#${dialog} form`); populateCampaignSelection(form, row);
@@ -952,8 +1002,6 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
             show(dialog); return;
         }
         const form = $('[data-campaign-operation-form]'); populateCampaignSelection(form, row); setValue(form, 'operation', operation);
-        form.dataset.confirm = `Delete “${row.name}”?`;
-        if (operation === 'replicate') confirmedForms.add(form);
         form.requestSubmit();
     }));
     $$('[data-campaign-cancel-section]').forEach(button => button.addEventListener('click', () => { button.form.reset(); button.closest('details').open = false; }));
@@ -970,8 +1018,10 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
     });
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
     $('[data-campaign-recipient-preview]')?.addEventListener('click', async event => {
-        const form = event.target.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
-        event.target.disabled = true; try { const result = await request(form.action, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { event.target.disabled = false; }
+        const button = event.currentTarget, form = button.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
+        // The hidden field named action shadows HTMLFormElement.action. Preserve the campaign query.
+        const endpoint = form.getAttribute('action') || location.href;
+        button.disabled = true; try { const result = await request(endpoint, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
     });
     $('[data-campaign-date-preset]')?.addEventListener('change', event => { const form = event.target.form; $$('input[type=date]', form).forEach(input => { input.readOnly = !['','custom'].includes(event.target.value); if (event.target.value === '') input.value = ''; }); });
     const sendForm = $('[name=send_mode]')?.form;
@@ -1037,12 +1087,22 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
 
     // The content library and Brand Kit share image controls; uploads stay local until Save.
     $$('[data-file-drop]').forEach(wireAudienceFileDrop);
+    $$('input[type=file]').forEach(input=>enhanceAudienceFileInput(input));
     $$('[data-brand-form] input[type=color]').forEach(input => enhanceColorInput(input,{tile:true}));
     const contentStatus = (form, message) => { const status = $('[data-content-status]', form); if (status) status.textContent = message; };
+    const brandLogoDimensions = (form,key) => {
+        const preview=$(`[data-content-preview="${key}"]`,form),label=$(`[data-brand-logo-dimensions="${key}"]`,form);
+        if(label)label.textContent=form.elements[key].value&&preview?.naturalWidth?`${preview.naturalWidth} × ${preview.naturalHeight}${form.elements[key].value.startsWith('data:image/svg+xml;')?' · SVG (vector)':' pixels'}`:'';
+    };
+    $$('[data-brand-form] [data-content-preview]').forEach(preview=>{
+        const update=()=>brandLogoDimensions(preview.closest('form'),preview.dataset.contentPreview);
+        preview.addEventListener('load',update);update();
+    });
     const setContentImage = (form, key, value) => {
         form.elements[key].value = value;
         const preview = $(`[data-content-preview="${key}"]`, form);
         if (preview) { preview.src = value; preview.hidden = !value; }
+        if(!value)brandLogoDimensions(form,key);
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
             if (form.elements[key].value !== value) return;
@@ -1097,14 +1157,33 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
             }
             setFileDropStatus(input,`${file.name} — preparing image…`);
             contentStatus(form, 'Preparing image… Larger images are resized automatically.');
-            const prepared=await prepareAudienceImage(file,{storedBytes:input.dataset.contentUpload==='image'?1_000_000:2_000_000});
+            let prepared;
+            if(form.matches('[data-brand-form]')&&(file.type==='image/svg+xml'||file.name.toLowerCase().endsWith('.svg'))){
+                if(file.size>2_000_000)throw new Error('Choose an SVG logo up to 2 MB. SVG logos stay in vector format.');
+                const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('The SVG could not be read.'));reader.readAsDataURL(file);});
+                const data=new FormData();data.set('csrf_token',form.elements.csrf_token.value);data.set('action','brand_logo_svg');data.set('image',`data:image/svg+xml;base64,${raw}`);
+                const response=await fetch(form.getAttribute('action')||location.href,{method:'POST',body:data,credentials:'same-origin',headers:{Accept:'application/json'}});
+                if(!response.headers.get('Content-Type')?.includes('application/json'))throw new Error('The SVG upload could not be processed. Reload this page and try again.');
+                const result=await response.json();if(!response.ok||result.error)throw new Error(result.error||'The SVG logo could not be prepared.');
+                prepared={...result,name:file.name};
+            }else prepared=await prepareAudienceImage(file,{storedBytes:input.dataset.contentUpload==='image'?1_000_000:2_000_000});
             if(state.pending.get(input)!==token)return;
             setContentImage(form,input.dataset.contentUpload,prepared.data);
+            if(form.matches('[data-brand-form]')){
+                const logos={logo:form.elements.logo.value,secondary_logo:form.elements.secondary_logo.value};
+                const matched=await matchAudienceBrandLogos(logos);
+                if(state.pending.get(input)!==token)return;
+                if(form.elements.logo.value===logos.logo&&form.elements.secondary_logo.value===logos.secondary_logo)setContentImage(form,'secondary_logo',matched.secondary_logo);
+            }
             if(input.dataset.contentUpload==='image'){
                 form.elements.file_kind.value='image';
                 if(!form.elements.name.value)form.elements.name.value=prepared.name.slice(0,100);
             }
             input.value='';
+            if(form.matches('[data-brand-form]')){
+                setFileDropStatus(input,`${prepared.name} — ready to save.`);
+                contentStatus(form,'Logo ready. Both logos use the default logo’s pixel dimensions. Save to keep your changes.');return;
+            }
             setFileDropStatus(input,`${prepared.name} · ${prepared.optimized?imageFileSize(prepared.originalBytes)+' → ':''}${imageFileSize(prepared.bytes)} — ready to save.`);
             contentStatus(form,prepared.optimized?`Image optimized: ${imageFileSize(prepared.originalBytes)} → ${imageFileSize(prepared.bytes)} · ${prepared.width} × ${prepared.height} pixels. Save to keep this version.`:`Image ready · ${imageFileSize(prepared.bytes)}. Save to keep your changes.`);
         } catch(error) { if(state.pending.get(input)===token){input.value='';setFileDropStatus(input,error.message,true);contentStatus(form,error.message);} }
@@ -1151,11 +1230,55 @@ import { wireAudienceFileDrop, setFileDropStatus, selectedUploadFile } from './a
         $('[data-content-rotate]',contentEditor)?.addEventListener('click', () => editImage(true));
         contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && !(contentEditor.elements.file_kind.value === 'file' && Number(contentEditor.elements.id.value) > 0)) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
     }
+    const contentFilters = $('.content-filters');
+    if (contentFilters) {
+        const defaults = { search: '', folder: '', type: '', sort: 'updated_at', direction: 'desc', layout: 'grid', per_page: '25' };
+        const fields = Object.entries(defaults).map(([name, value]) => ({ control: contentFilters.elements.namedItem(name), value })).filter(field => field.control);
+        const apply = $('button[type=submit],button:not([type])', contentFilters);
+        const value = field => field.control.value.trim();
+        const applied = fields.map(value);
+        const syncFilters = () => {
+            fields.forEach(field => field.control.classList.toggle('content-filter-active', value(field) !== field.value));
+            apply?.classList.toggle('content-filter-apply-reminder', fields.some((field, index) => value(field) !== applied[index]));
+        };
+        contentFilters.addEventListener('input', syncFilters);
+        contentFilters.addEventListener('change', syncFilters);
+        contentFilters.addEventListener('submit', () => apply?.classList.remove('content-filter-apply-reminder'));
+        window.addEventListener('pageshow', syncFilters);
+        syncFilters();
+    }
     const contentSelection = $('[data-content-selection]');
     if (contentSelection) {
         const all = $('[data-content-all]',contentSelection), items = $$('[data-content-select]',contentSelection);
         const update = () => { const count=items.filter(input=>input.checked).length; if (all) { all.checked=count>0&&count===items.length; all.indeterminate=count>0&&count<items.length; } const label=$('[data-content-count]',contentSelection);if(label)label.textContent=`${count} selected`; $$('button[name=operation]',contentSelection).forEach(button=>button.disabled=!count); };
         all?.addEventListener('change',()=>{items.forEach(input=>input.checked=all.checked);update();});items.forEach(input=>input.addEventListener('change',update));update();
+        let trashApproved = false, checkingTrash = false;
+        contentSelection.addEventListener('submit', async event => {
+            const submitter = event.submitter;
+            if (!['delete','purge'].includes(submitter?.value) || trashApproved) return;
+            event.preventDefault();
+            if (checkingTrash) return;
+            checkingTrash = true;
+            contentSelection.elements.confirm_delete.value = '';
+            try {
+                if (await window.DnrAdminUnlock?.request()) {
+                    if (submitter.value === 'purge') {
+                        const dialog = $('#content-delete-confirm');
+                        if (!dialog) return;
+                        const count = items.filter(input => input.checked).length;
+                        $('[data-content-delete-message]', dialog).textContent = `Permanently delete ${count} selected file${count === 1 ? '' : 's'} from Trash? This cannot be undone. Existing emails keep their inserted copies.`;
+                        const confirmed = await new Promise(resolve => {
+                            dialog.addEventListener('close', () => resolve(dialog.returnValue === 'delete'), { once: true });
+                            dialog.returnValue = ''; dialog.showModal();
+                        });
+                        if (!confirmed || !(await window.DnrAdminUnlock?.request())) return;
+                        contentSelection.elements.confirm_delete.value = '1';
+                    }
+                    trashApproved = true;
+                    contentSelection.requestSubmit(submitter);
+                }
+            } finally { trashApproved = false; checkingTrash = false; }
+        });
     }
     $$('[data-delivery-refresh]').forEach(button=>button.addEventListener('click',()=>location.reload()));
     $$('[data-copy-delivery]').forEach(button=>button.addEventListener('click',async()=>{const status=$('[data-delivery-copy-status]',button.closest('dialog')||document);try{await navigator.clipboard.writeText(button.dataset.copyDelivery);if(status)status.textContent='Copied.';}catch{if(status)status.textContent='Copy is unavailable. Select the record value and copy it.';}}));

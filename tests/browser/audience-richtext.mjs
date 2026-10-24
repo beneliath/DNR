@@ -11,8 +11,8 @@ document.querySelector('#run').onclick=async()=>{
   expect(links.children[0].getAttribute('href')==='http://legacy.example.org/news','HTTP links survive rich-text paste');
   expect(links.children[1].getAttribute('href')==='https://www.example.org'&&links.children[2].getAttribute('href')==='mailto:person@example.org','Domain and email links are normalized');
   expect(!links.children[3].hasAttribute('href')&&!links.children[4].hasAttribute('href')&&links.children.length===5,'Invalid links remain identifiable without active destinations');
-  const block={html:'<p>Alpha <strong>Bravo</strong> Charlie Delta</p><p>Echo Foxtrot</p><p><span style="color:rgb(48,97,181)">Saved blue</span></p>',text:''};
-  dispose=mountRichText({host,block,makeButton:button,makeElement:el,history:()=>{},changed:()=>changes++,renderCanvas:()=>{},onSelection:()=>{},openLink:()=>{},mergeTags:{FNAME:'First name'},openImage:()=>{}});
+  const block={html:'<p>Alpha <strong>Bravo</strong> Charlie Delta</p><p>Echo Foxtrot</p><p><span style="color:rgb(48,97,181)">Saved blue</span></p><p><span style="font-family:Georgia">Serif selection</span> <span style="font-family:Tahoma">Fallback selection</span></p>',text:''};
+  dispose=mountRichText({host,block,makeButton:button,makeElement:el,history:()=>{},changed:()=>changes++,renderCanvas:()=>{},onSelection:()=>{},openLink:()=>{},mergeTags:{FNAME:'First name'},openImage:()=>{},fonts:{Arial:'Arial',Georgia:'Georgia',Tahoma:'Tahoma','MOEDBrandFont,Tahoma':'Ubuntu Light (Brand Kit)'}});
   const rich=host.querySelector('.designer-rich-text');
   const find=(label)=>host.querySelector(`[aria-label="${label}"]`);
   // Selectionchange is dispatched explicitly; background-tab timer throttling
@@ -25,6 +25,19 @@ document.querySelector('#run').onclick=async()=>{
   const style=async(word,key)=>getComputedStyle(await select(word))[key];
   const pick=(color,highlight=false)=>{find(highlight?'Selected text highlight':'Selected text color').click();const menu=find((highlight?'Selected text highlight':'Selected text color')+' palette');menu.querySelector(`[aria-label="${color}"]`).click();};
   try{
+    const font=find('Selected text font');
+    const selectRange=(start,end=start)=>{rich.focus();const range=document.createRange();range.setStart(start,0);range.setEnd(end,end.childNodes.length);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));};
+    await select('Alpha');expect(font.value==='Arial','Font field reflects the inherited system font');
+    selectRange(rich.querySelector('p'));expect(font.value==='Arial','Nested bold text does not make a uniform font selection mixed');
+    await select('Serif selection');expect(font.value==='Georgia','Font field reflects an inline font');
+    const mixed=(await select('Fallback selection')).parentElement;selectRange(mixed);expect(font.value===''&&font.options[0].textContent==='Mixed fonts','Selections containing different fonts are labeled Mixed fonts');
+    rich.style.fontFamily='MOEDBrandFont,Tahoma';
+    selectRange(rich.querySelector('p'),rich.querySelectorAll('p')[1]);expect(font.value==='MOEDBrandFont,Tahoma'&&font.selectedOptions[0].textContent==='Ubuntu Light (Brand Kit)','Multiple paragraphs inherit the uploaded Brand Kit font in the toolbar');
+    font.focus();expect(font.value==='MOEDBrandFont,Tahoma','Focusing the font field retains the selected text font');
+    rich.style.fontFamily='"Helvetica Neue",sans-serif';await select('Echo');expect(font.selectedOptions[0].textContent==='Helvetica Neue','Existing fonts outside the standard menu still display their name');
+    rich.style.fontFamily='Arial';await select('Alpha');expect(changes===0,'Reading selection fonts never changes the saved content');
+    font.value='Georgia';font.dispatchEvent(new Event('change'));expect(font.value==='Georgia','Applying a font updates the font field');
+    find('Undo text change').click();await select('Alpha');expect(font.value==='Arial','Undo restores the font field with the text');
     expect(await style('Saved blue','color')==='rgb(48, 97, 181)','Saved color renders in editor under strict CSP');
     const canvas=document.createElement('div');host.append(canvas);setRichContent(canvas,block.html);expect(getComputedStyle(canvas.querySelector('span')).color===getComputedStyle(rich.querySelector('span')).color,'Canvas and editor restore identical saved colors');canvas.remove();
     await select('Alpha');pick('#FF0000');expect(await style('Alpha','color')==='rgb(255, 0, 0)','First text color');

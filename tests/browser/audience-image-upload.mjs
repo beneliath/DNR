@@ -1,5 +1,5 @@
-import {prepareAudienceImage,isAnimatedUpload,imageFileSize} from '../../src/assets/js/audience-image-upload.mjs';
-import {wireAudienceFileDrop,selectedUploadFile,setFileDropStatus} from '../../src/assets/js/audience-file-drop.mjs';
+import {prepareAudienceImage,isAnimatedUpload,imageFileSize,matchAudienceBrandLogos} from '../../src/assets/js/audience-image-upload.mjs';
+import {wireAudienceFileDrop,enhanceAudienceFileInput,selectedUploadFile,setFileDropStatus} from '../../src/assets/js/audience-file-drop.mjs';
 
 const result=document.querySelector('#result'),fixture=document.querySelector('#fixture');
 const toBlob=(canvas,type,quality)=>new Promise(resolve=>canvas.toBlob(resolve,type,quality));
@@ -60,6 +60,21 @@ document.querySelector('#run').addEventListener('click',async()=>{
     check(logoPng.bytes<=2_000_000&&logoPng.data.startsWith('data:image/png;base64,'),'Brand PNG fits 2 MB without conversion');
     const logoDecoded=await imageFrom(logoPng.data);canvas.width=logoDecoded.naturalWidth;canvas.height=logoDecoded.naturalHeight;ctx.drawImage(logoDecoded,0,0);
     check(ctx.getImageData(0,0,1,1).data[3]===0,'Downsampled brand logo retains transparency');
+    canvas.width=240;canvas.height=120;ctx.fillStyle='#3261b5';ctx.fillRect(0,0,240,120);const defaultLogo=await toData(await toBlob(canvas,'image/png'));
+    canvas.width=40;canvas.height=80;ctx.fillStyle='#00aa00';ctx.fillRect(0,0,40,80);const secondaryLogo=await toData(await toBlob(canvas,'image/png'));
+    const pair=await matchAudienceBrandLogos({logo:defaultLogo,secondary_logo:secondaryLogo}),pairImage=await imageFrom(pair.secondary_logo);
+    check(pair.logo===defaultLogo&&pairImage.naturalWidth===240&&pairImage.naturalHeight===120,'Secondary logo canvas exactly matches unchanged default logo dimensions');
+    canvas.width=240;canvas.height=120;ctx.drawImage(pairImage,0,0);
+    check(ctx.getImageData(0,60,1,1).data[3]===0&&ctx.getImageData(239,60,1,1).data[3]===0,'Matched logo adds transparent padding');
+    check(ctx.getImageData(89,60,1,1).data[3]===0&&ctx.getImageData(90,60,1,1).data[1]===170&&ctx.getImageData(149,60,1,1).data[3]===255&&ctx.getImageData(150,60,1,1).data[3]===0,'Secondary artwork remains centered at its original proportions without cropping');
+    check((await matchAudienceBrandLogos(pair)).secondary_logo===pair.secondary_logo,'Repeated matching does not re-encode or blur the logo');
+    check((await matchAudienceBrandLogos({logo:'',secondary_logo:secondaryLogo})).secondary_logo===secondaryLogo,'Secondary-only upload keeps its original image until a default exists');
+    check((await matchAudienceBrandLogos({logo:defaultLogo,secondary_logo:''})).secondary_logo==='','Removing a logo remains supported');
+    const vector='data:image/svg+xml;base64,'+btoa('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="80" viewBox="0 0 40 80"><path fill="#00aa00" d="M0 0h40v80H0z"/></svg>');
+    const vectorPair=await matchAudienceBrandLogos({logo:defaultLogo,secondary_logo:vector}),vectorImage=await imageFrom(vectorPair.secondary_logo),vectorXml=atob(vectorPair.secondary_logo.split(',')[1]);
+    check(vectorPair.secondary_logo.startsWith('data:image/svg+xml;')&&vectorImage.naturalWidth===240&&vectorImage.naturalHeight===120,'Matching an SVG secondary keeps vector format and shared dimensions');
+    check(vectorXml.includes('viewBox="0 0 40 80"')&&vectorXml.includes('preserveAspectRatio="xMidYMid meet"')&&vectorXml.includes('<path'),'Vector paths and coordinate system survive matching without rasterizing');
+    let animatedLogoRejected=false;try{await matchAudienceBrandLogos({logo:defaultLogo,secondary_logo:gifResult.data});}catch(error){animatedLogoRejected=/Animated logos/.test(error.message);}check(animatedLogoRejected,'Mismatched animated logos are never silently flattened');
     const form=document.createElement('form');form.innerHTML='<fieldset><div data-file-drop><button type="button" data-file-browse hidden>Browse files</button><input type="file" accept="image/png,image/jpeg,image/webp"><p data-file-drop-status></p></div></fieldset>';
     fixture.append(form);const zone=form.querySelector('[data-file-drop]'),input=form.querySelector('input'),fieldset=form.querySelector('fieldset');
     wireAudienceFileDrop(zone);let completed=Promise.resolve(),selected=null;
@@ -85,6 +100,22 @@ document.querySelector('#run').addEventListener('click',async()=>{
     check(selectedUploadFile(input)===font,'Brand font selection supports extension matching');
     input.files=transfer(new File([],'empty.ttf')).files;let emptyRejected=false;try{selectedUploadFile(input);}catch{emptyRejected=true;}
     check(emptyRejected,'Empty uploads rejected');form.remove();
+    const uploadForm=document.createElement('form');uploadForm.innerHTML='<label data-import-file hidden>Template file<input type="file" name="template_file" accept=".html,.htm,.zip" required data-file-max-bytes="5000000"></label>';fixture.append(uploadForm);
+    const uploadInput=uploadForm.querySelector('input');let changes=0;uploadInput.addEventListener('change',()=>changes++);
+    enhanceAudienceFileInput(uploadInput,{help:'HTML or ZIP · up to 5 MB'});const enhanced=uploadForm.querySelector('[data-file-drop]'),field=uploadForm.querySelector('[data-import-file]');
+    check(field.hidden&&field.querySelector('label').htmlFor===uploadInput.id,'Enhancing preserves conditional visibility and the accessible label');field.hidden=false;
+    let ancestorDrag=false;uploadForm.addEventListener('dragover',()=>{ancestorDrag=true;});enhanced.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:transfer(small)}));check(!ancestorDrag,'File deposits do not trigger surrounding section-reordering controls');
+    const uploadFile=new File(['<html>Example</html>'],'example.html',{type:'text/html'});
+    enhanced.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer(uploadFile)}));
+    check(changes===1&&new FormData(uploadForm).get('template_file').name==='example.html'&&uploadInput.required,'Dropping retains native multipart fields, required validation, and existing upload handlers');
+    check(enhanced.textContent.includes('example.html')&&enhanced.querySelector('[data-file-browse]'),'Drop area reports its selected file and retains Browse');
+    enhanced.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer(new File(['bad'],'bad.exe'))}));
+    check(changes===1&&uploadInput.validationMessage&&uploadInput.files.length===0,'Unsupported drops cannot reach an existing upload handler');
+    enhanced.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer(new File([new Uint8Array(5_000_001)],'large.zip'))}));
+    check(changes===1&&uploadInput.validationMessage.includes('5 MB'),'Oversized drops retain the existing upload limit');
+    uploadForm.reset();check(!uploadInput.validity.customError&&enhanced.textContent.includes('No file selected.'),'Enhanced upload resets cleanly');
+    enhanceAudienceFileInput(uploadInput);wireAudienceFileDrop(enhanced);check(uploadForm.querySelectorAll('[data-file-drop]').length===1,'Repeated initialization keeps one deposit area');
+    enhanced.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer(uploadFile)}));check(changes===2,'Repeated initialization does not duplicate upload actions');uploadForm.remove();
     result.textContent=`PASS: ${count} checks\n${summary.textContent}`;
   }catch(error){result.textContent=`FAIL after ${count} checks: ${error.stack}`;}finally{button.disabled=false;}
 });
