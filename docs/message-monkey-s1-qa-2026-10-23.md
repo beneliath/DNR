@@ -162,3 +162,41 @@ Only two new service-mail records were created: confirmation 31 to beneliath@gma
 Human/external access is still required for an actual HTTPS website popup installation, editor/reviewer/demo sign-ins, and Gmail/Proton/Outlook/Apple Mail/mobile rendering observations. Requests for the installation target, existing editor sign-in and rendering observations are pending. Do not enable an inactive real reviewer or impersonate a user to fill the role matrix. Multi-day soak/DST passage and actual SES outages/throttles/bounces/complaints are not claimed as live tests. SES simulator addresses are outside the approved segment; do not add them to testSegment or broaden the allowed audience to manufacture those failures. Existing isolated provider-failure coverage remains applicable.
 
 No confirmed fixes are waiting for deployment. Any subsequent findings should be batched on this QA branch and qualified together before requesting a release.
+
+## Live editor pass and Preview layout correction — October 23, 2026
+
+This follow-up supersedes the pending editor sign-in and no-pending-fixes statements immediately above. The user signed into the existing active `beneliath` editor account, then restored the normal `dgilmore` administrator session after testing. No user was created, reactivated or granted additional access by this test. s1 remains **2.7.3 / bedfa7a**; the one new correction below is qualified locally on `codex/message-monkey-gap-qa` and **is not deployed**.
+
+### Live editor results
+
+- **Campaign authoring and review:** created campaign 6 `QA 2.7.3 — editor role and scheduling`, a plain-text draft targeting the previously narrowed one-member test segment. The normal recipient control showed one eligible recipient, doug@shalominmessiah.com. Subject, preview text and body persisted after save/reload; Preview and an editor-authored comment persisted. The campaign was archived after testing and was never scheduled or dispatched.
+- **Scheduling validation:** a saved draft may contain Chicago's repeated November 1, 2026 01:30 local hour, but Send review correctly rejected that ambiguous time and disabled Schedule. Changing it to 02:30 produced the correct 08:30 UTC review and enabled Schedule. No Schedule action was submitted; the final database audit found zero delivery records for campaign 6.
+- **Private Inbox drafts:** the editor initially saw zero drafts, rather than the administrator's two. Opening administrator draft 1 directly returned “This draft is unavailable for your account.” Saved editor draft 5 to testSegment contact 10886 remains private, in Draft state, with no service-mail reference. It was not sent.
+- **Form lifecycle:** restored archived QA popup form 9, changed its delay from seven to eight seconds and verified save/reload, then restored seven seconds. Normal publication and archive both passed. The final audit confirms the form is paused/archived with the original seven-second delay; no public signup was submitted.
+- **Administrator restrictions:** the editor had no Admin Unlock control or permanent-delete controls in the inspected tag/segment, archived form and Content Trash interfaces. Brand Kit Save was disabled. Direct navigation to Email delivery was denied with “Email delivery requires an administrator.” These are live interface checks; earlier isolated authorization tests provide the direct mutation/role matrix. No administrator gate or credential was bypassed.
+
+### Confirmed issue, fix and bounded retest
+
+**Long plain-text Preview lines overlapped the comments pane.** In the live campaign 6 Preview at 1,518px viewport width, the `<pre>` pane was 788px wide with 980px of overflowing content and `white-space: pre`. The sentence continued beneath the comments panel. Before-fix evidence: `review-assets/message-monkey-2026-10-23/gap-editor-preview-overflow.png`.
+
+The shared review CSS now uses `white-space: pre-wrap` and `overflow-wrap: anywhere`, retaining explicit line breaks and literal escaped text while containing paragraphs and long URLs within the preview pane. Rebuilt only the affected Audience CSS bundle and its manifest hashes. The change does not alter the email body or delivery behavior.
+
+- New real-template/real-bundle browser fixture passed **20 assertions** at 390, 768, 1,518 and 1,920px: text and long URLs stay inside the pane, no horizontal page overflow, visible glyphs do not extend beneath Comments, newlines/literal markup are preserved, and Comments stack below the preview on mobile. The unchanged CSS first failed this fixture's overflow assertion; the corrected CSS passed. All browser requests are intercepted locally and external requests are blocked; no production records or transport are used.
+- Existing lifecycle browser suite passed **56 assertions** after the shared CSS rebuild, covering responsive light/dark layouts, admin/editor/reviewer controls, archive/restore/delete confirmation and unlock expiry. PHP fixture lint, JavaScript syntax and `git diff --check` passed.
+- Initial local fixture setup needed the workspace's installed Composer dependencies and its `audienceInputs` rendering helper. The sandbox blocked headless Chromium startup until the isolated browser run was authorized outside it. A whole-text Range also included hanging trailing spaces; the final geometry assertion measures visible glyphs. These were fixture/environment corrections, not additional product defects.
+
+Repeatable check, with Playwright installed and its browser available:
+
+```sh
+node tests/browser/audience-campaign-review.test.cjs
+```
+
+`DNR_PLAYWRIGHT_MODULE` and `PLAYWRIGHT_BROWSERS_PATH` may select the existing local runtime; optional `DNR_REVIEW_OUTPUT` saves desktop/mobile screenshots. After-fix evidence: `review-assets/message-monkey-2026-10-23/gap-preview-wrapped.png` and `gap-preview-wrapped-mobile.png` (isolated fixture, not a deployed screenshot).
+
+### Outbound audit and remaining limits
+
+Fresh testSegment resolution returned four subscribed, unarchived contacts. No email was requested or created during this editor pass: service-mail maximum ID stayed **33**, its preflight value, and campaign-recipient maximum ID stayed **16**. Existing service mail 33 is an accepted audience alert whose recipient is in testSegment. Pending service mail, campaign recipients, Inbox email alerts and active flow runs are all zero. Campaign 6 has no delivery records, draft 5 has no service-mail ID, and form 9 is archived. Read-only audit: `/tmp/mm-gap-editor-final-audit.json`.
+
+**One confirmed fix is now waiting for the combined release:** plain-text Preview wrapping. All available editor checks are complete. Actual external HTTPS popup installation still needs an authorized website target; existing reviewer/demo sign-ins and human email-client rendering observations remain unverified live. Multi-day soak, a real DST transition and deliberate SES outages/throttles/bounces/complaints remain isolated/simulated coverage, not live claims. No inactive reviewer was enabled and the outbound allowlist was not broadened.
+
+![Plain-text Preview wrapping after the fix, in the isolated browser fixture](review-assets/message-monkey-2026-10-23/gap-preview-wrapped.png)
