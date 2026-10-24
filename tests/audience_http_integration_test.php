@@ -32,6 +32,17 @@ try{
     $review=$reviewer($path);$reviewToken=audienceHttpCsrf($review);audienceHttpExpect(!str_contains($review['body'],'data-segment-current')&&!str_contains($review['body'],'data-person-select'),'Reviewer has read-only Connections');
     audienceHttpExpect($reviewer($path,['csrf_token'=>$reviewToken,'audience'=>$aid,'action'=>'save_tag','name'=>'Forbidden'])['status']===403,'Reviewer writes denied');
     foreach(['import','jobs','job']as$view)audienceHttpExpect($reviewer($path.'&view='.$view)['status']===403,'Reviewer job access denied');
+    audienceHttpExpect(!str_contains($review['body'],'id="people-export"')&&!str_contains($review['body'],'view=import')&&!str_contains($review['body'],'view=jobs'),'Reviewer sees no audience import/export controls');
+    $jobsBefore=(int)$conn->query('SELECT COUNT(*) n FROM marketing_jobs')->fetch_assoc()['n'];
+    foreach(['import_upload','configure_import','start_import','queue_export','template_import']as$transferAction){
+        $transferPath=$transferAction==='template_import'?'audience.php?view=templates':$path;
+        $denied=$reviewer($transferPath,['csrf_token'=>$reviewToken,'action'=>$transferAction,'paste'=>"Email\nforbidden@example.test",'name'=>'Forbidden import','code'=>'<p>Denied</p>']);
+        audienceHttpExpect($denied['status']===403,'Reviewer direct POST denied: '.$transferAction);
+    }
+    audienceHttpExpect((int)$conn->query('SELECT COUNT(*) n FROM marketing_jobs')->fetch_assoc()['n']===$jobsBefore,'Denied import/export requests do not queue work');
+    foreach(['download=zip','download=csv','download=errors','export=person','api=job']as$transferQuery)audienceHttpExpect($reviewer($path.'&id='.$pid.'&'.$transferQuery)['status']===403,'Reviewer direct transfer denied: '.$transferQuery);
+    foreach([$editor,$admin]as$allowedClient){$personExport=$allowedClient($path.'&id='.$pid.'&export=person');audienceHttpExpect($personExport['status']===200&&(json_decode($personExport['body'],true)['person']['Email Address']??'')==='fixture@example.test','Editors and administrators can export a connection profile');}
+
     audienceHttpExpect($editor($path,['csrf_token'=>'invalid','audience'=>$aid,'action'=>'save_tag','name'=>'Invalid'])['status']===400,'CSRF denied');
     $tree=['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'fixture@example.test']]];
     $preview=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'preview_segment','rules'=>json_encode($tree)]);$result=json_decode($preview['body'],true);audienceHttpExpect($preview['status']===200&&$result['count']===1,'Nested rule preview executes');
@@ -45,8 +56,20 @@ try{
     $errors=$editor($path.'&id='.$job.'&download=errors');audienceHttpExpect($errors['status']===200&&str_contains($errors['body'],'invalid-email'),'Row errors downloadable');
     $export=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'queue_export','selection_scope'=>'all']);audienceHttpExpect($export['status']===302,'Export queued');preg_match('/id=(\d+)/',$export['headers'],$m);$exportId=(int)$m[1];
     $editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'process_job','id'=>$exportId]);for($i=0;$i<60;$i++){$status=json_decode($editor($path.'&api=job&id='.$exportId)['body'],true);if($status['state']==='complete')break;usleep(100000);}
-    $csv=$editor($path.'&id='.$exportId.'&download=csv');audienceHttpExpect($csv['status']===200&&str_contains($csv['body'],'fixture@example.test')&&str_contains($csv['body'],'second@example.test'),'Export downloads selected records');
+    $archive=$editor($path.'&id='.$exportId.'&download=zip');audienceHttpExpect($archive['status']===200&&str_contains($archive['headers'],'application/zip')&&str_contains($archive['headers'],'.zip'),'Audience export downloads a ZIP');
+    audienceHttpExpect($admin($path.'&id='.$exportId.'&download=zip')['status']===200,'Administrator can download the audience ZIP');
+    $exportPath=tempnam(sys_get_temp_dir(),'audience-archive-test-');file_put_contents($exportPath,$archive['body']);$exportZip=new ZipArchive();
+    try{
+        audienceHttpExpect($exportZip->open($exportPath)===true&&$exportZip->numFiles===4,'Audience ZIP contains four subscription-status CSVs');
+        $nonSubscribers='';for($entry=0;$entry<$exportZip->numFiles;$entry++)if(str_starts_with($exportZip->getNameIndex($entry),'nonsubscribed_email_audience_export_'))$nonSubscribers=$exportZip->getFromIndex($entry);
+        audienceHttpExpect(str_contains($nonSubscribers,'fixture@example.test')&&str_contains($nonSubscribers,'second@example.test')&&str_starts_with($nonSubscribers,'"Email Address","First Name","Last Name"'),'ZIP contains the selected records and ordered Mailchimp headers');
+    }finally{$exportZip->close();unlink($exportPath);}
+    audienceHttpExpect($editor($path.'&id='.$exportId.'&download=csv')['status']===200,'Older export links remain valid');
+    audienceHttpExpect(str_contains($editor($path.'&view=job&id='.$exportId)['body'],'Download ZIP'),'Export completion offers the ZIP download');
     audienceHttpExpect($reviewer($path.'&id='.$exportId.'&download=csv')['status']===403,'Reviewer export denied');
+    $conn->execute_query("INSERT INTO marketing_jobs(audience_id,job_type,name,state,actor_user_id,actor_label,params_json,total,processed,updated) SELECT audience_id,'export','Legacy CSV fixture','complete',actor_user_id,actor_label,JSON_OBJECT(),1,1,1 FROM marketing_jobs WHERE id=?",[$exportId]);$legacyExport=(int)$conn->insert_id;
+    $conn->execute_query("INSERT INTO marketing_job_items(job_id,source_row,state,result_json,payload_json) VALUES (?,1,'exported',?,JSON_OBJECT())",[$legacyExport,json_encode(['Email Address'=>'legacy@example.test','First Name'=>'Saved CSV'],JSON_THROW_ON_ERROR)]);
+    $legacyDownload=$editor($path.'&id='.$legacyExport.'&download=csv');audienceHttpExpect($legacyDownload['status']===200&&str_contains($legacyDownload['headers'],'text/csv')&&str_contains($legacyDownload['body'],'legacy@example.test'),'Existing saved CSV exports remain downloadable');
     $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Internal isolation fixture',JSON_OBJECT())");$other=(int)$conn->insert_id;
     $otherStore=new AudienceStore($conn,$other,1,'Isolation fixture');$otherPerson=$otherStore->savePerson(['email'=>'other@example.test','email_status'=>'non-subscribed']);
     $otherJob=$otherStore->createImport(audienceParseImport("Email\nother@example.test"),'Foreign job');
@@ -77,7 +100,7 @@ try{
     audienceHttpExpect($recovery&&$recovery['dialog']==='field-editor'&&$recovery['values']['version']==='7'&&$recovery['values']['label']==='Keep this label','Field recovery preserves stale version instead of silently refreshing it');
     $invalidPaste=$editor('audience.php?view=import',['csrf_token'=>$token,'action'=>'import_upload','paste'=>'Keep this incomplete header']);
     audienceHttpExpect(str_contains($invalidPaste['body'],'>Keep this incomplete header</textarea>')&&!preg_match('/(?:Warning|Fatal error):/',$invalidPaste['body']),'Invalid paste remains editable');
-    $tagsPage=$editor('audience.php?view=tags');audienceHttpExpect(str_contains($tagsPage['body'],'data-tag-edit=')&&str_contains($tagsPage['body'],'data-tooltip="Export as CSV"')&&str_contains($tagsPage['body'],'data-tooltip="Send regular email"'),'Tag action icons present');audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$tagsPage['body']),'Populated Tags render without warnings');
+    $tagsPage=$editor('audience.php?view=tags');audienceHttpExpect(str_contains($tagsPage['body'],'data-tag-edit=')&&str_contains($tagsPage['body'],'data-tooltip="Export as ZIP"')&&str_contains($tagsPage['body'],'data-tooltip="Send regular email"'),'Tag action icons present');audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$tagsPage['body']),'Populated Tags render without warnings');
     $editor($path,['csrf_token'=>$token,'action'=>'save_segment','name'=>'HTTP segment','rules'=>json_encode($tree)]);
     $sid=(int)$conn->query("SELECT id FROM marketing_segments WHERE audience_id=1 AND name='HTTP segment'")->fetch_assoc()['id'];
     $renamed=$editor($path,['csrf_token'=>$token,'action'=>'rename_segment','id'=>$sid,'version'=>1,'name'=>'Renamed segment']);audienceHttpExpect($renamed['status']===302,'Segment rename succeeds');

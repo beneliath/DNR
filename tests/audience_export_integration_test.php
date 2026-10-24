@@ -1,0 +1,35 @@
+<?php
+declare(strict_types=1);
+if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Audience export snapshot checks skipped (disposable database required).\n");
+$source=getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src';require_once $source.'/bootstrap.php';require_once $source.'/audience_store.php';
+$db=applicationDatabaseConnection();$checks=0;
+$expect=static function(bool $condition,string $label)use(&$checks):void{if(!$condition)throw new RuntimeException($label);++$checks;};
+$db->execute_query('INSERT INTO marketing_audiences(name,settings_json) VALUES (?,JSON_OBJECT())',['Export snapshot '.bin2hex(random_bytes(5))]);
+$audienceId=(int)$db->insert_id;$store=new AudienceStore($db,$audienceId,1,'Export fixture');
+$field=$store->saveField(['label'=>'Fund','merge_tag'=>'FUND','field_type'=>'text','is_public'=>'1'],0,0);
+$tag=$store->saveTag('Quoted "tag", example',0,0);
+$group=$store->saveGroup(['name'=>'Interests','display_type'=>'checkboxes','options'=>[['name'=>'News'],['name'=>'Events']]],0,0);
+$groups=$store->groups();$option=(int)$groups[0]['options'][0]['id'];
+$id=$store->savePerson(['email'=>'snapshot@example.test','first_name'=>'Original','email_status'=>'non-subscribed','custom'=>[$field=>'General'],'tag_ids'=>[$tag],'group_ids'=>[$option]]);
+$store->event($id,'contact_imported',['source_metadata'=>['LEID'=>'123456789','EUID'=>'abcde12345','MEMBER_RATING'=>'4','OPTIN_TIME'=>'2020-01-02 03:04:05','LAST_CHANGED'=>'2021-02-03 04:05:06','SOURCE'=>'Admin Add']]);
+$store->saveNote($id,'Original note',0,0);
+$jobId=$store->queueSelection('export','Frozen export',['c.audience_id=? AND c.id=?',[$audienceId,$id]]);
+$job=$store->job($jobId);
+$expect($job['params']['export_format']==='mailchimp'&&preg_match('/^[a-f0-9]{10}$/D',$job['params']['export_token'])===1,'Queue freezes the archive format and identifier');
+$person=$store->person($id);$store->savePerson(array_replace($person,['first_name'=>'Changed later','custom'=>[$field=>'Changed fund'],'tag_ids'=>[],'group_ids'=>[]]),$id,(int)$person['version']);
+$store->event($id,'contact_imported',['source_metadata'=>['LEID'=>'999999999','SOURCE'=>'Changed source']]);
+$store->saveNote($id,'Later note',0,0);
+$store->saveField(['label'=>'Renamed fund','merge_tag'=>'FUND','field_type'=>'text','is_public'=>'1'],$field,1);
+$store->saveTag('Renamed tag',$tag,1);
+$done=$store->processJob($jobId);$expect($done['state']==='complete'&&(int)$done['errors']===0,'Export completes from captured rows');
+$result=audienceJson($store->one('SELECT result_json FROM marketing_job_items WHERE job_id=?',[$jobId])['result_json']);
+$row=array_combine(audienceExportHeaders($job['params'],$result['status']),$result['row']);
+$expect($row['First Name']==='Original'&&$row['Fund']==='General'&&!isset($row['Renamed fund']),'Saved labels and person values do not change after queueing');
+$expect($row['Interests']==='News'&&$row['TAGS']==='"Quoted ""tag"", example"','Saved group membership and tag names do not change');
+$expect($row['LEID']==='123456789'&&$row['EUID']==='abcde12345'&&$row['MEMBER_RATING']==='4'&&$row['SOURCE']==='Admin Add','Import metadata survives MySQL JSON snapshotting');
+$expect($row['OPTIN_TIME']==='2020-01-02 03:04:05'&&$row['NOTES']==='Original note','Permission history and notes are frozen, excluding later edits');
+audienceWithExportArchive($job['params'],[$result],static function($path)use($expect):void{
+    $zip=new ZipArchive();$zip->open($path);$csv=$zip->getFromIndex(1);
+    $expect(str_contains($csv,'snapshot@example.test')&&!str_contains($csv,'Changed later')&&!str_contains($csv,'Later note'),'Download uses the completed snapshot');$zip->close();
+});
+echo "Audience export snapshots: $checks checks passed.\n";

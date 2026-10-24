@@ -133,7 +133,7 @@ def main():
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
             if sys.argv[1:] == ['audience']:
-                for suite in ('audience_stage1b_test.php', 'audience_http_integration_test.php', 'audience_tag_unlock_http_integration_test.php', 'audience_pagination_http_integration_test.php'):
+                for suite in ('audience_stage1b_test.php', 'audience_export_integration_test.php', 'audience_http_integration_test.php', 'audience_tag_unlock_http_integration_test.php', 'audience_pagination_http_integration_test.php'):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/'+suite],
