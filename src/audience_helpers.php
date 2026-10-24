@@ -4,6 +4,20 @@ require_once __DIR__.'/audience_pagination.php';
 
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
 
+/** One address per line; validate the complete list before queuing any changes. */
+function audienceUnsubscribeAddresses(string $input): array
+{
+    $addresses=[];
+    foreach(preg_split('/\R/u',$input)?:[]as$index=>$line){
+        $email=strtolower(trim($line));if($email==='')continue;
+        if(strlen($email)>254||!filter_var($email,FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid email address on line '.($index+1).'.');
+        $addresses[$email]=$email;
+        if(count($addresses)>5000)throw new InvalidArgumentException('Unsubscribe up to 5,000 email addresses at a time.');
+    }
+    if(!$addresses)throw new InvalidArgumentException('Enter at least one email address.');
+    return array_values($addresses);
+}
+
 function audienceText(array $input, string $key, int $max = 100): string
 {
     $value = $input[$key] ?? '';

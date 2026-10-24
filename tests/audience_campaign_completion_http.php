@@ -88,6 +88,8 @@ $c2bare=$editor('audience.php');audienceHttpExpect(!str_contains($c2bare['body']
 $c2export=$campaignStore->queueSelection('export','History completion test',$campaignStore->where(audienceListFilters([])));while($campaignStore->job($c2export)['state']!=='complete')$campaignStore->processJob($c2export);
 $c2delete=['csrf_token'=>$token,'action'=>'delete_export_history','export_ids'=>[$c2export]];
 audienceHttpExpect($editor('audience.php?view=jobs&kind=export',$c2delete)['status']===403,'Only administrator can delete export history');
+// This destructive history fixture explicitly unlocks its synthetic administrator.
+foreach(file($cookies[0],FILE_IGNORE_NEW_LINES)as$line){$parts=explode("\t",$line);if(count($parts)===7&&($parts[5]===session_name()||str_starts_with($parts[5],'MOED_'))){session_name($parts[5]);session_id($parts[6]);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();break;}}
 $c2delete['csrf_token']=$csrf;audienceHttpExpect($admin('audience.php?view=jobs&kind=export',$c2delete)['status']===302,'Admin can delete selected export history');
 audienceHttpExpect($editor('audience.php?api=job&id='.$c2export)['status']===404&&$editor('audience.php?download=csv&id='.$c2export)['status']===404,'Deleted export cannot be polled or downloaded');
 audienceHttpExpect($campaignStore->person($c2person)['email_status']===$c2beforeVip['email_status'],'History deletion preserves connection status');

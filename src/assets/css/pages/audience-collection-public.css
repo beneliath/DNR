@@ -42,6 +42,7 @@ input:not([type=checkbox]):not([type=radio]), textarea, select {
 }
 input[type=checkbox], input[type=radio] { width: 20px; height: 20px; flex-shrink: 0; margin: 2px 0 0; accent-color: var(--collection-accent); }
 .choice { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.6; font-weight: 400; margin: 24px 0 0; }
+.collection-preferences-note { margin-top: 32px; }
 button, .button { display: inline-block; font: inherit; font-weight: 600; min-height: 52px; padding: 13px 24px; border: 0; border-radius: 8px; background: var(--collection-accent); color: #fff; cursor: pointer; margin: 28px 0 4px; text-align: center; text-decoration: none; }
 form > button, form > fieldset > button { width: 100%; }
 button:hover,.button:hover{filter:brightness(.9);text-decoration:none}

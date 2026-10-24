@@ -66,4 +66,15 @@ $reject(fn()=>audienceCollectionDocument(array_replace($landing,['logo'=>'data:i
 $sizedLogo=audienceCollectionDocument(array_replace($logoDocument,['logo_width'=>360]),'landing',[],[],[]);
 $expect($sizedLogo['logo_width']===360&&str_contains(audienceCollectionHtml(['kind'=>'landing','document'=>$sizedLogo],[],[],'',''),'--collection-logo-width:360px;--collection-logo-height:none'),'Landing page logo width reaches public and preview rendering without a fixed height');
 foreach([0,1201,'invalid']as$invalidWidth)$reject(fn()=>audienceCollectionDocument(array_replace($logoDocument,['logo_width'=>$invalidWidth]),'landing',[],[],[]));
+$preferenceLogo=audienceCollectionDocument(array_replace(audienceCollectionDefaults('preferences'),['logo'=>$logo,'logo_width'=>320,'logo_resized'=>true]),'preferences',[],[],[]);
+$expect($preferenceLogo['logo_resized']&&str_contains(audienceCollectionHtml(['kind'=>'preferences','document'=>$preferenceLogo],[],[],'',''),'--collection-logo-width:320px;--collection-logo-height:none'),'Resized preference logos retain their width on public forms');
+$preferenceLogo['logo_resized']=false;
+$expect(!str_contains(audienceCollectionHtml(['kind'=>'preferences','document'=>$preferenceLogo],[],[],'',''),'--collection-logo-width:'),'Existing preference logos retain their original automatic sizing');
+$imageDocument=audienceCollectionDocument(array_replace($preferenceLogo,['sections'=>[['type'=>'image','url'=>$logo,'text'=>'Content image','width'=>180]]]),'preferences',[],[],[]);
+$imageHtml=audienceCollectionHtml(['kind'=>'preferences','document'=>$imageDocument],[],[],'','');
+$expect($imageDocument['sections'][0]['width']===180&&str_contains($imageHtml,'class="section-image" width="180"'),'Content image width persists through validation and public rendering');
+$expect(!str_contains($imageHtml,' style="')&&!str_contains($imageHtml,'collection-image-resize'),'Published images do not expose editor tools or inline styles');
+foreach([0,-1,1201,'invalid']as$invalidWidth){$invalid=$imageDocument;$invalid['sections'][0]['width']=$invalidWidth;$reject(fn()=>audienceCollectionDocument($invalid,'preferences',[],[],[]));}
+$imageDocument['sections'][0]['width']='';
+$expect(!isset(audienceCollectionDocument($imageDocument,'preferences',[],[],[])['sections'][0]['width']),'Automatic content image width remains supported');
 echo "Collection customization: $checks checks passed.\n";
