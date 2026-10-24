@@ -43,7 +43,10 @@ function aiCoachFormRuleReply(array $request): ?array
             foreach ($rule['patterns'] as $pattern) if (!preg_match('~'.$pattern.'~',$q)) continue 2;
             $source=aiCoachManualTopics()[$rule['source']]??null;
             if (!$source) continue;
-            return ['message'=>$rule['on_pages'][$request['page']]??$rule['message'],'question'=>$rule['question'],
+            $question = $rule['question'] !== '' && aiCoachDiagnosticClarificationUsed($request)
+                ? '' : aiCoachClarificationQuestion($request, $rule['question']);
+            if ($question === null) return null;
+            return ['message'=>$rule['on_pages'][$request['page']]??$rule['message'],'question'=>$question,
                 'sources'=>aiCoachSources([$source]),'engine'=>'verified-form-rule','mode'=>'guide'];
         }
     }
@@ -212,8 +215,11 @@ function aiCoachResolveSelection(array $decoded, array $request): ?array
     foreach (aiCoachProcedureCandidates($request) as $procedure) {
         if ($procedure['id']!==$id) continue;
         if (($decoded['confidence']??'')!=='high') {
+            // Low selection confidence alone does not mean the user's goal is missing.
+            // Keep a grounded explanation when the model needs no clarification.
+            if (trim($decoded['question']??'') === '') return null;
             return ['message'=>'I need to check which change you mean before giving you steps.',
-                'question'=>trim($decoded['question']??'') ?: 'What would you like to change or accomplish?',
+                'question'=>trim($decoded['question']),
                 'sources'=>[], 'mode'=>'conversation', 'engine'=>'intent-clarification'];
         }
         return aiCoachProcedureAnswer($procedure,$request);
