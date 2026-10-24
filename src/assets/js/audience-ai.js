@@ -275,9 +275,11 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     if(token===generation){clearPending();active='';setBusy(false);failure('The AI service did not finish in time. Please try again.',uuid);history();}
   }
   async function stop() {
-    const uuid=active;generation++;active='';clearPending();setBusy(false);
+    const uuid=active,token=++generation;active='';clearPending();setBusy(false);
+    if(chat&&uuid)failure('This request was stopped.',uuid,'','cancelled');
+    else announce('Request stopped. Your content is unchanged');
     if(uuid)try{await api({action:'cancel',request_id:uuid});}catch{ /* Worker deadline also prevents late publication. */ }
-    announce('Request stopped. Your content is unchanged');
+    if(uuid&&token===generation)history();
   }
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;

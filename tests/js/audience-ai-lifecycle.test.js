@@ -83,12 +83,32 @@ test('chat shows working animation immediately, then preserves follow-up turns a
   assert.notEqual(firstCard.children[0].id,secondCard.children[0].id);
 });
 
-test('stopping chat hides the animation and prevents a late answer from entering the conversation',async()=>{
-  let finish;const p=page((url,options)=>JSON.parse(options.body).action==='cancel'?{saved:true}:new Promise(resolve=>{finish=resolve;}),'analytics',{chat:true,window:reportWindow});
-  const submitting=p.submit();await p.find('[data-ai-stop]').listeners.click();
-  assert.equal(p.find('[data-ai-thinking]').hidden,true);
+test('stopping chat immediately shows a stopped card with Retry and ignores late answers',async()=>{
+  let finish,cancel;const p=page((url,options)=>new Promise(resolve=>{if(JSON.parse(options.body).action==='cancel')cancel=resolve;else finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const prompt='Summarize my campaigns';p.find('[data-ai-form]').elements.prompt.value=prompt;
+  const submitting=p.submit();const stopping=p.find('[data-ai-stop]').listeners.click();
+  const transcript=p.find('[data-ai-chat-transcript]');
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);assert.equal(p.find('[data-ai-generate]').disabled,false);
+  assert.equal(p.storage(),null);assert.equal(transcript.children.length,2);
+  assert.match(textOf(transcript),/Request stopped.*This request was stopped.*Retry/);
+  assert.ok(!textOf(transcript).includes('could not be completed'));
+  await tick();cancel({saved:true});await stopping;
   finish({state:'complete',response:analyticsReply});await submitting;
-  assert.equal(p.find('[data-ai-chat-transcript]').children.length,1);
+  assert.equal(transcript.children.length,2);assert.ok(!textOf(transcript).includes('Observed results'));
+  const form=p.find('[data-ai-form]');let resubmitted=false;form.requestSubmit=()=>{resubmitted=true;};
+  transcript.children[1].children.find(child=>child.tagName==='button').listeners.click();
+  assert.equal(resubmitted,true);assert.equal(form.elements.prompt.value,prompt);
+  assert.ok(p.requests.filter(request=>request.url.endsWith('?action=history')).length>=2);
+});
+
+test('finishing cancellation after New chat does not restore the stopped conversation',async()=>{
+  let finish,cancel;const p=page((url,options)=>new Promise(resolve=>{if(JSON.parse(options.body).action==='cancel')cancel=resolve;else finish=resolve;}),'analytics',{chat:true,window:reportWindow});
+  const submitting=p.submit();const stopping=p.find('[data-ai-stop]').listeners.click();
+  await p.find('[data-ai-new]').listeners.click();
+  cancel({saved:true});await stopping;finish({state:'complete',response:analyticsReply});await submitting;
+  assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);
+  assert.equal(p.find('[data-ai-welcome]').hidden,false);
+  assert.equal(p.find('[data-ai-status]').textContent,'Ready for a new request');
 });
 
 test('an audience answer retains follow-up context when its data scope differs from the report pane',async()=>{
