@@ -26,7 +26,12 @@ if(($_GET['api']??null)==='workspace_search'){
     else try{$result=audienceWorkspaceSearch($store,$_GET,$canManage,$canDelete);}catch(InvalidArgumentException $e){http_response_code(400);$result=['error'=>$e->getMessage()];}
     echo json_encode($result,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);exit;
 }
-if(!$canManage&&in_array($view,['import','jobs','job'],true)){http_response_code(403);exit('Import and export require an editor or administrator.');}
+// Apply transfer permissions before dispatching to any MessageMonkey workspace.
+$transferRequest=isset($_GET['download'])||isset($_GET['export'])
+    ||($view==='collection-report'&&isset($_GET['chart']))||($_GET['api']??'')==='job'
+    ||in_array($view,['import','jobs','job'],true)
+    ||in_array($_POST['action']??'', ['import_upload','configure_import','start_import','undo_import','queue_export','process_job','resume_job','cancel_job'],true);
+if(!$canExport&&$transferRequest){http_response_code(403);exit('Import and export require an editor or administrator.');}
 $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
@@ -146,11 +151,29 @@ if(($_GET['api']??'')==='job'){
 if(isset($_GET['download'])){
     if(!$canExport){http_response_code(403);exit('Export requires an editor or administrator.');}
     try{$job=$store->job($id);}catch(InvalidArgumentException){http_response_code(404);exit('Operation not found.');}$errors=($_GET['download']==='errors');if(!$errors&&($job['job_type']!=='export'||$job['state']!=='complete')){http_response_code(409);exit('Wait for the export to finish.');}
+    if(!$errors&&($job['params']['export_format']??'')==='mailchimp'){
+        releaseApplicationSessionLock();
+        $records=(static function()use($store,$id):Generator{
+            $last=0;
+            do{
+                $items=$store->all("SELECT id,result_json FROM marketing_job_items WHERE job_id=? AND id>? AND state='exported' ORDER BY id LIMIT 500",[$id,$last]);
+                foreach($items as$item){$last=(int)$item['id'];yield audienceJson($item['result_json']);}
+            }while(count($items)===500);
+        })();
+        $previousAbort=ignore_user_abort(true);
+        try{
+            audienceWithExportArchive($job['params'],$records,static function(string $path,string $name):void{
+                header('Content-Type: application/zip');header('Content-Disposition: attachment; filename="'.$name.'"');
+                header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');header('Content-Length: '.filesize($path));readfile($path);
+            });
+        }catch(Throwable $e){applicationLog('error','Audience ZIP export failed',['job_id'=>$id,'error'=>$e->getMessage()]);if(!headers_sent()){http_response_code(503);echo 'Unable to prepare this export. Please try again.';}}finally{ignore_user_abort((bool)$previousAbort);}
+        exit;
+    }
     releaseApplicationSessionLock();header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-'.($errors?'import-errors':'people').'-'.$id.'.csv"');header('Cache-Control: no-store');$output=fopen('php://output','w');$last=0;$written=false;
     do{$items=$store->all('SELECT * FROM marketing_job_items WHERE job_id=? AND id>? AND state=? ORDER BY id LIMIT 500',[$id,$last,$errors?'error':'exported']);foreach($items as$item){$row=$errors?['Row'=>$item['source_row'],'Error'=>$item['error_message'],'Original values'=>json_encode(audienceJson($item['payload_json']),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]:audienceJson($item['result_json']);if(!$written){fputcsv($output,array_map('audienceCsvCell',array_keys($row)),',','"','');$written=true;}fputcsv($output,array_map(fn($v)=>audienceCsvCell((string)$v),array_values($row)),',','"','');$last=(int)$item['id'];}}while(count($items)===500);if(!$written)fputcsv($output,[$errors?'No errors':'No exported connections'],',','"','');fclose($output);exit;
 }
 if(($_GET['export']??'')==='person'){
-    if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$fields,'tag_names'=>array_column($tags,'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
+    if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$store->fields(),'tag_names'=>array_column($store->tags(),'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
 }
 $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDER BY name,id',[$audienceId]);

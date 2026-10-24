@@ -30,6 +30,21 @@ expectApplicationVersion(
     applicationVersion([$temporaryVersion]) === 'dev',
     'invalid release metadata must not be exposed as an application version.'
 );
+chmod($temporaryVersion, 0000);
+clearstatcache(true, $temporaryVersion);
+if (!is_readable($temporaryVersion)) {
+    set_error_handler(static function (int $severity, string $message): bool {
+        if (error_reporting() & $severity) throw new RuntimeException($message);
+        return true;
+    });
+    try {
+        expectApplicationVersion(applicationVersion([$temporaryVersion]) === 'dev', 'unreadable metadata must not emit output before session headers.');
+        expectApplicationVersion(applicationVersion([$temporaryVersion, dirname(__DIR__) . '/VERSION']) === trim((string) file_get_contents(dirname(__DIR__) . '/VERSION')), 'an unreadable candidate must allow the next version source.');
+    } finally {
+        restore_error_handler();
+    }
+}
+chmod($temporaryVersion, 0600);
 unlink($temporaryVersion);
 
 echo "Application version tests passed.\n";
