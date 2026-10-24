@@ -141,3 +141,75 @@ This is bounded feature qualification, not a claim that every production role, t
 The next release can include both fixes in one normal shared patch. Post-release checks should verify plain-text Preview and idle readiness on the deployed version, preserving account release parity and restricting any outbound test email to freshly resolved testSegment membership.
 
 ![Completed double-opt-in result with archived test form](review-assets/message-monkey-2026-10-23/double-optin-complete.png)
+
+## Remaining-gap pass on deployed 2.7.3 — October 23, 2026
+
+Tested against s1 release **2.7.3 / bedfa7a61743b213a43291cd6ec211ce81651440**. QA branch: `codex/message-monkey-gap-qa`, in its own checkout. No application fixes or deployment were made in this pass; no confirmed product defect was found.
+
+- **Real recipient preferences and unsubscribe:** used the actual private links retained for accepted QA campaign 3 / testSegment contact beneliath@gmail.com. Saved America/Chicago, checked persistence, and restored the original empty/Not set time zone. The real unsubscribe confirmation changed the recipient to Unsubscribed. The preference page continued to show Unsubscribed and offered a separate confirmation request, rather than subscribing during profile save. User completed the new confirmation email; contact 10885 is again Subscribed and unarchived, with original name, empty time zone, no tags and no groups. No other subscription changed. The delivered message's web view also rendered its personalized text, organization identity and subscription links.
+- **Live content lifecycle and Admin Unlock:** the normal gate blocked moving synthetic asset 7 to Trash until the user completed password/MFA. Trash, restore and active-library rediscovery passed. After another move to Trash, the final permanent-deletion dialog identified exactly one selected QA file; the user explicitly approved deletion at that step. The 78-byte teal QA image was permanently deleted, and a read-only database audit confirms no library row 7 remains. Business images were untouched. Administrator actions were relocked after testing.
+- **Live persisted delay/pause/resume:** flow 3 `QA 2.7.3 — timing and pause persistence` has only a two-minute delay and Exit flow, with manual entry. Enrolled only testSegment contact 10886. Run 2 was armed at 21:43:34 UTC with due time 21:45:34, then paused. At 21:45:45 UTC it was still active at its original delay node/due time. After normal resume, both steps completed once at 21:46:04 UTC and the run exited. The report showed Started 1, In progress 0, Exited 1, Needs attention 0. Flow 3 was then archived. This demonstrates elapsed-delay persistence, not a multi-day soak or production-worker restart test.
+- **Popup rules:** added repeatable JavaScript tests for allowed origins, path exclusions, desktop/mobile rules, exact delay, one popup only, focus and sandbox, close/dismissal persistence, frequency boundary, exit intent, scroll threshold, and blocked browser storage. Ten popup/embed checks passed. These execute the deployed-version source in an isolated DOM fixture; no external website installation is claimed.
+- **Scheduling boundaries:** nine new focused checks passed for Chicago/New York fall-back ambiguity, Chicago spring-forward gaps, valid times around the transition, half-hour offsets and UTC date rollover. The existing dispatch validation (29) and SES signature/API semantics (57) checks also passed. No campaign was dispatched or system clock changed.
+- **Role/deletion browser coverage:** the existing synthetic lifecycle browser suite passed 56 checks covering admin/editor/reviewer visibility, responsive and light/dark layouts, archive/restore/deletion, confirmation reset and unlock expiry. This supplements the live admin test, not a live editor/reviewer sign-in. The active primary editor is `omelnick`; the primary reviewer `dnewberry` is inactive. Neither user's credentials or access was changed.
+
+The isolated checkout initially lacked Composer dependencies; focused PHP tests could not start there. Reusing the workspace's installed dependencies allowed the successful checks above. This was a local test-environment problem, not a deployed application failure.
+
+### Outbound scope and pending live evidence
+
+Only two new service-mail records were created: confirmation 31 to beneliath@gmail.com and signup alert 32 to doug@shalominmessiah.com. Both were accepted and matched a fresh testSegment resolution. No campaign recipient rows were created after 16, and pending campaign/service queues are empty. TestSegment remains four subscribed contacts. The final scoped audit is `/tmp/mm-gap-final-audit.json`.
+
+Human/external access is still required for an actual HTTPS website popup installation, editor/reviewer/demo sign-ins, and Gmail/Proton/Outlook/Apple Mail/mobile rendering observations. Requests for the installation target, existing editor sign-in and rendering observations are pending. Do not enable an inactive real reviewer or impersonate a user to fill the role matrix. Multi-day soak/DST passage and actual SES outages/throttles/bounces/complaints are not claimed as live tests. SES simulator addresses are outside the approved segment; do not add them to testSegment or broaden the allowed audience to manufacture those failures. Existing isolated provider-failure coverage remains applicable.
+
+No confirmed fixes are waiting for deployment. Any subsequent findings should be batched on this QA branch and qualified together before requesting a release.
+
+## Live editor pass and Preview layout correction — October 23, 2026
+
+This follow-up supersedes the pending editor sign-in and no-pending-fixes statements immediately above. The user signed into the existing active `beneliath` editor account, then restored the normal `dgilmore` administrator session after testing. No user was created, reactivated or granted additional access by this test. s1 remains **2.7.3 / bedfa7a**; the one new correction below is qualified locally on `codex/message-monkey-gap-qa` and **is not deployed**.
+
+### Live editor results
+
+- **Campaign authoring and review:** created campaign 6 `QA 2.7.3 — editor role and scheduling`, a plain-text draft targeting the previously narrowed one-member test segment. The normal recipient control showed one eligible recipient, doug@shalominmessiah.com. Subject, preview text and body persisted after save/reload; Preview and an editor-authored comment persisted. The campaign was archived after testing and was never scheduled or dispatched.
+- **Scheduling validation:** a saved draft may contain Chicago's repeated November 1, 2026 01:30 local hour, but Send review correctly rejected that ambiguous time and disabled Schedule. Changing it to 02:30 produced the correct 08:30 UTC review and enabled Schedule. No Schedule action was submitted; the final database audit found zero delivery records for campaign 6.
+- **Private Inbox drafts:** the editor initially saw zero drafts, rather than the administrator's two. Opening administrator draft 1 directly returned “This draft is unavailable for your account.” Saved editor draft 5 to testSegment contact 10886 remains private, in Draft state, with no service-mail reference. It was not sent.
+- **Form lifecycle:** restored archived QA popup form 9, changed its delay from seven to eight seconds and verified save/reload, then restored seven seconds. Normal publication and archive both passed. The final audit confirms the form is paused/archived with the original seven-second delay; no public signup was submitted.
+- **Administrator restrictions:** the editor had no Admin Unlock control or permanent-delete controls in the inspected tag/segment, archived form and Content Trash interfaces. Brand Kit Save was disabled. Direct navigation to Email delivery was denied with “Email delivery requires an administrator.” These are live interface checks; earlier isolated authorization tests provide the direct mutation/role matrix. No administrator gate or credential was bypassed.
+
+### Confirmed issue, fix and bounded retest
+
+**Long plain-text Preview lines overlapped the comments pane.** In the live campaign 6 Preview at 1,518px viewport width, the `<pre>` pane was 788px wide with 980px of overflowing content and `white-space: pre`. The sentence continued beneath the comments panel. Before-fix evidence: `review-assets/message-monkey-2026-10-23/gap-editor-preview-overflow.png`.
+
+The shared review CSS now uses `white-space: pre-wrap` and `overflow-wrap: anywhere`, retaining explicit line breaks and literal escaped text while containing paragraphs and long URLs within the preview pane. Rebuilt only the affected Audience CSS bundle and its manifest hashes. The change does not alter the email body or delivery behavior.
+
+- New real-template/real-bundle browser fixture passed **20 assertions** at 390, 768, 1,518 and 1,920px: text and long URLs stay inside the pane, no horizontal page overflow, visible glyphs do not extend beneath Comments, newlines/literal markup are preserved, and Comments stack below the preview on mobile. The unchanged CSS first failed this fixture's overflow assertion; the corrected CSS passed. All browser requests are intercepted locally and external requests are blocked; no production records or transport are used.
+- Existing lifecycle browser suite passed **56 assertions** after the shared CSS rebuild, covering responsive light/dark layouts, admin/editor/reviewer controls, archive/restore/delete confirmation and unlock expiry. PHP fixture lint, JavaScript syntax and `git diff --check` passed.
+- Initial local fixture setup needed the workspace's installed Composer dependencies and its `audienceInputs` rendering helper. The sandbox blocked headless Chromium startup until the isolated browser run was authorized outside it. A whole-text Range also included hanging trailing spaces; the final geometry assertion measures visible glyphs. These were fixture/environment corrections, not additional product defects.
+
+Repeatable check, with Playwright installed and its browser available:
+
+```sh
+node tests/browser/audience-campaign-review.test.cjs
+```
+
+`DNR_PLAYWRIGHT_MODULE` and `PLAYWRIGHT_BROWSERS_PATH` may select the existing local runtime; optional `DNR_REVIEW_OUTPUT` saves desktop/mobile screenshots. After-fix evidence: `review-assets/message-monkey-2026-10-23/gap-preview-wrapped.png` and `gap-preview-wrapped-mobile.png` (isolated fixture, not a deployed screenshot).
+
+### Outbound audit and remaining limits
+
+Fresh testSegment resolution returned four subscribed, unarchived contacts. No email was requested or created during this editor pass: service-mail maximum ID stayed **33**, its preflight value, and campaign-recipient maximum ID stayed **16**. Existing service mail 33 is an accepted audience alert whose recipient is in testSegment. Pending service mail, campaign recipients, Inbox email alerts and active flow runs are all zero. Campaign 6 has no delivery records, draft 5 has no service-mail ID, and form 9 is archived. Read-only audit: `/tmp/mm-gap-editor-final-audit.json`.
+
+**One confirmed fix is now waiting for the combined release:** plain-text Preview wrapping. All available editor checks are complete. Actual external HTTPS popup installation still needs an authorized website target; existing reviewer/demo sign-ins and human email-client rendering observations remain unverified live. Multi-day soak, a real DST transition and deliberate SES outages/throttles/bounces/complaints remain isolated/simulated coverage, not live claims. No inactive reviewer was enabled and the outbound allowlist was not broadened.
+
+![Plain-text Preview wrapping after the fix, in the isolated browser fixture](review-assets/message-monkey-2026-10-23/gap-preview-wrapped.png)
+
+
+## Authorized 2.7.4 patch preparation — October 23, 2026
+
+The user requested the Preview wrapping patch, processing both open GitHub PRs, and a live s1 retest with all outbound email restricted to testSegment. The isolated release checkout combines Preview commit `6491c6f`, PR #274 (Qwen clarification cleanup at `93ac12c`), and PR #275 (Analytics AI cancellation/Retry at `57973ff`, plus its CI dispatch correction at `2a70c24`). Neither PR has an open review thread or submitted review requiring changes; protected checks remain required for both merges and for the final combined release.
+
+Combined-source focused qualification passed the clarification, terminal-response and interface-reference PHP contracts, all 32 Audience AI lifecycle tests, all 20 Preview wrapping browser assertions, and AI Coach procedure/form/application-map source fingerprints. The changes combine without source conflicts. No schema, migration, dependency, model, timeout or production networking setting changes; the Comprehensive Guide is unchanged from deployed `bedfa7a`, so no version-only PDF rebuild is needed.
+
+The read-only s1 preflight found 23 Docker networks and 62 containers including stopped containers, with no duplicate addresses, overlapping subnets or conflict with the host's 192.168.1.0/24 route. Effective primary/Test Account static addresses remain outside dynamic pools; Traefik and Cloudflared retain their protected assignments. This is a configuration/assignment audit, not a reboot test.
+
+Fresh testSegment resolution still returns four subscribed contacts. Campaign/service queues, pending Inbox alerts and active flow runs are empty. The preflight email high-water marks are service mail 33 and campaign recipients 16. No test email is needed for Preview wrapping. Preserve the normal protected merge, final-main CI, immutable-image qualification, five-minute save window, verified backups, account parity and readiness gates. Post-deployment live results belong in the final deployment/retest receipt; this preparation note does not claim that deployment has happened.
+
+PR #274 passed protected checks and merged as `00c535b`. PR #275 initially failed its new authenticated HTTP fixture under the full integration dispatcher: it ran as root instead of Apache’s `www-data`, so its synthetic PHP session could not be shared. The focused coach runner already used the correct identity. Added the fixture to the existing `www-data` dispatch group; fresh PR checks are required before merge. This changes test execution only and does not weaken session permissions or authentication.
