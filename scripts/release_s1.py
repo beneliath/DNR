@@ -96,6 +96,30 @@ def deployed_commit():
     return commit
 
 
+def quick_preflight():
+    run(['git', 'diff', '--check'])
+    run(['gh', 'auth', 'status'], capture=True)
+    run(['php', 'tests/minified_assets_test.php'], capture=True)
+    remote_heads = [git('ls-remote', '--exit-code', remote, 'refs/heads/main').split()[0]
+                    for remote in EXPECTED_REMOTES]
+    if len(set(remote_heads)) != 1:
+        raise ValueError('Reconcile GitHub and GitLab main before release preparation')
+    user = os.environ.get('DNR_S1_USER', 'dgilmore')
+    host = os.environ.get('DNR_S1_HOST', '192.168.1.150')
+    directory = os.environ.get('DNR_S1_PROJECT_DIR', '/home/dgilmore/moed')
+    password = os.environ.get('DNR_S1_BACKUP_PASSWORD_FILE', directory + '/secrets/deployment_backup_password')
+    if not re.fullmatch(r'[A-Za-z0-9._-]+', user) or not re.fullmatch(r'[A-Za-z0-9.:-]+', host) \
+            or any(not re.fullmatch(r'/[A-Za-z0-9._/-]+', path) for path in (directory, password)):
+        raise ValueError('Invalid s1 preflight connection or path')
+    result = subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+                             f'{user}@{host}', 'python3', '-', directory, password],
+                            input=(ROOT / 'scripts/deployment_preflight.py').read_text(),
+                            text=True, capture_output=True, timeout=90)
+    if result.returncode:
+        raise ValueError(result.stderr.strip() or 's1 deployment preflight failed')
+    milestone('Quick deployment preflight passed: ' + result.stdout.strip())
+
+
 def guide_changed_since(commit):
     run(['git', 'cat-file', '-e', commit + '^{commit}'])
     result = subprocess.run(
@@ -301,8 +325,10 @@ def main(argv=None):
     notice_started = False
     completed = False
     receipt = {}
-    stage = 'starting deployment notice'
+    stage = 'quick deployment preflight'
     try:
+        quick_preflight()
+        stage = 'starting deployment notice'
         notice_id = run(['scripts/deployment_notice.sh', 'start'], capture=True)
         notice_started = True
         milestone('Preparation notice active')

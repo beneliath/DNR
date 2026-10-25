@@ -21,6 +21,18 @@ exec "$@"'''
 def root_command(container, *args):
     return ['docker', 'exec', '-i', container, 'sh', '-c', ROOT_CLIENT, 'database-backup', *args]
 
+def wait_for_restore_database(container):
+    # The upstream entrypoint starts a temporary socket server with --skip-networking.
+    # SELECT 1 can succeed there just before it shuts down, breaking the restore pipe.
+    for attempt in range(90):
+        result = subprocess.run(root_command(container, 'mysql', '-uroot', '-NBr', 'dnr',
+                                            '-e', 'SELECT @@GLOBAL.skip_networking'),
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if result.returncode == 0 and result.stdout.strip() == '0':
+            return
+        time.sleep(2)
+    raise ValueError('Backup verification database did not finish initialization')
+
 def query(container, sql):
     return subprocess.check_output(root_command(container, 'mysql', '-uroot', '-NBr', '-e', sql), text=True).strip()
 
@@ -174,11 +186,7 @@ def _create_verified_backup(db_container, database_image, app_image, previous_co
             '--mount', 'type=bind,src=' + str(root_password) + ',dst=/run/secrets/root-password,readonly',
             '-e', 'MYSQL_ROOT_PASSWORD_FILE=/run/secrets/root-password', '-e', 'MYSQL_DATABASE=dnr',
             database_image, '--max-allowed-packet=256M', '--skip-log-bin'], check=True, stdout=subprocess.DEVNULL)
-        for attempt in range(90):
-            if subprocess.run(root_command(restore_container, 'mysql', '-uroot', 'dnr', '-e', 'SELECT 1'),
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0: break
-            time.sleep(2)
-        else: raise ValueError('Backup verification database did not become ready')
+        wait_for_restore_database(restore_container)
         with encrypted.open('rb') as ciphertext:
             decryptor = subprocess.Popen(crypto_command(app_image, password_file, 'decrypt'), stdin=ciphertext, stdout=subprocess.PIPE)
             restore = subprocess.Popen(root_command(restore_container, 'mysql', '-uroot', 'dnr'),

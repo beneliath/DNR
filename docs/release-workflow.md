@@ -108,6 +108,21 @@ Use `major` or `minor` for the corresponding SemVer increments and add
 summary becomes the commit and PR title. `--plan` validates the local branch and
 remote configuration without changing files, publishing, or contacting s1.
 
+Before publishing a preparation notice or allocating a version, the runner checks
+GitHub authentication, local asset consistency, and s1 over SSH. The read-only host
+preflight checks the clean main checkout, Docker access, the private backup password,
+at least 10 GiB free and 10,000 free inodes on both source and Docker filesystems,
+active Account health and commit parity, and Docker/LAN/VPN address conflicts,
+including reservations belonging to stopped containers. A failed check stops before
+release preparation with corrective instructions. Free-space floors detect obvious
+shortages; the later verified backup remains mandatory. No automatic pruning,
+credential replacement, container restart, or account-data change occurs.
+
+Backup verification waits for MySQL's final server. The temporary initialization
+server accepts socket queries but runs with `skip_networking=ON`; it is insufficient
+for starting a restore. The bounded wait handles this startup transition before
+streaming the encrypted archive, avoiding an early restore connection shutdown.
+
 For a first Account rollout requiring an isolated rehearsal with the exact
 qualified images, add `--qualify-only`. The runner completes protected merge,
 final-main qualification and mirror publication, retains `manifest.json` and
