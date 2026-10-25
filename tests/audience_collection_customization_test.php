@@ -77,4 +77,23 @@ $expect(!str_contains($imageHtml,' style="')&&!str_contains($imageHtml,'collecti
 foreach([0,-1,1201,'invalid']as$invalidWidth){$invalid=$imageDocument;$invalid['sections'][0]['width']=$invalidWidth;$reject(fn()=>audienceCollectionDocument($invalid,'preferences',[],[],[]));}
 $imageDocument['sections'][0]['width']='';
 $expect(!isset(audienceCollectionDocument($imageDocument,'preferences',[],[],[])['sections'][0]['width']),'Automatic content image width remains supported');
+$legacyFooter=audienceCollectionDefaults('hosted');unset($legacyFooter['show_footer']);
+$expect(audienceCollectionDocument($legacyFooter,'hosted',[],[],[])['show_footer']===true,'Existing forms keep their footer credit by default');
+foreach(['hosted','popup','landing','survey','preferences']as$kind){
+    $footer=audienceCollectionDefaults($kind);$footer['messages']['powered']="Our community <script>alert(1)</script> & friends\nStay connected";
+    $footer=audienceCollectionDocument($footer,$kind,[],[],[]);
+    $publicFooter=audienceCollectionHtml(['kind'=>$kind,'document'=>$footer],[],[],'','');
+    $expect(str_contains($publicFooter,'Our community &lt;script&gt;alert(1)&lt;/script&gt; &amp; friends'."\nStay connected")&&!str_contains($publicFooter,'<script>'),'Custom footer text is escaped and keeps line breaks');
+    $previewFooter=audienceCollectionHtml(['kind'=>$kind,'document'=>$footer],[],[],'','',[],'','',null,true);
+    $expect(str_contains($previewFooter,'class="collection-footer-credit"')&&str_contains($previewFooter,'Preview — submissions are disabled.'),'Preview displays the footer credit and a separate disabled-submission notice');
+    $footer['show_footer']=false;$footer['messages']['powered']='';
+    $footer=audienceCollectionDocument($footer,$kind,[],[],[]);
+    $expect(!str_contains(audienceCollectionHtml(['kind'=>$kind,'document'=>$footer],[],[],'',''),'<small class="collection-footer-credit">'),'Hidden credit is absent from published form markup');
+    $footer['show_footer']=true;
+    $reject(fn()=>audienceCollectionDocument($footer,$kind,[],[],[]));
+}
+foreach(['false',0,null,[]]as$invalidFooter)$reject(fn()=>audienceCollectionDocument(array_replace($legacyFooter,['show_footer'=>$invalidFooter]),'hosted',[],[],[]));
+$editorFields=[['id'=>1,'label'=>'Full Name'],['id'=>2,'label'=>'Date of Entry'],['id'=>3,'label'=>'Fund'],['id'=>4,'label'=>'Phone Number'],['id'=>5,'label'=>'  FULL NAME  ']];
+$expect(array_column(audienceCollectionEditorFields($editorFields),'id')===[4],'Form choices omit record-only fields and retain other audience fields');
+$expect(count($editorFields)===5,'Filtering form choices leaves the audience field records intact');
 echo "Collection customization: $checks checks passed.\n";

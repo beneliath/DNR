@@ -25,15 +25,15 @@ try{for(const dark of [false,true])for(const width of [390,1600]){
    await input.fill('Community');await page.locator('.mm-search-submit').click();await page.waitForURL(/(?:q|plan_search)=Community/);checks++;
   }
   if(view==='templates'){
-   const group=page.getByRole('group',{name:'Template type',exact:true}).first();assert.equal(await group.isVisible(),true);await group.getByRole('button',{name:'Code your own',exact:true}).click();assert.equal(await page.locator('[data-template-type]').inputValue(),'code');assert.equal(await page.locator('[data-template-search]').evaluate(el=>!!el.closest('.campaign-search').querySelector('svg')),true);checks+=3;
-   await page.locator('[data-template-all-filters]').click();await page.locator('#template-filters-dialog').waitFor({state:'visible'});const modalType=page.locator('#template-filters-dialog').getByRole('group',{name:'Template type',exact:true});await page.waitForFunction(()=>document.querySelector('#template-filters-dialog .mm-filter-choice[data-value=code]').getAttribute('aria-pressed')==='true');await modalType.getByRole('button',{name:'Drag-and-drop',exact:true}).click();await page.locator('[data-template-apply-filters]').click();assert.equal(await page.locator('[data-template-type]').inputValue(),'visual');checks+=2;
+   assert.equal(await page.getByRole('group',{name:'Template type',exact:true}).count(),0);assert.equal(await page.locator('[data-template-type]').count(),0);assert.equal(await page.locator('[data-template-search]').evaluate(el=>!!el.closest('.campaign-search').querySelector('svg')),true);checks+=3;
+   await page.locator('[data-template-all-filters]').click();await page.locator('#template-filters-dialog').waitFor({state:'visible'});assert.equal(await page.locator('[data-template-type-filter]').count(),0);await page.locator('[data-template-apply-filters]').click();assert.equal(await page.locator('#template-filters-dialog').isVisible(),false);checks+=2;
   }
   if(view==='campaigns'){
    const group=page.locator('.mm-campaign-filter-group[aria-label=Status]');assert.equal(await group.isVisible(),true);await group.getByRole('button',{name:'Draft',exact:true}).click();await page.waitForURL(/status=draft/);checks+=2;
   }
   if(view==='agenda'){
    const positive=page.locator('[data-touchpoint-status=complete]').first();assert.equal(await positive.getAttribute('data-mm-status-tone'),'positive');const draft=page.locator('[data-touchpoint-status=draft]').first();assert.equal(await draft.getAttribute('data-mm-status-tone'),'neutral');checks+=2;
-   await page.locator('[data-touchpoint-edit]').first().click();const dialog=page.locator('#campaign-touchpoint-editor');await dialog.waitFor({state:'visible'});const close=dialog.locator('header [data-close-dialog]');assert.equal(await close.getAttribute('data-tooltip'),'Close');assert.equal(await close.locator('svg').count(),1);assert.equal((await close.boundingBox()).width,44);assert.equal(await dialog.getByRole('button',{name:'Cancel',exact:true}).isVisible(),true);checks+=4;
+   await page.locator('[data-touchpoint-edit]').first().click();const dialog=page.locator('#campaign-touchpoint-editor');await dialog.waitFor({state:'visible'});const close=dialog.locator('header [data-close-dialog]');assert.equal(await close.getAttribute('data-tooltip'),null);assert.equal(await close.locator('svg').count(),1);assert.equal((await close.boundingBox()).width,44);assert.equal(await dialog.getByRole('button',{name:'Cancel',exact:true}).isVisible(),true);checks+=4;
    await close.click();assert.equal(await dialog.isVisible(),false);checks++;
   }
  }

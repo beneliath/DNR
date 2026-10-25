@@ -95,10 +95,10 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     const saveOrder=()=>{try{localStorage.setItem(orderKey,JSON.stringify({order:customOrder,sort:sortControl.value}));return true;}catch(_){return false;}};
     const filter = () => {
       const q = $('[data-template-search]').value.toLowerCase(); const folder = $('[data-template-folder]')?.value || '';
-      const cards = $$('.template-card', gallery); const type=$('[data-template-type]')?.value||''; const sort = sortControl.value;
+      const cards = $$('.template-card', gallery); const sort = sortControl.value;
       const ranks=new Map(customOrder.map((key,index)=>[key,index]));
       cards.sort((a,b) => sort==='custom' ? (ranks.get(a.dataset.templateKey)??Infinity)-(ranks.get(b.dataset.templateKey)??Infinity)||0 : sort === 'name' ? a.dataset.templateName.localeCompare(b.dataset.templateName) : (sort === 'oldest' ? 1 : -1) * a.dataset.templateDate.localeCompare(b.dataset.templateDate));
-      matches=cards.filter(c=>c.dataset.templateName.includes(q)&&(category==='All'||category===c.dataset.templateCategoryValue)&&(!folder||(folder==='unfiled'?!c.dataset.templateFolderValue:folder===c.dataset.templateFolderValue))&&(!type||type===c.dataset.templateMode));
+      matches=cards.filter(c=>c.dataset.templateName.includes(q)&&(category==='All'||category===c.dataset.templateCategoryValue)&&(!folder||(folder==='unfiled'?!c.dataset.templateFolderValue:folder===c.dataset.templateFolderValue)));
       const maxPage=Math.max(1,Math.ceil(matches.length/gallerySize));galleryPage=Math.min(maxPage,Math.max(1,galleryPage));const visible=new Set(matches.slice((galleryPage-1)*gallerySize,galleryPage*gallerySize));cards.forEach(c=>{c.hidden=!visible.has(c);gallery.append(c);});
       $('[data-template-empty]').hidden=matches.length>0;
       updateTemplateSelection();
@@ -106,7 +106,6 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
 
     };
     const resetFilter=()=>{galleryPage=1;filter();};$('[data-template-search]').oninput=resetFilter;sortControl.onchange=()=>{resetFilter();saveOrder();};
-    if($('[data-template-type]'))$('[data-template-type]').onchange=resetFilter;
     if ($('[data-template-folder]')) $('[data-template-folder]').onchange = () => {
       const url=new URL(location.href),folder=$('[data-template-folder]').value;
       if(folder)url.searchParams.set('folder',folder);else url.searchParams.delete('folder');
@@ -114,8 +113,8 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     };
     $$('[data-template-category]').forEach(b => b.onclick = () => { category = b.dataset.templateCategory;galleryPage=1; $$('[data-template-category]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); filter(); });
     $$('[data-template-layout]').forEach(b => b.onclick = () => { gallery.classList.toggle('template-list', b.dataset.templateLayout === 'list'); $$('[data-template-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
-    $('[data-template-all-filters]')?.addEventListener('click',()=>{$('[data-template-category-filter]').value=category;$('[data-template-type-filter]').value=$('[data-template-type]').value;$('#template-filters-dialog').showModal();});
-    $('[data-template-apply-filters]')?.addEventListener('click',()=>{category=$('[data-template-category-filter]').value;$('[data-template-type]').value=$('[data-template-type-filter]').value;$$('[data-template-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.templateCategory===category)));$('#template-filters-dialog').close();resetFilter();});
+    $('[data-template-all-filters]')?.addEventListener('click',()=>{$('[data-template-category-filter]').value=category;$('#template-filters-dialog').showModal();});
+    $('[data-template-apply-filters]')?.addEventListener('click',()=>{category=$('[data-template-category-filter]').value;$$('[data-template-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.templateCategory===category)));$('#template-filters-dialog').close();resetFilter();});
     filter();
     const clearDrop=()=>initialCards.forEach(card=>card.classList.remove('template-dragging'));
     const moveCard=(card,target,after)=>{

@@ -98,7 +98,10 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php if($embedded): ?>
     <?php if($embedOptions['show_archive']&&($r['archive_url']??'')!==''): ?><p class="collection-archive"><a href="<?= $h($r['archive_url']) ?>" target="_blank" rel="noopener">View previous emails</a></p><?php endif; ?>
     <?php if($embedOptions['badge']): ?><div class="collection-referral collection-referral-<?= $h($embedOptions['badge_style']) ?>"><span aria-hidden="true">MM</span><strong>Made with<br>MessageMonkey</strong></div><?php endif; ?>
-    <?php else: ?><small><?= $preview?'Preview — submissions are disabled.':$messages['powered'] ?></small><?php endif; ?>
+    <?php else: ?>
+    <?php if($d['show_footer']): ?><small class="collection-footer-credit"><?= $h($messages['powered']) ?></small><?php endif; ?>
+    <?php if($preview): ?><small>Preview — submissions are disabled.</small><?php endif; ?>
+    <?php endif; ?>
     <?php endif; ?>
     </main>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>

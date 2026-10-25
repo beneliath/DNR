@@ -2,8 +2,8 @@
 // Real templates and bundles; all network requests and records are synthetic.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
-const root=path.resolve(__dirname,'../..'),fixture='tests/browser/audience-collection-images-fixture.php';
-const php=(args=[],input)=>execFileSync('php',[fixture,...args],{cwd:root,encoding:'utf8',input});
+const root=path.resolve(__dirname,'../..'),fixture='tests/browser/audience-collection-images-fixture.php',fixtureKind=process.env.DNR_COLLECTION_FIXTURE_KIND||'preferences';
+const php=(args=[],input)=>execFileSync('php',[fixture,args[0]||'admin',fixtureKind],{cwd:root,encoding:'utf8',input});
 const images=JSON.parse(php(['images'])),html=php();
 if(process.env.DNR_REVIEW_OUTPUT)fs.mkdirSync(process.env.DNR_REVIEW_OUTPUT,{recursive:true});
 const fields=body=>Object.fromEntries([...body.matchAll(/name="([^"]+)"\r\n\r\n([\s\S]*?)\r\n--/g)].map(m=>[m[1],m[2]]));
@@ -36,6 +36,16 @@ try{for(const dark of [false,true])for(const width of [390,1600]){
  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await saves.last().evaluate(el=>getComputedStyle(el).animationName),'none');checks++;
  await page.emulateMedia({reducedMotion:'no-preference'});await heading.fill(originalHeading);assert.equal(await page.locator('.collection-save-unsaved').count(),0);checks++;
  const formName=page.locator('#collection-editor [name="name"]'),originalName=await formName.inputValue();await formName.fill('Renamed preferences');assert.equal(await page.locator('.collection-save-unsaved').count(),2);await formName.fill(originalName);assert.equal(await page.locator('.collection-save-unsaved').count(),0);checks+=2;
+ assert.equal(await page.locator('[data-add-field="custom:1"],[data-add-field="custom:2"],[data-add-field="custom:3"],[data-field="custom:1"],[data-field="custom:2"],[data-field="custom:3"]').count(),0);assert.equal(await page.locator('[data-field="custom:4"]').count(),1);checks+=2;
+ await page.locator('[data-collection-footer-settings] summary').click();
+ const footerVisible=page.locator('[data-doc="show_footer"]'),footerText=page.locator('[data-doc-message="powered"]'),originalCredit=await footerText.inputValue();
+ await footerVisible.uncheck();await frame.locator('.collection-footer-credit').waitFor({state:'detached'});assert.equal(await page.locator('.collection-save-unsaved').count(),2);checks++;
+ await page.locator('[data-collection-undo]').click();await frame.locator('.collection-footer-credit').waitFor();assert.equal(await footerVisible.isChecked(),true);assert.equal(await page.locator('.collection-save-unsaved').count(),0);checks+=2;
+ await footerText.fill('Our community <b>credit</b>\nStay connected');await page.waitForFunction(()=>document.querySelector('[data-collection-preview]').contentDocument?.querySelector('.collection-footer-credit')?.textContent==='Our community <b>credit</b>\nStay connected');assert.equal(await frame.locator('.collection-footer-credit b').count(),0);assert.equal(await page.locator('.collection-save-unsaved').count(),2);checks+=2;
+ await page.locator('[data-collection-undo]').click();assert.equal(await footerText.inputValue(),originalCredit);assert.equal(await page.locator('.collection-save-unsaved').count(),0);checks+=2;
+ await footerVisible.uncheck();await footerText.fill('');assert.equal(await footerText.evaluate(el=>el.required),false);checks++;
+ await footerVisible.check();assert.equal(await footerText.evaluate(el=>el.validity.valueMissing),true);checks++;
+ await footerText.fill(originalCredit);assert.equal(await page.locator('.collection-save-unsaved').count(),0);checks++;
  await page.locator('[data-collection-rail="elements"]').click();
 
  const dragResize=async(label,delta)=>{
