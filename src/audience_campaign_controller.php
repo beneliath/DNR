@@ -28,7 +28,12 @@ if($isPost){
         }
         if($action==='campaign_preview'){
             header('Content-Type: application/json');header('Cache-Control: no-store');
-            try{$row=$store->campaign($id);$candidate=$store->campaignAdvancedSection($row,'to',$_POST);[$where,$params]=$store->campaignTarget($candidate);echo json_encode(['count'=>(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n']],JSON_THROW_ON_ERROR);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;
+            try{
+                $row=$store->campaign($id);$candidate=$store->campaignAdvancedSection($row,'to',$_POST);[$where,$params]=$store->campaignTarget($candidate);
+                $count=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
+                $people=$store->all("SELECT c.id,c.email,c.first_name,c.last_name FROM marketing_contacts c WHERE $where ORDER BY c.email,c.id LIMIT 100",$params);
+                echo json_encode(['count'=>$count,'people'=>$people],JSON_THROW_ON_ERROR);
+            }catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;
         }
         if(str_starts_with($action,'delivery_')){
             if(!$canConfigureDelivery){http_response_code(403);exit('Email delivery setup requires an unrestricted administrator.');}

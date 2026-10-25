@@ -1044,21 +1044,55 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('[data-campaign-cancel-section]').forEach(button => button.addEventListener('click', () => { button.form.reset(); button.closest('details').open = false; }));
     // Campaign checklist, recipient pickers and planning tools.
     $$('[data-recipient-picker]').forEach(picker => {
-        const choices = $$('[data-recipient-choice]', picker), summary = $('[data-recipient-summary]', picker), original = picker.dataset.emptyLabel;
+        const choices = $$('[data-recipient-choice]', picker), summary = $('[data-recipient-summary-label]', picker), original = picker.dataset.emptyLabel;
+        const updateSummary = () => {
+            const selected = choices.filter(choice => $('input', choice).checked).map(choice => $('span', choice).textContent.trim());
+            summary.textContent = selected.length ? selected.join(', ') : original;
+        };
         $('[data-recipient-search]', picker).addEventListener('input', event => choices.forEach(choice => { choice.hidden = !choice.textContent.toLowerCase().includes(event.target.value.toLowerCase()); }));
         $$('input[type=checkbox]', picker).forEach(input => input.addEventListener('change', () => {
             if ($$('input[type=checkbox]:checked', picker).length > 10) { input.checked = false; input.setCustomValidity('Select up to 10 tags or segments.'); input.reportValidity(); }
             input.setCustomValidity('');
-            const selected = $$('input[type=checkbox]:checked', picker);
-            summary.firstChild.textContent = selected.length ? `${selected.length} selected` : original;
+            updateSummary();
         }));
+        picker.addEventListener('focusout', () => requestAnimationFrame(() => { if (!picker.contains(document.activeElement)) picker.open = false; }));
+        document.addEventListener('click', event => { if (!picker.contains(event.target)) picker.open = false; });
+        picker.addEventListener('keydown', event => { if (event.key === 'Escape' && picker.open) { event.preventDefault(); picker.open = false; $('[data-recipient-summary]', picker).focus(); } });
+        picker.closest('form').addEventListener('reset', () => requestAnimationFrame(() => { updateSummary(); picker.open = false; }));
+        updateSummary();
     });
+    $$('[name=personalize_to]').forEach(input => {
+        const fields = $('[data-campaign-personalization]', input.form);
+        const updatePersonalization = () => { fields.hidden = !input.checked; $('select', fields).disabled = !input.checked; };
+        input.addEventListener('change', updatePersonalization);
+        input.form.addEventListener('reset', () => requestAnimationFrame(updatePersonalization));
+        updatePersonalization();
+    });
+    $('[data-campaign-recipient-preview]')?.form.addEventListener('reset', event => { $('[data-campaign-recipient-count]', event.currentTarget).textContent = ''; });
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
     $('[data-campaign-recipient-preview]')?.addEventListener('click', async event => {
         const button = event.currentTarget, form = button.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
         // The hidden field named action shadows HTMLFormElement.action. Preserve the campaign query.
         const endpoint = form.getAttribute('action') || location.href;
-        button.disabled = true; try { const result = await request(endpoint, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+        const dialog = $('#campaign-recipient-preview'), status = $('[data-campaign-recipient-preview-status]', dialog), results = $('[data-campaign-recipient-results]', dialog);
+        results.replaceChildren(); status.textContent = 'Loading recipients…'; output.textContent = '';
+        show(dialog.id); button.disabled = true;
+        try {
+            const result = await request(endpoint, {method:'POST', body});
+            output.textContent = status.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`;
+            if (result.people.length) {
+                const table = el('table'), head = el('tr'), rows = el('tbody');
+                head.append(el('th', {scope:'col'}, 'Name'), el('th', {scope:'col'}, 'Email address'));
+                const heading = el('thead'); heading.append(head); table.append(heading, rows);
+                result.people.forEach(person => {
+                    const row = el('tr'), name = [person.first_name, person.last_name].filter(Boolean).join(' ').trim();
+                    row.append(el('td', {}, name || '—'), el('td', {}, person.email)); rows.append(row);
+                });
+                results.append(table);
+                if (result.count > result.people.length) results.append(el('p', {class:'audience-help'}, `Showing the first ${result.people.length} recipients, sorted by email address.`));
+            } else results.append(el('p', {}, 'No subscribed, active connections match these selections.'));
+        } catch (error) { output.textContent = status.textContent = error.message; }
+        finally { button.disabled = false; }
     });
     $('[data-campaign-date-preset]')?.addEventListener('change', event => { const form = event.target.form; $$('input[type=date]', form).forEach(input => { input.readOnly = !['','custom'].includes(event.target.value); if (event.target.value === '') input.value = ''; }); });
     const sendForm = $('[name=send_mode]')?.form;
