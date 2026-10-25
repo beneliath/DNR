@@ -279,3 +279,13 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
 .designer-style-border-label{gap:8px;flex-wrap:wrap;align-self:center}
 
 .template-card-title{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;min-width:0;font-size:calc(18px * var(--audience-font-scale,1));line-height:1.4}.template-card-title h3{margin:0;min-width:0;font-size:inherit;line-height:inherit}.template-select{display:flex;align-items:center;flex-shrink:0;width:18px;height:1lh;margin:0;font:inherit}.template-select input[type=checkbox]{width:18px;height:18px;min-height:18px;margin:0}
+
+/* Account Branding Kit logos insert as ordinary editable image blocks. */
+.designer-brand-logos{margin:24px 0}
+.designer-brand-logos h3{margin:0 0 12px;font-size:calc(16px * var(--audience-font-scale,1))}
+.designer-brand-logo-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.designer-brand-logo-choices>button{display:grid;gap:10px;min-width:0;padding:12px;font-size:calc(13px * var(--audience-font-scale,1))}
+.designer-brand-logo-preview{display:flex;align-items:center;justify-content:center;min-width:0;height:80px;padding:8px;border-radius:4px;background:#fff}
+.designer-brand-logo-preview img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+
+.template-gallery:not(.template-list) .template-card-actions{justify-content:center}

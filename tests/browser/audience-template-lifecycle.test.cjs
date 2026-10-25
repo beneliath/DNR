@@ -17,7 +17,7 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
  const browser=await chromium.launch({headless:true,...(process.env.DNR_BROWSER_EXECUTABLE?{executablePath:process.env.DNR_BROWSER_EXECUTABLE}:{})});
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(5000);
-  let unlocked=false;const posts=[],errors=[];
+  let unlocked=false;const posts=[],uploads=[],errors=[];
   const status=()=>({unlocked,expires_at:unlocked?Date.now()/1000+300:0,server_now:Date.now()/1000,csrf_token:unlocked?'fixture-rotated-token':'fixture-locked-token'});
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('http://localhost:43201/**',route=>{
@@ -30,7 +30,8 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
    if(url.pathname==='/admin_lock.php'){unlocked=false;return route.fulfill({contentType:'application/json',body:JSON.stringify({...status(),locked:true})});}
    if(url.pathname==='/audience.php'){
     if(request.method()==='POST'){
-     posts.push(Object.fromEntries(new URLSearchParams(request.postData())));
+     if((request.headers()['content-type']||'').startsWith('multipart/form-data'))uploads.push(request.postData());
+     else posts.push(Object.fromEntries(new URLSearchParams(request.postData())));
      return route.fulfill({contentType:'text/html',body:'<!doctype html><meta charset="utf-8"><p>Fixture request received</p>'});
     }
     let html=fixture(url.searchParams.get('role')||'admin',url.searchParams.get('tab')||'saved',unlocked);
@@ -51,7 +52,25 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
    const lifecycle=page.locator('.template-lifecycle-action');
    assert.equal(await lifecycle.count(),role==='reviewer'?0:(role==='admin'&&tab==='archived'?2:1));
    for(const button of await lifecycle.all())assert.equal(await button.locator('svg').count(),1,'Archive/restore/delete controls have icons');
+   assert.equal(await page.locator('[data-tooltip="Export"]').count(),role==='reviewer'?0:1,'Editors and administrators can export active and archived cards');
+   assert.equal(await page.locator('[data-open-dialog="template-package-import"]').count(),role==='reviewer'?0:1,'Only editors and administrators can import');
   }
+  await page.goto('http://localhost:43201/audience.php?role=editor&tab=saved');
+  const rows=await page.locator('.template-card-actions').first().evaluate(node=>{
+   const box=node.getBoundingClientRect(),rows=new Map();
+   for(const child of node.children){const rect=child.getBoundingClientRect();if(!rect.width||!rect.height)continue;const key=Math.round(rect.top),row=rows.get(key)||[];row.push({left:rect.left,right:rect.right});rows.set(key,row);}
+   return [...rows.values()].map(row=>({offset:(row[0].left+row.at(-1).right)/2-(box.left+box.right)/2,gaps:row.slice(1).map((rect,index)=>rect.left-row[index].right)}));
+  });
+  assert.ok(rows.length>1,'Template actions wrap into multiple rows');
+  for(const row of rows){assert.ok(Math.abs(row.offset)<2,'Each row of card actions is centered');for(const gap of row.gaps)assert.ok(Math.abs(gap-16)<1,'Centered actions preserve 16px spacing');}
+  await page.locator('[data-open-dialog="template-package-import"]').click();
+  await page.locator('#template-package-import').waitFor({state:'visible'});
+  await page.locator('[name=template_package]').setInputFiles({name:'exported.mmtemplate',mimeType:'application/octet-stream',buffer:Buffer.from('{"format":"fixture-export"}')});
+  assert.ok(await page.locator('#template-package-import').innerText().then(text=>text.includes('exported.mmtemplate')),'File drop shows the selected export filename');
+  await page.locator('#template-package-import button[type=submit]').click();
+  await page.waitForURL(url=>url.pathname==='/audience.php'&&uploads.length===1);
+  assert.ok(uploads[0].includes('name="template_package"; filename="exported.mmtemplate"')&&uploads[0].includes('fixture-export'),'Enhanced file input submits the selected file through multipart upload');
+  assert.ok(uploads[0].includes('template_package_import'),'Import form submits its native import action');
   await page.goto('http://localhost:43201/audience.php?role=admin&tab=archived&stack=1');
   const deleteButton=page.locator('[data-template-operation="delete"]');
   assert.equal(await deleteButton.evaluate(node=>getComputedStyle(node).outlineColor),'rgb(199, 91, 0)','Locked deletion uses MOED orange highlighting');
@@ -85,6 +104,6 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
   await page.locator('[data-unlock-submit]').click();await page.waitForURL(url=>url.pathname==='/audience.php'&&posts.length===1);
   assert.equal(posts[0].operation,'delete');assert.equal(posts[0].id,'7');assert.equal(posts[0].version,'3');assert.equal(posts[0].csrf_token,'fixture-rotated-token');
   assert.deepEqual(errors,[],'Template library and shared unlock scripts have no browser errors');
-  console.log('Template lifecycle browser checks passed: role visibility, icons, orange protection, unlock cancellation/expiry, rotated CSRF, and stacked desktop/mobile banners.');
+  console.log('Template lifecycle browser checks passed: transfer visibility/upload, centered action rows, role visibility, unlock cancellation/expiry, rotated CSRF, and stacked desktop/mobile banners.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error.stack);process.exitCode=1;});

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/audience_ai.php';
+require_once __DIR__.'/audience_template_transfer.php';
 function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,string $view,int $id,string $message,string $error,bool $canManage,bool $canDelete,string $displayName,int $actor):void
 {
     $audienceId=$store->audienceId;$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
@@ -13,6 +14,12 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     $variantRaw=$_GET['variant']??'0';if(!is_string($variantRaw)||!preg_match('/^[0-7]$/D',$variantRaw)||($kind==='template'&&$variantRaw!=='0')){http_response_code(404);exit('This content variation is unavailable.');}$variant=(int)$variantRaw;
     $jsonRequest=($_SERVER['HTTP_X_AUDIENCE_DESIGN']??'')==='1'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'design_'));
     $respond=static function(array $data,int $status=200):never{http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode($data,JSON_THROW_ON_ERROR);exit;};
+    if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['template_export'])){
+        if(!$canManage){http_response_code(403);exit('Template export requires an editor or administrator.');}
+        try{$template=$store->emailTemplate(\Dnr\Http\RequestInput::positiveInt($_GET,'template_export')??0,false,true);$file=audienceTemplatePackageExport($template['name'],$template['design'],currentAccountKey(),applicationVersion());}
+        catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
+        header('Content-Type: application/vnd.moed.message-monkey-template+json');header('Content-Disposition: attachment; filename="message-monkey-template-'.$template['id'].'.mmtemplate"');header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');echo $file;exit;
+    }
     if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['download'])){
         if(!$canManage){http_response_code(403);exit('Template export requires an editor or administrator.');}
         try{$template=$store->emailTemplate(\Dnr\Http\RequestInput::positiveInt($_GET,'download')??0);$document=audienceDesign($template['design']);}
@@ -82,6 +89,9 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 for($column=1;$column<=$columns;$column++)$code.='<td valign="top" width="'.(100/$columns).'%" mc:edit="body_'.$column.'"><p>Add your content here.</p></td>';
                 $code.='</tr><tr><td colspan="'.$columns.'" mc:edit="footer"><p>Stay connected with our community.</p></td></tr></table></body></html>';
                 $document=$starters['blank']['design'];$document['mode']='code';$document['code']=$code;$tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:'Legacy template',$document);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
+            }elseif($action==='template_package_import'){
+                $import=audienceTemplatePackageUpload($_FILES['template_package']??[],currentAccountKey());
+                $tid=$store->createEmailTemplate($import['name'],$import['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_import'){
                 $import=isset($_FILES['template_file'])&&($_FILES['template_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE?audienceDesignImportFile($_FILES['template_file']):['code'=>audienceText($_POST,'code',1000000)];
                 if(trim($import['code'])==='')throw new InvalidArgumentException('Paste HTML or choose an HTML/ZIP file.');
@@ -129,7 +139,8 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         $sesSettings=$store->sesAvailable()?$store->sesSettings():[];
         $testSenders=$sesSettings&&!audienceSesReasons($sesSettings,$sesSettings['from_email']??'',requireFreshCheck:false)?[['email'=>$sesSettings['from_email']]]:[];
         $brandFont=audienceBrandFont($brand);
-        $designerConfig=['brandFont'=>$brandFont,'nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
+        $brandLogos=[];foreach(['logo'=>'Primary logo','secondary_logo'=>'Secondary logo']as$key=>$label)if(!empty($brand[$key]))$brandLogos[$key]=['label'=>$label,'image'=>audienceDesignImage($brand[$key],2000000,true)];
+        $designerConfig=['brandFont'=>$brandFont,'brandLogos'=>(object)$brandLogos,'brandUrl'=>$url(['view'=>'brand']),'nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
         $aiInline=true;$aiText='';$aiSubject='';$aiImages=[];$aiConfig=['mode'=>'content','endpoint'=>'audience_ai_api.php','window'=>[],'enabled'=>aiCoachEnabled(),'key'=>hash('sha256',$themeKey.':'.($_SESSION['role']??'').':'.aiCoachStorageKey())];
         releaseApplicationSessionLock();
         ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php
