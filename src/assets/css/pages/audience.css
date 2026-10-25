@@ -49,8 +49,8 @@ html.dark-mode {
   --audience-hover: #222c39;
   --audience-action-hover-bg: #134e4a;
   --audience-action-hover-color: #5eead4;
-  --audience-tooltip-bg: #000;
-  --audience-tooltip-text: #fff;
+  --audience-tooltip-bg: #f3f6fb;
+  --audience-tooltip-text: #172033;
   --audience-primary: #54c9c2;
   --audience-primary-hover: #7adbd5;
   --audience-primary-text: #102323;
@@ -889,7 +889,7 @@ html body .content-filters .content-filter-apply-reminder{background:var(--audie
 .content-bulk label{margin:0}.content-bulk>label:has(select){display:flex;gap:12px;align-items:center;margin-left:auto}
 .content-library{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:24px;margin:24px 0}
 .content-library article{position:relative;min-width:0;border:1px solid var(--audience-border);border-radius:6px;overflow:hidden;background:var(--audience-surface)}
-.content-library article>.audience-check{position:absolute;z-index:1;top:8px;left:12px;margin:0;padding:4px;border-radius:4px;background:var(--audience-surface)}
+.content-library article>.audience-check{position:absolute;z-index:1;top:8px;left:12px;margin:0;padding:4px}
 .content-thumbnail{height:170px;display:flex;align-items:center;justify-content:center;background:var(--audience-hover);padding:24px;color:var(--audience-muted)}
 .content-thumbnail img{max-width:100%;max-height:100%;object-fit:contain}.content-thumbnail>span{font-size:calc(64px * var(--audience-font-scale, 1))}
 .content-library article>div{padding:16px;overflow-wrap:anywhere}.content-library small{display:block;font-size:calc(13px * var(--audience-font-scale, 1));color:var(--audience-muted);margin-top:8px}
