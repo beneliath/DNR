@@ -25,6 +25,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
         const style=frame.contentWindow.getComputedStyle(doc.body);
         const height=Math.ceil(Math.max(doc.body.scrollHeight,doc.body.getBoundingClientRect().height)+(parseFloat(style.marginTop)||0)+(parseFloat(style.marginBottom)||0))+2;
         const box=frame.parentElement,card=frame.closest('.template-card'),list=frame.closest('.template-gallery')?.classList.contains('template-list');
+        if(!box.clientWidth)return;
         const scale=Math.min(1,box.clientWidth/600,list?100/height:1);
         frame.style.height=height+'px';frame.style.transform=`scale(${scale})`;
         if(list){box.style.minHeight='';box.style.height='';frame.style.clipPath='';card.style.height='';card.style.maxHeight='';return;}
@@ -598,8 +599,10 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   });
   $('#design-save-template').onclick=run(async()=>{closeMenus();dirty=true;if(await save(false))$('#design-template-dialog').showModal();});
   $('#design-template-form').onsubmit=run(async e=>{e.preventDefault();const submit=$('button.primary',e.target);submit.disabled=true;try{if(dirty&&!(await save(false)))return;await request('design_template',{name:e.target.elements.name.value,folder:e.target.elements.folder.value});$('#design-template-dialog').close();status.textContent='Template saved';}finally{submit.disabled=false;}});
-  Object.values(config.starters).forEach(entry=>$('#design-starters').append(button(entry.name,()=>confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(entry.design);selected=null;selectedRow=null;panel='add';});$('#design-change-dialog').close();}))));
-  config.saved.forEach(entry=>$('#design-saved').append(button(entry.name,()=>confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(entry.design);selected=null;selectedRow=null;panel='add';});$('#design-change-dialog').close();}))));if(!config.saved.length)$('#design-saved').append(el('p','No saved templates yet.'));
+  $$('[data-design-template-source]').forEach(select=>select.onclick=()=>{
+    const entry=config[select.dataset.designTemplateSource][select.dataset.designTemplateKey];
+    confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(entry.design);selected=null;selectedRow=null;panel='add';});$('#design-change-dialog').close();});
+  });
   $('#design-change').onclick=()=>{closeMenus();$('#design-change-dialog').showModal();};
   let recovered;try{recovered=JSON.parse(localStorage.getItem(recoveryKey)||'null');if(recovered&&Date.now()-recovered.time>7*86400000){localStorage.removeItem(recoveryKey);recovered=null;}}catch{}
   if(recovered?.design&&JSON.stringify(recovered.design)!==JSON.stringify(design)){$('#design-recovery').hidden=false;$('#design-recover').onclick=()=>confirmDesignAction('Restore recovered draft?',recovered.version===version?'Restore edits that were not saved before this tab closed.':'This recovered draft is based on an older saved version. Review it before saving over the latest design.',()=>{mutate(()=>{design=structuredClone(recovered.design);selected=null;selectedRow=null;});$('#design-recovery').hidden=true;});}

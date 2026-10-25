@@ -14,6 +14,11 @@ $secondary='data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3
 $brandLogos=['logo'=>['label'=>'Primary logo','image'=>$source],'secondary_logo'=>['label'=>'Secondary logo','image'=>audienceDesignImage($secondary,2000000,true)]];
 if(($argv[1]??'')==='no-logos')$brandLogos=[];elseif(($argv[1]??'')==='secondary-only')unset($brandLogos['logo']);
 $designerConfig=['brandLogos'=>(object)$brandLogos,'kind'=>$kind,'design'=>$design,'version'=>1,'nonce'=>contentSecurityPolicyNonce(),'endpoint'=>'audience.php?view=designer','exit'=>'audience.php?view=templates','starters'=>[],'saved'=>[],'mergeTags'=>[],'dynamicFields'=>[],'recoveryKey'=>'synthetic-image-editing','canSend'=>false,'senders'=>[]];
+if(($argv[1]??'')==='template-switcher'){
+    $audience=['name'=>'Fixture organization','settings_json'=>'{}'];
+    $designerConfig['starters']=audienceDesignStarters();
+    $designerConfig['saved']=[['name'=>'Saved image design','design'=>$design],['name'=>'Saved code <design>','design'=>audienceDesign(['schema'=>1,'mode'=>'code','rows'=>[],'code'=>'<!doctype html><html><head></head><body><h1>Saved code template</h1><p>Reusable saved content</p></body></html>'])]];
+}
 echo '<!doctype html><html>';
 renderPageHead('Image editing fixture',['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);
 require __DIR__.'/../../src/templates/audience/designer.php';echo '</html>';
