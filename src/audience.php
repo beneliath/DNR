@@ -27,10 +27,10 @@ if(($_GET['api']??null)==='workspace_search'){
     echo json_encode($result,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);exit;
 }
 // Apply transfer permissions before dispatching to any MessageMonkey workspace.
-$transferRequest=isset($_GET['download'])||isset($_GET['export'])
+$transferRequest=isset($_GET['download'])||isset($_GET['export'])||isset($_GET['template_export'])
     ||($view==='collection-report'&&isset($_GET['chart']))||($_GET['api']??'')==='job'
     ||in_array($view,['import','jobs','job'],true)
-    ||in_array($_POST['action']??'', ['import_upload','configure_import','start_import','undo_import','queue_export','process_job','resume_job','cancel_job'],true);
+    ||in_array($_POST['action']??'', ['import_upload','configure_import','start_import','undo_import','queue_export','process_job','resume_job','cancel_job','template_package_import'],true);
 if(!$canExport&&$transferRequest){http_response_code(403);exit('Import and export require an editor or administrator.');}
 $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';

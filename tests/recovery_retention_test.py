@@ -10,7 +10,8 @@ from recovery_retention import retained_names, prune_recorded_replicas
 from run_nas_recovery import age_seconds
 class RecoveryRetentionTests(unittest.TestCase):
     def test_daily_retention_and_copy_floor_are_per_account(self):
-        now=datetime.datetime.now(datetime.timezone.utc)
+        # Keep each pair on one calendar day, including when CI runs near midnight.
+        now=datetime.datetime(2026,10,24,12,tzinfo=datetime.timezone.utc)
         history=[dict(account_key=key,remote_directory=f'{key}-{day}-{hour}',
             snapshot_started_at=(now-datetime.timedelta(days=day,hours=hour)).isoformat())
             for key in ('primary','test-account') for day in (8,9,40) for hour in (0,1)]

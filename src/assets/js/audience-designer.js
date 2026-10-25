@@ -6,6 +6,7 @@ import { renderDesignStylePanel } from './audience-designer-styles.mjs';
 import { designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
 import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-model.mjs';
 import { templatePreviewBoundary } from './audience-template-preview.mjs';
+import { imageCropLayout, imageCropZoom } from './audience-image-crop.mjs';
 import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-drop.mjs';
 (() => {
   'use strict';
@@ -215,7 +216,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   $$('[data-import-tab]').forEach(button=>button.onclick=()=>{const type=button.dataset.importTab;$$('[data-import-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));$('[data-import-code]').hidden=type!=='paste';$('[data-import-file]').hidden=type==='paste';const input=$('[data-import-file] input');input.value='';input.accept=type==='zip'?'.zip':'.html,.htm';input.dataset.fileMaxBytes=type==='zip'?'5000000':'1000000';setFileDropStatus(input);const hint=input.closest('[data-file-drop]')?.querySelector(':scope>span');if(hint)hint.textContent=type==='zip'?'ZIP · up to 5 MB':'HTML · up to 1 MB';$('[data-import-code] textarea').value='';$('[data-import-help]').textContent=type==='zip'?'Include one HTML file and local images. Maximum 5 MB, 100 files.':type==='html'?'Choose an HTML file up to 1 MB.':'Paste your HTML. Add named mc:edit regions to edit content visually.';});
   const configNode=$('#designer-config');if(!configNode)return;
   const config=JSON.parse(configNode.textContent), canvas=$('#email-canvas'), tools=$('#designer-tools'), status=$('#design-status');
-  let design=structuredClone(config.design),version=config.version,selected=null,selectedRow=null,panel='add',addTab='content',sectionTab='manage',blockTab='content',device='desktop',styleArea='',styleDraft=null,dirty=false,timer,savePromise=null,drag=null,confirmAction=null,nameAction=null,libraryType='image',libraryPage=1,librarySize=25,libraryChoose=null,richRange=null,disposeRichText=null,cropImage=null,cropTarget=null,codeSequence=0;
+  let design=structuredClone(config.design),version=config.version,selected=null,selectedRow=null,panel='add',addTab='content',sectionTab='manage',blockTab='content',device='desktop',styleArea='',styleDraft=null,dirty=false,timer,savePromise=null,drag=null,confirmAction=null,nameAction=null,libraryType='image',libraryPage=1,librarySize=25,libraryChoose=null,richRange=null,disposeRichText=null,cropImage=null,cropTarget=null,cropOriginal='',cropSource='',codeSequence=0;
   const undo=[],redo=[];const uid=prefix=>prefix+'-'+crypto.randomUUID();
   const error=message=>{$('#design-error').textContent=message;$('#design-error').hidden=!message;$$('.designer-dialog-error').forEach(n=>n.remove());const dialog=$$('dialog[open]').at(-1);if(message&&dialog){const notice=el('p',message,'designer-dialog-error');notice.setAttribute('role','alert');dialog.prepend(notice);}};
   const run=fn=>async(...args)=>{try{return await fn(...args);}catch(e){error(e.message);}};
@@ -272,7 +273,21 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     mutate(()=>{block.text=event.detail.text;block.html='';});event.preventDefault();
   });
 
-  function addBlock(type,target){if(design.mode==='code'){error('Use Edit code for this custom-coded design. Choose a visual template to use drag-and-drop blocks.');return;}mutate(()=>{if(!design.rows.length)design.rows.push(freshRow());const p=target||selected||[design.rows.length-1,0,design.rows.at(-1).columns[0].length];const col=design.rows[p[0]].columns[p[1]],index=target?p[2]:selected?p[2]+1:col.length;col.splice(index,0,defaultBlock(type));selected=[p[0],p[1],index];selectedRow=null;panel='block';blockTab='content';});}
+  function addBlock(type,target,initial={}){if(design.mode==='code'){error('Use Edit code for this custom-coded design. Choose a visual template to use drag-and-drop blocks.');return;}mutate(()=>{if(!design.rows.length)design.rows.push(freshRow());const p=target||selected||[design.rows.length-1,0,design.rows.at(-1).columns[0].length];const col=design.rows[p[0]].columns[p[1]],index=target?p[2]:selected?p[2]+1:col.length;col.splice(index,0,Object.assign(defaultBlock(type),initial));selected=[p[0],p[1],index];selectedRow=null;panel='block';blockTab='content';});}
+  function renderBrandLogos(){
+    const section=el('section',undefined,'designer-brand-logos');section.setAttribute('aria-label','Branding Kit logos');section.append(el('h3','Branding Kit logos'));
+    const logos=Object.entries(config.brandLogos||{});
+    if(!logos.length){
+      const help=el('p','Add your primary or secondary logo in the Branding Kit.','designer-panel-help'),link=el('a','Open Branding Kit');link.href=config.brandUrl||'audience.php?view=brand';link.target='_blank';link.rel='noopener noreferrer';section.append(help,link);return section;
+    }
+    const choices=el('div',undefined,'designer-brand-logo-choices');
+    for(const [key,logo]of logos){
+      const initial={image:logo.image,alt:logo.label,align:'center'},tile=button('',()=>addBlock('image',undefined,initial));tile.dataset.brandLogo=key;tile.setAttribute('aria-label','Add '+logo.label.toLowerCase());
+      const preview=el('span',undefined,'designer-brand-logo-preview'),image=el('img');image.src=logo.image;image.alt='';image.draggable=false;preview.append(image);tile.append(preview,el('span',logo.label));tile.draggable=true;
+      tile.ondragstart=event=>{drag={type:'image',initial};event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('text/plain','image');};tile.ondragend=finishDrag;choices.append(tile);
+    }
+    section.append(choices);return section;
+  }
   const field=(label,value,onChange,type='text',options)=>{
     const wrap=el('label',label,'designer-field'), input=el(options?'select':type==='textarea'?'textarea':'input');
     if(type==='textarea'||['Link URL','URL','Alt text','Section name','Anchor name'].includes(label))wrap.classList.add('designer-field-wide');
@@ -294,8 +309,8 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   }
   function addImageTools(parent,item){
     const upload=el('label','Upload image','designer-field'), input=el('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/gif';
-    input.dataset.fileMaxBytes='1000000';input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>1000000)throw new Error('Choose an image up to 1 MB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;});});upload.append(input);parent.append(upload);enhanceAudienceFileInput(input,{help:'PNG, JPEG, WebP or GIF · up to 1 MB'});
-    const actions=el('div',undefined,'designer-block-actions');actions.append(button('Content studio',()=>openLibrary('image',value=>mutate(()=>{item.image=value.image;item.alt=value.alt||item.alt;item.url=value.url||item.url;}))));
+    input.dataset.fileMaxBytes='1000000';input.onchange=run(async()=>{const file=input.files[0];if(!file)return;if(file.size>1000000)throw new Error('Choose an image up to 1 MB.');const image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Unable to read this image.'));reader.readAsDataURL(file);});mutate(()=>{item.image=image;delete item.originalImage;});});upload.append(input);parent.append(upload);enhanceAudienceFileInput(input,{help:'PNG, JPEG, WebP or GIF · up to 1 MB'});
+    const actions=el('div',undefined,'designer-block-actions');actions.append(button('Content studio',()=>openLibrary('image',value=>mutate(()=>{item.image=value.image;delete item.originalImage;item.alt=value.alt||item.alt;item.url=value.url||item.url;}))));
     if(item.image)actions.append(button('Edit image',()=>openCrop(item)),button('Save to content studio',()=>nameDialog('Save image','Image',async name=>{await request('design_library_save',{type:'image',name,data:JSON.stringify({image:item.image,alt:item.alt||''})});status.textContent='Image saved';})));parent.append(actions,fieldGrid(field('Alt text',item.alt||'',v=>{item.alt=v;}),field('Link URL',item.url||'',v=>{item.url=v;})));
   }
   const richMarkup=setRichContent;
@@ -340,6 +355,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
       tools.append(el('h2','Add content'),tabs({content:'Content',layouts:'Layouts',saved:'Saved'},addTab,v=>{addTab=v;renderTools();}));const grid=el('div',undefined,'designer-block-grid');
       if(addTab==='saved'){const actions=el('div',undefined,'designer-saved-actions');actions.append(button('Browse saved sections',()=>openLibrary('section',value=>mutate(()=>design.rows.push(freshCopy(value.rows[0]))))),button('Open content studio',()=>openLibrary('image',value=>{addBlock('image');mutate(()=>Object.assign(blockAt(),value));})));tools.append(actions);return;}
       if(addTab==='content'){
+        tools.append(renderBrandLogos());
         const blocks=[['text','Text','text'],['boxed-text','Boxed Text','boxedText'],['divider','Divider','divider'],['image','Image','image'],['image-group','Image Group','imageGroup'],['image-card','Image Card','imageCard'],['image-text','Image + Text','imageCaption'],['share','Share','socialShareRevised'],['social','Social Follow','socialFollowRevised'],['button','Button','button'],['footer','Footer','footer'],['code','Code','code'],['video','Video','video']];
         for(const [type,label,icon] of blocks){const tile=button('',()=>{if(type==='footer'){panel='footer';renderTools();}else addBlock(type);});const image=el('img');image.src='assets/editor-icons/'+icon+'.svg';image.alt='';image.draggable=false;tile.append(image,el('span',label));tile.draggable=type!=='footer';tile.setAttribute('aria-label','Add '+label+' block');tile.ondragstart=event=>{drag={type};event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('text/plain',type);};tile.ondragend=finishDrag;grid.append(tile);}
         const more=details('More blocks and tools',false),actions=el('div',undefined,'designer-more-actions');for(const [type,label]of [['heading','Heading'],['spacer','Spacer'],['toc','Table of contents']])actions.append(button(label,()=>addBlock(type)));actions.append(button('Manage email sections',()=>{panel='sections';renderTools();}));more.append(actions);tools.append(grid,more);return;
@@ -437,7 +453,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   }
   document.addEventListener('dragover',event=>{if(!drag)return;dragPointer={x:event.clientX,y:event.clientY};if(!dragScrollFrame)dragScrollFrame=requestAnimationFrame(scrollDraggedBlock);},{capture:true});
   document.addEventListener('dragend',finishDrag);document.addEventListener('drop',finishDrag);
-  function drop(target){if(!drag)return;const from=drag;finishDrag();if(from.type)addBlock(from.type,target);else if(from.position)mutate(()=>{selected=moveEmailBlock(design,from.position,target);panel='block';});}
+  function drop(target){if(!drag)return;const from=drag;finishDrag();if(from.type)addBlock(from.type,target,from.initial);else if(from.position)mutate(()=>{selected=moveEmailBlock(design,from.position,target);panel='block';});}
   function imageNode(item){if(!item.image)return el('div','▧ Add an image','designer-image-placeholder');const image=el('img');image.src=item.image;image.alt=item.alt||'';return image;}
   function highlightSelection(block,previous){
     // Keep the five-blink sequence on its original clock when editing redraws the canvas.
@@ -534,11 +550,30 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   $('#design-code-apply').onclick=run(async()=>{const code=$('#design-code-source').value;await request('design_code_validate',{code});const apply=()=>{mutate(()=>{design.mode='code';design.code=code;design.areas={};selected=null;panel='add';});$('#design-code-dialog').close();};if(design.mode!=='code')confirmDesignAction('Switch to code?','This replaces the visual layout with custom HTML. The previous visual version remains available in Undo and saved history.',apply);else apply();});
   $('#design-link-dialog form').onsubmit=e=>{e.preventDefault();const url=normalizeRichLink($('#design-link-dialog input').value);if(!/^(https?:\/\/[^\s<>"]+|mailto:[^\s<>"]+|tel:[+0-9 ()-]+|#[a-zA-Z][a-zA-Z0-9_-]*|\*\|(UNSUB|UPDATE_PROFILE|ARCHIVE|SURVEY:[a-f0-9]{64}|POLL:[a-f0-9]{64}:[0-9]{1,2})\|\*)$/i.test(url)){error('Use an HTTP, HTTPS, email, telephone, or anchor link.');return;}const rich=$('.designer-rich-text');if(rich&&richRange){rich.focus();const selection=window.getSelection();selection.removeAllRanges();selection.addRange(richRange);document.execCommand('createLink',false,url);}$('#design-link-dialog').close();};
   $('#design-link-remove').onclick=()=>{const rich=$('.designer-rich-text');if(rich&&richRange){rich.focus();const selection=window.getSelection();selection.removeAllRanges();selection.addRange(richRange);document.execCommand('unlink',false,null);}$('#design-link-dialog').close();};
-  function openCrop(target){cropTarget=target;cropImage=new Image();cropImage.onload=()=>{['crop-zoom','crop-x','crop-y'].forEach(id=>$('#'+id).value=id==='crop-zoom'?'1':'50');$('#crop-aspect').value='original';drawCrop();$('#design-crop-dialog').showModal();};cropImage.src=target.image;}
-  function cropDimensions(){const aspect=$('#crop-aspect').value==='original'?cropImage.naturalWidth/cropImage.naturalHeight:Number($('#crop-aspect').value),zoom=Number($('#crop-zoom').value);let width=cropImage.naturalWidth,height=width/aspect;if(height>cropImage.naturalHeight){height=cropImage.naturalHeight;width=height*aspect;}width/=zoom;height/=zoom;return {x:(cropImage.naturalWidth-width)*Number($('#crop-x').value)/100,y:(cropImage.naturalHeight-height)*Number($('#crop-y').value)/100,width,height,aspect};}
-  function drawCrop(){if(!cropImage)return;const c=$('#design-crop-canvas'),dims=cropDimensions();c.width=600;c.height=Math.round(600/dims.aspect);const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(cropImage,dims.x,dims.y,dims.width,dims.height,0,0,c.width,c.height);}
+  function loadCropImage(source,onReady){
+    const image=new Image();$('#crop-apply').disabled=$('#crop-reset').disabled=true;
+    image.onload=()=>{cropImage=image;cropSource=source;['crop-zoom','crop-x','crop-y'].forEach(id=>$('#'+id).value=id==='crop-zoom'?'0':'50');$('#crop-aspect').value='original';$('#crop-aspect').dispatchEvent(new Event('change',{bubbles:true}));drawCrop();$('#crop-apply').disabled=$('#crop-reset').disabled=false;onReady?.();};
+    image.onerror=()=>{$('#crop-apply').disabled=$('#crop-reset').disabled=false;error('Unable to load this image.');};image.src=source;
+  }
+  function openCrop(target){cropTarget=target;cropOriginal=target.originalImage||target.image;loadCropImage(target.image,()=>$('#design-crop-dialog').showModal());}
+  function drawCrop(){
+    if(!cropImage)return;
+    const c=$('#design-crop-canvas'),aspect=$('#crop-aspect').value==='original'?cropImage.naturalWidth/cropImage.naturalHeight:Number($('#crop-aspect').value);
+    const zoom=imageCropZoom($('#crop-zoom').value),layout=imageCropLayout(cropImage.naturalWidth,cropImage.naturalHeight,aspect,zoom,$('#crop-x').value,$('#crop-y').value);
+    c.width=layout.width;c.height=layout.height;
+    const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(cropImage,layout.x,layout.y,layout.drawnWidth,layout.drawnHeight);
+    $('#crop-zoom').setAttribute('aria-valuetext',Math.round(zoom*100)+'%');
+    $('#crop-x').disabled=!layout.canMoveX;$('#crop-y').disabled=!layout.canMoveY;
+    $('#crop-position-help').textContent=layout.canMoveX||layout.canMoveY?'Move the image within the frame. A disabled direction has no room to move.':'The image fills the frame. Zoom in or out to adjust its position.';
+  }
   ['crop-aspect','crop-zoom','crop-x','crop-y'].forEach(id=>$('#'+id).oninput=drawCrop);
-  $('#crop-apply').onclick=()=>{const image=$('#design-crop-canvas').toDataURL('image/png');if(image.length>933000){error('The cropped image is too large. Use a smaller image.');return;}mutate(()=>cropTarget.image=image);$('#design-crop-dialog').close();};
+  $('#crop-reset').onclick=()=>loadCropImage(cropOriginal);
+  $('#crop-apply').onclick=()=>{
+    const original=cropSource===cropOriginal&&$('#crop-aspect').value==='original'&&Number($('#crop-zoom').value)===0&&Number($('#crop-x').value)===50&&Number($('#crop-y').value)===50;
+    const image=original?cropOriginal:$('#design-crop-canvas').toDataURL('image/png');
+    if(!original&&image.length>933000){error('The cropped image is too large. Use a smaller image.');return;}
+    mutate(()=>{cropTarget.image=image;if(original)delete cropTarget.originalImage;else cropTarget.originalImage=cropOriginal;});$('#design-crop-dialog').close();
+  };
   const topMenus=$$('.designer-top-actions .designer-save-menu');topMenus.forEach(menu=>{menu.name='designer-top-menu';menu.addEventListener('toggle',()=>{if(menu.open)topMenus.forEach(other=>{if(other!==menu)other.open=false;});});});
   function closeMenus(){$$('.designer-save-menu').forEach(menu=>menu.open=false);}
   document.addEventListener('click',event=>{

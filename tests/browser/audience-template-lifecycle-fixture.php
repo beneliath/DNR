@@ -17,6 +17,10 @@ $tags=$groups=$fields=$catalog=$query=$recentDesigns=[];
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 $starters=audienceDesignStarters();
 $templates=[['id'=>7,'name'=>'Reusable design','folder'=>'Newsletters','version'=>3,'updated_at'=>'2026-10-21 12:00:00','deleted_at'=>$tab==='archived'?'2026-10-21 12:00:00':null,'design_json'=>json_encode($starters['blank']['design'])]];
+if(($argv[4]??'')==='tall-images'){
+    $blocks=[];foreach([450,1000]as$i=>$height){$image=imagecreatetruecolor(600,$height);imagefill($image,0,0,$i?0x007c89:0xc10304);ob_start();imagepng($image);$blocks[]=['id'=>'preview-image-'.$i,'type'=>'image','image'=>'data:image/png;base64,'.base64_encode(ob_get_clean()),'alt'=>'Synthetic preview image','padding'=>0];}
+    $templates[0]['design_json']=json_encode(audienceDesign(['schema'=>1,'rows'=>[['id'=>'preview-row','columns'=>[$blocks]]]]));
+}
 if(($argv[4]??'')==='with-unfiled')$templates[]=['id'=>8,'name'=>'Unfiled design','folder'=>'','version'=>1,'updated_at'=>'2026-10-22 12:00:00','deleted_at'=>$tab==='archived'?'2026-10-22 12:00:00':null,'design_json'=>json_encode($starters['blank']['design'])];
 if(in_array($argv[4]??'',['bulk','bulk-paged'],true)){
     foreach(range(8,($argv[4]??'')==='bulk-paged'?33:10)as$fixtureId)$templates[]=['id'=>$fixtureId,'name'=>'Sample design '.$fixtureId,'folder'=>$fixtureId===8?'':'Newsletters','version'=>1,'updated_at'=>'2026-10-22 12:00:00','deleted_at'=>null,'design_json'=>json_encode($starters['thanks']['design'])];
