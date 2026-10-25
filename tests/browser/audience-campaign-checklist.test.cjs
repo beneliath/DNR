@@ -5,6 +5,7 @@ const {execFileSync}=require('node:child_process');
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'../..');
 const html=execFileSync('php',['tests/browser/audience-campaign-checklist-fixture.php'],{cwd:root,encoding:'utf8'});
+const noticeFixtures=Object.fromEntries(['sent','sent-notice','plain-notice'].map(mode=>[mode,execFileSync('php',['tests/browser/audience-campaign-checklist-fixture.php',mode],{cwd:root,encoding:'utf8'})]));
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try {
@@ -18,7 +19,7 @@ const html=execFileSync('php',['tests/browser/audience-campaign-checklist-fixtur
     requests.push(request.postData());
     return route.fulfill({status:failure?422:200,contentType:'application/json',body:JSON.stringify(failure?{error:'A selected segment is unavailable.'}:reply)});
    }
-   if(url.pathname==='/audience.php')return route.fulfill({contentType:'text/html',body:html});
+   if(url.pathname==='/audience.php')return route.fulfill({contentType:'text/html',body:noticeFixtures[url.searchParams.get('mode')]||html});
    const file=path.join(root,'src',url.pathname);
    return route.fulfill({contentType:file.endsWith('.css')?'text/css':'text/javascript',body:fs.readFileSync(file)});
   });
@@ -93,7 +94,22 @@ const html=execFileSync('php',['tests/browser/audience-campaign-checklist-fixtur
    await resend.getByRole('button',{name:'Close resend'}).click();
    if(process.env.DNR_CHECKLIST_OUTPUT){fs.mkdirSync(process.env.DNR_CHECKLIST_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.DNR_CHECKLIST_OUTPUT,`campaign-checklist-${width}.png`),fullPage:true});}
   }
-  assert.deepEqual(errors,[]);
-  console.log('Campaign checklist passed at desktop/mobile widths: selection names, dismissal, reset, personalization, bounded controls, progress labels, hover, preview success/empty/error and resend overflow.');
+  const beforeNotices=requests.length;
+  for(const width of [390,1518])for(const mode of ['sent','sent-notice','plain-notice']){
+   await page.setViewportSize({width,height:1100});await page.goto('http://checklist.test/audience.php?view=campaign&id=13&mode='+mode);
+   const url=page.url(),notice=page.getByRole('dialog',{name:'Visual designer unavailable'});
+   if(mode==='sent'){
+    await page.locator('.campaign-checklist-item > summary').nth(4).click();await page.getByRole('link',{name:'Edit design',exact:true}).click();
+   }
+   await notice.waitFor({state:'visible'});assert.equal(page.url(),url,'Designer warning does not navigate away from the campaign');
+   assert.equal(await notice.getByText('Only regular email drafts can use the visual designer.',{exact:true}).isVisible(),true);
+   await notice.getByRole('button',{name:'Close',exact:true}).click();await notice.waitFor({state:'hidden'});
+   if(mode==='sent'){
+    const link=page.getByRole('link',{name:'Edit design',exact:true});assert.equal(await link.evaluate(node=>node===document.activeElement),true);
+    await page.keyboard.press('Enter');await notice.waitFor({state:'visible'});await page.keyboard.press('Escape');await notice.waitFor({state:'hidden'});
+   }
+  }
+  assert.equal(requests.length,beforeNotices,'Designer notices never save or send a campaign');assert.deepEqual(errors,[]);
+  console.log('Campaign checklist passed on desktop/mobile: recipients, personalization, layout, recipient preview and resend; unavailable designer uses a dismissible dialog with unchanged URL and keyboard/focus support.');
  } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

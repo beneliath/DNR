@@ -292,7 +292,7 @@ try{
     $expiredDelete=$admin($templateArchive,array_replace($adminDelete,['id'=>$expiryTemplate,'version'=>2]));
     audienceHttpExpect($expiredDelete['status']===302&&str_contains($expiredDelete['headers'],'admin_elevation.php')&&$campaignStore->one('SELECT id FROM marketing_email_templates WHERE id=?',[$expiryTemplate]),'Expired unlock cannot delete an archived template');
     $starter=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_create','starter'=>'event']);audienceHttpExpect($starter['status']===302&&str_contains($starter['headers'],'kind=template'),'Starter template opens designer');
-    $plain=$campaignStore->createCampaign(['name'=>'Plain fixture','campaign_type'=>'plain-text']);audienceHttpExpect($editor('audience.php?view=designer&id='.$plain)['status']===404,'Plain-text campaign cannot use visual editor');
+    $plain=$campaignStore->createCampaign(['name'=>'Plain fixture','campaign_type'=>'plain-text']);$plainDesigner=$editor('audience.php?view=designer&id='.$plain);audienceHttpExpect($plainDesigner['status']===302&&str_contains($plainDesigner['headers'],'Location: audience.php?view=campaign&id='.$plain),'Plain-text campaign returns to its checklist for the visual-designer notice');
     $campaignStore->saveCampaignSection($plain,1,'content',['text'=>"Plain preview <script>not markup</script> & line one\nLine two"]);
     $plainReview='audience.php?view=campaign-review&id='.$plain;
     $preview=$editor($plainReview);

@@ -10,6 +10,7 @@
   --audience-control-border: #c3ced5;
   --audience-action-gap: 16px;
   --audience-hover: #f3f5f5;
+  --audience-nav-selected: #e6e9e9;
   --audience-action-hover-bg: #ccfbf1;
   --audience-action-hover-color: #0f766e;
   --audience-tooltip-bg: #000;
@@ -47,6 +48,7 @@ html.dark-mode {
   --audience-link: #70d6d0;
   --audience-control-border: #465364;
   --audience-hover: #222c39;
+  --audience-nav-selected: #19222e;
   --audience-action-hover-bg: #134e4a;
   --audience-action-hover-color: #5eead4;
   --audience-tooltip-bg: #f3f6fb;
@@ -176,7 +178,7 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .audience-create{border:1px solid var(--audience-control-border);color:var(--audience-text);border-radius:4px;padding:4px 10px;display:flex;align-items:center;gap:12px}
 .audience-nav-item{min-height:36px;padding:6px 8px;display:flex;align-items:center;gap:8px;color:var(--audience-secondary);border-radius:4px}
 .audience-nav-item svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;flex-shrink:0}
-.audience-nav-item.selected{background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color);font-weight:600}
+.audience-nav-item.selected{background:var(--audience-nav-selected);color:var(--audience-action-hover-color);font-weight:600}
 /* Exact reference sidebar geometry, with theme color and no external asset requests. */
 .audience-sidebar-icon{display:block;width:20px;height:20px;flex:0 0 20px;background-color:currentColor;-webkit-mask:var(--sidebar-icon) center/contain no-repeat;mask:var(--sidebar-icon) center/contain no-repeat}
 .audience-create:is(:hover,:focus)>.audience-sidebar-icon,.audience-nav-item:is(:hover,:focus,.selected)>.audience-sidebar-icon{-webkit-mask-image:var(--sidebar-icon-active);mask-image:var(--sidebar-icon-active)}
@@ -196,7 +198,7 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .audience-subnav>a,.audience-subnav>span{padding:6px 8px 6px 35px;border-radius:6px;color:var(--audience-secondary);min-height:36px}
 .audience-subnav>:is(a,span):not([aria-current]):is(:hover,:focus),.audience-sidebar-footer .audience-return:is(:hover,:focus){background:var(--audience-hover);color:var(--audience-secondary)}
 .audience-sidebar-footer .audience-return{border-radius:4px}
-.audience-subnav>[aria-current]{font-weight:600;color:var(--audience-action-hover-color);background:var(--audience-action-hover-bg)}
+.audience-subnav>[aria-current]{font-weight:600;color:var(--audience-action-hover-color);background:var(--audience-nav-selected)}
 /* The expanded submenu owns selection; the collapsed section still shows its current location. */
 .audience-app:not(.audience-sidebar-collapsed) .audience-nav-item.selected:has(+.audience-subnav>[aria-current]){font-weight:400;box-shadow:none}
 .audience-app:not(.audience-sidebar-collapsed) .audience-nav-item.selected:has(+.audience-subnav>[aria-current]):is(:hover,:focus){background:var(--audience-hover);color:var(--audience-secondary)}

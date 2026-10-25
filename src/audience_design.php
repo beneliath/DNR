@@ -40,6 +40,39 @@ function audienceDesignRichText(string $html):string
     };
     $out='';$body=$doc->getElementsByTagName('body')->item(0);if($body)foreach($body->childNodes as$child)$out.=$walk($child);return $out;
 }
+/** Keep wrapping on the media container when a mail client rewrites the image itself. */
+function audienceDesignEmailRichText(string $html,int $paragraphSpacing=16):string
+{
+    if(!str_contains($html,'<img')||!preg_match('/\balign="(?:left|right)"/',$html))return $html;
+    $doc=new DOMDocument();$previous=libxml_use_internal_errors(true);
+    try{$doc->loadHTML('<?xml encoding="UTF-8"><html><body><div id="email-rich-content">'.$html.'</div></body></html>',LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);}finally{libxml_clear_errors();libxml_use_internal_errors($previous);}
+    foreach(iterator_to_array($doc->getElementsByTagName('img'))as$image){
+        $side=$image->getAttribute('align');$width=$image->getAttribute('width');
+        if(!in_array($side,['left','right'],true)||!preg_match('/^[0-9]{1,4}$/D',$width)||(int)$width<1||(int)$width>2400)continue;
+        $media=$image;$parent=$image->parentNode;
+        if($parent instanceof DOMElement&&strtolower($parent->tagName)==='a'){
+            $children=array_filter(iterator_to_array($parent->childNodes),static fn($node)=>!($node instanceof DOMText&&trim($node->textContent)===''));
+            if(count($children)!==1)continue;
+            $media=$parent;
+        }
+        $table=$doc->createElement('table');$table->setAttribute('role','presentation');$table->setAttribute('class','email-rich-image');$table->setAttribute('align',$side);
+        $table->setAttribute('width',(string)((int)$width+12));$table->setAttribute('border','0');$table->setAttribute('cellpadding','0');$table->setAttribute('cellspacing','0');
+        $table->setAttribute('style','float:'.$side.';width:'.((int)$width+12).'px;width:min(100%,'.((int)$width+12).'px);max-width:100%;table-layout:fixed;border-collapse:collapse');
+        $cell=$doc->createElement('td');$cell->setAttribute('style','padding:'.($side==='left'?'0 12px 12px 0':'0 0 12px 12px'));
+        $row=$doc->createElement('tr');$row->appendChild($cell);$table->appendChild($row);
+        $media->parentNode->insertBefore($table,$media);$cell->appendChild($media);
+        $image->removeAttribute('align');$image->setAttribute('style','display:block;max-width:100%;height:auto;width:'.$width.'px');
+    }
+    // Tables cannot live inside paragraphs. Preserve their formatting and paragraph spacing.
+    foreach(iterator_to_array($doc->getElementsByTagName('p'))as$paragraph){
+        if(!$paragraph->getElementsByTagName('table')->length)continue;
+        $replacement=$doc->createElement('div');foreach($paragraph->attributes as$attribute)$replacement->setAttribute($attribute->name,$attribute->value);
+        $replacement->setAttribute('class','email-rich-paragraph');$replacement->setAttribute('style',rtrim($paragraph->getAttribute('style'),';').';margin:0 0 '.$paragraphSpacing.'px');
+        while($paragraph->firstChild)$replacement->appendChild($paragraph->firstChild);
+        $paragraph->parentNode->replaceChild($replacement,$paragraph);
+    }
+    $out='';$root=$doc->getElementById('email-rich-content');if($root)foreach($root->childNodes as$child)$out.=$doc->saveHTML($child);return $out;
+}
 /** Versioned, allowlisted email document. No executable HTML or external resource fetching. */
 function audienceDesign(array $input): array { return audienceDesignDocument($input); }
 /** Resolve editor defaults without rewriting authored colors or sent snapshots. */

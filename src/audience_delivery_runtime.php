@@ -29,6 +29,18 @@ function audienceRecipientDue(array $send,string $zone,?int $now=null):string
     if($local->getTimestamp()<$now+300)throw new InvalidArgumentException('A recipient’s local send time is too soon. Choose a later date.');
     return $local->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 }
+/** Personal instructions belong in both alternatives of a test email. */
+function audienceTestEmailInstructions(array $message,string $instructions):array
+{
+    if(trim($instructions)==='')return $message;
+    $message['text']=$instructions."\n\n".$message['text'];
+    if($message['html']!==null){
+        $note='<div style="max-width:600px;margin:16px auto;padding:16px;background:#fff7df;color:#21262a;font-family:Arial,sans-serif;font-size:16px;line-height:1.5;text-align:left"><strong>Test email message</strong><div>'.nl2br(htmlspecialchars($instructions,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')).'</div></div>';
+        $html=preg_replace_callback('/<body\b[^>]*>/i',static fn($match)=>$match[0].$note,$message['html'],1,$count);
+        $message['html']=$count?$html:$note.$message['html'];
+    }
+    return $message;
+}
 function audienceTrackMessage(array $snapshot,string $html,string $text,string $token):array
 {
     if(empty($snapshot['tracking_key'])||!empty($snapshot['test']))return [$html,$text];$base=$snapshot['base'];$key=$snapshot['tracking_key'];$tracking=$snapshot['draft']['tracking']??[];
@@ -122,7 +134,7 @@ trait AudienceDeliveryRuntime
             $recent=(int)$this->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND actor_id=? AND kind='test' AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)",[$this->audienceId,$this->actorId])['n'];
             $operations=[];foreach($emails as$email)$operations[$email]=hash('sha256',$this->actorId.':'.$kind.':'.$id.':'.$version.':'.$key.':'.$email);$existing=(int)$this->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND operation_key IN ('.implode(',',array_fill(0,count($operations),'?')).')',[$this->audienceId,...array_values($operations)])['n'];
             if($recent+count($emails)-$existing>50)throw new InvalidArgumentException('Wait before sending more tests. Each editor can queue 50 test recipients per hour.');
-            foreach($emails as$email){$operation=$operations[$email];$snapshot=['ses'=>audienceSesBinding($this->sesSettings()),'draft'=>$draft,'type'=>$row['campaign_type'],'base'=>audienceDispatchBase($base),'identity'=>$this->designRecipientContext(0,$audience),'asset_key'=>$operation,'test'=>true];$context=['EMAIL'=>$email,'FNAME'=>'Test','LNAME'=>'Recipient'];foreach($this->fields()as$f)$context[$f['merge_tag']]=$f['default_value'];$message=audienceDispatchMessage($snapshot,$context,str_repeat('0',64),'<test-'.substr($operation,0,40).'@message-monkey.invalid>');$message['subject']='[Test] '.$message['subject'];$message['text']=audienceText($input,'test_instructions',1000)."\n\n".$message['text'];$payload=['snapshot'=>$snapshot,'message'=>$message];
+            foreach($emails as$email){$operation=$operations[$email];$snapshot=['ses'=>audienceSesBinding($this->sesSettings()),'draft'=>$draft,'type'=>$row['campaign_type'],'base'=>audienceDispatchBase($base),'identity'=>$this->designRecipientContext(0,$audience),'asset_key'=>$operation,'test'=>true];$context=['EMAIL'=>$email,'FNAME'=>'Test','LNAME'=>'Recipient'];foreach($this->fields()as$f)$context[$f['merge_tag']]=$f['default_value'];$message=audienceDispatchMessage($snapshot,$context,str_repeat('0',64),'<test-'.substr($operation,0,40).'@message-monkey.invalid>');$message['subject']='[Test] '.$message['subject'];$message=audienceTestEmailInstructions($message,audienceText($input,'test_instructions',1000));$payload=['snapshot'=>$snapshot,'message'=>$message];
                 $this->write("INSERT IGNORE INTO marketing_service_mail(audience_id,kind,actor_id,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,'test',?,?,?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$this->actorId,$this->actorLabel,$operation,\Dnr\Security\ApplicationKey::seal(json_encode($payload,JSON_THROW_ON_ERROR)),$message['message_id']]);
             }return count($emails);
         });

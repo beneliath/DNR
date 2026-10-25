@@ -24,6 +24,16 @@ $expect(str_contains($httpHtml,'audience_track.php?')&&str_contains($httpText,'s
 preg_match('/href="([^"]+)"/',$httpHtml,$httpMatch);parse_str(parse_url(html_entity_decode($httpMatch[1],ENT_QUOTES,'UTF-8'),PHP_URL_QUERY),$httpQuery);
 $expect(base64_decode(strtr($httpQuery['url'],'-_','+/'))==='http://legacy.example.test/?a=1&b=2','Tracked legacy URL retains its original scheme and query');
 $s['test']=true;[$h,$t]=audienceTrackMessage($s,'original','text','token');$expect($h==='original'&&$t==='text','Test messages never track');
+$testBody=['html'=>'<!doctype html><html><head><title>Fixture</title></head><body class="email"><p>Newsletter content</p></body></html>','text'=>'Newsletter content'];
+$instructions="Review <script>alert(1)</script> & links.\nThis is a test!";
+$withNote=audienceTestEmailInstructions($testBody,$instructions);
+$expect(str_starts_with($withNote['text'],$instructions."\n\nNewsletter content"),'Personal message appears in the plain-text alternative');
+$expect(str_contains($withNote['html'],'&lt;script&gt;alert(1)&lt;/script&gt; &amp; links.')&&!str_contains($withNote['html'],'<script>'),'HTML personal message is escaped');
+$expect(str_contains($withNote['html'],"<br />\nThis is a test!"),'HTML personal message retains line breaks');
+$expect(strpos($withNote['html'],'Test email message')>strpos($withNote['html'],'<body class="email">')&&strpos($withNote['html'],'This is a test!')<strpos($withNote['html'],'Newsletter content'),'Personal message is inside the body above the newsletter');
+$expect(audienceTestEmailInstructions($testBody,'')===$testBody,'Empty personal message leaves both alternatives unchanged');
+$plainNote=audienceTestEmailInstructions(['html'=>null,'text'=>'Plain email'],'Please review.');$expect($plainNote['html']===null&&$plainNote['text']==="Please review.\n\nPlain email",'Plain-text tests remain plain text');
+$fragmentNote=audienceTestEmailInstructions(['html'=>'<p>Fragment email</p>','text'=>'Fragment email'],'Review $1 literally.');$expect(str_contains($fragmentNote['html'],'Review $1 literally.')&&str_ends_with($fragmentNote['html'],'<p>Fragment email</p>'),'HTML fragments and dollar signs are preserved');
 $mail=['state'=>'accepted','error_message'=>''];$receipt=static fn($type,$at)=>['event_type'=>$type,'event_at'=>$at];
 $expect(audienceServiceMailStatus($mail,[])['label']==='Accepted','Acceptance without a receipt is never labelled Delivered');
 $expect(str_contains(audienceServiceMailStatus($mail,[])['detail'],'No delivery confirmation is recorded'),'Older accepted emails explain missing receipts instead of showing blank details');

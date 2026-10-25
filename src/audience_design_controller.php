@@ -130,7 +130,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     usort($templates,static fn($a,$b)=>[$b['updated_at'],(int)$b['id']]<=>[$a['updated_at'],(int)$a['id']]);
     if($view==='designer'){
         if(!$canManage){http_response_code(403);exit('The designer requires an editor or administrator.');}
-        try{$record=$kind==='template'?$store->emailTemplate($id):$store->campaign($id);if($kind==='campaign'&&($record['status']!=='draft'||$record['campaign_type']!=='regular'))throw new InvalidArgumentException('Only regular email drafts can use the visual designer.');$variantDesign=$kind==='template'?$record['design']:$store->campaignDesign($record,$variant);}
+        try{$record=$kind==='template'?$store->emailTemplate($id):$store->campaign($id);if($kind==='campaign'&&($record['status']!=='draft'||$record['campaign_type']!=='regular')){$_SESSION['audience_designer_unavailable']=$id;header('Location: '.$url(['view'=>'campaign','id'=>$id]));return;}$variantDesign=$kind==='template'?$record['design']:$store->campaignDesign($record,$variant);}
         catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
         $design=audienceDesignBrandDefaults($variantDesign??$starters['blank']['design'],$brand);if($variant>0)$record['name'].=' · Variation '.($variant+1);
         $savedDesigns=[];foreach($templates as$t)$savedDesigns[]=['id'=>(int)$t['id'],'name'=>$t['name'],'design'=>audienceDesignBrandDefaults(audienceJson($t['design_json']),$brand)];

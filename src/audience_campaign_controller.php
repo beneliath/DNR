@@ -151,6 +151,8 @@ if($campaignFilters['layout']==='calendar'){
     $calendarRows=$store->all("SELECT c.id,c.name,c.status,DATE($calendarDate) calendar_date FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_date,c.id",[...$campaignParams,$calendarStart->format('Y-m-d'),$calendarEnd->modify('+1 day')->format('Y-m-d')]);
 }
 $campaign=null;$recipientCount=null;$targetError='';
+$reopenDesignerUnavailable=$view==='campaign'&&(int)($_SESSION['audience_designer_unavailable']??0)===$id;
+if($reopenDesignerUnavailable)unset($_SESSION['audience_designer_unavailable']);
 if(in_array($view,['campaign','campaign-review','campaign-send','campaign-delivery'],true)){
     try{$campaign=$store->campaign($id,false,$view==='campaign-delivery');}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
     if($campaign['deleted_at'])$canSend=false;
