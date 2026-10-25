@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/../src/audience_design.php';
 $image=imagecreatetruecolor(321,500);imagefill($image,0,0,0x346778);ob_start();imagepng($image);$source='data:image/png;base64,'.base64_encode(ob_get_clean());
 $copy=str_repeat('A newsletter paragraph should wrap beside the photograph and continue across the full width below it. ',14);
-$rich='<div><a href="https://example.test/book"><img src="'.$source.'" width="150" align="right" alt="Right book cover"></a><br><span id="right-copy">'.$copy.'</span></div><p><img src="'.$source.'" width="150" align="left" alt="Left book cover"><span id="left-copy">'.$copy.'</span></p><p>Final paragraph with an <a href="https://example.test/news">unchanged link</a>.</p>';
+$rich='<div>Text before the right cover. <a href="https://example.test/book"><img src="'.$source.'" width="150" align="right" alt="Right book cover"></a><br><span id="right-copy">'.$copy.'</span></div><p>Text before the left cover. <img src="'.$source.'" width="150" align="left" alt="Left book cover"><span id="left-copy">'.$copy.'</span></p><p>Final paragraph with an <a href="https://example.test/news">unchanged link</a>.</p>';
 if(($argv[1]??'')==='--fixture-wide')$rich=str_replace('width="150"','width="600"',$rich);
 $design=audienceDesignStarters()['blank']['design'];$design['rows'][0]['columns'][0][0]['id']='wrapping-copy';$design['rows'][0]['columns'][0][0]['html']=$rich;
 $design=audienceDesign($design);$stored=$design['rows'][0]['columns'][0][0]['html'];
@@ -17,6 +17,7 @@ foreach(['right','left']as$index=>$side){$table=$tables->item($index);$img=$tabl
     $expect($table->getAttribute('role')==='presentation'&&$table->getAttribute('align')===$side,'Legacy table alignment supports '.$side.' wrapping');
     $expect($table->getAttribute('width')==='162'&&$img->getAttribute('width')==='150','Wrapping reserves the authored image width and text gap');
     $expect(!str_contains($img->getAttribute('style'),'float:')&&!$img->hasAttribute('align'),'Wrapping does not rely on the image element itself');
+    $expect(str_contains($table->getAttribute('style'),'float:'.$side.'!important'),'Inline priority preserves '.$side.' wrapping against Proton iOS stylesheet resets');
 }
 $expect($xpath->query('//table[@class="email-rich-image"]//a[@href="https://example.test/book"]')->length===1,'The linked cover remains clickable');
 $expect($xpath->query('//p//table')->length===0,'Presentation tables never create invalid paragraph nesting');
