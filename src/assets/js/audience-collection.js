@@ -72,16 +72,22 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const unsavedStatus = document.getElementById('collection-unsaved-status');
     let savedDraft = null, savedName = '', wasDirty = null;
     const updateDirty = () => {
-        if (config.kind !== 'preferences' || !config.canManage || savedDraft === null) return;
+        if (!config.canManage || savedDraft === null) return;
         const dirty = Boolean(config.recoveredDraft) || hidden.value !== savedDraft || form.elements.namedItem('name').value !== savedName;
         saveButtons.forEach(button => button.classList.toggle('collection-save-unsaved', dirty));
-        if (unsavedStatus && dirty !== wasDirty) unsavedStatus.textContent = dirty ? 'Unsaved preference changes.' : 'All preference changes saved.';
+        if (unsavedStatus && dirty !== wasDirty) {
+            const scope = config.kind === 'preferences' ? 'preference' : 'form';
+            unsavedStatus.textContent = dirty ? `Unsaved ${scope} changes.` : `All ${scope} changes saved.`;
+        }
         wasDirty = dirty;
     };
     let timer, request, sequence = 0, removeLogoButton = null;
     const readLines = value => value.split('\n').map(s => s.trim()).filter(Boolean);
     const sync = () => {
-        form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'number' ? Number(input.value) : input.value; });
+        form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'checkbox' ? input.checked : input.type === 'number' ? Number(input.value) : input.value; });
+        form.querySelectorAll('[data-doc-message]').forEach(input => { model.messages[input.dataset.docMessage] = input.value; });
+        const footerText = form.querySelector('[data-doc-message="powered"]');
+        if (footerText) footerText.required = model.show_footer;
         if (brandLogo) brandLogo.value = model.logo ? Object.keys(config.brandLogos).find(key => config.brandLogos[key].image === model.logo) || '' : 'none';
         if (removeLogoButton) removeLogoButton.hidden = !model.logo;
         const font=form.querySelector('[data-collection-font]')?.value;
@@ -95,8 +101,12 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         arrayKeys.forEach(key => { model[key] = Array.from(form.querySelectorAll(`[data-doc-array="${key}"]:checked`), el => Number(el.value)); });
         const fields = Array.from(form.querySelectorAll('[data-field]'));
         if (fields.length) {
-            model.fields = fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field);
-            model.required = fields.filter(row => row.querySelector('[data-field-required]').checked).map(row => row.dataset.field);
+            const editable = new Set(fields.map(row => row.dataset.field));
+            // Preserve saved audience fields that are no longer offered in the editor.
+            const retained = model.fields.filter(key => !editable.has(key));
+            const retainedRequired = model.required.filter(key => !editable.has(key));
+            model.fields = [...fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field), ...retained];
+            model.required = [...fields.filter(row => row.querySelector('[data-field-required]').checked).map(row => row.dataset.field), ...retainedRequired];
         }
         form.querySelectorAll('[data-popup]').forEach(input => { model.popup[input.dataset.popup] = input.type === 'number' ? Number(input.value) : input.value; });
         form.querySelectorAll('[data-popup-lines]').forEach(input => { model.popup[input.dataset.popupLines] = readLines(input.value); });
@@ -420,7 +430,8 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     form.addEventListener('input', record); form.addEventListener('change', record);
     const restore = index => {
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
-        form.querySelectorAll('[data-doc]').forEach(input => { input.value = model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        form.querySelectorAll('[data-doc]').forEach(input => { if(input.type==='checkbox')input.checked=model[input.dataset.doc];else input.value=model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage]; });
         const font=form.querySelector('[data-collection-font]');if(font)font.value=model.web_font?(model.web_font===config.brandFont?.data?'brand':'saved-brand'):model.font;
         form.querySelectorAll('[data-advanced-page]').forEach(input => { input.value = model.advanced.pages[input.dataset.advancedPage] || ''; });
         const advanced = form.querySelector('[data-advanced-enabled]');if(advanced)advanced.checked=Boolean(model.advanced.enabled);

@@ -40,7 +40,7 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
         'permission'=>'Yes, I would like to receive email newsletters. I can unsubscribe at any time.',
         'language'=>'en', 'close_at'=>'', 'opt_in'=>'double', 'fields'=>$kind==='embedded'?['email']:['email','first_name','last_name'],
         'embedded'=>audienceCollectionEmbedDefaults(), 'help_text'=>[],
-        'messages'=>audienceCollectionMessages(), 'advanced'=>['enabled'=>false,'pages'=>['signup'=>'','thanks'=>'','confirm'=>'','unsubscribe'=>'']],
+        'messages'=>audienceCollectionMessages(), 'show_footer'=>true, 'advanced'=>['enabled'=>false,'pages'=>['signup'=>'','thanks'=>'','confirm'=>'','unsubscribe'=>'']],
         'required'=>['email'], 'group_ids'=>[], 'tag_ids'=>[], 'permissions'=>[],
         'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
         'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'logo_resized'=>false, 'description'=>'', 'favicon'=>'',
@@ -56,6 +56,12 @@ function audienceCollectionText(mixed $value, int $limit): string
 {
     if (!is_string($value) || mb_strlen($value)>$limit || str_contains($value,"\0")) throw new InvalidArgumentException('A form value is invalid or too long.');
     return trim($value);
+}
+
+/** These audience record fields are not offered as form editor choices. */
+function audienceCollectionEditorFields(array $fields): array
+{
+    return array_values(array_filter($fields,static fn($field)=>!in_array(mb_strtolower(trim($field['label'])),['full name','date of entry','fund'],true)));
 }
 
 function audienceCollectionUrl(mixed $value, bool $image = false): string
@@ -114,8 +120,13 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     }
     if (!is_array($input['system']??[])) throw new InvalidArgumentException('Invalid system messages.');
     foreach ($d['system'] as $key=>$value) $d['system'][$key]=audienceCollectionText($input['system'][$key]??$value,1000);
+    if(array_key_exists('show_footer',$input)&&!is_bool($input['show_footer']))throw new InvalidArgumentException('Choose whether to show the footer credit.');
+    $d['show_footer']=$input['show_footer']??true;
     if(!is_array($input['messages']??[]))throw new InvalidArgumentException('Invalid form translations.');
-    foreach($d['messages']as$key=>$value){$d['messages'][$key]=audienceCollectionText($input['messages'][$key]??$value,1000);if($d['messages'][$key]==='')throw new InvalidArgumentException('Translated messages cannot be empty.');}
+    foreach($d['messages']as$key=>$value){
+        $d['messages'][$key]=audienceCollectionText($input['messages'][$key]??$value,1000);
+        if($d['messages'][$key]===''&&($key!=='powered'||$d['show_footer']))throw new InvalidArgumentException($key==='powered'?'Add footer credit text or hide the footer credit.':'Translated messages cannot be empty.');
+    }
     $advanced=$input['advanced']??[];if(!is_array($advanced)||!is_array($advanced['pages']??[]))throw new InvalidArgumentException('Invalid custom page source.');
     $d['advanced']['enabled']=!empty($advanced['enabled']);
     foreach($d['advanced']['pages']as$key=>$value)$d['advanced']['pages'][$key]=audienceCollectionAdvancedHtml(audienceCollectionText($advanced['pages'][$key]??'',60000));

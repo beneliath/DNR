@@ -58,6 +58,7 @@ legend { padding: 0; }
 .trap { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 .section-image { max-width: 100%; height: auto; border-radius: 10px; }
 small { display: block; font-size: 12px; line-height: 1.5; color: #66777e; margin-top: 24px; text-align: center; }
+.collection-footer-credit { white-space: pre-wrap; overflow-wrap: anywhere; }
 hr { border: 0; border-top: 1px solid #e7ecee; margin: 28px 0; }
 input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #007c89; outline-offset: 3px; }
 @media (max-width: 500px) {

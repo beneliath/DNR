@@ -1,6 +1,6 @@
 const SEARCH_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>';
 const CLOSE_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>';
-const FILTERS='select[name=state],select[name=status],select[name=type],select[name=source],select[name=bots],select[data-flow-template-channel],select[data-flow-template-topic],select[data-flow-template-integration],select[data-template-type],select[data-template-category-filter],select[data-template-type-filter]';
+const FILTERS='select[name=state],select[name=status],select[name=type],select[name=source],select[name=bots],select[data-flow-template-channel],select[data-flow-template-topic],select[data-flow-template-integration],select[data-template-category-filter]';
 const BADGES='.audience-status,.campaign-status,.flow-status-badge,.flow-status,.inbox-status,.inbox-status-tag,.inbox-source-state,.inbox-delivery-state,[data-touchpoint-status]';
 
 export function messageMonkeyStatusTone(value){
@@ -27,15 +27,20 @@ export function wireMessageMonkeyUiStandards(){
             if(button.closest('#audience-sidebar,.audience-sidebar,.mm-search-control,.campaign-search,.search-with-icon,.filter-search,.inbox-search,.audience-search-top,.designer-color-grid'))continue;
             const close=button.matches('button')&&button.closest('dialog,[role=dialog],[popover]')&&(button.matches('[data-close-dialog],[data-design-close]')||/^close\b/i.test(button.getAttribute('aria-label')||''))&&(!button.textContent.trim()||/^[×✕✖xX]$/.test(button.textContent.trim())||button.querySelector('svg'));
             if(close){
-                if(!button.classList.contains('mm-close-button'))button.classList.add('mm-close-button','action-icon-button');
+                button.classList.add('mm-close-button');
+                button.classList.remove('action-icon-button');
                 if(!button.querySelector('svg'))button.replaceChildren(icon(CLOSE_ICON));
                 if(!button.getAttribute('aria-label'))button.setAttribute('aria-label','Close');
-                if(button.dataset.tooltip!=='Close')button.dataset.tooltip='Close';
+                button.removeAttribute('data-tooltip');
+                button.removeAttribute('data-audience-tooltip');
+                button.removeAttribute('title');
             }else if(button.matches('.designer-rich-toolbar-row>button,[data-template-layout]'))button.classList.add('action-icon-button');
         }
     }
     function searches(){
         for(const input of document.querySelectorAll('.audience-app input[type=search]')){
+            const row=input.closest('.audience-filters,.collection-filters,.content-filters,.template-toolbar,.campaign-list-toolbar,.audience-definition-controls,.campaign-plan-search,.flow-overview-filters,.flow-catalog-controls,.analytics-inline-controls,.designer-preview-controls,.inbox-recipient-search,.collection-image-browser');
+            if(row&&!input.closest('.audience-topbar,.designer-topbar,.inbox-top'))row.classList.add('mm-search-row');
             if(input.dataset.mmSearch)continue;
             input.dataset.mmSearch='1';
             const existing=input.closest('.campaign-search,.search-with-icon,.filter-search,.inbox-search,.audience-search-top,.mm-search-field');
