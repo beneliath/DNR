@@ -57,7 +57,8 @@ function audienceDesignEmailRichText(string $html,int $paragraphSpacing=16):stri
         }
         $table=$doc->createElement('table');$table->setAttribute('role','presentation');$table->setAttribute('class','email-rich-image');$table->setAttribute('align',$side);
         $table->setAttribute('width',(string)((int)$width+12));$table->setAttribute('border','0');$table->setAttribute('cellpadding','0');$table->setAttribute('cellspacing','0');
-        $table->setAttribute('style','float:'.$side.';width:'.((int)$width+12).'px;width:min(100%,'.((int)$width+12).'px);max-width:100%;table-layout:fixed;border-collapse:collapse');
+        // Proton iOS injects * { float: none !important }. Inline priority preserves authored wrapping.
+        $table->setAttribute('style','float:'.$side.'!important;width:'.((int)$width+12).'px;width:min(100%,'.((int)$width+12).'px);max-width:100%;table-layout:fixed;border-collapse:collapse');
         $cell=$doc->createElement('td');$cell->setAttribute('style','padding:'.($side==='left'?'0 12px 12px 0':'0 0 12px 12px'));
         $row=$doc->createElement('tr');$row->appendChild($cell);$table->appendChild($row);
         $media->parentNode->insertBefore($table,$media);$cell->appendChild($media);
