@@ -144,7 +144,36 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     document.addEventListener('admin-unlock-changed', event => { if (typeof event.detail?.csrf_token === 'string') config.csrf = event.detail.csrf_token; });
     $$('[data-audience-admin-unlock]').forEach(button => button.addEventListener('click', () => window.DnrAdminUnlock?.request()));
     const clone = value => JSON.parse(JSON.stringify(value));
-    const show = id => { const dialog = document.getElementById(id); if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal(); };
+    const campaignCreate = $('#campaign-create');
+    const mainToolbar = $('body > .audience-topbar');
+    const campaignBack = campaignCreate?.querySelector('[data-campaign-create-back]');
+    const campaignShell = [deploymentBanner, accountBanner, adminBanner, previewBanner, mainToolbar].filter(Boolean);
+    const shellAnchors = new Map();
+    const restoreCampaignShell = () => {
+        if (shellAnchors.size) {
+            if (campaignBack) campaignCreate.prepend(campaignBack);
+            shellAnchors.forEach((anchor, node) => anchor.replaceWith(node));
+            shellAnchors.clear();
+        }
+    };
+    campaignCreate?.addEventListener('close', () => { if (!campaignCreate.open) restoreCampaignShell(); });
+    mainToolbar?.querySelector('[data-audience-nav-toggle]')?.addEventListener('click', () => {
+        if (campaignCreate?.open) { campaignCreate.close(); restoreCampaignShell(); }
+    }, true);
+    const show = id => {
+        const dialog = document.getElementById(id);
+        if (!(dialog instanceof HTMLDialogElement) || dialog.open) return;
+        // Keep the live banners and toolbar inside the full-screen modal's focus scope.
+        if (dialog === campaignCreate && mainToolbar) {
+            campaignShell.forEach(node => {
+                const anchor = document.createComment('Campaign shell');
+                node.before(anchor); shellAnchors.set(node, anchor);
+            });
+            dialog.prepend(...campaignShell);
+            if (campaignBack) mainToolbar.querySelector('.audience-brand').prepend(campaignBack);
+        }
+        dialog.showModal();
+    };
     const el = (tag, attrs = {}, text) => {
         const node = document.createElement(tag);
         if (['form', 'input', 'textarea'].includes(tag)) node.setAttribute('autocomplete', 'off');
