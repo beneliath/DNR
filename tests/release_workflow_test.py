@@ -24,6 +24,19 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_quick_preflight_failure_precedes_notice_and_version_preparation(self):
+        with patch.object(release_s1, 'require_tools'), \
+                patch.object(release_s1, 'validate_checkout', return_value='codex/fixture'), \
+                patch.object(release_s1, 'run') as run, \
+                patch.object(release_s1, 'quick_preflight', side_effect=ValueError('Free disk space')), \
+                patch.object(release_s1, 'prepare_version') as prepare_version, \
+                patch.object(release_s1, 'write_receipt') as receipt, \
+                self.assertRaisesRegex(ValueError, 'Free disk space'):
+            release_s1.main(['patch', '--summary', 'Fixture'])
+        prepare_version.assert_not_called()
+        self.assertFalse(any('scripts/deployment_notice.sh' in call.args[0] for call in run.call_args_list))
+        self.assertEqual(receipt.call_args.args[0]['stage'], 'quick deployment preflight')
+
     def test_resume_preserves_unpublished_version_and_rejects_published_or_wrong_versions(self):
         for kind, expected, wrong_kind in (
             ('major', '3.0.0', 'minor'),
