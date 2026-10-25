@@ -31,6 +31,10 @@ function audienceCampaignTracking(array $input):array
 {
     $out=[];foreach(['opens','clicks','plain_clicks','inbox','video']as$key)$out[$key]=($input[$key]??'0')==='1'||($input[$key]??false)===true;return $out;
 }
+function audienceCampaignDefaultTracking():array
+{
+    return audienceCampaignTracking(['opens'=>true,'clicks'=>true,'plain_clicks'=>true,'inbox'=>true,'video'=>true]);
+}
 function audienceCampaignDate(string $value,bool $time=false):string
 {
     $format=$time?'Y-m-d\TH:i':'Y-m-d';$date=DateTimeImmutable::createFromFormat('!'.$format,$value,new DateTimeZone('UTC'));

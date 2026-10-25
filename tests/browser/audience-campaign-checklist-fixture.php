@@ -20,6 +20,9 @@ for($i=3;$i<=12;$i++)$tags[]=['id'=>$i,'name'=>'Fixture tag '.$i];
 $segments=[['id'=>1,'name'=>'testSegment'],['id'=>2,'name'=>str_repeat('A long segment name ',15)]];
 $campaignMergeTags=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address','FULLNAME'=>'Full Name','ENTRYDATE'=>'Date of Entry','FUND'=>'Fund'];
 $fixtureMode=$argv[1]??'';
+if(in_array($fixtureMode,['sent','sent-notice'],true)){$campaign['status']='sent';$campaign['draft']['design']=audienceDesignStarters()['blank']['design'];$previewIdentity=[];}
+if($fixtureMode==='plain-notice'){$campaign['campaign_type']='plain-text';$campaign['draft']['text']='Plain-text fixture';}
+if(in_array($fixtureMode,['sent-notice','plain-notice'],true))$reopenDesignerUnavailable=true;
 if($fixtureMode==='enabled'){$campaign['draft']['resend']=['enabled'=>true];$publication=['enabled'=>true,'archive_listed'=>true,'public_key'=>'fixture-key'];}
 if($fixtureMode==='archive-only')$publication=['enabled'=>false,'archive_listed'=>true];
 if(str_starts_with($fixtureMode,'send-')){
