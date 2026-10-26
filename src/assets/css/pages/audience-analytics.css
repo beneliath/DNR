@@ -58,3 +58,10 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 }
 
 .analytics-recent-campaigns{grid-column:1/-1}
+
+.analytics-report-search>label.audience-check{min-height:var(--mm-search-control-height,44px);margin:0;padding:0}
+/* Let explanatory menus use the filter row's full width on phones. */
+@media(max-width:1000px){
+  .analytics-bot-info{flex:0 0 100%;min-width:0}
+  .analytics-bot-info>div{left:0;right:auto;width:330px;max-width:100%}
+}

@@ -234,6 +234,14 @@
     clearButton.addEventListener('click', function () { clearSearch(true); });
     if (emptyClearButton) emptyClearButton.addEventListener('click', function () { clearSearch(true); });
 
+    // Quick links can point to chapters hidden by the current search.
+    document.addEventListener('click', function (event) {
+        const link = event.target instanceof Element ? event.target.closest('a[href^="#"]') : null;
+        if (!link) return;
+        const target = document.getElementById(link.getAttribute('href').slice(1));
+        if (target && target.closest('[data-manual-section]')?.hidden) clearSearch(false);
+    });
+
     document.addEventListener('keydown', function (event) {
         const target = event.target;
         const isTyping = target instanceof HTMLElement
