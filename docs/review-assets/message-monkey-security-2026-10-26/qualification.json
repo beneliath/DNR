@@ -1,0 +1,298 @@
+{
+  "review_date": "2026-10-26",
+  "branch": "codex/messagemonkey-function-performance",
+  "base_commit": "40e6c72a7d2b6700688d8ebb85d81bc99bcb13ee",
+  "state": "local_uncommitted",
+  "findings": [
+    {
+      "severity": "P2",
+      "issue": "Permanent SNS certificate-fetch failures retried as transient errors",
+      "status": "fixed",
+      "regression_checks": 43
+    }
+  ],
+  "ruled_out": [
+    "Conflicting SNS certificate aliases are rejected by the installed AWS Message class before fetching"
+  ],
+  "php_version": "8.5.12",
+  "php_suites": [
+    {
+      "test": "audience_ai_findings_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ai_queries_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ai_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_analytics_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_brand_logos_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_brand_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_campaign_completion_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_campaign_tracking_defaults_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_collection_customization_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_runtime_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_setup_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_worker_privileges_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_design_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_designer_advanced_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_dispatch_demo_guard_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_dispatch_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_email_image_wrapping_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_embedded_form_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_export_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_filters_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_flow_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_helpers_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_image_original_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_inbox_email_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_inbox_gateway_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_inbox_ingest_privileges_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_inbox_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_manual_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_pagination_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_permission_reminder_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_recent_preview_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_scheduling_boundary_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_search_options_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ses_key_rotation_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_ses_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_sns_security_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_stage1b_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_starter_catalog_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_template_transfer_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_unsubscribe_addresses_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "security_helpers_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "security_runtime_regression_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "demo_authentication_policy_test.php",
+      "exit": 0,
+      "skipped": false
+    }
+  ],
+  "integration_suites": [
+    "audience_stage1b_test.php",
+    "audience_ai_terminal_http_integration_test.php",
+    "audience_campaign_lifecycle_http_integration_test.php",
+    "audience_collection_lifecycle_http_integration_test.php",
+    "audience_export_integration_test.php",
+    "audience_flow_lifecycle_http_integration_test.php",
+    "audience_flow_unlock_http_integration_test.php",
+    "audience_http_integration_test.php",
+    "audience_pagination_http_integration_test.php",
+    "audience_performance_integration_test.php",
+    "audience_planner_lifecycle_http_integration_test.php",
+    "audience_storage_integration_test.php",
+    "audience_tag_unlock_http_integration_test.php",
+    "audience_template_transfer_http_integration_test.php",
+    "audience_workspace_performance_http_integration_test.php"
+  ],
+  "integration_exit": 0,
+  "main_http_checks": 1332,
+  "sns_unit_checks": 26,
+  "sns_worker_checks": 17,
+  "restricted_worker_suites_passed": [
+    "audience_delivery_worker_privileges_test.php",
+    "audience_inbox_gateway_test.php",
+    "audience_inbox_ingest_privileges_test.php",
+    "audience_ses_key_rotation_test.php"
+  ],
+  "phpstan_configurations_passed": 4,
+  "composer_audit": {
+    "advisories": [],
+    "abandoned": []
+  },
+  "npm_audit_vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "final_performance": {
+    "exit": 0,
+    "database_checks": 386,
+    "http_checks": 156,
+    "workspaces": 25,
+    "php_deprecation": false
+  },
+  "external_mail_sent": false,
+  "production_changed": false,
+  "disposable_projects_cleaned": true,
+  "changed_security_and_regression_files_sha256": {
+    "src/audience_ses_notifications.php": "3edc0fe1767b880f673a96df705163c9c5b5ea48cbc475e11cff0dab67ac0d75",
+    "src/audience_inbox_store.php": "d4a5d024cc143374241103723b037c56d603f70672dd25fe9f463edc1ce7c6c3",
+    "tests/audience_sns_security_test.php": "2716071fe5e7352a865f0a5c45b3de0153c48f69690ed221c3713b55984482a8",
+    "tests/audience_sns_worker_security.php": "04d79d4f829d0b0a3caf7cd900b25d0ef0cd23ad625b5214b7b8cf659280e105",
+    "tests/audience_delivery_worker_privileges_test.php": "9b017047825137d868cfc3dd6ec372f10cf9a16774bb00120b26b324ef59d4ba"
+  },
+  "limits": [
+    "No production penetration/load test",
+    "No live edge/WAF or deployment-drift verification",
+    "No operating-system/container-image advisory scan",
+    "Mocked AWS certificate responses and delivery adapters"
+  ]
+}

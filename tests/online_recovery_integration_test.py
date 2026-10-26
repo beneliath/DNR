@@ -30,6 +30,22 @@ class OnlineRecoveryTests(unittest.TestCase):
 require '/var/www/html/bootstrap.php';
 require '/var/www/html/persistent_file_helpers.php';
 storePersistentFile($conn, str_repeat('recovery fixture', 100), 'recovery-test.txt', 'text/plain');
+// Exercise MessageMonkey relationships, frozen exports, and encrypted responses
+// as part of the same account snapshot and replacement-host decryption check.
+require '/var/www/html/audience_store.php';
+$store = new AudienceStore($conn, 1, 1, 'Recovery fixture');
+$tag = $store->saveTag('Recovery tag', 0, 0);
+$contact = $store->savePerson(['email'=>'recovery@example.test', 'first_name'=>'Recovery',
+    'email_status'=>'non-subscribed', 'tag_ids'=>[$tag]]);
+$store->saveNote($contact, 'Restored connection history', 0, 0);
+$export = $store->queueSelection('export', 'Recovery export', ['c.audience_id=? AND c.id=?', [1,$contact]]);
+$store->processJob($export);
+$form = $store->saveCollection(['kind'=>'survey', 'name'=>'Recovery survey']);
+$store->collectionOperation($form, 1, 'publish');
+$resource = $store->collectionResource($form);
+$store->write('INSERT INTO marketing_collection_responses(audience_id,resource_id,revision_id,receipt_hash,visitor_hash,contact_id,payload_ciphertext) VALUES (1,?,?,?,?,?,?)',
+    [$form,$resource['published_revision'],hash('sha256','recovery receipt'),hash('sha256','recovery visitor'),$contact,
+    Dnr\\Security\\ApplicationKey::seal('{"answer":"Encrypted recovery fixture"}')]);
 ''', text=True, check=True)
         stopped = threading.Event()
         errors = []
@@ -73,6 +89,9 @@ storePersistentFile($conn, str_repeat('recovery fixture', 100), 'recovery-test.t
                 self.assertTrue(receipt['restore_verified'])
                 self.assertGreaterEqual(receipt['persistent_files']['file_count'], 1)
                 self.assertIn('recovery_test_counter', receipt['database_state']['table_checksums'])
+                for table in ('marketing_contacts', 'marketing_contact_tags', 'marketing_contact_events',
+                              'marketing_notes', 'marketing_job_items', 'marketing_collection_responses'):
+                    self.assertIn(table, receipt['database_state']['table_checksums'])
                 self.assertGreater(int(query(db, 'SELECT counter FROM dnr.recovery_test_counter WHERE id=1')), 3)
                 self.assertEqual(errors, [])
                 self.assertTrue(inspect(web)['State']['Running'])

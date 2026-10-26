@@ -1,0 +1,422 @@
+{
+  "date": "2026-10-26",
+  "branch": "codex/messagemonkey-function-performance",
+  "base_commit": "40e6c72a7d2b6700688d8ebb85d81bc99bcb13ee",
+  "release_base": "2.8.0",
+  "scope": "Local source qualification using disposable Docker/MySQL and browser fixtures; no production changes or external messages",
+  "runtime": {
+    "local_php": "8.5.12",
+    "database": "MySQL 8.4",
+    "browser_engines": [
+      "Chromium",
+      "WebKit"
+    ],
+    "image_source": "Existing local runtime images with current source/tests/migrations mounted read-only; not a release image qualification"
+  },
+  "php_unit_feature_suites": [
+    "tests/audience_ai_findings_test.php",
+    "tests/audience_ai_queries_test.php",
+    "tests/audience_ai_test.php",
+    "tests/audience_analytics_test.php",
+    "tests/audience_brand_logos_test.php",
+    "tests/audience_brand_test.php",
+    "tests/audience_campaign_completion_test.php",
+    "tests/audience_campaign_tracking_defaults_test.php",
+    "tests/audience_collection_customization_test.php",
+    "tests/audience_delivery_runtime_test.php",
+    "tests/audience_delivery_setup_test.php",
+    "tests/audience_design_test.php",
+    "tests/audience_designer_advanced_test.php",
+    "tests/audience_dispatch_demo_guard_test.php",
+    "tests/audience_dispatch_test.php",
+    "tests/audience_email_image_wrapping_test.php",
+    "tests/audience_embedded_form_test.php",
+    "tests/audience_export_test.php",
+    "tests/audience_filters_test.php",
+    "tests/audience_flow_test.php",
+    "tests/audience_helpers_test.php",
+    "tests/audience_image_original_test.php",
+    "tests/audience_inbox_email_test.php",
+    "tests/audience_inbox_test.php",
+    "tests/audience_manual_test.php",
+    "tests/audience_pagination_test.php",
+    "tests/audience_permission_reminder_test.php",
+    "tests/audience_recent_preview_test.php",
+    "tests/audience_scheduling_boundary_test.php",
+    "tests/audience_search_options_test.php",
+    "tests/audience_ses_test.php",
+    "tests/audience_stage1b_test.php",
+    "tests/audience_starter_catalog_test.php",
+    "tests/audience_template_transfer_test.php",
+    "tests/audience_unsubscribe_addresses_test.php"
+  ],
+  "restricted_worker_suites": [
+    "tests/audience_delivery_worker_privileges_test.php",
+    "tests/audience_inbox_gateway_test.php",
+    "tests/audience_inbox_ingest_privileges_test.php",
+    "tests/audience_ses_key_rotation_test.php"
+  ],
+  "isolated_suites": [
+    "audience_stage1b_test.php",
+    "audience_ai_terminal_http_integration_test.php",
+    "audience_campaign_lifecycle_http_integration_test.php",
+    "audience_collection_lifecycle_http_integration_test.php",
+    "audience_export_integration_test.php",
+    "audience_flow_lifecycle_http_integration_test.php",
+    "audience_flow_unlock_http_integration_test.php",
+    "audience_http_integration_test.php",
+    "audience_pagination_http_integration_test.php",
+    "audience_performance_integration_test.php",
+    "audience_planner_lifecycle_http_integration_test.php",
+    "audience_storage_integration_test.php",
+    "audience_tag_unlock_http_integration_test.php",
+    "audience_template_transfer_http_integration_test.php",
+    "audience_workspace_performance_http_integration_test.php"
+  ],
+  "javascript_tests": 92,
+  "phpstan_configurations_passed": 4,
+  "browser_suites": [
+    {
+      "file": "tests/browser/audience-brand-controls.test.cjs",
+      "status": "passed",
+      "summary": "Brand Kit previews, save indicators and primary colors: 116 browser checks passed."
+    },
+    {
+      "file": "tests/browser/audience-brand-logos.test.cjs",
+      "status": "passed",
+      "summary": "Branding Kit logo previews, insertion, saved design, undo/redo, removal and empty states: 38 checks passed."
+    },
+    {
+      "file": "tests/browser/audience-campaign-checklist.test.cjs",
+      "status": "passed",
+      "summary": "Campaign checklist passed on desktop/mobile: recipients, personalization, layout, recipient preview and resend; unavailable designer uses a dismissible dialog with unchanged URL and keyboard/focus support."
+    },
+    {
+      "file": "tests/browser/audience-campaign-lifecycle.test.cjs",
+      "status": "passed",
+      "summary": "Campaign lifecycle/browser checks passed: 36 layouts (roles, archive/restore, delete unlock and expiry, context, report alignment, shared pagination and Home hovers)"
+    },
+    {
+      "file": "tests/browser/audience-campaign-planner.test.cjs",
+      "status": "passed",
+      "summary": "Campaign Manager cards, actions, empty state and calendar: 290 browser checks passed."
+    },
+    {
+      "file": "tests/browser/audience-campaign-review.test.cjs",
+      "status": "passed",
+      "summary": "Campaign review browser checks passed: 20 (long text/URLs, preserved whitespace, escaped text, desktop/mobile comments)."
+    },
+    {
+      "file": "tests/browser/audience-campaign-send-preview.test.cjs",
+      "status": "passed",
+      "summary": "Send-review preview passed for HTML/plain text on desktop/mobile: modal rendering, unchanged URL, close/focus restoration, keyboard open/Escape and no campaign requests."
+    },
+    {
+      "file": "tests/browser/audience-collection-images.test.cjs",
+      "status": "passed",
+      "summary": "Collection image/logo browser checks passed: 184"
+    },
+    {
+      "file": "tests/browser/audience-collection-lifecycle.test.cjs",
+      "status": "passed",
+      "summary": "Form lifecycle browser checks passed: 56 (roles, responsive layouts, light/dark, archive/restore/delete and unlock expiry)"
+    },
+    {
+      "file": "tests/browser/audience-email-image-wrapping.test.cjs",
+      "status": "passed",
+      "summary": "chromium: email wrapping passed at 320/390/430/768/1200px, including Proton iOS's exact float reset, image containers, both reproduced prior failures, and oversized-image containment."
+    },
+    {
+      "file": "tests/browser/audience-image-editing.test.cjs",
+      "status": "passed",
+      "summary": "Image zoom, position, Apply/Cancel and partial card previews: 46 checks passed."
+    },
+    {
+      "file": "tests/browser/audience-management-unlock.test.cjs",
+      "status": "passed",
+      "summary": "Audience management/browser unlock checks passed: 172"
+    },
+    {
+      "file": "tests/browser/audience-navigation.test.cjs",
+      "status": "passed",
+      "summary": "MessageMonkey navigation passed (12 mobile layouts, keyboard dismissal, and desktop resizing)."
+    },
+    {
+      "file": "tests/browser/audience-pagination.test.cjs",
+      "status": "passed",
+      "summary": "MessageMonkey pagination browser: 20 checks passed (server/async, filters, sizes, boundaries, mobile, narrow panels, themes, Forms divider)"
+    },
+    {
+      "file": "tests/browser/audience-recipient-preview.test.cjs",
+      "status": "passed",
+      "summary": "Recipient preview preserves current and explicit campaign endpoints with a hidden action field."
+    },
+    {
+      "file": "tests/browser/audience-segment-actions.test.cjs",
+      "status": "passed",
+      "summary": "Segment actions browser: 24 role/theme/layout checks passed (visible icons, spacing, Delete last, tooltips, keyboard, rename, export, draft links, single/bulk deletion, unlock cancellation, expiry and CSRF rotation)"
+    },
+    {
+      "file": "tests/browser/audience-selected-standards.test.cjs",
+      "status": "passed",
+      "summary": "Selected MessageMonkey standards: 380 icon, search, filter, dialog, status and responsive checks passed."
+    },
+    {
+      "file": "tests/browser/audience-shell-controls.test.cjs",
+      "status": "passed",
+      "summary": "Upper toolbar restoration: 14 desktop/mobile, light/dark and original-style checks passed."
+    },
+    {
+      "file": "tests/browser/audience-survey-preview.test.cjs",
+      "status": "passed",
+      "summary": "Survey device preview (chromium): 106 checks passed."
+    },
+    {
+      "file": "tests/browser/audience-tag-unlock.test.cjs",
+      "status": "passed",
+      "summary": "Tag actions browser: 24 role/theme/layout checks passed (visible icons, spacing, Delete last, tooltips, keyboard, rename, export, draft links, single/bulk deletion, unlock cancellation, expiry and CSRF rotation)"
+    },
+    {
+      "file": "tests/browser/audience-template-lifecycle.test.cjs",
+      "status": "passed",
+      "summary": "Template lifecycle browser checks passed: transfer visibility/upload, centered action rows, role visibility, unlock cancellation/expiry, rotated CSRF, and stacked desktop/mobile banners."
+    },
+    {
+      "file": "tests/browser/audience-template-switcher.test.cjs",
+      "status": "passed",
+      "summary": "Template switcher passed on desktop/mobile: rendered starter/saved previews, image loading, whole-card selection, confirmation, keyboard selection, saved HTML, Undo, responsive layout and inert previews."
+    },
+    {
+      "file": "tests/browser/audience-ui-standards.test.cjs",
+      "status": "passed",
+      "summary": "Shared MessageMonkey tabs, icon spacing, Automation selection and Recommended hover: 172 checks passed."
+    },
+    {
+      "file": "tests/browser/audience-editor-fixtures.test.cjs",
+      "status": "passed",
+      "summary": "chromium richtext: PASS: 82 browser checks\nchromium colors: PASS: 18 color checks\nchromium designer-drop: PASS: 15 insertion checks\nchromium image-upload: PASS: 54 checks\nJPEG: 6.91 MB \u2192 899.4 KB (1956 \u00d7 1100)\nwebkit richtext: PASS: 82 browser checks\nwebkit colors: PASS: 18 color checks\nwebkit designer-drop: PASS: 15 insertion checks\nwebkit image-upload: PASS: 54 checks\nJPEG: 7.32 MB \u2192 977.3 KB (1711 \u00d7 962)"
+    }
+  ],
+  "before_query_measurements": {
+    "contacts_10": {
+      "before_queries": 20,
+      "after_queries": 20,
+      "before_ms": 1.758291,
+      "after_ms": 1.470458
+    },
+    "contacts_100": {
+      "before_queries": 200,
+      "after_queries": 200,
+      "before_ms": 13.754459,
+      "after_ms": 19.289792
+    },
+    "groups_20": {
+      "queries": 21,
+      "ms": 3.296042
+    },
+    "messages_10": {
+      "queries": 23,
+      "ms": 1.992959
+    },
+    "messages_100": {
+      "queries": 202,
+      "ms": 12.724666
+    }
+  },
+  "after_query_measurements": {
+    "contacts_10": {
+      "before_queries": 20,
+      "after_queries": 2,
+      "before_ms": 1.532083,
+      "after_ms": 0.714333
+    },
+    "contacts_100": {
+      "before_queries": 200,
+      "after_queries": 2,
+      "before_ms": 18.413375,
+      "after_ms": 1.036792
+    },
+    "groups_20": {
+      "queries": 2,
+      "ms": 0.382833
+    },
+    "messages_10": {
+      "queries": 5,
+      "ms": 0.843083
+    },
+    "messages_100": {
+      "queries": 5,
+      "ms": 1.237792
+    }
+  },
+  "workspace_timings": {
+    "home": {
+      "samples": 5,
+      "median_ms": 23.14,
+      "max_ms": 23.53,
+      "html_bytes": 65703
+    },
+    "contacts": {
+      "samples": 5,
+      "median_ms": 21.95,
+      "max_ms": 23.95,
+      "html_bytes": 208873
+    },
+    "tags": {
+      "samples": 5,
+      "median_ms": 21.25,
+      "max_ms": 24.47,
+      "html_bytes": 71739
+    },
+    "groups": {
+      "samples": 5,
+      "median_ms": 20.94,
+      "max_ms": 25.36,
+      "html_bytes": 69023
+    },
+    "fields": {
+      "samples": 5,
+      "median_ms": 21.24,
+      "max_ms": 21.93,
+      "html_bytes": 69445
+    },
+    "segments": {
+      "samples": 5,
+      "median_ms": 21.31,
+      "max_ms": 21.94,
+      "html_bytes": 74384
+    },
+    "settings": {
+      "samples": 5,
+      "median_ms": 20.48,
+      "max_ms": 20.76,
+      "html_bytes": 71434
+    },
+    "campaigns": {
+      "samples": 5,
+      "median_ms": 6.57,
+      "max_ms": 7.99,
+      "html_bytes": 82354
+    },
+    "campaign-manager": {
+      "samples": 5,
+      "median_ms": 7.51,
+      "max_ms": 8.3,
+      "html_bytes": 69382
+    },
+    "templates": {
+      "samples": 5,
+      "median_ms": 26.25,
+      "max_ms": 27.33,
+      "html_bytes": 61563
+    },
+    "content": {
+      "samples": 5,
+      "median_ms": 7.42,
+      "max_ms": 8.13,
+      "html_bytes": 64079
+    },
+    "brand": {
+      "samples": 5,
+      "median_ms": 24.4,
+      "max_ms": 26.23,
+      "html_bytes": 331461
+    },
+    "delivery": {
+      "samples": 5,
+      "median_ms": 8.52,
+      "max_ms": 9.51,
+      "html_bytes": 63431
+    },
+    "automations": {
+      "samples": 5,
+      "median_ms": 6.61,
+      "max_ms": 7.2,
+      "html_bytes": 79287
+    },
+    "flow-templates": {
+      "samples": 5,
+      "median_ms": 5.19,
+      "max_ms": 5.55,
+      "html_bytes": 87324
+    },
+    "forms": {
+      "samples": 5,
+      "median_ms": 4.92,
+      "max_ms": 5.22,
+      "html_bytes": 64713
+    },
+    "landing-pages": {
+      "samples": 5,
+      "median_ms": 5.07,
+      "max_ms": 5.45,
+      "html_bytes": 63528
+    },
+    "surveys": {
+      "samples": 5,
+      "median_ms": 5.84,
+      "max_ms": 6.37,
+      "html_bytes": 64224
+    },
+    "preferences": {
+      "samples": 5,
+      "median_ms": 4.76,
+      "max_ms": 4.98,
+      "html_bytes": 63439
+    },
+    "inbox": {
+      "samples": 5,
+      "median_ms": 5.26,
+      "max_ms": 5.45,
+      "html_bytes": 54189
+    },
+    "analytics": {
+      "samples": 5,
+      "median_ms": 10.56,
+      "max_ms": 11.95,
+      "html_bytes": 83171
+    },
+    "assistant": {
+      "samples": 5,
+      "median_ms": 4.76,
+      "max_ms": 5.08,
+      "html_bytes": 61507
+    },
+    "manual": {
+      "samples": 5,
+      "median_ms": 3.23,
+      "max_ms": 3.61,
+      "html_bytes": 120695
+    },
+    "import": {
+      "samples": 5,
+      "median_ms": 19.25,
+      "max_ms": 19.48,
+      "html_bytes": 70060
+    },
+    "jobs": {
+      "samples": 5,
+      "median_ms": 19.51,
+      "max_ms": 19.69,
+      "html_bytes": 69017
+    }
+  },
+  "workspace_fixture": {
+    "additional_contacts": 5000,
+    "subscribed": false,
+    "warmup_per_route": 1,
+    "measured_requests_per_route": 5,
+    "concurrency": 1,
+    "http_checks": 156,
+    "query_regression_checks": 386
+  },
+  "limits": [
+    "No live SES send or inbound reply",
+    "No production load or concurrent throughput benchmark",
+    "No live AI provider answer-quality benchmark",
+    "No external website embed installation",
+    "No long-running soak or actual DST transition",
+    "Browser fixtures do not establish every device/email-client combination",
+    "Continuous Inbox thread listing still loads all matching threads; large mailbox scale not qualified"
+  ]
+}

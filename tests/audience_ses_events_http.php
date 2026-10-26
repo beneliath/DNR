@@ -20,6 +20,20 @@ $complaint=$sesEvent($runtimeRows[2],'Complaint');audienceSnsReceive($campaignSt
 $delayed=$sesEvent($runtimeRows[3],'DeliveryDelay');audienceSnsReceive($campaignStore,$signSes($delayed,'ses-delay'),$fetch);$counts=$campaignStore->deliveryReport($runtimeJob);audienceHttpExpect(array_sum(array_column($counts,'delayed'))===1,'SES delays appear in campaign reports');
 $campaignStore->write("UPDATE marketing_campaign_recipients SET state='uncertain' WHERE id=?",[$rr['id']]);audienceSnsReceive($campaignStore,$signSes($event,'ses-reconcile'),$fetch);audienceHttpExpect($campaignStore->one('SELECT state FROM marketing_campaign_recipients WHERE id=?',[$rr['id']])['state']==='accepted','Verified receipt reconciles uncertain API outcome without resend');
 $curl=curl_init('http://127.0.0.1/audience_ses_events.php');curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode(array_replace($signed,['Signature'=>'invalid']))]);curl_exec($curl);audienceHttpExpect(curl_getinfo($curl,CURLINFO_RESPONSE_CODE)===403,'Public SNS route rejects invalid signatures');unset($curl);
+$queueBefore=(int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_ses_inbox')['n'];
+foreach([
+    ['Type'=>'SubscriptionConfirmation'],
+    ['SigningCertUrl'=>$signed['SigningCertURL']],
+    ['Subject'=>['unexpected'=>'object']],
+    ['MessageId'=>['unexpected'=>'array']],
+    ['Timestamp'=>42],
+    ['Signature'=>['unexpected'=>'array']],
+]as$invalidFields){
+    $curl=curl_init('http://127.0.0.1/audience_ses_events.php');
+    curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_POSTFIELDS=>json_encode(array_replace($signed,$invalidFields),JSON_THROW_ON_ERROR)]);
+    curl_exec($curl);audienceHttpExpect(curl_getinfo($curl,CURLINFO_RESPONSE_CODE)===403,'Malformed SNS envelopes are rejected before queueing');unset($curl);
+}
+audienceHttpExpect((int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_ses_inbox')['n']===$queueBefore,'Malformed public requests consume no durable SNS rows');
 audienceHttpExpect($public('audience_delivery_event.php')['status']===405,'Legacy event route refuses GET');
 require __DIR__.'/audience_test_delivery_events_http.php';
 // Queue real signed envelopes through the network-isolated public route. The

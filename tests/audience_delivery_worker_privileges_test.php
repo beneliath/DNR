@@ -26,6 +26,7 @@ if(processAudienceSnsInbox($db,1,$fetchCertificate,$confirmSubscription)!==1||$c
 if((int)$db->query("SELECT COUNT(*) n FROM marketing_ses_inbox WHERE payload_ciphertext<>''")->fetch_assoc()['n']!==0)throw new RuntimeException('Completed SNS tokens were retained.');
 if(!str_ends_with($db->query('SELECT subscription_arn FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['subscription_arn'],':bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'))throw new RuntimeException('Authenticated subscription receipt was not retained.');
 echo "SNS durable retry, signed confirmation, forged-envelope rejection, suppression and mail-role isolation passed.\n";
+require __DIR__.'/audience_sns_worker_security.php';
 $fakeSes=new class{
  public array $sent=[];public ?Throwable $failure=null;public int $checks=0;public bool $verified=true;public ?Closure $onSend=null;
  public function getAccount(array $args):array{$this->checks++;return ['SendingEnabled'=>true,'ProductionAccessEnabled'=>true,'SendQuota'=>['Max24HourSend'=>1000,'MaxSendRate'=>10,'SentLast24Hours'=>0]];}

@@ -340,6 +340,17 @@ trait AudienceCollection
         if ($attempts>$limit) throw new InvalidArgumentException('Too many attempts. Please try again later.');
     }
 
+    /** Bound anonymous analytics writes without blocking form access or consent. */
+    public function recordCollectionVisit(int $resource,string $key,string $visitor,string $ip,string $variant='A'):bool
+    {
+        if(!preg_match('/^[a-f0-9]{64}$/D',$key)||!preg_match('/^[a-f0-9]{64}$/D',$visitor)||!in_array($variant,['A','B'],true))return false;
+        // Share the budget across this account's forms. A caller controls the
+        // visitor ID and public form key, but cannot select the trusted client IP.
+        try{$this->collectionRateLimit('visit:'.$ip,300);}catch(InvalidArgumentException){return false;}
+        $this->write("INSERT IGNORE INTO marketing_collection_visits(resource_id,day,visitor_hash,variant_key) SELECT id,UTC_DATE(),?,? FROM marketing_collection_resources WHERE audience_id=? AND id=? AND public_key=? AND state='published' AND deleted_at IS NULL",[hash('sha256',$key.$visitor),$variant,$this->audienceId,$resource,$key]);
+        return $this->db->affected_rows===1;
+    }
+
     public function collectionRecipient(string $token): ?array
     {
         if (!preg_match('/^[a-f0-9]{64}$/D',$token)) return null;

@@ -20,10 +20,10 @@ try{
   const widths=await page.locator('.campaign-agenda-card').evaluateAll(cards=>cards.map(card=>card.getBoundingClientRect().width));
   assert(widths.every(w=>width===390?w<=360:w===360));assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);checks+=2;
   assert.equal(await page.locator('.campaign-agenda-actions').first().evaluate(el=>getComputedStyle(el).gap),'16px');checks++;
-  assert.deepEqual(await page.locator('.campaign-agenda-actions').nth(1).locator('button,a').evaluateAll(items=>items.map(item=>item.dataset.tooltip)),['Edit','Archive','View email']);checks++;
+  assert.deepEqual(await page.locator('.campaign-agenda-actions').nth(1).locator('button,a').evaluateAll(items=>items.map(item=>item.dataset.tooltip)),['Edit','View email','Archive']);checks++;
   const edits=page.locator('.campaign-agenda-actions [data-touchpoint-edit]');assert.equal(await edits.count(),6);assert.equal(await page.locator('.campaign-agenda-actions a').count(),2);checks+=2;
   for(const button of await edits.all()){assert.match(await button.getAttribute('aria-label'),/^Edit /);assert.equal(await button.getAttribute('data-tooltip'),'Edit');assert.equal(await button.locator('svg').count(),1);checks+=3;}
-  await edits.first().hover();let tooltip=page.locator('#'+await edits.first().getAttribute('aria-describedby'));await tooltip.waitFor({state:'visible'});assert.equal(await tooltip.textContent(),'Edit');assert.deepEqual(await tooltip.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color})),{bg:'rgb(0, 0, 0)',color:'rgb(255, 255, 255)'});checks+=2;
+  await edits.first().hover();let tooltip=page.locator('#'+await edits.first().getAttribute('aria-describedby'));await tooltip.waitFor({state:'visible'});assert.equal(await tooltip.textContent(),'Edit');assert.deepEqual(await tooltip.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color})),dark?{bg:'rgb(243, 246, 251)',color:'rgb(23, 32, 51)'}:{bg:'rgb(0, 0, 0)',color:'rgb(255, 255, 255)'});checks+=2;
   await edits.first().click();const dialog=page.locator('#campaign-touchpoint-editor');await dialog.waitFor({state:'visible'});assert.equal(await dialog.locator('[name=name]').inputValue(),'Review newsletter copy');assert.equal(await dialog.locator('[name=id]').first().inputValue(),'21');checks+=2;
   const touchpointDelete=dialog.locator('[data-touchpoint-delete]');assert.equal(await touchpointDelete.getAttribute('data-admin-unlock-required'),'');checks++;
   await page.evaluate(()=>{window.touchpointUnlockChecks=0;window.DnrAdminUnlock={request:async()=>{window.touchpointUnlockChecks++;return false;}};});
@@ -42,7 +42,7 @@ try{
    for(archived of [false,true])for(role of ['admin','editor','reviewer']){
     await open();assert.equal(await page.locator('.campaign-plan-lifecycle-tabs [aria-current=page]').count(),1);assert.equal(await page.locator('.campaign-plan-lifecycle-tabs [aria-current=page]').textContent(),archived?'Archive':'Active');checks+=2;
     const actions=page.locator('.campaign-plan-row-actions').first();
-    assert.equal(await actions.locator('[data-tooltip="Manage campaign"]').count(),archived?0:1);
+    assert.equal(await actions.locator('[data-tooltip="Manage"]').count(),archived?0:1);
     assert.equal(await actions.locator('[data-tooltip="Archive"]').count(),!archived&&role!=='reviewer'?1:0);
     assert.equal(await actions.locator('[data-tooltip="Restore"]').count(),archived&&role!=='reviewer'?1:0);
     assert.equal(await actions.locator('[data-tooltip="Delete"]').count(),archived&&role==='admin'?1:0);checks+=4;

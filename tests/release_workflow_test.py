@@ -24,6 +24,19 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_checkout_accepts_the_same_authorized_gitlab_repository_over_ssh_or_https(self):
+        for url in ('https://gitlab.beneliath.com/SiMM/dnr.git', 'git@gitlab.beneliath.com:SiMM/dnr.git'):
+            def git(*args):
+                if args==('branch','--show-current'):return 'codex/release-fixture'
+                if args==('remote',):return 'origin\ngitlab'
+                return 'git@github.com:beneliath/DNR.git' if args[-1]=='origin' else url
+            with self.subTest(url=url),patch.object(release_s1,'git',side_effect=git):
+                self.assertEqual(release_s1.validate_checkout(),'codex/release-fixture')
+        url='git@gitlab.beneliath.com:other/repository.git'
+        with patch.object(release_s1,'git',side_effect=git):
+            with self.assertRaisesRegex(ValueError,'unexpected push URL'):
+                release_s1.validate_checkout()
+
     def test_transient_github_status_reads_retry_and_return_the_result(self):
         command = ['gh', 'run', 'view', '123', '--json', 'status']
         failure = subprocess.CalledProcessError(1, command, stderr='net/http: TLS handshake timeout')

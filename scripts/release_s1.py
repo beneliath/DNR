@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STATE_DIRECTORY = ROOT / '.git/dnr-deploy'
 EXPECTED_REMOTES = {
     'origin': {'git@github.com:beneliath/DNR.git', 'https://github.com/beneliath/DNR.git'},
-    'gitlab': {'https://gitlab.beneliath.com/SiMM/dnr.git'},
+    'gitlab': {'https://gitlab.beneliath.com/SiMM/dnr.git', 'git@gitlab.beneliath.com:SiMM/dnr.git'},
 }
 GUIDE_PATHS = (
     'docs/user-manual',
