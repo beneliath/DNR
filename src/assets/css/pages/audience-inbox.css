@@ -160,7 +160,13 @@
 .inbox-icon-button.is-disabled { opacity: .25; }
 .inbox-presence { display: block; font-size: var(--inbox-font-caption); color: var(--inbox-muted); padding-bottom: 8px; }
 .inbox-presence:empty { display: none; }
-.inbox-conversation-content { max-width: 1100px; margin: 0 auto; padding: 24px 32px 36px; }
+.inbox-conversation-content {
+    --inbox-font-body: calc(18px * var(--audience-font-scale, 1));
+    --inbox-font-small: calc(16px * var(--audience-font-scale, 1));
+    --inbox-font-caption: calc(14px * var(--audience-font-scale, 1));
+    max-width: 1100px; margin: 0 auto; padding: 24px 32px 36px;
+    font-size: var(--inbox-font-body);
+}
 .inbox-history-label { display: flex; align-items: center; justify-content: space-between; font-size: var(--inbox-font-caption); color: var(--inbox-muted); margin-bottom: 14px; }
 .inbox-messages { display: grid; gap: 16px; margin: 0 0 24px; }
 .inbox-message { background: var(--inbox-surface); border: 1px solid var(--inbox-line); padding: 20px 22px; border-radius: 9px; overflow-wrap: anywhere; scroll-margin-top: 230px; }
@@ -433,3 +439,10 @@ html.dark-mode .inbox-message-comment { border-color: #665e3d; }
 .inbox-unread-filter[aria-pressed="true"] .inbox-switch-track { background: var(--inbox-accent); }
 .inbox-unread-filter[aria-pressed="true"] .inbox-switch-track>span { transform: translateX(11px); }
 .inbox-unread-filter[aria-pressed="true"] .inbox-filter-state { color: var(--inbox-accent); }
+
+/* Explicit Inbox searches keep the field and its actions together. */
+.audience-app .inbox-search-manual{flex-wrap:wrap;gap:8px;padding:0;border:0;background:transparent}
+.inbox-search-manual .inbox-search-field{display:flex;align-items:center;gap:8px;flex:1 1 140px;min-width:0;min-height:44px;padding:0 10px;border:1px solid var(--inbox-line);border-radius:7px;background:var(--inbox-panel)}
+.inbox-search-manual .inbox-search-field:focus-within{outline:2px solid var(--audience-primary);outline-offset:2px}
+.inbox-search-manual .inbox-search-field :is(input,kbd){font-size:inherit}
+.audience-app .inbox-search-manual>[data-mm-search-text]{min-height:44px;padding:8px 12px;border:1px solid var(--inbox-line);border-radius:6px;background:var(--inbox-surface);color:var(--inbox-ink);font:inherit}

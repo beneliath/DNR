@@ -198,7 +198,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
         });
         li.append(button);
         if (canRemoveHistory) {
-          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete response permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete response: ${item.question}`);
+          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete response: ${item.question}`);
           const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
           remove.addEventListener('click',()=>changeHistory('delete',async()=>{
             await api({action:'delete',request_id:item.client_request_id,confirmed:true});

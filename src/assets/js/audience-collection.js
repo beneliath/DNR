@@ -327,6 +327,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         } catch (error) { if (current === imageLoad) feedback.textContent = error.message || 'Images are unavailable.'; }
     };
     imageDialog.querySelector('[data-collection-image-find]').addEventListener('click', () => { imagePage = 1; loadImages(); });
+    imageDialog.querySelector('[data-collection-image-clear]').addEventListener('click', event => { event.preventDefault();imagePage = 1;loadImages(); });
     const imageButtons = (card, apply) => {
         const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse images'); browse.type = 'button';
         browse.addEventListener('click', () => { chooseImage = apply; imagePage = 1; imageDialog.showModal(); loadImages(); });
@@ -347,8 +348,10 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz choice'} ${index + 1}`));
             const move = delta => { const to = index + delta; if (to < 0 || to >= model[key].length) return; [model[key][index], model[key][to]] = [model[key][to], model[key][index]]; renderList(key); changed(); };
             [['↑', () => move(-1), 'Move up'], ['↓', () => move(1), 'Move down'], ['×', () => { model[key].splice(index, 1); renderList(key); changed(); }, 'Remove']].forEach(([text, action, label]) => {
+                if (key === 'questions' && model[key].length === 1 && label !== 'Remove') return;
                 const button = el('button', text); button.type = 'button'; button.setAttribute('aria-label', `${label} ${index + 1}`); button.addEventListener('click', action); head.append(button);
-            }); card.append(head);
+            });
+            card.append(head);
             if (key === 'questions') {
                 card.classList.add('collection-question');
                 const main = el('div', '', 'collection-question-main'), inspector = el('aside', '', 'collection-question-settings');card.append(main, inspector);
