@@ -1,28 +1,49 @@
 <?php
 declare(strict_types=1);
 /** Fetches only bounded AWS responses. Redirects and inherited proxy credentials are disabled. */
-function audienceSnsFetch(string $url):string
+function audienceSnsFetch(string $url,?\GuzzleHttp\ClientInterface $client=null):string
 {
-    $client=new \GuzzleHttp\Client(['timeout'=>6,'connect_timeout'=>3,'allow_redirects'=>false,'proxy'=>'']);
-    $r=$client->get($url,['stream'=>true]);if($r->getStatusCode()!==200)throw new RuntimeException('SNS fetch failed.');
-    $body=$r->getBody();$out='';while(!$body->eof()&&strlen($out)<=65536)$out.=$body->read(8192);if(strlen($out)>65536)throw new RuntimeException('SNS response exceeded its limit.');return $out;
+    $client??=new \GuzzleHttp\Client(['timeout'=>6,'connect_timeout'=>3,'allow_redirects'=>false,'proxy'=>'']);
+    $r=$client->request('GET',$url,['stream'=>true,'http_errors'=>false,'allow_redirects'=>false]);
+    $status=$r->getStatusCode();
+    if($status!==200){
+        // Certificate URLs are supplied by unauthenticated callers. Missing or
+        // forbidden certificates and redirects cannot authenticate a receipt;
+        // retaining them for twenty retries lets forged envelopes occupy the queue.
+        if($status<500&&!in_array($status,[408,425,429],true))throw new InvalidArgumentException('SNS certificate is unavailable.');
+        throw new RuntimeException('SNS fetch failed.');
+    }
+    $body=$r->getBody();$out='';while(!$body->eof()&&strlen($out)<=65536)$out.=$body->read(8192);
+    if(strlen($out)>65536)throw new InvalidArgumentException('SNS response exceeded its limit.');
+    return $out;
 }
 function audienceSnsHost(array $s):string{return 'sns.'.$s['region'].'.amazonaws.com';}
 function audienceSnsCertificateUrl(string $url,array $s):bool
 {
     $p=parse_url($url);return is_array($p)&&($p['scheme']??'')==='https'&&($p['host']??'')===audienceSnsHost($s)&&!array_intersect(['user','pass','port','query','fragment'],array_keys($p))&&preg_match('~^/SimpleNotificationService-[A-Za-z0-9_-]+\.pem$~D',$p['path']??'')===1;
 }
-function audienceSnsEnvelope(array $data,array $s):void
+/** Reject impossible envelopes before they consume durable queue capacity. */
+function audienceSnsEnvelope(array $data,array $s):\Aws\Sns\Message
 {
+    foreach(['Type'=>32,'MessageId'=>100,'TopicArn'=>2048,'Timestamp'=>64,'Message'=>262144,
+        'SignatureVersion'=>1,'Signature'=>1368,'SigningCertURL'=>2048,'SigningCertUrl'=>2048,
+        'Subject'=>1024,'Token'=>4096,'SubscribeURL'=>8192,'SubscribeUrl'=>8192,'UnsubscribeURL'=>8192,'UnsubscribeUrl'=>8192]as$field=>$limit){
+        if(array_key_exists($field,$data)&&(!is_string($data[$field])||strlen($data[$field])>$limit))throw new InvalidArgumentException('Invalid SNS field.');
+    }
     if(empty($s['enabled'])||($data['TopicArn']??'')!==$s['topic_arn']||!in_array($data['Type']??'',['Notification','SubscriptionConfirmation','UnsubscribeConfirmation'],true)||!in_array($data['SignatureVersion']??'',['1','2'],true)||!preg_match('/^[A-Za-z0-9-]{1,100}$/D',$data['MessageId']??''))throw new InvalidArgumentException('SNS scope is invalid.');
     $signature=base64_decode((string)($data['Signature']??''),true);if($signature===false||strlen($signature)<128||strlen($signature)>1024)throw new InvalidArgumentException('SNS signature is invalid.');
-    $timestamp=strtotime((string)($data['Timestamp']??''));if(!$timestamp||$timestamp<time()-30*86400||$timestamp>time()+300)throw new InvalidArgumentException('SNS timestamp is outside the accepted window.');
+    audienceSnsEventTime($data['Timestamp']??'');
     $cert=$data['SigningCertURL']??$data['SigningCertUrl']??'';if(!audienceSnsCertificateUrl($cert,$s))throw new InvalidArgumentException('SNS certificate location is invalid.');
     if(!is_string($data['Message']??null)||strlen($data['Message'])>262144)throw new InvalidArgumentException('SNS message is invalid.');
+    // The SDK enforces required confirmation fields and rejects duplicate URL
+    // aliases. Apply those checks at admission, not only in the later worker.
+    $message=new \Aws\Sns\Message($data);
+    if($data['Type']!=='Notification')audienceSnsConfirmationRequest($message,$s);
+    return $message;
 }
 function audienceSnsValidate(array $data,array $s,?callable $fetch=null):\Aws\Sns\Message
 {
-    audienceSnsEnvelope($data,$s);$fetch??='audienceSnsFetch';$m=new \Aws\Sns\Message($data);(new \Aws\Sns\MessageValidator($fetch))->validate($m);return $m;
+    $m=audienceSnsEnvelope($data,$s);$fetch??='audienceSnsFetch';(new \Aws\Sns\MessageValidator($fetch))->validate($m);return $m;
 }
 /** Confirm only after signature verification, using the worker's scoped credentials. */
 function audienceSnsConfirmationRequest(\Aws\Sns\Message $m,array $s):array

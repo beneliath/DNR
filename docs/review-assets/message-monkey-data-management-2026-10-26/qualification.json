@@ -1,0 +1,140 @@
+{
+  "date": "2026-10-26",
+  "branch": "codex/messagemonkey-function-performance",
+  "base_head": "40e6c72a7d2b6700688d8ebb85d81bc99bcb13ee",
+  "working_tree_changes": true,
+  "deployed": false,
+  "schema_changes": false,
+  "baseline_regressions": {
+    "checks": 24,
+    "failures": 17,
+    "failure_messages": [
+      "Deleting ann must preserve the completed export of joann",
+      "Pending import with an email suffix collision survives",
+      "Mapped email identity takes precedence over a matching name cell",
+      "Unmapped drafts redact complete cells without suffix collisions",
+      "Native status Campaign unsubscribe exports its actual event date",
+      "Native suppression cannot inherit an old provider campaign",
+      "Native status hard-bounce exports its actual event date",
+      "Native suppression cannot inherit an old provider campaign",
+      "Native status complaint exports its actual event date",
+      "Native suppression cannot inherit an old provider campaign",
+      "Native subscription-confirmed Delivered single-use confirmation exports its actual event date",
+      "New native consent cannot inherit old provider IP evidence: subscription-confirmed",
+      "Native collection-converted single exports its actual event date",
+      "New native consent cannot inherit old provider IP evidence: collection-converted",
+      "Single opt-in cannot inherit an old confirmation date",
+      "Native collection-converted double exports its actual event date",
+      "New native consent cannot inherit old provider IP evidence: collection-converted"
+    ]
+  },
+  "invalid_timestamp_baseline": [
+    "[\"2026-02-30 12:00:00\",\"2026-02-30 12:00:00\"]",
+    "[\"2026-10-26 25:61:00\",\"2026-10-26 25:61:00\"]"
+  ],
+  "focused_regressions": {
+    "checks": 34,
+    "failures": 0,
+    "project": "dnr-test-247c9d488007"
+  },
+  "local_php": {
+    "executed_passed": 36,
+    "guarded_skipped": 4,
+    "failures": 0,
+    "export_checks": 47
+  },
+  "audience_integration": {
+    "project": "dnr-test-745ee6bb3540",
+    "suite_entries": 17,
+    "main_http_checks": 1339,
+    "data_management_checks": 34,
+    "separate_restricted_role_suites": 4,
+    "exit_code": 0,
+    "output_summaries": [
+      "Stage 1b storage passed: audience isolation, custom fields, groups/tags, nested rules, concurrency, notes, permission-safe import, duplicate and blank-field matrix, resumable jobs, exports, undo and deletion.",
+      "Audience cancellation, expiry, late answers, and legacy HTTP recovery passed.",
+      "Campaign lifecycle HTTP checks passed: 46",
+      "Form lifecycle HTTP checks passed: 56",
+      "Audience data management: 34 checks, 0 failures.",
+      "Audience export snapshots: 7 checks passed.",
+      "Flow lifecycle HTTP checks passed: 38",
+      "Flow removal unlock HTTP checks passed: 27",
+      "Campaign completion HTTP: 88 additional checks passed.",
+      "Content and Brand HTTP: 117 additional checks passed.",
+      "Audience template folder HTTP checks passed: 36",
+      "Audience template bulk move HTTP checks passed: 23",
+      "SES setup HTTP: 57 checks passed.",
+      "Test delivery callbacks and Activity: 16 checks passed; no external mail.",
+      "SES signed event/storage: 41 checks passed.",
+      "Delivery completion HTTP/storage: 89 checks passed; no external mail.",
+      "Campaign dispatch HTTP/storage: 132 checks passed; all sends used a disposable adapter.",
+      "Workspace search HTTP: 31 checks passed.",
+      "Collection HTTP checks passed (129 checks).",
+      "Flow HTTP and execution checks passed: 84",
+      "Audience toolbar HTTP checks passed: 21",
+      "Inbox HTTP/storage qualification passed (80 checks); no external messages sent.",
+      "Analytics HTTP/storage qualification passed (129 checks).",
+      "MessageMonkey AI HTTP qualification passed (128 checks).",
+      "Audience defaults and notifications: 16 checks passed; no external mail.",
+      "Audience HTTP integration passed (1339 checks): permissions, CSRF, profiles, management screens, segmentation, import wizard, detached worker, exports and isolation.",
+      "MessageMonkey pagination HTTP: 196 checks passed.",
+      "MessageMonkey performance: 386 checks passed.",
+      "Campaign plans and touchpoints: 53 HTTP lifecycle/security checks passed.",
+      "Public form analytics admission and continued access: 12 checks passed.",
+      "Audience validation, consent, suppression, filters, and CSV tests passed.",
+      "Audience database creation, duplicates, concurrency, consent history, tags, filters, archive/restore, and suppression passed.",
+      "Audience protected actions, unsubscribe, and counts: 127 checks passed.",
+      "Template transfer: 26 HTTP round-trip and permission checks passed.",
+      "MessageMonkey workspace performance: 156 HTTP checks passed across 25 views.",
+      "SNS durable retry, signed confirmation, forged-envelope rejection, suppression and mail-role isolation passed.",
+      "SNS permanent failure retirement, transient retry and forged-signature rejection: 21 checks passed.",
+      "Idle SES readiness refresh, fresh-check suppression and failed-verification gate passed.",
+      "SES quota, throttle, rejection, ambiguity and no-replay checks passed.",
+      "Shared paid allocation, reserves, interval and provider pause checks passed.",
+      "SES credential, API envelope, setup and campaign worker privileges passed; no external message sent.",
+      "Flow execution and authoring privilege separation passed.",
+      "Inbox worker read/receipt privileges and source/template authoring separation passed.",
+      "Audience notification worker permissions passed; no external mail.",
+      "Inbox restricted ingestion and no-sending/no-credential-write separation passed.",
+      "Inbox gateway qualification passed (18 checks): authenticated MIME intake, signed routes, exact thread, attachment, duplicate UID, unverified sender and automatic reply rejection.",
+      "SES encrypted-credential rotation, empty rows, account binding and retirement checks passed."
+    ]
+  },
+  "phpstan": {
+    "configurations_passed": 4,
+    "exit_code": 0
+  },
+  "recovery": {
+    "project": "dnr-test-a232bca006f1",
+    "synthetic_data_only": true,
+    "snapshot_with_continued_writes_seconds": 31.1,
+    "replacement_restore": {
+      "encryption_verified": true,
+      "administrator_password_and_mfa_verified": true,
+      "record_pages_verified": true,
+      "message_monkey_page_verified": true,
+      "verified_at": "2026-10-26T22:06:21.697143+00:00",
+      "account_key": "shalom-in-messiah",
+      "message_monkey_tables": 67,
+      "database_matches": true,
+      "persistent_files": 1,
+      "source_restored": true,
+      "configuration_restored": true,
+      "application_ready": true,
+      "sign_in_page_verified": true,
+      "outbound_network_blocked": true,
+      "elapsed_seconds": 26.1
+    },
+    "exit_code": 0
+  },
+  "warnings": [
+    "Existing PHP 8.5 imagedestroy() deprecation in template-transfer test fixture.",
+    "Existing deprecation notices from globally installed Composer tooling."
+  ],
+  "limitations": [
+    "No production account or NAS contents accessed.",
+    "No live backup freshness, production scale, or recovery-time objective qualification.",
+    "Retention periods and historical-message erasure policy remain operational decisions.",
+    "Existing completed export snapshots remain immutable; create a fresh export to include the corrected evidence."
+  ]
+}

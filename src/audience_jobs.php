@@ -5,6 +5,29 @@ require_once __DIR__ . '/audience_export.php';
 
 trait AudienceJobs
 {
+    /** Called inside contact deletion's transaction; never match another identity by substring. */
+    private function redactPersonJobs(int $personId,string $email):void
+    {
+        $clear="payload_json=JSON_OBJECT(),result_json=NULL,error_message='Connection data removed',state='skipped'";
+        $this->write("UPDATE marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id SET i.payload_json=JSON_OBJECT(),i.result_json=NULL,i.error_message='Connection data removed',i.state='skipped' WHERE j.audience_id=? AND i.contact_id=?",[$this->audienceId,$personId]);
+        // Unprocessed imports have no contact ID yet. JSON_SEARCH only narrows the
+        // candidates; the decoded, mapped email must match exactly before erasure.
+        $pattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$email).'%';$cursor=0;
+        do{
+            $items=$this->all("SELECT i.id,i.payload_json,j.params_json FROM marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id
+                WHERE j.audience_id=? AND j.job_type='import' AND i.contact_id IS NULL AND i.id>?
+                AND JSON_SEARCH(LOWER(i.payload_json),'one',?,'!','$[*]') IS NOT NULL ORDER BY i.id LIMIT 100 FOR UPDATE",[$this->audienceId,$cursor,$pattern]);
+            $ids=[];
+            foreach($items as$item){
+                $cursor=(int)$item['id'];$raw=audienceJson($item['payload_json']);$params=audienceJson($item['params_json']);
+                $column=array_search('email',$params['mapping']??[],true);
+                $cells=$column===false?$raw:[$raw[$column]??''];
+                foreach($cells as$value)if(is_string($value)&&strtolower(trim($value))===$email){$ids[]=$cursor;break;}
+            }
+            if($ids)$this->write("UPDATE marketing_job_items SET $clear WHERE id IN (".implode(',',array_fill(0,count($ids),'?')).')',$ids);
+        }while(count($items)===100);
+    }
+
     public function deleteExportHistory(array $ids,bool $all=false):int
     {
         return $this->transaction(function()use($ids,$all){
@@ -83,6 +106,7 @@ trait AudienceJobs
             // Freeze export values as well as membership, so later edits do not change a download.
             // Bulk writes retain versions and reject stale records instead of overwriting them.
             $snapshot="JSON_OBJECT('version',c.version)";
+            $permissionTypes=implode("','",AUDIENCE_PERMISSION_EVENT_TYPES);
             if($type==='export')$snapshot="JSON_OBJECT('version',c.version,'person',JSON_OBJECT(
                 'id',c.id,'version',c.version,'email',c.email,'first_name',c.first_name,'last_name',c.last_name,
                 'email_status',c.email_status,'source',c.source,'is_archived',c.is_archived,'language',c.language,
@@ -92,8 +116,8 @@ trait AudienceJobs
                 'export_source_event',(SELECT JSON_OBJECT('id',e.id,'created_at',e.created_at,'metadata',JSON_EXTRACT(e.details_json,'$.source_metadata'))
                     FROM marketing_contact_events e WHERE e.contact_id=c.id AND e.event_type IN ('imported','contact_imported')
                     AND JSON_TYPE(JSON_EXTRACT(e.details_json,'$.source_metadata'))='OBJECT' ORDER BY e.id DESC LIMIT 1),
-                'export_permission_event',(SELECT JSON_OBJECT('id',e.id,'created_at',e.created_at,'details',e.details_json)
-                    FROM marketing_contact_events e WHERE e.contact_id=c.id AND e.event_type IN ('contact_added','subscription_changed') ORDER BY e.id DESC LIMIT 1),
+                'export_permission_event',(SELECT JSON_OBJECT('id',e.id,'event_type',e.event_type,'created_at',e.created_at,'details',e.details_json)
+                    FROM marketing_contact_events e WHERE e.contact_id=c.id AND e.event_type IN ('$permissionTypes') ORDER BY e.id DESC LIMIT 1),
                 'export_notes',COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id',n.id,'body',n.body)) FROM marketing_notes n WHERE n.contact_id=c.id),JSON_ARRAY())))";
             $this->write("INSERT INTO marketing_job_items (job_id,source_row,contact_id,payload_json) SELECT ?,c.id,c.id,$snapshot FROM marketing_contacts c WHERE $sql",[$id,...$values]);
             $this->write('UPDATE marketing_jobs SET total=(SELECT COUNT(*) FROM marketing_job_items WHERE job_id=?) WHERE id=?',[$id,$id]);return $id;

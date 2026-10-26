@@ -3,6 +3,9 @@ declare(strict_types=1);
 require_once __DIR__.'/../src/audience_store.php';
 $checks=0;
 $expect=static function(bool $condition,string $message)use(&$checks):void{if(!$condition)throw new RuntimeException($message);++$checks;};
+foreach(['2026-02-30 12:00:00','2026-10-26 25:61:00','2025-02-29 12:00:00','0000-01-01 00:00:00','2026-00-01 12:00:00','invalid']as$value)
+    $expect(audienceExportTimestamp($value)==='','Invalid source timestamp is omitted: '.$value);
+$expect(audienceExportTimestamp('2024-02-29 12:34:56.123456')==='2024-02-29 12:34:56','Real leap days and native fractional seconds remain supported');
 $params=['export_token'=>'0123456789','fields'=>[
     ['id'=>1,'label'=>'Address','field_type'=>'address'],['id'=>2,'label'=>'Phone Number','field_type'=>'phone'],
     ['id'=>3,'label'=>'Full Name','field_type'=>'text'],['id'=>4,'label'=>'Date of Entry','field_type'=>'date'],['id'=>5,'label'=>'Fund','field_type'=>'text'],
@@ -49,6 +52,9 @@ $expect($nativeRow['LAST_CHANGED']==='2026-10-01 12:00:00','Native timestamps us
 $later=array_replace($base,['email_status'=>'unsubscribed','export_permission_event'=>['id'=>8,'created_at'=>'2026-10-02 12:01:02.999999','details'=>['to'=>'unsubscribed']]]);
 $laterRow=$readRecord(audienceExportRecord($later,$params));
 $expect($laterRow['UNSUB_TIME']==='2026-10-02 12:01:02'&&$laterRow['UNSUB_CAMPAIGN_ID']===''&&$laterRow['UNSUB_REASON']==='','A later native opt-out replaces stale imported opt-out evidence');
+$renewed=array_replace($base,['export_permission_event'=>['id'=>8,'event_type'=>'subscription_changed','created_at'=>'2026-10-02 12:01:02','details'=>['to'=>'subscribed','consent_note'=>'New signed permission']]]);
+$renewedRow=$readRecord(audienceExportRecord($renewed,$params));
+$expect($renewedRow['OPTIN_TIME']==='2026-10-02 12:01:02'&&$renewedRow['OPTIN_IP']===''&&$renewedRow['CONFIRM_TIME']===''&&$renewedRow['CONFIRM_IP']==='','New manual permission does not inherit old provider IP or confirmation evidence');
 $archivePath='';
 audienceWithExportArchive($params,(static function()use($records):Generator{foreach($records as$r)yield $r;})(),static function($path,$name)use($expect,$params,$records,$common,$ending,&$archivePath):void{
     $archivePath=$path;$expect($name==='messagemonkey_audience_export_0123456789.zip','Shared identifier in the ZIP filename');

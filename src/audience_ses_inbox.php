@@ -25,10 +25,15 @@ function processAudienceSnsInbox(mysqli $db,int $limit=25,?callable $fetch=null,
     if((function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())||!audienceSesInstalled($db))return 0;
     $lock='mm-sns-process-1';
     if((int)$db->execute_query('SELECT GET_LOCK(?,0) acquired',[$lock])->fetch_assoc()['acquired']!==1)return 0;
-    $processed=0;$deadline=microtime(true)+8;$certificates=[];$transport=$fetch??'audienceSnsFetch';
-    // Many receipts share one AWS certificate. Keep a bounded cache for this pass.
-    $cachedFetch=static function(string $url)use(&$certificates,$transport):string{
-        if(!isset($certificates[$url]))$certificates[$url]=$transport($url);
+    $processed=0;$deadline=microtime(true)+8;$certificates=[];$certificateFailures=[];$transport=$fetch??'audienceSnsFetch';
+    // Cache successful certificates and permanent failures for this bounded
+    // pass, so repeated forged URLs cause only one external fetch per pass.
+    $cachedFetch=static function(string $url)use(&$certificates,&$certificateFailures,$transport):string{
+        if(isset($certificateFailures[$url]))throw $certificateFailures[$url];
+        if(!isset($certificates[$url])){
+            try{$certificates[$url]=$transport($url);}
+            catch(InvalidArgumentException $error){$certificateFailures[$url]=$error;throw $error;}
+        }
         return $certificates[$url];
     };
     try{

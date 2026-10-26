@@ -55,8 +55,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-planner'], ['audience-template-transfer']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-planner|audience-template-transfer|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -118,7 +118,7 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
-        if sys.argv[1:] in (['audience'], ['audience-planner'], ['audience-template-transfer']):
+        if sys.argv[1:] in (['audience'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
@@ -132,16 +132,28 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
-            if sys.argv[1:] in (['audience-planner'], ['audience-template-transfer']):
-                suite = 'audience_template_transfer_http_integration_test.php' if sys.argv[1:] == ['audience-template-transfer'] else 'audience_planner_lifecycle_http_integration_test.php'
-                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
-                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
-                    '/opt/dnr/tests/'+suite],
-                    cwd=ROOT, env=env, check=True)
+            if sys.argv[1:] in (['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+                suites = {'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),
+                          'audience-template-transfer': ('audience_template_transfer_http_integration_test.php',),
+                          'audience-security': ('audience_public_security_http_integration_test.php',),
+                          'audience-data': ('audience_data_management_integration_test.php',),
+                          'audience-performance': ('audience_performance_integration_test.php',
+                                                   'audience_workspace_performance_http_integration_test.php')}[sys.argv[1]]
+                for suite in suites:
+                    subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
+                        '/opt/dnr/tests/'+suite],
+                        cwd=ROOT, env=env, check=True)
                 return
             if sys.argv[1:] == ['audience']:
-                for suite in ('audience_stage1b_test.php', 'audience_export_integration_test.php', 'audience_http_integration_test.php', 'audience_tag_unlock_http_integration_test.php', 'audience_pagination_http_integration_test.php'):
+                # Include every Audience integration suite, including newer lifecycle,
+                # transfer, AI and performance regressions, so focused QA cannot
+                # silently omit functionality covered by the full CI dispatcher.
+                suites = ['audience_stage1b_test.php'] + sorted(
+                    path.name for path in (ROOT / 'tests').glob('audience*_integration_test.php'))
+                for suite in suites:
+                    print('Running ' + suite, flush=True)
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/'+suite],

@@ -17,7 +17,11 @@ function audienceExportHeaders(array $params,string $status):array
 
 function audienceExportTimestamp(string $value):string
 {
-    return preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/D',$value)&&!str_starts_with($value,'0000-')?substr($value,0,19):'';
+    if(!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/D',$value)||str_starts_with($value,'0000-'))return '';
+    $timestamp=substr($value,0,19);
+    $date=DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',$timestamp,new DateTimeZone('UTC'));
+    $errors=DateTimeImmutable::getLastErrors();
+    return $date&&(!$errors||(!$errors['warning_count']&&!$errors['error_count']))?$timestamp:'';
 }
 
 /** Render only captured values; absent provider IDs, ratings and evidence stay empty. */
@@ -40,15 +44,20 @@ function audienceExportRecord(array $person,array $params):array
     $permission=$person['export_permission_event']??[];
     if(is_array($permission)&&(int)($permission['id']??0)>(int)($sourceEvent['id']??0)){
         $detail=$permission['details']??[];$detail=is_array($detail)?$detail:[];
-        $eventStatus=$detail['to']??$detail['status']??'';
+        $type=(string)($permission['event_type']??'');
+        $eventStatus=audiencePermissionStatus($detail,$type);
         if($eventStatus===$status){
             $prefix=match($status){'unsubscribed'=>'UNSUB','cleaned'=>'CLEAN',default=>''};
             if($prefix!==''){
                 $values[$prefix.'_TIME']=audienceExportTimestamp((string)($permission['created_at']??''));
                 foreach(['CAMPAIGN_TITLE','CAMPAIGN_ID','REASON','REASON_OTHER']as$key)
                     if(array_key_exists($prefix.'_'.$key,$values))$values[$prefix.'_'.$key]='';
-            }elseif($status==='subscribed'&&!empty($detail['consent_note'])){
+            }elseif($status==='subscribed'&&(!empty($detail['consent_note'])||in_array($type,['subscription-confirmed','collection-converted'],true))){
                 $values['OPTIN_TIME']=audienceExportTimestamp((string)($permission['created_at']??''));
+                $confirmed=$type==='subscription-confirmed'||($type==='collection-converted'&&($detail['method']??'')==='double');
+                $values['CONFIRM_TIME']=$confirmed?$values['OPTIN_TIME']:'';
+                // A previous provider's IP and confirmation are not evidence of this consent.
+                $values['OPTIN_IP']='';$values['CONFIRM_IP']='';
             }
         }
     }

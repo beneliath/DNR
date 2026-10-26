@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/audience_pagination.php';
 
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
+const AUDIENCE_PERMISSION_EVENT_TYPES=['contact_added','subscription_changed','subscription-confirmed','status','collection-converted'];
 
 /** One address per line; validate the complete list before queuing any changes. */
 function audienceUnsubscribeAddresses(string $input): array
@@ -173,6 +174,12 @@ function audienceCsvCell(string $value): string
     return preg_match('/^[\s\x00-\x1f]*[=+@-]/u', $value) ? "'" . $value : $value;
 }
 
+/** Conversion is recorded only when a signup actually becomes subscribed. */
+function audiencePermissionStatus(array $details,string $type):string
+{
+    return (string)($details['to']??$details['status']??($type==='collection-converted'?'subscribed':(($details['action']??'')==='unsubscribe'?'unsubscribed':'')));
+}
+
 /** Preserve source dates without inventing a timezone or treating an import as consent. */
 function audienceMarketingDetails(array $person, ?array $permissionEvent, ?array $importEvent): array
 {
@@ -186,7 +193,7 @@ function audienceMarketingDetails(array $person, ?array $permissionEvent, ?array
         foreach($keys as$key){$candidate=(string)($metadata[$key]??'');if($candidate!==''&&!str_starts_with($candidate,'0000-')){$raw=$candidate;break;}}
     }elseif($permissionEvent){
         $detail=audienceJson($permissionEvent['details_json']);
-        $eventStatus=$detail['to']??$detail['status']??(($detail['action']??'')==='unsubscribe'?'unsubscribed':'');
+        $eventStatus=audiencePermissionStatus($detail,(string)($permissionEvent['event_type']??''));
         if($eventStatus===$status)$raw=$permissionEvent['created_at'];
     }
     $date='';$datetime='';$note=$isImport?'Original Mailchimp timestamp; the export does not specify its time zone.':'Recorded in UTC';

@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 if ($success==='') $proof=$store->collectionChallenge($r,$visitor,$variant,$recipient);
 if ($_SERVER['REQUEST_METHOD']==='GET') {
-    $db->execute_query('INSERT IGNORE INTO marketing_collection_visits(resource_id,day,visitor_hash,variant_key) VALUES (?,UTC_DATE(),?,?)',[$r['id'],hash('sha256',$key.$visitor),$variant]);
+    $store->recordCollectionVisit((int)$r['id'],$key,$visitor,requestIpAddress()??'unknown',$variant);
     $ref=parse_url((string)($_SERVER['HTTP_REFERER']??''));
     if (is_array($ref) && isset($ref['scheme'],$ref['host'])) {
         $origin=$ref['scheme'].'://'.$ref['host'].(isset($ref['port'])?':'.$ref['port']:'');

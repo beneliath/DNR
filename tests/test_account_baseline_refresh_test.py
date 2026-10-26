@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
-from test_account_baseline_refresh import month_shift,migration_plan,upgrade_staged_schema,check_external_references
+from test_account_baseline_refresh import month_shift,migration_plan,upgrade_staged_schema,check_external_references,report_import_sql,MESSAGE_MONKEY_TABLES,PRESERVE,CLEAR_TABLES
 from install_test_account_refresh_schedule import scheduled_crontab,BEGIN,END
 
 
@@ -77,6 +77,33 @@ class BaselineRefreshTest(unittest.TestCase):
     def test_unknown_reference_to_cleared_inbox_metadata_also_blocks_refresh(self):
         with patch('test_account_baseline_refresh.query',return_value='future_part_metadata\tmarketing_inbox_inbound_parts'):
             with self.assertRaisesRegex(RuntimeError,'future_part_metadata'):check_external_references()
+
+    def test_message_monkey_sample_window_and_validation(self):
+        for date,start,end in [('2028-05-31','2028-02-29','2029-02-28'),('2028-02-29','2027-11-29','2028-11-29')]:
+            result=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of='+date],capture_output=True,text=True,check=True)
+            plan=json.loads(result.stdout)
+            self.assertEqual(plan['window'],[start,end])
+            self.assertEqual(plan['outgoing_jobs'],0)
+        invalid=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of=2028-02-30'],capture_output=True)
+        self.assertNotEqual(invalid.returncode,0)
+
+    def test_message_monkey_dependencies_are_classified_without_settings_reset(self):
+        self.assertIn('marketing_campaign_recipients',MESSAGE_MONKEY_TABLES)
+        self.assertIn('marketing_inbox_attachments',MESSAGE_MONKEY_TABLES)
+        self.assertIn('marketing_service_mail',CLEAR_TABLES)
+        self.assertIn('marketing_ses_credentials',PRESERVE)
+        self.assertFalse(set(PRESERVE)&set(MESSAGE_MONKEY_TABLES+CLEAR_TABLES))
+        links='marketing_inbox_attachments\tmarketing_inbox_messages\nmarketing_message_events\tmarketing_campaign_recipients'
+        with patch('test_account_baseline_refresh.query',return_value=links):check_external_references()
+        with patch('test_account_baseline_refresh.query',return_value='future_mail_records\tmarketing_service_mail'):
+            with self.assertRaisesRegex(RuntimeError,'future_mail_records'):check_external_references()
+
+    def test_report_transfer_decodes_hex_as_utf8_before_mysql_json_cast(self):
+        with patch('test_account_baseline_refresh.query',return_value='5B5D'):
+            self.assertIn(b'CAST(CONVERT(0x5B5D USING utf8mb4) AS JSON)',report_import_sql('stage'))
+        for invalid in ['NULL','',"5B5D; DELETE FROM users",'123']:
+            with patch('test_account_baseline_refresh.query',return_value=invalid):
+                with self.assertRaises(RuntimeError):report_import_sql('stage')
 
 
 if __name__=='__main__':unittest.main()

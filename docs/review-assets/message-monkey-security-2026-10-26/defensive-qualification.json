@@ -1,0 +1,318 @@
+{
+  "review_date": "2026-10-26",
+  "branch": "codex/messagemonkey-function-performance",
+  "base_commit": "40e6c72a7d2b6700688d8ebb85d81bc99bcb13ee",
+  "state": "local_uncommitted",
+  "findings": [
+    {
+      "severity": "P2",
+      "issue": "Unbounded per-client public-form analytics row creation",
+      "status": "fixed"
+    },
+    {
+      "severity": "P2",
+      "issue": "Dense CSV cell expansion and missing data-row column limit",
+      "status": "fixed"
+    },
+    {
+      "severity": "P2",
+      "issue": "SNS permanent-failure retry amplification",
+      "status": "fixed previously; admission validation and per-batch negative caching added"
+    }
+  ],
+  "php_suites": [
+    {
+      "test": "audience_ai_findings_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ai_queries_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ai_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_analytics_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_brand_logos_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_brand_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_campaign_completion_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_campaign_tracking_defaults_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_collection_customization_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_defensive_input_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_runtime_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_setup_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_delivery_worker_privileges_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_design_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_designer_advanced_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_dispatch_demo_guard_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_dispatch_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_email_image_wrapping_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_embedded_form_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_export_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_filters_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_flow_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_helpers_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_image_original_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_inbox_email_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_inbox_gateway_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_inbox_ingest_privileges_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_inbox_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_manual_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_pagination_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_permission_reminder_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_recent_preview_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_scheduling_boundary_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_search_options_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_ses_key_rotation_test.php",
+      "exit": 0,
+      "skipped": true
+    },
+    {
+      "test": "audience_ses_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_sns_security_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_stage1b_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_starter_catalog_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_template_transfer_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "audience_unsubscribe_addresses_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "security_helpers_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "security_runtime_regression_test.php",
+      "exit": 0,
+      "skipped": false
+    },
+    {
+      "test": "demo_authentication_policy_test.php",
+      "exit": 0,
+      "skipped": false
+    }
+  ],
+  "integration_suites": [
+    "audience_stage1b_test.php",
+    "audience_ai_terminal_http_integration_test.php",
+    "audience_campaign_lifecycle_http_integration_test.php",
+    "audience_collection_lifecycle_http_integration_test.php",
+    "audience_export_integration_test.php",
+    "audience_flow_lifecycle_http_integration_test.php",
+    "audience_flow_unlock_http_integration_test.php",
+    "audience_http_integration_test.php",
+    "audience_pagination_http_integration_test.php",
+    "audience_performance_integration_test.php",
+    "audience_planner_lifecycle_http_integration_test.php",
+    "audience_public_security_http_integration_test.php",
+    "audience_storage_integration_test.php",
+    "audience_tag_unlock_http_integration_test.php",
+    "audience_template_transfer_http_integration_test.php",
+    "audience_workspace_performance_http_integration_test.php"
+  ],
+  "integration_exit": 0,
+  "main_http_checks": 1339,
+  "defensive_input_checks": 58,
+  "sns_security_unit_checks": 26,
+  "sns_worker_security_checks": 21,
+  "public_security_http_checks": 12,
+  "public_security_final_exit": 0,
+  "phpstan_configurations_passed": 4,
+  "baseline_expected_failures": [
+    "CSV parser accepted a data row with 201 columns",
+    "Public form views created more rows after a seeded analytics budget was exhausted"
+  ],
+  "csv_memory_reproduction": {
+    "before": {
+      "input_bytes": 600012,
+      "accepted_columns": 600001,
+      "rejected": false,
+      "peak_bytes": 56655872,
+      "elapsed_ms": 21.380042
+    },
+    "after": {
+      "input_bytes": 600012,
+      "rejected": true,
+      "reason": "This import has too many separators. Split it into smaller files.",
+      "peak_bytes": 2097152,
+      "elapsed_ms": 0.077334
+    }
+  },
+  "dependency_audits": "Reused successful same-day Composer/npm audits; lockfiles unchanged",
+  "lockfile_changes": [],
+  "warnings": [
+    "Existing nonfatal PHP 8.5 imagedestroy() deprecation in template-transfer test fixture"
+  ],
+  "external_mail_sent": false,
+  "production_changed": false,
+  "disposable_projects_cleaned": true,
+  "files_sha256": {
+    "src/audience_collect_public.php": "553e84ce908b8a5331512e054d643852326f1f77d479afdc708944aa242c4e21",
+    "src/audience_collection.php": "d782d087c0eec73b5bf5381d8499ad3e0cb39a79f3c948b08b259815bd8d12fd",
+    "src/audience_import.php": "636267551eff13fa7268eda27ccb537d1634bbdd6fc53b46a596429e17cf4d5c",
+    "src/audience_ses_inbox.php": "ea0c86bba126638a3be2e3b0e00fe7cb424d4b486fdbbe9a4bd886d1f9c59c45",
+    "src/audience_ses_notifications.php": "6cca25073ab113e8e1ce12d390cea6afac0a58e6da2c2d315fa254bbe16da0d2",
+    "tests/audience_defensive_input_test.php": "1de70dd1aa350a52d4e8ee4fe74d6c597d983e41a4e25083a51f9aa1853794ff",
+    "tests/audience_public_security_http_integration_test.php": "bfcdb9bfb6ffd62a9e5733b02dd6efcce496ddb49329f22ef8a4cbddf90ad073",
+    "tests/audience_ses_events_http.php": "cd2945d672dbb205dc873a4bbd19fe987c9edb958ea25dc52e037004cc08c542",
+    "tests/audience_sns_worker_security.php": "b31ccc3ff9230cec803b2f4cdbf82d6b49cffcb3212847acdf9a629d56292f73",
+    "scripts/integration_environment.py": "57323e27fa6118f2abc512b9862c5b0a94b4ce2d764a404c69e1afa3a6a573ee",
+    "scripts/run_integration_tests.sh": "913410494cd59251889d8e95dcf2796aff5343d7c01a1b12bad6b16122b00998"
+  },
+  "limits": [
+    "Analytics quota is per trusted client IP per account per UTC hour; shared-IP traffic may be undercounted above 300 view attempts",
+    "CSV complexity limit conservatively counts quoted delimiters",
+    "No production or distributed flood testing",
+    "Structurally valid SNS envelopes still use deferred signature verification"
+  ]
+}

@@ -157,7 +157,11 @@ trait AudienceInbox
     {
         $this->inboxThread($thread);$size=audiencePageSize(['per_page'=>$size],'per_page',100);$page=max(1,$page);
         $messages=$this->all('SELECT m.*,s.state delivery_state,s.error_message delivery_error,s.provider_message_id FROM marketing_inbox_messages m LEFT JOIN marketing_service_mail s ON s.id=m.service_mail_id AND s.audience_id=m.audience_id WHERE m.audience_id=? AND m.thread_id=?'.($before?' AND m.id<?':'').' ORDER BY m.id DESC LIMIT ? OFFSET ?',[...($before?[$this->audienceId,$thread,$before]:[$this->audienceId,$thread]),$size,($page-1)*$size]);
-        foreach($messages as&$m){$m['delivery_events']=$m['service_mail_id']?$this->all('SELECT event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id=? ORDER BY id',[$this->audienceId,$m['service_mail_id']]):[];$m['attachments']=$this->all('SELECT id,filename,mime_type,byte_size FROM marketing_inbox_attachments WHERE audience_id=? AND message_id=? ORDER BY id',[$this->audienceId,$m['id']]);}unset($m);
+        $events=[];$attachments=[];
+        $mailIds=array_values(array_unique(array_filter(array_column($messages,'service_mail_id'))));
+        if($mailIds)foreach($this->all('SELECT service_mail_id,event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id IN ('.implode(',',array_fill(0,count($mailIds),'?')).') ORDER BY id',[$this->audienceId,...$mailIds])as$row){$id=$row['service_mail_id'];unset($row['service_mail_id']);$events[$id][]=$row;}
+        if($messages)foreach($this->all('SELECT message_id,id,filename,mime_type,byte_size FROM marketing_inbox_attachments WHERE audience_id=? AND message_id IN ('.implode(',',array_fill(0,count($messages),'?')).') ORDER BY id',[$this->audienceId,...array_column($messages,'id')])as$row){$id=$row['message_id'];unset($row['message_id']);$attachments[$id][]=$row;}
+        foreach($messages as&$m){$m['delivery_events']=$events[(int)$m['service_mail_id']]??[];$m['attachments']=$attachments[$m['id']]??[];}unset($m);
         return array_reverse($messages);
     }
     public function inboxMarkRead(int $id,bool $read):void
