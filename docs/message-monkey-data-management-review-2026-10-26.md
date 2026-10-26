@@ -79,6 +79,6 @@ Repeat with `python3 scripts/integration_environment.py audience-data`, `python3
 
 ## Delivery state and limits
 
-Changes remain local and uncommitted on the current branch. No schema migration, production data change, deployment, real outbound mail, or NAS access was performed. Disposable test projects were removed. Concurrent Test Account refresh/demo changes were left untouched.
+At the conclusion of this review, changes were local and uncommitted on the working branch. The review itself performed no schema migration, production data change, deployment, real outbound mail, or NAS access. Subsequent release and deployment outcomes are recorded separately by the release workflow. Disposable test projects were removed. Concurrent Test Account refresh/demo changes were left untouched during the review.
 
 This review combines source inspection with synthetic functional, isolation, and recovery tests. It does not certify production backup freshness, production-sized recovery performance, storage capacity, or an organization-specific retention policy. Previously erased job data cannot be reconstructed by this code fix; regeneration from still-existing contacts or a suitable recovery copy is a separate operation.

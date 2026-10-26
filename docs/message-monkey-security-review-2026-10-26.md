@@ -90,4 +90,4 @@ This was a local source and isolated-runtime review, not a production penetratio
 
 The SNS receiver still accepts bounded, structurally valid unauthenticated envelopes for deferred signature verification by design. The changes reject malformed envelopes earlier and remove repeated permanent-failure fetches within a batch and across retries; they do not establish resistance to arbitrary-volume flooding or temporary network-failure attacks. Production traffic admission remains a separate operational control.
 
-Changes remain local and uncommitted on the current branch; nothing was pushed or deployed. The earlier function/performance work is preserved.
+At the conclusion of this review, changes were local and uncommitted on the working branch; the review itself did not push or deploy them. Subsequent release and deployment outcomes are recorded separately by the release workflow. The earlier function/performance work was preserved.
