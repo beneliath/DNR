@@ -7,7 +7,36 @@ function audienceBrandIdentity(array $settings,string $audienceName=''):array
     $brand=is_array($settings['brand']??null)?$settings['brand']:[];
     $name=trim((string)($brand['name']??''));if($name==='')$name=trim((string)($settings['from_name']??''))?:$audienceName;
     $address=(string)(array_key_exists('mailing_address',$brand)?$brand['mailing_address']:($settings['mailing_address']??''));
-    return ['LIST:COMPANY'=>$name,'LIST:ADDRESS'=>$address,'LIST:ADDRESSLINE'=>$address];
+    return ['LIST:COMPANY'=>$name,'LIST:ADDRESS'=>$address,'LIST:ADDRESSLINE'=>$address,'__permission_reminder'=>trim((string)($settings['permission_reminder']??''))];
+}
+
+function audiencePermissionReminder(array $identity):string
+{
+    return trim((string)($identity['__permission_reminder']??''));
+}
+
+/** Compare visible text so an existing authored reminder is not repeated. */
+function audienceHasPermissionReminder(string $body,string $reminder,bool $html):bool
+{
+    if($reminder==='')return false;
+    if($html)$body=html_entity_decode(strip_tags(preg_replace('~<br\b[^>]*>|</(?:p|div|tr|td|li)>~i',"\n",$body)),ENT_QUOTES|ENT_HTML5,'UTF-8');
+    $normalize=static fn(string $text)=>trim(preg_replace('/\s+/u',' ',$text)??$text);
+    return str_contains($normalize($body),$normalize($reminder));
+}
+
+/** Add account-owned reminder text without evaluating recipient conditions. */
+function audiencePermissionReminderHtml(string $html,array $identity):string
+{
+    $reminder=audiencePermissionReminder($identity);
+    if($reminder===''||audienceHasPermissionReminder($html,$reminder,true))return $html;
+    $text=str_replace(["\r\n","\r","\n"],'<br>',htmlspecialchars($reminder,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'));
+    $paragraph='<p class="email-permission-reminder" style="margin:0 0 16px">'.$text.'</p>';
+    $result=preg_replace_callback('~<div\b[^>]*\bclass="[^"]*\bemail-footer\b[^"]*"[^>]*>~i',static fn($match)=>$match[0].$paragraph,$html,1,$count);
+    if($count)return $result;
+    // Custom-coded emails may own their complete footer already.
+    $block='<div class="email-permission-reminder" style="padding:24px;text-align:center;font-size:12px;color:#60676b">'.$text.'</div>';
+    $result=preg_replace_callback('~</body\s*>~i',static fn($match)=>$block.$match[0],$html,1,$count);
+    return $count?$result:$html.$block;
 }
 
 /** Named regions and typography remain part of the existing versioned JSON document. */

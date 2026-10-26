@@ -19,6 +19,9 @@ $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],
 $campaignFilters=audienceCampaignFilters(['trash'=>$tab==='archived'?'1':'0']);$campaignUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>'campaigns']+$campaignFilters,$changes));$campaignJson=static fn($value)=>$h(json_encode($value,JSON_THROW_ON_ERROR));
 $campaignRows=[];foreach(['draft','scheduled','sent']as$i=>$status)$campaignRows[]=['id'=>7+$i,'version'=>3,'name'=>ucfirst($status).' newsletter','status'=>$status,'campaign_type'=>'regular','draft_json'=>json_encode(['subject'=>'Example subject']),'updated_at'=>'2026-10-22 12:00:00','created_at'=>'2026-10-21 12:00:00','sent_at'=>$status==='sent'?'2026-10-22 12:00:00':null,'folder_name'=>'','folder_id'=>null,'actor_label'=>'Example editor'];
 $campaignSnapshot=array_column($campaignRows,'version','id');$campaignMetrics=[];$campaignTotal=($argv[3]??'')==='middle'?70:(($argv[3]??'')==='empty'?0:count($campaignRows));if(!$campaignTotal)$campaignRows=[];$campaignPage=($argv[3]??'')==='middle'?2:1;$campaignRecovery=null;$recentCampaigns=[];$canSend=false;
+if(($argv[3]??'')==='recent'){
+    for($i=0;$i<9;$i++)$recentCampaigns[]=['id'=>70+$i,'name'=>['Community newsletter','Special update','Prayer letter'][$i%3].' '.($i+1),'version'=>3,'status'=>'sent','sent_at'=>sprintf('2026-10-%02d 14:00:00',25-$i)];
+}
 $folders=[['id'=>4,'name'=>'Newsletters','version'=>1,'campaign_count'=>0]];
 $store=new class{public function analyticsAudienceHistory(array $w,string $source=''):array{return ['current'=>[],'previous'=>[]];}public function analyticsReportRows(array $w,array $definition):array{return [];}};
 $window=['start'=>'2026-10-01','end'=>'2026-10-22','compare'=>'none','bots'=>'filtered','messages_mode'=>'all','messages'=>[]];$showDrafts=false;$section='home';$rangeKey='custom';$presets=[];
