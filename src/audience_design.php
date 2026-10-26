@@ -144,7 +144,7 @@ function audienceDesignHtml(array $design,?array $context=null): string { return
 /** Preview CSS is nonce-authorized; the app keeps style-src-attr 'none'. */
 function audienceDesignPreviewHtml(array $design,string $nonce,?array $context=null,bool $dark=false,array $identity=[]):string
 {
-    $document=audienceDesign($design);$preview=audienceDesignPreviewSource(audienceDesignHtml($document,$context),$nonce,$dark);
+    $document=audienceDesign($design);$html=audiencePermissionReminderHtml(audienceDesignHtml($document,$context),$context??$identity);$preview=audienceDesignPreviewSource($html,$nonce,$dark);
     // Account identity can resolve without treating an unselected recipient as
     // an empty recipient and hiding their conditional content.
     if($context===null&&$identity){$tags=[];foreach(['LIST:COMPANY','LIST:ADDRESS','LIST:ADDRESSLINE','LIST:NAME','CURRENT_YEAR','MC:SUBJECT','MC_PREVIEW_TEXT']as$key)if(array_key_exists($key,$identity))$tags['*|'.$key.'|*']=htmlspecialchars((string)$identity[$key],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$preview=strtr($preview,$tags);}
@@ -158,6 +158,17 @@ function audienceDesignPreviewSource(string $html,string $nonce,bool $dark=false
     $html=preg_replace_callback('/ style="([^"]*)"/',static function($m)use(&$rules,$dark){if($dark)$m[1]=audienceDesignDarkCss($m[1]);$class='email-style-'.count($rules);$rules[]='[data-email-style="'.$class.'"]{'.$m[1].'}';return ' data-email-style="'.$class.'"';},$html);
     $html=str_replace('<style>','<style nonce="'.$nonce.'">',$html);
     return str_replace('</head>','<style nonce="'.$nonce.'">'.implode('',$rules).'</style></head>',$html);
+}
+
+/** Inert card preview for a sent campaign; never modify its saved content. */
+function audienceCampaignRecentPreviewHtml(array $campaign,string $nonce,array $identity=[]):string
+{
+    if($campaign['status']!=='sent'||!empty($campaign['deleted_at']))throw new InvalidArgumentException('Only sent emails appear in recent emails.');
+    $draft=$campaign['draft'];
+    $design=$draft['design']??audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'text','html'=>'<p>'.nl2br(htmlspecialchars(mb_substr((string)($draft['text']??'No content available.'),0,5000),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')).'</p>']]]]]]);
+    $html=audienceDesignPreviewHtml($design,$nonce,null,false,$identity);
+    // White card canvas; authored content colors stay intact.
+    return str_replace('</head>','<style nonce="'.$nonce.'">html,body{background:#fff!important}</style></head>',$html);
 }
 trait AudienceDesigns
 {

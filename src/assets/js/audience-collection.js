@@ -117,6 +117,9 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (config.previewOnly) return;
         sync(); request?.abort(); request = new AbortController(); const current = ++sequence;
         const data = new FormData(form); data.set('action', 'collection_preview');data.set('screen', document.querySelector('[data-preview-screen]')?.value || 'signup');data.set('preview_nonce', config.previewNonce);
+        // Read-only editors disable form inputs; preview still needs its document and token.
+        data.set('document_json', hidden.value);data.set('id', String(config.id));
+        const csrf = form.elements.namedItem('csrf_token');if(csrf)data.set('csrf_token', csrf.value);
         status.textContent = 'Updating…';
         try {
             const response = await fetch(location.href, {method:'POST', body:data, signal:request.signal, credentials:'same-origin', headers:{Accept:'application/json'}});
@@ -250,14 +253,30 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         selectTab(button.dataset.collectionRail);
         if (button.dataset.collectionRail === 'outline') form.querySelector('[data-collection-fields]')?.scrollIntoView({block:'center'});
     }));
-    document.querySelector('[data-collection-focus-preview]')?.addEventListener('click', event => {
-        const hidden = form.classList.toggle('preview-hidden');
-        frame.closest('.collection-preview').classList.toggle('preview-focus', hidden);
-        event.currentTarget.textContent = hidden ? 'Back to editing' : 'Preview';
+    const previewPanel = frame.closest('.collection-preview');
+    const previewButton = document.querySelector('[data-collection-focus-preview]');
+    const previewReturn = previewPanel.querySelector('[data-collection-back-to-editing]');
+    const showPreview = enabled => {
+        form.classList.toggle('preview-hidden', enabled);
+        previewPanel.classList.toggle('preview-focus', enabled);
+        if (previewButton) {
+            previewButton.textContent = enabled ? 'Back to editing' : 'Preview';
+            previewButton.setAttribute('aria-pressed', String(enabled));
+        }
+        if (previewReturn) previewReturn.hidden = !enabled || Boolean(previewButton);
+        requestAnimationFrame(fit);
+    };
+    previewButton?.setAttribute('aria-pressed', 'false');
+    previewButton?.setAttribute('aria-controls', frame.id);
+    previewButton?.addEventListener('click', () => showPreview(!form.classList.contains('preview-hidden')));
+    previewReturn?.addEventListener('click', () => {
+        showPreview(false);
+        document.querySelector('[data-collection-device][aria-pressed=true]')?.focus();
     });
     document.querySelectorAll('[data-collection-device]').forEach(button => button.addEventListener('click', () => {
         document.querySelectorAll('[data-collection-device]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
         frame.classList.toggle('mobile', button.dataset.collectionDevice === 'mobile');
+        if (getComputedStyle(previewPanel).display === 'none') showPreview(true);
         requestAnimationFrame(fit);
     }));
     form.querySelectorAll('[data-field-move]').forEach(button => button.addEventListener('click', () => {

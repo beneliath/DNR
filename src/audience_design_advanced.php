@@ -217,7 +217,7 @@ function audienceDesignRender(array $input,?array $context=null):string
         $safe=audienceDesignSafeCode($d['code'],$d['areas']);$html=$safe['html'];$hasFooter=str_contains($html,'*|UNSUB|*')&&str_contains($html,'*|UPDATE_PROFILE|*')&&(str_contains($html,'*|LIST:ADDRESS|*')||str_contains($html,'*|LIST:ADDRESSLINE|*'));if(!$hasFooter)$html=str_replace('</body>',$footer.'</body>',$html);$html=str_replace('*|MC:TOC|*',$tocHtml,$html);
         // Reinsert only the validated native brand font after sanitizing arbitrary source CSS.
         if($s['webFont']!=='')$html=str_replace('</head>','<style>@font-face{font-family:MOEDBrandFont;src:url('.$s['webFont'].');font-display:swap}'.($s['webFontDefault']?'body{font-family:MOEDBrandFont,'.$s['font'].'}':'').'</style></head>',$html);
-        return $context===null?$html:audienceDesignMerge($html,$context);
+        return audiencePermissionReminderHtml($context===null?$html:audienceDesignMerge($html,$context),$context??[]);
     }
     $body='';
     foreach($d['rows']as$row){$row['styles']=array_replace($d['regions'][$row['region']],$row['styles']);
@@ -253,12 +253,15 @@ function audienceDesignRender(array $input,?array $context=null):string
     $css='*{box-sizing:border-box}body{margin:0}table{border-collapse:collapse;border-spacing:0}td{padding:0}.email-body{table-layout:fixed;max-width:100%}p{margin:0 0 '.$s['paragraphSpacing'].'px}.email-block p{margin-bottom:var(--paragraph-spacing,'.$s['paragraphSpacing'].'px)}a{color:'.$s['link'].';text-decoration:'.($s['linkUnderline']?'underline':'none').'}img{max-width:100%;height:auto}@media(max-width:600px){.email-media,.email-column{display:block!important;width:100%!important}.email-body{width:100%!important}'.$responsive.'}';
     if($s['webFont']!=='')$css='@font-face{font-family:MOEDBrandFont;src:url('.$s['webFont'].');font-display:swap}'.$css;
     $html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><style>'.$css.'</style></head><body style="background:'.$s['background'].';color:'.$s['text'].';font-family:'.$s['font'].',serif;font-size:'.$s['fontSize'].'px;line-height:'.($s['lineHeight']/100).';direction:'.$s['direction'].';letter-spacing:'.$s['letterSpacing'].'px">'.($d['preheader']['text']!==''?'<div style="display:none;max-height:0;overflow:hidden;font-size:1px">'.$e($d['preheader']['text']).'</div>':'').'<table role="presentation" width="100%"><tr><td align="center" style="padding:24px 0"><table role="presentation" class="email-body" width="'.$s['width'].'" style="max-width:100%;background:'.$s['body'].';'.audienceDesignCss($d['regions']['page']).'">'.($d['preheader']['showArchive']?'<tr><td style="text-align:center;padding:12px;font-size:12px;'.audienceDesignCss($d['regions']['preheader']).'"><a href="*|ARCHIVE|*">View this email in your browser</a></td></tr>':'').$body.'<tr><td>'.$footer.'</td></tr></table></td></tr></table></body></html>';
-    return $context===null?$html:audienceDesignMerge($html,$context);
+    return audiencePermissionReminderHtml($context===null?$html:audienceDesignMerge($html,$context),$context??[]);
 }
-function audienceDesignPlainText(array $design,?array $context=null):string
+function audienceDesignPlainText(array $design,?array $context=null,array $identity=[]):string
 {
-    if(isset($design['plainText']))return $context===null?$design['plainText']:audienceDesignMerge($design['plainText'],$context,false);
-    $html=audienceDesignRender($design,$context);$html=preg_replace('~<(head|style)[^>]*>.*?</\1>~si','',$html);
+    if(isset($design['plainText'])){
+        $text=$context===null?$design['plainText']:audienceDesignMerge($design['plainText'],$context,false);$reminder=audiencePermissionReminder($context??$identity);
+        return $reminder!==''&&!audienceHasPermissionReminder($text,$reminder,false)?rtrim($text)."\n\n".$reminder:$text;
+    }
+    $html=audiencePermissionReminderHtml(audienceDesignRender($design,$context),$context??$identity);$html=preg_replace('~<(head|style)[^>]*>.*?</\1>~si','',$html);
     $html=preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~si',static fn($m)=>strip_tags($m[2]).' ('.html_entity_decode($m[1],ENT_QUOTES,'UTF-8').')',$html);
     $html=preg_replace('~<(?:br|hr)\b[^>]*>|</(?:p|div|h[1-6]|tr|li)>~i',"\n",$html);$text=html_entity_decode(strip_tags($html),ENT_QUOTES|ENT_HTML5,'UTF-8');return trim(preg_replace('/[ \t]+\n/',"\n",preg_replace('/\n{3,}/',"\n\n",$text)));
 }

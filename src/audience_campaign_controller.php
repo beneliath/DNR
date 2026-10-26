@@ -35,6 +35,14 @@ if($isPost){
                 echo json_encode(['count'=>$count,'people'=>$people],JSON_THROW_ON_ERROR);
             }catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;
         }
+        if($action==='campaign_recent_preview'){
+            releaseApplicationSessionLock();header('Content-Type: application/json');header('Cache-Control: no-store');
+            try{
+                $row=$store->campaign($id);
+                $identity=audienceBrandIdentity(audienceJson($audience['settings_json']),$audience['name']);
+                echo json_encode(['html'=>audienceCampaignRecentPreviewHtml($row,audienceText($_POST,'preview_nonce',100),$identity)],JSON_THROW_ON_ERROR);
+            }catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR);}exit;
+        }
         if(str_starts_with($action,'delivery_')){
             if(!$canConfigureDelivery){http_response_code(403);exit('Email delivery setup requires an unrestricted administrator.');}
             if(!$store->deliverySetupAvailable())throw new InvalidArgumentException('Email delivery setup is not installed yet.');
@@ -130,7 +138,8 @@ if($isPost){
     if($view==='campaign-plan')$id=\Dnr\Http\RequestInput::positiveInt($_GET,'id')??0;
 }
 $folders=$store->campaignFolders();
-$recentCampaigns=$canManage?$store->all('SELECT id,name,version,status FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY updated_at DESC,id DESC LIMIT 3',[$audienceId]):[];
+// Preview bodies are fetched only when their cards are visible.
+$recentCampaigns=$canManage?$store->all("SELECT id,name,version,status,sent_at FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' ORDER BY sent_at DESC,id DESC LIMIT 12",[$audienceId]):[];
 [$campaignWhere,$campaignParams]=audienceCampaignWhere($audienceId,$campaignFilters);
 $campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
 $campaignSize=(int)$campaignFilters['per_page'];

@@ -145,6 +145,39 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('[data-audience-admin-unlock]').forEach(button => button.addEventListener('click', () => window.DnrAdminUnlock?.request()));
     const clone = value => JSON.parse(JSON.stringify(value));
     const campaignCreate = $('#campaign-create');
+    $$('[data-campaign-thumbnail]', campaignCreate || document).forEach(frame => {
+        let requested = false;
+        const load = async () => {
+            requested = true;
+            const status = $('[data-campaign-preview-status]', frame.parentElement);
+            const data = new FormData();
+            for (const [key, value] of Object.entries({action:'campaign_recent_preview',id:frame.dataset.campaignThumbnail,csrf_token:config.csrf,preview_nonce:frame.dataset.previewNonce})) data.set(key, value);
+            try {
+                const result = await request(config.url, {method:'POST', body:data});
+                frame.addEventListener('load', () => { status.hidden = true; }, {once:true});
+                frame.srcdoc = result.html;
+            } catch (_) { status.textContent = 'Preview unavailable'; }
+        };
+        // Preserve the email's desktop layout while fitting its thumbnail to the card.
+        const fit = () => {
+            const box = frame.parentElement, scale = box.clientWidth / 600;
+            if (!scale) return;
+            frame.style.transform = `scale(${scale})`;
+            frame.style.height = `${Math.ceil(box.clientHeight / scale)}px`;
+            if (!requested) load();
+        };
+        new ResizeObserver(fit).observe(frame.parentElement);
+    });
+    $('[data-campaign-recent-more]')?.addEventListener('click', event => {
+        const cards = $$('.campaign-recent-grid article'), hidden = cards.filter(card => card.hidden);
+        hidden.slice(0, 4).forEach(card => { card.hidden = false; });
+        event.currentTarget.hidden = hidden.length <= 4;
+        $('[data-campaign-recent-count]').textContent = `${cards.filter(card => !card.hidden).length} recent emails shown.`;
+    });
+    $$('[data-campaign-recent-date]').forEach(time => {
+        const date = new Date(time.dateTime);
+        if (!Number.isNaN(date.getTime())) time.textContent = date.toLocaleString(undefined, {dateStyle:'medium',timeStyle:'short'});
+    });
     const mainToolbar = $('body > .audience-topbar');
     const campaignBack = campaignCreate?.querySelector('[data-campaign-create-back]');
     const campaignShell = [deploymentBanner, accountBanner, adminBanner, previewBanner, mainToolbar].filter(Boolean);

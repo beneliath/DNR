@@ -41,7 +41,8 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
         $text=audienceCollectionMerge($text,$snapshot,$token,false);
         if($html!==null)$html=audienceCollectionMerge($html,$snapshot,$token,true);
     }
-    $footer="\n\n".$context['LIST:COMPANY']."\n".$context['LIST:ADDRESS']."\nUpdate your preferences: ".$context['UPDATE_PROFILE']."\nUnsubscribe: ".$context['UNSUB'];
+    $reminder=audiencePermissionReminder($context);
+    $footer="\n\n".($reminder!==''&&!audienceHasPermissionReminder($text,$reminder,false)?$reminder."\n\n":'').$context['LIST:COMPANY']."\n".$context['LIST:ADDRESS']."\nUpdate your preferences: ".$context['UPDATE_PROFILE']."\nUnsubscribe: ".$context['UNSUB'];
     $text.=$footer;
     if($html!==null&&(!str_contains($html,htmlspecialchars($link,ENT_QUOTES,'UTF-8'))||!str_contains($html,htmlspecialchars($context['LIST:ADDRESS'],ENT_QUOTES,'UTF-8'))))$html.='<div style="padding:24px;font-size:12px;text-align:center">'.nl2br(htmlspecialchars($footer,ENT_QUOTES,'UTF-8')).'</div>';
     if(preg_match('/\*\|[^|\r\n]{1,300}\|\*/',$subject.$text.($html??'')))throw new InvalidArgumentException('Resolve all merge tags before sending this email.');
