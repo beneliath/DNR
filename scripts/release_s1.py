@@ -26,14 +26,28 @@ GUIDE_PATHS = (
 )
 
 
-def run(args, *, capture=False, check=True):
+def run(args, *, capture=False, check=True, _read_attempt=0):
+    command = [str(value) for value in args]
     try:
         result = subprocess.run(
-            [str(value) for value in args], cwd=ROOT, check=check, text=True,
+            command, cwd=ROOT, check=check, text=True,
             stdout=subprocess.PIPE if capture else None,
             stderr=subprocess.PIPE if capture else None,
         )
     except subprocess.CalledProcessError as error:
+        # Status reads can fail transiently after a protected merge. Never retry mutations.
+        read_only = command[:3] in (
+            ['gh', 'run', 'view'], ['gh', 'run', 'list'],
+            ['gh', 'pr', 'view'], ['gh', 'pr', 'list'],
+        )
+        temporary = re.search(
+            r'TLS handshake timeout|i/o timeout|connection reset by peer|temporary failure in name resolution',
+            error.stderr or '', re.IGNORECASE,
+        )
+        if capture and read_only and temporary and _read_attempt < 2:
+            milestone(f'Temporary GitHub status connection failure; retry {_read_attempt + 1}/2')
+            time.sleep(5 * (_read_attempt + 1))
+            return run(command, capture=capture, check=check, _read_attempt=_read_attempt + 1)
         if capture:
             if error.stdout:
                 print(error.stdout.rstrip(), file=sys.stderr)

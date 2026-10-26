@@ -24,6 +24,42 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_transient_github_status_reads_retry_and_return_the_result(self):
+        command = ['gh', 'run', 'view', '123', '--json', 'status']
+        failure = subprocess.CalledProcessError(1, command, stderr='net/http: TLS handshake timeout')
+        success = subprocess.CompletedProcess(command, 0, stdout='{"status":"completed"}\n', stderr='')
+        with patch.object(release_s1.subprocess, 'run', side_effect=[failure, success]) as execute, \
+                patch.object(release_s1.time, 'sleep') as sleep, patch.object(release_s1, 'milestone'):
+            self.assertEqual(release_s1.run(command, capture=True), '{"status":"completed"}')
+        self.assertEqual(execute.call_count, 2)
+        sleep.assert_called_once_with(5)
+
+    def test_status_read_retry_is_bounded(self):
+        command = ['gh', 'run', 'view', '123']
+        failure = subprocess.CalledProcessError(1, command, stderr='TLS handshake timeout')
+        with patch.object(release_s1.subprocess, 'run', side_effect=failure) as execute, \
+                patch.object(release_s1.time, 'sleep') as sleep, patch.object(release_s1, 'milestone'), \
+                patch.object(sys, 'stderr', io.StringIO()), self.assertRaises(subprocess.CalledProcessError):
+            release_s1.run(command, capture=True)
+        self.assertEqual(execute.call_count, 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [5, 10])
+
+    def test_mutations_and_nontransient_errors_are_not_retried(self):
+        for command, message in (
+            (['gh', 'pr', 'merge', '123'], 'TLS handshake timeout'),
+            (['gh', 'run', 'rerun', '123'], 'TLS handshake timeout'),
+            (['git', 'push', 'origin', 'main'], 'TLS handshake timeout'),
+            (['gh', 'run', 'view', '123'], 'HTTP 403: Resource not accessible'),
+        ):
+            with self.subTest(command=command, message=message):
+                failure = subprocess.CalledProcessError(1, command, stderr=message)
+                with patch.object(release_s1.subprocess, 'run', side_effect=failure) as execute, \
+                        patch.object(release_s1.time, 'sleep') as sleep, \
+                        patch.object(sys, 'stderr', io.StringIO()), self.assertRaises(subprocess.CalledProcessError):
+                    release_s1.run(command, capture=True)
+                self.assertEqual(execute.call_count, 1)
+                sleep.assert_not_called()
+
     def test_quick_preflight_failure_precedes_notice_and_version_preparation(self):
         with patch.object(release_s1, 'require_tools'), \
                 patch.object(release_s1, 'validate_checkout', return_value='codex/fixture'), \
