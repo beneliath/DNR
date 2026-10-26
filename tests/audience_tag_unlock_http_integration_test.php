@@ -71,7 +71,7 @@ try{
     $templateInput=['action'=>'inbox_template_operation','operation'=>'delete','id'=>$template,'version'=>1];
     $sendTemplate=static function(callable $client,array $input)use($inboxPath):array{$page=$client($inboxPath);return $client($inboxPath,['csrf_token'=>audienceHttpCsrf($page)]+$input);};
     $unlock(null);$templatePage=$admin($inboxPath);
-    audienceHttpExpect(str_contains($templatePage['body'],'data-tooltip="Archive template"')&&str_contains($templatePage['body'],'data-tooltip="Edit template"')&&str_contains($templatePage['body'],'id="admin-unlock-dialog"'),'Active Inbox templates have shared icon actions and the Admin Unlock interface');
+    audienceHttpExpect(str_contains($templatePage['body'],'data-tooltip="Archive"')&&str_contains($templatePage['body'],'data-tooltip="Edit"')&&str_contains($templatePage['body'],'id="admin-unlock-dialog"'),'Active Inbox templates have shared icon actions and the Admin Unlock interface');
     $editorTemplates=$editor($inboxPath);audienceHttpExpect($editorTemplates['status']===200&&!str_contains($editorTemplates['body'],'data-inbox-template-delete-form'),'Editors can edit Inbox templates without seeing admin delete controls');
     audienceHttpExpect($sendTemplate($editor,$templateInput)['status']===403,'Direct Inbox template deletion denies editors');
     audienceHttpExpect($reviewer($inboxPath,$templateInput)['status']===403,'Direct Inbox template deletion denies reviewers');
@@ -84,8 +84,8 @@ try{
     audienceHttpExpect($archived['status']===302&&$archivedRow['deleted_at']!==null&&(int)$archivedRow['version']===2,'Editors can archive Inbox templates without Admin Unlock');
     audienceHttpExpect(!in_array($template,array_map('intval',array_column($store->inboxTemplates(),'id')),true)&&in_array($template,array_map('intval',array_column($store->inboxTemplates(true),'id')),true),'Archived templates are excluded from the reply picker and included in the archive');
     $archivedPath=$inboxPath.'&template_status=archived';$activePage=$admin($inboxPath);$archivePage=$admin($archivedPath);
-    audienceHttpExpect(!str_contains($activePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],'data-tooltip="Restore template"')&&str_contains($archivePage['body'],'data-inbox-template-delete-form'),'Archived view exposes restore and gated delete icons separately from active templates');
-    $editorArchive=$editor($archivedPath);audienceHttpExpect(str_contains($editorArchive['body'],'data-tooltip="Restore template"')&&!str_contains($editorArchive['body'],'data-inbox-template-delete-form'),'Editors can restore but cannot see permanent deletion controls');
+    audienceHttpExpect(!str_contains($activePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],'data-tooltip="Restore"')&&str_contains($archivePage['body'],'data-inbox-template-delete-form'),'Archived view exposes restore and gated delete icons separately from active templates');
+    $editorArchive=$editor($archivedPath);audienceHttpExpect(str_contains($editorArchive['body'],'data-tooltip="Restore"')&&!str_contains($editorArchive['body'],'data-inbox-template-delete-form'),'Editors can restore but cannot see permanent deletion controls');
     $collision=$sendTemplate($editor,['action'=>'inbox_named_save','kind'=>'template','name'=>$archivedRow['name'],'subject'=>'Replacement','body_html'=>'<p>Do not overwrite the archive.</p>']);
     audienceHttpExpect(str_contains($collision['body'],'name is archived')&&$store->one('SELECT body_html FROM marketing_inbox_templates WHERE id=?',[$template])['body_html']===$archivedRow['body_html'],'Creating a template cannot silently overwrite an archived reply');
     $restoreInput=array_replace($archiveInput,['operation'=>'restore','version'=>2]);
