@@ -49,9 +49,12 @@ export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, 
   const range = node('span', `${total ? format((page-1)*pageSize+1)+'–'+format(Math.min(page*pageSize,total)) : '0'} of ${format(total)}`, 'mm-pagination-range');
   range.setAttribute('aria-live', 'polite');
   const controls = node('div', undefined, 'mm-pagination-controls');
-  for (const [name, symbol, target, enabled] of [['Previous page','←',page-1,page>1],['Next page','→',page+1,page<pages]]) {
+  for (const [name, iconPath, target, enabled] of [['Previous page','M20 12H4m7-7-7 7 7 7',page-1,page>1],['Next page','M4 12h16m-7-7 7 7-7 7',page+1,page<pages]]) {
     if (name === 'Next page') controls.append(node('span', `${page} / ${pages}`, 'mm-pagination-page'));
-    const button = node('button', symbol, 'mm-pagination-arrow');button.type = 'button';button.disabled = !enabled;
+    const button = node('button', undefined, 'mm-pagination-arrow');button.type = 'button';button.disabled = !enabled;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');svg.setAttribute('aria-hidden', 'true');svg.setAttribute('focusable', 'false');
+    const path = document.createElementNS(svg.namespaceURI, 'path');path.setAttribute('d', iconPath);svg.append(path);button.append(svg);
     button.setAttribute('aria-label', name);button.dataset.tooltip = name;
     button.addEventListener('click', () => onChange({page: target, pageSize}));controls.append(button);
   }

@@ -102,7 +102,7 @@ body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68p
 .audience-app .admin-unlock-copy strong{color:inherit;font-size:.98rem}
 .audience-app .admin-unlock-lock-form{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0}
 .audience-app .admin-unlock-banner button{white-space:nowrap}
-.audience-app .action-icon-button{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:1px solid var(--audience-control-border);border-radius:8px;background:var(--audience-surface);color:var(--audience-text);text-decoration:none;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}
+.audience-app .action-icon-button{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--audience-text);text-decoration:none;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}
 .audience-app .action-icon-button .action-icon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .audience-app .action-icon-button:is(:hover,:focus-visible):not(:disabled),.audience-app .audience-account-tools>:is(.audience-admin-unlock-trigger,.audience-theme-trigger,.audience-notification-trigger):is(:hover,:focus-visible):not(:disabled){border-color:var(--audience-action-hover-color);background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color);text-decoration:none}
 .audience-app .action-icon-button:focus-visible{outline:2px solid var(--audience-action-hover-color);outline-offset:2px}
@@ -195,6 +195,8 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .audience-sidebar-icon[data-sidebar-icon="analytics"]{--sidebar-icon:url("../../icons/audience-nav/analytics.svg");--sidebar-icon-active:url("../../icons/audience-nav/analytics-active.svg")}
 .audience-sidebar-icon[data-sidebar-icon="analytics-ai"]{--sidebar-icon:url("../../icons/audience-nav/analytics-ai.svg");--sidebar-icon-active:url("../../icons/audience-nav/analytics-ai-active.svg")}
 .audience-sidebar-icon[data-sidebar-icon="writing-ai"]{--sidebar-icon:url("../../icons/audience-nav/writing-ai.svg");--sidebar-icon-active:url("../../icons/audience-nav/writing-ai-active.svg")}
+.audience-sidebar-icon[data-sidebar-icon="manual"]{--sidebar-icon:url("../../icons/audience-nav/manual.svg");--sidebar-icon-active:url("../../icons/audience-nav/manual-active.svg")}
+.audience-nav-item.audience-manual-link{margin-top:36px}
 .audience-subnav{display:flex;flex-direction:column;margin:0 0 10px;gap:0}
 .audience-subnav>a,.audience-subnav>span{padding:6px 8px 6px 35px;border-radius:6px;color:var(--audience-secondary);min-height:36px}
 .audience-subnav>:is(a,span):not([aria-current]):is(:hover,:focus),.audience-sidebar-footer .audience-return:is(:hover,:focus){background:var(--audience-hover);color:var(--audience-secondary)}
@@ -740,6 +742,7 @@ button.marketing-info{min-height:0;padding:0;background:transparent;color:var(--
 .audience-sidebar-close{display:inline-flex;align-self:flex-end;min-height:44px;flex-shrink:0}
 .audience-sidebar>nav{overscroll-behavior:contain}
 .audience-sidebar :is(.audience-create,.audience-nav-item,.audience-subnav>a,.audience-return){min-height:44px}
+.audience-nav-item.audience-manual-link{margin-top:44px}
 .audience-sidebar-footer{padding-bottom:env(safe-area-inset-bottom)}
 .audience-sidebar-toggle{display:none}
 .audience-content{margin-left:0}
@@ -1508,8 +1511,9 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 .mm-pagination .mm-pagination-size select{width:auto;min-width:64px;min-height:40px;margin:0;padding:8px 28px 8px 10px;font:inherit}
 .mm-pagination-range,.mm-pagination-page{white-space:nowrap;line-height:1.4;font-variant-numeric:tabular-nums}
 .mm-pagination-controls{display:flex;align-items:center;justify-self:end;gap:8px}
-.audience-app .mm-pagination .mm-pagination-arrow{display:inline-flex;align-items:center;justify-content:center;width:44px;height:40px;min-width:44px;min-height:40px;padding:0;margin:0;border:1px solid var(--audience-control-border);border-radius:6px;background:var(--audience-surface);color:var(--audience-text);font:inherit;font-size:20px;line-height:1;text-decoration:none}
-.audience-app .mm-pagination .mm-pagination-arrow:is(:hover,:focus-visible):not(:disabled){background:var(--audience-action-hover-bg);border-color:var(--audience-action-hover-color);color:var(--audience-action-hover-color);text-decoration:none}
+.audience-app .mm-pagination .mm-pagination-arrow{display:inline-flex;align-items:center;justify-content:center;width:44px;height:40px;min-width:44px;min-height:40px;padding:0;margin:0;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--audience-text);font:inherit;line-height:1;text-decoration:none}
+.mm-pagination .mm-pagination-arrow>svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.audience-app .mm-pagination .mm-pagination-arrow:is(:hover,:focus-visible):not(:disabled){background:var(--audience-action-hover-bg);border-color:var(--audience-action-hover-color);color:var(--audience-action-hover-color);box-shadow:0 0 0 3px color-mix(in srgb,currentColor 20%,transparent);text-decoration:none}
 .mm-pagination .mm-pagination-arrow:focus-visible{outline:2px solid var(--audience-action-hover-color);outline-offset:2px}
 .mm-pagination .mm-pagination-arrow:disabled{opacity:.4;cursor:not-allowed}
 @container(max-width:560px){.mm-pagination-size{grid-column:1/3}.mm-pagination-range{grid-column:3;justify-self:end}.mm-pagination-controls{grid-column:1/-1}}
@@ -1607,3 +1611,9 @@ html .audience-app .audience-actions:has(>.action-icon-button,>form>.action-icon
 
 @media(max-width:1200px){.campaign-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.campaign-recent-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Keep account controls easy to tap in every mobile workspace. */
+@media(max-width:860px){
+  .audience-app .audience-account-tools{gap:4px}
+  .audience-app .audience-account-tools>:is(button,a){width:44px!important;min-width:44px!important;height:44px;min-height:44px;flex-shrink:0}
+}

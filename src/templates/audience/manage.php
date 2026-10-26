@@ -29,16 +29,16 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
                 <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select tag</span></th><?php endif; ?>
                 <th scope="col" class="tag-name">Tag name</th><th scope="col" class="tag-count">Connections</th>
                 <?php if($showTagCreated): ?><th scope="col" class="tag-created">Created</th><?php endif; ?>
-                <th scope="col" class="tag-actions">Actions</th>
+                <?php if($canManage): ?><th scope="col" class="tag-actions">Actions</th><?php endif; ?>
             </tr></thead>
             <tbody><?php foreach($visibleItems as$tag): ?><tr data-definition-row>
                 <?php if($canDelete): ?><td class="definition-check"><input form="definition-selection" type="checkbox" name="selected_ids[]" value="<?= (int)$tag['id'] ?>" data-definition-item aria-label="Select <?= $h($tag['name']) ?>"><input form="definition-selection" type="hidden" name="versions[<?= (int)$tag['id'] ?>]" value="<?= (int)$tag['version'] ?>"></td><?php endif; ?>
                 <td class="tag-name"><a href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View connections tagged <?= $h($tag['name']) ?>"><?= $h($tag['name']) ?></a></td>
                 <td class="tag-count"><?= number_format((int)($tag['contact_count']??0)) ?></td>
                 <?php if($showTagCreated): ?><td class="tag-created"><?php if(!empty($tag['created_at'])): ?><time datetime="<?= $h(substr($tag['created_at'],0,10)) ?>"><?= $h(date('M j, Y',strtotime($tag['created_at']))) ?></time><?php else: ?><span aria-label="Creation date unavailable">—</span><?php endif; ?></td><?php endif; ?>
-                <td class="tag-actions"><?php if($canManage): $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php'; else: ?><div class="audience-tag-actions"><a class="action-icon-button" href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View connections tagged <?= $h($tag['name']) ?>" data-tooltip="View connections"><?= actionIconSvg('view') ?></a></div><?php endif; ?></td>
+                <?php if($canManage): ?><td class="tag-actions"><?php $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php'; ?></td><?php endif; ?>
             </tr><?php endforeach; ?>
-            <?php if(!$visibleItems): ?><tr><td colspan="<?= 3+(int)$canDelete+(int)$showTagCreated ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
+            <?php if(!$visibleItems): ?><tr><td colspan="<?= 2+(int)$canManage+(int)$canDelete+(int)$showTagCreated ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
             </tbody>
         </table>
     </section>
