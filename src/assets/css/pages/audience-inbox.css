@@ -115,6 +115,7 @@
 .inbox-main button, .inbox-main .button { border: 1px solid #bdcbcb; border-radius: 6px; background: var(--inbox-surface); color: var(--inbox-ink); font: inherit; font-size: var(--inbox-font-body); font-weight: 550; padding: 9px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; line-height: 1.4; gap: 7px; }
 .inbox-main button:hover, .inbox-main .button:hover { background: var(--inbox-tint); }
 
+.inbox-main .inbox-resolve-form button, .inbox-main .inbox-reply-footer .inbox-actions button { font-size: calc(16px * var(--audience-font-scale, 1)); font-weight: 400; }
 
 .inbox-main button:disabled { opacity: .45; cursor: not-allowed; }
 .inbox-main :focus-visible, .inbox-sidebar a:focus-visible, .inbox-top a:focus-visible, .inbox-top button:focus-visible, .inbox-list :focus-visible { outline: 2px solid var(--inbox-accent); outline-offset: 3px; }
@@ -297,7 +298,7 @@
 @media(max-width:1040px) {
     .inbox-layout { grid-template-columns: var(--inbox-list-width,360px) minmax(0,1fr); }
     .inbox-sidebar { display: none; }
-    .inbox-mobile-nav { display: block; font: inherit; font-size: var(--inbox-font-small); border: 1px solid var(--inbox-line); background: transparent; border-radius: 5px; padding: 7px 10px; color: inherit; }
+    .inbox-mobile-nav { display: block; min-width: 44px; min-height: 44px; font: inherit; font-size: var(--inbox-font-small); border: 1px solid var(--inbox-line); background: transparent; border-radius: 5px; padding: 7px 10px; color: inherit; }
     .inbox-sidebar.is-open { position: fixed; display: flex; top: calc(var(--audience-shell-offset) + 76px); left: 0; bottom: 0; width: 260px; z-index: 60; box-shadow: 5px 0 24px #0003; }
     .inbox-layout.inbox-has-panel { grid-template-columns: minmax(0,1fr); }
     .inbox-top { gap: 14px; padding-inline: 16px; }
@@ -432,6 +433,19 @@ html.dark-mode .inbox-message-comment { border-color: #665e3d; }
 .inbox-pane-resizer:hover::after, .inbox-pane-resizer:focus-visible::after, .inbox-is-resizing .inbox-pane-resizer::after { background: var(--inbox-accent); }
 .inbox-is-resizing, .inbox-is-resizing * { cursor: col-resize!important; user-select: none!important; }
 @media(max-width:720px) { .inbox-pane-resizer { display: none; } }
+
+/* Preserve touch targets instead of shrinking account controls on phones. */
+@media(max-width:720px){
+  .inbox-top{gap:6px}
+  .inbox-top .inbox-back{width:44px;height:44px;flex:0 0 44px}
+  .inbox-top .inbox-mobile-nav{min-height:44px}
+}
+@media(max-width:400px){
+  .inbox-top{height:112px;padding:8px 12px;flex-wrap:wrap;gap:4px 8px}
+  .inbox-top .audience-account-tools{flex:0 0 100%;justify-content:flex-end}
+  .inbox-layout{height:calc(100dvh - var(--audience-shell-offset) - 112px)}
+  .inbox-sidebar.is-open{top:calc(var(--audience-shell-offset) + 112px)}
+}
 
 .inbox-switch-track { display: inline-flex; align-items: center; width: 27px; height: 16px; padding: 2px; border-radius: 12px; background: #aab6b7; transition: background .15s; flex-shrink: 0; }
 .inbox-switch-track>span { width: 12px; height: 12px; background: #fff; border-radius: 50%; box-shadow: 0 1px 2px #0002; transition: transform .15s; }

@@ -22,12 +22,12 @@
 .template-gallery:not(.template-list){align-items:stretch}
 .template-gallery:not(.template-list) .template-thumbnail{height:auto;min-height:80px}
 .template-thumbnail iframe{display:block;max-width:none;transform-origin:top left}
-.template-gallery:not(.template-list) .template-card{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:0}
+.template-gallery:not(.template-list) .template-card{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0}
 .template-gallery:not(.template-list) .template-thumbnail{position:relative;background:#fff;border:0;border-radius:0 0 14px 14px}
 .template-gallery:not(.template-list) .template-thumbnail iframe{position:absolute;top:0;left:0}
-.template-gallery:not(.template-list) .template-card-info{display:grid;grid-row:span 2;grid-template-rows:subgrid;row-gap:0;padding-bottom:24px}
+.template-gallery:not(.template-list) .template-card-info{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;padding-bottom:24px}
 .template-gallery:not(.template-list) .template-card-info p{margin-top:0;margin-bottom:0}
-.template-gallery:not(.template-list) .template-card-info small{grid-row:2;margin-top:24px}
+.template-gallery:not(.template-list) .template-card-info small{grid-row:3;margin-top:24px}
 .template-gallery:not(.template-list) .template-card-actions{align-items:end}
 .template-list .template-thumbnail{display:none}
 .template-gallery .template-card{border:1px solid #005f69}
@@ -321,3 +321,29 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
 .designer-template-card:has(.designer-template-select:is(:hover,:focus-visible)){border-color:var(--audience-primary);box-shadow:0 0 0 2px var(--audience-primary)}
 .designer-template-select:focus-visible{outline:none}
 @media(max-width:480px){.designer-template-options{grid-template-columns:minmax(0,1fr)}}
+
+/* Phone editors keep their actions on a separate row, with usable canvas controls. */
+@media(max-width:600px){
+  body.email-designer .designer-topbar{height:112px;min-height:112px;padding:8px 12px;gap:4px 10px;flex-wrap:wrap}
+  .email-designer .designer-title strong{max-width:100%;font-size:14px}
+  .email-designer .designer-top-actions{flex:0 0 100%;width:100%;margin:0;gap:8px;justify-content:space-between}
+  .email-designer .designer-top-actions>details>summary{min-height:44px;padding:8px;font-size:14px}
+  .email-designer .designer-top-actions>#design-save{min-height:44px}
+  body.audience-app.email-designer .designer-workspace{height:calc(100dvh - 112px - var(--audience-shell-offset));grid-template-rows:minmax(180px,1fr) minmax(180px,1fr)}
+  .email-designer .designer-save-menu>div{max-width:calc(100vw - 24px);max-height:calc(100dvh - 128px - var(--audience-shell-offset));overflow:auto}
+  .email-designer .designer-save-menu:first-child>div{left:0;right:auto}
+  .email-designer .designer-save-menu:nth-child(2)>div{left:50%;right:auto;transform:translateX(-50%)}
+}
+@media(max-width:1000px){
+  .email-designer .designer-row>.designer-layout-tools{display:none;left:0;top:0;flex-direction:row;flex-wrap:wrap;max-width:100%;z-index:4}
+  .email-designer .designer-row.selected{padding-top:44px!important}
+  .email-designer .designer-row.selected>.designer-layout-tools{display:flex}
+  .email-designer .designer-block.selected{padding-top:48px}
+  .email-designer .designer-block.selected>.designer-block-hover-tools{opacity:1;pointer-events:auto}
+  .email-designer .designer-block-hover-tools button{min-width:44px;min-height:44px}
+  .email-designer .designer-layout-tools button,.email-designer .designer-inline-tools button{min-width:44px;min-height:44px}
+}
+@media(max-width:800px) and (max-height:600px){
+  body.email-designer{height:auto;overflow:auto}
+  body.audience-app.email-designer .designer-workspace{height:auto;grid-template-rows:300px 360px}
+}

@@ -4,7 +4,6 @@ $menuJson=$h(json_encode($menuModel,JSON_THROW_ON_ERROR));
 ?>
 <?php if($menuKind==='tag'): ?>
 <div class="audience-tag-actions">
-    <a class="action-icon-button" href="<?= $h($url(['tags'=>[$menuModel['id']]])) ?>" aria-label="View connections tagged <?= $h($menuModel['name']) ?>" data-tooltip="View connections"><?= actionIconSvg('view') ?></a>
     <button type="button" class="action-icon-button" data-tag-edit="<?= $menuJson ?>" aria-label="Rename tag <?= $h($menuModel['name']) ?>" data-tooltip="Rename"><?= actionIconSvg('rename') ?></button>
     <?php if($canExport): ?><form method="post"><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'queue_export','selection_scope'=>'all','tags'=>[$menuModel['id']]]); ?><button type="submit" class="action-icon-button" aria-label="Export connections tagged <?= $h($menuModel['name']) ?> as ZIP" data-tooltip="Export as ZIP"><?= actionIconSvg('export-csv') ?></button></form><?php endif; ?>
     <?php foreach(['regular'=>['Send regular email','create-email'],'plain-text'=>['Send plain-text email','plain-text-email']]as$emailType=>[$label,$icon]): ?><a class="action-icon-button" href="<?= $h($url(['view'=>'campaigns','create'=>1,'target'=>'tag:'.$menuModel['id'],'email_type'=>$emailType])) ?>" aria-label="Create a <?= $emailType==='plain-text'?'plain-text':'regular' ?> email draft for tag <?= $h($menuModel['name']) ?>" data-tooltip="<?= $label ?>"><?= actionIconSvg($icon) ?></a><?php endforeach; ?>

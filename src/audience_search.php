@@ -26,7 +26,7 @@ function audienceSearchCategories(): array
 function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): array
 {
     $pages=[];
-    foreach(['home'=>'Home','analytics'=>'Analytics','contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Fields and merge tags','settings'=>'Audience settings'] as $view=>$title) {
+    foreach(['home'=>'Home','analytics'=>'Analytics','contacts'=>'Connections','campaigns'=>'Campaigns','campaign-manager'=>'Campaign Manager','templates'=>'Email templates','tags'=>'Tags','segments'=>'Segments','content'=>'Content Library','brand'=>'Brand Kit','groups'=>'Groups','fields'=>'Fields and merge tags','settings'=>'Audience settings','manual'=>'User Manual'] as $view=>$title) {
         $pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
     }
     foreach(['automations'=>'Automations','flow-templates'=>'Flow templates','forms'=>'Forms','surveys'=>'Surveys','landing-pages'=>'Landing pages','preferences'=>'Subscriber preferences'] as $view=>$title)$pages[]=['title'=>$title,'description'=>'MessageMonkey workspace','href'=>'audience.php?view='.$view,'icon'=>'page'];
@@ -45,6 +45,7 @@ function audienceSearchCatalog(bool $canManage,bool $canAccessDelivery=false): a
         ['title'=>'Manage segments','description'=>'Find connections that meet your criteria.','href'=>'audience.php?view=segments','icon'=>'action'],
     ]:[];
     return ['pages'=>$pages,'actions'=>$actions,'help'=>[
+        ['title'=>'MessageMonkey user manual','description'=>'Campaigns, connections, forms, automations, analytics, AI, and troubleshooting.','href'=>'audience.php?view=manual','icon'=>'help'],
         ['title'=>'MOED user manual','description'=>'Getting oriented and understanding roles and access.','href'=>'help.php#roles','icon'=>'help'],
         ['title'=>'Verify an Amazon SES sending domain','description'=>'AWS guide to sending identities and domain authentication.','href'=>'https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html','icon'=>'help','external'=>true],
         ['title'=>'Set up SES and SNS delivery events','description'=>'AWS guide to delivery, bounce and complaint notifications.','href'=>'https://docs.aws.amazon.com/ses/latest/dg/monitor-sending-activity-using-notifications-sns.html','icon'=>'help','external'=>true],
