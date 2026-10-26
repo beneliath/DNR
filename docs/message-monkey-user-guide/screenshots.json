@@ -1,0 +1,1685 @@
+[
+  {
+    "id": "home",
+    "chapter": 1,
+    "title": "Start with the Home overview",
+    "route": "audience.php?view=home",
+    "steps": [
+      "Check the account identity and the selected reporting dates.",
+      "Use the sidebar to open the workspace you need. The Home tiles summarize the current scope.",
+      "Open a detailed report before drawing conclusions from a headline number."
+    ],
+    "file": "screenshots/home.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "e32d9aaa7ec8f4c45bf99a45cd93c7b22f3be2cd290d02bad2527e018c2d27fb"
+    }
+  },
+  {
+    "id": "manual",
+    "chapter": 1,
+    "title": "Find guidance in the online manual",
+    "route": "audience.php?view=manual",
+    "steps": [
+      "Choose User Manual beneath Write with AI in the sidebar.",
+      "Enter a topic such as import, schedule, or unsubscribe in Search the manual.",
+      "Choose a matching topic or use the chapter navigation."
+    ],
+    "file": "screenshots/manual.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "b46a97a7f3fe51052354aef02f19202e11570f4588a8eb2f08d5de079f714c57"
+    }
+  },
+  {
+    "id": "dark",
+    "chapter": 1,
+    "title": "Work in dark mode",
+    "route": "audience.php?view=contacts",
+    "steps": [
+      "Use the account theme control to switch display mode.",
+      "The same navigation, filters, and actions remain available in either theme.",
+      "Check icon labels and status text as well as color when identifying an action."
+    ],
+    "theme": "dark",
+    "file": "screenshots/dark.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "dark",
+      "captured_at": "2026-10-26",
+      "sha256": "1e9a48ed22e01bb2481882b2959253a917f8adb65ef3399aa080aa6b392392c7"
+    }
+  },
+  {
+    "id": "mobile",
+    "chapter": 1,
+    "title": "Use the workspace on a small screen",
+    "route": "audience.php?view=contacts",
+    "steps": [
+      "Open the navigation menu to move between workspaces.",
+      "Close the menu to work with the current page.",
+      "Use horizontal scrolling where a table contains more columns than the screen can show."
+    ],
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "file": "screenshots/mobile.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 390,
+        "height": 844
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "01132e9b7f41c0d36ac28aa27fd946e580f048d024475d38bf7ea1b8178087cc"
+    }
+  },
+  {
+    "id": "manual-dark",
+    "chapter": 1,
+    "title": "Read the online guide in dark mode",
+    "route": "audience.php?view=manual",
+    "theme": "dark",
+    "steps": [
+      "Switch the account display to dark mode.",
+      "Use the same chapter links and search controls; the current role remains visible.",
+      "Open View Comprehensive User Guide to read or save the illustrated PDF."
+    ],
+    "file": "screenshots/manual-dark.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "dark",
+      "captured_at": "2026-10-26",
+      "sha256": "f068be6e5a99d38dc4a13e37925838cffe0b4a636bc9ad8d730b02aba633ed85"
+    }
+  },
+  {
+    "id": "roles",
+    "chapter": 2,
+    "title": "Read role permissions and protected-action cues",
+    "route": "audience.php?view=manual#manual-roles",
+    "steps": [
+      "Reviewer access focuses on browsing and analysis. Editors can change content and audience data.",
+      "Administrators have additional controls; sensitive actions may also require Admin Unlock.",
+      "Read the action label and confirmation before proceeding. An orange outline marks a protected control."
+    ],
+    "actions": [
+      {
+        "selector": "#manual-roles",
+        "op": "scroll"
+      }
+    ],
+    "clip": {
+      "x": 230,
+      "y": 70,
+      "width": 1030,
+      "height": 850
+    },
+    "file": "screenshots/roles.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": {
+        "x": 230,
+        "y": 70,
+        "width": 1030,
+        "height": 850
+      },
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "78588bc9391a7e2c1f5deefd31a1ffe984f58cb6ef9f075dc023033e90a5c7af"
+    }
+  },
+  {
+    "id": "connections",
+    "chapter": 3,
+    "title": "Find and filter connections",
+    "route": "audience.php?view=contacts",
+    "steps": [
+      "Search for a connection or narrow the list with filters.",
+      "Check the active or archived scope and the number of matching records.",
+      "Open the email address or name to review a profile before making changes."
+    ],
+    "file": "screenshots/connections.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "28c330d6cb60892e1afe6a9c2defee953da700ac28c05676d5b4fbd595520ace"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "profile",
+    "chapter": 3,
+    "title": "Review a connection profile",
+    "route": "audience.php?view=contact&id=1",
+    "steps": [
+      "Confirm the email address and subscription status.",
+      "Review profile fields, tags, groups, and the available activity or notes tabs.",
+      "Save each edited section and wait for confirmation."
+    ],
+    "file": "screenshots/profile.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "70c07c00cbb3eba4e73aad75dfd3f29280295449b4dcc9951053b9c5dac8db18"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "import",
+    "chapter": 3,
+    "title": "Begin a connection import",
+    "route": "audience.php?view=import",
+    "steps": [
+      "Choose Import connections from Add connections.",
+      "Use an accepted file type and include an email column.",
+      "Continue to mapping and review before starting the import. Uploading a file alone does not complete the job."
+    ],
+    "file": "screenshots/import.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "809a2ae238f84a354bbc6af32d5236c6f35e8f81763716da127ab72322e7a8ea"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "import-map",
+    "chapter": 3,
+    "title": "Match imported columns",
+    "route": "audience.php?view=import&id=2&step=match",
+    "steps": [
+      "Inspect the example data beside each source column.",
+      "Map each column to the intended field and ignore columns that should not be imported.",
+      "Review consent, existing-record handling, and tags in the remaining steps before starting."
+    ],
+    "file": "screenshots/import-map.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "29974699a4230af7acc27f12f9e61332bf844babc6c01d053e669b20366d76d5"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "import-job",
+    "chapter": 3,
+    "title": "Check import results",
+    "route": "audience.php?view=job&id=1",
+    "steps": [
+      "Wait for the final job state rather than assuming that queued means complete.",
+      "Read the processed and rejected row counts and any available error details.",
+      "Verify sample profiles. Undo has a limited scope and does not restore every later edit."
+    ],
+    "file": "screenshots/import-job.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "95b4fdbb0bee045eab118b87fcfa1fd301138e9f2b0014c3dbfb8c3ca552651d"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "export-history",
+    "chapter": 3,
+    "title": "Find completed exports",
+    "route": "audience.php?view=jobs&kind=export",
+    "steps": [
+      "Start an export from the connection list or an individual profile.",
+      "Use Export history to review the job state and download a completed export.",
+      "Confirm the exported scope and keep audience data in an appropriate location."
+    ],
+    "file": "screenshots/export-history.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "fd211c51a0c4c3eee9b76c8a08c7dab51c51147f529cadf4acb8aca740b7ab2f"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "tags",
+    "chapter": 4,
+    "title": "Use tag names to view their connections",
+    "route": "audience.php?view=tags",
+    "steps": [
+      "Create or locate an internal label with a clear purpose.",
+      "Click a tag name to open the associated connections.",
+      "Use the action labels to rename or delete a tag. Deleting the label keeps the connections."
+    ],
+    "file": "screenshots/tags.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "e43dd803313c2c66b47ba6ea72509f330d76811061f2c1038cd26e8229ec6e44"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "groups",
+    "chapter": 4,
+    "title": "Manage subscriber interest groups",
+    "route": "audience.php?view=groups",
+    "steps": [
+      "Open an existing group or create a category for related choices.",
+      "Choose the display type and options that fit the question.",
+      "Check which choices appear in signup and preferences forms."
+    ],
+    "file": "screenshots/groups.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "f8830b501486e40265d82c4423f62bb8f6e0154ef3e58ef635b70f11447cd46b"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "fields",
+    "chapter": 4,
+    "title": "Review fields and merge tags",
+    "route": "audience.php?view=fields",
+    "steps": [
+      "Review each field type, merge tag, required setting, and public visibility.",
+      "Use merge tags in content only after checking sample and missing values.",
+      "Removing a field can remove stored information; read the protected confirmation."
+    ],
+    "file": "screenshots/fields.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "5fe25af23d7886702be2793376ac64a85e6d061b36b783e5706c96595e861c75"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "segments",
+    "chapter": 4,
+    "title": "Choose a reusable segment",
+    "route": "audience.php?view=segments",
+    "steps": [
+      "Open a segment to inspect its rules.",
+      "Review whether all rules or any rule must match and check the resulting connections.",
+      "Recheck recipient eligibility at send time; segment membership can change."
+    ],
+    "file": "screenshots/segments.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "c61153acb8f86bab08bef2b3de0810fdd575bafb046756fa8ef0f56e50086bae"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "campaigns",
+    "chapter": 5,
+    "title": "Manage email drafts and previous campaigns",
+    "route": "audience.php?view=campaigns",
+    "steps": [
+      "Search or filter the list by the scope you need.",
+      "Open a draft to continue its checklist, or create a new campaign.",
+      "After duplicating a campaign, recheck recipients, sender, dates, and links."
+    ],
+    "file": "screenshots/campaigns.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "9de90e39ce0ad6a2e1a9722758fae519c000ebf2e1bcb20520c73f424b9f1bdd"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "checklist",
+    "chapter": 5,
+    "title": "Complete the campaign checklist",
+    "route": "audience.php?view=campaign&id=1",
+    "steps": [
+      "Complete To, From, Subject, and Content using the available edit controls.",
+      "Review settings and tracking before finishing the draft.",
+      "Save and preview the content, then continue to the separate sending review when ready."
+    ],
+    "file": "screenshots/checklist.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "02043272f32430b25f554c59d6f075a5e305e67d3afb0277f264b347b60be5e2"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "plain-text",
+    "chapter": 5,
+    "title": "Prepare a plain-text campaign",
+    "route": "audience.php?view=campaign&id=4",
+    "steps": [
+      "Use the plain-text campaign type when a simple text message fits the task.",
+      "Review personalization, readable links, and the final subject.",
+      "Save the draft and run the same recipient and delivery checks used for other campaigns."
+    ],
+    "file": "screenshots/plain-text.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "97662e7f4871f4acc46bef04a1aeaa0c013a7e6c442b2ad505cc1b8adb2d51cc"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "plan",
+    "chapter": 5,
+    "title": "Coordinate work in Campaign Manager",
+    "route": "audience.php?view=campaign-plan&id=1&month=2026-11",
+    "steps": [
+      "Open a campaign plan to review its date range and touchpoints.",
+      "Add email, task, or event touchpoints to coordinate related work.",
+      "Check the linked email separately: a planning date is not proof that the email is scheduled."
+    ],
+    "file": "screenshots/plan.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "b6ed21685dea72e3233d4863f21fad0b37eea44855713b99e48959ad79b10f7c"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "templates",
+    "chapter": 6,
+    "title": "Choose a reusable email template",
+    "route": "audience.php?view=templates&tab=saved",
+    "steps": [
+      "Open a saved design or choose an available starter.",
+      "Replace example text, links, and images before use.",
+      "Save reusable designs with names that describe their purpose."
+    ],
+    "file": "screenshots/templates.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "f8fab6c49902abcde91854d64d5a1c109d48d51f2659167729a4be9e5ca46af4"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "designer",
+    "chapter": 6,
+    "title": "Build the email in the visual editor",
+    "route": "audience.php?view=designer&kind=campaign&id=1",
+    "steps": [
+      "Select a block in the email preview to open its content controls.",
+      "Use block and design settings for typography, spacing, images, and buttons.",
+      "Use Undo or Redo when needed, then Save and review the saved state."
+    ],
+    "file": "screenshots/designer.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "e9f29426ab825b84e91cb58108e3257895bbc022e63fd26d65624399832a5edc"
+    },
+    "actions": []
+  },
+  {
+    "id": "review",
+    "chapter": 6,
+    "title": "Review the email with your team",
+    "route": "audience.php?view=campaign-review&id=1",
+    "steps": [
+      "Check the message content, subject, and preview text.",
+      "Use comments for specific corrections or questions.",
+      "Resolve the edits in the draft and verify them before the final sending review."
+    ],
+    "file": "screenshots/review.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "9a948103bfcb1378564be9e009a850b124f159b3fa761e74ea5b18b3015210e1"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "email-preview",
+    "chapter": 6,
+    "title": "Check the email preview before testing",
+    "route": "audience.php?view=designer&kind=campaign&id=1",
+    "actions": [
+      {
+        "selector": ".designer-save-menu:has(#design-preview) > summary",
+        "op": "click"
+      },
+      {
+        "selector": "#design-preview",
+        "op": "click"
+      }
+    ],
+    "steps": [
+      "Open Preview and choose Enter preview mode.",
+      "Review the message with the available connection and device controls.",
+      "Check dates, links, personalization, and missing optional values before sending a test."
+    ],
+    "file": "screenshots/email-preview.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "51f7f936af581b225ae82fbdc60701e1a61b90eae8ddade8d01d0aae11075b71"
+    }
+  },
+  {
+    "id": "email-mobile",
+    "chapter": 6,
+    "title": "Inspect the mobile email preview",
+    "route": "audience.php?view=designer&kind=campaign&id=1",
+    "actions": [
+      {
+        "selector": ".designer-save-menu:has(#design-preview) > summary",
+        "op": "click"
+      },
+      {
+        "selector": "#design-preview",
+        "op": "click"
+      },
+      {
+        "selector": "[data-preview-device=\"mobile\"]",
+        "op": "click"
+      }
+    ],
+    "steps": [
+      "Choose Mobile in the preview toolbar.",
+      "Check text size, image proportions, button labels, and reading order.",
+      "Use Simulate dark mode as an additional check; inspect a real test message because email clients differ."
+    ],
+    "file": "screenshots/email-mobile.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "b0018ebad3b062202ebf841b087772036fba2d9954ddcc388a3b8fad5664f42a"
+    }
+  },
+  {
+    "id": "content",
+    "chapter": 7,
+    "title": "Manage files for your campaigns",
+    "route": "audience.php?view=content",
+    "steps": [
+      "Find or upload the image or document required for your message.",
+      "Use descriptive names and folders so the file is easy to find again.",
+      "Check image descriptions, link destinations, and how the asset appears in the final email."
+    ],
+    "file": "screenshots/content.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "1a316e25c565048af2254f0fb1f2d1ca5c1c2abde105e9473e95b19611f08be2"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "brand",
+    "chapter": 7,
+    "title": "Set the Brand Kit",
+    "route": "audience.php?view=brand",
+    "steps": [
+      "Review the organization identity, logo, colors, and typography.",
+      "Use approved brand details as the starting point for new content.",
+      "Inspect existing drafts directly after a brand change; do not assume every saved design has changed."
+    ],
+    "file": "screenshots/brand.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "489a1a3653f2b9c965335af3683ec9934f8fc75d15af1624522555b0f7c75554"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "send-checks",
+    "chapter": 8,
+    "title": "Read the send-readiness checks",
+    "route": "audience.php?view=campaign-send&id=1",
+    "steps": [
+      "Confirm the intended campaign and recipients.",
+      "Read the sending review and resolve any blocked or incomplete item. Choose the send time in the campaign checklist before confirming.",
+      "Only continue to sending or scheduling when the required access and checks allow it. No example email was sent for this guide."
+    ],
+    "file": "screenshots/send-checks.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "79387d7531cecf239746239fa3baa438c9052c26b3a5eed59b91c2aaafca93e6"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "delivery",
+    "chapter": 8,
+    "title": "Review administrative delivery setup",
+    "route": "audience.php?view=delivery",
+    "steps": [
+      "An unrestricted administrator reviews the configured sender identity and delivery readiness.",
+      "Follow the on-screen checks for identity, configuration, and any required verification.",
+      "A saved draft or successful preview does not prove that an email can be delivered."
+    ],
+    "file": "screenshots/delivery.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "3770df90cdb8897f1cd683b4c6eeb638972d29850db0b0cb2a7830e8a2a910f2"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "schedule",
+    "chapter": 8,
+    "title": "Set the campaign delivery time",
+    "route": "audience.php?view=campaign&id=1",
+    "actions": [
+      {
+        "selector": ".campaign-checklist-item:has(input[name=\"send_mode\"]) > summary",
+        "op": "click"
+      },
+      {
+        "selector": "[name=\"timezone\"]",
+        "op": "select",
+        "value": "America/Chicago"
+      },
+      {
+        "selector": ".campaign-checklist-item:has(input[name=\"send_mode\"])",
+        "op": "scroll"
+      }
+    ],
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ],
+    "steps": [
+      "Open Send time in the campaign checklist and choose Schedule or Send now.",
+      "For a schedule, review the delivery date, time, and time zone together, then save the choice.",
+      "Return to the final send review and confirm separately. Selecting a time in this form does not submit the campaign."
+    ],
+    "file": "screenshots/schedule.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "03a25730090809048ab300917e0818830d5b04a0ef6b5a7b8f88a282b84959d7"
+    }
+  },
+  {
+    "id": "automations",
+    "chapter": 9,
+    "title": "Find an automation and its results",
+    "route": "audience.php?view=automations",
+    "steps": [
+      "Open a flow name to review its status and purpose.",
+      "Results appears before Edit in the row actions. Hover or focus an icon to read its label.",
+      "Keep a flow in draft while reviewing its trigger, conditions, and linked email content."
+    ],
+    "file": "screenshots/automations.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "e14b7491b5b88031335d4c854ce985a6c5f715b3ddb7f4d36b084df183a5c6cc"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "flow-templates",
+    "chapter": 9,
+    "title": "Start from a flow template",
+    "route": "audience.php?view=flow-templates",
+    "steps": [
+      "Choose a template whose trigger and sequence fit the intended audience journey.",
+      "Review its steps before creating or changing a flow.",
+      "Replace linked content and review eligibility rules before activation."
+    ],
+    "file": "screenshots/flow-templates.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "3997478c8d21c158c47b14d86239f6735470d77153ca96ab37fdae8ef688f9dc"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "flow",
+    "chapter": 9,
+    "title": "Inspect a flow before activation",
+    "route": "audience.php?view=flow&id=1",
+    "steps": [
+      "Review the entry trigger and the order of the steps.",
+      "Open each step to check its content, conditions, and timing.",
+      "Validate the flow and linked email drafts before activating it. Activation can affect future eligible connections."
+    ],
+    "file": "screenshots/flow.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "beadd26e281a5d852d7b906ada94277d3dcf53b83a4a9d133db102ef6699211a"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "flow-results",
+    "chapter": 9,
+    "title": "Read automation results",
+    "route": "audience.php?view=flow-report&id=1",
+    "steps": [
+      "Confirm the flow and reporting scope.",
+      "Review enrollment and step or delivery outcomes where available.",
+      "An empty report may simply mean that the flow has not run; inspect its status and trigger before changing it."
+    ],
+    "file": "screenshots/flow-results.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "a8254db00859e3fadf7aff2d473d635f059770fa0140b685954d05b98de798ef"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "forms",
+    "chapter": 10,
+    "title": "Choose the right form type",
+    "route": "audience.php?view=forms",
+    "steps": [
+      "Use a hosted, embedded, popup, or landing-page form to fit the placement.",
+      "Open Results to review performance or Edit to change a draft.",
+      "Check the draft or published state before sharing a link or installing code."
+    ],
+    "file": "screenshots/forms.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "164ade2d2700a438d15c4da688e4761b4641e2322a903a57362b89054c547d1b"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "form-editor",
+    "chapter": 10,
+    "title": "Edit a signup form",
+    "route": "audience.php?view=form&id=1",
+    "steps": [
+      "Review the form fields, labels, and subscription choices.",
+      "Adjust the design and inspect the preview.",
+      "Save and complete the publishing checks before sharing the live form."
+    ],
+    "file": "screenshots/form-editor.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "e456c6ec766bff10fd821e952fe1aa9ce45ee104da94f875a4b526dce71e6ee8"
+    }
+  },
+  {
+    "id": "embedded",
+    "chapter": 10,
+    "title": "Prepare an embedded form",
+    "route": "audience.php?view=form&id=2",
+    "steps": [
+      "Configure the fields and appearance for the website placement.",
+      "Check consent and required fields before publishing.",
+      "Use the provided integration instructions, then test the published form on the target website."
+    ],
+    "file": "screenshots/embedded.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "988f78ecf5253337f91823e2a00d6199ff8636822366958b349905b4f4433b2f"
+    }
+  },
+  {
+    "id": "popup",
+    "chapter": 10,
+    "title": "Configure a popup form",
+    "route": "audience.php?view=form&id=3",
+    "steps": [
+      "Review the popup content and display controls.",
+      "Check both small-screen and desktop previews.",
+      "Save, publish when ready, and test the installed behavior on the intended website."
+    ],
+    "file": "screenshots/popup.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "c730abb7def0c8e443b0badd9677f0cc58464d46f550a86a29c7c5aa20a2fe97"
+    }
+  },
+  {
+    "id": "landing",
+    "chapter": 10,
+    "title": "Build a landing page",
+    "route": "audience.php?view=form&id=4",
+    "steps": [
+      "Use a focused headline and a clear signup purpose.",
+      "Review images, fields, links, and the mobile layout.",
+      "Publish the completed version and test its public link before distributing it."
+    ],
+    "file": "screenshots/landing.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "9a0752665e878369cf58e34380ab983b180d00a7a3ba68cf3a9e2c72de43d75a"
+    }
+  },
+  {
+    "id": "surveys",
+    "chapter": 10,
+    "title": "Manage surveys and review results first",
+    "route": "audience.php?view=surveys",
+    "steps": [
+      "Choose a starter or open an existing survey.",
+      "Use Results, the first row action, to review responses; use Edit to change the draft.",
+      "Read the resource status before sharing or changing a published survey."
+    ],
+    "file": "screenshots/surveys.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "c46f1e3308d3790b33360eabad4b9b5e09793be8f22c3cc6605ca5581645c5d6"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "survey-editor",
+    "chapter": 10,
+    "title": "Review survey questions",
+    "route": "audience.php?view=form&id=5",
+    "steps": [
+      "Use clear questions and appropriate response types.",
+      "Inspect answer choices, required settings, and the respondent preview.",
+      "Save and publish only after checking the complete respondent experience."
+    ],
+    "file": "screenshots/survey-editor.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "57fa21d4a1be7b698cfabb931219a536cfa1ce3c4c826f08ee26f104feb7c335"
+    }
+  },
+  {
+    "id": "preferences",
+    "chapter": 10,
+    "title": "Manage subscriber preferences",
+    "route": "audience.php?view=preferences",
+    "steps": [
+      "Open the preferences resource for the audience.",
+      "Review the fields and groups subscribers may change.",
+      "Test the published experience and distinguish preference changes from unsubscribing."
+    ],
+    "file": "screenshots/preferences.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "b2b2425b7291d1a4b668ca854869162b0eff54e765420043f46ac45149d78803"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "form-results",
+    "chapter": 10,
+    "title": "Interpret form and survey results",
+    "route": "audience.php?view=collection-report&id=5",
+    "steps": [
+      "Confirm the selected resource and date range.",
+      "Review available views, submissions, and response details.",
+      "Zero responses can be expected for an unpublished or unused form; verify the public link and filters."
+    ],
+    "file": "screenshots/form-results.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "99fa65a7a4d2d2cb1aef24a7c9b8c9c12aa28c7ddceaf38006ea91d38418f9b1"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "inbox",
+    "chapter": 11,
+    "title": "Triage incoming conversations",
+    "route": "audience.php?view=inbox",
+    "steps": [
+      "Choose the conversation scope and use search or labels to find a thread.",
+      "Open a conversation and read its history before responding.",
+      "Use labels and Mark done to keep work organized."
+    ],
+    "file": "screenshots/inbox.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "0887eb140dd970f36c6f99bac68d12c51606ab40ef7d6ad7d59102fd52b99f94"
+    },
+    "crop": [
+      0,
+      0,
+      3840,
+      2760
+    ]
+  },
+  {
+    "id": "conversation",
+    "chapter": 11,
+    "title": "Review a conversation before replying",
+    "route": "audience.php?view=inbox&thread=1",
+    "steps": [
+      "Confirm the sender, subject, and conversation history.",
+      "Check the linked connection and any eligibility warning before composing a reply.",
+      "Save draft preserves work. Send reply is separate and checks eligibility and delivery readiness; this example shows the blocked state."
+    ],
+    "file": "screenshots/conversation.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "eaa018dedff4c2474313e0c6c9321e8efb847f60137df795e6daa91dbba005e7"
+    },
+    "crop": [
+      0,
+      0,
+      3840,
+      2760
+    ]
+  },
+  {
+    "id": "compose",
+    "chapter": 11,
+    "title": "Write a direct message",
+    "route": "audience.php?view=inbox&panel=compose&contact=1",
+    "steps": [
+      "Check the selected connection and permitted sending address.",
+      "Enter a clear subject and message, then review links and any template content.",
+      "Save the draft before leaving; only send when the recipient and delivery checks allow it."
+    ],
+    "file": "screenshots/compose.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "4a939031ba889220c42ab7553ff75ee2b9b5a674fa12b2d2f214d205cabc4aa9"
+    },
+    "crop": [
+      0,
+      0,
+      3840,
+      2760
+    ]
+  },
+  {
+    "id": "inbox-templates",
+    "chapter": 11,
+    "title": "Reuse an Inbox message template",
+    "route": "audience.php?view=inbox&panel=templates",
+    "steps": [
+      "Create a template for a recurring reply or open an existing one.",
+      "Personalize the inserted text for the current conversation.",
+      "Archive an obsolete template to remove it from active use while keeping history."
+    ],
+    "file": "screenshots/inbox-templates.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "b19bf3330d5545c92daf2470a86def7d370580703bc28568ba5f7a27b03d6594"
+    },
+    "crop": [
+      0,
+      0,
+      3840,
+      2760
+    ]
+  },
+  {
+    "id": "inbox-sources",
+    "chapter": 11,
+    "title": "Check Inbox receiving setup",
+    "route": "audience.php?view=inbox&panel=sources",
+    "steps": [
+      "An administrator reviews the inbound source and routing status.",
+      "Complete the instructed external test when configuring a real account.",
+      "Keep receiving and outgoing delivery checks separate; this guide uses fictional local messages."
+    ],
+    "file": "screenshots/inbox-sources.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "84e3dfff3e45a8b2ceea433449e031fc34ff05a39690b70fc8ccd735234567e2"
+    },
+    "crop": [
+      0,
+      0,
+      3840,
+      2760
+    ]
+  },
+  {
+    "id": "analytics",
+    "chapter": 12,
+    "title": "Read email performance in context",
+    "route": "audience.php?view=analytics&section=email",
+    "steps": [
+      "Confirm the reporting period, comparison, and message selection.",
+      "Read the definition and denominator of each metric.",
+      "Treat opens and clicks as observed signals; privacy proxies and automated scanners can affect them."
+    ],
+    "file": "screenshots/analytics.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "de34f382ab34f8a8cfd4396163b99c5b67e23426e169fde734fc9a1033d695a1"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "custom-reports",
+    "chapter": 12,
+    "title": "Find and manage custom reports",
+    "route": "audience.php?view=analytics&section=reports",
+    "steps": [
+      "Search reports or use Favorites only and Removed reports to narrow the list.",
+      "Open a saved report and review its dataset, filters, and ownership or sharing.",
+      "Use Clear all to reset list filters when an expected report is missing."
+    ],
+    "file": "screenshots/custom-reports.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "ee2c02f065c3acace8a03542be301fdbc5c2f240f397bb652486f7a6884df5af"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "report-builder",
+    "chapter": 12,
+    "title": "Review and share a saved custom report",
+    "route": "audience.php?view=analytics&section=custom&report=aa8086d83ef58ffce113fa81",
+    "steps": [
+      "Review the dataset, grouping, metrics, and exact saved date range.",
+      "Change the scope and update the report to inspect a different question.",
+      "Check the private or shared setting before distributing a signed-in report link."
+    ],
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ],
+    "file": "screenshots/report-builder.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "183550ea94d74fa2ca933fdc5bfbd6b0350a34fb94aede7628b52b0a6cbffaf8"
+    }
+  },
+  {
+    "id": "audience-analytics",
+    "chapter": 12,
+    "title": "Review audience growth",
+    "route": "audience.php?view=analytics&section=audience",
+    "steps": [
+      "Check the date window and the population represented.",
+      "Compare growth and subscription changes with the underlying activity.",
+      "Avoid adding overlapping categories or assuming that total connections equals eligible recipients."
+    ],
+    "file": "screenshots/audience-analytics.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "115ce131c6f9bf19afe93222ca325a6e5ad68445fc8c3a8dbd23fd7d3b82826e"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "writing-ai",
+    "chapter": 13,
+    "title": "Prepare a writing request",
+    "route": "audience.php?view=assistant",
+    "steps": [
+      "Choose a starter or describe the message and desired tone.",
+      "Provide the source text and only the context needed for the task.",
+      "Generate suggestions when the AI service is available, review the result, then deliberately copy or apply what you want to keep."
+    ],
+    "file": "screenshots/writing-ai.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "c90714fa59346881fd5d964cbde819e6f918c6fa56bbb497357cd6003055936c"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "analytics-ai",
+    "chapter": 13,
+    "title": "Ask a question about analytics",
+    "route": "audience.php?view=assistant&mode=analytics",
+    "steps": [
+      "Start with a specific question about the current reporting scope.",
+      "Check the date range, filters, and evidence used in the answer.",
+      "Verify important conclusions against the underlying report before acting."
+    ],
+    "file": "screenshots/analytics-ai.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "1349477fa12265e19106eb6184b7aa4149db591aef5e4d39e267c5d78937c805"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  },
+  {
+    "id": "writing-actions",
+    "chapter": 13,
+    "title": "Generate suggestions or check existing content",
+    "route": "audience.php?view=assistant",
+    "actions": [
+      {
+        "selector": "textarea[name=\"text\"]",
+        "op": "fill",
+        "value": "Our next community gathering is November 14. Join us for conversation and time together."
+      },
+      {
+        "selector": "textarea[name=\"prompt\"]",
+        "op": "fill",
+        "value": "Make this invitation warm and concise. Keep the date unchanged."
+      },
+      {
+        "role": "button",
+        "name": "Check content",
+        "op": "scroll"
+      }
+    ],
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ],
+    "steps": [
+      "Provide the source text and the specific change you need.",
+      "Choose Generate suggestions for writing alternatives, or Check content for a review.",
+      "Check every factual detail in the result and save your chosen text in the actual draft. The example request shown has not been submitted."
+    ],
+    "file": "screenshots/writing-actions.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "97f4cc3cc5276decdcd66efb9de13de1b4424e00ce8e280718d4e4a3e9efb3dd"
+    }
+  },
+  {
+    "id": "manual-search",
+    "chapter": 14,
+    "title": "Find an answer when you are stuck",
+    "route": "audience.php?view=manual",
+    "steps": [
+      "Search for the task or symptom rather than an entire error message.",
+      "Open the relevant topic and follow its checks in order.",
+      "If the issue persists, record the page, action, and exact error for an administrator."
+    ],
+    "actions": [
+      {
+        "selector": "[data-manual-search]",
+        "op": "fill",
+        "value": "send"
+      }
+    ],
+    "file": "screenshots/manual-search.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-10-26",
+      "sha256": "0f686ef8da99df7dbac4b3b2170aa459c3b40fdd19970e0d28980e7b6cf45069"
+    },
+    "crop": [
+      720,
+      210,
+      3120,
+      2400
+    ]
+  }
+]
