@@ -12,17 +12,19 @@ html.dark-mode .audience-app{--mm-archive-color:#c4b5fd;--mm-archive-hover:#3826
 .audience-app .mm-report-action{color:var(--mm-report-color)!important}
 .audience-app .mm-report-action:is(:hover,:focus-visible):not(:disabled){background:var(--mm-report-hover)!important;border-color:var(--mm-report-color)!important;color:var(--mm-report-color)!important}
 .audience-app .action-icon-button,.audience-app .mm-close-button{box-sizing:border-box!important;display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--audience-action-size);width:var(--audience-action-size)!important;height:var(--audience-action-size)!important;min-width:var(--audience-action-size)!important;min-height:var(--audience-action-size)!important;padding:0!important;border:1px solid var(--audience-control-border)!important;border-radius:8px!important;background:var(--audience-surface);color:var(--audience-text);vertical-align:middle}
+.audience-app .action-icon-button{border-color:transparent!important;border-radius:10px!important;background:transparent}
+.audience-app .action-icon-button:is(:hover,:focus-visible):not(:disabled){box-shadow:0 0 0 3px color-mix(in srgb,currentColor 20%,transparent)}
 .audience-app :is(.action-icon-button,.mm-close-button)>svg{width:22px!important;height:22px!important;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .audience-app :is(.action-icon-button,.mm-close-button):is(:hover,:focus-visible):not(:disabled){background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color);border-color:var(--audience-action-hover-color)!important}
-/* Dark mode keeps the standard button surface with colored artwork and hover. */
+/* Action artwork keeps its semantic color on transparent surfaces until interaction. */
 html.dark-mode .audience-app .mm-archive-action{--mm-action-ink:var(--mm-archive-color);--mm-action-field-hover:var(--mm-archive-hover)}
 html.dark-mode .audience-app .mm-restore-action{--mm-action-ink:var(--mm-restore-color);--mm-action-field-hover:var(--mm-restore-hover)}
 html.dark-mode .audience-app .mm-delete-action{--mm-action-ink:var(--mm-delete-color);--mm-action-field-hover:var(--mm-delete-hover)}
 html.dark-mode .audience-app .mm-report-action{--mm-action-ink:var(--mm-report-color);--mm-action-field-hover:var(--mm-report-hover)}
 html.dark-mode .audience-app .mm-duplicate-action{--mm-action-ink:#ffe58f;--mm-action-field-hover:#4a3a12}
-html.dark-mode .audience-app :is(.mm-archive-action,.mm-restore-action,.mm-delete-action,.mm-report-action,.mm-duplicate-action){border-color:var(--audience-control-border)!important;color:var(--mm-action-ink)!important}
+html.dark-mode .audience-app :is(.mm-archive-action,.mm-restore-action,.mm-delete-action,.mm-report-action,.mm-duplicate-action){border-color:transparent!important;color:var(--mm-action-ink)!important}
 html.dark-mode .audience-app :is(.mm-archive-action,.mm-restore-action,.mm-delete-action,.mm-report-action,.mm-duplicate-action):is(:hover,:focus-visible):not(:disabled){background:var(--mm-action-field-hover)!important;border-color:var(--mm-action-ink)!important;color:var(--mm-action-ink)!important}
-html:not(.dark-mode) .audience-app .mm-duplicate-action{background:var(--audience-surface)!important;border-color:var(--audience-control-border)!important;color:#8a6500!important}
+html:not(.dark-mode) .audience-app .mm-duplicate-action{background:transparent!important;border-color:transparent!important;color:#8a6500!important}
 html:not(.dark-mode) .audience-app .mm-duplicate-action:is(:hover,:focus-visible):not(:disabled){background:#fff4cc!important;border-color:#8a6500!important;color:#8a6500!important}
 .audience-app :is(.mm-apply-button,[data-mm-search-text]):is(:hover,:focus-visible):not(:disabled){background:var(--audience-action-hover-bg)!important;color:var(--audience-action-hover-color)!important;border-color:var(--audience-action-hover-color)!important}
 .audience-app .mm-search-row [data-mm-search-text]{flex:none;min-height:44px;margin-inline:0 12px}
@@ -78,3 +80,18 @@ html:not(.dark-mode) .audience-app .mm-duplicate-action:is(:hover,:focus-visible
 .audience-app [data-mm-status-tone=pending]{background:var(--mm-pending-bg)!important;color:var(--mm-pending-text)!important}
 .audience-app [data-mm-status-tone=negative]{background:var(--mm-negative-bg)!important;color:var(--mm-negative-text)!important}
 
+
+/* Native fields must remain legible without Safari zooming the phone viewport. */
+@media(max-width:860px){
+  body.audience-app :is(input:not([type=checkbox],[type=radio],[type=hidden],[type=range],[type=color]),select,textarea,[contenteditable=true]:not(.designer-rich-text)){font-size:16px!important;min-width:0;max-width:100%}
+  .audience-app .campaign-tabs{min-width:0;max-width:100%;gap:24px;overflow-x:auto}
+  .audience-app .campaign-tabs>a{flex:none;white-space:nowrap}
+  .audience-app .audience-actions>.audience-menu:first-child>div{left:0;right:auto;max-width:calc(100vw - 24px)}
+  .audience-app .import-mapping{min-width:660px}
+  .audience-app .import-mapping td:nth-child(2){min-width:220px}
+  .audience-app .collection-table td:nth-child(2){white-space:nowrap}
+  .audience-app .audience-table-scroll{position:relative}
+  .audience-app .content-brand-apply-row select{display:block;overflow:hidden;text-overflow:ellipsis}
+  /* Selected pills extend 6px outside each box; leave room between wrapped rows. */
+  .audience-app .audience-counts p{row-gap:16px}
+}
