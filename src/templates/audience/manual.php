@@ -1,3 +1,7 @@
+<?php
+/** @var bool $canManage Permission supplied by renderAudienceManual(). */
+/** @var bool $canDelete Permission supplied by renderAudienceManual(). */
+?>
 <div class="audience-manual" id="manual-top">
     <section class="manual-intro" aria-labelledby="manual-intro-title">
         <div><p class="manual-eyebrow">MESSAGEMONKEY GUIDE</p><h2 id="manual-intro-title">From your first connection to your next campaign.</h2><p>Practical steps for managing your audience, creating messages, and understanding the results. Browse the chapters or search for what you need.</p></div>

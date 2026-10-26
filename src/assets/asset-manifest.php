@@ -124,7 +124,7 @@ return [
     "assets/dnr-logo-email.png" => "36fd424721f2",
     "assets/dnr-logo-email.svg" => "5cf3466893f8",
     "assets/dnr-logo.svg" => "4b43544ed2d5",
-    "assets/docs/message-monkey-comprehensive-user-guide.pdf" => "ad97351c2b32",
+    "assets/docs/message-monkey-comprehensive-user-guide.pdf" => "ed2db0749f7e",
     "assets/docs/moed-comprehensive-user-manual.pdf" => "cc706c76595c",
     "assets/editor-icons/align-center.svg" => "5a39660d6800",
     "assets/editor-icons/align-justify.svg" => "e7ed8b4f7b86",

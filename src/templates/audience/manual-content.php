@@ -31,7 +31,7 @@ HTML],
         'links'=>[],
         'topics'=>[
             ['permissions', 'Reviewer, Editor, and Administrator', <<<'HTML'
-<div class="manual-table-wrap"><table><caption>Common role permissions</caption><thead><tr><th scope="col">Role</th><th scope="col">What you can do</th></tr></thead><tbody>
+<div class="manual-table-wrap"><table class="data-table"><caption>Common role permissions</caption><thead><tr><th scope="col">Role</th><th scope="col">What you can do</th></tr></thead><tbody>
 <tr><th scope="row">Reviewer</th><td>Browse permitted audience records, campaigns, forms, automations, and reports; use Ask Analytics AI and this manual. Editing, imports, exports, Inbox, and Write with AI require an editor or administrator.</td></tr>
 <tr><th scope="row">Editor</th><td>Create and edit content, manage audience records, use imports and exports, and work in Inbox. Sending also requires unrestricted access and successful delivery checks.</td></tr>
 <tr><th scope="row">Administrator</th><td>Use editor tools plus administrative delivery settings and protected deletion or cleanup actions. Some actions also require a recent Admin Unlock.</td></tr>
