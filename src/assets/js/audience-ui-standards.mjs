@@ -20,7 +20,23 @@ export function wireMessageMonkeyUiStandards(){
     const groups=new WeakMap();let queued=false;
     const icon=html=>{const template=document.createElement('template');template.innerHTML=html;return template.content.firstElementChild;};
     function actions(){
+        const archiveGroups=new Map();
         for(const button of document.querySelectorAll('.audience-app :is(button,a)')){
+            button.classList.toggle('mm-apply-button',button.matches('button')&&/^apply(?:\s|$)/i.test(button.textContent.trim()));
+            button.classList.toggle('mm-clear-all',/^clear all$/i.test(button.textContent.trim()));
+            const actionLabel=button.getAttribute('aria-label')||button.getAttribute('title')||button.textContent.trim(),hasIcon=!!button.querySelector('svg,img');
+            const archive=hasIcon&&/^(?:archive\b|move to (?:the )?archive\b)/i.test(actionLabel);
+            button.classList.toggle('mm-archive-action',archive);
+            button.classList.toggle('mm-restore-action',hasIcon&&/^(?:restore|unarchive)\b/i.test(actionLabel));
+            button.classList.toggle('mm-delete-action',hasIcon&&/^(?:delete\b|permanently delete\b)/i.test(actionLabel));
+            button.classList.toggle('mm-report-action',hasIcon&&/^(?:view (?:flow |email |campaign )?report\b|report\b|results\b|view results\b)/i.test(actionLabel));
+            button.classList.toggle('mm-duplicate-action',hasIcon&&/^(?:duplicate|replicate)\b/i.test(actionLabel));
+            if(archive){
+                const owner=button.parentElement.matches('form')?button.parentElement:button,group=owner.parentElement;
+                if(/^(inline-)?(flex|grid)$/.test(getComputedStyle(group).display)){
+                    const owners=archiveGroups.get(group)||[];if(!owners.includes(owner))owners.push(owner);archiveGroups.set(group,owners);
+                }
+            }
             // Shell controls and branding have their own layout and icon sizing.
             // A1 applies to explicit content action buttons, never arbitrary SVG links/buttons.
             if(button.matches('[data-audience-logo]')||button.closest('.audience-topbar,.audience-account-tools,.inbox-top,.designer-topbar'))continue;
@@ -36,13 +52,29 @@ export function wireMessageMonkeyUiStandards(){
                 button.removeAttribute('title');
             }else if(button.matches('.designer-rich-toolbar-row>button,[data-template-layout]'))button.classList.add('action-icon-button');
         }
+        for(const [group,owners] of archiveGroups){
+            const children=Array.from(group.children),desired=[...children.filter(child=>!owners.includes(child)),...owners];
+            if(children.some((child,index)=>child!==desired[index]))for(const owner of owners)group.append(owner);
+        }
     }
     function searches(){
         for(const input of document.querySelectorAll('.audience-app input[type=search]')){
-            const row=input.closest('.audience-filters,.collection-filters,.content-filters,.template-toolbar,.campaign-list-toolbar,.audience-definition-controls,.campaign-plan-search,.flow-overview-filters,.flow-catalog-controls,.analytics-inline-controls,.designer-preview-controls,.inbox-recipient-search,.collection-image-browser');
+            const row=input.closest('.audience-filters,.collection-filters,.content-filters,.template-toolbar,.campaign-list-toolbar,.audience-definition-controls,.campaign-plan-search,.flow-overview-filters,.flow-catalog-controls,.analytics-inline-controls,.designer-preview-controls,.inbox-recipient-search,.collection-image-browser,.mm-manual-search-row,.inbox-search-manual');
             if(row&&!input.closest('.audience-topbar,.designer-topbar,.inbox-top'))row.classList.add('mm-search-row');
             if(input.dataset.mmSearch)continue;
             input.dataset.mmSearch='1';
+            const searchScope=input.form||input.closest('dialog,[popover]')||document;
+            const textSubmit=input.id&&Array.from(searchScope.querySelectorAll('[data-mm-search-text]')).find(button=>button.dataset.mmSearchText===input.id);
+            if(textSubmit){
+                let applied=input.value.trim();
+                const pending=()=>textSubmit.classList.toggle('mm-search-pending',input.value.trim()!==applied);
+                const engaged=()=>{applied=input.value.trim();pending();};
+                input.addEventListener('input',pending);input.addEventListener('search',pending);
+                input.form?.addEventListener('submit',engaged);
+                if(textSubmit.type==='button'||!input.form){textSubmit.addEventListener('click',engaged);input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();textSubmit.click();}});}
+                for(const clear of searchScope.querySelectorAll('[data-mm-search-clear]'))if(clear.dataset.mmSearchClear===input.id)clear.addEventListener('click',event=>{event.preventDefault();input.value='';engaged();input.focus();});
+                window.addEventListener('pageshow',pending);
+            }
             const existing=input.closest('.campaign-search,.search-with-icon,.filter-search,.inbox-search,.audience-search-top,.mm-search-field');
             if(existing){if(!existing.querySelector('svg'))existing.prepend(icon(SEARCH_ICON));continue;}
             const before=input.previousElementSibling,after=input.nextElementSibling;
@@ -50,8 +82,8 @@ export function wireMessageMonkeyUiStandards(){
             const label=input.parentElement.matches('label')?input.parentElement:null;
             const nearby=label?label.nextElementSibling:input.nextElementSibling;
             const candidate=(nearby?.matches('button')&&/^search$/i.test(nearby.textContent.trim()))?nearby:(input.form?.method.toLowerCase()==='get'?Array.from(input.form.querySelectorAll('button')).find(button=>/^search$/i.test(button.textContent.trim())):nearby);
-            let submit=candidate?.matches('button')&&(/^search$/i.test(candidate.textContent.trim())||candidate.matches('[data-collection-image-find],[data-flow-person-find]'))?candidate:null;
-            if(!submit&&input.form?.method.toLowerCase()==='get'){
+            let submit=candidate?.matches('button:not([data-mm-search-text])')&&(/^search$/i.test(candidate.textContent.trim())||candidate.matches('[data-collection-image-find],[data-flow-person-find]'))?candidate:null;
+            if(!submit&&input.form?.method.toLowerCase()==='get'&&!input.form.querySelector('[data-mm-search-text]')){
                 submit=document.createElement('button');submit.type='submit';submit.textContent='Search';
             }
             const field=document.createElement('span');field.className='mm-search-field';

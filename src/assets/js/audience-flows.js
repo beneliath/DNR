@@ -61,7 +61,7 @@
         });
         $('[data-flow-template-empty]').hidden=keys.size>0;
         $('[data-flow-template-count]').textContent=`${keys.size} flow template${keys.size===1?'':'s'}`;
-        $$('[data-flow-template-clear]',catalogControls).forEach(control=>{control.hidden=!(query||topic||channel||integration);});
+        $$('[data-flow-template-clear]',catalogControls).forEach(control=>{control.hidden=!(query||topic||channel||integration||catalogFields.sort.value!=='recommended');});
         const url=new URL(location.href);
         Object.entries(catalogFields).forEach(([key,control])=>{if(control.value && !(key==='sort'&&control.value==='recommended'))url.searchParams.set(key,control.value);else url.searchParams.delete(key);});
         history.replaceState(null,'',url);
@@ -73,7 +73,7 @@
         Object.entries(catalogFields).forEach(([key,control])=>{if(initial.has(key)){control.value=initial.get(key);if(control.tagName==='SELECT'&&!control.value)control.selectedIndex=0;}});
         search.addEventListener('input',filterTemplates);
         Object.values(catalogFields).filter(control=>control!==search).forEach(control=>control.addEventListener('change',filterTemplates));
-        $$('[data-flow-template-clear]').forEach(control=>control.addEventListener('click',()=>{Object.entries(catalogFields).forEach(([key,input])=>{input.value=key==='sort'?'recommended':'';});filterTemplates();search.focus();}));
+        $$('[data-flow-template-clear]').forEach(control=>control.addEventListener('click',event=>{event.preventDefault();Object.entries(catalogFields).forEach(([key,input])=>{input.value=key==='sort'?'recommended':'';});filterTemplates();search.focus();}));
         filterTemplates();
     }
     // Keep catalog filters when returning from a preview, without retaining its identity.
@@ -88,12 +88,14 @@
         if(button.dataset.staticFlowZoom==='reset')centerPreview();
     }));
     centerPreview();
+    let personSearchSequence=0;
     $('[data-flow-person-find]')?.addEventListener('click', async event => {
         const trigger=event.currentTarget, query=$('[data-flow-person-search]').value.trim(), select=$('[data-flow-person-choice]'), status=$('[data-flow-person-status]');
-        if(!query){status.textContent='Enter a name or email address';return;}trigger.disabled=true;status.textContent='Searching…';select.replaceChildren(new Option('Choose a connection',''));
-        try{const response=await fetch('audience.php?api=workspace_search&category=connections&q='+encodeURIComponent(query),{headers:{Accept:'application/json'},cache:'no-store'});if(!response.ok||!response.headers.get('Content-Type')?.includes('application/json'))throw new Error('Search is unavailable');const data=await response.json();const people=data.groups.find(group=>group.key==='connections')?.items||[];people.forEach(person=>{const id=new URL(person.href,location.href).searchParams.get('id');if(/^[1-9][0-9]*$/.test(id||''))select.append(new Option(person.title+' · '+person.description,id));});status.textContent=people.length?`${people.length} matching connections`:'No connections match this search';}
-        catch(_){status.textContent='Search is unavailable. Try again.';}finally{trigger.disabled=false;}
+        if(!query){status.textContent='Enter a name or email address';return;}const sequence=++personSearchSequence;trigger.disabled=true;status.textContent='Searching…';select.replaceChildren(new Option('Choose a connection',''));
+        try{const response=await fetch('audience.php?api=workspace_search&category=connections&q='+encodeURIComponent(query),{headers:{Accept:'application/json'},cache:'no-store'});if(!response.ok||!response.headers.get('Content-Type')?.includes('application/json'))throw new Error('Search is unavailable');const data=await response.json();if(sequence!==personSearchSequence)return;const people=data.groups.find(group=>group.key==='connections')?.items||[];people.forEach(person=>{const id=new URL(person.href,location.href).searchParams.get('id');if(/^[1-9][0-9]*$/.test(id||''))select.append(new Option(person.title+' · '+person.description,id));});status.textContent=people.length?`${people.length} matching connections`:'No connections match this search';}
+        catch(_){if(sequence===personSearchSequence)status.textContent='Search is unavailable. Try again.';}finally{if(sequence===personSearchSequence)trigger.disabled=false;}
     });
+    $('[data-flow-person-clear]')?.addEventListener('click',event=>{event.preventDefault();personSearchSequence++;$('[data-flow-person-find]').disabled=false;$('[data-flow-person-choice]').replaceChildren(new Option('Choose a connection',''));$('[data-flow-person-status]').textContent='';});
     const configNode = $('#flow-config'); if (!configNode) return;
     const config = JSON.parse(configNode.textContent), clone = value => JSON.parse(JSON.stringify(value));
     let doc = clone(config.document), version = config.version, name = config.name, selected = 'trigger', zoom = 1, dirty = false, timer, saving = null, sequence = 0;

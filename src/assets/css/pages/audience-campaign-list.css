@@ -11,6 +11,7 @@
 .campaign-list-toolbar .campaign-filters{display:flex;align-items:center;flex-wrap:wrap;gap:14px;min-width:0;margin:0}
 .campaign-list-toolbar .campaign-search{width:220px;max-width:100%;flex:none}
 .campaign-list-toolbar .campaign-search input{min-height:44px}
+
 .campaign-list-toolbar .campaign-filter-row{margin:0;gap:14px}
 .campaign-list-toolbar .campaign-filter{font-weight:400;color:var(--audience-muted);padding:8px 0;display:inline-flex;align-items:center;gap:5px}
 .campaign-list-toolbar .campaign-filter strong{font-weight:400;color:var(--audience-link);max-width:140px;overflow:hidden;text-overflow:ellipsis}

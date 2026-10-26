@@ -349,6 +349,8 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
                 const parsed = JSON.parse(nextConfig.textContent), columnsTrigger = $('[popovertarget="columns"]',peopleResults);
                 if (columnsTrigger) $('[popovertarget="columns"]',nextResults)?.replaceWith(columnsTrigger);
                 peopleResults.replaceChildren(...nextResults.childNodes); filterSummary.replaceChildren(...nextSummary.childNodes);
+                const lifecycle = $('[data-audience-lifecycle]'), nextLifecycle = $('[data-audience-lifecycle]',page);
+                if (lifecycle && nextLifecycle) lifecycle.replaceChildren(...nextLifecycle.childNodes);
                 Object.assign(config,parsed); $('#audience-config').textContent = nextConfig.textContent;
                 for (const selector of ['#bulk-people-form','#save-current-segment form','#filter-campaign form']) {
                     const form = $(selector), next = $(selector,page); if (!form || !next) continue;
@@ -965,7 +967,10 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         campaignFilters.requestSubmit();
     });
     $('[data-campaign-folder-search]')?.addEventListener('input', event => {
-        $$('[data-folder-name]').forEach(row => { row.hidden = !row.dataset.folderName.includes(event.target.value.trim().toLocaleLowerCase()); });
+        const query = event.target.value.trim().toLocaleLowerCase(), rows = $$('[data-folder-name]', $('#campaign-folders'));
+        rows.forEach(row => { row.hidden = !row.dataset.folderName.includes(query); });
+        const empty = $('[data-campaign-folder-empty]');
+        if (empty) empty.hidden = query === '' || rows.some(row => !row.hidden);
     });
     const hideCampaignPopovers = () => $$('[popover]:popover-open').forEach(panel => panel.hidePopover());
     $$('[data-campaign-folder]').forEach(button => button.addEventListener('click', () => {

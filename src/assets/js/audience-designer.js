@@ -116,6 +116,16 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     $$('[data-template-layout]').forEach(b => b.onclick = () => { gallery.classList.toggle('template-list', b.dataset.templateLayout === 'list'); $$('[data-template-layout]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
     $('[data-template-all-filters]')?.addEventListener('click',()=>{$('[data-template-category-filter]').value=category;$('#template-filters-dialog').showModal();});
     $('[data-template-apply-filters]')?.addEventListener('click',()=>{category=$('[data-template-category-filter]').value;$$('[data-template-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.templateCategory===category)));$('#template-filters-dialog').close();resetFilter();});
+    $('[data-template-clear-filters]')?.addEventListener('click',event=>{
+      event.preventDefault();$('[data-template-search]').value='';
+      const folder=$('[data-template-folder]');if(folder)folder.value='';
+      sortControl.value='newest';category='All';
+      const categoryFilter=$('[data-template-category-filter]');if(categoryFilter){categoryFilter.value='All';categoryFilter.dispatchEvent(new Event('change',{bubbles:true}));}
+      $$('[data-template-category]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.templateCategory==='All')));
+      gallery.classList.remove('template-list');$$('[data-template-layout]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.templateLayout==='grid')));
+      const url=new URL(location.href);url.searchParams.delete('folder');history.replaceState(history.state,'',url);
+      resetFilter();saveOrder();$('[data-template-search]').focus();
+    });
     filter();
     const clearDrop=()=>initialCards.forEach(card=>card.classList.remove('template-dragging'));
     const moveCard=(card,target,after)=>{
@@ -496,7 +506,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
           else if(b.type==='button'){const bt=el('span',b.text,'designer-email-button');Object.assign(bt.style,{background:b.inherit.includes('background')?s.button:b.background,color:b.styles.color||s.buttonText,borderRadius:`${b.inherit.includes('radius')?(s.buttonRadius||4):b.radius}px`,border:b.styles.borderWidth?`${b.styles.borderWidth}px ${b.styles.borderStyle||'solid'} ${b.styles.borderColor||'#24292d'}`:'none'});content.append(bt);}
           else content.append(rich());
           if(b.condition.rules.length)bn.append(el('span','Dynamic content','designer-dynamic-badge'));bn.append(content);
-          const bar=el('div',undefined,'designer-block-hover-tools'),handle=button('',event=>{event.stopPropagation();});handle.className='designer-block-move';handle.title='Drag Block';handle.setAttribute('aria-label','Drag Block');const moveIcon=el('img');moveIcon.src='assets/editor-icons/block-move.svg';moveIcon.alt='';handle.append(moveIcon);handle.draggable=true;bar.append(handle);
+          const bar=el('div',undefined,'designer-block-hover-tools'),handle=button('',event=>{event.stopPropagation();});handle.className='designer-block-move';handle.title='Drag';handle.setAttribute('aria-label','Drag Block');const moveIcon=el('img');moveIcon.src='assets/editor-icons/block-move.svg';moveIcon.alt='';handle.append(moveIcon);handle.draggable=true;bar.append(handle);
           const actions=el('div',undefined,'designer-block-hover-actions');for(const [icon,label,fn]of [['edit','Edit Block',()=>{selected=[r,c,i];selectedRow=null;panel='block';render();}],['duplicate','Duplicate Block',()=>{selected=[r,c,i];duplicate();}],['delete','Delete Block',()=>{selected=[r,c,i];remove();}]]){const control=button('',event=>{event.stopPropagation();fn();});control.setAttribute('aria-label',label);const image=el('img');image.src='assets/editor-icons/block-'+icon+'.svg';image.alt='';const tip=el('span',label,'designer-block-tooltip');tip.setAttribute('role','tooltip');control.append(image,tip);actions.append(control);}bar.append(actions);bn.append(bar);cn.append(bn);
         });if(!col.length)cn.append(el('div','Drop content here','designer-drop-empty'));rn.append(cn);
       });canvas.append(rn);
