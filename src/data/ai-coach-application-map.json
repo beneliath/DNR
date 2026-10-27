@@ -557,7 +557,7 @@
       ]
     },
     "ai_coach_improvements.php": {
-      "sha256": "9b6ebb18a29a5a953e1d71dfc3aca2279fbbec8fa25f977da3adeb48f94025cc",
+      "sha256": "00f26cec95702698190167cbbb83f701b598d15652841ffe15a9b8916424aada",
       "controls": [
         {
           "kind": "h1",
@@ -711,7 +711,7 @@
       ]
     },
     "audit_log.php": {
-      "sha256": "e0dc17319237b1ff4ff0c105f264fd6659b85b812d2325d02d63948ad8d42c2a",
+      "sha256": "530e3cd917c9142f96913a9729945d4c2332c1dfb25ce671a223e4593bbdb944",
       "controls": [
         {
           "kind": "h1",
@@ -809,7 +809,7 @@
       ]
     },
     "close_engagement.php": {
-      "sha256": "efdebafd691b308aad3ad475725ef9e41209720b2ce8ac0f65101108bbcf4fec",
+      "sha256": "32b5569972619b99ca29fa0dfe12ed527cc4968a5ba8fb339061accf0f103bfa",
       "controls": [
         {
           "kind": "a",
@@ -1263,7 +1263,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "5983e9879d69e0132bc55e5856d5f279dcaf72b06dbb678831bd003192b0ff80",
+      "sha256": "b3369200e6cb1ee91fa820bab2ff3c970e4cc484e4a6a3a7727dd54f81a86e45",
       "controls": [
         {
           "kind": "h1",
@@ -1958,7 +1958,7 @@
       ]
     },
     "email_templates.php": {
-      "sha256": "87df089e4d1519ea36fd1ac593094a6e033b0bb748dcde4a5a74729c5693d770",
+      "sha256": "a6bb947d8e4e6d2265b6e45b2fccff1ba15da80ae13d2514cd39c696ea00db75",
       "controls": [
         {
           "kind": "a",
@@ -2084,7 +2084,7 @@
       ]
     },
     "inbound_mail.php": {
-      "sha256": "dcc1a55d18361729c9c09a6a04d6445781d2f63d01baf4515f5bc541ddd678a1",
+      "sha256": "71bbef7936981cd6354fa6661bbfb4ac5729a78c134407bea99defb3da0c0d39",
       "controls": [
         {
           "kind": "h1",
@@ -2351,7 +2351,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "9878d2a618abc8438691b33c6aa3f64c3bbabccb6ca14d6c3c047b6ab58bb675",
+      "sha256": "53e723fea3308c14cf411cb0f8b766f8c4a087ddb75acbecf57500546321737f",
       "controls": [
         {
           "kind": "a",
@@ -2443,7 +2443,7 @@
       ]
     },
     "mail_review.php": {
-      "sha256": "fd8eb227cf934bcf0854f8d2ea523d33eb08118443024ea5454965433051c97e",
+      "sha256": "622923d0a6be9d85e039bc93022f9b8477857ce919f450a32ae5ca215b179477",
       "controls": [
         {
           "kind": "h1",
@@ -2633,7 +2633,7 @@
       ]
     },
     "mattermost.php": {
-      "sha256": "40e7587b226dfb8573a809cccac7cbca67b00ba33c33276eaf55d896811db858",
+      "sha256": "a7827d3b56614f5c0db972a1c4c5064ac0aa49305e701e7018cd429f3f3d587a",
       "controls": [
         {
           "kind": "h1",
@@ -2730,7 +2730,7 @@
       ]
     },
     "operations.php": {
-      "sha256": "240d3ae7376c92bdaa1ddce6456cb7567b08a10775f5e181bc01d4b8186a64fa",
+      "sha256": "3b69925d15d4203b013f934cb10c3c902f53e4b9a1b2c4ac6296622a7818e00c",
       "controls": [
         {
           "kind": "h1",
@@ -2795,7 +2795,7 @@
       ]
     },
     "outbound_mail.php": {
-      "sha256": "1ef4673dd5fc222261b2be5a19422b03c53eb17ad253946e198838fab7d604bf",
+      "sha256": "3cbf1870c6f955adaa18f03607de4b4f59dd6d569adb358a090b6b84847848aa",
       "controls": [
         {
           "kind": "h2",
@@ -2847,7 +2847,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "285bba870cbe5e63b0cd450d5a70377c9a5ad04554a7ca30149d7fa1ed1d538d",
+      "sha256": "e49a2a1f7ffae48c83e81b6f95e8093ece776f69e371af2189565f9eb50b4c31",
       "controls": [
         {
           "kind": "h1",
@@ -2900,6 +2900,11 @@
           "kind": "label",
           "label": "Phone Number",
           "for": "phone"
+        },
+        {
+          "kind": "label",
+          "label": "Display Timezone",
+          "for": "display_timezone"
         },
         {
           "kind": "label",
@@ -2976,7 +2981,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "12be902ff3c349a6250b6d72274c93e15b720a94d00f44aa04d8bd3c9627ddd7",
+      "sha256": "f63451d47541bb8faeff23d72407cb1c8614a7d7ae64e894c5a40c29a311a585",
       "controls": [
         {
           "kind": "h1",
@@ -3175,7 +3180,7 @@
       ]
     },
     "reimbursement_expense.php": {
-      "sha256": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
+      "sha256": "4d1b664fd84b302910668e885491b7e7752397188afa2ab3be29bd839e60bad1",
       "controls": [
         {
           "kind": "a",
@@ -3275,7 +3280,7 @@
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
+      "sha256": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
       "controls": [
         {
           "kind": "a",
@@ -3947,7 +3952,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "8c68c821178cd03b4b2e6546cf3165f74dc25b751c470894382d69cef7172863",
+      "sha256": "1430ab412f2c502b47a407d0ce8c04971d5bf4e6954d50f00cb195af791aceff",
       "controls": [
         {
           "kind": "a",
@@ -4135,7 +4140,7 @@
       ]
     },
     "task_bulk.php": {
-      "sha256": "e55410aa89305a14ec1f51934f87a964c33afffe3f466caf348fe6c2d9e380c8",
+      "sha256": "1924a5f599f1253dd03e51b82a081652df2074ac6088badbee67822d382b8359",
       "controls": [
         {
           "kind": "button",
@@ -4149,7 +4154,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
+      "sha256": "e83000980aa058a3db086c0fa563840263e7703317785cb83d32be7ec3460532",
       "controls": [
         {
           "kind": "h1",
@@ -4201,7 +4206,7 @@
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "6d71828a59c9816c184f67d7065e28db9d68ce0fe05b3d1f6e9e1737b9dd992d",
+      "sha256": "7f1ba88a7867ba359ab0b7a9ff9ea7740ba9368bc1f1839b5c5a27b1b83e2ed0",
       "controls": [
         {
           "kind": "h1",
@@ -4263,7 +4268,7 @@
       ]
     },
     "users.php": {
-      "sha256": "6aa550fc11eec7fd955842cab8f1781d011014f48b6c32c92ad1699f9f3496e1",
+      "sha256": "cc19efa312ef050ef855de6ea66b1b055992267777acc12c0db53985e1b4b911",
       "controls": [
         {
           "kind": "h1",
@@ -4359,7 +4364,7 @@
       ]
     },
     "view_calendar.php": {
-      "sha256": "3ada12725cf9dfe704aa5783e828e6f8fe5df9d9450a38eac9338e9f084db6b6",
+      "sha256": "f17ed82a2c9a78180b4778f01144f834e45de8b8956e2669e65245819f466583",
       "controls": [
         {
           "kind": "h1",
@@ -4448,7 +4453,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+      "sha256": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
       "controls": [
         {
           "kind": "a",
@@ -4661,7 +4666,7 @@
       ]
     },
     "view_inquiry.php": {
-      "sha256": "d1a3ec3c6ddfbfed54800a912ce72fae8772322d3be85495821d8db0e4860b44",
+      "sha256": "de5406d939e3339f11518955e4b9323da2f96b47933c158d121b3ac5e01de6c8",
       "controls": [
         {
           "kind": "a",
@@ -4906,7 +4911,7 @@
       ]
     },
     "view_standard_task.php": {
-      "sha256": "f0ebafd2cc38501835d37a50b5af5fa0057ab7e6dbd2fae57ce7ddabff7dac3a",
+      "sha256": "ee5167895a96b430d40ddd16aa28b57a27e0997089b3622608d792a4e6a092cb",
       "controls": [
         {
           "kind": "a",

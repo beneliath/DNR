@@ -28,7 +28,7 @@ try {
             if (!$task || !is_string($versions[$id] ?? null) || !hash_equals($task['updated_at'],$versions[$id])) throw new InvalidArgumentException('A selected task changed. Reload Tasks before reviewing this update.');
             $tasks[]=$task;
         }
-        $valueLabel=$operation['value'];
+        $valueLabel=$operation['operation']==='complete' ? followUpTaskStatuses()[$operation['value']] : $operation['value'];
         if ($operation['operation']==='assign') {
             $owner=$operation['value']?$conn->execute_query("SELECT username FROM users WHERE id=? AND account_status='active'",[$operation['value']])->fetch_assoc():null;
             if ($operation['value'] && !$owner) throw new InvalidArgumentException('Choose an active owner.');
@@ -41,13 +41,19 @@ try {
     }
 } catch (InvalidArgumentException $e) { $error=$e->getMessage(); }
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+$status_labels=followUpTaskStatuses();
 ?>
-<!DOCTYPE html><html lang="en"><?php renderPageHead(applicationPageTitle('Bulk Task Update'),['styles'=>['assets/css/style.min.css','assets/css/modern.min.css']]); ?><body>
-<?php include 'templates/header.php'; ?><main class="container"><h1><?php echo $results?'Bulk Update Results':'Review Task Updates'; ?></h1>
+<!DOCTYPE html><html lang="en"><?php renderPageHead(applicationPageTitle('Bulk Task Update'),['styles'=>['assets/css/style.min.css','assets/css/modern.min.css','assets/css/pages/task_bulk.min.css']]); ?><body class="task-bulk-body">
+<?php include 'templates/header.php'; ?><main class="container task-bulk-page">
+<header class="page-heading task-bulk-heading"><h1><?php echo $results?'Bulk Update Results':'Review Task Updates'; ?></h1></header>
 <?php if ($error): ?><p class="error" role="alert"><?php echo $h($error); ?></p>
-<?php elseif ($results): ?><p><?php echo count(array_filter($results,fn($r)=>$r['result']==='Updated')); ?> of <?php echo count($results); ?> tasks updated</p><ul><?php foreach($results as $result): ?><li><?php echo $h($result['title'].' — '.$result['result']); ?></li><?php endforeach; ?></ul>
-<?php elseif ($preview): ?><p><?php echo $h(['assign'=>'Set owner to ','due'=>'Set due date to ','complete'=>'Set status to '][$preview['operation']['operation']].$preview['label']); ?> for <?php echo count($preview['tasks']); ?> selected tasks</p>
-<p>Each task is checked again before applying. Changed, completed, or archived tasks are skipped and reported individually.</p>
-<div class="data-table-scroll"><table class="data-table"><thead><tr><th>Task</th><th>Current Owner</th><th>Current Due Date</th><th>Current Status</th></tr></thead><tbody><?php foreach($preview['tasks'] as $task): ?><tr><td><?php echo $h($task['title']); ?></td><td><?php echo $h($task['assignee_username']?:'Unassigned'); ?></td><td><?php echo $h($task['due_date']?:'None'); ?></td><td><?php echo $h($task['status']); ?></td></tr><?php endforeach; ?></tbody></table></div>
-<form method="post" action="task_bulk.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?php echo $h($token); ?>"><button type="submit" class="button-primary">Apply Updates</button></form>
-<?php endif; ?><a href="<?php echo $h($return); ?>">Back to Tasks</a></main><?php include 'templates/footer.php'; ?></body></html>
+<?php elseif ($results): ?><p class="task-bulk-summary"><?php echo count(array_filter($results,fn($r)=>$r['result']==='Updated')); ?> of <?php echo count($results); ?> tasks updated</p>
+<div class="task-bulk-table-scroll" role="region" aria-label="Task update results" tabindex="0"><table class="data-table task-bulk-table"><thead><tr><th scope="col">Task</th><th scope="col">Result</th></tr></thead><tbody><?php foreach($results as $result): ?><tr><td><?php echo $h($result['title']); ?></td><td><?php echo $h($result['result']); ?></td></tr><?php endforeach; ?></tbody></table></div>
+<?php elseif ($preview): ?><p class="task-bulk-summary"><?php echo $h(['assign'=>'Set owner to ','due'=>'Set due date to ','complete'=>'Set status to '][$preview['operation']['operation']].$preview['label']); ?> for <?php echo count($preview['tasks']); ?> selected tasks</p>
+<p class="task-bulk-note" id="task-bulk-note">Each task is checked again before applying. Changed, completed, or archived tasks are skipped and reported individually.</p>
+<div class="task-bulk-table-scroll" role="region" aria-label="Selected tasks and current values" tabindex="0"><table class="data-table task-bulk-table task-bulk-preview" aria-describedby="task-bulk-note"><thead><tr><th scope="col">Task</th><th scope="col">Current Owner</th><th scope="col">Current Due Date</th><th scope="col">Current Status</th></tr></thead><tbody><?php foreach($preview['tasks'] as $task): ?><tr><td><?php echo $h($task['title']); ?></td><td><?php echo $h($task['assignee_username']?:'Unassigned'); ?></td><td><?php echo $h($task['due_date']?:'None'); ?></td><td><span class="task-status task-status-<?php echo $h($task['status']); ?>"><?php echo $h($status_labels[$task['status']] ?? $task['status']); ?></span></td></tr><?php endforeach; ?></tbody></table></div>
+<?php endif; ?>
+<div class="task-bulk-actions">
+<?php if (!$error && !$results && $preview): ?><form class="task-bulk-apply" method="post" action="task_bulk.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?php echo $h($token); ?>"><button type="submit" class="button-primary">Apply Updates</button></form><?php endif; ?>
+<a class="button-secondary" href="<?php echo $h($return); ?>">Back to Tasks</a>
+</div></main><?php include 'templates/footer.php'; ?></body></html>

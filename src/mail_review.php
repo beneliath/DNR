@@ -120,7 +120,7 @@ function mailReviewReasonLabel(string $reason): string {
         <div class="mail-review-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 16 0v16H4zM4 13h4l2 3h4l2-3h4"/></svg><h3><?= $status==='review'?'All Caught Up':'No Messages Here' ?></h3><p><?= $status==='review'?'New mail that needs your decision will appear here.':'Messages with this status will appear here.' ?></p></div>
     <?php else: foreach ($rows as $row): $message=$row; ?>
         <a class="mail-review-message<?= (int)$id===(int)$row['id']?' is-selected':'' ?>" href="mail_review.php?<?= mailReviewH(http_build_query(['status'=>$status,'page'=>$page,'id'=>$row['id']])) ?>#mail-review-detail"<?= (int)$id===(int)$row['id']?' aria-current="true"':'' ?>>
-            <span class="mail-review-message-meta"><span><?= mailReviewH($message['sender_name'] ?: $message['sender_address']) ?></span><time datetime="<?= mailReviewH(str_replace(' ','T',$row['received_at']).'Z') ?>"><?= mailReviewH(substr($row['received_at'],5,11)) ?></time></span>
+            <span class="mail-review-message-meta"><span><?= mailReviewH($message['sender_name'] ?: $message['sender_address']) ?></span><time datetime="<?= mailReviewH(str_replace(' ','T',$row['received_at']).'Z') ?>"><?= mailReviewH(formatUserTimestamp($row['received_at'],'M j, H:i')) ?></time></span>
             <strong><?= mailReviewH(mailReviewSubject($message['subject'])) ?></strong>
             <span class="mail-review-message-reason"><?= $status==='review'?mailReviewH(mailReviewReasonLabel($row['review_reason'])):$mailReviewStatusLabels[$status] ?></span>
         </a>
@@ -139,7 +139,7 @@ function mailReviewReasonLabel(string $reason): string {
         <details class="mail-review-envelope"><summary>Message details</summary><dl>
             <div><dt>To</dt><dd><?= mailReviewH(implode(', ', $message['to_addresses'])) ?></dd></div>
             <?php if ($message['cc_addresses'] !== []): ?><div><dt>Cc</dt><dd><?= mailReviewH(implode(', ', $message['cc_addresses'])) ?></dd></div><?php endif; ?>
-            <div><dt>Received</dt><dd><?= mailReviewH($selected['received_at']) ?> UTC</dd></div>
+            <div><dt>Received</dt><dd><?= mailReviewH(formatUserTimestamp($selected['received_at'],'Y-m-d H:i:s')) ?></dd></div>
             <div><dt>Original subject</dt><dd><?= mailReviewH($message['subject'] ?: '(No subject)') ?></dd></div>
         </dl></details>
     </header>

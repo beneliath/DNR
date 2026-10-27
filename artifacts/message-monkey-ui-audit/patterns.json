@@ -1,0 +1,109 @@
+[
+  {
+    "key": "A",
+    "title": "Action icon controls",
+    "note": "Spacing is already standardized to 16px. The remaining difference is size and border treatment.",
+    "options": [
+      {
+        "id": "A1",
+        "title": "44px outlined squares",
+        "where": "Campaigns, Groups, Forms and other lists",
+        "preview": "<div class=\"icon-row\"><span class=\"icon large\"><svg viewBox=\"0 0 24 24\"><path d=\"m4 16 12-12 4 4L8 20l-5 1ZM14 6l4 4\"/></svg></span><span class=\"icon large\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M5 8v12h14V8M9 12h6\"/></svg></span><span class=\"icon large\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"1\"/><path d=\"m3 6 9 7 9-7\"/></svg></span></div>"
+      },
+      {
+        "id": "A2",
+        "title": "40px outlined squares",
+        "where": "Campaign Manager Agenda cards",
+        "preview": "<div class=\"icon-row\"><span class=\"icon compact\"><svg viewBox=\"0 0 24 24\"><path d=\"m4 16 12-12 4 4L8 20l-5 1ZM14 6l4 4\"/></svg></span><span class=\"icon compact\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M5 8v12h14V8M9 12h6\"/></svg></span><span class=\"icon compact\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"1\"/><path d=\"m3 6 9 7 9-7\"/></svg></span></div>"
+      },
+      {
+        "id": "A3",
+        "title": "Borderless toolbar controls",
+        "where": "Email designer formatting toolbar",
+        "preview": "<div class=\"icon-row\"><span class=\"toolbar-icon\"><b>B</b></span><span class=\"toolbar-icon\"><i>I</i></span><span class=\"toolbar-icon\"><u>U</u></span></div>"
+      }
+    ]
+  },
+  {
+    "key": "B",
+    "title": "Filter controls",
+    "note": "These three treatments currently appear in different workspaces.",
+    "options": [
+      {
+        "id": "B1",
+        "title": "Outlined choice buttons",
+        "where": "Forms and subscriber preference lists",
+        "preview": "<div class=\"filter-row\"><span class=\"button selected\">All</span><span class=\"button\">Draft</span><span class=\"button\">Published</span></div>"
+      },
+      {
+        "id": "B2",
+        "title": "Inline text dropdowns",
+        "where": "Campaigns list filters",
+        "preview": "<div class=\"filter-row\"><span>Status: <strong class=\"teal\">All\u2304</strong></span><span>Type: <strong class=\"teal\">All\u2304</strong></span></div>"
+      },
+      {
+        "id": "B3",
+        "title": "Labeled select fields",
+        "where": "Automation flow filters",
+        "preview": "<div class=\"filter-row\"><label>Status <select aria-label=\"Example status\"><option>All statuses</option><option>Draft</option></select></label></div>"
+      }
+    ]
+  },
+  {
+    "key": "C",
+    "title": "Search controls",
+    "note": "Decide whether list search should use a separate action or an integrated field.",
+    "options": [
+      {
+        "id": "C1",
+        "title": "Label, input and Search button",
+        "where": "Forms, Campaign Manager and Content Studio",
+        "preview": "<label class=\"search-label\">Search forms</label><div class=\"search-row\"><input placeholder=\"Search\" aria-label=\"Search example\"><span class=\"button\">Search</span></div>"
+      },
+      {
+        "id": "C2",
+        "title": "Search icon inside the field",
+        "where": "Campaigns, Inbox and the global search bar",
+        "preview": "<div class=\"integrated-search\"><svg viewBox=\"0 0 24 24\"><circle cx=\"10\" cy=\"10\" r=\"6\"/><path d=\"m15 15 6 6\"/></svg><span>Search\u2026</span></div>"
+      }
+    ]
+  },
+  {
+    "key": "D",
+    "title": "Dialog close controls",
+    "note": "The dialogs mix an unboxed close symbol and an outlined close button.",
+    "options": [
+      {
+        "id": "D1",
+        "title": "Plain close symbol",
+        "where": "Content Studio and search dialogs",
+        "preview": "<div class=\"dialog-heading\"><strong>Content Studio</strong><span class=\"plain-close\">\u00d7</span></div>"
+      },
+      {
+        "id": "D2",
+        "title": "Outlined close button",
+        "where": "Touchpoint and other editing dialogs",
+        "preview": "<div class=\"dialog-heading\"><strong>Edit touchpoint</strong><span class=\"boxed-close\">\u00d7</span></div>"
+      }
+    ]
+  },
+  {
+    "key": "F",
+    "title": "Status badge treatment",
+    "note": "Some workspaces use neutral badges; others use colors to communicate state.",
+    "options": [
+      {
+        "id": "F1",
+        "title": "Neutral gray badges",
+        "where": "Campaign lists, form publication and template states",
+        "preview": "<div class=\"badge-row\"><span class=\"badge\">Draft</span><span class=\"badge\">Published</span><span class=\"badge\">Archived</span></div>"
+      },
+      {
+        "id": "F2",
+        "title": "Colors for meaningful states",
+        "where": "Audience subscriptions, flows and completed touchpoints",
+        "preview": "<div class=\"badge-row\"><span class=\"badge\">Draft</span><span class=\"badge active\">Active</span><span class=\"badge complete\">Complete</span></div>"
+      }
+    ]
+  }
+]

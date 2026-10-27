@@ -1,4 +1,4 @@
-// Move a preview edge upward until no text line or indivisible image crosses it.
+// Keep text lines intact at the preview edge. Images may continue below the card.
 export function safePreviewBoundary(limit, ranges) {
   let boundary = Math.max(0, Math.floor(limit));
   for (const {top, bottom} of ranges.filter(r => r.bottom > r.top).sort((a, b) => b.bottom - a.bottom)) {
@@ -22,7 +22,7 @@ export function templatePreviewBoundary(doc, limit) {
     range.selectNodeContents(node);
     for (const rect of range.getClientRects()) include(rect);
   }
-  for (const node of doc.body.querySelectorAll('img,svg,canvas,video,iframe,object,embed,input,button,select,textarea,hr')) {
+  for (const node of doc.body.querySelectorAll('input,button,select,textarea,hr')) {
     include(node.getBoundingClientRect());
   }
   return safePreviewBoundary(limit, ranges);

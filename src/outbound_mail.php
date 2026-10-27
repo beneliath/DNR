@@ -141,7 +141,7 @@ $templateLabel = $isInquiryMessage
         <dl>
             <div><dt><?php echo $parentLabel; ?></dt><dd><a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($parentTitle, ENT_QUOTES, 'UTF-8'); ?></a></dd></div>
             <div><dt>Template</dt><dd><?php echo htmlspecialchars($templateLabel, ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Created</dt><dd><?php echo htmlspecialchars(applicationTimestampLabel($message['created_at'], 'F j, Y \a\t g:i A T'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Created</dt><dd><?php echo htmlspecialchars(formatUserTimestamp($message['created_at'], 'F j, Y \a\t g:i A T'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Created By</dt><dd><?php echo htmlspecialchars((string) ($message['created_by_username'] ?: 'System'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Replies</dt><dd><?php echo !empty($message['reply_to']) ? 'Return to ' . htmlspecialchars((string) $message['reply_to'], ENT_QUOTES, 'UTF-8') : 'Return to the application sender'; ?></dd></div>
             <?php if (!$isInquiryMessage): ?><div><dt>Event Brief</dt><dd><?php echo !empty($message['included_event_brief']) ? 'Included' : 'Not Included'; ?></dd></div><?php endif; ?>
@@ -168,7 +168,7 @@ $templateLabel = $isInquiryMessage
                     <div class="outbound-delivery-state">
                         <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $delivery['status'])), ENT_QUOTES, 'UTF-8'); ?></span>
                         <?php if ($delivery['status'] === 'delivery_uncertain' && !empty($delivery['smtp_message_id'])): ?><small>Provider reference: <?php echo htmlspecialchars($delivery['smtp_message_id'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
-                        <?php if (!empty($delivery['sent_at'])): ?><small><?php echo htmlspecialchars(applicationTimestampLabel($delivery['sent_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                        <?php if (!empty($delivery['sent_at'])): ?><small><?php echo htmlspecialchars(formatUserTimestamp($delivery['sent_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                         <?php if (!empty($delivery['last_error'])): ?><small class="delivery-error"><?php echo htmlspecialchars((string) $delivery['last_error'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     </div>
                 </article>

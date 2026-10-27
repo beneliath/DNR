@@ -9,9 +9,9 @@
   "readme_appendix": {
     "sections": 62,
     "text_fragments_verified": 1211,
-    "attachment_bytes": 110260,
+    "attachment_bytes": 110737,
     "attachment_matches_current_source": true,
-    "sha256": "560307ddb96f08c9c9c12ebf00182d1d63631794981f477aa6cdd39bb811ef3a"
+    "sha256": "6c92f9fda669994cb6c5f51da95478c2dfffaffc4f4ae769752724a6c6f6bff7"
   },
   "format": {
     "reference_text": "two columns",
@@ -28,8 +28,8 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.7.0",
-    "edition_date": "October 23, 2026",
+    "version": "2.8.3",
+    "edition_date": "October 27, 2026",
     "cover_and_metadata": "verified"
   },
   "screenshot_quality": {

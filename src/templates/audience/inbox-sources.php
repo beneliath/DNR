@@ -9,8 +9,8 @@
 <?php elseif($routing['address']===''): ?><form method="post"><?php $form('inbox_prepare_route'); ?><button class="primary">Prepare receiving address</button></form>
 <?php else: ?><label>Account receiving address<input readonly value="<?= $h($routing['address']) ?>" aria-label="Inbox receiving test address" autocomplete="off"></label>
 <div class="inbox-routing-result" role="status">
-<?php if($routing['verified_at']): ?><strong>Authenticated message received</strong><p>Verified by the receiving gateway on <?= $h($routing['verified_at']) ?> UTC. You can confirm routing below, save your sources, and retry the held message from Incoming Mail.</p>
-<?php elseif($routing['latest']): ?><strong>Message received — sender not verified</strong><p>The mailbox received a message on <?= $h($routing['latest']['received_at']) ?> UTC, but the receiving provider did not authenticate its sender. It stays in review. Try a message from an external mailbox with authenticated email.</p>
+<?php if($routing['verified_at']): ?><strong>Authenticated message received</strong><p>Verified by the receiving gateway on <?= $h(formatUserTimestamp($routing['verified_at'],'Y-m-d H:i:s')) ?>. You can confirm routing below, save your sources, and retry the held message from Incoming Mail.</p>
+<?php elseif($routing['latest']): ?><strong>Message received — sender not verified</strong><p>The mailbox received a message on <?= $h(formatUserTimestamp($routing['latest']['received_at'],'Y-m-d H:i:s')) ?>, but the receiving provider did not authenticate its sender. It stays in review. Try a message from an external mailbox with authenticated email.</p>
 <?php else: ?><strong>Waiting for a receiving test</strong><p>Send a short message to the address above. No message has been recorded for this route yet.</p><?php endif; ?>
 </div><a class="audience-button" href="<?= $h($url(['panel'=>'sources'])) ?>">Refresh receiving status</a>
 <?php endif; ?>

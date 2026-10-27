@@ -170,6 +170,8 @@ $coPdfItem=$campaignStore->designLibraryItem($coPdfId);$coPdfPublic='audience_as
 audienceHttpExpect($coPdfItem['item_type']==='file'&&$c2anon($coPdfPublic)['status']===404,'PDF uploads are private by default');
 $r=$editor($coPath.'&download=file&id='.$coPdfId);
 audienceHttpExpect($r['status']===200&&$r['body']===$coPdfBytes&&str_contains(strtolower($r['headers']),'content-disposition: attachment'),'Authenticated PDF download serves exact bytes as an attachment');
+audienceHttpExpect($reviewer($coPath.'&download=file&id='.$coPdfId)['status']===403,'Reviewer cannot export a Content document through a direct URL');
+audienceHttpExpect($admin($coPath.'&download=file&id='.$coPdfId)['status']===200,'Administrator can export a Content document');
 audienceHttpExpect(str_contains(strtolower($r['headers']),'content-security-policy: sandbox'),'Authenticated PDF keeps its sandboxed response');
 $c2reject(fn()=>$campaignStore->saveContentItem(['name'=>'Wrong replacement','image'=>$coImage],$coPdfId,1),'PDF cannot silently discard an image replacement');
 $c2reject(fn()=>$campaignStore->saveContentItem(['name'=>'Invalid PDF','document'=>'data:application/pdf;base64,'.base64_encode('<script>alert(1)</script>')]),'Non-PDF bytes are rejected');

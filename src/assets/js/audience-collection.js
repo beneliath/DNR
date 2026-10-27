@@ -68,11 +68,28 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const frame = document.querySelector('[data-collection-preview]');
     const status = document.querySelector('[data-collection-preview-status]');
     const hidden = form.querySelector('[data-collection-document]');
-    let timer, request, sequence = 0;
+    const saveButtons = Array.from(document.querySelectorAll('[data-collection-save]')).filter(button => button.form === form);
+    const unsavedStatus = document.getElementById('collection-unsaved-status');
+    let savedDraft = null, savedName = '', wasDirty = null;
+    const updateDirty = () => {
+        if (!config.canManage || savedDraft === null) return;
+        const dirty = Boolean(config.recoveredDraft) || hidden.value !== savedDraft || form.elements.namedItem('name').value !== savedName;
+        saveButtons.forEach(button => button.classList.toggle('collection-save-unsaved', dirty));
+        if (unsavedStatus && dirty !== wasDirty) {
+            const scope = config.kind === 'preferences' ? 'preference' : 'form';
+            unsavedStatus.textContent = dirty ? `Unsaved ${scope} changes.` : `All ${scope} changes saved.`;
+        }
+        wasDirty = dirty;
+    };
+    let timer, request, sequence = 0, removeLogoButton = null;
     const readLines = value => value.split('\n').map(s => s.trim()).filter(Boolean);
     const sync = () => {
-        form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'number' ? Number(input.value) : input.value; });
+        form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'checkbox' ? input.checked : input.type === 'number' ? Number(input.value) : input.value; });
+        form.querySelectorAll('[data-doc-message]').forEach(input => { model.messages[input.dataset.docMessage] = input.value; });
+        const footerText = form.querySelector('[data-doc-message="powered"]');
+        if (footerText) footerText.required = model.show_footer;
         if (brandLogo) brandLogo.value = model.logo ? Object.keys(config.brandLogos).find(key => config.brandLogos[key].image === model.logo) || '' : 'none';
+        if (removeLogoButton) removeLogoButton.hidden = !model.logo;
         const font=form.querySelector('[data-collection-font]')?.value;
         if(font==='brand')Object.assign(model,{font:config.brandFont.font,web_font:config.brandFont.data,web_font_name:config.brandFont.name});
         else if(font&&font!=='saved-brand')Object.assign(model,{font,web_font:'',web_font_name:''});
@@ -84,18 +101,25 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         arrayKeys.forEach(key => { model[key] = Array.from(form.querySelectorAll(`[data-doc-array="${key}"]:checked`), el => Number(el.value)); });
         const fields = Array.from(form.querySelectorAll('[data-field]'));
         if (fields.length) {
-            model.fields = fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field);
-            model.required = fields.filter(row => row.querySelector('[data-field-required]').checked).map(row => row.dataset.field);
+            const editable = new Set(fields.map(row => row.dataset.field));
+            // Preserve saved audience fields that are no longer offered in the editor.
+            const retained = model.fields.filter(key => !editable.has(key));
+            const retainedRequired = model.required.filter(key => !editable.has(key));
+            model.fields = [...fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field), ...retained];
+            model.required = [...fields.filter(row => row.querySelector('[data-field-required]').checked).map(row => row.dataset.field), ...retainedRequired];
         }
         form.querySelectorAll('[data-popup]').forEach(input => { model.popup[input.dataset.popup] = input.type === 'number' ? Number(input.value) : input.value; });
         form.querySelectorAll('[data-popup-lines]').forEach(input => { model.popup[input.dataset.popupLines] = readLines(input.value); });
         const countries = form.querySelector('[data-popup-countries]'); if (countries) model.popup.countries = Array.from(countries.selectedOptions, option => option.value);
-        hidden.value = JSON.stringify(model);
+        hidden.value = JSON.stringify(model); updateDirty();
     };
     const preview = async () => {
         if (config.previewOnly) return;
         sync(); request?.abort(); request = new AbortController(); const current = ++sequence;
         const data = new FormData(form); data.set('action', 'collection_preview');data.set('screen', document.querySelector('[data-preview-screen]')?.value || 'signup');data.set('preview_nonce', config.previewNonce);
+        // Read-only editors disable form inputs; preview still needs its document and token.
+        data.set('document_json', hidden.value);data.set('id', String(config.id));
+        const csrf = form.elements.namedItem('csrf_token');if(csrf)data.set('csrf_token', csrf.value);
         status.textContent = 'Updating…';
         try {
             const response = await fetch(location.href, {method:'POST', body:data, signal:request.signal, credentials:'same-origin', headers:{Accept:'application/json'}});
@@ -107,7 +131,100 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         } catch (error) { if (error.name !== 'AbortError' && current === sequence) status.textContent = error.message || 'Preview unavailable. Save your work and try again.'; }
     };
     const fit = () => { try { if (frame.contentDocument?.body) { frame.style.height = '1px'; const root = frame.contentDocument.documentElement; frame.style.height = Math.max(320, Math.ceil(Math.max(root.scrollHeight, root.getBoundingClientRect().height)) + 2) + 'px'; } } catch (_) {} };
-    frame.addEventListener('load', () => { fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
+    const previewTools = () => {
+        if (!config.canManage || config.previewOnly) return;
+        const doc = frame.contentDocument;
+        if (!doc?.body) return;
+        const decorate = (block, label, remove) => {
+            block.classList.add('collection-editable-block'); block.tabIndex = 0;
+            block.setAttribute('role', 'group'); block.setAttribute('aria-label', label);
+            const button = doc.createElement('button'); button.type = 'button'; button.className = 'collection-block-remove';
+            button.textContent = '×'; button.title = `Remove ${label}`; button.setAttribute('aria-label', `Remove ${label}`);
+            button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); remove(); block.remove(); fit(); });
+            block.addEventListener('click', event => {
+                event.preventDefault();
+                doc.querySelectorAll('.collection-editable-block.is-selected').forEach(other => other.classList.remove('is-selected'));
+                block.classList.add('is-selected');
+            });
+            block.addEventListener('keydown', event => { if (event.target === block && event.key === 'Enter') { event.preventDefault(); button.focus(); } });
+            block.append(button);
+        };
+        const resizeImage = (block, image, label, save) => {
+            if (!image.complete || !image.naturalWidth) {
+                image.addEventListener('load', () => { resizeImage(block, image, label, save); fit(); }, {once:true});
+                return;
+            }
+            const isLogo = image.classList.contains('logo');
+            block.classList.add('collection-image-block');
+            if (isLogo) block.classList.add('collection-logo-block');
+            const handle = doc.createElement('button'); handle.type = 'button'; handle.className = 'collection-image-resize';
+            handle.textContent = '↘'; handle.title = 'Drag to resize. Arrow keys adjust by 10 pixels.';
+            handle.setAttribute('role', 'slider'); handle.setAttribute('aria-label', `Resize ${label}`);
+            handle.setAttribute('aria-valuemin', '40'); handle.setAttribute('aria-orientation', 'horizontal');
+            const parentStyle = doc.defaultView.getComputedStyle(block.parentElement);
+            const maxWidth = () => Math.max(40, Math.min(1200, block.parentElement.clientWidth - parseFloat(parentStyle.paddingLeft) - parseFloat(parentStyle.paddingRight)));
+            const clamp = value => Math.max(40, Math.min(Math.floor(maxWidth()), Math.round(value)));
+            const paint = value => {
+                block.style.width = `${value}px`; image.style.width = '100%'; image.style.maxWidth = '100%'; image.style.height = 'auto'; image.style.maxHeight = 'none';
+                handle.setAttribute('aria-valuemax', String(Math.floor(maxWidth())));
+                handle.setAttribute('aria-valuenow', String(value)); handle.setAttribute('aria-valuetext', `${Math.round(value)} pixels wide`);
+            };
+            paint(image.getBoundingClientRect().width);
+            let drag = null;
+            handle.addEventListener('pointerdown', event => {
+                if (event.button !== 0 || !event.isPrimary) return;
+                event.preventDefault(); event.stopPropagation(); clearTimeout(timer); request?.abort(); ++sequence;
+                block.classList.add('is-selected'); handle.focus();
+                drag = {id:event.pointerId, x:event.clientX, y:event.clientY, width:image.getBoundingClientRect().width};
+                handle.setPointerCapture(event.pointerId);
+            });
+            handle.addEventListener('pointermove', event => {
+                if (!drag || drag.id !== event.pointerId) return;
+                const horizontal = (event.clientX - drag.x) * (isLogo ? 2 : 1);
+                const vertical = (event.clientY - drag.y) * image.naturalWidth / image.naturalHeight;
+                paint(clamp(drag.width + (Math.abs(horizontal) >= Math.abs(vertical) ? horizontal : vertical)));
+            });
+            const finish = (event, cancelled = false) => {
+                if (!drag || drag.id !== event.pointerId) return;
+                const startWidth = drag.width, width = Number(handle.getAttribute('aria-valuenow')); drag = null;
+                if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+                if (cancelled) paint(startWidth);
+                else if (Math.round(startWidth) !== width) { save(width); changed(); }
+                fit();
+            };
+            handle.addEventListener('pointerup', event => finish(event));
+            handle.addEventListener('pointercancel', event => finish(event, true));
+            handle.addEventListener('lostpointercapture', event => finish(event, true));
+            handle.addEventListener('keydown', event => {
+                const delta = {ArrowLeft:-10, ArrowDown:-10, ArrowRight:10, ArrowUp:10}[event.key];
+                if (!delta) return;
+                event.preventDefault(); event.stopPropagation(); const width = clamp(image.getBoundingClientRect().width + delta);
+                paint(width); save(width); changed();
+            });
+            block.append(handle);
+        };
+        const logo = doc.querySelector('img.logo');
+        if (logo) {
+            const block = doc.createElement('div'); logo.before(block); block.append(logo);
+            decorate(block, 'logo', () => { form.querySelector('[data-doc="logo"]').value = ''; model.logo = ''; changed(); });
+            resizeImage(block, logo, 'logo', width => {
+                model.logo_width = width; model.logo_resized = true;
+                form.querySelector('[data-doc="logo_width"]').value = width;
+            });
+        }
+        doc.querySelectorAll('[data-collection-section]').forEach(block => {
+            const section = model.sections[Number(block.dataset.collectionSection)];
+            if (!section) return;
+            decorate(block, `${section.type} section`, () => {
+                const index = model.sections.indexOf(section);
+                if (index < 0) return;
+                model.sections.splice(index, 1); renderList('sections'); changed();
+            });
+            const image = block.querySelector('img.section-image');
+            if (image) resizeImage(block, image, 'image section', width => { section.width = width; renderList('sections'); });
+        });
+    };
+    frame.addEventListener('load', () => { previewTools(); fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
     let frameWidth = frame.getBoundingClientRect().width;
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => {
         const width = frame.getBoundingClientRect().width;
@@ -116,8 +233,18 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     window.addEventListener('resize', fit);
     fit();
     const changed = () => { sync(); clearTimeout(timer); timer = setTimeout(preview, 300); queueMicrotask(record); };
-    form.addEventListener('input', changed); form.addEventListener('change', changed);
+    const inputChanged = event => { if (event.target.matches('[data-doc="logo_width"]')) model.logo_resized = true; changed(); };
+    form.addEventListener('input', inputChanged); form.addEventListener('change', inputChanged);
     form.addEventListener('submit', () => { clearTimeout(timer); sync(); });
+    document.querySelector('#collection-publish form')?.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+            event.preventDefault(); document.getElementById('collection-publish').close(); form.reportValidity(); return;
+        }
+        clearTimeout(timer); sync();
+        event.currentTarget.elements.document_json.value = hidden.value;
+        event.currentTarget.elements.name.value = form.elements.name.value;
+        event.currentTarget.elements.version.value = form.elements.version.value;
+    });
     let selectedTab = config.kind === 'survey' ? 'questions' : 'design';
     const selectTab = tab => {
         selectedTab = tab;
@@ -135,14 +262,30 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         selectTab(button.dataset.collectionRail);
         if (button.dataset.collectionRail === 'outline') form.querySelector('[data-collection-fields]')?.scrollIntoView({block:'center'});
     }));
-    document.querySelector('[data-collection-focus-preview]')?.addEventListener('click', event => {
-        const hidden = form.classList.toggle('preview-hidden');
-        frame.closest('.collection-preview').classList.toggle('preview-focus', hidden);
-        event.currentTarget.textContent = hidden ? 'Back to editing' : 'Preview';
+    const previewPanel = frame.closest('.collection-preview');
+    const previewButton = document.querySelector('[data-collection-focus-preview]');
+    const previewReturn = previewPanel.querySelector('[data-collection-back-to-editing]');
+    const showPreview = enabled => {
+        form.classList.toggle('preview-hidden', enabled);
+        previewPanel.classList.toggle('preview-focus', enabled);
+        if (previewButton) {
+            previewButton.textContent = enabled ? 'Back to editing' : 'Preview';
+            previewButton.setAttribute('aria-pressed', String(enabled));
+        }
+        if (previewReturn) previewReturn.hidden = !enabled || Boolean(previewButton);
+        requestAnimationFrame(fit);
+    };
+    previewButton?.setAttribute('aria-pressed', 'false');
+    previewButton?.setAttribute('aria-controls', frame.id);
+    previewButton?.addEventListener('click', () => showPreview(!form.classList.contains('preview-hidden')));
+    previewReturn?.addEventListener('click', () => {
+        showPreview(false);
+        document.querySelector('[data-collection-device][aria-pressed=true]')?.focus();
     });
     document.querySelectorAll('[data-collection-device]').forEach(button => button.addEventListener('click', () => {
         document.querySelectorAll('[data-collection-device]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
         frame.classList.toggle('mobile', button.dataset.collectionDevice === 'mobile');
+        if (getComputedStyle(previewPanel).display === 'none') showPreview(true);
         requestAnimationFrame(fit);
     }));
     form.querySelectorAll('[data-field-move]').forEach(button => button.addEventListener('click', () => {
@@ -173,20 +316,46 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Sign in to MessageMonkey in another tab, then try again. Your draft is still open here.');
         const result = await response.json(); if (!response.ok || result.error) throw new Error(result.error || 'Unable to load the image.'); return result;
     };
-    const imageDialog = document.getElementById('collection-images'); let chooseImage = null; let imagePage = 1; let imageSize = 25;
+    const imageDialog = document.getElementById('collection-images'); let chooseImage = null; let imagePage = 1; let imageSize = 25; let imageLoad = 0;
     const loadImages = async () => {
+        const current = ++imageLoad;
         const feedback = imageDialog.querySelector('[data-collection-image-status]'); feedback.textContent = 'Loading…';
         try {
             const result = await api('collection_library', {search:imageDialog.querySelector('[data-collection-image-search]').value, page:imagePage, per_page:imageSize});
+            if (current !== imageLoad) return;
             imagePage = result.page;
             const list = imageDialog.querySelector('[data-collection-image-list]'); list.replaceChildren();
-            result.items.forEach(item => { const button = el('button', item.name); button.type = 'button'; button.addEventListener('click', async () => {
-                try { const image = await api('collection_library_image', {image_id:item.id}); chooseImage?.(image.image); imageDialog.close(); } catch (error) { feedback.textContent = error.message; }
-            }); list.append(button); }); feedback.textContent = result.items.length ? '' : 'No images found.';
+            const previews = result.items.map(item => {
+                const button = el('button', '', 'collection-image-card'); button.type = 'button'; button.setAttribute('aria-label', item.name);
+                const preview = el('span', 'Loading preview…', 'collection-image-preview');
+                button.append(preview, el('span', item.name, 'collection-image-name'));
+                button.addEventListener('click', async () => {
+                    button.disabled = true;
+                    try { const image = await api('collection_library_image', {image_id:item.id}); chooseImage?.(image.image); imageDialog.close(); }
+                    catch (error) { feedback.textContent = error.message; }
+                    finally { button.disabled = false; }
+                });
+                list.append(button);
+                return async () => {
+                    if (current !== imageLoad || !button.isConnected || !imageDialog.open) return;
+                    try {
+                        const image = await api('collection_library_image', {image_id:item.id});
+                        if (!button.isConnected) return;
+                        const thumbnail = el('img'); thumbnail.alt = ''; thumbnail.decoding = 'async';
+                        thumbnail.addEventListener('error', () => { preview.textContent = 'Preview unavailable'; }, {once:true});
+                        thumbnail.src = image.image; preview.replaceChildren(thumbnail);
+                    } catch { if (button.isConnected) preview.textContent = 'Preview unavailable'; }
+                };
+            });
+            const loadPreviews = async () => {
+                for (let index = 0; index < previews.length; index += 4) await Promise.all(previews.slice(index, index + 4).map(load => load()));
+            };
+            loadPreviews(); feedback.textContent = result.items.length ? '' : 'No images found.';
             renderAudiencePagination(imageDialog.querySelector('[data-collection-image-pages]'), {total:result.total,page:imagePage,pageSize:imageSize,label:'Image library pages',onChange:({page,pageSize})=>{imagePage=page;imageSize=pageSize;loadImages();}});
-        } catch (error) { feedback.textContent = error.message || 'Images are unavailable.'; }
+        } catch (error) { if (current === imageLoad) feedback.textContent = error.message || 'Images are unavailable.'; }
     };
     imageDialog.querySelector('[data-collection-image-find]').addEventListener('click', () => { imagePage = 1; loadImages(); });
+    imageDialog.querySelector('[data-collection-image-clear]').addEventListener('click', event => { event.preventDefault();imagePage = 1;loadImages(); });
     const imageButtons = (card, apply) => {
         const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse images'); browse.type = 'button';
         browse.addEventListener('click', () => { chooseImage = apply; imagePage = 1; imageDialog.showModal(); loadImages(); });
@@ -207,8 +376,10 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz choice'} ${index + 1}`));
             const move = delta => { const to = index + delta; if (to < 0 || to >= model[key].length) return; [model[key][index], model[key][to]] = [model[key][to], model[key][index]]; renderList(key); changed(); };
             [['↑', () => move(-1), 'Move up'], ['↓', () => move(1), 'Move down'], ['×', () => { model[key].splice(index, 1); renderList(key); changed(); }, 'Remove']].forEach(([text, action, label]) => {
+                if (key === 'questions' && model[key].length === 1 && label !== 'Remove') return;
                 const button = el('button', text); button.type = 'button'; button.setAttribute('aria-label', `${label} ${index + 1}`); button.addEventListener('click', action); head.append(button);
-            }); card.append(head);
+            });
+            card.append(head);
             if (key === 'questions') {
                 card.classList.add('collection-question');
                 const main = el('div', '', 'collection-question-main'), inspector = el('aside', '', 'collection-question-settings');card.append(main, inspector);
@@ -236,7 +407,13 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                 if (item.type !== 'divider') control(card, item.type === 'image' ? 'Alternative text' : 'Text', item.text, value => { item.text = value; }, 'textarea');
                 if (['image','button'].includes(item.type)) {
                     const urlInput = control(card, 'HTTPS address', item.url, value => { item.url = value; }, 'url');
-                    if (item.type === 'image') imageButtons(card, value => { item.url = value; urlInput.value = value; changed(); });
+                    if (item.type === 'image') {
+                        imageButtons(card, value => { item.url = value; urlInput.value = value; changed(); });
+                        const width = control(card, 'Image width (pixels)', item.width ?? '', value => {
+                            if (value === '') delete item.width; else item.width = Number(value);
+                        }, 'number');
+                        width.min = '40'; width.max = '1200'; width.step = '1'; width.placeholder = 'Automatic';
+                    }
                 }
             } else if (key === 'variants') {
                 ['title','intro','button'].forEach(prop => control(card, prop === 'title' ? 'Heading' : prop === 'intro' ? 'Introduction' : 'Button label', item[prop], value => { item[prop] = value; }));
@@ -248,7 +425,14 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         });
     };
     Object.keys(lists).forEach(renderList);
-    const logoInput = form.querySelector('[data-doc="logo"]'); if (logoInput) imageButtons(logoInput.closest('details'), value => { logoInput.value = value; model.logo = value; changed(); });
+    const logoInput = form.querySelector('[data-doc="logo"]');
+    const setLogo = value => { logoInput.value = value; model.logo = value; changed(); };
+    if (logoInput) {
+        const style = logoInput.closest('details'); imageButtons(style, setLogo);
+        removeLogoButton = el('button', '× Remove logo'); removeLogoButton.type = 'button'; removeLogoButton.hidden = !model.logo;
+        removeLogoButton.addEventListener('click', () => setLogo('')); style.querySelector('.collection-image-buttons').append(removeLogoButton);
+        form.querySelectorAll('[data-collection-insert-logo]').forEach(button => button.addEventListener('click', () => setLogo(config.brandLogos[button.dataset.collectionInsertLogo].image)));
+    }
     form.querySelector('[data-add-question]')?.addEventListener('click', () => { if (model.questions.length >= 30) return; model.questions.push({id:'q'+Date.now().toString(36),type:'radio',label:'New question',required:false,options:['Option 1','Option 2']}); renderList('questions'); changed(); });
     form.querySelector('[data-add-section]')?.addEventListener('click', () => { if (model.sections.length >= 30) return; model.sections.push({type:'text',text:'Add your message here.',url:''}); renderList('sections'); changed(); });
     form.querySelector('[data-add-variant]')?.addEventListener('click', () => { if (model.variants.length >= 2) return; model.variants.push({title:model.title,intro:model.intro,button:model.button}); renderList('variants'); changed(); });
@@ -266,6 +450,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     document.querySelector('[data-preview-screen]')?.addEventListener('change', preview);
     selectTab(config.kind === 'survey' ? 'questions' : 'design');
     sync();
+    savedDraft = hidden.value; savedName = form.elements.namedItem('name').value; updateDirty();
     const history = [JSON.stringify(model)]; let historyIndex = 0; let restoring = false;
     const undo = document.querySelector('[data-collection-undo]'); const redo = document.querySelector('[data-collection-redo]');
     const record = () => {
@@ -276,7 +461,8 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     form.addEventListener('input', record); form.addEventListener('change', record);
     const restore = index => {
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
-        form.querySelectorAll('[data-doc]').forEach(input => { input.value = model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        form.querySelectorAll('[data-doc]').forEach(input => { if(input.type==='checkbox')input.checked=model[input.dataset.doc];else input.value=model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage]; });
         const font=form.querySelector('[data-collection-font]');if(font)font.value=model.web_font?(model.web_font===config.brandFont?.data?'brand':'saved-brand'):model.font;
         form.querySelectorAll('[data-advanced-page]').forEach(input => { input.value = model.advanced.pages[input.dataset.advancedPage] || ''; });
         const advanced = form.querySelector('[data-advanced-enabled]');if(advanced)advanced.checked=Boolean(model.advanced.enabled);

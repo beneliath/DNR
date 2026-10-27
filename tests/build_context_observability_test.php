@@ -25,7 +25,7 @@ expectBuildContextObservability(
     is_string($ingress)
         && str_contains(
             $ingress,
-            'ProxyPass "/database_maintenance.php" "http://web:80/database_maintenance.php" connectiontimeout=5 timeout=300'
+            'ProxyPass "/database_maintenance.php" "http://web:80/database_maintenance.php" connectiontimeout=5 timeout=930'
         )
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/" connectiontimeout=5 timeout=60'),
     'only database-backup requests should receive the extended reverse-proxy timeout.'

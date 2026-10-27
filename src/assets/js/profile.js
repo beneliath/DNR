@@ -1,4 +1,29 @@
 (function () {
+    const profileForm = document.querySelector('form.profile-form');
+    let updateProfileDirty = function () {};
+    if (profileForm) {
+        const saveButtons = Array.from(profileForm.querySelectorAll('[data-profile-save]'));
+        const dirtyStatus = profileForm.querySelector('[data-profile-unsaved-status]');
+        const values = () => JSON.stringify(Array.from(profileForm.querySelectorAll('input[name],select[name],textarea[name]'))
+            .filter(control => control.type !== 'hidden')
+            .map(control => [control.name, control.type === 'file'
+                ? Array.from(control.files || [], file => [file.name, file.size, file.lastModified])
+                : ['checkbox','radio'].includes(control.type) ? control.checked
+                : control.multiple ? Array.from(control.selectedOptions, option => option.value) : control.value]));
+        const saved = values();
+        let previous = null;
+        updateProfileDirty = function () {
+            const dirty = profileForm.dataset.profileUnsaved === '1' || values() !== saved;
+            saveButtons.forEach(button => button.classList.toggle('profile-save-unsaved', dirty));
+            if (dirtyStatus && dirty !== previous) dirtyStatus.textContent = dirty ? 'Unsaved profile changes.' : 'All profile changes saved.';
+            previous = dirty;
+        };
+        profileForm.addEventListener('input', updateProfileDirty);
+        profileForm.addEventListener('change', updateProfileDirty);
+        profileForm.addEventListener('click', () => queueMicrotask(updateProfileDirty));
+        profileForm.addEventListener('reset', () => queueMicrotask(updateProfileDirty));
+        updateProfileDirty();
+    }
     const digestSchedule = document.querySelector('[data-task-digest-schedule]');
     const digestEnabled = document.querySelector('[data-task-digest-enabled]');
     const digestPaused = document.querySelector('[data-task-digest-paused]');

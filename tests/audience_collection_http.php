@@ -244,7 +244,20 @@ try{
     $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
     $cbId=$collectStore->saveCollection(['kind'=>'landing','name'=>'Brand Kit landing page']);$cbPath='audience.php?view=form&id='.$cbId;
     $cbEditor=$editor($cbPath);audienceHttpExpect($cbEditor['status']===200&&str_contains($cbEditor['body'],'Example Light (Brand Kit)')&&str_contains($cbEditor['body'],'"brandColors":[')&&str_contains($cbEditor['body'],'"value":"#3261b5"'),'Landing page editor exposes the current account Brand Kit font and colors');
-    audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Default logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary logo</option>'),'Landing page offers both account Brand Kit logos');
+    audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Primary logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary logo</option>'),'Landing page offers both account Brand Kit logos');
+    $cbPreferences=$collectStore->saveCollection(['kind'=>'preferences','name'=>'Brand Kit preferences']);
+    $cbPreferencesEditor=$editor('audience.php?view=form&id='.$cbPreferences);
+    audienceHttpExpect(str_contains($cbPreferencesEditor['body'],'data-collection-insert-logo="logo"')&&str_contains($cbPreferencesEditor['body'],'data-collection-insert-logo="secondary_logo"')&&str_contains($cbPreferencesEditor['body'],$cbDefaultLogo),'Subscriber preferences offer both account Branding Kit logos');
+    foreach(['hosted','popup','survey']as$cbKind){
+        $cbFormId=$collectStore->saveCollection(['kind'=>$cbKind,'name'=>'Branding Kit '.$cbKind]);
+        $cbFormPath='audience.php?view=form&id='.$cbFormId;$cbFormEditor=$editor($cbFormPath);
+        audienceHttpExpect($cbFormEditor['status']===200&&str_contains($cbFormEditor['body'],'data-collection-insert-logo="logo"')&&str_contains($cbFormEditor['body'],'data-collection-insert-logo="secondary_logo"')&&str_contains($cbFormEditor['body'],$cbDefaultLogo)&&str_contains($cbFormEditor['body'],$cbSecondaryLogo),$cbKind.' editor offers both account Branding Kit logos');
+        foreach(['primary'=>$cbDefaultLogo,'secondary'=>$cbSecondaryLogo]as$cbLogoName=>$cbLogoImage){
+            $cbForm=$collectStore->collectionResource($cbFormId);$cbFormDoc=array_replace($cbForm['draft'],['logo'=>$cbLogoImage]);
+            $cbFormSave=$editor($cbFormPath,['csrf_token'=>$token,'action'=>'collection_save','id'=>$cbFormId,'version'=>$cbForm['version'],'name'=>$cbForm['name'],'document_json'=>json_encode($cbFormDoc,JSON_THROW_ON_ERROR)]);
+            audienceHttpExpect($cbFormSave['status']===302&&$collectStore->collectionResource($cbFormId)['draft']['logo']===$cbLogoImage,$cbKind.' form saves the '.$cbLogoName.' logo snapshot');
+        }
+    }
     $cbDoc=$collectStore->collectionResource($cbId)['draft'];$cbDoc=array_replace($cbDoc,['font'=>'Tahoma','web_font'=>$cbFont,'web_font_name'=>'Example Light','color'=>'#3261b5','background'=>'#f1f2f3','text_color'=>'#112233','opt_in'=>'single','logo_width'=>360]);
     $cbSave=['csrf_token'=>$token,'action'=>'collection_save','id'=>$cbId,'version'=>1,'name'=>'Brand Kit landing page','document_json'=>json_encode($cbDoc)];
     $cbPreview=$editor($cbPath,array_replace($cbSave,['action'=>'collection_preview','preview_nonce'=>'BrandKitLandingNonce123']));$cbPreviewHtml=json_decode($cbPreview['body'],true)['html']??'';

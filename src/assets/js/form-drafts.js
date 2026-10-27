@@ -34,7 +34,7 @@
             restore.hidden=discard.hidden=!saved;
             const stale=saved && saved.version!==versions();
             restore.disabled=!!stale;
-            status.textContent=saved ? (stale?'The record changed since this draft was saved. Review the saved values below and reapply only the changes you still want.':'Draft available from '+new Date(saved.at).toLocaleString()) : 'No saved draft';
+            status.textContent=saved ? (stale?'The record changed since this draft was saved. Review the saved values below and reapply only the changes you still want.':'Draft available from '+window.DnrUserTime.format(new Date(saved.at))) : 'No saved draft';
             recovery.hidden=!stale;
             if(stale) recovery.value=saved.fields.map(v=>v.name+': '+(['checkbox','radio'].includes(v.type)?(v.checked?v.value:'not selected'):v.value)).join('\n');
         }

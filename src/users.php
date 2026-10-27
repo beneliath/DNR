@@ -219,16 +219,16 @@ $task_digest_day_options = [
                 </div>
                 <div class="user-timestamps">
                     <span class="timestamp">
-                        Created: <?php echo !empty($user['created_at']) ? applicationTimestampLabel($user['created_at']) : 'N/A'; ?>
+                        Created: <?php echo !empty($user['created_at']) ? formatUserTimestamp($user['created_at']) : 'N/A'; ?>
                     </span>
                     <span class="timestamp">
-                        Last Modified: <?php echo !empty($user['last_updated_at']) ? applicationTimestampLabel($user['last_updated_at']) : 'N/A'; ?>
+                        Last Modified: <?php echo !empty($user['last_updated_at']) ? formatUserTimestamp($user['last_updated_at']) : 'N/A'; ?>
                     </span>
                     <span class="timestamp">
-                        Last Logged In: <?php echo !empty($user['last_login_at']) ? applicationTimestampLabel($user['last_login_at']) : 'Never'; ?>
+                        Last Logged In: <?php echo !empty($user['last_login_at']) ? formatUserTimestamp($user['last_login_at']) : 'Never'; ?>
                     </span>
                     <span class="timestamp">
-                        <?php echo $user['account_status'] === 'inactive' ? 'Deactivated' : 'Activated'; ?>: <?php $lifecycle_at = $user['account_status'] === 'inactive' ? $user['deactivated_at'] : $user['activated_at']; echo !empty($lifecycle_at) ? applicationTimestampLabel($lifecycle_at) : 'N/A'; ?>
+                        <?php echo $user['account_status'] === 'inactive' ? 'Deactivated' : 'Activated'; ?>: <?php $lifecycle_at = $user['account_status'] === 'inactive' ? $user['deactivated_at'] : $user['activated_at']; echo !empty($lifecycle_at) ? formatUserTimestamp($lifecycle_at) : 'N/A'; ?>
                     </span>
                 </div>
                 <div class="user-actions" aria-label="Actions for <?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>">

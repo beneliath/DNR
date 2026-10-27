@@ -25,7 +25,7 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
                 View <?php echo htmlspecialchars($pdf_filename, ENT_QUOTES, 'UTF-8'); ?>
             </a>
             <?php if (!empty($pdf_uploaded_at)): ?>
-                <span class="presentation-upload-timestamp">Uploaded <?php echo htmlspecialchars(applicationTimestampLabel($pdf_uploaded_at, 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></span>
+                <span class="presentation-upload-timestamp">Uploaded <?php echo htmlspecialchars(formatUserTimestamp($pdf_uploaded_at, 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></span>
             <?php endif; ?>
             <span class="presentation-upload-user"><?php echo $pdf_uploaded_by !== '' ? 'By ' . htmlspecialchars($pdf_uploaded_by, ENT_QUOTES, 'UTF-8') : 'Uploader unknown'; ?></span>
             <?php if (!empty($presentation[$pdf_key . '_size'])): ?>

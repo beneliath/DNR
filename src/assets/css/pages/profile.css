@@ -88,6 +88,19 @@ html:not(.has-js) .profile-picture-paste-controls,
     }
 }
 
+.profile-page .profile-save-unsaved {
+    outline: 3px solid var(--primary-color, #4f8cff);
+    outline-offset: 3px;
+    animation: profile-save-blink 1.2s ease-in-out infinite;
+}
+@keyframes profile-save-blink {
+    0%, 100% { outline-color: transparent; }
+    50% { outline-color: var(--primary-color, #4f8cff); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .profile-page .profile-save-unsaved { animation: none; }
+}
+
 .profile-page .profile-verification-status {
     grid-column: 1 / -1;
     margin: 0;

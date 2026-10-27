@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "theme": "light",
+      "width": 1280,
+      "overflow": false,
+      "link": {
+        "height": 22.390625,
+        "color": "rgb(0, 124, 137)"
+      }
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "overflow": false,
+      "link": {
+        "height": 48.484375,
+        "color": "rgb(0, 124, 137)"
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "overflow": false,
+      "link": {
+        "height": 22.390625,
+        "color": "rgb(112, 214, 208)"
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "overflow": false,
+      "link": {
+        "height": 48.484375,
+        "color": "rgb(112, 214, 208)"
+      }
+    }
+  ],
+  "pdf_download": "200 application/pdf; identical to output",
+  "email_editor": "renders blocks and footer; block selection works",
+  "browser_errors": []
+}

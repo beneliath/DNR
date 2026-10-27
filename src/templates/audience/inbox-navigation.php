@@ -36,12 +36,12 @@
 <?php include __DIR__.'/inbox-drafts.php'; ?>
 <?php elseif(!$panel): ?>
 <section class="inbox-list" id="inbox-conversations" aria-label="Conversations">
-    <header class="inbox-list-heading"><div><span class="inbox-eyebrow">CONVERSATIONS</span><h1><?= $h($statusNames[$list['status']]) ?><span><?= (int)$list['total'] ?></span></h1></div><a class="inbox-icon-button" href="<?= $h($filterUrl()) ?>" aria-label="Refresh messages" title="Refresh messages"><?php $icon('refresh'); ?></a></header>
-    <form class="inbox-search" method="get">
+    <header class="inbox-list-heading"><div><span class="inbox-eyebrow">CONVERSATIONS</span><h1><?= $h($statusNames[$list['status']]) ?><span><?= (int)$list['total'] ?></span></h1></div><a class="inbox-icon-button" href="<?= $h($filterUrl()) ?>" aria-label="Refresh messages" title="Refresh"><?php $icon('refresh'); ?></a></header>
+    <form class="inbox-search inbox-search-manual" method="get">
         <input type="hidden" name="view" value="inbox">
         <?php foreach($baseFilters as$key=>$value)if(!in_array($key,['q','page'],true)): ?><input type="hidden" name="<?= $h($key) ?>" value="<?= $h($value) ?>"><?php endif; ?>
         <label class="sr-only" for="inbox-search">Search messages</label>
-        <button aria-label="Search messages"><?php $icon('search'); ?></button><input id="inbox-search" type="search" name="q" placeholder="Search messages…" maxlength="100" value="<?= $h($list['q']??'') ?>" autocomplete="off"><kbd aria-hidden="true">/</kbd>
+        <span class="inbox-search-field"><?php $icon('search'); ?><input id="inbox-search" type="search" name="q" placeholder="Search messages…" maxlength="100" value="<?= $h($list['q']??'') ?>" autocomplete="off"><kbd aria-hidden="true">/</kbd></span><button type="submit" data-mm-search-text="inbox-search">Search</button><a class="mm-clear-all" href="<?= $h('audience.php?'.http_build_query(['view'=>'inbox','status'=>$list['status']])) ?>">Clear all</a>
     </form>
     <div class="inbox-list-tools"><form method="get" class="inbox-unread-form"><input type="hidden" name="view" value="inbox"><?php foreach($baseFilters as$key=>$value)if($key!=='unread'): ?><input type="hidden" name="<?= $h($key) ?>" value="<?= $h($value) ?>"><?php endif; ?><button class="inbox-unread-filter" name="unread" value="<?= empty($list['unread'])?'1':'0' ?>" aria-pressed="<?= !empty($list['unread'])?'true':'false' ?>"><span class="inbox-switch-track" aria-hidden="true"><span></span></span><span>Unread only</span><strong class="inbox-filter-state"><?= !empty($list['unread'])?'On':'Off' ?></strong></button></form><span>Newest first</span></div>
     <?php if($filtered): ?><div class="inbox-active-filters"><span><?= !empty($list['source'])?$h($sourceNames[$list['source']]).' · ':'' ?><?= !empty($list['label'])?'Label · ':'' ?><?= !empty($list['q'])?'“'.$h($list['q']).'” · ':'' ?><?= (int)$list['total'] ?> result<?= $list['total']===1?'':'s' ?></span><a href="<?= $h('audience.php?'.http_build_query(['view'=>'inbox','status'=>$list['status']])) ?>">Clear filters</a></div><?php endif; ?>

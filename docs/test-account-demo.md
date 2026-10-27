@@ -68,6 +68,41 @@ by the tester through their normal UI workflows. Immutable financial/submitted
 records retain the application's normal deletion restrictions; the operator's
 explicit demo refresh can replace the fictional baseline.
 
+## MessageMonkey examples
+
+The daily approved-baseline restore also rebuilds the fictional MessageMonkey
+fixture in `scripts/test_account_message_monkey_samples.php`. It contains 24
+connections covering all subscription statuses, VIP and archived examples, tags,
+interest groups, custom fields, saved segments and notes; six simulated sent
+campaigns and three editable/paused examples; reusable designs and review comments;
+a 13-month campaign planner; all six form kinds with illustrative responses; three
+inactive automation examples and completed history; and six inbox conversations
+covering to-do, done and trash, an attachment, internal comment, draft reply and
+saved replies. Email/audience reports are shared with the demo users. Historical
+sends, deliveries, opens, clicks and bounces are explicitly simulated; no mail was
+sent. All sample addresses use `example.invalid`.
+
+Each reset restores the original immutable baseline and then regenerates these
+examples using that day's Chicago anchor. Campaign history, form activity, inbox
+messages, custom event dates, report ranges and planning dates move with the reset.
+The planner spans three calendar months before through nine after, including
+month-end/leap-day clamping. MessageMonkey tester edits and saved reports reset;
+audience identity, branding and other settings, user preferences, SES secrets and
+existing demo permissions remain protected. The refresh rejects enabled/configured
+SES and sendable jobs, and checks the staged/live MessageMonkey tables match.
+Forms remain drafts and automations remain draft or paused.
+
+Test Account's ordinary mail uses the shared non-delivering `log` transport. Its
+SMTP endpoint settings are blank and the SMTP password is not mounted in its mail
+worker. This lets testers explore composition without external delivery. The
+operator `scripts/test_account_disable_outbound_mail.py` makes this change with a
+verified backup while retaining the qualified application image, networks and AI
+configuration; the saved member runtime carries it through subsequent releases.
+The nightly refresh refuses to proceed if web or mail-dispatch has regained an
+outbound transport. MessageMonkey SES remains unconfigured and account-wide
+sending/setup restrictions remain enforced. External AI stays enabled: Admin and
+Editor can use writing assistance, and Reviewer can use analytics assistance.
+
 ## Rebuild and refresh
 
 A request to refresh Test Account uses the approved immutable baseline at
@@ -134,7 +169,8 @@ and a window from three calendar months before through nine after. Monthly event
 clamp month ends and leap days; event durations, presentation offsets, linked task
 deadlines, inquiry next actions, historical timestamps, receipts and submitted
 reimbursement packages are remapped consistently. It normalizes ownership to
-TestEditor, adds the six team tasks, and ensures an available Financial Closeout.
+TestEditor, adds the six team tasks, ensures an available Financial Closeout, and
+rebuilds the date-relative MessageMonkey examples.
 
 Each run first restores/remaps/validates in a network-isolated disposable database.
 Only after that passes does it pause Test Account's ingress and workers, make a
@@ -150,8 +186,8 @@ disposable baseline copy using Test Account's frozen qualified migration files,
 then requires the migration ledger and column definitions to match the live schema.
 The live schema/ledger and immutable baseline remain unchanged. Cleanup includes
 the per-message `marketing_inbox_inbound_parts` and `marketing_inbox_route_receipts`
-records for replaced inbound mail; unrelated marketing configuration and secrets
-are preserved. Unknown dependencies into restored or cleared tables still block
+records for replaced inbound mail; MessageMonkey business data and its queues are reset using the reviewed allowlists;
+marketing configuration and secrets are preserved (saved reports are business data). Unknown dependencies into restored or cleared tables still block
 refresh for review. Every schema change must update/requalify this compatibility
 path before the next scheduled run. A busy deployment, incompatible migration or
 member encryption keys, failed validation/backup, or less than 2 GiB free disk

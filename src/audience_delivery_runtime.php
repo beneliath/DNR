@@ -29,6 +29,18 @@ function audienceRecipientDue(array $send,string $zone,?int $now=null):string
     if($local->getTimestamp()<$now+300)throw new InvalidArgumentException('A recipient’s local send time is too soon. Choose a later date.');
     return $local->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 }
+/** Personal instructions belong in both alternatives of a test email. */
+function audienceTestEmailInstructions(array $message,string $instructions):array
+{
+    if(trim($instructions)==='')return $message;
+    $message['text']=$instructions."\n\n".$message['text'];
+    if($message['html']!==null){
+        $note='<div style="max-width:600px;margin:16px auto;padding:16px;background:#fff7df;color:#21262a;font-family:Arial,sans-serif;font-size:16px;line-height:1.5;text-align:left"><strong>Test email message</strong><div>'.nl2br(htmlspecialchars($instructions,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')).'</div></div>';
+        $html=preg_replace_callback('/<body\b[^>]*>/i',static fn($match)=>$match[0].$note,$message['html'],1,$count);
+        $message['html']=$count?$html:$note.$message['html'];
+    }
+    return $message;
+}
 function audienceTrackMessage(array $snapshot,string $html,string $text,string $token):array
 {
     if(empty($snapshot['tracking_key'])||!empty($snapshot['test']))return [$html,$text];$base=$snapshot['base'];$key=$snapshot['tracking_key'];$tracking=$snapshot['draft']['tracking']??[];
@@ -58,7 +70,7 @@ function audienceServiceMailStatus(array $mail,array $events):array
     if(!$chosen){
         $detail=$detail?:match($mail['state']){
             'accepted'=>'The sending service accepted the email. No delivery confirmation is recorded.',
-            'queued'=>'Next attempt: '.$mail['next_attempt_at'].' UTC',
+            'queued'=>'Next attempt: '.formatUserTimestamp($mail['next_attempt_at'],'Y-m-d H:i:s'),
             'processing'=>'The email is being submitted to the sending service.',
             'development'=>'Recorded in development mode; no email was sent.',
             'failed'=>'The email could not be sent.',
@@ -122,7 +134,7 @@ trait AudienceDeliveryRuntime
             $recent=(int)$this->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND actor_id=? AND kind='test' AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)",[$this->audienceId,$this->actorId])['n'];
             $operations=[];foreach($emails as$email)$operations[$email]=hash('sha256',$this->actorId.':'.$kind.':'.$id.':'.$version.':'.$key.':'.$email);$existing=(int)$this->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND operation_key IN ('.implode(',',array_fill(0,count($operations),'?')).')',[$this->audienceId,...array_values($operations)])['n'];
             if($recent+count($emails)-$existing>50)throw new InvalidArgumentException('Wait before sending more tests. Each editor can queue 50 test recipients per hour.');
-            foreach($emails as$email){$operation=$operations[$email];$snapshot=['ses'=>audienceSesBinding($this->sesSettings()),'draft'=>$draft,'type'=>$row['campaign_type'],'base'=>audienceDispatchBase($base),'identity'=>$this->designRecipientContext(0,$audience),'asset_key'=>$operation,'test'=>true];$context=['EMAIL'=>$email,'FNAME'=>'Test','LNAME'=>'Recipient'];foreach($this->fields()as$f)$context[$f['merge_tag']]=$f['default_value'];$message=audienceDispatchMessage($snapshot,$context,str_repeat('0',64),'<test-'.substr($operation,0,40).'@message-monkey.invalid>');$message['subject']='[Test] '.$message['subject'];$message['text']=audienceText($input,'test_instructions',1000)."\n\n".$message['text'];$payload=['snapshot'=>$snapshot,'message'=>$message];
+            foreach($emails as$email){$operation=$operations[$email];$snapshot=['ses'=>audienceSesBinding($this->sesSettings()),'draft'=>$draft,'type'=>$row['campaign_type'],'base'=>audienceDispatchBase($base),'identity'=>$this->designRecipientContext(0,$audience),'asset_key'=>$operation,'test'=>true];$context=['EMAIL'=>$email,'FNAME'=>'Test','LNAME'=>'Recipient'];foreach($this->fields()as$f)$context[$f['merge_tag']]=$f['default_value'];$message=audienceDispatchMessage($snapshot,$context,str_repeat('0',64),'<test-'.substr($operation,0,40).'@message-monkey.invalid>');$message['subject']='[Test] '.$message['subject'];$message=audienceTestEmailInstructions($message,audienceText($input,'test_instructions',1000));$payload=['snapshot'=>$snapshot,'message'=>$message];
                 $this->write("INSERT IGNORE INTO marketing_service_mail(audience_id,kind,actor_id,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,'test',?,?,?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$this->actorId,$this->actorLabel,$operation,\Dnr\Security\ApplicationKey::seal(json_encode($payload,JSON_THROW_ON_ERROR)),$message['message_id']]);
             }return count($emails);
         });
@@ -160,6 +172,26 @@ trait AudienceDeliveryRuntime
             WHERE r.audience_id=? AND r.delivery_id=? $phase GROUP BY r.id
         ) observations GROUP BY variant_key ORDER BY variant_key",[$this->audienceId,$delivery]);
     }
+    /** Called while the signup transaction holds this contact's row lock. */
+    private function queueSubscriptionNotice(array $person):void
+    {
+        $ses=$this->sesSettings();
+        if (audienceSesReasons($ses,$ses['from_email']??'')) return;
+        // Quietly suppress repeats across all forms; do not disclose membership publicly.
+        if ($this->one("SELECT id FROM marketing_service_mail WHERE audience_id=? AND contact_id=? AND kind='subscription-notice' AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) LIMIT 1 FOR UPDATE",[$this->audienceId,$person['id']])) return;
+        $audience=$this->one('SELECT name,settings_json FROM marketing_audiences WHERE id=?',[$this->audienceId]);
+        $organization=audienceBrandIdentity(audienceJson($audience['settings_json']),(string)$audience['name'])['LIST:COMPANY'];
+        $operation=bin2hex(random_bytes(32));
+        $message=[
+            'email'=>$person['email'],'subject'=>"You're already subscribed",
+            'text'=>"You're already subscribed to emails from {$organization}. No further action is needed. Your subscription has not changed.\n\nIf you did not submit a signup request, you can ignore this email.",
+            'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],
+            'ses_binding'=>audienceSesBinding($ses),'to_name'=>'',
+            'message_id'=>'<subscription-notice-'.substr($operation,0,40).'@message-monkey.invalid>',
+        ];
+        $this->write("INSERT INTO marketing_service_mail(audience_id,contact_id,kind,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,?,'subscription-notice','Signup form',?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$person['id'],$operation,\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR)),$message['message_id']]);
+    }
+
     public function requestSubscriptionConfirmation(int $personId,string $base,array $collection=[]):void
     {
         $this->transaction(function()use($personId,$base,$collection){
@@ -167,7 +199,9 @@ trait AudienceDeliveryRuntime
             $person=$this->person($personId,true);if($person['is_archived']||$person['email_status']==='cleaned')throw new InvalidArgumentException('This address is not eligible for a subscription confirmation.');
             $recent=(int)$this->one('SELECT COUNT(*) n FROM marketing_consent_challenges WHERE audience_id=? AND contact_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR)',[$this->audienceId,$personId])['n'];if($recent>=3)throw new InvalidArgumentException('A confirmation has already been requested. Check your inbox or try again tomorrow.');
             $last=$this->one('SELECT created_at FROM marketing_consent_challenges WHERE audience_id=? AND contact_id=? ORDER BY id DESC LIMIT 1',[$this->audienceId,$personId]);if($last&&strtotime($last['created_at'].' UTC')>time()-60)throw new InvalidArgumentException('Wait one minute before requesting another confirmation.');
-            $token=bin2hex(random_bytes(32));$operation=hash('sha256',$token);$url=audienceDispatchBase($base).'/audience_subscription.php?confirm='.$token;$message=['email'=>$person['email'],'subject'=>'Confirm your email subscription','text'=>"Confirm that you want to receive emails from this audience:\n\n".$url."\n\nThis link expires in 24 hours. Nothing changes until you confirm. If you did not request this, ignore this email.",'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],'ses_binding'=>audienceSesBinding($ses),'to_name'=>'','message_id'=>'<confirm-'.substr($operation,0,40).'@message-monkey.invalid>'];
+            $audience=$this->one('SELECT name,settings_json FROM marketing_audiences WHERE id=?',[$this->audienceId]);
+            $organization=audienceBrandIdentity(audienceJson($audience['settings_json']),(string)$audience['name'])['LIST:COMPANY'];
+            $token=bin2hex(random_bytes(32));$operation=hash('sha256',$token);$url=audienceDispatchBase($base).'/audience_subscription.php?confirm='.$token;$message=['email'=>$person['email'],'subject'=>'Confirm your email subscription','text'=>"Confirm that you want to receive emails from {$organization}:\n\n".$url."\n\nThis link expires in 24 hours. Nothing changes until you confirm. If you did not request this, ignore this email.",'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],'ses_binding'=>audienceSesBinding($ses),'to_name'=>'','message_id'=>'<confirm-'.substr($operation,0,40).'@message-monkey.invalid>'];
             $this->write("INSERT INTO marketing_service_mail(audience_id,contact_id,kind,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,?,'confirmation',?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$personId,$operation,\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR)),$message['message_id']]);$mail=(int)$this->db->insert_id;
             $this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE audience_id=? AND contact_id=? AND used_at IS NULL',[$this->audienceId,$personId]);
             $this->write('INSERT INTO marketing_consent_challenges(audience_id,contact_id,email_hash,token_hash,service_mail_id,expires_at) VALUES (?,?,?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))',[$this->audienceId,$personId,audienceDispatchEmailHash($person['email']),hash('sha256',$token),$mail]);

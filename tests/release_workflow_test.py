@@ -24,6 +24,68 @@ loader.exec_module(prepare)
 
 
 class BoundedReleaseRunner(unittest.TestCase):
+    def test_checkout_accepts_the_same_authorized_gitlab_repository_over_ssh_or_https(self):
+        for url in ('https://gitlab.beneliath.com/SiMM/dnr.git', 'git@gitlab.beneliath.com:SiMM/dnr.git'):
+            def git(*args):
+                if args==('branch','--show-current'):return 'codex/release-fixture'
+                if args==('remote',):return 'origin\ngitlab'
+                return 'git@github.com:beneliath/DNR.git' if args[-1]=='origin' else url
+            with self.subTest(url=url),patch.object(release_s1,'git',side_effect=git):
+                self.assertEqual(release_s1.validate_checkout(),'codex/release-fixture')
+        url='git@gitlab.beneliath.com:other/repository.git'
+        with patch.object(release_s1,'git',side_effect=git):
+            with self.assertRaisesRegex(ValueError,'unexpected push URL'):
+                release_s1.validate_checkout()
+
+    def test_transient_github_status_reads_retry_and_return_the_result(self):
+        command = ['gh', 'run', 'view', '123', '--json', 'status']
+        failure = subprocess.CalledProcessError(1, command, stderr='net/http: TLS handshake timeout')
+        success = subprocess.CompletedProcess(command, 0, stdout='{"status":"completed"}\n', stderr='')
+        with patch.object(release_s1.subprocess, 'run', side_effect=[failure, success]) as execute, \
+                patch.object(release_s1.time, 'sleep') as sleep, patch.object(release_s1, 'milestone'):
+            self.assertEqual(release_s1.run(command, capture=True), '{"status":"completed"}')
+        self.assertEqual(execute.call_count, 2)
+        sleep.assert_called_once_with(5)
+
+    def test_status_read_retry_is_bounded(self):
+        command = ['gh', 'run', 'view', '123']
+        failure = subprocess.CalledProcessError(1, command, stderr='TLS handshake timeout')
+        with patch.object(release_s1.subprocess, 'run', side_effect=failure) as execute, \
+                patch.object(release_s1.time, 'sleep') as sleep, patch.object(release_s1, 'milestone'), \
+                patch.object(sys, 'stderr', io.StringIO()), self.assertRaises(subprocess.CalledProcessError):
+            release_s1.run(command, capture=True)
+        self.assertEqual(execute.call_count, 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [5, 10])
+
+    def test_mutations_and_nontransient_errors_are_not_retried(self):
+        for command, message in (
+            (['gh', 'pr', 'merge', '123'], 'TLS handshake timeout'),
+            (['gh', 'run', 'rerun', '123'], 'TLS handshake timeout'),
+            (['git', 'push', 'origin', 'main'], 'TLS handshake timeout'),
+            (['gh', 'run', 'view', '123'], 'HTTP 403: Resource not accessible'),
+        ):
+            with self.subTest(command=command, message=message):
+                failure = subprocess.CalledProcessError(1, command, stderr=message)
+                with patch.object(release_s1.subprocess, 'run', side_effect=failure) as execute, \
+                        patch.object(release_s1.time, 'sleep') as sleep, \
+                        patch.object(sys, 'stderr', io.StringIO()), self.assertRaises(subprocess.CalledProcessError):
+                    release_s1.run(command, capture=True)
+                self.assertEqual(execute.call_count, 1)
+                sleep.assert_not_called()
+
+    def test_quick_preflight_failure_precedes_notice_and_version_preparation(self):
+        with patch.object(release_s1, 'require_tools'), \
+                patch.object(release_s1, 'validate_checkout', return_value='codex/fixture'), \
+                patch.object(release_s1, 'run') as run, \
+                patch.object(release_s1, 'quick_preflight', side_effect=ValueError('Free disk space')), \
+                patch.object(release_s1, 'prepare_version') as prepare_version, \
+                patch.object(release_s1, 'write_receipt') as receipt, \
+                self.assertRaisesRegex(ValueError, 'Free disk space'):
+            release_s1.main(['patch', '--summary', 'Fixture'])
+        prepare_version.assert_not_called()
+        self.assertFalse(any('scripts/deployment_notice.sh' in call.args[0] for call in run.call_args_list))
+        self.assertEqual(receipt.call_args.args[0]['stage'], 'quick deployment preflight')
+
     def test_resume_preserves_unpublished_version_and_rejects_published_or_wrong_versions(self):
         for kind, expected, wrong_kind in (
             ('major', '3.0.0', 'minor'),

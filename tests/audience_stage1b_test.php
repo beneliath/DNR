@@ -22,11 +22,16 @@ $field=['label'=>'Date','field_type'=>'date','required'=>1,'options_json'=>'[]']
 $importPermission=['id'=>10,'details_json'=>json_encode(['source_metadata'=>['OPTIN_TIME'=>'2024-01-23 09:59:00','SOURCE'=>'Admin Add']]),'created_at'=>'2026-10-16 20:00:00'];
 $permissionPerson=['email_status'=>'subscribed','source'=>'Imported'];
 $detail=audienceMarketingDetails($permissionPerson,null,$importPermission);
-stageExpect($detail['date']==='Jan 23, 2024, 9:59 AM'&&!str_ends_with($detail['datetime'],'Z')&&$detail['source']==='Admin Add','Imported permission retains source date without inventing timezone');
+stageExpect($detail['date']==='Jan 23, 2024, 9:59 AM (timezone not recorded)'&&!str_ends_with($detail['datetime'],'Z')&&$detail['source']==='Admin Add','Imported permission retains source date and labels its unknown timezone');
 $zeroPermission=$importPermission;$zeroPermission['details_json']=json_encode(['source_metadata'=>['OPTIN_TIME'=>'0000-00-00 00:00:00']]);
 stageExpect(audienceMarketingDetails($permissionPerson,null,$zeroPermission)['date']==='','Import time is not substituted for missing consent evidence');
 $nativePermission=['id'=>11,'details_json'=>json_encode(['to'=>'subscribed']),'created_at'=>'2026-10-16 20:00:00'];
 stageExpect(audienceMarketingDetails($permissionPerson,$nativePermission,$importPermission)['date']==='Oct 16, 2026, 8:00 PM UTC','Later native subscription transition takes precedence over imported history');
+$originalDisplayTimezone=$_SESSION['display_timezone']??null;
+$_SESSION['display_timezone']='America/Chicago';
+stageExpect(audienceMarketingDetails($permissionPerson,null,$importPermission)===$detail,'A selected timezone must not convert imported consent with an unknown source timezone');
+stageExpect(audienceMarketingDetails($permissionPerson,$nativePermission,$importPermission)['date']==='Oct 16, 2026, 3:00 PM CDT','Native consent timestamps use the selected display timezone');
+if($originalDisplayTimezone===null)unset($_SESSION['display_timezone']);else $_SESSION['display_timezone']=$originalDisplayTimezone;
 $listNames=['News | Events','A "quoted" name','Rivéra, Avery','0',"Two\nlines"];
 stageExpect(audienceParseListCell(audienceListCell($listNames))===$listNames,'List cells preserve separators, quotes, Unicode, zero and newlines');
 stageExpect(audienceParseListCell('News | Events')===['News','Events'],'Legacy pipe-separated imports remain supported');
@@ -56,7 +61,7 @@ stageExpect($done['state']==='complete'&&(int)$done['added']===1&&(int)$done['up
 stageExpect($a->person($id)['email_status']==='unsubscribed','Import never resubscribes opted-out connection');
 stageReject(fn()=>$b->job($job));
 $export=$a->queueSelection('export','All connections',$a->where(audienceListFilters([])));$beforeExport=$a->person($id);$a->savePerson(array_replace($beforeExport,['first_name'=>'Changed after snapshot']),$id,(int)$beforeExport['version']);$a->processJob($export);stageExpect((int)$a->job($export)['updated']===2,'Export has matching selected connections');
-$exported=$a->one("SELECT result_json FROM marketing_job_items WHERE job_id=? AND contact_id=?",[$export,$id]);$record=audienceJson($exported['result_json']);stageExpect($record['First Name']==='Updated'&&$record['Status']==='unsubscribed'&&$record['Score (SCORE)']==='12'&&str_contains($record['Tags'],'Friends, local'),'Export includes status custom fields and tags');
+$exported=$a->one("SELECT result_json FROM marketing_job_items WHERE job_id=? AND contact_id=?",[$export,$id]);$savedRecord=audienceJson($exported['result_json']);$record=array_combine(audienceExportHeaders($a->job($export)['params'],$savedRecord['status']),$savedRecord['row']);stageExpect($record['First Name']==='Updated'&&$savedRecord['status']==='unsubscribed'&&$record['Score']==='12'&&str_contains($record['TAGS'],'Friends, local'),'Export freezes status, custom fields and tags in Mailchimp columns');
 $undone=$a->undoImport($job);stageExpect($undone['undone']===1&&$a->person($id)['first_name']==='Changed after snapshot','Undo archives new members but does not revert updated existing connections');
 $person=$a->person($id);$a->mutatePerson($id,(int)$person['version'],'delete');stageReject(fn()=>$a->person($id));stageReject(fn()=>$a->savePerson($base));
 stageExpect($a->one('SELECT COUNT(*) n FROM marketing_notes WHERE contact_id=?',[$id])['n']==0,'Deletion removes private notes');

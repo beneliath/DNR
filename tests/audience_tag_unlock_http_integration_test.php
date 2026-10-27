@@ -71,7 +71,7 @@ try{
     $templateInput=['action'=>'inbox_template_operation','operation'=>'delete','id'=>$template,'version'=>1];
     $sendTemplate=static function(callable $client,array $input)use($inboxPath):array{$page=$client($inboxPath);return $client($inboxPath,['csrf_token'=>audienceHttpCsrf($page)]+$input);};
     $unlock(null);$templatePage=$admin($inboxPath);
-    audienceHttpExpect(str_contains($templatePage['body'],'data-tooltip="Archive template"')&&str_contains($templatePage['body'],'data-tooltip="Edit template"')&&str_contains($templatePage['body'],'id="admin-unlock-dialog"'),'Active Inbox templates have shared icon actions and the Admin Unlock interface');
+    audienceHttpExpect(str_contains($templatePage['body'],'data-tooltip="Archive"')&&str_contains($templatePage['body'],'data-tooltip="Edit"')&&str_contains($templatePage['body'],'id="admin-unlock-dialog"'),'Active Inbox templates have shared icon actions and the Admin Unlock interface');
     $editorTemplates=$editor($inboxPath);audienceHttpExpect($editorTemplates['status']===200&&!str_contains($editorTemplates['body'],'data-inbox-template-delete-form'),'Editors can edit Inbox templates without seeing admin delete controls');
     audienceHttpExpect($sendTemplate($editor,$templateInput)['status']===403,'Direct Inbox template deletion denies editors');
     audienceHttpExpect($reviewer($inboxPath,$templateInput)['status']===403,'Direct Inbox template deletion denies reviewers');
@@ -84,8 +84,8 @@ try{
     audienceHttpExpect($archived['status']===302&&$archivedRow['deleted_at']!==null&&(int)$archivedRow['version']===2,'Editors can archive Inbox templates without Admin Unlock');
     audienceHttpExpect(!in_array($template,array_map('intval',array_column($store->inboxTemplates(),'id')),true)&&in_array($template,array_map('intval',array_column($store->inboxTemplates(true),'id')),true),'Archived templates are excluded from the reply picker and included in the archive');
     $archivedPath=$inboxPath.'&template_status=archived';$activePage=$admin($inboxPath);$archivePage=$admin($archivedPath);
-    audienceHttpExpect(!str_contains($activePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],'data-tooltip="Restore template"')&&str_contains($archivePage['body'],'data-inbox-template-delete-form'),'Archived view exposes restore and gated delete icons separately from active templates');
-    $editorArchive=$editor($archivedPath);audienceHttpExpect(str_contains($editorArchive['body'],'data-tooltip="Restore template"')&&!str_contains($editorArchive['body'],'data-inbox-template-delete-form'),'Editors can restore but cannot see permanent deletion controls');
+    audienceHttpExpect(!str_contains($activePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],$archivedRow['name'])&&str_contains($archivePage['body'],'data-tooltip="Restore"')&&str_contains($archivePage['body'],'data-inbox-template-delete-form'),'Archived view exposes restore and gated delete icons separately from active templates');
+    $editorArchive=$editor($archivedPath);audienceHttpExpect(str_contains($editorArchive['body'],'data-tooltip="Restore"')&&!str_contains($editorArchive['body'],'data-inbox-template-delete-form'),'Editors can restore but cannot see permanent deletion controls');
     $collision=$sendTemplate($editor,['action'=>'inbox_named_save','kind'=>'template','name'=>$archivedRow['name'],'subject'=>'Replacement','body_html'=>'<p>Do not overwrite the archive.</p>']);
     audienceHttpExpect(str_contains($collision['body'],'name is archived')&&$store->one('SELECT body_html FROM marketing_inbox_templates WHERE id=?',[$template])['body_html']===$archivedRow['body_html'],'Creating a template cannot silently overwrite an archived reply');
     $restoreInput=array_replace($archiveInput,['operation'=>'restore','version'=>2]);
@@ -99,6 +99,51 @@ try{
     $unlock(time());$invalid=$admin($inboxPath,['csrf_token'=>'invalid']+$templateInput);audienceHttpExpect($invalid['status']===400,'Unlocked Inbox template deletion enforces CSRF');
     $stale=$sendTemplate($admin,array_replace($templateInput,['version'=>99]));audienceHttpExpect(str_contains($stale['body'],'changed')&&(bool)$store->one('SELECT id FROM marketing_inbox_templates WHERE id=?',[$template]),'Unlocked Inbox template deletion rejects stale versions');
     $deleted=$sendTemplate($admin,$templateInput);audienceHttpExpect($deleted['status']===302&&!$store->one('SELECT id FROM marketing_inbox_templates WHERE id=?',[$template]),'An unlocked administrator can permanently delete an archived Inbox template');
-    $unlock(null);echo 'Tag, segment, and Inbox template deletion unlock and counts: '.$checks." checks passed.\n";
+    $sendProtected=static function(callable $client,string $path,array $input):array{$page=$client('audience.php');return $client($path,['csrf_token'=>audienceHttpCsrf($page)]+$input);};
+    $assertProtected=static function(string $path,array $input,callable $preserved)use($sendProtected,$admin,$editor,$reviewer,$unlock):void{
+        foreach([$editor,$reviewer]as$client)audienceHttpExpect($sendProtected($client,$path,$input)['status']===403,$input['action'].' rejects non-admin roles');
+        foreach([null,time()-301]as$at){$unlock($at);$response=$sendProtected($admin,$path,$input);audienceHttpExpect($response['status']===302&&str_contains($response['headers'],'admin_elevation.php?')&&$preserved(),$input['action'].' preserves data while locked or expired');}
+        $unlock(time());audienceHttpExpect($admin($path,['csrf_token'=>'invalid']+$input)['status']===400,$input['action'].' enforces CSRF after unlock');
+    };
+    $field=$store->saveField(['label'=>'Protected field '.$suffix,'merge_tag'=>'SAFE_'.strtoupper($suffix),'field_type'=>'text','is_public'=>'1'],0,0);
+    $fieldInput=['action'=>'delete_field','id'=>$field,'version'=>1];
+    $assertProtected('audience.php?view=fields',$fieldInput,fn()=>(bool)$store->one('SELECT id FROM marketing_fields WHERE id=?',[$field]));
+    $sendProtected($admin,'audience.php?view=fields',$fieldInput);audienceHttpExpect(!$store->one('SELECT id FROM marketing_fields WHERE id=?',[$field]),'Unlocked field deletion succeeds');
+    $group=$store->saveGroup(['name'=>'Protected group '.$suffix,'display_type'=>'checkboxes','options'=>[['name'=>'First'],['name'=>'Second']]],0,0);
+    $options=$store->all('SELECT id,name FROM marketing_group_options WHERE category_id=? ORDER BY id',[$group]);
+    $editGroup=['action'=>'save_group','id'=>$group,'version'=>1,'name'=>'Protected group '.$suffix,'display_type'=>'checkboxes','options'=>[$options[0]]];
+    $assertProtected('audience.php?view=groups',$editGroup,fn()=>(int)$store->one('SELECT COUNT(*) n FROM marketing_group_options WHERE category_id=?',[$group])['n']===2);
+    $sendProtected($admin,'audience.php?view=groups',$editGroup);audienceHttpExpect((int)$store->one('SELECT COUNT(*) n FROM marketing_group_options WHERE category_id=?',[$group])['n']===1,'Unlocked option removal succeeds');
+    $unlock(null);$editGroup['version']=2;$editGroup['name']='Renamed group '.$suffix;
+    audienceHttpExpect($sendProtected($editor,'audience.php?view=groups',$editGroup)['status']===302,'Editors can still rename a group without removing choices');
+    $groupInput=['action'=>'delete_group','id'=>$group,'version'=>3];
+    $assertProtected('audience.php?view=groups',$groupInput,fn()=>(bool)$store->one('SELECT id FROM marketing_group_categories WHERE id=?',[$group]));
+    $sendProtected($admin,'audience.php?view=groups',$groupInput);audienceHttpExpect(!$store->one('SELECT id FROM marketing_group_categories WHERE id=?',[$group]),'Unlocked group deletion succeeds');
+    $import=$store->createImport(audienceParseImport("Email\nundo-protected-".$suffix."@example.test"),'Protected import');
+    $store->configureImport($import,['mapping'=>['email'],'import_status'=>'non-subscribed'],true);$store->processJob($import);
+    $imported=$store->one('SELECT id FROM marketing_contacts WHERE email=?',['undo-protected-'.$suffix.'@example.test']);
+    $undoInput=['action'=>'undo_import','id'=>$import];
+    $assertProtected('audience.php?view=job&id='.$import,$undoInput,fn()=>(int)$store->person((int)$imported['id'])['is_archived']===0);
+    $sendProtected($admin,'audience.php?view=job&id='.$import,$undoInput);audienceHttpExpect((int)$store->person((int)$imported['id'])['is_archived']===1,'Unlocked import undo archives its new connection');
+    foreach(['single','selected','all']as$mode){
+        $export=$store->queueSelection('export','Protected export '.$mode,$store->where(audienceListFilters([])));while($store->job($export)['state']!=='complete')$store->processJob($export);
+        $exportInput=['action'=>'delete_export_history','export_ids'=>[$export],'delete_all'=>$mode==='all'?'1':'0'];
+        $assertProtected('audience.php?view=jobs&kind=export',$exportInput,fn()=>empty(audienceJson($store->one('SELECT params_json FROM marketing_jobs WHERE id=?',[$export])['params_json'])['history_deleted']));
+        $sendProtected($admin,'audience.php?view=jobs&kind=export',$exportInput);audienceHttpExpect($admin('audience.php?api=job&id='.$export)['status']===404,'Unlocked '.$mode.' export-history deletion succeeds');
+    }
+    $target=$store->savePerson(['email'=>'direct-unsubscribe-'.$suffix.'@example.test','email_status'=>'subscribed','consent_note'=>'Synthetic permission']);
+    $cleaned=$store->savePerson(['email'=>'cleaned-unsubscribe-'.$suffix.'@example.test','email_status'=>'non-subscribed']);$store->write("UPDATE marketing_contacts SET email_status='cleaned' WHERE id=?",[$cleaned]);
+    $countBefore=(int)$store->one('SELECT COUNT(*) n FROM marketing_contacts')['n'];
+    $unsub=$sendProtected($editor,'audience.php',['action'=>'unsubscribe_emails','emails'=>"direct-unsubscribe-".$suffix."@example.test\nDIRECT-UNSUBSCRIBE-".$suffix."@example.test\ncleaned-unsubscribe-".$suffix."@example.test\nunknown-".$suffix."@example.test"]);
+    audienceHttpExpect($unsub['status']===302&&preg_match('/id=(\d+)/',$unsub['headers'],$unsubMatch)===1,'Header-free unsubscribe queues directly without an import wizard');
+    $unsubJob=(int)$unsubMatch[1];while($store->job($unsubJob)['state']!=='complete')$store->processJob($unsubJob);
+    audienceHttpExpect($store->person($target)['email_status']==='unsubscribed'&&$store->person($cleaned)['email_status']==='cleaned','Direct unsubscribe preserves cleaned suppression');
+    audienceHttpExpect((int)$store->job($unsubJob)['total']===1&&(int)$store->one('SELECT COUNT(*) n FROM marketing_contacts')['n']===$countBefore,'Duplicates and unknown addresses do not create connections or repeated work');
+    $jobsBefore=(int)$store->one('SELECT COUNT(*) n FROM marketing_jobs')['n'];
+    $invalid=$sendProtected($editor,'audience.php',['action'=>'unsubscribe_emails','emails'=>"valid@example.test\nbad-address"]);
+    audienceHttpExpect(str_contains($invalid['body'],'line 2')&&(int)$store->one('SELECT COUNT(*) n FROM marketing_jobs')['n']===$jobsBefore,'Invalid unsubscribe input creates no job and preserves entered values');
+    require __DIR__.'/audience_connection_unlock_http.php';
+    require __DIR__.'/audience_collection_publish_http.php';
+    $unlock(null);echo 'Audience protected actions, unsubscribe, and counts: '.$checks." checks passed.\n";
 }finally{foreach($cookies as$cookie)if(is_file($cookie))unlink($cookie);}
 ob_end_flush();

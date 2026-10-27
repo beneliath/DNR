@@ -252,7 +252,12 @@ function applicationVersion(?array $candidate_paths = null): string
         if (!is_file($candidate_path)) {
             continue;
         }
-        $version = trim((string) file_get_contents($candidate_path));
+        // A replaced development bind mount can pass stat while reads fail.
+        $contents = @file_get_contents($candidate_path);
+        if ($contents === false) {
+            continue;
+        }
+        $version = trim($contents);
         if (preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\z/', $version) === 1) {
             return $version;
         }

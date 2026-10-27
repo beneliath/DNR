@@ -8,16 +8,19 @@ import tempfile
 
 
 def retained_names(history, now):
-    keep=set(); daily={}
+    keep=set(); daily={}; groups={}
     for entry in sorted(history,key=lambda item:item['snapshot_started_at'],reverse=True):
+        account=entry.get('account_key', 'primary')
+        groups.setdefault(account, []).append(entry)
         stamp=datetime.datetime.fromisoformat(entry['snapshot_started_at'])
         age=(now-stamp).total_seconds()
         if age<=7*86400:
             keep.add(entry['remote_directory'])
-        elif age<=30*86400 and stamp.date() not in daily:
-            daily[stamp.date()]=True; keep.add(entry['remote_directory'])
-    # Always retain at least two most recent copies, even after a prolonged outage.
-    keep.update(entry['remote_directory'] for entry in sorted(history,key=lambda item:item['snapshot_started_at'])[-2:])
+        elif age<=30*86400 and (account,stamp.date()) not in daily:
+            daily[account,stamp.date()]=True; keep.add(entry['remote_directory'])
+    # The two-copy floor belongs to each account, including an inactive account.
+    for entries in groups.values():
+        keep.update(entry['remote_directory'] for entry in entries[:2])
     return keep
 
 
@@ -47,9 +50,13 @@ def prune_recorded_replicas(history, smb, snapshots, save_history, now=None):
                 smb.run(f'del {remote}/{name}',missing_ok=True)
             smb.run(f'del {remote}/replica.json',missing_ok=True)
             smb.run(f'rmdir {remote}',missing_ok=True)
-    # Local retention is independent of NAS retention: keep four verified snapshots.
-    verified=sorted({e['source_backup_id'] for e in history})
-    for name in verified[:-4]:
+    # Keep four local snapshots per account, independently of NAS retention.
+    groups={}
+    for entry in history:
+        groups.setdefault(entry.get('account_key','primary'),set()).add(entry['source_backup_id'])
+    keep_local={name for names in groups.values() for name in sorted(names)[-4:]}
+    verified={e['source_backup_id'] for e in history}
+    for name in verified-keep_local:
         if not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}',name):
             raise ValueError('Unsafe local snapshot name')
         path=snapshots/name

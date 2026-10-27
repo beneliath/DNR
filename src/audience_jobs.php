@@ -1,9 +1,33 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/audience_import.php';
+require_once __DIR__ . '/audience_export.php';
 
 trait AudienceJobs
 {
+    /** Called inside contact deletion's transaction; never match another identity by substring. */
+    private function redactPersonJobs(int $personId,string $email):void
+    {
+        $clear="payload_json=JSON_OBJECT(),result_json=NULL,error_message='Connection data removed',state='skipped'";
+        $this->write("UPDATE marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id SET i.payload_json=JSON_OBJECT(),i.result_json=NULL,i.error_message='Connection data removed',i.state='skipped' WHERE j.audience_id=? AND i.contact_id=?",[$this->audienceId,$personId]);
+        // Unprocessed imports have no contact ID yet. JSON_SEARCH only narrows the
+        // candidates; the decoded, mapped email must match exactly before erasure.
+        $pattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$email).'%';$cursor=0;
+        do{
+            $items=$this->all("SELECT i.id,i.payload_json,j.params_json FROM marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id
+                WHERE j.audience_id=? AND j.job_type='import' AND i.contact_id IS NULL AND i.id>?
+                AND JSON_SEARCH(LOWER(i.payload_json),'one',?,'!','$[*]') IS NOT NULL ORDER BY i.id LIMIT 100 FOR UPDATE",[$this->audienceId,$cursor,$pattern]);
+            $ids=[];
+            foreach($items as$item){
+                $cursor=(int)$item['id'];$raw=audienceJson($item['payload_json']);$params=audienceJson($item['params_json']);
+                $column=array_search('email',$params['mapping']??[],true);
+                $cells=$column===false?$raw:[$raw[$column]??''];
+                foreach($cells as$value)if(is_string($value)&&strtolower(trim($value))===$email){$ids[]=$cursor;break;}
+            }
+            if($ids)$this->write("UPDATE marketing_job_items SET $clear WHERE id IN (".implode(',',array_fill(0,count($ids),'?')).')',$ids);
+        }while(count($items)===100);
+    }
+
     public function deleteExportHistory(array $ids,bool $all=false):int
     {
         return $this->transaction(function()use($ids,$all){
@@ -52,6 +76,15 @@ trait AudienceJobs
             $this->write('UPDATE marketing_jobs SET params_json=?,state=? WHERE id=?',[json_encode($params,JSON_THROW_ON_ERROR),$start?'queued':'draft',$id]);
         });
     }
+    public function queueEmailUnsubscribe(string $input):int
+    {
+        $emails=audienceUnsubscribeAddresses($input);
+        $placeholders=implode(',',array_fill(0,count($emails),'?'));
+        return $this->queueSelection('bulk','Unsubscribe emails',[
+            "c.audience_id=? AND c.deleted_at IS NULL AND c.email_status NOT IN ('unsubscribed','cleaned') AND c.email IN ($placeholders)",
+            [$this->audienceId,...$emails],
+        ],['action'=>'unsubscribe']);
+    }
     public function queueSelection(string $type,string $name,array $where,array $params=[]):int
     {
         if(!in_array($type,['export','bulk'],true))throw new InvalidArgumentException('Invalid operation.');
@@ -63,12 +96,29 @@ trait AudienceJobs
                 if(in_array($action,['group','ungroup'],true)&&!$this->one('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?',[(int)($params['option_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available group.');
             }
             $params['fields']=$this->fields();$params['tag_names']=array_column($this->tags(),'name','id');$params['group_names']=$this->catalog()['groups']['options'];
+            if($type==='export'){
+                $params['export_format']='mailchimp';$params['export_token']=bin2hex(random_bytes(5));
+                $groups=$this->groups();usort($groups,static fn($a,$b)=>(int)$a['id']<=>(int)$b['id']);
+                $params['export_groups']=array_map(static fn($g)=>['name'=>$g['name'],'options'=>array_map(static fn($o)=>['id'=>(int)$o['id'],'name'=>$o['name']],$g['options'])],$groups);
+            }
             $this->write('INSERT INTO marketing_jobs (audience_id,job_type,name,state,actor_user_id,actor_label,params_json) VALUES (?,?,?,\'queued\',?,?,?)',[$this->audienceId,$type,$name,$this->actorId,$this->actorLabel,json_encode($params,JSON_THROW_ON_ERROR)]);$id=(int)$this->db->insert_id;
             [$sql,$values]=$where;
             // Freeze export values as well as membership, so later edits do not change a download.
             // Bulk writes retain versions and reject stale records instead of overwriting them.
             $snapshot="JSON_OBJECT('version',c.version)";
-            if($type==='export')$snapshot="JSON_OBJECT('version',c.version,'person',JSON_OBJECT('id',c.id,'version',c.version,'email',c.email,'first_name',c.first_name,'last_name',c.last_name,'email_status',c.email_status,'source',c.source,'is_archived',c.is_archived,'language',c.language,'timezone',c.timezone,'created_at',c.created_at,'updated_at',c.updated_at,'custom',c.custom_json,'tag_ids',COALESCE((SELECT JSON_ARRAYAGG(ct.tag_id) FROM marketing_contact_tags ct WHERE ct.contact_id=c.id),JSON_ARRAY()),'group_ids',COALESCE((SELECT JSON_ARRAYAGG(cg.option_id) FROM marketing_contact_groups cg WHERE cg.contact_id=c.id),JSON_ARRAY())))";
+            $permissionTypes=implode("','",AUDIENCE_PERMISSION_EVENT_TYPES);
+            if($type==='export')$snapshot="JSON_OBJECT('version',c.version,'person',JSON_OBJECT(
+                'id',c.id,'version',c.version,'email',c.email,'first_name',c.first_name,'last_name',c.last_name,
+                'email_status',c.email_status,'source',c.source,'is_archived',c.is_archived,'language',c.language,
+                'timezone',c.timezone,'created_at',c.created_at,'updated_at',c.updated_at,'custom',c.custom_json,'notes',c.notes,
+                'tag_ids',COALESCE((SELECT JSON_ARRAYAGG(ct.tag_id) FROM marketing_contact_tags ct WHERE ct.contact_id=c.id),JSON_ARRAY()),
+                'group_ids',COALESCE((SELECT JSON_ARRAYAGG(cg.option_id) FROM marketing_contact_groups cg WHERE cg.contact_id=c.id),JSON_ARRAY()),
+                'export_source_event',(SELECT JSON_OBJECT('id',e.id,'created_at',e.created_at,'metadata',JSON_EXTRACT(e.details_json,'$.source_metadata'))
+                    FROM marketing_contact_events e WHERE e.contact_id=c.id AND e.event_type IN ('imported','contact_imported')
+                    AND JSON_TYPE(JSON_EXTRACT(e.details_json,'$.source_metadata'))='OBJECT' ORDER BY e.id DESC LIMIT 1),
+                'export_permission_event',(SELECT JSON_OBJECT('id',e.id,'event_type',e.event_type,'created_at',e.created_at,'details',e.details_json)
+                    FROM marketing_contact_events e WHERE e.contact_id=c.id AND e.event_type IN ('$permissionTypes') ORDER BY e.id DESC LIMIT 1),
+                'export_notes',COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id',n.id,'body',n.body)) FROM marketing_notes n WHERE n.contact_id=c.id),JSON_ARRAY())))";
             $this->write("INSERT INTO marketing_job_items (job_id,source_row,contact_id,payload_json) SELECT ?,c.id,c.id,$snapshot FROM marketing_contacts c WHERE $sql",[$id,...$values]);
             $this->write('UPDATE marketing_jobs SET total=(SELECT COUNT(*) FROM marketing_job_items WHERE job_id=?) WHERE id=?',[$id,$id]);return $id;
         });
@@ -82,7 +132,7 @@ trait AudienceJobs
             foreach($items as$item){$state='updated';$error='';$result=null;$personId=$item['contact_id'];$version=null;
                 try{$out=$this->transaction(function()use($job,$item){$raw=audienceJson($item['payload_json']);
                     if($job['job_type']==='import')return $this->importItem($job,$item,$raw);
-                    if($job['job_type']==='export')return ['state'=>'exported','person_id'=>$item['contact_id'],'version'=>$raw['version'],'result'=>$this->exportPerson($raw['person'],$job['params'])];
+                    if($job['job_type']==='export')return ['state'=>'exported','person_id'=>$item['contact_id'],'version'=>$raw['version'],'result'=>($job['params']['export_format']??'')==='mailchimp'?audienceExportRecord($raw['person'],$job['params']):$this->exportPerson($raw['person'],$job['params'])];
                     $person=$this->person((int)$item['contact_id'],true);if((int)$person['version']!==(int)$raw['version'])throw new InvalidArgumentException('Connection changed since selection. Select again to use the latest record.');
                     $this->mutatePerson((int)$person['id'],(int)$person['version'],$job['params']['action'],$job['params']);return ['state'=>'updated','person_id'=>$person['id'],'version'=>(int)$person['version']+1];
                 });$state=$out['state'];$personId=$out['person_id']??$personId;$version=$out['version']??null;$result=$out['result']??null;

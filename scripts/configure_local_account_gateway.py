@@ -44,7 +44,7 @@ def configure(primary_port):
         # Only shared entry points live at the root. No Account is the default.
         r'RedirectMatch 303 "^/(?!a/|assets/|login\.php$|recover_password\.php$|platform_api\.php$|deployment_status\.php$).*" "/login.php"',
         f'RedirectMatch 302 "^/a/{primary_key}$" "{primary_prefix}"',
-        f'ProxyPass "{primary_prefix}database_maintenance.php" "http://dnr-web-1:80/database_maintenance.php" connectiontimeout=5 timeout=300 retry=0 disablereuse=On',
+        f'ProxyPass "{primary_prefix}database_maintenance.php" "http://dnr-web-1:80/database_maintenance.php" connectiontimeout=5 timeout=930 retry=0 disablereuse=On',
         rf'ProxyPassMatch "^{primary_prefix}(surls/[a-f0-9]{{16}}/(?:speaker-notes\.pdf|ppt-slidedeck)|presentation_asset\.php)$" "http://dnr-downloads-1:80/$1" connectiontimeout=3 timeout=120 retry=0 disablereuse=On',
         f'ProxyPass "{primary_prefix}" "http://dnr-web-1:80/" connectiontimeout=5 timeout=120 retry=0 disablereuse=On',
         f'ProxyPassReverse "{primary_prefix}" "http://dnr-web-1:80/"',
@@ -66,7 +66,7 @@ def configure(primary_port):
         target = 'http://moed-member-' + key + '/'
         prefix = '/a/' + key + '/'
         routes += [f'RedirectMatch 302 "^/a/{key}$" "{prefix}"',
-                   f'ProxyPass "{prefix}database_maintenance.php" "{target}database_maintenance.php" connectiontimeout=5 timeout=300 retry=0 disablereuse=On',
+                   f'ProxyPass "{prefix}database_maintenance.php" "{target}database_maintenance.php" connectiontimeout=5 timeout=930 retry=0 disablereuse=On',
                    f'ProxyPass "{prefix}" "{target}" connectiontimeout=5 timeout=120 retry=0 disablereuse=On',
                    f'ProxyPassReverse "{prefix}" "{target}"']
     # Reserve existing usernames globally before enabling the shared sign-in.

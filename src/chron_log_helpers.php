@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/text_rendering_helpers.php';
+require_once __DIR__ . '/user_time_helpers.php';
 
 function chronLogDisplayTimezone() {
-    return applicationTimezone();
+    return userDisplayTimezone();
 }
 
 function chronLogTimestampDetails($timestamp) {

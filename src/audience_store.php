@@ -62,6 +62,13 @@ final class AudienceStore
     {
         $this->write('INSERT INTO marketing_contact_events (contact_id,actor_user_id,actor_label,event_type,details_json) VALUES (?,?,?,?,?)', [$id,$this->actorId,$this->actorLabel,$type,json_encode($details,JSON_THROW_ON_ERROR)]);
     }
+    public function permissionEvent(int $personId):?array
+    {
+        $types=implode("','",AUDIENCE_PERMISSION_EVENT_TYPES);
+        return $this->one("SELECT e.id,e.event_type,e.details_json,e.created_at FROM marketing_contact_events e
+            JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND c.id=? AND c.deleted_at IS NULL
+            AND e.event_type IN ('$types') ORDER BY e.id DESC LIMIT 1",[$this->audienceId,$personId]);
+    }
     public function person(int $id, bool $lock = false): array
     {
         $person = $this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL' . ($lock ? ' FOR UPDATE' : ''), [$this->audienceId,$id]);
@@ -79,8 +86,32 @@ final class AudienceStore
     public function groups(): array
     {
         $groups = $this->all('SELECT * FROM marketing_group_categories WHERE audience_id=? ORDER BY name,id',[$this->audienceId]);
-        foreach ($groups as &$group) $group['options'] = $this->all('SELECT o.*,COUNT(c.id) AS contact_count FROM marketing_group_options o LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=? AND c.deleted_at IS NULL AND c.is_archived=0 WHERE o.category_id=? GROUP BY o.id ORDER BY o.position,o.id',[$this->audienceId,$group['id']]);
+        $options = [];
+        if ($groups) {
+            foreach ($this->all('SELECT o.*,COUNT(c.id) AS contact_count FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=g.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE g.audience_id=? GROUP BY o.id ORDER BY o.position,o.id',[$this->audienceId]) as $option) {
+                $options[$option['category_id']][] = $option;
+            }
+        }
+        foreach ($groups as &$group) $group['options'] = $options[$group['id']] ?? [];
+        unset($group);
         return $groups;
+    }
+    /** Load membership labels for one contact page without per-contact queries. */
+    public function contactListRelations(array $ids): array
+    {
+        $ids = audienceIds($ids);
+        $tags = $groups = array_fill_keys($ids, []);
+        if (!$ids) return compact('tags', 'groups');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        foreach ($this->all('SELECT ct.contact_id,t.id,t.name FROM marketing_contact_tags ct JOIN marketing_tags t ON t.id=ct.tag_id JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id WHERE t.audience_id=? AND ct.contact_id IN ('.$placeholders.') ORDER BY t.name,t.id',[$this->audienceId,...$ids]) as $row) {
+            $id = $row['contact_id']; unset($row['contact_id']);
+            $tags[$id][] = $row;
+        }
+        foreach ($this->all('SELECT cg.contact_id,o.name,g.id category_id,g.name category FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id JOIN marketing_group_categories g ON g.id=o.category_id JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=g.audience_id WHERE g.audience_id=? AND cg.contact_id IN ('.$placeholders.') ORDER BY g.name,o.position,o.id',[$this->audienceId,...$ids]) as $row) {
+            $id = $row['contact_id']; unset($row['contact_id']);
+            $groups[$id][] = $row;
+        }
+        return compact('tags', 'groups');
     }
     public function catalog(): array
     {
@@ -336,7 +367,7 @@ final class AudienceStore
                 $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_notes WHERE contact_id=?',[$id]);
                 $this->write("UPDATE marketing_contact_events SET details_json=JSON_OBJECT('redacted',true) WHERE contact_id=?",[$id]);
                 if($this->collectionAvailable()&&$this->one('SELECT id FROM marketing_collection_responses WHERE audience_id=? AND contact_id=? LIMIT 1',[$this->audienceId,$id]))$this->write('UPDATE marketing_collection_responses SET contact_id=NULL,payload_ciphertext=? WHERE audience_id=? AND contact_id=?',[\Dnr\Security\ApplicationKey::seal('{"redacted":true}'),$this->audienceId,$id]);
-                $this->write("UPDATE marketing_job_items i JOIN marketing_jobs j ON j.id=i.job_id SET i.payload_json=JSON_OBJECT(),i.result_json=NULL,i.error_message='Connection data removed',i.state='skipped' WHERE j.audience_id=? AND (i.contact_id=? OR LOCATE(?,LOWER(i.payload_json))>0 OR LOCATE(?,LOWER(COALESCE(i.result_json,'')))>0)",[$this->audienceId,$id,$person['email'],$person['email']]);
+                $this->redactPersonJobs($id,$person['email']);
                 $this->write("UPDATE marketing_contacts SET email=?,first_name='',last_name='',source='',notes='',custom_json=JSON_OBJECT(),language='',timezone='',email_status='unsubscribed',is_archived=1,deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE id=?",['deleted-'.$id.'@invalid.example',$id]);$this->event($id,'person_deleted');return;
             }
             if(in_array($action,['archive','restore','unsubscribe'],true)){

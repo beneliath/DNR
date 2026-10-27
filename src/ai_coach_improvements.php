@@ -98,7 +98,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 </tbody></table></div><?php endif; ?>
 </section>
 <?php if ($reviews): ?><section class="coach-review-card"><h2>Recent Development Reviews</h2><ul>
-<?php foreach ($reviews as $review): ?><li><strong><?php echo $escape(ucfirst($review['disposition'])); ?></strong>: <?php echo $escape($review['summary']); ?><span class="coach-request-secondary"><?php echo $escape(applicationTimestampLabel($review['reviewed_at'],'M j, Y g:i A')); ?><?php if ($review['request_id']): ?> · <a href="ai_coach_requests.php?id=<?php echo (int)$review['request_id']; ?>">Original Request</a><?php endif; ?></span></li><?php endforeach; ?>
+<?php foreach ($reviews as $review): ?><li><strong><?php echo $escape(ucfirst($review['disposition'])); ?></strong>: <?php echo $escape($review['summary']); ?><span class="coach-request-secondary"><?php echo $escape(formatUserTimestamp($review['reviewed_at'],'M j, Y g:i A')); ?><?php if ($review['request_id']): ?> · <a href="ai_coach_requests.php?id=<?php echo (int)$review['request_id']; ?>">Original Request</a><?php endif; ?></span></li><?php endforeach; ?>
 </ul></section><?php endif; ?>
 <h2>Verified Guidance Cases</h2>
 <p><a class="button-primary" href="ai_coach_improvements.php?new=1">New Improvement</a> <a class="button-secondary" href="ai_coach_improvements.php?export=1">Export Approved Test Cases</a></p>

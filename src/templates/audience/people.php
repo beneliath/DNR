@@ -4,6 +4,9 @@ $statusHelp=['subscribed'=>'Opted in to receive audience email','unsubscribed'=>
 $sourceOptions=[];$sourceLabels=audienceSignupSourceLabels();foreach($sources as$source)$sourceOptions['type:'.$source['source_type']]=$sourceLabels[$source['source_type']];asort($sourceOptions);
 foreach($filters['source']as$value)if(!str_starts_with($value,'type:'))$sourceOptions[$value]=$value;
 $activeRules=audienceActiveRules($filters,$rules);$hasFilters=$activeRules['rules']!==[]||$segment;
+$countStatuses=array_values(array_unique($filters['status']));sort($countStatuses,SORT_STRING);
+$countSelections=$filters['archived']==='1'?((int)$total===(int)($counts['archived']??0)?['archived']:[]):match($countStatuses){['non-subscribed','subscribed','unsubscribed']=>['total'],['subscribed']=>['subscribed'],['cleaned']=>['cleaned'],default=>[]};
+if($filters['archived']==='0'&&!$hasFilters)$countSelections=['total','cleaned'];
 $chips=[];
 if($filters['q']!=='')$chips[]=['key'=>'q','value'=>$filters['q'],'label'=>'Search: '.$filters['q']];
 foreach($filters['status']as$value)$chips[]=['key'=>'status','value'=>$value,'label'=>ucfirst($value)];
@@ -11,6 +14,7 @@ $tagNames=array_column($tags,'name','id');foreach($filters['tags']as$value)$chip
 foreach($filters['source']as$value)$chips[]=['key'=>'source','value'=>$value,'label'=>'Source: '.($sourceOptions[$value]??$value)];
 if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];elseif($rules['rules'])$chips[]=['key'=>'rules','value'=>'','label'=>'Advanced filters'];
 ?>
+<div class="audience-people-toolbar">
 <form class="audience-filters audience-filter-popovers" method="get"><?php audienceInputs($baseForm+['archived'=>$filters['archived'],'rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize,'segment'=>$segment['id']??0]); ?>
     <label class="audience-people-search"><span class="sr-only">Search connections</span><?php audienceNavIcon('search'); ?><input id="contact-search" list="connection-search-options" type="search" autocomplete="off" name="q" placeholder="Search connections" value="<?= $h($filters['q']) ?>"></label>
     <button type="button" class="audience-filter-trigger" popovertarget="filter-segments" aria-haspopup="dialog" title="Filter by Segments"><?= $segment?$h($segment['name']):'Segments' ?><?php audienceNavIcon('chevron'); ?></button>
@@ -30,6 +34,8 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
     <?php if($canManage): ?><button type="button" class="audience-advanced-filters" data-segment-current><?php audienceNavIcon('filters'); ?>Advanced filters</button><?php endif; ?>
     <button type="submit" class="filter-search-submit sr-only" aria-label="Search connections">Search</button>
 </form>
+<nav class="audience-lifecycle-tabs" aria-label="Connection status" data-audience-lifecycle><?php foreach(['0'=>'Active','1'=>'Archived']as$value=>$label): ?><a href="<?= $h($url(array_replace($query,['view'=>'contacts','archived'=>$value,'page'=>1]))) ?>"<?= $filters['archived']===(string)$value?' aria-current="page"':'' ?>><?= $label ?></a><?php endforeach; ?></nav>
+</div>
 <p class="audience-notice error" data-filter-error role="alert" hidden></p>
 <div data-audience-filter-summary>
 <?php if($hasFilters): ?>
@@ -41,9 +47,13 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
     ?><a class="audience-filter-chip" href="<?= $h($url($without)) ?>" aria-label="Remove <?= $h($chip['label']) ?>"><?= $h($chip['label']) ?><span aria-hidden="true">×</span></a><?php endforeach; ?><a class="text-link" href="<?= $h($url(['archived'=>$filters['archived'],'per_page'=>$pageSize,'sort'=>$sort,'direction'=>$direction])) ?>">Clear filters</a></div>
     <?php if($canManage): ?><div class="audience-filter-actions"><button type="button" data-segment-current><?= $segment?'Edit segment':'Edit filters' ?></button><button type="button" data-open-dialog="filter-campaign">Send campaign</button><button type="button" data-open-dialog="save-current-segment">Save as segment</button></div><?php endif; ?>
 </div>
-<?php else: ?>
-<div class="audience-counts"><p><a href="<?= $h($url(['status'=>['subscribed','unsubscribed','non-subscribed']])) ?>" title="Active connections excluding pending and cleaned addresses"><strong><?= number_format((int)$counts['total']) ?></strong></a> total connections. <a href="<?= $h($url(['status'=>['subscribed']])) ?>"><strong><?= number_format((int)$counts['subscribed']) ?></strong></a> email subscribers.<?php if(!empty($counts['cleaned'])): ?> <a class="audience-cleaned-count" href="<?= $h($url(['status'=>['cleaned']])) ?>"><?= number_format((int)$counts['cleaned']) ?> cleaned</a><?php endif; ?></p></div>
 <?php endif; ?>
+<div class="audience-counts"><p>
+<a class="audience-count-pill<?= in_array('total',$countSelections,true)?' is-selected':'' ?>" data-audience-count="total" href="<?= $h($url(['archived'=>'0','status'=>['subscribed','unsubscribed','non-subscribed']])) ?>" title="Active connections excluding pending and cleaned addresses"<?= count($countSelections)===1&&in_array('total',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['total']) ?></strong> Total Connections</a>
+<a class="audience-count-pill<?= in_array('subscribed',$countSelections,true)?' is-selected':'' ?>" data-audience-count="subscribed" href="<?= $h($url(['archived'=>'0','status'=>['subscribed']])) ?>"<?= count($countSelections)===1&&in_array('subscribed',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['subscribed']) ?></strong> Email Subscribers</a>
+<a class="audience-count-pill<?= in_array('archived',$countSelections,true)?' is-selected':'' ?>" data-audience-count="archived" href="<?= $h($url(['archived'=>'1'])) ?>"<?= count($countSelections)===1&&in_array('archived',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['archived']??0)) ?></strong> Archived</a>
+<a class="audience-count-pill<?= in_array('cleaned',$countSelections,true)?' is-selected':'' ?>" data-audience-count="cleaned" href="<?= $h($url(['archived'=>'0','status'=>['cleaned']])) ?>"<?= count($countSelections)===1&&in_array('cleaned',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['cleaned']) ?></strong> Cleaned</a>
+</p></div>
 </div>
 <section class="audience-table-card" aria-label="Connections" data-audience-results>
     <div class="audience-table-tools"><span><?= number_format($total) ?> matching <?= $filters['archived']==='1'?'archived ':'' ?>connections</span><div><button type="button" class="text-button audience-columns-trigger" popovertarget="columns" aria-haspopup="dialog">Columns <?php audienceNavIcon('chevron'); ?></button>
@@ -62,7 +72,7 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
             <?php elseif(str_starts_with($key,'group:')): foreach($rowGroups[$row['id']]as$group): if((string)$group['category_id']!==substr($key,6))continue; ?><span class="audience-tag" title="<?= $h($group['category']) ?>"><?= $h($group['name']) ?></span><?php endforeach; ?>
             <?php elseif($key==='email_status'): ?><span class="audience-status <?= $h($row[$key]) ?>"><?= $h(ucfirst($row[$key])) ?></span>
             <?php elseif(str_starts_with($key,'custom:')): $v=$custom[substr($key,7)]??''; ?><?= $h(is_array($v)?implode(', ',$v):$v) ?>
-            <?php else: ?><?= $h(in_array($key,['created_at','updated_at'],true)?substr($row[$key],0,16):$row[$key]) ?><?php endif; ?>
+            <?php else: ?><?= $h(in_array($key,['created_at','updated_at'],true)?formatUserTimestamp($row[$key],'Y-m-d H:i'):$row[$key]) ?><?php endif; ?>
         </td><?php endforeach; ?>
     </tr><?php endforeach; ?>
     <?php if(!$rows): ?><tr><td colspan="<?= count($columns)+($canManage?1:0) ?>" class="audience-empty"><h2><?= (int)($counts['records']??$counts['total'])===0?'Build your audience':'No connections found' ?></h2><p><?= (int)($counts['records']??$counts['total'])===0?'Import your connections or add a connection to get started.':'Try another search or change your filters.' ?></p><?php if($canManage): ?><a class="button primary" href="<?= $h($url(['view'=>'import'])) ?>">Import connections</a><?php endif; ?></td></tr><?php endif; ?>

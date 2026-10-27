@@ -44,7 +44,7 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The October 23, 2026 edition applies to application version **2.7.0** and
+The October 27, 2026 edition applies to application version **2.8.3** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
 

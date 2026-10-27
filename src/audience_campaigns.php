@@ -45,6 +45,7 @@ trait AudienceCampaigns
         return $this->transaction(function()use($name,$type,$target,$filteredRules){
             $settings=audienceJson($this->one('SELECT settings_json FROM marketing_audiences WHERE id=?',[$this->audienceId])['settings_json']);
             $draft=array_intersect_key($settings,array_flip(['from_name','from_email']));if(!empty($settings['default_subject']))$draft['subject']=$settings['default_subject'];
+            $draft['tracking']=audienceCampaignDefaultTracking();
             if($type==='ab')$draft['experiment']=['kind'=>$type,'variables'=>[]];if($target!==''){$draft+=['target'=>$target,'exclude_tag'=>0,'recipients_saved'=>true];$this->campaignTarget($draft);}
             if($filteredRules!==null){$draft['recipient_rules']=$filteredRules;$draft['recipients_saved']=true;$this->campaignTarget($draft);}
             $this->write('INSERT INTO marketing_campaigns(audience_id,name,campaign_type,draft_json,actor_label) VALUES (?,?,?,?,?)',[$this->audienceId,$name,$type==='ab'?'regular':$type,json_encode((object)$draft,JSON_THROW_ON_ERROR),$this->actorLabel]);
@@ -95,7 +96,7 @@ trait AudienceCampaigns
             }
             foreach($rows as$row){$id=(int)$row['id'];
                 if($operation==='rename'){$name=audienceText($input,'name',100);if($name==='')throw new InvalidArgumentException('Enter a campaign name.');$this->write('UPDATE marketing_campaigns SET name=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$name,$this->actorLabel,$id,$this->audienceId]);}
-                elseif($operation==='replicate'){$copy=$row['draft'];unset($copy['delivery'],$copy['winner'],$copy['public_key'],$copy['experiment'],$copy['design_variants']);$this->write("INSERT INTO marketing_campaigns(audience_id,name,campaign_type,folder_id,draft_json,actor_label) VALUES (?,?,?,?,?,?)",[$this->audienceId,mb_substr($row['name'],0,89).' (copy 01)',$row['campaign_type'],$row['folder_id'],json_encode((object)$copy,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;}
+                elseif($operation==='replicate'){$copy=$row['draft'];$copy['tracking']??=audienceCampaignDefaultTracking();unset($copy['delivery'],$copy['winner'],$copy['public_key'],$copy['experiment'],$copy['design_variants']);$this->write("INSERT INTO marketing_campaigns(audience_id,name,campaign_type,folder_id,draft_json,actor_label) VALUES (?,?,?,?,?,?)",[$this->audienceId,mb_substr($row['name'],0,89).' (copy 01)',$row['campaign_type'],$row['folder_id'],json_encode((object)$copy,JSON_THROW_ON_ERROR),$this->actorLabel]);return (int)$this->db->insert_id;}
                 elseif($operation==='move')$this->write('UPDATE marketing_campaigns SET folder_id=?,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$folder?:null,$this->actorLabel,$id,$this->audienceId]);
                 elseif($operation==='archive')$this->write('UPDATE marketing_campaigns SET deleted_at=UTC_TIMESTAMP(6),actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);
                 elseif($operation==='restore')$this->write('UPDATE marketing_campaigns SET deleted_at=NULL,actor_label=?,version=version+1 WHERE id=? AND audience_id=?',[$this->actorLabel,$id,$this->audienceId]);
@@ -128,7 +129,7 @@ function audienceCampaignFilters(array $input): array
     if(!preg_match('/^(?:|unfiled|[1-9][0-9]*)$/D',$filters['folder']))$filters['folder']='';
     foreach(['start','end']as$key)if($filters[$key]!==''&&(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$filters[$key])||date('Y-m-d',strtotime($filters[$key])?:0)!==$filters[$key]))throw new InvalidArgumentException('Enter a valid date range.');
     if(in_array($filters['date_preset'],['','custom'],true)&&$filters['start']!==''&&$filters['end']!==''&&$filters['start']>$filters['end'])throw new InvalidArgumentException('Start date must come before end date.');
-    if(!preg_match('/^(20[0-9]{2})-(0[1-9]|1[0-2])$/D',$filters['month']))$filters['month']=gmdate('Y-m');
+    if(!preg_match('/^(20[0-9]{2})-(0[1-9]|1[0-2])$/D',$filters['month']))$filters['month']=userDisplayInstant(time())->format('Y-m');
     return $filters;
 }
 function audienceCampaignWhere(int $audienceId,array $filters): array

@@ -3,7 +3,7 @@ $campaignArchived=($campaignFilters['trash']??'0')==='1';
 $dateSortLabels=['updated_at'=>'Date edited','created_at'=>'Date created','sent_at'=>'Send date','name'=>'Date edited'];
 $dateSort=$campaignFilters['sort']!=='name';
 $dateField=$dateSort?$campaignFilters['sort']:'updated_at';
-$dateStamp=static fn($value)=>$value?new DateTimeImmutable($value,new DateTimeZone('UTC')):null;
+$dateStamp=static fn($value)=>userDisplayInstant($value);
 ?>
 <form method="post" id="campaign-selection" data-campaign-selection>
 <?php $campaignForm('campaign_operation',['operation'=>'move','selection_scope'=>'page','selection_filters'=>json_encode($campaignFilters),'selection_snapshot'=>json_encode((object)$campaignSnapshot)]); ?>
@@ -31,10 +31,10 @@ $dateStamp=static fn($value)=>$value?new DateTimeImmutable($value,new DateTimeZo
     <td data-campaign-column="folder"><?php if($row['folder_name']): ?><a href="<?= $h($campaignUrl(['folder'=>$row['folder_id'],'page'=>1])) ?>"><?= $h($row['folder_name']) ?></a><?php else: ?>—<?php endif; ?></td>
     <td data-campaign-column="editor"><span class="campaign-editor" title="<?= $h($row['actor_label']) ?>"><?= $h($row['actor_label']?:'—') ?></span></td>
     <td data-campaign-column="actions"><div class="campaign-row-actions<?= $canManage?' campaign-row-actions-manage':'' ?>">
-        <a class="action-icon-button" data-campaign-action="<?= $rowAction==='View report'?'report':'edit' ?>" href="<?= $h($url(['view'=>$rowAction==='View report'?'campaign-delivery':'campaign','id'=>$row['id']])) ?>" aria-label="<?= $h($rowAction.' '.$row['name']) ?>" data-tooltip="<?= $h($rowAction) ?>"><?= actionIconSvg($rowAction==='Edit'?'edit':($rowAction==='View report'?'results':'view')) ?></a>
-        <?php if($canManage): ?><?php $rowOperations=$campaignArchived?['restore'=>['Restore','restore']]+($canDelete?['delete'=>['Delete permanently (Admin Unlock required)','delete']]:[]):['rename'=>['Rename','rename'],'move'=>['Move to folder','folder'],'archive'=>['Archive','archive'],'replicate'=>['Replicate','duplicate']]; ?>
+        <a class="action-icon-button" data-campaign-action="<?= $rowAction==='View report'?'report':'edit' ?>" href="<?= $h($url(['view'=>$rowAction==='View report'?'campaign-delivery':'campaign','id'=>$row['id']])) ?>" aria-label="<?= $h($rowAction.' '.$row['name']) ?>" data-tooltip="<?= $h($rowAction==='View report'?'Report':$rowAction) ?>"><?= actionIconSvg($rowAction==='Edit'?'edit':($rowAction==='View report'?'results':'view')) ?></a>
+        <?php if($canManage): ?><?php $rowOperations=$campaignArchived?['restore'=>['Restore','restore']]+($canDelete?['delete'=>['Delete permanently (Admin Unlock required)','delete']]:[]):['rename'=>['Rename','rename'],'move'=>['Move to folder','folder'],'replicate'=>['Replicate','duplicate'],'archive'=>['Archive','archive']]; ?>
         <?php foreach($rowOperations as$op=>[$label,$icon]): ?>
-        <button type="button" class="action-icon-button" data-campaign-action="<?= $op ?>" aria-label="<?= $h($label.' '.$row['name']) ?>" data-tooltip="<?= $label ?>"<?= $op==='delete'?' data-admin-unlock-required':'' ?> data-campaign-row='<?= $campaignJson(array_intersect_key($row,array_flip(['id','name','version']))) ?>' data-campaign-op="<?= $op ?>"><?= actionIconSvg($icon) ?></button>
+        <button type="button" class="action-icon-button" data-campaign-action="<?= $op ?>" aria-label="<?= $h($label.' '.$row['name']) ?>" data-tooltip="<?= $op==='replicate'?'Duplicate':$label ?>"<?= $op==='delete'?' data-admin-unlock-required':'' ?> data-campaign-row='<?= $campaignJson(array_intersect_key($row,array_flip(['id','name','version']))) ?>' data-campaign-op="<?= $op ?>"><?= actionIconSvg($icon) ?></button>
         <?php endforeach; ?><?php endif; ?>
     </div></td>
 </tr>

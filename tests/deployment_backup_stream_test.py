@@ -6,11 +6,27 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
-from deployment_backup import verify_file_stream, create_verified_backup
+from deployment_backup import verify_file_stream, create_verified_backup, wait_for_restore_database
 
 class NativeFileStreamTests(unittest.TestCase):
+    def test_restore_waits_through_temporary_mysql_and_its_shutdown(self):
+        states = [SimpleNamespace(returncode=0, stdout='1\n'),
+                  SimpleNamespace(returncode=1, stdout=''),
+                  SimpleNamespace(returncode=0, stdout='0\n')]
+        with patch('deployment_backup.subprocess.run', side_effect=states) as run, \
+                patch('deployment_backup.time.sleep') as sleep:
+            wait_for_restore_database('isolated-restore')
+        self.assertEqual(sleep.call_count, 2)
+        self.assertTrue(all('SELECT @@GLOBAL.skip_networking' in call.args[0] for call in run.call_args_list))
+
+    def test_restore_refuses_to_start_when_only_temporary_mysql_is_available(self):
+        with patch('deployment_backup.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='1\n')), \
+                patch('deployment_backup.time.sleep'), self.assertRaisesRegex(ValueError, 'finish initialization'):
+            wait_for_restore_database('isolated-restore')
+
     def archive(self, name, data):
         stream = io.BytesIO()
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:

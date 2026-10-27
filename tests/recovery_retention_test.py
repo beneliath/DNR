@@ -9,6 +9,37 @@ sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'scripts'))
 from recovery_retention import retained_names, prune_recorded_replicas
 from run_nas_recovery import age_seconds
 class RecoveryRetentionTests(unittest.TestCase):
+    def test_daily_retention_and_copy_floor_are_per_account(self):
+        # Keep each pair on one calendar day, including when CI runs near midnight.
+        now=datetime.datetime(2026,10,24,12,tzinfo=datetime.timezone.utc)
+        history=[dict(account_key=key,remote_directory=f'{key}-{day}-{hour}',
+            snapshot_started_at=(now-datetime.timedelta(days=day,hours=hour)).isoformat())
+            for key in ('primary','test-account') for day in (8,9,40) for hour in (0,1)]
+        keep=retained_names(history,now)
+        for key in ('primary','test-account'):
+            self.assertIn(f'{key}-9-0',keep)
+            self.assertNotIn(f'{key}-9-1',keep)
+        keep=retained_names(history,now+datetime.timedelta(days=100))
+        self.assertEqual(len(keep),4)
+        for key in ('primary','test-account'):
+            self.assertEqual(sum(name.startswith(key+'-') for name in keep),2)
+
+    def test_local_retention_keeps_four_for_each_account(self):
+        now=datetime.datetime.now(datetime.timezone.utc); history=[]
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for number in range(6):
+                for key,digit in [('primary','a'),('test-account','b')]:
+                    stamp=now-datetime.timedelta(hours=number)
+                    source=stamp.strftime('%Y%m%dT%H%M%SZ')+'-'+digit*8
+                    (root/source).mkdir()
+                    history.append(dict(account_key=key,source_backup_id=source,remote_directory=source+'-'+'c'*16,
+                        snapshot_started_at=stamp.isoformat(),files={}))
+            prune_recorded_replicas(history,None,root,lambda history:None,now)
+            self.assertEqual(len(list(root.iterdir())),8)
+            for digit in ('a','b'):
+                self.assertEqual(len(list(root.glob('*-'+digit*8))),4)
+
     def test_recent_dense_daily_older_and_two_copy_floor(self):
         now=datetime.datetime(2026,9,28,12,tzinfo=datetime.timezone.utc)
         history=[]

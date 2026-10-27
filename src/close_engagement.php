@@ -384,7 +384,7 @@ $closed_timestamp = $is_correction
     <?php endif; ?>
 
     <?php if ($draft_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($draft_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-    <?php if ($financial_draft): ?><p class="closeout-status">Receipt draft saved <?php echo htmlspecialchars(applicationTimestampLabel($financial_draft['updated_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?>. Draft amounts are excluded from finalized financial totals.</p><?php endif; ?>
+    <?php if ($financial_draft): ?><p class="closeout-status">Receipt draft saved <?php echo htmlspecialchars(formatUserTimestamp($financial_draft['updated_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?>. Draft amounts are excluded from finalized financial totals.</p><?php endif; ?>
     <form method="post" action="close_engagement.php?id=<?php echo $engagement_id; ?>" class="closeout-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="draft_version" value="<?php echo htmlspecialchars((string) ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['draft_version'] ?? null) ? $_POST['draft_version'] : ($financial_draft['updated_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">

@@ -58,16 +58,16 @@ function audienceInboxDeliveryMessage(array $message):array
     $message['attachments']=[...$files,...audienceInboxAlertInlineImages($message['inline_images']??[])];return $message;
 }
 
-/** Retain signed test/Inbox receipts without replaying mail or changing test-recipient consent. */
+/** Retain signed service receipts without replaying mail or changing test-recipient consent. */
 function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,array $envelope,array $mail,string $correlation,string $providerId,string $type,string $at):string
 {
     if(!$store->inboxAvailable())return 'ignored';
-    $job=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=? AND kind IN ('test','inbox','inbox-alert') AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$settings['aws_account_id'],$settings['region']]);
+    $job=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=? AND kind IN ('test','inbox','inbox-alert','subscription-notice') AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$settings['aws_account_id'],$settings['region']]);
     if(!$job||count($mail['destination']??[])!==1||!hash_equals($job['recipient_hash'],audienceDispatchEmailHash((string)$mail['destination'][0]))||($job['provider_message_id']!==null&&$job['provider_message_id']!==$providerId))return 'ignored';
     $store->write('INSERT IGNORE INTO marketing_ses_notifications(audience_id,notification_id,event_type) VALUES (?,?,?)',[$store->audienceId,$envelope['MessageId'],$type]);if($store->db->affected_rows!==1)return 'duplicate';
     $store->write('INSERT INTO marketing_inbox_delivery_events(audience_id,service_mail_id,event_type,event_at) VALUES (?,?,?,?)',[$store->audienceId,$job['id'],$type,$at]);
     $store->write("UPDATE marketing_service_mail SET provider_message_id=?,error_message=IF(state='uncertain','',error_message),state=IF(state='uncertain','accepted',state) WHERE audience_id=? AND id=?",[$providerId,$store->audienceId,$job['id']]);
-    if($job['kind']==='inbox'&&in_array($type,['hard-bounce','complaint'],true)){
+    if(in_array($job['kind'],['inbox','subscription-notice'],true)&&in_array($type,['hard-bounce','complaint'],true)){
         $person=$store->one('SELECT id,email,email_status FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL FOR UPDATE',[$store->audienceId,$job['contact_id']]);
         $confirmed=$person?$store->one("SELECT created_at FROM marketing_contact_events WHERE contact_id=? AND event_type='subscription-confirmed' ORDER BY id DESC LIMIT 1",[$person['id']]):null;
         if($person&&hash_equals($job['recipient_hash'],audienceDispatchEmailHash($person['email']))&&(!$confirmed||new DateTimeImmutable($confirmed['created_at'],new DateTimeZone('UTC'))<=new DateTimeImmutable($at,new DateTimeZone('UTC')))){

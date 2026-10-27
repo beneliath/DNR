@@ -43,7 +43,7 @@ function fixture(countryCode, regionValue, regionType = 'select-one', version = 
         {name: 'template', type: 'select-one', value: 'saved'}
     ];
     const stored = JSON.stringify({fields, version, at: Date.now(), expires: Date.now() + 100000});
-    const window = {DnrAccountContext: {local: {getItem: () => stored, removeItem() {}, setItem() {}}}, addEventListener() {}};
+    const window = {DnrUserTime: require('../../src/assets/js/user-time.js'), DnrAccountContext: {local: {getItem: () => stored, removeItem() {}, setItem() {}}}, addEventListener() {}};
     const document = {getElementById: () => ({dataset: {navPreferenceUser: 'user'}}),
         querySelectorAll: selector => selector.startsWith('form') ? [form] : [], createElement: node};
     vm.runInNewContext(source, {window, document, Event: class {constructor(type) {this.type = type;}},

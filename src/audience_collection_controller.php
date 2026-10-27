@@ -73,7 +73,20 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                     $listView=in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true)?$view:match($entry['kind']){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'};
                     $operationRedirect=['view'=>$listView,'trash'=>in_array($op,['restore','delete'],true)?'1':'0','q'=>audienceText($_GET,'q',100),'type'=>audienceText($_GET,'type',20),'per_page'=>(int)($_GET['per_page']??100),'direction'=>($_GET['direction']??'desc')==='asc'?'asc':'desc','page'=>max(1,(int)($_GET['page']??1))];
                 }
-                $id=$store->collectionOperation($id,$version,$op); $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','archive','remove'=>'Form archived. Public collection has stopped and existing results are kept.','restore'=>'Restored as a draft. Publish when it’s ready.','delete'=>'Form and its results permanently deleted. Connections and consent history are kept.',default=>'Draft copied.'};
+                if($op==='publish'&&isset($_POST['document_json'])){
+                    try{$document=json_decode(audienceText($_POST,'document_json',3000000),true,32,JSON_THROW_ON_ERROR);}
+                    catch(JsonException){throw new InvalidArgumentException('The form design is invalid. Reload and try again.');}
+                    if(!is_array($document))throw new InvalidArgumentException('Invalid form design.');
+                    $id=$store->transaction(function()use($store,$id,$version,$document):int{
+                        $store->saveCollection(['name'=>audienceText($_POST,'name',100),'document'=>$document],$id,$version);
+                        return $store->collectionOperation($id,$version+1,'publish');
+                    });
+                }else $id=$store->collectionOperation($id,$version,$op);
+                if($op==='publish'&&$view==='form'){
+                    $published=$store->collectionResource($id);
+                    $operationRedirect=['view'=>match($published['kind']){'survey'=>'surveys','preferences'=>'preferences',default=>'forms'}];
+                }
+                $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','archive','remove'=>'Form archived. Public collection has stopped and existing results are kept.','restore'=>'Restored as a draft. Publish when it’s ready.','delete'=>'Form and its results permanently deleted. Connections and consent history are kept.',default=>'Draft copied.'};
                 if(in_array($op,['archive','remove','delete'],true))$id=0;
             } else throw new InvalidArgumentException('Choose a supported form action.');
             if (str_contains($_SERVER['HTTP_ACCEPT']??'','application/json') && in_array($action,['collection_save','collection_operation'],true)) {
@@ -84,7 +97,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
             $_SESSION['audience_message']=$message; header('Location: '.$url($operationRedirect??($id?['view'=>'form','id'=>$id]:['view'=>'forms']))); return;
         } catch (InvalidArgumentException $e) {
             if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR); return; }
-            $error=$e->getMessage(); if ($action==='collection_save') $recover=$_POST;
+            $error=$e->getMessage(); if ($action==='collection_save'||($action==='collection_operation'&&audienceText($_POST,'operation')==='publish'&&isset($_POST['document_json']))) $recover=$_POST;
             if($action==='collection_operation'&&in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true))$id=0;
         }
     }
@@ -93,6 +106,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         catch (InvalidArgumentException $e) { http_response_code(404); exit($h($e->getMessage())); }
     }
     if (in_array($view,['form','collection-report'],true) && !$resource) { http_response_code(404); exit('This form is unavailable.'); }
+    $savedCollectionDraft=$resource['draft']??null;
     if ($resource && $recover && isset($recover['document_json'])) {
         try { $draft=json_decode(audienceText($recover,'document_json',3000000),true,32,JSON_THROW_ON_ERROR); if (is_array($draft)) $resource['draft']=audienceCollectionDocument($draft,$resource['kind'],$store->fields(),$store->groups(),$store->tags()); } catch (Throwable) {}
         $resource['name']=audienceText($recover,'name',100); $resource['version']=(int)($recover['version']??0);
@@ -169,12 +183,13 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     try { $publicBase=accountPrimaryPublicUrl(); } catch (InvalidArgumentException) { $publicBase=''; }
     $publicUrl=$resource?$publicBase.'/audience_collect_public.php?key='.$resource['public_key']:'';
     $publishedResource=$resource&&$resource['state']==='published'?$store->collectionPublished($resource['public_key']):null;
+    $collectionPublishPending=$resource&&(!$publishedResource||$savedCollectionDraft!=$publishedResource['document']);
     $signupEmailBlocked=false;
     if($publishedResource&&in_array($publishedResource['kind'],['hosted','embedded','popup','landing'],true)&&$publishedResource['document']['opt_in']==='double'){
         $ses=$store->sesSettings();$signupEmailBlocked=(bool)audienceSesReasons($ses,$ses['from_email']??'');
     }
     $pageTitle=match($view){'form'=>$resource['name'],'collection-create'=>'Setup your '.match($creationKind){'landing'=>'landing page','survey'=>'survey','popup'=>'popup form','embedded'=>'embedded form','preferences'=>'preference center',default=>'subscribe form'},'form-settings'=>'Forms Settings','landing-pages'=>'Landing pages','surveys'=>'Surveys','preferences'=>'Subscriber preferences','collection-report'=>$resource['name'].' · Results',default=>'Forms'};
-    $collectionBrand=$resource&&$resource['kind']==='landing'?($store->contentSettings()['settings']['brand']??[]):[];
+    $collectionBrand=$resource&&$resource['kind']!=='embedded'?($store->contentSettings()['settings']['brand']??[]):[];
     $csrf=csrfInput(); $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
     ?>

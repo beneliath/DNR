@@ -5,7 +5,7 @@ require_once __DIR__.'/two_factor_helpers.php';
 require_once __DIR__.'/audience_store.php';
 $db=applicationDatabaseConnection();startSecureSession();requireLogin();
 $canManage=hasRole(['admin','editor']);$canExport=$canManage;$canDelete=hasRole(['admin']);
-$view=\Dnr\Http\RequestInput::enum($_GET,'view',['home','analytics','assistant','inbox','contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report'],'contacts');
+$view=\Dnr\Http\RequestInput::enum($_GET,'view',['home','analytics','assistant','manual','inbox','contacts','contact','tags','groups','fields','settings','segments','import','jobs','job','campaigns','campaign','campaign-manager','campaign-plan','campaign-review','campaign-send','campaign-delivery','content','brand','delivery','templates','designer','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create','automations','flow','flow-templates','flow-report'],'contacts');
 $_GET=audienceRememberPageSizes($_GET,$view,(int)$_SESSION['user_id']);
 if(!$canDelete&&($view==='delivery'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'delivery_')))){http_response_code(403);exit('Email delivery requires an administrator.');}
 $h=static fn($value):string=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
@@ -26,11 +26,20 @@ if(($_GET['api']??null)==='workspace_search'){
     else try{$result=audienceWorkspaceSearch($store,$_GET,$canManage,$canDelete);}catch(InvalidArgumentException $e){http_response_code(400);$result=['error'=>$e->getMessage()];}
     echo json_encode($result,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);exit;
 }
-if(!$canManage&&in_array($view,['import','jobs','job'],true)){http_response_code(403);exit('Import and export require an editor or administrator.');}
+// Apply transfer permissions before dispatching to any MessageMonkey workspace.
+$transferRequest=isset($_GET['download'])||isset($_GET['export'])||isset($_GET['template_export'])
+    ||($view==='collection-report'&&isset($_GET['chart']))||($_GET['api']??'')==='job'
+    ||in_array($view,['import','jobs','job'],true)
+    ||in_array($_POST['action']??'', ['import_upload','configure_import','start_import','undo_import','queue_export','process_job','resume_job','cancel_job','template_package_import'],true);
+if(!$canExport&&$transferRequest){http_response_code(403);exit('Import and export require an editor or administrator.');}
 $id=\Dnr\Http\RequestInput::positiveInt($_POST+$_GET,'id')??0;
 $message=(string)($_SESSION['audience_message']??'');unset($_SESSION['audience_message']);$error='';$isPost=$_SERVER['REQUEST_METHOD']==='POST';
 $url=static fn(array $params=[]):string=>'audience.php'.($params?'?'.http_build_query($params):'');
 $redirect=$url(['view'=>$view]);
+if($view==='manual'){
+    if(!in_array($_SERVER['REQUEST_METHOD'],['GET','HEAD'],true)){http_response_code(405);header('Allow: GET, HEAD');exit('The user manual is read-only.');}
+    require __DIR__.'/audience_manual_controller.php';renderAudienceManual($audience,$canManage,$canDelete,$displayName,$actor,$store);exit;
+}
 if($view==='assistant'){require __DIR__.'/audience_ai_controller.php';renderAudienceAi($store,$audience,$canManage,$canDelete,$displayName,$actor);exit;}
 if(in_array($view,['home','analytics'],true)){require __DIR__.'/audience_analytics_controller.php';renderAudienceAnalytics($store,$audience,$view,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
 if($view==='inbox'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'inbox_'))){require __DIR__.'/audience_inbox_controller.php';renderAudienceInbox($store,$audience,$message,$error,$canManage,$canDelete,$displayName,$actor);exit;}
@@ -58,9 +67,20 @@ if($isPost){
     try{
         if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Audience has been consolidated. Reload this page before saving.');
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
-        if(in_array($action,['delete_tag','delete_segment'],true)||($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))){
-            if(!$canDelete){http_response_code(403);exit('Tag and segment deletion requires an administrator.');}
-            requireRecentAdminElevation($url(['view'=>$action==='delete_tag'||($action==='delete_selected_definitions'&&audienceText($_POST,'kind')==='tags')?'tags':'segments']));
+        $protectedViews=['delete_tag'=>'tags','delete_segment'=>'segments','delete_group'=>'groups','delete_field'=>'fields','undo_import'=>'job','delete_export_history'=>'jobs'];
+        $protectedView=$protectedViews[$action]??null;
+        if(in_array($action,['person_action','bulk'],true)&&audienceText($_POST,'operation')==='delete')$protectedView=$action==='person_action'?'contact':'contacts';
+        if($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))$protectedView=audienceText($_POST,'kind');
+        if($action==='save_group'&&$id){
+            $oldOptions=$store->all('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.id=? AND g.audience_id=?',[$id,$audienceId]);
+            $keptOptions=[];foreach(is_array($_POST['options']??null)?$_POST['options']:[]as$option)if(is_array($option)&&is_string($option['name']??null)&&trim($option['name'])!=='')$keptOptions[]=(int)($option['id']??0);
+            if(array_diff(array_map('intval',array_column($oldOptions,'id')),$keptOptions))$protectedView='groups';
+        }
+        if($protectedView!==null){
+            if(!$canDelete){http_response_code(403);exit('This operation requires an administrator and Admin Unlock.');}
+            $return=['view'=>$protectedView];if($action==='undo_import')$return['id']=$id;if($action==='delete_export_history')$return['kind']='export';
+            if($action==='person_action')$return['id']=$id;
+            requireRecentAdminElevation($url($return));
         }
         if($error!=='')throw new InvalidArgumentException($error);
         switch($action){
@@ -97,6 +117,7 @@ if($isPost){
             case 'preview_segment':
                 [$where,$params]=$store->where($filters,$rules);$count=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];$sample=$store->all("SELECT c.id,c.email,c.first_name,c.last_name FROM marketing_contacts c WHERE $where ORDER BY c.id DESC LIMIT 10",$params);releaseApplicationSessionLock();header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['count'=>$count,'people'=>$sample],JSON_THROW_ON_ERROR);exit;
             case 'queue_export':$id=$store->queueSelection('export','Connections export',$store->selectedWhere($_POST,$filters,$rules));$redirect=$url(['view'=>'job','id'=>$id]);break;
+            case 'unsubscribe_emails':$id=$store->queueEmailUnsubscribe(audienceText($_POST,'emails',1300000));$redirect=$url(['view'=>'job','id'=>$id]);break;
             case 'bulk':
                 $operation=audienceText($_POST,'operation');if(!in_array($operation,['archive','restore','unsubscribe','tag','untag','group','ungroup','delete'],true))throw new InvalidArgumentException('Choose a bulk action.');
                 if($operation==='delete'&&(!$canDelete||audienceText($_POST,'confirm_text')!=='DELETE'))throw new InvalidArgumentException('An administrator must type DELETE to permanently remove selected connections.');
@@ -136,43 +157,61 @@ if(($_GET['api']??'')==='job'){
 if(isset($_GET['download'])){
     if(!$canExport){http_response_code(403);exit('Export requires an editor or administrator.');}
     try{$job=$store->job($id);}catch(InvalidArgumentException){http_response_code(404);exit('Operation not found.');}$errors=($_GET['download']==='errors');if(!$errors&&($job['job_type']!=='export'||$job['state']!=='complete')){http_response_code(409);exit('Wait for the export to finish.');}
+    if(!$errors&&($job['params']['export_format']??'')==='mailchimp'){
+        releaseApplicationSessionLock();
+        $records=(static function()use($store,$id):Generator{
+            $last=0;
+            do{
+                $items=$store->all("SELECT id,result_json FROM marketing_job_items WHERE job_id=? AND id>? AND state='exported' ORDER BY id LIMIT 500",[$id,$last]);
+                foreach($items as$item){$last=(int)$item['id'];yield audienceJson($item['result_json']);}
+            }while(count($items)===500);
+        })();
+        $previousAbort=ignore_user_abort(true);
+        try{
+            audienceWithExportArchive($job['params'],$records,static function(string $path,string $name):void{
+                header('Content-Type: application/zip');header('Content-Disposition: attachment; filename="'.$name.'"');
+                header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');header('Content-Length: '.filesize($path));readfile($path);
+            });
+        }catch(Throwable $e){applicationLog('error','Audience ZIP export failed',['job_id'=>$id,'error'=>$e->getMessage()]);if(!headers_sent()){http_response_code(503);echo 'Unable to prepare this export. Please try again.';}}finally{ignore_user_abort((bool)$previousAbort);}
+        exit;
+    }
     releaseApplicationSessionLock();header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-'.($errors?'import-errors':'people').'-'.$id.'.csv"');header('Cache-Control: no-store');$output=fopen('php://output','w');$last=0;$written=false;
     do{$items=$store->all('SELECT * FROM marketing_job_items WHERE job_id=? AND id>? AND state=? ORDER BY id LIMIT 500',[$id,$last,$errors?'error':'exported']);foreach($items as$item){$row=$errors?['Row'=>$item['source_row'],'Error'=>$item['error_message'],'Original values'=>json_encode(audienceJson($item['payload_json']),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]:audienceJson($item['result_json']);if(!$written){fputcsv($output,array_map('audienceCsvCell',array_keys($row)),',','"','');$written=true;}fputcsv($output,array_map(fn($v)=>audienceCsvCell((string)$v),array_values($row)),',','"','');$last=(int)$item['id'];}}while(count($items)===500);if(!$written)fputcsv($output,[$errors?'No errors':'No exported connections'],',','"','');fclose($output);exit;
 }
 if(($_GET['export']??'')==='person'){
-    if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$fields,'tag_names'=>array_column($tags,'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
+    if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$store->fields(),'tag_names'=>array_column($store->tags(),'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
 }
 $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDER BY name,id',[$audienceId]);
 $sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
-$counts=$store->one("SELECT COUNT(*) records,COALESCE(SUM(email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(email_status='subscribed'),0) subscribed,COALESCE(SUM(email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL AND is_archived=0",[$audienceId]);
+$counts=$store->one("SELECT COALESCE(SUM(is_archived=0),0) records,COALESCE(SUM(is_archived=0 AND email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(is_archived=0 AND email_status='subscribed'),0) subscribed,COALESCE(SUM(is_archived=1),0) archived,COALESCE(SUM(is_archived=0 AND email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL",[$audienceId]);
 [$where,$params]=$store->where($filters,$rules);$total=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
 $pageSize=audiencePageSize($_GET);$page=max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
 $sort=audienceText($_GET,'sort')?:'created_at';$sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];foreach($fields as$field)if($field['field_type']==='date')$sortColumns[]='custom:'.(int)$field['id'];if(!in_array($sort,$sortColumns,true))$sort='created_at';$direction=($_GET['direction']??'desc')==='asc'?'asc':'desc';
 $connectionOrder=audienceConnectionOrder($sort,$direction,$fields);
-$rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);$rowTags=[];$rowGroups=[];
-foreach($rows as$row){$rowTags[$row['id']]=$store->all('SELECT t.id,t.name FROM marketing_tags t JOIN marketing_contact_tags ct ON ct.tag_id=t.id WHERE ct.contact_id=? AND t.audience_id=? ORDER BY t.name',[$row['id'],$audienceId]);$rowGroups[$row['id']]=$store->all('SELECT o.name,g.id category_id,g.name category FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id JOIN marketing_contact_groups cg ON cg.option_id=o.id WHERE cg.contact_id=? AND g.audience_id=? ORDER BY g.name,o.position',[$row['id'],$audienceId]);}
+$rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);
+['tags'=>$rowTags,'groups'=>$rowGroups]=$store->contactListRelations(array_column($rows,'id'));
 $query=$filters+['rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];if($segment)$query['segment']=(int)$segment['id'];
 $contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'','timezone'=>'','is_archived'=>0,'consent_note'=>''];
 $events=[];$notes=[];$eventTotal=0;$eventSize=audiencePageSize($_GET,'activity_size');$eventPage=max(1,(int)($_GET['activity_page']??1));$tab=\Dnr\Http\RequestInput::enum($_GET,'tab',['overview','insights','notes','settings'],'overview');
 if($view==='contact'&&$id){try{$contact=array_replace($contact,$store->person($id));$eventFilter=audienceText($_GET,'activity_type');$days=(int)($_GET['activity_days']??30);if(!in_array($days,[0,7,30,90,365],true))$days=30;$activityYear=(int)($_GET['activity_year']??0);$activityRange=audienceText($_GET,'activity_range');if(preg_match('/^year:(20[0-9]{2})$/D',$activityRange,$rangeMatch))$activityYear=(int)$rangeMatch[1];elseif(in_array($activityRange,['30','90','0'],true)){$days=(int)$activityRange;$activityYear=0;}if($activityYear<2000||$activityYear>(int)gmdate('Y'))$activityYear=0;$notes=$store->all('SELECT * FROM marketing_notes WHERE contact_id=? ORDER BY id DESC',[$id]);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
 if($view==='contact'&&$id){
     $profileActivity=$store->personActivity($id,$eventFilter,$days,$activityYear,$eventPage,$canManage,$eventSize);$eventPage=$profileActivity['page'];$events=$profileActivity['rows'];$eventTotal=$profileActivity['total'];$activityYears=$profileActivity['years'];
-    $permissionEvent=$store->one("SELECT id,event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('contact_added','subscription_changed') ORDER BY id DESC LIMIT 1",[$id]);
+    $permissionEvent=$store->permissionEvent($id);
     $importEvent=$store->one("SELECT id,event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('imported','contact_imported') AND JSON_EXTRACT(details_json,'$.source_metadata') IS NOT NULL ORDER BY id DESC LIMIT 1",[$id]);
     $marketingDetails=audienceMarketingDetails($contact,$permissionEvent,$importEvent);
 }
 if($isPost&&$error!==''&&($_POST['action']??'')==='save_person'){$view='contact';$contact=array_replace($contact,array_intersect_key($_POST,$contact));}
 $job=null;if(in_array($view,['job','import'],true)&&$id){try{$job=$store->job($id);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}
-$pageTitle=match($view){'tags'=>'Tags','groups'=>'Groups','fields'=>'Audience fields and merge tags','segments'=>'Segments','contact'=>$id?'Connection profile':'Add a single connection','settings'=>'Audience settings','import'=>'Import Connections','jobs'=>(($_GET['kind']??'import')==='export'?'Export history':'Import history'),'job'=>$job['name']??'Operation',default=>$filters['archived']==='1'?'Archived connections':'Connections'};
+$pageTitle=match($view){'tags'=>'Tags','groups'=>'Groups','fields'=>'Fields and merge tags','segments'=>'Segments','contact'=>$id?'Connection profile':'Add a single connection','settings'=>'Audience settings','import'=>'Import Connections','jobs'=>(($_GET['kind']??'import')==='export'?'Export history':'Import history'),'job'=>$job['name']??'Operation',default=>$filters['archived']==='1'?'Archived connections':'Connections'};
 $editorRecovery=null;
 if($isPost&&$error!==''){
-    $recoveryDialogs=['save_tag'=>'tag-editor','save_group'=>'group-editor','save_field'=>'field-editor','save_segment'=>'segment-builder','rename_segment'=>'rename-segment','bulk_tag_paste'=>'bulk-tag'];
+    $recoveryDialogs=['save_tag'=>'tag-editor','save_group'=>'group-editor','save_field'=>'field-editor','save_segment'=>'segment-builder','rename_segment'=>'rename-segment','bulk_tag_paste'=>'bulk-tag','unsubscribe_emails'=>'unsubscribe-emails'];
     $failedAction=is_string($_POST['action']??null)?$_POST['action']:'';
     if(isset($recoveryDialogs[$failedAction])){
         $values=[];
         foreach(['id','version','name','display_type','label','merge_tag','field_type','position','default_value','options_text','required','is_public','tag_id','operation','emails']as$key){
-            if(isset($_POST[$key])&&is_scalar($_POST[$key]))$values[$key]=mb_substr((string)$_POST[$key],0,$key==='emails'?200000:10000);
+            if(isset($_POST[$key])&&is_scalar($_POST[$key]))$values[$key]=mb_substr((string)$_POST[$key],0,$key==='emails'?($failedAction==='unsubscribe_emails'?1300000:200000):10000);
         }
         foreach(['required','is_public']as$key)$values[$key]=$values[$key]??'0';
         if(is_array($_POST['options']??null)){

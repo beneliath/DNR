@@ -8,6 +8,10 @@ $c2id=$c2create('regular','Completion regular fixture');$c2url='audience.php?vie
 $c2section=static function(string $section,array $values=[])use($editor,$token,$campaignStore,$c2id,$c2url):array{return $editor($c2url,['csrf_token'=>$token,'action'=>'campaign_section','id'=>$c2id,'version'=>$campaignStore->campaign($c2id)['version'],'section'=>$section]+$values);};
 audienceHttpExpect(audienceCampaignType($campaignStore->campaign($c2id))==='regular','Regular email type survives storage');
 $c2plain=$c2create('plain-text','Completion plain-text fixture');
+$c2denied=$editor('audience.php?view=designer&id='.$c2plain);audienceHttpExpect($c2denied['status']===302&&str_contains($c2denied['headers'],'view=campaign&id='.$c2plain),'Unavailable designer returns to the campaign instead of a dead-end page');
+$c2notice=$editor('audience.php?view=campaign&id='.$c2plain);audienceHttpExpect($c2notice['status']===200&&str_contains($c2notice['body'],'id="campaign-designer-unavailable"')&&preg_match('/id="campaign-designer-unavailable"[^>]*data-reopen-dialog/',$c2notice['body']),'Returned campaign opens the designer-unavailable dialog');
+audienceHttpExpect(!preg_match('/id="campaign-designer-unavailable"[^>]*data-reopen-dialog/',$editor('audience.php?view=campaign&id='.$c2plain)['body']),'Designer notice is consumed after the redirect');
+foreach([$c2id,$c2plain]as$c2trackingId)audienceHttpExpect(audienceCampaignTracking($campaignStore->campaign($c2trackingId)['draft']['tracking'])===['opens'=>true,'clicks'=>true,'plain_clicks'=>true,'inbox'=>true,'video'=>true],'Every new campaign stores all Settings & Tracking options enabled');
 $c2reject(fn()=>$campaignStore->createCampaign(['name'=>'Unsupported fixture','campaign_type'=>'unsupported']),'Unsupported email type rejected');
 foreach(['regular'=>'Completion regular fixture','plain-text'=>'Completion plain-text fixture']as$type=>$name){$r=$editor('audience.php?view=campaigns&type='.$type);audienceHttpExpect($r['status']===200&&str_contains($r['body'],$name),'Effective campaign type filter '.$type);}
 audienceHttpExpect($c2section('tracking',['opens'=>'1','plain_clicks'=>'1','inbox'=>'1'])['status']===302,'Tracking preferences save');
@@ -21,7 +25,12 @@ $c2malformed=$c2section('to',['advanced_recipients'=>'1','include'=>[['nested'=>
 $c2malformed=$c2section('to',['advanced_recipients'=>'1','include'=>'invalid']);audienceHttpExpect($c2malformed['status']===200&&!preg_match('/Warning:|Fatal error:/',$c2malformed['body']),'Scalar recipients recover without count failure');
 $c2draft=$campaignStore->campaign($c2id)['draft'];[$c2where,$c2params]=$campaignStore->campaignTarget($c2draft);$c2targets=$campaignStore->all("SELECT c.id FROM marketing_contacts c WHERE $c2where",$c2params);
 audienceHttpExpect(array_map('intval',array_column($c2targets,'id'))===[$c2person]&&$c2draft['personalize_to'],'Advanced targeting suppresses opt-outs and persists personalization');
-$c2preview=$editor($c2url,['csrf_token'=>$token,'action'=>'campaign_preview','id'=>$c2id,'advanced_recipients'=>'1','include'=>['tag:'.$c2tag],'exclude'=>['tag:'.$c2tag]]);audienceHttpExpect($c2preview['status']===200&&json_decode($c2preview['body'],true)['count']===0,'Recipient preview uses exclusions');
+$c2preview=$editor($c2url,['csrf_token'=>$token,'action'=>'campaign_preview','id'=>$c2id,'advanced_recipients'=>'1','include'=>['tag:'.$c2tag],'exclude'=>['tag:'.$c2tag]]);$c2previewData=json_decode($c2preview['body'],true);audienceHttpExpect($c2preview['status']===200&&$c2previewData['count']===0&&$c2previewData['people']===[],'Recipient preview uses exclusions in both count and list');
+$c2beforePreview=$campaignStore->campaign($c2id);
+$c2preview=$editor($c2url,['csrf_token'=>$token,'action'=>'campaign_preview','id'=>$c2id,'advanced_recipients'=>'1','include'=>['tag:'.$c2tag]]);$c2previewData=json_decode($c2preview['body'],true);
+audienceHttpExpect($c2preview['status']===200&&$c2previewData['count']===1&&array_map('intval',array_column($c2previewData['people'],'id'))===[$c2person]&&$c2previewData['people'][0]['email']==='completion-subscriber@example.test','Recipient preview lists only eligible subscribed connections from unsaved selections');
+audienceHttpExpect($campaignStore->campaign($c2id)===$c2beforePreview,'Recipient preview does not save or change the campaign');
+audienceHttpExpect($reviewer($c2url,['csrf_token'=>audienceHttpCsrf($reviewer($c2url)),'action'=>'campaign_preview','advanced_recipients'=>'1'])['status']===403,'Reviewer cannot query campaign recipient previews');
 audienceHttpExpect($c2section('to',['advanced_recipients'=>'1','include'=>['tag:99999999']])['status']===200,'Unavailable recipient definition rejected');
 audienceHttpExpect($c2section('send_time',['send_mode'=>'schedule','timezone'=>'America/Chicago','delivery_date'=>'2026-11-10','delivery_time'=>'09:30','delivery'=>'specific'])['status']===302,'Delivery preferences save');
 audienceHttpExpect($campaignStore->campaign($c2id)['draft']['send_time']['utc']==='2026-11-10 15:30:00','Schedule stores daylight-saving-aware UTC');
@@ -88,6 +97,8 @@ $c2bare=$editor('audience.php');audienceHttpExpect(!str_contains($c2bare['body']
 $c2export=$campaignStore->queueSelection('export','History completion test',$campaignStore->where(audienceListFilters([])));while($campaignStore->job($c2export)['state']!=='complete')$campaignStore->processJob($c2export);
 $c2delete=['csrf_token'=>$token,'action'=>'delete_export_history','export_ids'=>[$c2export]];
 audienceHttpExpect($editor('audience.php?view=jobs&kind=export',$c2delete)['status']===403,'Only administrator can delete export history');
+// This destructive history fixture explicitly unlocks its synthetic administrator.
+foreach(file($cookies[0],FILE_IGNORE_NEW_LINES)as$line){$parts=explode("\t",$line);if(count($parts)===7&&($parts[5]===session_name()||str_starts_with($parts[5],'MOED_'))){session_name($parts[5]);session_id($parts[6]);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();break;}}
 $c2delete['csrf_token']=$csrf;audienceHttpExpect($admin('audience.php?view=jobs&kind=export',$c2delete)['status']===302,'Admin can delete selected export history');
 audienceHttpExpect($editor('audience.php?api=job&id='.$c2export)['status']===404&&$editor('audience.php?download=csv&id='.$c2export)['status']===404,'Deleted export cannot be polled or downloaded');
 audienceHttpExpect($campaignStore->person($c2person)['email_status']===$c2beforeVip['email_status'],'History deletion preserves connection status');

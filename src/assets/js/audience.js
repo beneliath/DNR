@@ -1,7 +1,10 @@
 import { wireAudiencePagination } from './audience-pagination.mjs';
+import { wireMessageMonkeyUiStandards } from './audience-ui-standards.mjs';
+wireMessageMonkeyUiStandards();
 wireAudiencePagination();
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
+import { fitBrandLogoPreview } from './audience-logo-preview.mjs';
 import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, selectedUploadFile } from './audience-file-drop.mjs';
 (() => {
     'use strict';
@@ -141,7 +144,69 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     document.addEventListener('admin-unlock-changed', event => { if (typeof event.detail?.csrf_token === 'string') config.csrf = event.detail.csrf_token; });
     $$('[data-audience-admin-unlock]').forEach(button => button.addEventListener('click', () => window.DnrAdminUnlock?.request()));
     const clone = value => JSON.parse(JSON.stringify(value));
-    const show = id => { const dialog = document.getElementById(id); if (dialog instanceof HTMLDialogElement && !dialog.open) dialog.showModal(); };
+    const campaignCreate = $('#campaign-create');
+    $$('[data-campaign-thumbnail]', campaignCreate || document).forEach(frame => {
+        let requested = false;
+        const load = async () => {
+            requested = true;
+            const status = $('[data-campaign-preview-status]', frame.parentElement);
+            const data = new FormData();
+            for (const [key, value] of Object.entries({action:'campaign_recent_preview',id:frame.dataset.campaignThumbnail,csrf_token:config.csrf,preview_nonce:frame.dataset.previewNonce})) data.set(key, value);
+            try {
+                const result = await request(config.url, {method:'POST', body:data});
+                frame.addEventListener('load', () => { status.hidden = true; }, {once:true});
+                frame.srcdoc = result.html;
+            } catch (_) { status.textContent = 'Preview unavailable'; }
+        };
+        // Preserve the email's desktop layout while fitting its thumbnail to the card.
+        const fit = () => {
+            const box = frame.parentElement, scale = box.clientWidth / 600;
+            if (!scale) return;
+            frame.style.transform = `scale(${scale})`;
+            frame.style.height = `${Math.ceil(box.clientHeight / scale)}px`;
+            if (!requested) load();
+        };
+        new ResizeObserver(fit).observe(frame.parentElement);
+    });
+    $('[data-campaign-recent-more]')?.addEventListener('click', event => {
+        const cards = $$('.campaign-recent-grid article'), hidden = cards.filter(card => card.hidden);
+        hidden.slice(0, 4).forEach(card => { card.hidden = false; });
+        event.currentTarget.hidden = hidden.length <= 4;
+        $('[data-campaign-recent-count]').textContent = `${cards.filter(card => !card.hidden).length} recent emails shown.`;
+    });
+    $$('[data-campaign-recent-date]').forEach(time => {
+        const date = new Date(time.dateTime);
+        if (!Number.isNaN(date.getTime())) time.textContent = window.DnrUserTime.format(date, {dateStyle:'medium',timeStyle:'short'});
+    });
+    const mainToolbar = $('body > .audience-topbar');
+    const campaignBack = campaignCreate?.querySelector('[data-campaign-create-back]');
+    const campaignShell = [deploymentBanner, accountBanner, adminBanner, previewBanner, mainToolbar].filter(Boolean);
+    const shellAnchors = new Map();
+    const restoreCampaignShell = () => {
+        if (shellAnchors.size) {
+            if (campaignBack) campaignCreate.prepend(campaignBack);
+            shellAnchors.forEach((anchor, node) => anchor.replaceWith(node));
+            shellAnchors.clear();
+        }
+    };
+    campaignCreate?.addEventListener('close', () => { if (!campaignCreate.open) restoreCampaignShell(); });
+    mainToolbar?.querySelector('[data-audience-nav-toggle]')?.addEventListener('click', () => {
+        if (campaignCreate?.open) { campaignCreate.close(); restoreCampaignShell(); }
+    }, true);
+    const show = id => {
+        const dialog = document.getElementById(id);
+        if (!(dialog instanceof HTMLDialogElement) || dialog.open) return;
+        // Keep the live banners and toolbar inside the full-screen modal's focus scope.
+        if (dialog === campaignCreate && mainToolbar) {
+            campaignShell.forEach(node => {
+                const anchor = document.createComment('Campaign shell');
+                node.before(anchor); shellAnchors.set(node, anchor);
+            });
+            dialog.prepend(...campaignShell);
+            if (campaignBack) mainToolbar.querySelector('.audience-brand').prepend(campaignBack);
+        }
+        dialog.showModal();
+    };
     const el = (tag, attrs = {}, text) => {
         const node = document.createElement(tag);
         if (['form', 'input', 'textarea'].includes(tag)) node.setAttribute('autocomplete', 'off');
@@ -203,7 +268,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
             const title = el('span', {class:'audience-search-title'}, item.title);
             if (item.status) { const labels = {draft:'Draft',sent:'Sent',sending:'Sending',scheduled:'Scheduled',paused:'Paused'}; title.append(el('span', {class:`audience-search-status ${item.status === 'sent' ? 'sent' : ''}`}, labels[item.status] || item.status)); }
             copy.append(title); let detail = item.description;
-            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last edited ${new Intl.DateTimeFormat(undefined, {weekday:'short',month:'long',day:'numeric',year:'numeric'}).format(date)}`; }
+            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last edited ${window.DnrUserTime.format(date, {weekday:'short',month:'long',day:'numeric',year:'numeric'})}`; }
             copy.append(el('span', {class:'audience-search-detail'}, detail)); row.append(icon(item.icon), copy);
             if (item.external) { row.target = '_blank'; row.rel = 'noopener noreferrer'; row.setAttribute('aria-label', `${item.title} (opens in a new tab)`); }
             row.addEventListener('click', remember); return row;
@@ -276,7 +341,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     });
     $$('form[data-confirm]').forEach(form => form.addEventListener('submit', async event => {
         if (approvedDefinitionDeletes.has(form)) { approvedDefinitionDeletes.delete(form); return; }
-        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form]');
+        const confirmed = confirmedForms.delete(form), protectedDelete = form.matches('[data-tag-delete-form], [data-segment-delete-form], [data-audience-protected-form]') || event.submitter?.matches('[data-touchpoint-delete][data-admin-unlock-required]');
         if (confirmed && !protectedDelete) return;
         if (event.defaultPrevented) return;
         event.preventDefault();
@@ -290,7 +355,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
             if (confirmed) { approvedDefinitionDeletes.add(form); form.requestSubmit(event.submitter || undefined); return; }
         }
         pendingConfirmation = {form, submitter: event.submitter};
-        confirmationMessage.textContent = form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
+        confirmationMessage.textContent = event.submitter?.dataset.confirmMessage || form.dataset.confirm; confirmation.returnValue = ''; confirmation.showModal();
     }));
     $$('[data-filter-search]').forEach(input => input.addEventListener('input', () => {
         const panel = input.closest('[data-filter-panel]');
@@ -317,6 +382,8 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
                 const parsed = JSON.parse(nextConfig.textContent), columnsTrigger = $('[popovertarget="columns"]',peopleResults);
                 if (columnsTrigger) $('[popovertarget="columns"]',nextResults)?.replaceWith(columnsTrigger);
                 peopleResults.replaceChildren(...nextResults.childNodes); filterSummary.replaceChildren(...nextSummary.childNodes);
+                const lifecycle = $('[data-audience-lifecycle]'), nextLifecycle = $('[data-audience-lifecycle]',page);
+                if (lifecycle && nextLifecycle) lifecycle.replaceChildren(...nextLifecycle.childNodes);
                 Object.assign(config,parsed); $('#audience-config').textContent = nextConfig.textContent;
                 for (const selector of ['#bulk-people-form','#save-current-segment form','#filter-campaign form']) {
                     const form = $(selector), next = $(selector,page); if (!form || !next) continue;
@@ -581,8 +648,9 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         $('[data-bulk-description]').textContent = descriptions[action];
     };
     bulkOperation?.addEventListener('change', updateBulk); updateBulk();
-    $$('[data-person-operation]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-person-operation]').forEach(b => b.addEventListener('click', async () => {
         const action = b.dataset.personOperation, form = $('#person-action form');
+        if (action === 'delete' && !(await window.DnrAdminUnlock?.request())) return;
         setValue(form, 'operation', action); setValue(form, 'confirm_text', '');
         $('[data-person-action-title]').textContent = `${({restore: 'Unarchive', delete: 'Permanently delete'})[action] || action[0].toUpperCase() + action.slice(1)} connection`;
         $('[data-person-action-description]').textContent = descriptions[action];
@@ -608,7 +676,12 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         row.append(hidden('', option.id || 0), el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group choice name'}));
         row.append(button('↑', event => { if (row.previousElementSibling) row.previousElementSibling.before(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice up'));
         row.append(button('↓', event => { if (row.nextElementSibling) row.nextElementSibling.after(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice down'));
-        row.append(button('×', () => { const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus(); }, 'Remove group choice'));
+        const remove = button('×', async () => {
+            if (option.id && !(await window.DnrAdminUnlock?.request())) return;
+            const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus();
+        }, 'Remove group choice');
+        if (option.id) { remove.setAttribute('data-admin-unlock-required', ''); remove.hidden = !config.canDelete; }
+        row.append(remove);
         groupOptions.append(row); renumberOptions();
     };
     $('[data-add-group-option]')?.addEventListener('click', () => { addGroupOption(); $('[data-group-option]:last-child input[type=text]', groupOptions)?.focus(); });
@@ -928,7 +1001,10 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         campaignFilters.requestSubmit();
     });
     $('[data-campaign-folder-search]')?.addEventListener('input', event => {
-        $$('[data-folder-name]').forEach(row => { row.hidden = !row.dataset.folderName.includes(event.target.value.trim().toLocaleLowerCase()); });
+        const query = event.target.value.trim().toLocaleLowerCase(), rows = $$('[data-folder-name]', $('#campaign-folders'));
+        rows.forEach(row => { row.hidden = !row.dataset.folderName.includes(query); });
+        const empty = $('[data-campaign-folder-empty]');
+        if (empty) empty.hidden = query === '' || rows.some(row => !row.hidden);
     });
     const hideCampaignPopovers = () => $$('[popover]:popover-open').forEach(panel => panel.hidePopover());
     $$('[data-campaign-folder]').forEach(button => button.addEventListener('click', () => {
@@ -974,9 +1050,10 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         show(dialog.id);
     };
     $$('[data-campaign-lifecycle-selected]').forEach(button => button.addEventListener('click', () => openCampaignLifecycle(button.dataset.campaignLifecycleSelected)));
-    $$('[data-campaign-delete-form],[data-flow-delete-form]').forEach(deleteForm => {
+    $$('[data-campaign-delete-form],[data-flow-delete-form],#person-action form,#bulk-people-form').forEach(deleteForm => {
         let approved = false, checking = false;
         deleteForm.addEventListener('submit', async event => {
+            if (deleteForm.matches('#person-action form,#bulk-people-form') && deleteForm.elements.operation.value !== 'delete') return;
             if (approved) { approved = false; return; }
             event.preventDefault(); event.stopImmediatePropagation();
             if (checking) return;
@@ -1007,21 +1084,55 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('[data-campaign-cancel-section]').forEach(button => button.addEventListener('click', () => { button.form.reset(); button.closest('details').open = false; }));
     // Campaign checklist, recipient pickers and planning tools.
     $$('[data-recipient-picker]').forEach(picker => {
-        const choices = $$('[data-recipient-choice]', picker), summary = $('[data-recipient-summary]', picker), original = picker.dataset.emptyLabel;
+        const choices = $$('[data-recipient-choice]', picker), summary = $('[data-recipient-summary-label]', picker), original = picker.dataset.emptyLabel;
+        const updateSummary = () => {
+            const selected = choices.filter(choice => $('input', choice).checked).map(choice => $('span', choice).textContent.trim());
+            summary.textContent = selected.length ? selected.join(', ') : original;
+        };
         $('[data-recipient-search]', picker).addEventListener('input', event => choices.forEach(choice => { choice.hidden = !choice.textContent.toLowerCase().includes(event.target.value.toLowerCase()); }));
         $$('input[type=checkbox]', picker).forEach(input => input.addEventListener('change', () => {
             if ($$('input[type=checkbox]:checked', picker).length > 10) { input.checked = false; input.setCustomValidity('Select up to 10 tags or segments.'); input.reportValidity(); }
             input.setCustomValidity('');
-            const selected = $$('input[type=checkbox]:checked', picker);
-            summary.firstChild.textContent = selected.length ? `${selected.length} selected` : original;
+            updateSummary();
         }));
+        picker.addEventListener('focusout', () => requestAnimationFrame(() => { if (!picker.contains(document.activeElement)) picker.open = false; }));
+        document.addEventListener('click', event => { if (!picker.contains(event.target)) picker.open = false; });
+        picker.addEventListener('keydown', event => { if (event.key === 'Escape' && picker.open) { event.preventDefault(); picker.open = false; $('[data-recipient-summary]', picker).focus(); } });
+        picker.closest('form').addEventListener('reset', () => requestAnimationFrame(() => { updateSummary(); picker.open = false; }));
+        updateSummary();
     });
+    $$('[name=personalize_to]').forEach(input => {
+        const fields = $('[data-campaign-personalization]', input.form);
+        const updatePersonalization = () => { fields.hidden = !input.checked; $('select', fields).disabled = !input.checked; };
+        input.addEventListener('change', updatePersonalization);
+        input.form.addEventListener('reset', () => requestAnimationFrame(updatePersonalization));
+        updatePersonalization();
+    });
+    $('[data-campaign-recipient-preview]')?.form.addEventListener('reset', event => { $('[data-campaign-recipient-count]', event.currentTarget).textContent = ''; });
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
     $('[data-campaign-recipient-preview]')?.addEventListener('click', async event => {
         const button = event.currentTarget, form = button.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
         // The hidden field named action shadows HTMLFormElement.action. Preserve the campaign query.
         const endpoint = form.getAttribute('action') || location.href;
-        button.disabled = true; try { const result = await request(endpoint, {method:'POST', body}); output.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`; } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+        const dialog = $('#campaign-recipient-preview'), status = $('[data-campaign-recipient-preview-status]', dialog), results = $('[data-campaign-recipient-results]', dialog);
+        results.replaceChildren(); status.textContent = 'Loading recipients…'; output.textContent = '';
+        show(dialog.id); button.disabled = true;
+        try {
+            const result = await request(endpoint, {method:'POST', body});
+            output.textContent = status.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`;
+            if (result.people.length) {
+                const table = el('table'), head = el('tr'), rows = el('tbody');
+                head.append(el('th', {scope:'col'}, 'Name'), el('th', {scope:'col'}, 'Email address'));
+                const heading = el('thead'); heading.append(head); table.append(heading, rows);
+                result.people.forEach(person => {
+                    const row = el('tr'), name = [person.first_name, person.last_name].filter(Boolean).join(' ').trim();
+                    row.append(el('td', {}, name || '—'), el('td', {}, person.email)); rows.append(row);
+                });
+                results.append(table);
+                if (result.count > result.people.length) results.append(el('p', {class:'audience-help'}, `Showing the first ${result.people.length} recipients, sorted by email address.`));
+            } else results.append(el('p', {}, 'No subscribed, active connections match these selections.'));
+        } catch (error) { output.textContent = status.textContent = error.message; }
+        finally { button.disabled = false; }
     });
     $('[data-campaign-date-preset]')?.addEventListener('change', event => { const form = event.target.form; $$('input[type=date]', form).forEach(input => { input.readOnly = !['','custom'].includes(event.target.value); if (event.target.value === '') input.value = ''; }); });
     const sendForm = $('[name=send_mode]')?.form;
@@ -1090,19 +1201,37 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('input[type=file]').forEach(input=>enhanceAudienceFileInput(input));
     $$('[data-brand-form] input[type=color]').forEach(input => enhanceColorInput(input,{tile:true}));
     const contentStatus = (form, message) => { const status = $('[data-content-status]', form); if (status) status.textContent = message; };
+    const brandDirtyStates = new WeakMap();
+    $$('[data-brand-form]').forEach(form => {
+        const controls = Array.from(form.elements).filter(input => input.name && !['csrf_token','action','version'].includes(input.name) && !['file','submit','button'].includes(input.type));
+        const value = input => ['checkbox','radio'].includes(input.type) ? input.checked : input.value;
+        const saved = new Map(controls.map(input => [input, value(input)]));
+        const buttons = $$('[data-brand-save]').filter(button => button.form === form);
+        const status = $('[data-brand-unsaved-status]', form); let previous = false;
+        const update = () => {
+            const dirty = form.dataset.brandRecovery === '1' || controls.some(input => value(input) !== saved.get(input));
+            buttons.forEach(button => button.classList.toggle('brand-save-unsaved', dirty));
+            if (status && dirty !== previous) status.textContent = dirty ? 'Unsaved brand settings.' : 'No unsaved brand settings.';
+            previous = dirty;
+        };
+        brandDirtyStates.set(form, update); form.addEventListener('input', update); form.addEventListener('change', update);
+        form.addEventListener('reset', () => queueMicrotask(update)); update();
+    });
     const brandLogoDimensions = (form,key) => {
         const preview=$(`[data-content-preview="${key}"]`,form),label=$(`[data-brand-logo-dimensions="${key}"]`,form);
         if(label)label.textContent=form.elements[key].value&&preview?.naturalWidth?`${preview.naturalWidth} × ${preview.naturalHeight}${form.elements[key].value.startsWith('data:image/svg+xml;')?' · SVG (vector)':' pixels'}`:'';
     };
     $$('[data-brand-form] [data-content-preview]').forEach(preview=>{
-        const update=()=>brandLogoDimensions(preview.closest('form'),preview.dataset.contentPreview);
+        const update=()=>{brandLogoDimensions(preview.closest('form'),preview.dataset.contentPreview);fitBrandLogoPreview(preview);};
         preview.addEventListener('load',update);update();
+        const stage=preview.closest('.content-brand-logo-stage');if(stage&&typeof ResizeObserver!=='undefined')new ResizeObserver(()=>fitBrandLogoPreview(preview)).observe(stage);
     });
     const setContentImage = (form, key, value) => {
         form.elements[key].value = value;
         const preview = $(`[data-content-preview="${key}"]`, form);
-        if (preview) { preview.src = value; preview.hidden = !value; }
+        if (preview) { preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
         if(!value)brandLogoDimensions(form,key);
+        brandDirtyStates.get(form)?.();
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
             if (form.elements[key].value !== value) return;
@@ -1133,7 +1262,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     $$('[data-content-upload],[data-brand-font]').forEach(input => input.addEventListener('change', async () => {
         const form = input.form; if (!form) return;
         const state=contentUploads.get(form),token={};
-        if(!state.pending.size){state.buttons=$$('button:not([type]),button[type="submit"],input[type="submit"]',form).map(button=>[button,button.disabled]);state.buttons.forEach(([button])=>button.disabled=true);}
+        if(!state.pending.size){state.buttons=Array.from(form.elements).filter(button=>button.matches('button,input')&&button.type==='submit').map(button=>[button,button.disabled]);state.buttons.forEach(([button])=>button.disabled=true);}
         state.pending.set(input,token);form.setAttribute('aria-busy','true');
         try {
             const file = selectedUploadFile(input); if (!file) return;
@@ -1184,6 +1313,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
                 setFileDropStatus(input,`${prepared.name} — ready to save.`);
                 contentStatus(form,'Logo ready. Both logos use the default logo’s pixel dimensions. Save to keep your changes.');return;
             }
+            brandDirtyStates.get(form)?.();
             setFileDropStatus(input,`${prepared.name} · ${prepared.optimized?imageFileSize(prepared.originalBytes)+' → ':''}${imageFileSize(prepared.bytes)} — ready to save.`);
             contentStatus(form,prepared.optimized?`Image optimized: ${imageFileSize(prepared.originalBytes)} → ${imageFileSize(prepared.bytes)} · ${prepared.width} × ${prepared.height} pixels. Save to keep this version.`:`Image ready · ${imageFileSize(prepared.bytes)}. Save to keep your changes.`);
         } catch(error) { if(state.pending.get(input)===token){input.value='';setFileDropStatus(input,error.message,true);contentStatus(form,error.message);} }
@@ -1194,6 +1324,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         if(input){finishContentUpload(button.form,input,contentUploads.get(button.form).pending.get(input));input.value='';setFileDropStatus(input);}
         setContentImage(button.form, button.dataset.contentClear, '');
         if(button.dataset.contentClear==='web_font'){button.form.elements.web_font_name.value='';button.form.elements.font_license.checked=false;}
+        brandDirtyStates.get(button.form)?.();
         contentStatus(button.form, 'Removed from this form. Save to keep the change.');
     }));
     const contentEditor = $('[data-content-editor]');
