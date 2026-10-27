@@ -303,7 +303,10 @@ trait AudienceCollection
             if ($fresh['state']!=='published' || (int)$fresh['published_revision']!==(int)$p['revision']) throw new InvalidArgumentException('This form has changed. Reload and try again.');
             if(!empty($r['document']['close_at'])&&$r['document']['close_at']<=gmdate('Y-m-d\TH:i'))throw new InvalidArgumentException('This survey is closed.');
             $hash=hash('sha256',$p['nonce']);
-            if ($this->one('SELECT id FROM marketing_collection_responses WHERE audience_id=? AND resource_id=? AND receipt_hash=?',[$this->audienceId,$r['id'],$hash])) return ['confirmed'=>$r['document']['opt_in']==='double','duplicate'=>true];
+            if ($prior=$this->one('SELECT payload_ciphertext FROM marketing_collection_responses WHERE audience_id=? AND resource_id=? AND receipt_hash=?',[$this->audienceId,$r['id'],$hash])) {
+                $answers=json_decode(\Dnr\Security\ApplicationKey::open($prior['payload_ciphertext']),true,64,JSON_THROW_ON_ERROR);
+                return ['confirmed'=>$answers['confirmation_required']??($r['document']['opt_in']==='double'),'duplicate'=>true];
+            }
             $d=$r['document']; $answers=[]; $contact=null; $confirmation=false;
             if ($r['kind']==='survey') {
                 $answers=audienceCollectionAnswers($d,$input);
@@ -409,7 +412,12 @@ trait AudienceCollection
         if ($confirmation) { $ses=$this->sesSettings(); if (audienceSesReasons($ses,$ses['from_email']??'')) throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.'); }
         $person=$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND email=? FOR UPDATE',[$this->audienceId,$email]);
         $newPerson=!$person;
-        $blocked=$this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]) || ($person && ($person['deleted_at'] || $person['is_archived'] || $person['email_status']==='cleaned'));
+        $deleted=$this->one('SELECT deleted_at FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=? FOR SHARE',[$this->audienceId,$hash]);
+        $resubscribe=$deleted&&(!$person||($person['email_status']==='pending'&&$person['created_at']>=$deleted['deleted_at']));
+        $blocked=($deleted&&!$resubscribe&&audienceDeletedEmailSuppressed($this->db,$this->audienceId,(int)$person['id'],$hash)) || ($person && ($person['deleted_at'] || $person['is_archived'] || $person['email_status']==='cleaned'));
+        $confirmation=$confirmation||$resubscribe;
+        // A deleted address must verify ownership again even on a single opt-in form.
+        if($resubscribe){$ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.');}
         if (!$blocked) {
             $wasSubscribed=$person&&$person['email_status']==='subscribed';
             $optout=(bool)$this->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]);
@@ -429,14 +437,14 @@ trait AudienceCollection
                     // Single opt-in never overrides a previous opt-out, even if
                     // the confirmation service is currently unavailable.
                     if (!audienceSesReasons($ses,$ses['from_email']??'')) {
-                        try{$this->requestSubscriptionConfirmation((int)$person['id'],$base,['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A']);}catch(InvalidArgumentException $e){if($d['opt_in']==='double')throw $e;}
+                        try{$this->requestSubscriptionConfirmation((int)$person['id'],$base,['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A']);}catch(InvalidArgumentException $e){if($d['opt_in']==='double'||$resubscribe)throw $e;}
                     }
                 }
                 else $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);
             }
             if(!$wasSubscribed&&!$confirmation)$this->recordCollectionConversion((int)$person['id'],['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'],'single');
         }
-        return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'email_format'=>$format,'quiz'=>audienceText($input,'quiz',200)],$d['opt_in']==='double'];
+        return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'email_format'=>$format,'quiz'=>audienceText($input,'quiz',200),'confirmation_required'=>$confirmation],$confirmation];
     }
 
     /** Public repeat signups cannot overwrite an existing contact's preference. */

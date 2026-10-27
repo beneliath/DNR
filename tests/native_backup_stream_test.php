@@ -8,6 +8,7 @@ function transformTestBackup(string $input, bool $encrypt, string $password = 't
 }
 foreach ([1, 65536, 131077] as $size) {
     $plain = random_bytes($size); $encrypted = transformTestBackup($plain, true);
+    if (!str_starts_with($encrypted, "DNRBACKUP-ENC-2\n")) throw new RuntimeException('Already-compressed native archives must retain their compatible envelope.');
     if (transformTestBackup($encrypted, false) !== $plain) throw new RuntimeException('Stream round trip failed.');
 }
 $changed = $encrypted; $changed[strlen($changed) - 1] = chr(ord($changed[strlen($changed) - 1]) ^ 1);

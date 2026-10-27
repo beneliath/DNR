@@ -12,7 +12,8 @@ function transformNativeBackupStream($input, $output, string $password, bool $en
             $salt = random_bytes(SODIUM_CRYPTO_PWHASH_SALTBYTES);
             $key = databaseBackupDeriveEncryptionKey($password, $salt);
             [$state, $header] = sodium_crypto_secretstream_xchacha20poly1305_init_push($key);
-            databaseBackupWriteBytes($output, DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC . $salt . $header);
+            // Native input is already SQL/gzip or tar/gzip; retain its existing envelope.
+            databaseBackupWriteBytes($output, DNR_DATABASE_BACKUP_ENCRYPTED_UNCOMPRESSED_MAGIC . $salt . $header);
             $chunk = fread($input, DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES);
             if ($chunk === false || $chunk === '') throw new RuntimeException('Empty native backup.');
             do {
@@ -25,9 +26,9 @@ function transformNativeBackupStream($input, $output, string $password, bool $en
                 $chunk = $next;
             } while (!$final);
         } else {
-            $magic = databaseBackupReadExactBytes($input, strlen(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC));
+            $magic = databaseBackupReadExactBytes($input, strlen(DNR_DATABASE_BACKUP_ENCRYPTED_UNCOMPRESSED_MAGIC));
             $legacy = hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC, $magic);
-            if (!$legacy && !hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC, $magic)) throw new RuntimeException('Invalid encrypted backup.');
+            if (!$legacy && !hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_UNCOMPRESSED_MAGIC, $magic)) throw new RuntimeException('Invalid encrypted backup.');
             $salt = databaseBackupReadExactBytes($input, SODIUM_CRYPTO_PWHASH_SALTBYTES);
             $key = databaseBackupDeriveEncryptionKey($password, $salt, $legacy);
             $state = sodium_crypto_secretstream_xchacha20poly1305_init_pull(databaseBackupReadExactBytes($input,

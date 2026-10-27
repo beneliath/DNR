@@ -74,7 +74,8 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
                 $sealed=json_decode(\Dnr\Security\ApplicationKey::open($recipient['context_ciphertext']),true,64,JSON_THROW_ON_ERROR);
                 $messageSnapshot=$snapshot;if(($recipient['phase']??'')==='resend')$messageSnapshot['is_resend']=true;$message=audienceDispatchMessage($messageSnapshot,$sealed['context'],$sealed['token'],$recipient['message_id'],(string)($recipient['variant_key']??'0'));
                 $person=$db->execute_query('SELECT id,audience_id,email,email_status,is_archived,deleted_at FROM marketing_contacts WHERE id=? AND audience_id=1',[$recipient['contact_id']])->fetch_assoc();
-                $optout=$db->execute_query('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=1 AND email_hash=? UNION ALL SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=1 AND email_hash=?',[$recipient['email_hash'],$recipient['email_hash']])->fetch_assoc();
+                $optout=$db->execute_query('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=1 AND email_hash=?',[$recipient['email_hash']])->fetch_assoc()
+                    || audienceDeletedEmailSuppressed($db,1,(int)$recipient['contact_id'],$recipient['email_hash']);
                 if(!$person||$person['deleted_at']||$person['is_archived']||$person['email_status']!=='subscribed'||!hash_equals($recipient['email_hash'],audienceDispatchEmailHash($person['email']))||$optout){$state='suppressed';$error='No longer an eligible subscribed connection.';}
                 else{
                     // Persist the ambiguity boundary before entering the external transport.

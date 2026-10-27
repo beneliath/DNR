@@ -166,11 +166,11 @@ try {
             </p>
             <?php if ($estimated_backup_bytes !== null): ?>
                 <p class="<?php echo $estimated_backup_bytes >= $maximum_backup_bytes * 0.8 ? 'database-warning' : 'maintenance-note'; ?>">
-                    Estimated backup size: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($estimated_backup_bytes)); ?>
+                    Estimated uncompressed backup data: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($estimated_backup_bytes)); ?>
                     of <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.
-                    This estimate includes uploaded files and database statistics; the actual export may be larger.
+                    This estimate includes uploaded files and database statistics. Downloads are compressed before encryption; the final file size depends on the contents. The limit applies to uncompressed data, which may differ from this estimate.
                     <?php if ($estimated_backup_bytes >= $maximum_backup_bytes): ?>
-                        The estimated backup exceeds the browser export limit. Ask your administrator to back up the database and uploaded files together on the server.
+                        The estimated uncompressed data exceeds the browser export limit. Ask your administrator to back up the database and uploaded files together on the server.
                     <?php elseif ($estimated_backup_bytes >= $maximum_backup_bytes * 0.8): ?>
                         Capacity is approaching the export limit. Arrange a coordinated database and file-storage backup before adding more attachments.
                     <?php endif; ?>
@@ -204,7 +204,7 @@ try {
             </form>
             <p id="database-backup-status" class="database-backup-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
             <p class="maintenance-note">
-                Encryption uses Argon2id and XChaCha20-Poly1305. Maximum backup data size:
+                Backups are compressed and then encrypted. Maximum uncompressed backup data:
                 <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.
             </p>
         </section>

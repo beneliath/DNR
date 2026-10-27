@@ -51,7 +51,8 @@ function processAudienceServiceMail(mysqli $db,int $limit=5,?callable $deliver=n
             if($job['kind']==='subscription-notice'){
                 $person=$db->execute_query("SELECT id FROM marketing_contacts WHERE audience_id=1 AND id=? AND email=? AND email_status='subscribed' AND is_archived=0 AND deleted_at IS NULL",[$job['contact_id'],$message['email']])->fetch_assoc();
                 $hash=audienceDispatchEmailHash($message['email']);
-                $blocked=$db->execute_query('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=1 AND email_hash=? UNION ALL SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=1 AND email_hash=? LIMIT 1',[$hash,$hash])->fetch_assoc();
+                $blocked=$db->execute_query('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=1 AND email_hash=?',[$hash])->fetch_assoc()
+                    || audienceDeletedEmailSuppressed($db,1,(int)$job['contact_id'],$hash);
                 if(!$person||$blocked)throw new DomainException('Subscription notice is no longer eligible.');
             }
             if($job['kind']==='audience-alert'){require_once __DIR__.'/audience_notification_runtime.php';audienceChangeAlertReady($db,$message);}
