@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-27",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.8.3"
+  },
+  "production_guidance_revision": "135916734abf4b6300bafc3cca9bc3a40abaa233e06e91b506083a4cd9d0030b",
+  "local_builder_guidance_revision": "135916734abf4b6300bafc3cca9bc3a40abaa233e06e91b506083a4cd9d0030b",
+  "tested_base_commit": "8636459c3db099f08272a227a8adc2e6348eeb49",
+  "pending_in_batch": 16,
+  "new_signal_versions": 2,
+  "unchanged_previously_reviewed_signals": 14,
+  "requests": [
+    {
+      "id": 41,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "e6e567cbffdaf7c06a68d69c975c3b774a43d72f6a6af273591e329cdafbe426",
+      "original_application_version": "2.8.1",
+      "disposition": "fixed_locally",
+      "summary": "Explicit campaign cardinality is preserved instead of silently converted to a day range or unnecessarily confirmed.",
+      "original_duration_ms": 48022,
+      "local_replay_seconds": 4.847,
+      "local_model_calls": 3
+    },
+    {
+      "id": 42,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "e6e567cbffdaf7c06a68d69c975c3b774a43d72f6a6af273591e329cdafbe426",
+      "original_application_version": "2.8.1",
+      "disposition": "verified",
+      "summary": "Follow-up produced the correct recent-campaign report using retained conversation context; no separate correction required.",
+      "original_duration_ms": 32019,
+      "local_replay_seconds": 7.331,
+      "local_model_calls": 4
+    }
+  ],
+  "investigation": {
+    "cause": "Clarification handling treated missing report_metrics as an unavailable measurement even when the unresolved issue was scope or the dimension used fixed native observations. Independent model review also allowed a literal campaign count to become a calendar-day range.",
+    "correction": "Scope clarifications have an explicit typed kind. A narrow cardinality check grounds literal, unambiguous recent-campaign counts within the existing 1\u201310 bound before independent plan review. A request to confirm an already supplied count is replanned without reading records. Other unresolved measures retain their conservative gate.",
+    "before_local_seconds": 17.131,
+    "before_local_scope_failure": true,
+    "after_local_seconds": 4.847,
+    "followup_local_seconds": 7.331,
+    "manual_verification": "MessageMonkey Comprehensive User Guide chapter 13 instructs users to set report period and scope and inspect supplied evidence. Native tool definitions distinguish recent campaign cardinality from calendar days. No documentation behavior changed, so no PDF/index rebuild was needed.",
+    "replays": "Original request used as private untracked input with synthetic in-memory campaigns and links. Follow-up context reconstructed from the retained preceding response state; the original queued job payload was not exported. No production inference or records were used."
+  },
+  "regression_failed_before_fix": true,
+  "verification": {
+    "query_checks": 141,
+    "finding_checks": 37,
+    "validation_role_checks": 40,
+    "audience_http_checks": 1339,
+    "ai_http_checks": 128,
+    "roles": [
+      "admin",
+      "editor",
+      "reviewer"
+    ],
+    "nearby_intents": [
+      "literal day ranges",
+      "missing campaign counts",
+      "unavailable financial measurements",
+      "negated selections",
+      "date-qualified or conflicting campaign counts",
+      "existing conversation follow-ups"
+    ]
+  },
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/integration_environment.py audience",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "9d25ef6fabc559d9ce5b25ed8ea7a3960b8fa913a9e3e9a77438087765c91f55"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "df82577fbcb457ffe05166137f0de6e40e8589b48a78360da6dde53087bee309"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "17c43ba2fbbebdeca24a9b75894816c97e9f53cf138f1fc8184d74f7d49a6292"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "5185d19f49a1f1b7be200615b247525b635b9431a68337bf9024b9ba3159fbf3"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "623725ab407c700a70ee59aff253315c4e386a308fdad10bcba2590bfc862bf4"
+    },
+    {
+      "path": "tests/audience_ai_test.php",
+      "sha256": "11ba09e581163155f0bca175630134b5849dd8c914eba69265adda98d74deeb4"
+    },
+    {
+      "path": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "sha256": "a22877cac01a3e9c283667ec16c470ab5ac2ccca3dc0bd02c0270188c8bdf412"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "0e74b850d07a4a764365d9155b9bbcab40db48390ce3e37a918344664dc6c30e"
+    }
+  ],
+  "limitations": [
+    "Grounding applies only to recognized literal campaign-count forms. Ambiguous, composite, date-qualified and out-of-range requests retain normal model review.",
+    "Local timing is synthetic and does not establish post-deployment production latency.",
+    "Previously deferred visual/control, availability and derived-metric latency findings have no new resolving evidence and remain deferred."
+  ],
+  "production_versions_rechecked": true,
+  "shared_branch_observed": "codex/continued-patch-fixes",
+  "shared_branch_unchanged": true,
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR"
+}

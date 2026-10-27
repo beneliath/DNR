@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-24",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.7.4"
+  },
+  "production_guidance_revision": "79ccd15e36046fd570586cab5c9bd9cd414f384f345f6b16b50f3f0cdbced730",
+  "local_builder_guidance_revision": "79ccd15e36046fd570586cab5c9bd9cd414f384f345f6b16b50f3f0cdbced730",
+  "pending_in_batch": 14,
+  "new_signal_versions": 2,
+  "unchanged_previously_reviewed_signals": 12,
+  "requests": [
+    {
+      "id": 33,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "d3f87e7a414b5b40b3c4dcae905ca256d22352a7372f0568cf70386f12834d3f",
+      "original_application_version": "2.7.0",
+      "disposition": "deferred",
+      "summary": "Slow derived-metric report remains unresolved; extended reasoning retained because earlier ratio probes demonstrated an accuracy risk from removing it. Email-report scope has a separate verified local clarification.",
+      "original_duration_ms": 50634,
+      "original_model_stage_ms": [
+        14204.85,
+        32730.69,
+        3576.1
+      ],
+      "local_synthetic_replay_seconds": 75.83,
+      "local_model_stage_seconds": [
+        16.619,
+        53.045,
+        6.161
+      ]
+    },
+    {
+      "id": 34,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "d3f87e7a414b5b40b3c4dcae905ca256d22352a7372f0568cf70386f12834d3f",
+      "original_application_version": "2.7.3",
+      "disposition": "deferred",
+      "summary": "Slow derived-metric report remains unresolved; extended reasoning retained because earlier ratio probes demonstrated an accuracy risk from removing it. Email-report scope has a separate verified local clarification.",
+      "original_duration_ms": 62680,
+      "original_model_stage_ms": [
+        15747.43,
+        42130.78,
+        4698.07
+      ],
+      "local_synthetic_replay_seconds": 37.534,
+      "local_model_stage_seconds": [
+        3.615,
+        20.298,
+        13.617
+      ]
+    }
+  ],
+  "local_corrections": [
+    "Email-report source scope now states that test emails are excluded.",
+    "Report limitations explain that test activity is tracked separately in Email delivery \u2192 Activity and distinguish provider acceptance from receipt-confirmed delivery.",
+    "Audience-growth reports do not receive the email-specific warning."
+  ],
+  "verification": {
+    "regression_failed_before_fix": true,
+    "post_fix_model_seconds": 54.735,
+    "fresh_answer_included_verified_scope_clarification": true,
+    "latency_fixed": false,
+    "query_checks": 125,
+    "finding_checks": 37,
+    "validation_role_checks": 40,
+    "audience_http_checks": 1291,
+    "ai_http_checks": 128,
+    "analytics_http_checks": 129,
+    "manual_note": "The current Comprehensive Manual index has no MessageMonkey/provider-acceptance topic. The clarification was verified directly against actual analytics SQL, test-email queuing, Activity navigation and report rendering. No manual or index change was made."
+  },
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/integration_environment.py audience",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "df82577fbcb457ffe05166137f0de6e40e8589b48a78360da6dde53087bee309"
+    },
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "e21cbf88d96efeb9a2ca68d28f0e1003d1a7ce70dbabf693f211515c4afb57a3"
+    },
+    {
+      "path": "src/audience_ai_findings.php",
+      "sha256": "5e2fa1d2663942a2d84810eb7472b077044ee9715fc19b1839f3a654b216c704"
+    },
+    {
+      "path": "src/audience_analytics.php",
+      "sha256": "49c5206935197facb53f86e83522171f6076fe5fec87333d22da45569af00236"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "17c43ba2fbbebdeca24a9b75894816c97e9f53cf138f1fc8184d74f7d49a6292"
+    },
+    {
+      "path": "src/audience_delivery_runtime.php",
+      "sha256": "ccba9101d9988f3562f392bab0044fcf98508f05d84225849947ed116f02d70b"
+    },
+    {
+      "path": "src/audience_campaign_controller.php",
+      "sha256": "f568f06dec4aa44de304ec1f6a35f17b3cfcf1eb2d3af6cc9b7729347d4edae9"
+    },
+    {
+      "path": "src/assets/js/audience-ai.js",
+      "sha256": "f4b68fa433685fb2bde056ed25a7f4f559a2bf4a4a70ebde36e9042490d26f25"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "a3994e0726078e6df444127211b9a1833244292059794bd9a89794d93be3bd95"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "cc706c76595cc8e295dc40d5716102ea0b855fa8388c0dc98a54626b797661f1"
+    }
+  ],
+  "limitations": [
+    "Derived-metric report latency remains deferred; no safe general performance correction was verified in this batch.",
+    "Fresh replays used synthetic in-memory data and the local development model, not production records or production inference.",
+    "The clarification does not add a test-message analytics query tool or guarantee complete semantic coverage of every compound question.",
+    "Previously deferred visual/control and historical availability findings have unchanged signal versions and no new resolving evidence."
+  ],
+  "production_versions_rechecked": true,
+  "shared_checkout_branch_observation": "main",
+  "shared_checkout_branch_unchanged": true,
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR"
+}

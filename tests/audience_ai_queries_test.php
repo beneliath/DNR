@@ -132,6 +132,10 @@ $expect(audienceAiReply($raw($direct),['mode'=>'analytics','operation'=>'analyze
 $expect($params[0]===73&&!str_contains($sql,'john%_smith')&&in_array('%john!%!_smith%',$params,true),'Account scope and literal wildcard search use bound parameters.');
 $report=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'limit'=>5])]]);
 $expect(count($report['facts'])===1&&str_contains($report['facts'][0]['label'],'Total sends'),'Report queries return only requested metrics.');
+$expect(str_contains($report['scope_description'],'Email reports exclude test emails'),'Report scope visibly distinguishes campaign-recipient data from test activity.');
+$expect(str_contains(implode(' ',$report['limitations']),'acceptance is not confirmed delivery'),'Email evidence distinguishes provider acceptance from receipt-confirmed delivery.');
+$growthScope=$tools->execute(['queries'=>[['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['added'],'limit'=>5]]]);
+$expect(!str_contains($growthScope['scope_description'],'test emails')&&!str_contains(implode(' ',$growthScope['limitations']),'Provider acceptance'),'Email-specific scope does not contaminate audience-growth reports.');
 $recent=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','dimension'=>'links','recent_campaigns'=>3])]]);
 $expect($recent['window']['messages_mode']==='selected'&&$recent['window']['messages']===[7,8,9],'Recent-campaign selection is passed to the native tracking query.');
 $period=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'last_days'=>30])]]);
@@ -258,6 +262,11 @@ $expect($draft['queries'][0]['limit']===100&&$draft['queries'][0]['filters']===[
 $draft=$tools->clarificationPlan(['queries'=>[]],$reportState,'continuation',[],'report','Which supported measure should be used?');
 $expect($draft['queries']===$reportState['queries'],'Unsupported report measures preserve the previously verified campaign selection while asking for clarification.');
 $review=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
+$expect($review['think']===true,'Report catalogs with derived metrics retain ratio and denominator reasoning.');
+$growthQuery=['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['net'],'limit'=>5,'last_days'=>90];
+$growthReview=$tools->planReviewPayload('Show audience growth over the last quarter.',audienceAiDialogueState([]),['queries'=>$tools->validate(['queries'=>[$growthQuery]])]);
+$expect($growthReview['think']===false&&$growthReview['options']['num_predict']<=700,'Count-only report verification avoids extended reasoning while retaining independent checks.');
+$expect(isset($growthReview['format']['properties']['valid'],$growthReview['format']['properties']['unresolved'],$growthReview['format']['properties']['report_metrics']),'Fast report review retains validity, clarification, and independent metric selection.');
 $expect(!in_array('clarification',$review['format']['properties']['result_type']['enum'],true)&&$review['format']['properties']['conditions']['maxItems']===0,'Report validation cannot contradict its own ambiguity decision or invent contact filters.');
 $reviewContext=json_decode($review['messages'][1]['content'],true);
 $expect(!isset($reviewContext['proposed']['queries'][0]['metrics'])&&isset($reviewContext['conversation']['queries'][0]['metrics']),'Measurement intent is selected independently of unverified planner columns while retaining verified conversational scope.');
@@ -335,5 +344,37 @@ $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$ca
 };
 $answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Compare profitability for the latest two campaigns.']),microtime(true)+45,null,$transport,$tools);
 $expect($calls===2&&count($store->reads)===$readsBefore&&$answer['interpretation']==='clarification'&&$answer['conversation_state']['queries'][0]['recent_campaigns']===2&&$answer['conversation_state']['queries'][0]['metrics']===[],'An unavailable measure asks for clarification without substituting engagement metrics or losing the known campaign selection.');
+foreach (['Show the last 2 campaigns'=>2,'Compare the latest four email campaigns'=>4,'Most recent ten campaigns'=>10] as $text=>$count) $expect(audienceAiExplicitCampaignCount($text)===$count,'Explicit cardinality uses campaign units.');
+foreach (['Show the last 3 days','Compare the last 2 campaigns and last 4 campaigns','Not the last 3 campaigns',"Don't use the last 3 campaigns",'Avoid the latest four campaigns','The last 3 campaigns in the past 30 days','Latest 11 campaigns','The last 3 campaign days'] as $text) $expect(audienceAiExplicitCampaignCount($text)===null,'Ambiguous, unsupported or date-qualified selections are not silently rewritten.');
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{
+    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'last_days','days'=>4],'limit'=>7]));
+    return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>true,'correction'=>'']);
+};
+$answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Show clicked links in the latest four campaigns.']),microtime(true)+45,null,$transport,$tools);
+$expect($answer['evidence']['queries'][0]['recent_campaigns']===4&&$answer['evidence']['queries'][0]['last_days']===0,'A planner cannot silently replace an explicit campaign count with a day range.');
+// Synthetic ambiguity: a campaign count is already explicit, despite a draft asking for confirmation.
+foreach (['admin','editor','reviewer'] as $role) {
+    $calls=0;
+    $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
+        $calls++;
+        if ($calls===1) return $raw(['context'=>'new_topic','requests'=>[],'clarification'=>['issue'=>'missing_criterion','question'=>'Campaigns or days?']]);
+        if ($calls===2) return $raw(['unresolved'=>[['phrase'=>'latest four campaigns','question'=>'Do you mean four campaigns or four days?','kind'=>'scope']],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>false,'correction'=>'Confirm scope.']);
+        if (isset($payload['format']['properties']['needed'])) return $raw(['needed'=>false,'conditions'=>[],'explanation'=>'The user already specified a count of campaigns.']);
+        if (isset($payload['tools'])) return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'recent_campaigns','count'=>4],'limit'=>7]));
+        return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>true,'correction'=>'']);
+    };
+    $answer=audienceAiGenerate(array_replace($reportRequest,['role'=>$role,'prompt'=>'Show clicked links in the latest four campaigns.']),microtime(true)+45,null,$transport,$tools);
+    $query=$answer['evidence']['queries'][0]??[];
+    $expect($calls===4&&($query['recent_campaigns']??0)===4&&($query['last_days']??-1)===0&&($query['dimension']??'')==='links'&&($query['limit']??0)===7,'An explicit campaign count is independently checked and replanned instead of re-asked for every role.');
+}
+$calls=0;$reportsBefore=count($store->reports);
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
+    $calls++;
+    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'selected']]));
+    if(isset($payload['format']['properties']['valid']))return $raw(['unresolved'=>[['phrase'=>'recent campaigns','question'=>'How many recent campaigns should I use?','kind'=>'scope']],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>false,'correction'=>'Missing campaign count.']);
+    return $raw(['needed'=>true,'conditions'=>[],'explanation'=>'No number of campaigns was supplied.']);
+};
+$answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Show links from recent campaigns.']),microtime(true)+45,null,$transport,$tools);
+$expect($calls===3&&count($store->reports)===$reportsBefore&&$answer['interpretation']==='clarification','A genuinely missing campaign count still clarifies before reading reports.');
 putenv('DNR_AI_COACH_URL');
 echo "Audience AI read-only query tools passed ($checks checks).\n";

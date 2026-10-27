@@ -328,6 +328,10 @@ final class AudienceAiQueries
         $hasReport=(bool)array_filter($queries,static fn($query)=>$query['tool']==='report');
         if(!$hasReport)$evidence['window']=array_intersect_key(audienceAiReportWindow(array_replace($this->window,['dataset'=>'audience'])),array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));
         $evidence['scope_description']=$hasReport?'Requested native reports · '.$evidence['window']['start'].' to '.$evidence['window']['end'].' UTC':'Current audience records · Current account';
+        if (array_filter($queries, static fn($query) => $query['tool'] === 'report' && $query['dataset'] === 'email')) {
+            $evidence['scope_description'] .= ' · Email reports exclude test emails';
+            $evidence['limitations'][] = 'Email reports use campaign-recipient records. Test emails are tracked separately in Email delivery → Activity. Provider acceptance is not confirmed delivery; confirmed delivery counts require delivery receipts.';
+        }
         $evidence['limitations']=array_values(array_unique($evidence['limitations']));
         return $evidence;
     }
