@@ -1,6 +1,6 @@
 # MessageMonkey Comprehensive User Guide
 
-This guide extends the shared online MessageMonkey manual with native, high-resolution application screenshots and offline navigation. The October 26, 2026 edition documents version 2.8.0. It uses fictional data in a separate local preview; no external email was sent.
+This guide extends the shared online MessageMonkey manual with native, high-resolution application screenshots and offline navigation. The October 27, 2026 edition documents version 2.8.3. It uses fictional data in a separate local preview; no external email was sent.
 
 ## Deliverables and sources
 
