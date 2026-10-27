@@ -3,6 +3,14 @@ declare(strict_types=1);
 require_once __DIR__.'/user_time_helpers.php';
 require_once __DIR__.'/audience_pagination.php';
 
+final class AudienceRateLimitException extends InvalidArgumentException
+{
+    public function __construct(public readonly string $publicMessageKey,string $message)
+    {
+        parent::__construct($message);
+    }
+}
+
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
 const AUDIENCE_PERMISSION_EVENT_TYPES=['contact_added','subscription_changed','subscription-confirmed','status','collection-converted'];
 

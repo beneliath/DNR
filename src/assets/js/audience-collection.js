@@ -1,4 +1,5 @@
 import { initializeAddressInputs } from './address-inputs.mjs';
+import { initializeInputModality } from './input-modality.mjs';
 import phoneInputs from './phone-input.js';
 import { renderAudiencePagination } from './audience-pagination.mjs';
 import { enhanceColorInput } from './audience-color-picker.mjs';
@@ -247,6 +248,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         const doc = frame.contentDocument;
         if (!doc) return;
         doc.documentElement.style.overscrollBehavior = 'contain';
+        initializeInputModality(doc);
         initializeAddressInputs(doc);
         if (doc.documentElement.dataset.phoneInputs !== 'native') phoneInputs.initializePhoneInputs(doc);
     };
