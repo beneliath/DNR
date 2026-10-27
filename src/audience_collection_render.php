@@ -1,6 +1,30 @@
 <?php
 declare(strict_types=1);
 
+function audienceCollectionHasAddress(array $resource,array $fields):bool
+{
+    foreach($fields as$field)if($field['is_public']&&$field['field_type']==='address'&&in_array('custom:'.$field['id'],$resource['document']['fields']??[],true))return true;
+    return false;
+}
+
+function audienceCollectionAddressControl(string $name,string $label,mixed $value,bool $required,array $messages,string $help):string
+{
+    $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+    $id='address-'.substr(hash('sha256',$name),0,12);$parts=audienceAddressParts($value);
+    $mark=$required?' <span aria-label="'.$h($messages['required']).'">*</span>':'';
+    $html='<fieldset class="collection-address address-section"'.($help!==''?' aria-describedby="'.$id.'-help"':'').'><legend>'.$h($label).$mark.'</legend><div class="collection-address-grid">';
+    $labels=['address1'=>'Address Line 1','address2'=>'Address Line 2','city'=>'City','region'=>'State / Province','postal_code'=>'Postal Code'];
+    $autocomplete=['address1'=>'address-line1','address2'=>'address-line2','city'=>'address-level2','region'=>'address-level1','postal_code'=>'postal-code'];
+    foreach($labels as$key=>$text){
+        $wide=in_array($key,['address1','address2'],true);
+        $html.='<div'.($wide?' class="collection-address-wide"':'').($key==='region'?' data-address-region-control data-address-region-for="'.$id.'" data-region-required="false"':'').'>';
+        $html.='<label for="'.$id.'-'.$key.'">'.$text.($key==='address1'?$mark:'').'</label><input type="text" id="'.$id.'-'.$key.'" name="'.$h($name.'['.$key.']').'" value="'.$h($parts[$key]).'" maxlength="300" autocomplete="section-'.$id.' '.$autocomplete[$key].'"'.($key==='address1'&&$required?' required':'').($key==='region'?' data-address-region-input':'').'></div>';
+    }
+    $html.='<div class="collection-address-wide"><label for="'.$id.'-country">Country</label>'.addressCountryPicker($name.'[country]',$parts['country']?:applicationDefaultCountry(),$id,$required,true).'</div></div>';
+    if($help!=='')$html.='<small class="collection-field-help" id="'.$id.'-help">'.$h($help).'</small>';
+    return $html.'</fieldset>';
+}
+
 function audienceCollectionControl(string $name,string $label,string $type,mixed $value,bool $required=false,array $options=[],array $messages=[],string $help=''): string
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
@@ -8,6 +32,7 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
     $description=$help!==''?' aria-describedby="'.$id.'-help"':'';
     $hint=$help!==''?'<small class="collection-field-help" id="'.$id.'-help">'.$h($help).'</small>':'';
     $messages=array_replace(audienceCollectionMessages(),$messages);$mark=$required?' <span aria-label="'.$h($messages['required']).'">*</span>':''; $v=is_scalar($value)?(string)$value:'';
+    if($type==='address'&&(!is_string($value)||substr_count($value,"\n")<=5))return audienceCollectionAddressControl($name,$label,$value,$required,$messages,$help);
     if (in_array($type,['radio','checkboxes'],true)) {
         $html='<fieldset'.$description.'><legend>'.$h($label).$mark.'</legend>';
         foreach ($options as $i=>$option) {
@@ -27,7 +52,7 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
     return $html.'<input id="'.$id.'" name="'.$h($name).'" type="'.$inputType.'" value="'.$h($v).'" maxlength="2000"'.($type==='number'?' step="any"':'').($type==='birthday'?' placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"':'').$need.$description.'>'.$hint;
 }
 
-/** A complete script-free document, shared by authenticated preview and public rendering. */
+/** Shared branded document; previews remain inert and address behavior is trusted application code. */
 function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string $error='',string $success='',?array $person=null,bool $preview=false,string $unavailable='',string $previewNonce=''): string
 {
     $d=array_replace(audienceCollectionDefaults($r['kind']==='confirm'||$r['kind']==='unsubscribe'?'hosted':$r['kind']),$r['document']); $messages=array_replace(audienceCollectionMessages(),$d['messages']); $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $nonce=contentSecurityPolicyNonce();
@@ -36,11 +61,13 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
         $nonce=$previewNonce;
     }
     $embedded=$r['kind']==='embedded';$embedOptions=array_replace(audienceCollectionEmbedDefaults(),$d['embedded']);
+    $hasAddress=audienceCollectionHasAddress($r,$fields);
+    $nativeAddress=$embedded&&($embedOptions['disable_javascript']||$embedOptions['remove_css']);
     $control=static fn($name,$label,$type,$value,$required=false,$options=[],$help='')=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages,$help);
     // All pages use their canonical content; historical variation receipts remain readable.
     ob_start();
     ?>
-    <!doctype html><html lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
+    <!doctype html><html<?= $nativeAddress?' data-address-inputs="native"':'' ?> lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
     <style nonce="<?= $h($nonce) ?>">
     <?php if($d['web_font']!==''): ?>@font-face{font-family:MOEDCollectionBrandFont;src:url(<?= audienceDesignWebFont($d['web_font']) ?>);font-display:swap}<?php endif; ?>
     :root{--collection-accent:<?= $d['color'] ?>;--collection-background:<?= $d['background'] ?>;--collection-text:<?= $d['text_color'] ?>;--collection-font:<?= $d['web_font']!==''?'MOEDCollectionBrandFont,':'' ?><?= $d['font'] ?>;--collection-width:<?= $d['width']?(int)$d['width'].'px':'100%' ?><?php if($r['kind']==='landing'||!empty($d['logo_resized'])): ?>;--collection-logo-width:<?= (int)$d['logo_width'] ?>px;--collection-logo-height:none<?php endif; ?>}
@@ -104,6 +131,10 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php endif; ?>
     <?php endif; ?>
     </main>
+    <?php if($hasAddress): ?>
+    <script type="application/json" id="address-region-data" nonce="<?= $h($nonce) ?>"><?= json_encode(addressRegionClientData(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
+    <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>"><?= file_get_contents(__DIR__.'/assets/js/address-inputs-public.min.js') ?></script><?php endif; ?>
+    <?php endif; ?>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>
     <script type="application/json" id="collection-resize-config"><?= json_encode(['key'=>$r['public_key'],'origins'=>$d['origins']],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
     <script nonce="<?= $h($nonce) ?>" src="<?= $h($r['resize_script']) ?>" defer></script>

@@ -202,7 +202,16 @@ try {
 
                 <button type="submit" class="button-add">Encrypt and Download Backup</button>
             </form>
-            <p id="database-backup-status" class="database-backup-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+            <div id="database-backup-status" class="database-backup-status" hidden>
+                <div class="database-backup-progress-heading">
+                    <strong id="database-backup-stage">Creating your backup</strong>
+                    <span id="database-backup-elapsed" class="database-backup-elapsed"></span>
+                </div>
+                <div id="database-backup-progress" class="database-backup-progress" role="progressbar"
+                    aria-labelledby="database-backup-stage" aria-describedby="database-backup-message"
+                    aria-valuemin="0" aria-valuemax="100"><span></span></div>
+                <p id="database-backup-message" role="status" aria-live="polite" aria-atomic="true"></p>
+            </div>
             <p class="maintenance-note">
                 Backups are compressed and then encrypted. Maximum uncompressed backup data:
                 <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.

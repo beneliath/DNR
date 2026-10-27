@@ -5,6 +5,10 @@
     const status = document.getElementById('database-backup-status');
     const tokenInput = document.getElementById('database-backup-token');
     const lastCreated = document.getElementById('database-backup-last-created');
+    const message = document.getElementById('database-backup-message');
+    const stage = document.getElementById('database-backup-stage');
+    const progress = document.getElementById('database-backup-progress');
+    const elapsed = document.getElementById('database-backup-elapsed');
     const button = form?.querySelector('button[type="submit"]');
     if (!form || !status || !tokenInput || !button || !window.crypto?.getRandomValues) return;
 
@@ -13,10 +17,25 @@
     let pending = false;
     let timer;
 
-    function showStatus(state, message) {
+    function showStatus(state, text) {
         status.dataset.state = state;
         status.hidden = false;
-        status.textContent = message;
+        (message || status).textContent = text;
+        if (stage) stage.textContent = state === 'success' ? 'Backup ready'
+            : state === 'warning' ? 'Check your downloads' : 'Creating your backup';
+        if (progress) {
+            progress.hidden = state === 'warning';
+            if (state === 'success') progress.setAttribute('aria-valuenow', '100');
+            else progress.removeAttribute('aria-valuenow');
+        }
+        if (elapsed) elapsed.hidden = state !== 'pending';
+    }
+
+    function updateElapsed(started) {
+        if (!elapsed) return;
+        const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
+        const label = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') + ' elapsed';
+        if (elapsed.textContent !== label) elapsed.textContent = label;
     }
 
     function finish() {
@@ -48,10 +67,13 @@
         fields.forEach(function (field) { field.readOnly = true; });
         document.getElementById('database-backup-error')?.remove();
         showStatus('pending', 'Creating and encrypting your backup. Your download will start when it is ready. Keep this page open.');
+        updateElapsed(started);
+        status.scrollIntoView?.({ block: 'nearest' });
 
         // Keep the native form download: large archives stream directly to the browser.
         // Failed requests navigate to the existing server-rendered error page.
         timer = window.setInterval(function () {
+            updateElapsed(started);
             const cookie = document.cookie.split('; ').find(function (entry) {
                 return entry.startsWith(cookieName + '=');
             });

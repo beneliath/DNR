@@ -8,7 +8,7 @@ function audienceFieldControl(array $field,mixed $value):void{
         if(is_string($value)&&substr_count($value,"\n")>5){
             echo '<label for="'.$fid.'">'.$h($field['label']).'</label><textarea id="'.$fid.'" name="'.$name.'" rows="6"'.($field['required']?' required':'').'>'.$h($value).'</textarea><p class="audience-help">Original imported address formatting is preserved.</p>';return;
         }
-        $parts=is_array($value)?$value:array_combine(['address1','address2','city','region','postal_code','country'],array_pad(explode("\n",str_replace("\r",'',(string)$value),6),6,''));
+        $parts=audienceAddressParts($value);
         echo '<fieldset class="address-fields"><legend>'.$h($field['label']).($field['required']?' *':'').'</legend><div class="form-grid">';
         foreach(['address1'=>'Street Address','address2'=>'Address Line 2','city'=>'City','region'=>'State/Prov/Region','postal_code'=>'Postal/Zip','country'=>'Country']as$key=>$label){
             echo '<div'.(in_array($key,['address1','address2'],true)?' class="span-two"':'').'><label for="'.$fid.'-'.$key.'">'.$label.'</label><input id="'.$fid.'-'.$key.'" name="'.$name.'['.$key.']" value="'.$h($parts[$key]??'').'" maxlength="300"'.($key==='address1'&&$field['required']?' required':'').'></div>';

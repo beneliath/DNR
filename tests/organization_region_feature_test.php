@@ -16,6 +16,7 @@ $add_organization_styles = file_get_contents($root . '/src/assets/css/pages/add_
 $edit_organization = file_get_contents($root . '/src/edit_organization.php');
 $edit_organization_styles = file_get_contents($root . '/src/assets/css/pages/edit_organization.css');
 $page_actions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$address_inputs = file_get_contents($root . '/src/assets/js/address-inputs.mjs');
 $modern_styles = file_get_contents($root . '/src/assets/css/modern.css');
 $us_regions = addressRegionChoices('US');
 $canadian_regions = addressRegionChoices('CA');
@@ -66,12 +67,13 @@ expectOrganizationRegionFeature(
 );
 
 expectOrganizationRegionFeature(
-    str_contains($page_actions, 'function initializeAddressCountries()')
-        && str_contains($page_actions, '[data-address-country-option]')
-        && str_contains($page_actions, 'function initializeAddressRegions()')
-        && str_contains($page_actions, "state.textInput.placeholder = 'State/Province'")
-        && str_contains($page_actions, 'initializeAddressCountries();')
-        && str_contains($page_actions, 'initializeAddressRegions();')
+    str_contains($address_inputs, 'function initializeAddressCountries()')
+        && str_contains($address_inputs, '[data-address-country-option]')
+        && str_contains($address_inputs, 'function initializeAddressRegions()')
+        && str_contains($address_inputs, "state.textInput.placeholder = 'State/Province'")
+        && str_contains($address_inputs, 'initializeAddressCountries();')
+        && str_contains($address_inputs, 'initializeAddressRegions();')
+        && str_contains($page_actions, 'initializeAddressInputs();')
         && str_contains($modern_styles, '.address-country-trigger')
         && str_contains($modern_styles, '.address-country-option')
         && str_contains($modern_styles, '.address-region-trigger')

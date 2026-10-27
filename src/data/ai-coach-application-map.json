@@ -1263,7 +1263,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "0ac20aa2d59c07714ce18284f202b72ac51bf38c4981e61ae3acedca28d798ec",
+      "sha256": "ca35338358b00e026f854e34aa63e453160bbf69d31385d5f27449f62a30a70e",
       "controls": [
         {
           "kind": "h1",

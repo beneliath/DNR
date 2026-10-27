@@ -1,5 +1,22 @@
 <?php
 declare(strict_types=1);
+
+/** Public address inputs use the organization's country/region values and existing audience storage. */
+function audienceCollectionFieldValue(array $field,mixed $value):string|array
+{
+    if($field['field_type']==='address'&&is_array($value)){
+        $parts=[];
+        foreach(['address1','address2','city','region','postal_code','country']as$key)$parts[$key]=audienceText($value,$key,300);
+        // The country picker has a default; an otherwise empty optional address stays empty.
+        if(implode('',array_diff_key($parts,['country'=>true]))==='')return audienceFieldValue($field,'');
+        $country=normalizeAddressCountryCode($parts['country']?:applicationDefaultCountry());
+        if($country===null||!isset(addressCountryChoices()[$country]))throw new InvalidArgumentException($field['label'].': choose a valid country.');
+        $region=normalizeAddressRegion($country,$parts['region']);
+        if($region===null)throw new InvalidArgumentException($field['label'].': choose a valid state or province.');
+        $value=array_replace($parts,['country'=>$country,'region'=>$region]);
+    }
+    return audienceFieldValue($field,$value);
+}
 require_once __DIR__.'/audience_collection_customization.php';
 require_once __DIR__.'/audience_collection_embed.php';
 
@@ -393,7 +410,7 @@ trait AudienceCollection
         $values=['email'=>$email,'first_name'=>'','last_name'=>'']; $custom=[];
         foreach (['first_name','last_name'] as $key) if (in_array($key,$d['fields'],true)) $values[$key]=audienceText($input,$key,100);
         foreach ($this->fields() as $f) if ($f['is_public'] && in_array('custom:'.$f['id'],$d['fields'],true)) {
-            $f['required']=in_array('custom:'.$f['id'],$d['required'],true); $custom[$f['id']]=audienceFieldValue($f,is_array($input['custom']??null)?($input['custom'][$f['id']]??''):'');
+            $f['required']=in_array('custom:'.$f['id'],$d['required'],true); $custom[$f['id']]=audienceCollectionFieldValue($f,is_array($input['custom']??null)?($input['custom'][$f['id']]??''):'');
         }
         foreach ($d['required'] as $key) if (isset($values[$key]) && $values[$key]==='') throw new InvalidArgumentException('Complete all required fields.');
         $chosen=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]))]); $allowed=[];

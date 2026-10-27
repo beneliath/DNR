@@ -22,6 +22,16 @@ function audienceIds(mixed $values): array
     return array_values($ids);
 }
 
+/** The same six components are used by public forms, connection editing and exports. */
+function audienceAddressParts(mixed $value): array
+{
+    $keys=['address1','address2','city','region','postal_code','country'];
+    if(!is_array($value))$value=array_combine($keys,array_pad(explode("\n",str_replace("\r",'',is_scalar($value)?(string)$value:''),6),6,''));
+    $parts=[];
+    foreach($keys as$key)$parts[$key]=is_scalar($value[$key]??null)?(string)$value[$key]:'';
+    return $parts;
+}
+
 function audienceFieldValue(array $field, mixed $value): string|array
 {
     $options = is_array($field['options_json']) ? $field['options_json'] : audienceJson($field['options_json']);
