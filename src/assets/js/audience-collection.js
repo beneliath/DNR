@@ -131,7 +131,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             frame.srcdoc = result.html; status.textContent = '';
         } catch (error) { if (error.name !== 'AbortError' && current === sequence) status.textContent = error.message || 'Preview unavailable. Save your work and try again.'; }
     };
-    const fit = () => { try { if (frame.contentDocument?.body) { frame.style.height = '1px'; const root = frame.contentDocument.documentElement; frame.style.height = Math.max(320, Math.ceil(Math.max(root.scrollHeight, root.getBoundingClientRect().height)) + 2) + 'px'; } } catch (_) {} };
     const previewTools = () => {
         if (!config.canManage || config.previewOnly) return;
         const doc = frame.contentDocument;
@@ -141,7 +140,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             block.setAttribute('role', 'group'); block.setAttribute('aria-label', label);
             const button = doc.createElement('button'); button.type = 'button'; button.className = 'collection-block-remove';
             button.textContent = '×'; button.title = `Remove ${label}`; button.setAttribute('aria-label', `Remove ${label}`);
-            button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); remove(); block.remove(); fit(); });
+            button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); remove(); block.remove(); });
             block.addEventListener('click', event => {
                 event.preventDefault();
                 doc.querySelectorAll('.collection-editable-block.is-selected').forEach(other => other.classList.remove('is-selected'));
@@ -152,7 +151,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         };
         const resizeImage = (block, image, label, save) => {
             if (!image.complete || !image.naturalWidth) {
-                image.addEventListener('load', () => { resizeImage(block, image, label, save); fit(); }, {once:true});
+                image.addEventListener('load', () => { resizeImage(block, image, label, save); }, {once:true});
                 return;
             }
             const isLogo = image.classList.contains('logo');
@@ -191,7 +190,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                 if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
                 if (cancelled) paint(startWidth);
                 else if (Math.round(startWidth) !== width) { save(width); changed(); }
-                fit();
             };
             handle.addEventListener('pointerup', event => finish(event));
             handle.addEventListener('pointercancel', event => finish(event, true));
@@ -225,15 +223,14 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             if (image) resizeImage(block, image, 'image section', width => { section.width = width; renderList('sections'); });
         });
     };
-    frame.addEventListener('load', () => { if (frame.contentDocument) initializeAddressInputs(frame.contentDocument); previewTools(); fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
-    if (frame.contentDocument?.readyState === 'complete') initializeAddressInputs(frame.contentDocument);
-    let frameWidth = frame.getBoundingClientRect().width;
-    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => {
-        const width = frame.getBoundingClientRect().width;
-        if (width !== frameWidth) { frameWidth = width; requestAnimationFrame(fit); }
-    }).observe(frame);
-    window.addEventListener('resize', fit);
-    fit();
+    const preparePreview = () => {
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        doc.documentElement.style.overscrollBehavior = 'contain';
+        initializeAddressInputs(doc);
+    };
+    frame.addEventListener('load', () => { preparePreview(); previewTools(); });
+    if (frame.contentDocument?.readyState === 'complete') preparePreview();
     const changed = () => { sync(); clearTimeout(timer); timer = setTimeout(preview, 300); queueMicrotask(record); };
     const inputChanged = event => { if (event.target.matches('[data-doc="logo_width"]')) model.logo_resized = true; changed(); };
     form.addEventListener('input', inputChanged); form.addEventListener('change', inputChanged);
@@ -275,7 +272,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             previewButton.setAttribute('aria-pressed', String(enabled));
         }
         if (previewReturn) previewReturn.hidden = !enabled || Boolean(previewButton);
-        requestAnimationFrame(fit);
     };
     previewButton?.setAttribute('aria-pressed', 'false');
     previewButton?.setAttribute('aria-controls', frame.id);
@@ -288,7 +284,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         document.querySelectorAll('[data-collection-device]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
         frame.classList.toggle('mobile', button.dataset.collectionDevice === 'mobile');
         if (getComputedStyle(previewPanel).display === 'none') showPreview(true);
-        requestAnimationFrame(fit);
     }));
     form.querySelectorAll('[data-field-move]').forEach(button => button.addEventListener('click', () => {
         const row = button.closest('[data-field]');
