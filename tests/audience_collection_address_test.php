@@ -13,12 +13,19 @@ $expect($stored==="PO Box 1966\nSuite 2\nBrentwood\nTN\n37024-1966\nUS",'Public 
 $expect(audienceAddressParts($stored)===array_replace($input,['region'=>'TN','country'=>'US']),'Connection editing must read the same six components');
 $blankLine=audienceCollectionFieldValue($field,array_replace($input,['address2'=>'']));
 $expect(str_contains($blankLine,"1966\n\nBrentwood")&&audienceAddressParts($blankLine)['address2']==='','An empty address line 2 cannot shift the city into another field');
+foreach(['address1','city','region','postal_code','country']as$key){
+    $reject(static fn()=>audienceCollectionFieldValue($field,array_replace($input,[$key=>'  '])),'Required address parts cannot be blank: '.$key);
+    $parts=audienceAddressParts($blankLine);$parts[$key]='';
+    $reject(static fn()=>audienceCollectionFieldValue($field,implode("\n",$parts)),'Scalar submissions cannot bypass required address parts: '.$key);
+}
+$expect(audienceCollectionFieldValue($field,$blankLine)===$blankLine,'Complete six-part scalar addresses remain compatible');
 $canada=audienceCollectionFieldValue($field,array_replace($input,['region'=>'Ontario','country'=>'Canada']));
 $expect(audienceAddressParts($canada)['region']==='ON'&&audienceAddressParts($canada)['country']==='CA','Canadian addresses use the shared province/country values');
 $france=audienceCollectionFieldValue($field,array_replace($input,['region'=>'Île-de-France','country'=>'France']));
 $expect(audienceAddressParts($france)['region']==='Île-de-France','Other countries retain a free-text region');
 $optional=array_replace($field,['required'=>false]);
 $expect(audienceCollectionFieldValue($optional,['country'=>'US'])==='','The default country does not turn an empty optional address into a partial address');
+$expect(audienceAddressParts(audienceCollectionFieldValue($optional,['address1'=>'PO Box 1966','country'=>'US']))['city']==='','An optional address can still omit its city, region and postal code');
 $reject(static fn()=>audienceCollectionFieldValue($field,['country'=>'US']),'Required addresses must include Address Line 1');
 $reject(static fn()=>audienceCollectionFieldValue($field,array_replace($input,['address1'=>''])),'Partial addresses need Address Line 1');
 $reject(static fn()=>audienceCollectionFieldValue($field,array_replace($input,['country'=>'Atlantis'])),'Reject unknown countries');
@@ -32,6 +39,8 @@ foreach(['address1','address2','city','region','postal_code','country']as$key)$e
 $expect($xpath->query('//textarea')->length===0,'A new address uses fields instead of a textarea');
 $expect($xpath->query('//*[@name="custom[17][address1]" and @required]')->length===1,'Address Line 1 retains the required constraint');
 $expect($xpath->query('//*[@name="custom[17][address2]" and @required]')->length===0,'Address Line 2 stays optional');
+foreach(['city','region','postal_code','country']as$key)$expect($xpath->query('//*[@name="custom[17]['.$key.']" and @required]')->length===1,'Required addresses require the matching control: '.$key);
+$expect($xpath->query('//*[@data-address-region-control and @data-region-required="true"]')->length===1,'Enhanced state/province selection retains its required constraint');
 $expect($xpath->query('//select[@data-address-country-native and not(@aria-hidden)]')->length===1,'Country selection is accessible before JavaScript initializes');
 $expect(str_contains($html,'data-address-region-control')&&str_contains($html,'data-country-code="CA"'),'Reuse the organization country and region component');
 $expect(str_contains($html,'section-address-')&&str_contains($html,'address-line1'),'Address parts support grouped browser autofill');
@@ -42,11 +51,13 @@ $resource=['kind'=>'hosted','document'=>$document];
 $public=audienceCollectionHtml($resource,[$field],[],'/subscribe');
 $preview=audienceCollectionHtml($resource,[$field],[],'','',[],'','',null,true);
 $expect(str_contains($public,'data-address-country-picker')&&str_contains($public,'id="address-region-data"'),'Published forms have the shared widget data');
-$expect((bool)preg_match('/<script nonce="[^"]+">/',$public),'Only trusted address enhancement code is added to the public page');
-$expect(!preg_match('/<script nonce="[^"]+">/',$preview),'Editor previews do not execute scripts inside their same-origin sandbox');
+$expect((bool)preg_match('/<script nonce="[^"]+" src="assets\/js\/address-inputs-public\.min\.js\?h=[a-f0-9]{12}" defer><\/script>/',$public),'Public address enhancement loads a nonce-authorized packaged asset allowed by the account gateway');
+$expect(!preg_match('/<script(?![^>]*type="application\/json")[^>]*>\s*[^<\s]/',$public),'The public form does not depend on inline executable code blocked by the account gateway');
+$expect(!preg_match('/<script(?![^>]*type="application\/json")/',$preview),'Editor previews do not execute scripts inside their same-origin sandbox');
 $embedded=$resource;$embedded['kind']='embedded';$embedded['document']['embedded']['disable_javascript']=true;
 $native=audienceCollectionHtml($embedded,[$field],[],'/subscribe');
-$expect(str_contains($native,'data-address-inputs="native"')&&!preg_match('/<script nonce="[^"]+">/',$native),'Script-disabled embedded forms retain usable native fields');
+$expect(str_contains($native,'data-address-inputs="native"')&&!preg_match('/<script(?![^>]*type="application\/json")/',$native),'Script-disabled embedded forms retain usable native fields');
 $double=audienceCollectionControl('custom[18]','Other address','address','',false);
+$expect(!str_contains($double,' required')&&str_contains($double,'data-region-required="false"'),'Optional address controls do not gain required constraints');
 $ids=[];preg_match_all('/ id="([^"]+)"/',$html.$double,$matches);foreach($matches[1]as$id){$expect(!isset($ids[$id]),'Multiple address controls need unique IDs');$ids[$id]=true;}
 echo "Public collection address: $checks checks passed.\n";

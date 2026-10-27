@@ -4,9 +4,13 @@ declare(strict_types=1);
 /** Public address inputs use the organization's country/region values and existing audience storage. */
 function audienceCollectionFieldValue(array $field,mixed $value):string|array
 {
-    if($field['field_type']==='address'&&is_array($value)){
+    if($field['field_type']==='address'&&(is_array($value)||$field['required'])){
+        if(!is_array($value))$value=audienceAddressParts($value);
         $parts=[];
         foreach(['address1','address2','city','region','postal_code','country']as$key)$parts[$key]=audienceText($value,$key,300);
+        if($field['required'])foreach(['address1'=>'Address Line 1','city'=>'City','region'=>'State / Province','postal_code'=>'Postal Code','country'=>'Country']as$key=>$label){
+            if($parts[$key]==='')throw new InvalidArgumentException($field['label'].': '.$label.' is required.');
+        }
         // The country picker has a default; an otherwise empty optional address stays empty.
         if(implode('',array_diff_key($parts,['country'=>true]))==='')return audienceFieldValue($field,'');
         $country=normalizeAddressCountryCode($parts['country']?:applicationDefaultCountry());
@@ -16,6 +20,43 @@ function audienceCollectionFieldValue(array $field,mixed $value):string|array
         $value=array_replace($parts,['country'=>$country,'region'=>$region]);
     }
     return audienceFieldValue($field,$value);
+}
+
+/** Fill missing profile details after ownership proof, preserving information saved in the meantime. */
+function audienceCollectionProfileAdditions(array $person,array $submitted,array $fields):array
+{
+    $result=['first_name'=>$person['first_name'],'last_name'=>$person['last_name'],'custom'=>audienceJson($person['custom_json']),'changed_fields'=>[]];
+    $values=is_array($submitted['custom']??null)?$submitted['custom']:[];$types=is_array($submitted['custom_types']??null)?$submitted['custom_types']:[];
+    $blank=static fn($value)=>$value===null||$value===[]||(is_string($value)&&trim($value)==='');
+    foreach(['first_name','last_name']as$key){
+        $value=audienceText($submitted,$key,100);
+        if($blank($result[$key])&&$value!==''){$result[$key]=$value;$result['changed_fields'][]=$key;}
+    }
+    foreach($fields as$field){
+        $id=$field['id'];
+        if(!$field['is_public']||!array_key_exists($id,$values)||($types[$id]??null)!==$field['field_type'])continue;
+        $field['required']=false;
+        try{$value=audienceCollectionFieldValue($field,$values[$id]);}catch(InvalidArgumentException){continue;}
+        if($blank($value))continue;
+        $current=$result['custom'][$id]??'';$merged=$current;
+        if($field['field_type']==='address'&&is_string($current)&&substr_count($current,"\n")<=5){
+            $existing=audienceAddressParts($current);$incoming=audienceAddressParts($value);$conflict=false;
+            $country=normalizeAddressCountryCode($existing['country']?:$incoming['country']);
+            foreach($existing as$key=>$part)if(!$blank($part)&&!$blank($incoming[$key])){
+                $old=$part;$new=$incoming[$key];
+                if($key==='country'){$old=normalizeAddressCountryCode($old)??$old;$new=normalizeAddressCountryCode($new)??$new;}
+                if($key==='region'&&$country){$old=normalizeAddressRegion($country,$old)??$old;$new=normalizeAddressRegion($country,$new)??$new;}
+                if(mb_strtolower(trim($old))!==mb_strtolower(trim($new))){$conflict=true;break;}
+            }
+            if($conflict)continue;
+            foreach($existing as$key=>$part)if($blank($part)&&!$blank($incoming[$key]))$existing[$key]=$incoming[$key];
+            try{$merged=audienceFieldValue($field,$existing);}catch(InvalidArgumentException){continue;}
+        }elseif($field['field_type']==='checkboxes'){
+            $merged=array_values(array_unique([...(is_array($current)?$current:audienceParseListCell((string)$current)),...$value]));
+        }elseif($blank($current))$merged=$value;
+        if($merged!==$current){$result['custom'][$id]=$merged;$result['changed_fields'][]='custom:'.$id;}
+    }
+    return $result;
 }
 require_once __DIR__.'/audience_collection_customization.php';
 require_once __DIR__.'/audience_collection_embed.php';
@@ -407,10 +448,10 @@ trait AudienceCollection
         if (($input['permission']??'')!=='1') throw new InvalidArgumentException('Confirm that you want to receive email newsletters.');
         $email=strtolower(audienceText($input,'email',254)); if (!filter_var($email,FILTER_VALIDATE_EMAIL)) throw new InvalidArgumentException('Enter a valid email address.');
         $this->collectionRateLimit('email:'.$email,5);
-        $values=['email'=>$email,'first_name'=>'','last_name'=>'']; $custom=[];
+        $values=['email'=>$email,'first_name'=>'','last_name'=>'']; $custom=[];$customTypes=[];
         foreach (['first_name','last_name'] as $key) if (in_array($key,$d['fields'],true)) $values[$key]=audienceText($input,$key,100);
         foreach ($this->fields() as $f) if ($f['is_public'] && in_array('custom:'.$f['id'],$d['fields'],true)) {
-            $f['required']=in_array('custom:'.$f['id'],$d['required'],true); $custom[$f['id']]=audienceCollectionFieldValue($f,is_array($input['custom']??null)?($input['custom'][$f['id']]??''):'');
+            $f['required']=in_array('custom:'.$f['id'],$d['required'],true); $custom[$f['id']]=audienceCollectionFieldValue($f,is_array($input['custom']??null)?($input['custom'][$f['id']]??''):'');$customTypes[$f['id']]=$f['field_type'];
         }
         foreach ($d['required'] as $key) if (isset($values[$key]) && $values[$key]==='') throw new InvalidArgumentException('Complete all required fields.');
         $chosen=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]))]); $allowed=[];
@@ -438,26 +479,22 @@ trait AudienceCollection
         if (!$blocked) {
             $wasSubscribed=$person&&$person['email_status']==='subscribed';
             $optout=(bool)$this->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]);
-            $confirmation=$confirmation || $optout || ($person && $person['email_status']==='unsubscribed');
+            $confirmation=$confirmation || $optout || (bool)$person;
+            if($confirmation){$ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.');}
             if (!$person) {
                 $this->write("INSERT INTO marketing_contacts(audience_id,email,first_name,last_name,email_status,custom_json,source,notes) VALUES (?,?,?,?,?,?,?, '')",[$this->audienceId,$email,$values['first_name'],$values['last_name'],$confirmation?'pending':'subscribed',json_encode((object)$custom,JSON_THROW_ON_ERROR),'Signup form']);
                 $person=$this->person((int)$this->db->insert_id);
                 foreach ($d['tag_ids'] as $tag) if ($this->one('SELECT id FROM marketing_tags WHERE audience_id=? AND id=?',[$this->audienceId,$tag])) $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$person['id'],$tag]);
                 foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
             }
-            // Unauthenticated signups never overwrite a known person's profile or interests.
+            // Existing profiles remain unchanged until the owner confirms this submission.
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)],JSON_THROW_ON_ERROR)]);
-            if ($wasSubscribed && !$optout) $this->queueSubscriptionNotice($person);
-            if ($person['email_status']!=='subscribed') {
-                if ($confirmation) {
-                    $ses=$this->sesSettings();
-                    // Single opt-in never overrides a previous opt-out, even if
-                    // the confirmation service is currently unavailable.
-                    if (!audienceSesReasons($ses,$ses['from_email']??'')) {
-                        try{$this->requestSubscriptionConfirmation((int)$person['id'],$base,['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A']);}catch(InvalidArgumentException $e){if($d['opt_in']==='double'||$resubscribe)throw $e;}
-                    }
-                }
-                else $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);
+            if ($confirmation) {
+                $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
+                if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];
+                $this->requestSubscriptionConfirmation((int)$person['id'],$base,$context);
+            } elseif($person['email_status']!=='subscribed') {
+                $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);
             }
             if(!$wasSubscribed&&!$confirmation)$this->recordCollectionConversion((int)$person['id'],['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'],'single');
         }

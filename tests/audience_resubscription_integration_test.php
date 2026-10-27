@@ -87,11 +87,12 @@ try{
         $expect((bool)$store->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=1 AND email_hash=?',[$hash]),'Confirmed resubscription still retains the import block');
         $updated=$store->savePerson(['email'=>$email,'first_name'=>'New consent profile','email_status'=>'subscribed'],$id,(int)$store->person($id)['version']);
         $expect($updated===$id&&$store->person($id)['first_name']==='New consent profile','Confirmed recipients remain editable through normal administration');
-        // Repeated public signup must now use the ordinary already-subscribed notice.
+        // An existing subscriber receives a new confirmation through every form mode.
+        $store->write('UPDATE marketing_consent_challenges SET created_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 2 MINUTE) WHERE contact_id=?',[$id]);
         $submit($form,$email);
-        $notice=$store->one("SELECT id FROM marketing_service_mail WHERE contact_id=? AND kind='subscription-notice' AND state='queued'",[$id]);
-        $expect((bool)$notice,'Confirmed resubscription can receive the ordinary subscription status notice');
-        $expect(in_array([$email,'subscription-notice'],$deliver(),true),'Worker honors the shared renewed-consent policy');
+        $notice=$store->one("SELECT id FROM marketing_service_mail WHERE contact_id=? AND kind='confirmation' AND state='queued'",[$id]);
+        $expect((bool)$notice,'Confirmed resubscription can receive a fresh form confirmation');
+        $expect(in_array([$email,'confirmation'],$deliver(),true),'Worker delivers fresh confirmations to existing subscribers');
         if($workerPassword=configurationSecret('MYSQL_MAIL_DISPATCH_PASSWORD')){
             $worker=new mysqli((string)getenv('DB_HOST'),'dnrmaildispatch',$workerPassword,(string)getenv('MYSQL_DATABASE'));
             $expect(!audienceDeletedEmailSuppressed($worker,1,$id,$hash),'Restricted mail worker can evaluate renewed consent with existing grants');$worker->close();

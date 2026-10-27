@@ -17,10 +17,11 @@ function audienceCollectionAddressControl(string $name,string $label,mixed $valu
     $autocomplete=['address1'=>'address-line1','address2'=>'address-line2','city'=>'address-level2','region'=>'address-level1','postal_code'=>'postal-code'];
     foreach($labels as$key=>$text){
         $wide=in_array($key,['address1','address2'],true);
-        $html.='<div'.($wide?' class="collection-address-wide"':'').($key==='region'?' data-address-region-control data-address-region-for="'.$id.'" data-region-required="false"':'').'>';
-        $html.='<label for="'.$id.'-'.$key.'">'.$text.($key==='address1'?$mark:'').'</label><input type="text" id="'.$id.'-'.$key.'" name="'.$h($name.'['.$key.']').'" value="'.$h($parts[$key]).'" maxlength="300" autocomplete="section-'.$id.' '.$autocomplete[$key].'"'.($key==='address1'&&$required?' required':'').($key==='region'?' data-address-region-input':'').'></div>';
+        $partRequired=$required&&$key!=='address2';
+        $html.='<div'.($wide?' class="collection-address-wide"':'').($key==='region'?' data-address-region-control data-address-region-for="'.$id.'" data-region-required="'.($required?'true':'false').'"':'').'>';
+        $html.='<label for="'.$id.'-'.$key.'">'.$text.($partRequired?$mark:'').'</label><input type="text" id="'.$id.'-'.$key.'" name="'.$h($name.'['.$key.']').'" value="'.$h($parts[$key]).'" maxlength="300" autocomplete="section-'.$id.' '.$autocomplete[$key].'"'.($partRequired?' required':'').($key==='region'?' data-address-region-input':'').'></div>';
     }
-    $html.='<div class="collection-address-wide"><label for="'.$id.'-country">Country</label>'.addressCountryPicker($name.'[country]',$parts['country']?:applicationDefaultCountry(),$id,$required,true).'</div></div>';
+    $html.='<div class="collection-address-wide"><label for="'.$id.'-country">Country'.$mark.'</label>'.addressCountryPicker($name.'[country]',$parts['country']?:applicationDefaultCountry(),$id,$required,true).'</div></div>';
     if($help!=='')$html.='<small class="collection-field-help" id="'.$id.'-help">'.$h($help).'</small>';
     return $html.'</fieldset>';
 }
@@ -133,7 +134,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     </main>
     <?php if($hasAddress): ?>
     <script type="application/json" id="address-region-data" nonce="<?= $h($nonce) ?>"><?= json_encode(addressRegionClientData(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
-    <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>"><?= file_get_contents(__DIR__.'/assets/js/address-inputs-public.min.js') ?></script><?php endif; ?>
+    <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/address-inputs-public.min.js')) ?>" defer></script><?php endif; ?>
     <?php endif; ?>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>
     <script type="application/json" id="collection-resize-config"><?= json_encode(['key'=>$r['public_key'],'origins'=>$d['origins']],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>

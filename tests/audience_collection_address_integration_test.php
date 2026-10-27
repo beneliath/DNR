@@ -30,8 +30,9 @@ $custom=audienceJson($person['custom_json']);$expected="PO Box 1966\n\nBrentwood
 $expect($result['confirmed']===false&&$person['email_status']==='subscribed','Single opt-in semantics stay intact');
 $expect($custom[$field]===$expected,'The real signup transaction stores all address parts in their connection slots');
 $expect(audienceAddressParts($store->person($id)['custom'][$field])===array_replace($address,['region'=>'TN']),'The connection editor reads the exact saved components');
-$submit($required,$email,array_replace($address,['city'=>'Must not overwrite']));
-$expect($store->person($id)['custom'][$field]===$expected,'Public repeat signup cannot overwrite an existing connection address');
+$db->query("UPDATE marketing_ses_settings SET enabled=1,from_email='sender@example.test',access_key_tail='TEST',check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=1000,max_rate=10,sent_last_day=0,quota_checked_at=UTC_TIMESTAMP(),aws_account_id='111122223333',region='us-east-2',subscription_arn='arn:aws:sns:us-east-2:111122223333:fixture:confirmed' WHERE audience_id=1");
+$repeat=$submit($required,$email,array_replace($address,['city'=>'Must not overwrite']));
+$expect($repeat['confirmed']===true&&$store->person($id)['custom'][$field]===$expected,'Public repeat signup requests confirmation without overwriting the recorded address');
 $preferences=array_replace($address,['address1'=>'100 King Street','city'=>'Toronto','region'=>'Ontario','postal_code'=>'M5V 1J2','country'=>'CA']);
 $person=$store->person($id);$store->savePublicPreferences($id,(int)$person['version'],['custom'=>[$field=>$preferences]],['fields'=>['custom:'.$field],'group_ids'=>[]]);
 $expect($store->person($id)['custom'][$field]==="100 King Street\n\nToronto\nON\nM5V 1J2\nCA",'Public preference edits use the same structured address contract');
@@ -41,6 +42,15 @@ $expect(audienceJson($blankPerson['custom_json'])[$field]==='','A blank optional
 $invalid='invalid-address-'.$suffix.'@example.test';
 try{$submit($required,$invalid,['country'=>'US']);throw new LogicException('Missing required street accepted');}catch(InvalidArgumentException){}
 $expect(!$store->one('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$invalid]),'Validation failure cannot leave a partial connection');
+foreach(['address1','city','region','postal_code','country']as$key){
+    $email='missing-'.$key.'-'.$suffix.'@example.test';
+    try{$submit($required,$email,array_replace($address,[$key=>'']));throw new LogicException('Missing address part accepted: '.$key);}catch(InvalidArgumentException){}
+    $expect(!$store->one('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email]),'Required form submissions reject missing '.$key.' without creating a connection');
+}
+$scope=['fields'=>['custom:'.$field],'required'=>['custom:'.$field],'group_ids'=>[]];
+$person=$store->person($id);
+try{$store->savePublicPreferences($id,(int)$person['version'],['custom'=>[$field=>array_replace($preferences,['city'=>''])]],$scope);throw new LogicException('Preferences ignored the form-required address');}catch(InvalidArgumentException){}
+$expect($store->person($id)['custom'][$field]===$person['custom'][$field],'Preference forms enforce their required address setting and preserve the saved address on failure');
 $public=audienceCollectionHtml($required,$store->fields(),$store->groups(),'/subscribe');
 $expect(str_contains($public,'name="custom['.$field.'][address1]"')&&str_contains($public,'name="custom['.$field.'][postal_code]"'),'Published form fields match the real stored custom field');
 echo "Collection address integration: $checks checks passed; no real email sent.\n";
