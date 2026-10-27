@@ -1,0 +1,35 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../src/functions.php';
+require_once __DIR__.'/../src/audience_store.php';
+$checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);++$checks;};
+$field=static fn(int $id,string $type='text',bool $public=true)=>['id'=>$id,'label'=>'Fixture field '.$id,'field_type'=>$type,'is_public'=>$public,'required'=>false,'options_json'=>'["One","Two"]'];
+$fields=[$field(1,'address'),$field(2),$field(3,'number'),$field(4,'checkboxes'),$field(5,'dropdown'),$field(6,'text',false)];
+$address="PO Box 1966\n\nBrentwood\nTN\n37024-1966\nUS";
+$submitted=['first_name'=>'Submitted first','last_name'=>'Submitted last','custom'=>[1=>$address,2=>'+1 555 0100',3=>'10',4=>['Two'],5=>'Removed option',6=>'Private field'],
+    'custom_types'=>[1=>'address',2=>'text',3=>'number',4=>'checkboxes',5=>'dropdown',6=>'text']];
+$person=['first_name'=>'Recorded first','last_name'=>'','custom_json'=>json_encode((object)[3=>'0',4=>['One']])];
+$merged=audienceCollectionProfileAdditions($person,$submitted,$fields);
+$expect($merged['first_name']==='Recorded first'&&$merged['last_name']==='Submitted last','Fill missing names while preserving recorded names');
+$expect($merged['custom'][1]===$address&&$merged['custom'][2]==='+1 555 0100','Add a missing address and phone number');
+$expect($merged['custom'][3]==='0','Zero is recorded information, not an empty field');
+$expect($merged['custom'][4]===['One','Two'],'Add newly confirmed checkbox values without removing recorded values');
+$expect(!isset($merged['custom'][5],$merged['custom'][6]),'Withdrawn choices and non-public fields are not added');
+$expect($merged['changed_fields']===['last_name','custom:1','custom:2','custom:4'],'Audit identifies fields without retaining submitted profile values');
+$partial="PO Box 1966\n\n\nTennessee\n\nUnited States of America";
+$updated=audienceCollectionProfileAdditions(array_replace($person,['custom_json'=>json_encode((object)[1=>$partial])]),$submitted,$fields);
+$parts=audienceAddressParts($updated['custom'][1]);
+$expect($parts['city']==='Brentwood'&&$parts['postal_code']==='37024-1966','Fill missing components of a compatible recorded address');
+$expect($parts['region']==='Tennessee'&&$parts['country']==='United States of America','Retain recorded address values while comparing normalized country/region values');
+$conflicting=str_replace('PO Box 1966','Different recorded street',$partial);
+$updated=audienceCollectionProfileAdditions(array_replace($person,['custom_json'=>json_encode((object)[1=>$conflicting])]),$submitted,$fields);
+$expect($updated['custom'][1]===$conflicting,'Do not combine parts from conflicting addresses');
+$race=array_replace($person,['last_name'=>'Saved since submission','custom_json'=>json_encode((object)[2=>'Recorded phone'])]);
+$updated=audienceCollectionProfileAdditions($race,$submitted,$fields);
+$expect($updated['last_name']==='Saved since submission'&&$updated['custom'][2]==='Recorded phone','Concurrent profile changes win over pending additions');
+$changed=$fields;$changed[0]['field_type']='text';
+$updated=audienceCollectionProfileAdditions($person,$submitted,$changed);
+$expect(!isset($updated['custom'][1]),'A field changed to another type cannot receive a stale pending value');
+$updated=audienceCollectionProfileAdditions($person,$submitted,[]);
+$expect($updated['custom']===audienceJson($person['custom_json']),'Deleted fields cannot be recreated by an old confirmation');
+echo "Confirmed profile additions: $checks checks passed.\n";
