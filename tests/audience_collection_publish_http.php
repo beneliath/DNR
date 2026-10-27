@@ -26,5 +26,8 @@ $embedded=$store->saveCollection(['kind'=>'embedded','name'=>'Atomic publish fix
 $document=$before['draft'];$document['intro']='Keep these unsaved edits after failure';$document['origins']=[];
 $failure=$publishSend(['action'=>'collection_operation','operation'=>'publish','id'=>$embedded,'version'=>1,'name'=>$before['name'],'document_json'=>json_encode($document,JSON_THROW_ON_ERROR)]);
 audienceHttpExpect($failure['status']===200&&str_contains($failure['body'],'HTTPS website origin'),'Publish validation stays in the editor with an actionable error');
+preg_match('~<script type="application/json" id="collection-config">(.*?)</script>~s',$failure['body'],$configMatch);
+$config=json_decode($configMatch[1]??'{}',true,32,JSON_THROW_ON_ERROR);
+audienceHttpExpect(($config['editorError']['field']??'')==='origins'&&str_contains($failure['body'],'aria-invalid="true"'),'The rejected publish identifies Website origins so the editor opens Setup and highlights the field');
 audienceHttpExpect($store->collectionResource($embedded)===$before,'Failed publish rolls back the draft save and version increment');
 audienceHttpExpect(str_contains($failure['body'],'Keep these unsaved edits after failure'),'Failed atomic publish preserves entered changes for correction');

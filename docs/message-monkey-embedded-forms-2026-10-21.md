@@ -1,5 +1,7 @@
 # Embedded signup builder — October 21, 2026
 
+Update October 27: embedded forms now use the shared form editor, including branding, content tools, history, and preview controls. Embed settings are under Setup; installation code is under Share. Existing documents, public rendering, origin restrictions, and both script and JavaScript-free iframe installations are retained. The four-section editor described below is historical.
+
 The embedded signup editor now uses the four-section workflow shown in the supplied Mailchimp screenshot and its [official embedded-form documentation](https://mailchimp.com/help/customize-embedded-signup-form/): Form Fields, Settings, Tags, and Referral Badge. Other form types retain their existing editors.
 
 - Form Fields supports visibility switches, drag ordering and keyboard move buttons, display names, help text, and required fields. Required audience fields remain visible.

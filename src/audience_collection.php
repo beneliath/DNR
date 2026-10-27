@@ -1,9 +1,12 @@
 <?php
 declare(strict_types=1);
 
+final class AudienceCollectionOriginException extends InvalidArgumentException {}
+
 /** Public address inputs use the organization's country/region values and existing audience storage. */
 function audienceCollectionFieldValue(array $field,mixed $value):string|array
 {
+    if($field['field_type']==='phone')$value=audienceCollectionPhoneValue($value,$field['label']);
     if($field['field_type']==='address'&&(is_array($value)||$field['required'])){
         if(!is_array($value))$value=audienceAddressParts($value);
         $parts=[];
@@ -20,6 +23,13 @@ function audienceCollectionFieldValue(array $field,mixed $value):string|array
         $value=array_replace($parts,['country'=>$country,'region'=>$region]);
     }
     return audienceFieldValue($field,$value);
+}
+
+/** Structured public controls use MOED normalization; legacy scalar values remain readable. */
+function audienceCollectionPhoneValue(mixed $value,string $label='Phone Number'):string
+{
+    if(!is_array($value))return audienceCollectionText($value,80);
+    return normalizePhoneNumber(audienceText($value,'country_code',10),audienceText($value,'number',80),$label);
 }
 
 /** Fill missing profile details after ownership proof, preserving information saved in the meantime. */
@@ -138,7 +148,7 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     foreach (['title'=>200,'intro'=>5000,'button'=>80,'thanks'=>2000,'confirmation'=>2000,'permission'=>1000,'description'=>500,'language'=>12] as $key=>$limit) {
         $d[$key]=audienceCollectionText($input[$key]??$d[$key],$limit);
     }
-    if ($d['title']==='' || $d['button']==='' || $d['thanks']==='' || $d['permission']==='') throw new InvalidArgumentException('Add a title, button label, permission text and thank-you message.');
+    if ($d['button']==='' || $d['thanks']==='' || $d['permission']==='') throw new InvalidArgumentException('Add a button label, permission text and thank-you message.');
     if (!preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/D',$d['language'])) throw new InvalidArgumentException('Choose a valid language code.');
     $d['close_at']=audienceCollectionText($input['close_at']??'',16);
     if($d['close_at']!==''){$close=DateTimeImmutable::createFromFormat('!Y-m-d\TH:i',$d['close_at'],new DateTimeZone('UTC'));if(!$close||$close->format('Y-m-d\TH:i')!==$d['close_at'])throw new InvalidArgumentException('Choose a valid closing date and time.');}
@@ -197,7 +207,7 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
         if (!is_array($input[$key]??[])) throw new InvalidArgumentException('Invalid form options.');
         foreach (array_slice($input[$key]??[],0,20) as $value) {
             $value=audienceCollectionText($value,$key==='origins'?300:200); if ($value==='') continue;
-            if ($key==='origins' && !preg_match('~^https://[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$~D',$value)) throw new InvalidArgumentException('Enter website origins such as https://example.com, without a path.');
+            if ($key==='origins' && !preg_match('~^https://[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$~D',$value)) throw new AudienceCollectionOriginException('Enter website origins such as https://example.com, without a path.');
             $d[$key][]=$value;
         }
     }
@@ -297,7 +307,7 @@ trait AudienceCollection
                 $this->write("UPDATE marketing_collection_resources SET deleted_at=NULL,state='draft',published_revision=NULL,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             } elseif ($operation==='publish') {
                 $doc=audienceCollectionDocument($r['draft'],$r['kind'],$this->fields(),$this->groups(),$this->tags());
-                if (in_array($r['kind'],['embedded','popup'],true) && !$doc['origins']) throw new InvalidArgumentException('Add the HTTPS website origin before publishing an installed form.');
+                if (in_array($r['kind'],['embedded','popup'],true) && !$doc['origins']) throw new AudienceCollectionOriginException('Add the HTTPS website origin under Setup → Website origins before publishing this form.');
                 $this->write('INSERT INTO marketing_collection_revisions(resource_id,audience_id,document_json) VALUES (?,?,?)',[$id,$this->audienceId,json_encode($doc,JSON_THROW_ON_ERROR)]);
                 $revision=(int)$this->db->insert_id;
                 $this->write("UPDATE marketing_collection_resources SET state='published',published_revision=?,version=version+1 WHERE audience_id=? AND id=?",[$revision,$this->audienceId,$id]);
@@ -544,7 +554,8 @@ function audienceCollectionAnswers(array $d, array $input): array
         $choices=$q['options'];if(!empty($q['other']))$choices[]=$otherValue;
         if ($q['type']==='contact') {
             if(!is_array($v))$v=[];$contact=[];
-            foreach(['first_name'=>100,'last_name'=>100,'email'=>254,'phone'=>80]as$key=>$limit)$contact[$key]=audienceCollectionText($v[$key]??'',$limit);
+            foreach(['first_name'=>100,'last_name'=>100,'email'=>254]as$key=>$limit)$contact[$key]=audienceCollectionText($v[$key]??'',$limit);
+            $contact['phone']=audienceCollectionPhoneValue($v['phone']??'');
             if($contact['email']!==''&&!filter_var($contact['email'],FILTER_VALIDATE_EMAIL))throw new InvalidArgumentException('Enter a valid contact email address.');
             if($q['required']&&!array_filter($contact))throw new InvalidArgumentException('Complete the required contact information.');
             $v=$contact;

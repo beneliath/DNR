@@ -6,6 +6,14 @@ function contentSecurityPolicyNonce():string{return 'collectionTestNonce123456';
 $checks=0;
 $expect=static function(bool $ok,string $label)use(&$checks):void{if(!$ok)throw new RuntimeException($label);++$checks;};
 $reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Invalid document rejected');return;}throw new RuntimeException('Expected rejection');};
+foreach(AUDIENCE_COLLECTION_KINDS as$kind){
+    $blank=audienceCollectionDefaults($kind);$blank['title']='   ';
+    $blank=audienceCollectionDocument($blank,$kind,[],[],[]);
+    $expect($blank['title']==='','A blank heading stays empty when saving '.$kind);
+    $expect(audienceCollectionDocument($blank,$kind,[],[],[])['title']==='','A blank heading survives reloading '.$kind);
+    foreach([false,true]as$preview)$expect(!str_contains(audienceCollectionHtml(['kind'=>$kind,'document'=>$blank],[],[],'','',[],'','',null,$preview),'<h1>'),'Blank headings render without fallback text in '.$kind);
+    foreach(['button','thanks','permission']as$key)$reject(fn()=>audienceCollectionDocument(array_replace($blank,[$key=>'']),$kind,[],[],[]));
+}
 $doc=audienceCollectionDefaults('hosted');
 $doc['language']='he';$doc['messages']['error_title']='בדקו את התשובה';$doc['messages']['invalid']='נא למלא את השדות';
 $doc['advanced']=['enabled'=>true,'pages'=>['signup'=>'<section style="padding:20px" onclick="bad()"><script>bad()</script><h2>{{title}}</h2>{{message}}{{form}}</section>']];

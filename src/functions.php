@@ -850,7 +850,7 @@ function phoneCountryCallingCodeChoices() {
     ];
 }
 
-function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'Phone Country Code') {
+function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'Phone Country Code', bool $native = false) {
     $selected_code = $selected_code ?? applicationDefaultPhoneCountryCode();
     try {
         $selected_code = normalizePhoneCountryCode($selected_code);
@@ -872,6 +872,14 @@ function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'P
     }
 
     $escape = static fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    if ($native) {
+        $html = '<select name="' . $escape($field_name) . '" aria-label="' . $escape($aria_label) . '" data-phone-country-code>';
+        foreach ($choices as $choice) {
+            $html .= '<option value="' . $escape($choice['code']) . '"' . ($choice['code'] === $selected_code ? ' selected' : '') . '>'
+                . $escape($choice['flag'] . ' ' . $choice['country'] . ' ' . $choice['code']) . '</option>';
+        }
+        return $html . '</select>';
+    }
     $html = '<div class="phone-country-picker" data-phone-country-picker>';
     $html .= '<button type="button" class="phone-country-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="'
         . $escape($aria_label . ': ' . $selected_choice['country'] . ' ' . $selected_code)
