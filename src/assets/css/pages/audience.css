@@ -1502,7 +1502,7 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 .audience-segment-table .segment-name{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .audience-segment-table .segment-name a{font-weight:500}
 .audience-segment-table .segment-count{width:112px;font-variant-numeric:tabular-nums}
-.audience-segment-table :is(.segment-created,.segment-modified){width:128px;color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
+.audience-segment-table :is(.segment-created,.segment-modified){width:128px;white-space:normal;overflow-wrap:anywhere;line-height:1.4;color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
 .audience-segment-table .segment-actions{width:436px;text-align:right}
 .audience-segment-table.is-readonly .segment-actions{width:76px}
 .audience-segment-table tr.definition-selected{background:var(--audience-notice)}

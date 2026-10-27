@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function audienceCollectionMessages(): array
 {
-    return ['choose'=>'Choose an option','required'=>'Required','error_title'=>'Please check your response','invalid'=>'Check the required fields and try again.','contact_note'=>'Providing contact information here does not subscribe you to emails from this audience.','preferences_note'=>'Your subscription status stays unchanged. To unsubscribe, use the unsubscribe link in your email.','quiz'=>'Choose what interests you','other'=>'Other','other_answer'=>'Please specify','powered'=>'Powered by MOED MessageMonkey'];
+    return ['choose'=>'Choose an option','required'=>'Required','error_title'=>'Please check your response','invalid'=>'Check the required fields and try again.','confirmation_limit'=>'Too many confirmation emails have been requested for this address in the last 24 hours. Please try again later.','confirmation_wait'=>'Please wait one minute before requesting another confirmation email.','rate_limit'=>'Too many attempts. Please try again later.','contact_note'=>'Providing contact information here does not subscribe you to emails from this audience.','preferences_note'=>'Your subscription status stays unchanged. To unsubscribe, use the unsubscribe link in your email.','quiz'=>'Choose what interests you','other'=>'Other','other_answer'=>'Please specify','powered'=>'Powered by MOED MessageMonkey'];
 }
 
 /** Source editing never replaces the native consent form or its submission checks. */

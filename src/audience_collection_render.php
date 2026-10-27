@@ -78,9 +78,10 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
 }
 
 /** Shared branded document; preview controls use trusted application code without executing frame scripts. */
-function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string $error='',string $success='',?array $person=null,bool $preview=false,string $unavailable='',string $previewNonce=''): string
+function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string|InvalidArgumentException $error='',string $success='',?array $person=null,bool $preview=false,string $unavailable='',string $previewNonce=''): string
 {
     $d=array_replace(audienceCollectionDefaults($r['kind']==='confirm'||$r['kind']==='unsubscribe'?'hosted':$r['kind']),$r['document']); $messages=array_replace(audienceCollectionMessages(),$d['messages']); $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $nonce=contentSecurityPolicyNonce();
+    $publicErrorKey=$error instanceof AudienceRateLimitException&&in_array($error->publicMessageKey,['confirmation_limit','confirmation_wait','rate_limit'],true)?$error->publicMessageKey:'invalid';
     if($preview&&$previewNonce!==''){
         if(!preg_match('~^[a-zA-Z0-9+/=]{8,100}$~D',$previewNonce))throw new InvalidArgumentException('Reload the form preview.');
         $nonce=$previewNonce;
@@ -123,7 +124,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php else: ?>
     <?php if($d['intro']!==''): ?><p class="collection-intro"><?= $h($d['intro']) ?></p><?php endif; ?>
     <?php foreach($d['sections']as$sectionIndex=>$s): ?><?php if($preview): ?><div data-collection-section="<?= $sectionIndex ?>"><?php endif; ?><?php if($s['type']==='heading'): ?><h2><?= $h($s['text']) ?></h2><?php elseif($s['type']==='text'): ?><p><?= $h($s['text']) ?></p><?php elseif($s['type']==='image'&&$s['url']): ?><img class="section-image"<?php if(isset($s['width'])): ?> width="<?= (int)$s['width'] ?>"<?php endif; ?> src="<?= $h($s['url']) ?>" alt="<?= $h($s['text']) ?>" referrerpolicy="no-referrer"><?php elseif($s['type']==='button'&&$s['url']): ?><a class="button" href="<?= $h($s['url']) ?>" rel="noopener noreferrer"><?= $h($s['text']) ?></a><?php elseif($s['type']==='divider'): ?><hr><?php endif; ?><?php if($preview): ?></div><?php endif; ?><?php endforeach; ?>
-    <?php if($error!==''): ?><div class="error" role="alert" tabindex="-1"><strong><?= $h($messages['error_title']) ?></strong><p><?= $h($messages['invalid']) ?></p></div><?php endif; ?>
+    <?php if($error!==''): ?><div class="error" role="alert" tabindex="-1"><strong><?= $h($messages['error_title']) ?></strong><p><?= $h($messages[$publicErrorKey]) ?></p></div><?php endif; ?>
     <form method="post" action="<?= $h($action) ?>">
     <?php if($unavailable!==''): ?><div class="error" role="status"><p><?= $h($unavailable) ?></p></div><fieldset disabled><legend class="trap">Signup temporarily unavailable</legend><?php endif; ?>
     <input type="hidden" name="proof" value="<?= $h($proof) ?>"><div class="trap" hidden aria-hidden="true"><label>Leave this field empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -161,6 +162,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <script type="application/json" id="address-region-data" nonce="<?= $h($nonce) ?>"><?= json_encode(addressRegionClientData(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
     <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/address-inputs-public.min.js')) ?>" defer></script><?php endif; ?>
     <?php endif; ?>
+    <?php if(!$preview&&!$nativeAddress&&!in_array($r['kind'],['confirm','unsubscribe'],true)): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/audience-collection-public.min.js')) ?>" defer></script><?php endif; ?>
     <?php if($hasPhone&&!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/phone-input.min.js')) ?>" defer></script><?php endif; ?>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>
     <script type="application/json" id="collection-resize-config"><?= json_encode(['key'=>$r['public_key'],'origins'=>$d['origins']],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>

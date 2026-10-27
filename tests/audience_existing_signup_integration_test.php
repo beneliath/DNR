@@ -5,9 +5,10 @@ $source=getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src';
 require_once $source.'/bootstrap.php';
 require_once $source.'/audience_store.php';
 require_once $source.'/audience_delivery_lifecycle.php';
+require_once $source.'/audience_collection_render.php';
 $db=applicationDatabaseConnection();$store=new AudienceStore($db,1,0,'Existing signup qualification');$suffix=bin2hex(random_bytes(5));$checks=0;
 $expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);++$checks;};
-$reject=static function(callable $call,string $why)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,$why);return;}throw new RuntimeException($why);};
+$reject=static function(callable $call,string $why)use($expect):InvalidArgumentException{try{$call();}catch(InvalidArgumentException $error){$expect(true,$why);return $error;}throw new RuntimeException($why);};
 $priorSes=$store->sesSettings();$priorQueue=$store->all("SELECT id,next_attempt_at FROM marketing_service_mail WHERE state='queued'");
 foreach($priorQueue as$row)$store->write('UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 2 DAY) WHERE id=?',[$row['id']]);
 $people=[];
@@ -61,12 +62,18 @@ try{
     }
     // Cross-form attempts share the same cooldown and daily allowance.
     $id=$people[0];$email=$store->person($id)['email'];$other=$forms[count($forms)-1];
-    $reject(static fn()=>$submit($other,$email,$details),'Another form cannot bypass the confirmation cooldown');
+    $cooldown=$reject(static fn()=>$submit($other,$email,$details),'Another form cannot bypass the confirmation cooldown');
+    $expect($cooldown instanceof AudienceRateLimitException&&$cooldown->publicMessageKey==='confirmation_wait','The confirmation cooldown identifies its public guidance');
+    $cooldownHtml=audienceCollectionHtml($other,$store->fields(),$store->groups(),'','',[],$cooldown);
+    $expect(str_contains($cooldownHtml,'Please wait one minute')&&!str_contains($cooldownHtml,'Check the required fields'),'A complete signup with a cooldown does not blame missing fields');
     $age=static fn(int $id)=>$store->write('UPDATE marketing_consent_challenges SET created_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 2 MINUTE) WHERE contact_id=?',[$id]);
     $age($id);$submit($other,$email,$details);[$freshMail,,$freshToken]=$latest($id);
     $expect($freshMail['state']==='queued','A fresh cross-form request sends confirmation instead of a suppressed status notice');$deliver();$store->confirmSubscription($freshToken);
     $age($id);$submit($forms[1],$email,$details);$deliver();$age($id);
-    $reject(static fn()=>$submit($forms[2],$email,$details),'A fourth confirmation is rejected across all forms in the same audience');
+    $dailyLimit=$reject(static fn()=>$submit($forms[2],$email,$details),'A fourth confirmation is rejected across all forms in the same audience');
+    $expect($dailyLimit instanceof AudienceRateLimitException&&$dailyLimit->publicMessageKey==='confirmation_limit','The daily confirmation limit identifies its public guidance');
+    $limitedHtml=audienceCollectionHtml($forms[2],$store->fields(),$store->groups(),'','',[],$dailyLimit);
+    $expect(str_contains($limitedHtml,'Too many confirmation emails')&&!str_contains($limitedHtml,'Check the required fields'),'A complete signup reaching the daily limit displays the actual safe reason');
     $expect((int)$store->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE contact_id=? AND kind='confirmation'",[$id])['n']===3,'An anonymous requester cannot queue more than three confirmation emails per connection per day');
     foreach(['pending','non-subscribed','unsubscribed']as$status){
         [$id,$email]=$newPerson('existing-'.$status,$status,'');$submit($forms[0],$email,$details);[,,$token]=$latest($id);

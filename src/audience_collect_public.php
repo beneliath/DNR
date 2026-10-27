@@ -22,7 +22,7 @@ $nonce=contentSecurityPolicyNonce(); $ancestors="'none'";
 $collectionFields=$store->fields();
 if (in_array($r['kind'],['embedded','popup'],true)) { $ancestors="'self' ".implode(' ',$d['origins']); header_remove('X-Frame-Options'); }
 $resize=$r['kind']==='embedded'&&empty($d['embedded']['disable_javascript']);
-$scriptPolicy=($resize||audienceCollectionHasAddress($r,$collectionFields)||audienceCollectionHasPhone($r,$collectionFields))?"; script-src 'nonce-{$nonce}'":'';
+$scriptPolicy="; script-src 'nonce-{$nonce}'";
 header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
 $r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$key;
 if($resize)$r['resize_script']=accountPrimaryPublicUrl().'/assets/js/audience-collection-resize.js';
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',accountPrimaryPublicUrl());
         $success=$result['confirmed']?$d['confirmation']:$d['thanks'];
         if ($d['quiz']) foreach($d['quiz']as$q)if($q['label']===audienceText($_POST,'quiz',200))$success.="\n\n".$q['outcome'];
-    } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e->getMessage(); }
+    } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e; }
     catch (Throwable $e) { http_response_code(503); $error='This form is temporarily unavailable. Please try again later.'; }
 }
 if ($success==='') $proof=$store->collectionChallenge($r,$visitor,$variant,$recipient);

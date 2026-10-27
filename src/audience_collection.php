@@ -113,7 +113,7 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
         'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
         'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'logo_resized'=>false, 'description'=>'', 'favicon'=>'',
         'labels'=>['email'=>'Email address','first_name'=>'First name','last_name'=>'Last name','phone'=>'Phone number'],
-        'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from this audience.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
+        'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from *|LIST:COMPANY|*.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
         'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How was your experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
         'origins'=>[], 'popup'=>['delay'=>5,'trigger'=>'delay','frequency'=>7,'device'=>'all','paths'=>[],'exclude_paths'=>[],'countries'=>[]],
         'variants'=>[], 'quiz'=>[],
@@ -408,7 +408,7 @@ trait AudienceCollection
         $bucket=hash('sha256',currentAccountKey().'|collection|'.$identifier); $hour=gmdate('Y-m-d H:00:00');
         $this->write('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start) VALUES (?,?,?) ON DUPLICATE KEY UPDATE attempts=attempts+1',[$this->audienceId,$bucket,$hour]);
         $attempts=(int)$this->one('SELECT attempts FROM marketing_collection_limits WHERE audience_id=? AND bucket_hash=? AND hour_start=?',[$this->audienceId,$bucket,$hour])['attempts'];
-        if ($attempts>$limit) throw new InvalidArgumentException('Too many attempts. Please try again later.');
+        if ($attempts>$limit) throw new AudienceRateLimitException('rate_limit','Too many attempts. Please try again later.');
     }
 
     /** Bound anonymous analytics writes without blocking form access or consent. */
@@ -591,6 +591,13 @@ function audienceCollectionMerge(string $text,array $snapshot,string $token,bool
 }
 
 /** Published system-form appearance, with immutable consent actions kept native. */
+function audienceCollectionConfirmationIntro(string $intro,array $audience):string
+{
+    if($intro==='Confirm that you want to receive emails from this audience.')$intro=audienceCollectionDefaults('hosted')['system']['confirm_intro'];
+    $organization=audienceBrandIdentity(audienceJson($audience['settings_json']??''),(string)($audience['name']??''))['LIST:COMPANY'];
+    return str_replace('*|LIST:COMPANY|*',$organization!==''?$organization:'our organization',$intro);
+}
+
 function audienceCollectionSystem(AudienceStore $store,string $screen): ?array
 {
     if (!in_array($screen,['unsubscribe','confirm'],true) || !$store->collectionAvailable()) return null;
@@ -598,6 +605,7 @@ function audienceCollectionSystem(AudienceStore $store,string $screen): ?array
     if (!$row) return null;
     $d=audienceJson($row['document_json']); $defaults=audienceCollectionDefaults('hosted')['system']; $system=array_replace($defaults,$d['system']??[]);
     $d['title']=$system[$screen.'_title']; $d['intro']=$system[$screen.'_intro']; $d['button']=$system[$screen.'_button']; $d['fields']=[]; $d['group_ids']=[]; $d['sections']=[]; $d['quiz']=[];
+    if($screen==='confirm')$d['intro']=audienceCollectionConfirmationIntro($d['intro'],$store->one('SELECT name,settings_json FROM marketing_audiences WHERE id=?',[$store->audienceId])??[]);
     return ['kind'=>$screen,'document'=>$d,'done'=>$system[$screen.'_done']];
 }
 
