@@ -115,12 +115,12 @@
         setText('[data-network-status]', assessment.status);
         const coverage = payload.coverage || {};
         setText('[data-network-coverage]', coverage.from && coverage.through
-            ? `${coverage.count} measurements from ${new Date(coverage.from).toLocaleString()} through ${new Date(coverage.through).toLocaleString()}${coverage.truncated ? ' (newest 5,000 only)' : ''}.`
+            ? `${coverage.count} measurements from ${window.DnrUserTime.format(new Date(coverage.from))} through ${window.DnrUserTime.format(new Date(coverage.through))}${coverage.truncated ? ' (newest 5,000 only)' : ''}.`
             : 'No measurements in the selected window.');
         const generated = new Date(payload.generated_at);
         setText('[data-network-updated]', Number.isNaN(generated.valueOf())
             ? 'Updated just now'
-            : `Updated ${generated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`);
+            : `Updated ${window.DnrUserTime.format(generated, { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`);
     }
 
     async function load() {

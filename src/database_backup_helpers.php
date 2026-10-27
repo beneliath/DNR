@@ -10,7 +10,7 @@ const DNR_DATABASE_BACKUP_VERSION = 3;
 const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
-const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 1024 * 1024 * 1024;
+const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 const DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES = 16;
 
 final class DatabaseBackupCapacityException extends RuntimeException {
@@ -51,7 +51,7 @@ function databaseBackupMaximumBytes() {
     );
 
     if (getenv('DNR_DATABASE_BACKUP_MAX_BYTES') && $configured === false) {
-        throw new RuntimeException('Backup limit must be between 1 and 1024 MiB; use a coordinated database and file-storage backup beyond this capacity.');
+        throw new RuntimeException('Backup limit must be between 1 and 2048 MiB; use a coordinated database and file-storage backup beyond this capacity.');
     }
     return $configured ?: DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES;
 }

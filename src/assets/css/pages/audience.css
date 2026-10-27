@@ -216,6 +216,8 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .collection-editor-heading h1{overflow-wrap:anywhere}
 .collection-editor-logo{display:flex;align-items:center;flex-shrink:0;min-width:60px;min-height:44px;padding-right:16px;border-right:1px solid var(--audience-border);color:#fff}
 .collection-editor-logo svg{display:block;width:44px;height:44px}
+.collection-editor-back{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border:1px solid var(--audience-border);border-radius:8px;font-size:calc(23px * var(--audience-font-scale,1));line-height:1;color:inherit;background:var(--audience-surface);text-decoration:none!important}
+.collection-editor-back:hover{background:var(--audience-hover)}
 .audience-actions{display:flex;align-items:center;gap:16px}
 .audience-page-body{padding:52px 32px 32px}
 /* Shared MOED footer, kept in the page/tool panel rather than email content. */
@@ -1015,9 +1017,9 @@ dialog.campaign-create-dialog{width:100vw;max-width:100vw;height:100dvh;max-heig
 .content-brand-logo-stage{position:relative;width:225px;max-width:100%;height:112.5px;margin:12.5px 0 0;overflow:hidden}
 .content-brand-settings .content-logo-preview{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;margin:0}
 .content-brand-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}.content-brand-heading h2{margin:0}
-[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
+[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved,.collection-publish-pending{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
 @keyframes brand-save-blink{0%,100%{outline:3px solid transparent}50%{outline:3px solid var(--audience-primary)}}
-@media(prefers-reduced-motion:reduce){[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved{animation:none;outline:3px solid var(--audience-primary)}}
+@media(prefers-reduced-motion:reduce){[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved,.collection-publish-pending{animation:none;outline:3px solid var(--audience-primary)}}
 .content-brand-font-upload{margin-top:14px}
 .content-brand-settings .audience-check{gap:9px;align-items:flex-start;margin:12px 0 0;font-size:inherit}
 .content-brand-settings .content-color-grid{gap:12px 10px;align-items:end;align-self:end}

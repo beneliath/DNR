@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Permanently pruned %d audit %s older than %s.%s',
                     $deleted_count,
                     $deleted_count === 1 ? 'entry' : 'entries',
-                    applicationTimestampLabel($outcome['cutoff_utc'], 'Y-m-d H:i:s T'),
+                    formatUserTimestamp($outcome['cutoff_utc'], 'Y-m-d H:i:s T'),
                     $outcome['more_entries']
                         ? ' More expired entries remain; run the reviewed prune again.'
                         : ''
@@ -297,8 +297,8 @@ $security_event_labels = [
     'calendar_subscription_revoked' => 'Calendar Subscription Revoked',
     'calendar_subscriptions_purged' => 'Revoked Calendar Subscriptions Purged',
 ];
-$audit_timezone_name = applicationTimezoneName();
-$audit_timezone = applicationTimezone();
+$audit_timezone_name = userDisplayTimezoneName();
+$audit_timezone = userDisplayTimezone();
 $retention_requested = array_key_exists('retention_days', $_GET);
 $retention_input_value = $retention_requested
     ? \Dnr\Http\RequestInput::string($_GET, 'retention_days', '', 5)
@@ -447,7 +447,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <p>
                     Entries before
                     <time datetime="<?php echo htmlspecialchars($retention_preview['cutoff_utc'], ENT_QUOTES, 'UTF-8'); ?>Z">
-                        <?php echo htmlspecialchars(applicationTimestampLabel($retention_preview['cutoff_utc'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars(formatUserTimestamp($retention_preview['cutoff_utc'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?>
                     </time>
                     will be deleted. The most recent <?php echo (int) $retention_days; ?> days will remain.
                 </p>

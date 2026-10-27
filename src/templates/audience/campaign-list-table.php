@@ -3,7 +3,7 @@ $campaignArchived=($campaignFilters['trash']??'0')==='1';
 $dateSortLabels=['updated_at'=>'Date edited','created_at'=>'Date created','sent_at'=>'Send date','name'=>'Date edited'];
 $dateSort=$campaignFilters['sort']!=='name';
 $dateField=$dateSort?$campaignFilters['sort']:'updated_at';
-$dateStamp=static fn($value)=>$value?new DateTimeImmutable($value,new DateTimeZone('UTC')):null;
+$dateStamp=static fn($value)=>userDisplayInstant($value);
 ?>
 <form method="post" id="campaign-selection" data-campaign-selection>
 <?php $campaignForm('campaign_operation',['operation'=>'move','selection_scope'=>'page','selection_filters'=>json_encode($campaignFilters),'selection_snapshot'=>json_encode((object)$campaignSnapshot)]); ?>

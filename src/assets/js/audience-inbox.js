@@ -78,17 +78,17 @@
     });
     window.addEventListener('resize',refreshWidth); refreshWidth();
   }
-  // Keep machine-readable UTC timestamps, but show the browser's local time zone.
+  // Use the profile timezone, including for same-day and year comparisons.
   const renderTime = time => {
     const date = new Date(time.dateTime);
     if (Number.isNaN(date.getTime())) return;
     const today = new Date();
-    const sameDay = date.toDateString() === today.toDateString();
+    const sameDay = window.DnrUserTime.dateKey(date) === window.DnrUserTime.dateKey(today);
     const short = time.dataset.inboxTime === 'short';
-    time.textContent = new Intl.DateTimeFormat(undefined,short
-      ? (sameDay ? {hour:'numeric',minute:'2-digit'} : {month:'short',day:'numeric',...(date.getFullYear() !== today.getFullYear() ? {year:'numeric'} : {})})
-      : {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(date);
-    time.title = new Intl.DateTimeFormat(undefined,{dateStyle:'full',timeStyle:'long'}).format(date);
+    time.textContent = window.DnrUserTime.format(date,short
+      ? (sameDay ? {hour:'numeric',minute:'2-digit'} : {month:'short',day:'numeric',...(window.DnrUserTime.dateKey(date).slice(0,4) !== window.DnrUserTime.dateKey(today).slice(0,4) ? {year:'numeric'} : {})})
+      : {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});
+    time.title = window.DnrUserTime.format(date,{dateStyle:'full',timeStyle:'long'});
   };
   document.querySelectorAll('[data-inbox-time]').forEach(renderTime);
   const csrf = document.querySelector('input[name="csrf_token"]');

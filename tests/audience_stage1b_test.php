@@ -22,11 +22,16 @@ $field=['label'=>'Date','field_type'=>'date','required'=>1,'options_json'=>'[]']
 $importPermission=['id'=>10,'details_json'=>json_encode(['source_metadata'=>['OPTIN_TIME'=>'2024-01-23 09:59:00','SOURCE'=>'Admin Add']]),'created_at'=>'2026-10-16 20:00:00'];
 $permissionPerson=['email_status'=>'subscribed','source'=>'Imported'];
 $detail=audienceMarketingDetails($permissionPerson,null,$importPermission);
-stageExpect($detail['date']==='Jan 23, 2024, 9:59 AM'&&!str_ends_with($detail['datetime'],'Z')&&$detail['source']==='Admin Add','Imported permission retains source date without inventing timezone');
+stageExpect($detail['date']==='Jan 23, 2024, 9:59 AM (timezone not recorded)'&&!str_ends_with($detail['datetime'],'Z')&&$detail['source']==='Admin Add','Imported permission retains source date and labels its unknown timezone');
 $zeroPermission=$importPermission;$zeroPermission['details_json']=json_encode(['source_metadata'=>['OPTIN_TIME'=>'0000-00-00 00:00:00']]);
 stageExpect(audienceMarketingDetails($permissionPerson,null,$zeroPermission)['date']==='','Import time is not substituted for missing consent evidence');
 $nativePermission=['id'=>11,'details_json'=>json_encode(['to'=>'subscribed']),'created_at'=>'2026-10-16 20:00:00'];
 stageExpect(audienceMarketingDetails($permissionPerson,$nativePermission,$importPermission)['date']==='Oct 16, 2026, 8:00 PM UTC','Later native subscription transition takes precedence over imported history');
+$originalDisplayTimezone=$_SESSION['display_timezone']??null;
+$_SESSION['display_timezone']='America/Chicago';
+stageExpect(audienceMarketingDetails($permissionPerson,null,$importPermission)===$detail,'A selected timezone must not convert imported consent with an unknown source timezone');
+stageExpect(audienceMarketingDetails($permissionPerson,$nativePermission,$importPermission)['date']==='Oct 16, 2026, 3:00 PM CDT','Native consent timestamps use the selected display timezone');
+if($originalDisplayTimezone===null)unset($_SESSION['display_timezone']);else $_SESSION['display_timezone']=$originalDisplayTimezone;
 $listNames=['News | Events','A "quoted" name','Rivéra, Avery','0',"Two\nlines"];
 stageExpect(audienceParseListCell(audienceListCell($listNames))===$listNames,'List cells preserve separators, quotes, Unicode, zero and newlines');
 stageExpect(audienceParseListCell('News | Events')===['News','Events'],'Legacy pipe-separated imports remain supported');

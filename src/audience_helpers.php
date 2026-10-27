@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/user_time_helpers.php';
 require_once __DIR__.'/audience_pagination.php';
 
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
@@ -199,7 +200,7 @@ function audienceMarketingDetails(array $person, ?array $permissionEvent, ?array
     $date='';$datetime='';$note=$isImport?'Original Mailchimp timestamp; the export does not specify its time zone.':'Recorded in UTC';
     if($raw!==''&&preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/',$raw)){
         $parsed=DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',substr($raw,0,19),new DateTimeZone('UTC'));$errors=DateTimeImmutable::getLastErrors();
-        if($parsed&&(!$errors||(!$errors['warning_count']&&!$errors['error_count']))){$date=$parsed->format('M j, Y, g:i A').($isImport?'':' UTC');$datetime=$parsed->format('Y-m-d\TH:i:s').($isImport?'':'Z');}
+        if($parsed&&(!$errors||(!$errors['warning_count']&&!$errors['error_count']))){$date=$isImport?$parsed->format('M j, Y, g:i A').' (timezone not recorded)':formatUserTimestamp($parsed);$datetime=$parsed->format('Y-m-d\TH:i:s').($isImport?'':'Z');}
     }
     return ['label'=>$label,'date'=>$date,'datetime'=>$datetime,'source'=>$source,'note'=>$note];
 }
@@ -207,8 +208,7 @@ function audienceMarketingDetails(array $person, ?array $permissionEvent, ?array
 /** Native history is stored in UTC; do not guess a zone for imported permission dates. */
 function audienceProfileDate(string $value): string
 {
-    try { return (new DateTimeImmutable($value,new DateTimeZone('UTC')))->format('M j, Y, g:i A').' UTC'; }
-    catch (Exception) { return $value; }
+    return formatUserTimestamp($value);
 }
 
 /** Selection values use the same language codes accepted by connection settings. */

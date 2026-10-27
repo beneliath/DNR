@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'The backup encryption passwords do not match.';
             } else {
                 releaseApplicationSessionLock();
-                set_time_limit(320);
+                set_time_limit(920);
                 $encrypted_backup = requestEncryptedDatabaseBackup([
                     'user_id' => $actor_id, 'auth_version' => (int) $actor['auth_version'],
                     'admin_password' => $admin_password, 'admin_code' => $admin_code,
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // This signals the download response, not a completed save on the user's disk.
                     setcookie('dnr_backup_' . $download_token, json_encode([
                         'filename' => $filename,
-                        'createdAt' => applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'M j, Y g:i:s A T'),
+                        'createdAt' => formatUserTimestamp(gmdate('Y-m-d H:i:s'), 'M j, Y g:i:s A T'),
                     ], JSON_THROW_ON_ERROR), [
                         'expires' => time() + 600,
                         'path' => accountCookiePath(),
@@ -108,7 +108,7 @@ try {
     if (!$last_backup_result) throw new RuntimeException('Unable to read backup history.');
     $last_backup = $last_backup_result->fetch_assoc();
     if ($last_backup) {
-        $last_backup_label = applicationTimestampLabel($last_backup['created_at'], 'M j, Y g:i:s A T');
+        $last_backup_label = formatUserTimestamp($last_backup['created_at'], 'M j, Y g:i:s A T');
     }
 } catch (Throwable $exception) {
     applicationLog('warning', 'Backup history unavailable');
@@ -177,8 +177,9 @@ try {
                 </p>
             <?php endif; ?>
             <p>
-                Creates a consistent snapshot of every DNR table and its persistent uploaded files, encrypts and authenticates the
-                complete archive with your password, and downloads it as a <code>.dnrbackup</code> file.
+                Creates a consistent snapshot of the current account's database and persistent uploaded files, including MOED
+                records and MessageMonkey audiences, campaigns, forms, automations, Inbox messages, and stored attachments.
+                The complete archive is encrypted and authenticated with your password and downloaded as a <code>.dnrbackup</code> file.
             </p>
             <form method="post" action="database_maintenance.php" autocomplete="off" id="database-backup-form">
                 <?php echo csrfInput(); ?>

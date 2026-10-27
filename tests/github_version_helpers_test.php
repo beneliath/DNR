@@ -65,9 +65,18 @@ putenv('DNR_GITHUB_REPOSITORY=' . $test_repository);
 putenv('DNR_BUILD_COMMIT=' . $release_commit);
 putenv('DNR_BUILD_TIMESTAMP=2026-08-17T07:58:09Z');
 putenv('DNR_TIMEZONE=America/Chicago');
+$_SESSION['display_timezone'] = 'America/Chicago';
 ob_start();
 include __DIR__ . '/../src/templates/footer.php';
 $footer_markup = ob_get_clean();
+unset($_SESSION['display_timezone']);
+ob_start();
+include __DIR__ . '/../src/templates/footer.php';
+$utc_footer_markup = ob_get_clean();
+expectGithubVersion(
+    str_contains($utc_footer_markup, '<time datetime="2026-08-17T07:58:09Z">2026-08-17 07:58:09 UTC</time>'),
+    'The footer uses explicit UTC without a profile timezone, independently of the application timezone.'
+);
 putenv('DNR_GITHUB_REPOSITORY');
 putenv('DNR_BUILD_COMMIT');
 putenv('DNR_BUILD_TIMESTAMP');

@@ -69,6 +69,7 @@ if($isPost){
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
         $protectedViews=['delete_tag'=>'tags','delete_segment'=>'segments','delete_group'=>'groups','delete_field'=>'fields','undo_import'=>'job','delete_export_history'=>'jobs'];
         $protectedView=$protectedViews[$action]??null;
+        if(in_array($action,['person_action','bulk'],true)&&audienceText($_POST,'operation')==='delete')$protectedView=$action==='person_action'?'contact':'contacts';
         if($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))$protectedView=audienceText($_POST,'kind');
         if($action==='save_group'&&$id){
             $oldOptions=$store->all('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.id=? AND g.audience_id=?',[$id,$audienceId]);
@@ -78,6 +79,7 @@ if($isPost){
         if($protectedView!==null){
             if(!$canDelete){http_response_code(403);exit('This operation requires an administrator and Admin Unlock.');}
             $return=['view'=>$protectedView];if($action==='undo_import')$return['id']=$id;if($action==='delete_export_history')$return['kind']='export';
+            if($action==='person_action')$return['id']=$id;
             requireRecentAdminElevation($url($return));
         }
         if($error!=='')throw new InvalidArgumentException($error);

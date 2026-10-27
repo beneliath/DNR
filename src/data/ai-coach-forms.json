@@ -57,7 +57,7 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+        "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
       },
@@ -206,7 +206,7 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+        "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
       },
       "controls": {
@@ -236,7 +236,7 @@
       "entry": "Calendar → Create Subscription",
       "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
-        "view_calendar.php": "3ada12725cf9dfe704aa5783e828e6f8fe5df9d9450a38eac9338e9f084db6b6"
+        "view_calendar.php": "f17ed82a2c9a78180b4778f01144f834e45de8b8956e2669e65245819f466583"
       },
       "controls": {
         "calendar-device": {
@@ -286,8 +286,8 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
-        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3"
+        "tasks.php": "e83000980aa058a3db086c0fa563840263e7703317785cb83d32be7ec3460532",
+        "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a"
       },
       "controls": {
         "tasks-tab": {
@@ -320,7 +320,7 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "d62fea9a7ec15a92fb8a3db95c46165901b5f6f98c9d1885d584a74a07be2520",
+        "reimbursement_expense.php": "4d1b664fd84b302910668e885491b7e7752397188afa2ab3be29bd839e60bad1",
         "reimbursement_helpers.php": "570810247327dde6e7c0225551a59fe0711767062be9a119e542f5cdc53268c7",
         "reimbursement_mileage_helpers.php": "7ff237356b6d01130d33ba0436865d42fb575507b1c9ba9ce611114057353ac2",
         "templates/reimbursement_mileage_fields.php": "74e9c58a7a289d1fb8382f9f8612ce3aa400149302b83ed90f1eddea65cbb8dc"
@@ -393,7 +393,7 @@
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
         "reimbursements.php": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
-        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af",
+        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "controls": {
@@ -444,7 +444,7 @@
       "source_files": {
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
         "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
-        "reimbursement_request.php": "70c8bc56a5948b94d4dce483e3a1c62a152b76d43ab3f2333a3c6c8ebbe1c8af"
+        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b"
       },
       "controls": {
         "reimbursement-confirm": {
@@ -502,7 +502,7 @@
       "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
-        "view_engagement.php": "ca1f48d6758e8def3e763671c6147f9fa7b476b74ba68fda387e4c1415a9b4d3",
+        "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "templates/footer.php": "585b8620ecfb524aa0631b1864c639e9cd03c1df4e92854cff45c0128c47184a",

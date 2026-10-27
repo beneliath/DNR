@@ -70,7 +70,7 @@ function audienceServiceMailStatus(array $mail,array $events):array
     if(!$chosen){
         $detail=$detail?:match($mail['state']){
             'accepted'=>'The sending service accepted the email. No delivery confirmation is recorded.',
-            'queued'=>'Next attempt: '.$mail['next_attempt_at'].' UTC',
+            'queued'=>'Next attempt: '.formatUserTimestamp($mail['next_attempt_at'],'Y-m-d H:i:s'),
             'processing'=>'The email is being submitted to the sending service.',
             'development'=>'Recorded in development mode; no email was sent.',
             'failed'=>'The email could not be sent.',
@@ -172,6 +172,26 @@ trait AudienceDeliveryRuntime
             WHERE r.audience_id=? AND r.delivery_id=? $phase GROUP BY r.id
         ) observations GROUP BY variant_key ORDER BY variant_key",[$this->audienceId,$delivery]);
     }
+    /** Called while the signup transaction holds this contact's row lock. */
+    private function queueSubscriptionNotice(array $person):void
+    {
+        $ses=$this->sesSettings();
+        if (audienceSesReasons($ses,$ses['from_email']??'')) return;
+        // Quietly suppress repeats across all forms; do not disclose membership publicly.
+        if ($this->one("SELECT id FROM marketing_service_mail WHERE audience_id=? AND contact_id=? AND kind='subscription-notice' AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) LIMIT 1 FOR UPDATE",[$this->audienceId,$person['id']])) return;
+        $audience=$this->one('SELECT name,settings_json FROM marketing_audiences WHERE id=?',[$this->audienceId]);
+        $organization=audienceBrandIdentity(audienceJson($audience['settings_json']),(string)$audience['name'])['LIST:COMPANY'];
+        $operation=bin2hex(random_bytes(32));
+        $message=[
+            'email'=>$person['email'],'subject'=>"You're already subscribed",
+            'text'=>"You're already subscribed to emails from {$organization}. No further action is needed. Your subscription has not changed.\n\nIf you did not submit a signup request, you can ignore this email.",
+            'html'=>null,'from_name'=>'MOED MessageMonkey','from_email'=>$ses['from_email'],
+            'ses_binding'=>audienceSesBinding($ses),'to_name'=>'',
+            'message_id'=>'<subscription-notice-'.substr($operation,0,40).'@message-monkey.invalid>',
+        ];
+        $this->write("INSERT INTO marketing_service_mail(audience_id,contact_id,kind,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (?,?,'subscription-notice','Signup form',?,?,?,UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))",[$this->audienceId,$person['id'],$operation,\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR)),$message['message_id']]);
+    }
+
     public function requestSubscriptionConfirmation(int $personId,string $base,array $collection=[]):void
     {
         $this->transaction(function()use($personId,$base,$collection){

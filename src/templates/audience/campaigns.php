@@ -1,15 +1,15 @@
 <?php
 $campaignTypes=['regular'=>'Regular email','plain-text'=>'Plain-text email'];
-$campaignDate=static fn($value)=>$value?gmdate('D, M d, h:i A',strtotime($value)).' UTC':'—';
+$campaignDate=static fn($value)=>$value?formatUserTimestamp($value,'D, M d, h:i A'):'—';
 $campaignForm=static function(string $action,array $extra=[])use($csrf){echo $csrf;audienceInputs(['action'=>$action]+$extra);};
 ?>
 <?php if($view==='campaigns'): ?>
 <?php include __DIR__.'/campaign-list-toolbar.php'; ?>
 <?php if($campaignFilters['layout']==='calendar'): ?>
-<div class="campaign-calendar-heading"><h2><?= $month->format('F Y') ?></h2><a class="audience-button" href="<?= $h($campaignUrl(['month'=>gmdate('Y-m')])) ?>">Today</a><a class="audience-button" aria-label="Previous month" href="<?= $h($campaignUrl(['month'=>$month->modify('-1 month')->format('Y-m')])) ?>">‹</a><a class="audience-button" aria-label="Next month" href="<?= $h($campaignUrl(['month'=>$month->modify('+1 month')->format('Y-m')])) ?>">›</a></div>
+<div class="campaign-calendar-heading"><h2><?= $month->format('F Y') ?></h2><a class="audience-button" href="<?= $h($campaignUrl(['month'=>userDisplayInstant(time())->format('Y-m')])) ?>">Today</a><a class="audience-button" aria-label="Previous month" href="<?= $h($campaignUrl(['month'=>$month->modify('-1 month')->format('Y-m')])) ?>">‹</a><a class="audience-button" aria-label="Next month" href="<?= $h($campaignUrl(['month'=>$month->modify('+1 month')->format('Y-m')])) ?>">›</a></div>
 <form method="get" class="campaign-planner-filters"><?php audienceInputs(array_diff_key(['view'=>'campaigns']+$campaignFilters,['holidays'=>true])); ?><label>Holidays<select name="holidays" data-auto-submit><option value="0">None</option><option value="1"<?= ($campaignFilters['holidays']??'0')==='1'?' selected':'' ?>>United States</option></select></label></form>
 <?php $calendarHolidays=($campaignFilters['holidays']??'0')==='1'?audienceCampaignHolidays((int)$month->format('Y'))+audienceCampaignHolidays((int)$month->format('Y')+1):[]; ?>
-<p class="audience-help">Drafts appear on their last edited date. Scheduled campaigns appear on their delivery date, and sent campaigns on their send date. Times are shown in UTC.</p>
+<p class="audience-help">Drafts appear on their last edited date. Scheduled campaigns appear on their delivery date, and sent campaigns on their send date. Times are shown in <?= $h(userDisplayTimezoneName()) ?>.</p>
 <div class="campaign-calendar-scroll"><table class="data-table campaign-calendar" aria-label="Campaign calendar"><thead><tr><?php foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']as$day): ?><th><?= $day ?></th><?php endforeach; ?></tr></thead><tbody>
 <?php for($day=$calendarStart;$day<=$calendarEnd;$day=$day->modify('+1 day')): ?><?= $day->format('N')==='1'?'<tr>':'' ?><td class="<?= $day->format('m')!==$month->format('m')?'outside-month':'' ?>"><time datetime="<?= $day->format('Y-m-d') ?>"><?= $day->format('j') ?></time><?php if(isset($calendarHolidays[$day->format('Y-m-d')])): ?><small class="campaign-holiday"><?= $h($calendarHolidays[$day->format('Y-m-d')]) ?></small><?php endif; ?><?php foreach($calendarRows as$item)if($item['calendar_date']===$day->format('Y-m-d')): ?><a href="<?= $h($url(['view'=>'campaign','id'=>$item['id']])) ?>"><?= $h($item['name']) ?><small><?= $h(ucfirst($item['status'])) ?></small></a><?php endif; ?></td><?= $day->format('N')==='7'?'</tr>':'' ?><?php endfor; ?>
 </tbody></table></div>
@@ -26,7 +26,7 @@ $campaignForm=static function(string $action,array $extra=[])use($csrf){echo $cs
 <?php foreach($recentCampaigns as$recentIndex=>$recent): ?>
 <article<?= $recentIndex>=4?' hidden':'' ?>>
     <div class="campaign-recent-preview"><iframe title="Preview <?= $h($recent['name']) ?>" tabindex="-1" inert sandbox="" referrerpolicy="no-referrer" scrolling="no" data-campaign-thumbnail="<?= (int)$recent['id'] ?>" data-preview-nonce="<?= $h(contentSecurityPolicyNonce()) ?>"></iframe><span class="campaign-recent-preview-status" data-campaign-preview-status>Loading preview…</span></div>
-    <div class="campaign-recent-details"><span class="campaign-status">Sent</span><h4><?= $h($recent['name']) ?></h4><?php if(!empty($recent['sent_at'])): ?><p class="audience-help">Sent: <time datetime="<?= $h(str_replace(' ','T',$recent['sent_at']).'Z') ?>" data-campaign-recent-date><?= $h($recent['sent_at']) ?> UTC</time></p><?php endif; ?></div>
+    <div class="campaign-recent-details"><span class="campaign-status">Sent</span><h4><?= $h($recent['name']) ?></h4><?php if(!empty($recent['sent_at'])): ?><p class="audience-help">Sent: <time datetime="<?= $h(str_replace(' ','T',$recent['sent_at']).'Z') ?>" data-campaign-recent-date><?= $h(formatUserTimestamp($recent['sent_at'],'Y-m-d H:i:s')) ?></time></p><?php endif; ?></div>
     <button type="button" class="action-icon-button campaign-recent-duplicate" aria-label="Duplicate <?= $h($recent['name']) ?>" data-tooltip="Duplicate" data-campaign-row='<?= $campaignJson(array_intersect_key($recent,array_flip(['id','name','version']))) ?>' data-campaign-op="replicate"><?= actionIconSvg('duplicate') ?></button>
 </article>
 <?php endforeach; ?>

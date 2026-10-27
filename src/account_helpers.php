@@ -255,7 +255,7 @@ function platformVerifySwitchIntent(string $token, array $identity, string $targ
 
 function platformEligibleIdentity(mysqli $conn, int $id, int $version): array {
     $user = $conn->execute_query('SELECT id, username, role, is_superadmin, account_status, auth_version,
-        two_factor_enabled, must_change_password, first_name, last_name FROM users WHERE id = ?', [$id])->fetch_assoc();
+        two_factor_enabled, must_change_password, first_name, last_name, display_timezone FROM users WHERE id = ?', [$id])->fetch_assoc();
     if (!$user || !$user['is_superadmin'] || $user['role'] !== 'admin' || $user['account_status'] !== 'active'
         || !$user['two_factor_enabled'] || $user['must_change_password'] || (int) $user['auth_version'] !== $version) {
         throw new RuntimeException('SuperAdmin access could not be verified.');

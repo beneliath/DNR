@@ -18,7 +18,7 @@ function requestEncryptedDatabaseBackup(array $request, int $maximum): array {
         curl_setopt_array($curl, [CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Expect:'],
             CURLOPT_POSTFIELDS => json_encode($request, JSON_THROW_ON_ERROR),
-            CURLOPT_FOLLOWLOCATION => false, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 310,
+            CURLOPT_FOLLOWLOCATION => false, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 910,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_PROXY => '',
             CURLOPT_WRITEFUNCTION => static function ($handle, string $data) use ($file, &$size, $limit): int {
                 $size += strlen($data);

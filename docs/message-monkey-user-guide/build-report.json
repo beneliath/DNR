@@ -1,7 +1,7 @@
 {
   "title": "MessageMonkey Comprehensive User Guide",
-  "version": "2.8.0",
-  "edition": "October 26, 2026",
+  "version": "2.8.3",
+  "edition": "October 27, 2026",
   "pages": 79,
   "chapters": 14,
   "figures": 56,
@@ -32,7 +32,7 @@
     "chapter-3": 13,
     "topic-add-connection": 13,
     "topic-subscription-status": 13,
-    "topic-import-connections": 13,
+    "topic-import-connections": 14,
     "topic-export-connections": 14,
     "shot-connections": 15,
     "end-shot-connections": 15,
@@ -657,6 +657,6 @@
       "effective_dpi": 435.26
     }
   },
-  "pdf_sha256": "ed2db0749f7ea0f96be33522e4cfcc0e72f22605b2683a11b20b96c133f64f3e",
-  "shared_content_sha256": "003ec69f28e3a59d0817f4d8928a7ba2418463c18e897782745540b2d1f569cf"
+  "pdf_sha256": "a22877cac01a3e9c283667ec16c470ab5ac2ccca3dc0bd02c0270188c8bdf412",
+  "shared_content_sha256": "7dac2e79f2b508cdeb0b23cf44853d24ffbb29c535ddbe8dae7a9358386801a9"
 }

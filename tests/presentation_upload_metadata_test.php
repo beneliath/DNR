@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 putenv('DNR_TIMEZONE=America/Chicago');
 require_once __DIR__ . '/../src/presentation_helpers.php';
+$_SESSION['display_timezone'] = 'America/Chicago';
 
 function expectUploadMetadata(bool $condition, string $message): void
 {
@@ -32,8 +33,14 @@ expectUploadMetadata(
     str_contains($markup, 'Uploaded Sep 7, 2026 8:30 PM CDT')
         && str_contains($markup, 'By Taylor &lt;editor&gt;')
         && strpos($markup, 'View notes.pdf') < strpos($markup, 'Uploaded Sep 7'),
-    'The saved PDF shows its UTC upload time in the application timezone and safely escapes the uploader beside the filename.'
+    'The saved PDF shows its UTC upload time in the selected display timezone and safely escapes the uploader beside the filename.'
 );
+unset($_SESSION['display_timezone']);
+expectUploadMetadata(
+    str_contains($render($stored), 'Uploaded Sep 8, 2026 1:30 AM UTC'),
+    'Without a selected display timezone, upload metadata shows its timestamp explicitly in UTC.'
+);
+$_SESSION['display_timezone'] = 'America/Chicago';
 $rehydrated = mergeStoredPresentationAssetMetadata([
     ['id' => 123, 'speaker_notes_updated_at' => '2099-01-01', 'speaker_notes_uploaded_by_username' => 'Forged'],
 ], [$stored]);

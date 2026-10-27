@@ -9,6 +9,7 @@ require_once $source . '/config.php';
 require_once $source . '/functions.php';
 require_once $source . '/database_backup_helpers.php';
 ini_set('memory_limit', '512M');
+$started = microtime(true);
 $conn->query("INSERT INTO organizations (organization_name) VALUES ('Large backup synthetic organization')");
 $organization = (int) $conn->insert_id;
 $conn->query("INSERT INTO engagements (organization_id,event_title,event_start_date,event_end_date,event_type,confirmation_status)
@@ -21,13 +22,13 @@ try {
     // Include real persistent attachments as well as legacy database BLOBs.
     $fileHandle = fopen($fileSource, 'wb');
     $chunk = random_bytes(1048576);
-    for ($i = 0; $i < 100; $i++) databaseBackupWriteBytes($fileHandle, $chunk);
+    for ($i = 0; $i < 128; $i++) databaseBackupWriteBytes($fileHandle, $chunk);
     fclose($fileHandle);
     unset($chunk);
     $fileChecksum = hash_file('sha256', $fileSource);
-    for ($i = 0; $i < 2; $i++) {
+    for ($i = 0; $i < 10; $i++) {
         $fileKeys[] = storePersistentFileFromPath($conn, $fileSource, "capacity-$i.pdf",
-            'application/pdf', 104857600, $fileChecksum);
+            'application/pdf', 134217728, $fileChecksum);
     }
     unlink($fileSource);
     for ($i = 0; $i < 2; $i++) {
@@ -41,13 +42,17 @@ try {
     }
     $expected = $conn->query("SELECT p.id, HEX(n.sha256) AS hash FROM presentations p JOIN presentation_notes n ON n.presentation_id=p.id AND n.speaker_id=p.speaker_id WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);
     $backup = createDatabaseBackup($conn, 'capacity-test');
-    if ($backup['size'] <= 536870912 || $backup['size'] >= databaseBackupMaximumBytes()) throw new RuntimeException('Capacity fixture did not exercise the old 512 MiB limit');
+    if ($backup['size'] < 2000 * 1048576 || $backup['size'] >= databaseBackupMaximumBytes()) throw new RuntimeException('Capacity fixture must exercise a backup near the 2 GiB limit');
+    fwrite(STDERR, 'Near-limit snapshot created: ' . $backup['size'] . " bytes.\n");
     $encrypted = encryptDatabaseBackup($backup['path'], 'Large synthetic backup password');
     unlink($backup['path']); $backup = null;
+    $export_seconds = round(microtime(true)-$started, 1);
+    fwrite(STDERR, "Encryption and plaintext cleanup passed.\n");
     $decrypted = decryptDatabaseBackup($encrypted['path'], 'Large synthetic backup password');
     unlink($encrypted['path']); $encrypted = null;
     $schema = databaseBackupSchemaDescriptor($conn);
     $inspection = inspectDatabaseBackup($decrypted['path'], $schema);
+    fwrite(STDERR, "Decryption and archive integrity passed; restoring files and database rows.\n");
     foreach ($fileKeys as $key) unlink(persistentFilePath($key));
     $conn->query("UPDATE presentation_notes n JOIN presentations p ON p.id=n.presentation_id SET n.pdf=NULL WHERE engagement_id=$engagement");
     restoreDatabaseBackup($conn, $decrypted['path'], $schema, ['id'=>0,'username'=>'capacity-test']);
@@ -56,12 +61,18 @@ try {
         if (strtoupper($row['hash']) !== $expected[$i]['hash'] || (int)$row['size'] !== 104857600) throw new RuntimeException('Large BLOB restore mismatch');
     }
     foreach ($fileKeys as $key) {
-        if (filesize(persistentFilePath($key)) !== 104857600
+        if (filesize(persistentFilePath($key)) !== 134217728
             || hash_file('sha256', persistentFilePath($key)) !== $fileChecksum) {
             throw new RuntimeException('Large persistent file restore mismatch');
         }
     }
-    echo json_encode(['backup_bytes'=>$inspection['size'],'php_peak_bytes'=>memory_get_peak_usage(true),'restored_assets'=>count($restored),'peak_rss_kib'=>getrusage()['ru_maxrss']]) . "\n";
+    echo json_encode(['backup_bytes'=>$inspection['size'],'php_peak_bytes'=>memory_get_peak_usage(true),
+        'restored_assets'=>count($restored),'restored_files'=>count($fileKeys),'peak_rss_kib'=>getrusage()['ru_maxrss'],
+        'container_memory_peak_bytes'=>(int) @file_get_contents('/sys/fs/cgroup/memory.peak'),
+        'export_seconds'=>$export_seconds,'elapsed_seconds'=>round(microtime(true)-$started, 1)]) . "\n";
+} catch (Throwable $exception) {
+    fwrite(STDERR, 'Large backup failed: ' . $exception->getMessage() . "\n");
+    throw $exception;
 } finally {
     if (is_file($fileSource)) unlink($fileSource);
     foreach ($fileKeys as $key) {

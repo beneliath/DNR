@@ -6,6 +6,7 @@ require_once $source_directory . '/engagement_export_helpers.php';
 require_once $source_directory . '/engagement_pdf.php';
 
 putenv('DNR_TIMEZONE=America/Chicago');
+$_SESSION['display_timezone'] = 'America/Chicago';
 
 function expectExport($condition, $message) {
     if (!$condition) {

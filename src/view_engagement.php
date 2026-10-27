@@ -440,7 +440,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
         <?php if (!empty($engagement['event_description'])): ?>
         <div class="engagement-description"><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></div>
         <?php endif; ?>
-        <p class="engagement-overview-meta"><?php echo $event_address_parts ? implode(', ', array_map('htmlspecialchars', $event_address_parts)) : 'Location not recorded'; ?> · Caller: <?php echo htmlspecialchars($engagement['caller_name'] ?: 'Not assigned'); ?> · Updated <?php echo htmlspecialchars(applicationTimestampLabel($engagement['updated_at'], 'M j, Y')); ?></p>
+        <p class="engagement-overview-meta"><?php echo $event_address_parts ? implode(', ', array_map('htmlspecialchars', $event_address_parts)) : 'Location not recorded'; ?> · Caller: <?php echo htmlspecialchars($engagement['caller_name'] ?: 'Not assigned'); ?> · Updated <?php echo htmlspecialchars(formatUserTimestamp($engagement['updated_at'], 'M j, Y, g:i A')); ?></p>
     </section>
 
     <div class="engagement-detail-layout">
@@ -568,7 +568,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <article class="engagement-email-history-item">
                     <a href="outbound_mail.php?id=<?php echo (int) $email_message['id']; ?>"><?php echo htmlspecialchars((string) $email_message['subject'], ENT_QUOTES, 'UTF-8'); ?></a>
                     <span class="email-status email-status-<?php echo htmlspecialchars($email_status, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($email_status_labels[$email_status], ENT_QUOTES, 'UTF-8'); ?></span>
-                    <span class="engagement-email-history-meta"><?php echo htmlspecialchars(applicationTimestampLabel($email_message['created_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($email_message['created_by_username'])): ?> · <?php echo htmlspecialchars((string) $email_message['created_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span>
+                    <span class="engagement-email-history-meta"><?php echo htmlspecialchars(formatUserTimestamp($email_message['created_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($email_message['created_by_username'])): ?> · <?php echo htmlspecialchars((string) $email_message['created_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span>
                     <span class="engagement-email-history-recipients"><?php echo htmlspecialchars((string) ($email_message['recipients'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
                 </article>
             <?php endforeach; ?>
@@ -684,7 +684,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <ul><?php foreach ($contact_history as $entry): ?><li>
                 <?php echo htmlspecialchars(trim($entry['contact_first_name_snapshot'].' '.$entry['contact_last_name_snapshot']), ENT_QUOTES, 'UTF-8'); ?> —
                 <?php echo htmlspecialchars(engagementContactRoleLabel($entry['contact_role']), ENT_QUOTES, 'UTF-8'); ?>;
-                ended <?php echo htmlspecialchars(applicationTimestampLabel($entry['ended_at'], 'Y-m-d H:i T'), ENT_QUOTES, 'UTF-8'); ?>
+                ended <?php echo htmlspecialchars(formatUserTimestamp($entry['ended_at'], 'Y-m-d H:i T'), ENT_QUOTES, 'UTF-8'); ?>
                 </li><?php endforeach; ?></ul></details><?php endif; ?>
             </section>
             <section class="engagement-card engagement-tab-panel" id="engagement-logistics" role="tabpanel" aria-labelledby="engagement-logistics-tab" tabindex="0" hidden>
@@ -761,7 +761,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <details><summary>Financial Revision History</summary><p>Completed reports and revisions are retained indefinitely.</p>
                 <table class="data-table"><thead><tr><th>Date / Actor</th><th>Giving</th><th>Lodging</th><th>Travel</th><th>Book Table</th><th>Reason</th></tr></thead><tbody>
                 <?php foreach ($financial_revisions as $revision): ?><tr>
-                <td><?php echo htmlspecialchars(applicationTimestampLabel($revision['recorded_at'],'Y-m-d H:i T').' · '.($revision['actor_name'] ?? 'Former user'),ENT_QUOTES,'UTF-8'); ?></td>
+                <td><?php echo htmlspecialchars(formatUserTimestamp($revision['recorded_at'],'Y-m-d H:i T').' · '.($revision['actor_name'] ?? 'Former user'),ENT_QUOTES,'UTF-8'); ?></td>
                 <?php foreach (['giving_income_received','lodging_received','travel_received','book_table_received'] as $amount): ?><td><?php echo $revision[$amount] === null ? 'Not recorded' : formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
                 <td><?php echo htmlspecialchars($revision['correction_reason'],ENT_QUOTES,'UTF-8'); ?></td></tr><?php endforeach; ?>
                 </tbody></table><p>Most recent 100 revisions.</p></details>

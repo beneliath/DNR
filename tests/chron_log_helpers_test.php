@@ -38,9 +38,12 @@ expectChronLog(
 );
 expectChronLog(
     chronLogTimestampDetails('2026-08-16 16:00:00')['display']
-        === 'August 16, 2026 at 11:00 AM CDT',
-    'UTC database timestamps should display in the configured timezone.'
+        === 'August 16, 2026 at 4:00 PM UTC',
+    'Without a user preference, database timestamps must explicitly display UTC.'
 );
+$_SESSION['display_timezone']='America/Chicago';
+expectChronLog(chronLogTimestampDetails('2026-08-16 16:00:00')['display']==='August 16, 2026 at 11:00 AM CDT','Chron timestamps use the selected profile timezone.');
+unset($_SESSION['display_timezone']);
 
 $linked_entry = renderChronLogEntryHtml(
     "Source: https://example.test/posts/42?view=full&from=chron.\n<script>alert('unsafe')</script>"

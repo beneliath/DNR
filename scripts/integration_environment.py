@@ -55,8 +55,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-minor-fixes|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -118,7 +118,7 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
-        if sys.argv[1:] in (['audience'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+        if sys.argv[1:] in (['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
@@ -132,8 +132,10 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
-            if sys.argv[1:] in (['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
-                suites = {'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),
+            if sys.argv[1:] in (['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+                suites = {'audience-minor-fixes': ('audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
+                          'user-timezone': ('user_timezone_http_integration_test.php', 'admin_user_profile_http_integration_test.php'),
+                          'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),
                           'audience-template-transfer': ('audience_template_transfer_http_integration_test.php',),
                           'audience-security': ('audience_public_security_http_integration_test.php',),
                           'audience-data': ('audience_data_management_integration_test.php',),
@@ -142,9 +144,18 @@ def main():
                 for suite in suites:
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
+                        '-e', 'DNR_SUBSCRIPTION_NOTICE_WORKER_FIXTURE='+('1' if sys.argv[1:] == ['audience-minor-fixes'] else '0'),
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
                         '/opt/dnr/tests/'+suite],
                         cwd=ROOT, env=env, check=True)
+                if sys.argv[1:] == ['audience-minor-fixes']:
+                    subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-e', 'MYSQL_USER=dnrmaildispatch',
+                        '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
+                        '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
+                        'web', '/opt/dnr/tests/audience_subscription_notice_worker.php'], cwd=ROOT, env=env, check=True)
                 return
             if sys.argv[1:] == ['audience']:
                 # Include every Audience integration suite, including newer lifecycle,

@@ -34,6 +34,7 @@ $fields=$fixtureFields;
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 $available=true;$resource=['id'=>7,'version'=>1,'name'=>$editorInput['name']??$document['title'],'kind'=>$fixtureKind,'state'=>'draft','draft'=>$document,'public_key'=>str_repeat('a',48),'deleted_at'=>null,'installed_at'=>null];
 $collectionBrand=['logo'=>$images['primary'],'secondary_logo'=>$images['secondary']];$publicBase='https://collection.test';$publicUrl=$publicBase.'/audience_collect_public.php?key='.$resource['public_key'];$signupEmailBlocked=false;
+$collectionPublishPending=!isset($editorInput['published_document'])||$document!=$editorInput['published_document'];
 $resources=$blockedSignupIds=$listQuery=[];$q=$type='';$trash=false;$kinds=['preferences'];$creationKind='preferences';$collectionDirection='desc';$collectionPage=$collectionPages=1;$collectionPerPage=25;
 echo '<!doctype html><html>';renderPageHead('Preference editor fixture',['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-collection.min.js']]);
 require __DIR__.'/../../src/templates/audience/workspace.php';echo '</html>';

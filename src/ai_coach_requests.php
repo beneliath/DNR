@@ -163,7 +163,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             <?php if ($deleteConfirmation === null): ?>
                 <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo (int) $detail['id']; ?>"><button type="submit" name="action" value="prepare_delete" class="button-delete">Delete Request</button></form>
             <?php endif; ?>
-            <p><?php echo $escape(applicationTimestampLabel($detail['created_at'], 'M j, Y g:i:s A')); ?> · <?php echo $escape($detail['username'] ?: 'Deleted user'); ?> · <?php echo $escape($detail['user_role']); ?></p>
+            <p><?php echo $escape(formatUserTimestamp($detail['created_at'], 'M j, Y g:i:s A')); ?> · <?php echo $escape($detail['username'] ?: 'Deleted user'); ?> · <?php echo $escape($detail['user_role']); ?></p>
             <dl class="coach-review-metadata">
                 <div><dt>Page</dt><dd><?php echo $escape($detail['page_path']); ?></dd></div>
                 <div><dt>Guided Step</dt><dd><?php echo $escape($detail['guided_step'] ?: 'No Active Walkthrough'); ?></dd></div>
@@ -188,7 +188,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
         </section>
         <section class="coach-review-card" aria-labelledby="review-heading">
             <h2 id="review-heading">Review and Correction</h2>
-            <?php if ($detail['reviewed_at']): ?><p>Last reviewed by <?php echo $escape($detail['reviewer_name'] ?: 'Deleted user'); ?> on <?php echo $escape(applicationTimestampLabel($detail['reviewed_at'], 'M j, Y g:i A')); ?>.</p><?php endif; ?>
+            <?php if ($detail['reviewed_at']): ?><p>Last reviewed by <?php echo $escape($detail['reviewer_name'] ?: 'Deleted user'); ?> on <?php echo $escape(formatUserTimestamp($detail['reviewed_at'], 'M j, Y g:i A')); ?>.</p><?php endif; ?>
             <form method="post" action="ai_coach_requests.php?id=<?php echo (int) $detail['id']; ?>">
                 <?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo (int) $detail['id']; ?>"><input type="hidden" name="version" value="<?php echo (int) $detail['review_version']; ?>">
                 <label for="coach-review-status">Assessment</label><select id="coach-review-status" name="review_status"><?php foreach ($statusLabels as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo ($error !== '' ? ($_POST['review_status'] ?? '') : $detail['review_status']) === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select>
@@ -214,7 +214,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
                 $displayOutcome = $failureEcho ? 'error' : $row['outcome'];
             ?><tr>
                 <td><a class="record-link coach-request-question" href="ai_coach_requests.php?id=<?php echo (int) $row['id']; ?>"><?php echo $escape($row['question']); ?></a><small class="coach-request-secondary">Page: <?php echo $escape($pageLabels[$row['page_path']] ?? $row['page_path']); ?></small></td>
-                <td><span class="coach-request-user"><?php echo $escape($row['username'] ?: 'Deleted user'); ?></span><small class="coach-request-secondary"><?php echo $escape(ucfirst($row['user_role'])); ?></small><small class="coach-request-secondary coach-request-timestamp"><span><?php echo $escape(applicationTimestampLabel($row['created_at'], 'M j, Y')); ?></span><span><?php echo $escape(applicationTimestampLabel($row['created_at'], 'g:i A T')); ?></span></small></td>
+                <td><span class="coach-request-user"><?php echo $escape($row['username'] ?: 'Deleted user'); ?></span><small class="coach-request-secondary"><?php echo $escape(ucfirst($row['user_role'])); ?></small><small class="coach-request-secondary coach-request-timestamp"><span><?php echo $escape(formatUserTimestamp($row['created_at'], 'M j, Y, g:i A')); ?></span></small></td>
                 <td><span class="coach-request-badge coach-result-<?php echo $escape($displayOutcome); ?>"><?php echo $escape($failureLabels[$failureCode] ?? $outcomeLabels[$displayOutcome] ?? ucfirst($displayOutcome)); ?></span><?php if ($row['duration_ms'] !== null): ?><small class="coach-request-secondary"><?php echo number_format((int) $row['duration_ms'] / 1000, 1); ?> s</small><?php endif; ?></td>
                 <td><span class="coach-request-badge coach-assessment-<?php echo $escape($row['review_status']); ?>"><?php echo $escape($statusLabels[$row['review_status']] ?? $row['review_status']); ?></span><?php if ($row['user_feedback']): ?><small class="coach-request-secondary">User: <?php echo $escape(str_replace('_',' ',$row['user_feedback'])); ?></small><?php endif; ?></td>
                 <td><div class="action-buttons"><form method="post" action="ai_coach_requests.php" class="coach-request-delete-form"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>"><button type="submit" name="action" value="prepare_delete" class="action-button action-icon-button delete-button" aria-label="Delete Request #<?php echo (int) $row['id']; ?>" title="Delete Request" data-tooltip="Delete Request"><?php echo actionIconSvg('delete'); ?></button></form></div></td>

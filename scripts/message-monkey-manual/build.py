@@ -23,7 +23,7 @@ W,H=612,792
 M=42; CW=W-2*M
 INK=colors.HexColor('#202b2c'); TEAL=colors.HexColor('#007d8a'); PALE=colors.HexColor('#eaf6f5')
 MUTED=colors.HexColor('#59676c'); BORDER=colors.HexColor('#d6e1e4'); ORANGE=colors.HexColor('#d96b00')
-VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 26, 2026'
+VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 27, 2026'
 CHAPTERS=json.loads((DATA/'chapters.json').read_text())
 SHOTS=json.loads((DATA/'screenshots.json').read_text())
 rl_config.useA85=False
@@ -257,7 +257,7 @@ def story(known):
     out.extend([PageBreak(),heading('Quick reference','quick-reference',chapter=0),p('Three distinctions prevent many common mistakes.','intro')])
     for title,body in [
         ('Tags, groups, fields, and segments','Tags are internal labels. Groups collect related choices, which may be exposed to subscribers. Fields store structured profile values and provide merge tags. Segments save matching rules whose membership can change.'),
-        ('Consent and delivery status','Subscribed does not guarantee delivery. Unsubscribed records have opted out. Pending, cleaned, archived, or suppressed records may be ineligible. Never change a status merely to bypass a sending block.'),
+        ('Consent and delivery status','Subscribed means email permission is recorded, but delivery is not guaranteed. Non-subscribed means permission is missing; unsubscribed records have opted out; cleaned addresses are invalid or undeliverable. Pending addresses await confirmation. Archived or otherwise suppressed records remain ineligible. Never change a status merely to bypass a sending block.'),
         ('Observed results and actual outcomes','Queued work has not necessarily reached the provider. Provider acceptance and confirmed delivery are different stages. Opens and clicks are observations affected by privacy tools and automation; they do not prove that a person read the message.')]:out.extend([p(esc(title),'h2'),p(esc(body))])
     out.extend([p('Recognize the action controls','h2'),ActionLegend(),p('Hover or focus an icon to read its actual label. Ordinary action icons gain a background on hover or focus. Protected controls retain an orange outline until the required Admin Unlock is active. The outline is an access cue, not a completed action.','body'),p('Before a send','h2'),Workflow([('Audience','Consent and exclusions'),('Message','Sender, content, links'),('Timing','Date, time, and zone')]),p('Review the final recipient count, run the available tests, and inspect the queued or delivery result before retrying a submission.')])
     number=0

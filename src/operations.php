@@ -87,8 +87,8 @@ try {
             <h3><?php echo htmlspecialchars((string) $mailbox['mailbox_label'], ENT_QUOTES, 'UTF-8'); ?></h3>
             <dl class="operations-details">
                 <div><dt>Mailbox Scan</dt><dd><?php echo (int) $mailbox['consecutive_failures'] > 0 ? 'Failing' : ((int) $mailbox['stale'] ? 'Check overdue' : ((int) $mailbox['catching_up'] ? 'Catching up' : 'Up to date')); ?></dd></div>
-                <div><dt>Last Successful Check</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_checked_at']) ? applicationTimestampLabel($mailbox['last_checked_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                <div><dt>Last Imported Message</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_imported_at']) ? applicationTimestampLabel($mailbox['last_imported_at'], 'Y-m-d H:i:s T') : 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Last Successful Check</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_checked_at']) ? formatUserTimestamp($mailbox['last_checked_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Last Imported Message</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_imported_at']) ? formatUserTimestamp($mailbox['last_imported_at'], 'Y-m-d H:i:s T') : 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
                 <div><dt>Consecutive Failed Checks</dt><dd><?php echo (int) $mailbox['consecutive_failures']; ?></dd></div>
                 <div><dt>Latest Mailbox Error</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_error'] ?? 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
                 <div><dt>Historical Messages Awaiting Import Review</dt><dd><?php echo (int) $mailbox['reconciliation_count']; ?></dd></div>
@@ -102,7 +102,7 @@ try {
         <?php if (!$data_health): ?><p>No recovery or consistency report received yet.</p><?php endif; ?>
         <?php foreach ($data_health as $health): ?>
             <h3><?php echo htmlspecialchars(ucfirst($health['name']), ENT_QUOTES, 'UTF-8'); ?></h3>
-            <p>Checked <?php echo htmlspecialchars(applicationTimestampLabel($health['checked_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?><?php if (strtotime($health['checked_at'].' UTC') < time()-($health['name']==='recovery'?900:7200)): ?> — report overdue; displayed results may be stale<?php endif; ?></p>
+            <p>Checked <?php echo htmlspecialchars(formatUserTimestamp($health['checked_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?><?php if (strtotime($health['checked_at'].' UTC') < time()-($health['name']==='recovery'?900:7200)): ?> — report overdue; displayed results may be stale<?php endif; ?></p>
             <dl class="operations-details"><?php foreach (json_decode($health['state_json'], true, 16, JSON_THROW_ON_ERROR) as $label => $value): ?><div><dt><?php echo htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8'); ?></dt><dd><?php echo htmlspecialchars(is_scalar($value) ? (string)$value : json_encode($value, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8'); ?></dd></div><?php endforeach; ?></dl>
         <?php endforeach; ?>
     </section>
@@ -110,8 +110,8 @@ try {
             <h2>Deployment State</h2>
         <dl class="operations-details">
             <div><dt>Application Version</dt><dd><?php echo htmlspecialchars(APP_VERSION, ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Last Migration</dt><dd><?php echo htmlspecialchars((!empty($migration['last_applied_at']) ? applicationTimestampLabel($migration['last_applied_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Last Encrypted Backup</dt><dd><?php echo htmlspecialchars((!empty($backup['last_backup_at']) ? applicationTimestampLabel($backup['last_backup_at'], 'Y-m-d H:i:s T') : 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Last Migration</dt><dd><?php echo htmlspecialchars((!empty($migration['last_applied_at']) ? formatUserTimestamp($migration['last_applied_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Last Encrypted Backup</dt><dd><?php echo htmlspecialchars((!empty($backup['last_backup_at']) ? formatUserTimestamp($backup['last_backup_at'], 'Y-m-d H:i:s T') : 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Last Backup Result</dt><dd><?php echo htmlspecialchars((string) ($backup['last_backup_details'] ?? 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Geocoding Pending / Processing</dt><dd><?php echo (int) ($geocoding['pending'] ?? 0); ?> / <?php echo (int) ($geocoding['processing'] ?? 0); ?></dd></div>
             <div><dt>Highest Geocoding Attempt Count</dt><dd><?php echo (int) ($geocoding['maximum_attempts'] ?? 0); ?></dd></div>

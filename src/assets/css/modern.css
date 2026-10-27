@@ -7053,13 +7053,13 @@ html body .action-icon-button[aria-busy="true"] :is(svg, .action-icon, img) { vi
   --listing-restore: 0px;
   --listing-delete: 0px;
 }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.view-button) { --listing-view: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.edit-button) { --listing-edit: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.start-button) { --listing-start: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.complete-button) { --listing-complete: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.archive-button) { --listing-archive: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.restore-button) { --listing-restore: 46px; }
-:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.delete-button) { --listing-delete: 46px; }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.view-button) { --listing-view: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.edit-button) { --listing-edit: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.start-button) { --listing-start: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.complete-button) { --listing-complete: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.archive-button) { --listing-archive: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.restore-button) { --listing-restore: var(--listing-action-slot, 46px); }
+:is(table, .context-task-list, .chron-entry-list, .inquiry-activity-timeline, .account-directory):has(.action-icon-button.delete-button) { --listing-delete: var(--listing-action-slot, 46px); }
 html body :is(:is(.action-buttons, .task-actions, .context-task-actions, .chron-view-actions, .reimbursement-row-actions):has(.action-icon-button), .account-icon-actions) {
   display: grid !important;
   grid-template-columns: [view] var(--listing-view, 0px) [edit] var(--listing-edit, 0px) [start] var(--listing-start, 0px) [complete] var(--listing-complete, 0px) [restore] var(--listing-restore, 0px) [archive] var(--listing-archive, 0px) [delete] var(--listing-delete, 0px);
