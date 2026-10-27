@@ -188,9 +188,13 @@ run_integration_suite() {
             -v "${PWD}/src:/var/www/html:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
         if [ "$test_name" = 'database_backup_integration_test.php' ]; then
+            # The synthetic fixture holds both archive copies before testing restore.
+            # Use the disposable file volume rather than the production restore
+            # tmpfs budget, which holds only the decrypted input archive.
             compose_isolated run --rm --no-deps --entrypoint php \
                 -e DNR_INTEGRATION_TARGET=disposable \
                 -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
+                -e TMPDIR=/var/lib/dnr/files \
                 -e DNR_TEST_SOURCE_DIR=/var/www/html \
                 -v "${PWD}/src:/var/www/html:ro" \
                 maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null

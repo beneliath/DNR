@@ -161,11 +161,12 @@ try{
     if ($saved['status'] !== 302) { preg_match('/<div[^>]*class="[^"]*form-error-summary[^"]*"[^>]*>(.*?)<\/div>/s', $saved['body'], $failure); throw new RuntimeException('Notes upload failed with HTTP '.$saved['status'].': '.strip_tags($failure[1] ?? substr($saved['body'], 0, 200))); }
     $uploadMetadata=$conn->query('SELECT uploaded_by, uploaded_by_username_snapshot, updated_at FROM presentation_notes WHERE presentation_id='.$pid.' AND speaker_id='.$speaker)->fetch_assoc();
     expectLinkHttp((int)$uploadMetadata['uploaded_by']===$uid&&$uploadMetadata['uploaded_by_username_snapshot']===$_SESSION['username'],'The HTTP upload persists the signed-in editor identity');
+    $uploadedLabel=(new DateTimeImmutable($uploadMetadata['updated_at'],new DateTimeZone('UTC')))->format('M j, Y g:i A T');
     $savedEdit=$request('edit_engagement.php?id='.$event,null,$cookie);
-    expectLinkHttp($savedEdit['status']===200&&str_contains($savedEdit['body'],'By '.htmlspecialchars($uploadMetadata['uploaded_by_username_snapshot'],ENT_QUOTES,'UTF-8'))&&str_contains($savedEdit['body'],'Uploaded '.applicationTimestampLabel($uploadMetadata['updated_at'],'M j, Y g:i A T')),'The edit page displays the persisted uploader and upload time beside the PDF');
+    expectLinkHttp($savedEdit['status']===200&&str_contains($savedEdit['body'],'By '.htmlspecialchars($uploadMetadata['uploaded_by_username_snapshot'],ENT_QUOTES,'UTF-8'))&&str_contains($savedEdit['body'],'Uploaded '.$uploadedLabel),'The edit page displays the persisted uploader and explicit UTC upload time without a selected profile timezone');
     $invalidForm=$form;unset($invalidForm[$input->getAttribute('name')]);$invalidForm[$uploadPrefix.'[expected_attendance]']='-1';
     $invalidSave=$request('edit_engagement.php?id='.$event,$invalidForm,$cookie);
-    expectLinkHttp($invalidSave['status']===200&&str_contains($invalidSave['body'],'By '.htmlspecialchars($uploadMetadata['uploaded_by_username_snapshot'],ENT_QUOTES,'UTF-8'))&&str_contains($invalidSave['body'],'Uploaded '.applicationTimestampLabel($uploadMetadata['updated_at'],'M j, Y g:i A T')),'Validation errors retain the saved uploader and upload time');
+    expectLinkHttp($invalidSave['status']===200&&str_contains($invalidSave['body'],'By '.htmlspecialchars($uploadMetadata['uploaded_by_username_snapshot'],ENT_QUOTES,'UTF-8'))&&str_contains($invalidSave['body'],'Uploaded '.$uploadedLabel),'Validation errors retain the saved uploader and explicit UTC upload time');
     expectLinkHttp($request('surls/'.$notes['code'])['status']===302&&$request($notesDownload)['body']===$uploadedPdf,'Uploaded notes replace the PDF behind the original QR and download URLs');
    }finally{unlink($path);}
   }
