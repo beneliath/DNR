@@ -1216,6 +1216,93 @@ body.audience-collection-editor-mode .collection-survey-builder.survey-questions
 .collection-answer-option button{border:0;padding:8px 0;font-size:calc(20px * var(--audience-font-scale, 1));color:var(--audience-muted)}
 .collection-code{font:calc(13px * var(--audience-font-scale, 1))/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;min-height:240px}
 .collection-preview-label select{font:inherit;max-width:220px;padding:6px;margin-left:12px}
+
+/* Keep form preview scrolling inside the workspace, beside the editing tools. */
+html:has(body.audience-collection-editor-mode .collection-builder) {
+    height: 100dvh;
+    overflow: clip;
+    overscroll-behavior: none;
+}
+body.audience-app.audience-collection-editor-mode:has(.collection-builder) {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    overflow: clip;
+}
+.audience-collection-editor-mode .audience-content:has(.collection-builder) {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--audience-shell-offset));
+    min-height: 0;
+}
+.audience-collection-editor-mode .audience-content:has(.collection-builder) > .audience-page-heading {
+    flex-shrink: 0;
+    position: relative;
+    top: auto;
+}
+.audience-collection-editor-mode .audience-page-body:has(.collection-builder) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: clip;
+}
+.audience-collection-editor-mode .audience-page-body:has(.collection-builder) > .audience-notice { flex-shrink: 0; }
+body.audience-app.audience-collection-editor-mode .collection-editor-top {
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 19;
+    background: var(--audience-surface);
+}
+body.audience-app.audience-collection-editor-mode .collection-builder {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+}
+body.audience-app.audience-collection-editor-mode .collection-controls {
+    position: static;
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+.audience-collection-editor-mode .collection-rail {
+    min-height: 0;
+    overflow: clip;
+}
+.audience-collection-editor-mode .collection-preview {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: clip;
+    padding-bottom: 0;
+}
+.audience-collection-editor-mode .collection-preview-label { flex-shrink: 0; }
+.audience-collection-editor-mode .collection-preview iframe { flex: 1; min-height: 0; height: 100%; }
+.collection-actions-dialog .collection-more-action form { margin: 0; padding: 0; }
+.collection-actions-dialog .collection-more-action button { white-space: nowrap; }
+.audience-collection-editor-mode .collection-survey-builder.survey-questions-active:not(:has(.preview-focus)) {
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+.audience-collection-editor-mode .collection-survey-builder.survey-questions-active:has(.preview-focus) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: clip;
+}
+body.audience-app.audience-collection-editor-mode .collection-survey-builder.survey-questions-active .collection-controls {
+    max-height: none;
+    overflow: visible;
+}
+.audience-collection-editor-mode .collection-survey-builder .collection-preview.preview-focus { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+    body.audience-app.audience-collection-editor-mode .collection-builder { grid-template-rows: repeat(2, minmax(0, 1fr)); }
+    body.audience-app.audience-collection-editor-mode .collection-builder:has(.preview-focus) { grid-template-rows: minmax(0, 1fr); }
+    .audience-collection-editor-mode .collection-builder:has(.preview-focus) .collection-rail { grid-row: 1; }
+    .audience-collection-editor-mode .collection-preview.preview-focus { grid-row: 1; }
+}
 .collection-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 @media(max-width:760px){.collection-survey-builder{grid-template-columns:1fr}.collection-survey-builder .collection-preview{grid-column:1}.collection-survey-builder .collection-question{grid-template-columns:1fr}.collection-question-settings{margin:8px 0 0}.collection-survey-builder.survey-questions-active .collection-controls{padding:20px 16px}.collection-answer-option{gap:4px}}
 
