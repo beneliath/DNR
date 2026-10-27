@@ -129,7 +129,7 @@ function audienceCampaignFilters(array $input): array
     if(!preg_match('/^(?:|unfiled|[1-9][0-9]*)$/D',$filters['folder']))$filters['folder']='';
     foreach(['start','end']as$key)if($filters[$key]!==''&&(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$filters[$key])||date('Y-m-d',strtotime($filters[$key])?:0)!==$filters[$key]))throw new InvalidArgumentException('Enter a valid date range.');
     if(in_array($filters['date_preset'],['','custom'],true)&&$filters['start']!==''&&$filters['end']!==''&&$filters['start']>$filters['end'])throw new InvalidArgumentException('Start date must come before end date.');
-    if(!preg_match('/^(20[0-9]{2})-(0[1-9]|1[0-2])$/D',$filters['month']))$filters['month']=gmdate('Y-m');
+    if(!preg_match('/^(20[0-9]{2})-(0[1-9]|1[0-2])$/D',$filters['month']))$filters['month']=userDisplayInstant(time())->format('Y-m');
     return $filters;
 }
 function audienceCampaignWhere(int $audienceId,array $filters): array

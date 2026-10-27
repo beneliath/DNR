@@ -18,6 +18,11 @@ $groups=$fields=$catalog=$query=$recentDesigns=[];$tags=[['id'=>7,'version'=>3,'
 foreach(array_slice(['Prayer team','Recent donors','Devotions','Israel tour interest','Fundraising volunteers','Monthly donors','Community updates','Welcome team','Prayer letter','SMS','Event attendees','Ministry partners','New connections','Youth group','Christmas outreach','2025 donors','Launch donors','Website signup','Newsletter archive','Spring event','Summer event','Fall event','Winter event','Regional partners','International partners'],0,max(0,min(25,(int)($argv[4]??2)-2)))as$index=>$name)$tags[]=['id'=>9+$index,'version'=>1,'name'=>$name,'contact_count'=>$index*7,'created_at'=>null];
 if(($argv[6]??'')==='unknown-dates')foreach($tags as&$tag)$tag['created_at']=null;
 unset($tag);
+if($view==='contact'){
+    $id=7;$tab='overview';$events=$notes=$activityYears=[];$eventTotal=$activityYear=0;$eventSize=25;$eventPage=1;$eventFilter='';$days=30;
+    $contact=['id'=>$id,'version'=>1,'email'=>'subscribed@example.test','first_name'=>'Example','last_name'=>'Subscriber','email_status'=>'subscribed','is_archived'=>0,'deleted_at'=>null,'custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'en','timezone'=>'America/Chicago','source'=>'Signup form','notes'=>'','consent_note'=>'','created_at'=>'2026-10-25 12:00:00','updated_at'=>'2026-10-25 12:01:00'];
+    $marketingDetails=audienceMarketingDetails($contact,null,null);
+}
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 
 if($view==='add-person'){

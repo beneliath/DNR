@@ -157,8 +157,8 @@ expectPresentationAssetFeature(
         && str_contains($production_ini, 'upload_max_filesize=500M')
         && str_contains($development_ini, 'post_max_size=600M')
         && str_contains($development_ini, 'upload_max_filesize=500M')
-        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=1280m')
-        && str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES:-1073741824')
+        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=2560m')
+        && str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES:-2147483648')
         && str_contains($compose, '--max-allowed-packet=128M'),
     'PDF validation, request handling, temporary storage, and database transport should accommodate the documented 100 MB limit.'
 );

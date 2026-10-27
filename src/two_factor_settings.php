@@ -142,7 +142,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <p><a href="setup_2fa.php" class="security-button">Set Up 2FA</a></p>
         <?php else: ?>
             <p><strong>Status:</strong> Enabled</p>
-            <p><strong>Enrolled:</strong> <?php echo htmlspecialchars(!empty($user['totp_confirmed_at']) ? applicationTimestampLabel($user['totp_confirmed_at'], 'Y-m-d H:i:s T') : 'Unknown'); ?></p>
+            <p><strong>Enrolled:</strong> <?php echo htmlspecialchars(!empty($user['totp_confirmed_at']) ? formatUserTimestamp($user['totp_confirmed_at'], 'Y-m-d H:i:s T') : 'Unknown'); ?></p>
             <p><strong>Unused recovery codes:</strong> <?php echo $remaining_codes; ?></p>
             <p><a href="setup_2fa.php" class="security-button button-primary">Replace Authenticator</a></p>
         <?php endif; ?>

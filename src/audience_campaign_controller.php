@@ -152,12 +152,13 @@ foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRow
 $campaignMetrics=$runtimeInstalled?$store->analyticsCampaignMetrics($campaignRowIds):[];
 $campaignSnapshot=[];
 if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)as$row)$campaignSnapshot[$row['id']]=(int)$row['version'];
-$month=new DateTimeImmutable($campaignFilters['month'].'-01',new DateTimeZone('UTC'));
+$month=new DateTimeImmutable($campaignFilters['month'].'-01',userDisplayTimezone());
 $calendarStart=$month->modify('monday this week');$calendarEnd=$month->modify('last day of this month')->modify('sunday this week');
 $calendarRows=[];
 $calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
 if($campaignFilters['layout']==='calendar'){
-    $calendarRows=$store->all("SELECT c.id,c.name,c.status,DATE($calendarDate) calendar_date FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_date,c.id",[...$campaignParams,$calendarStart->format('Y-m-d'),$calendarEnd->modify('+1 day')->format('Y-m-d')]);
+    $calendarRows=$store->all("SELECT c.id,c.name,c.status,$calendarDate calendar_at FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_at,c.id",[...$campaignParams,$calendarStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$calendarEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
+    foreach($calendarRows as&$calendarRow)$calendarRow['calendar_date']=userDisplayInstant($calendarRow['calendar_at'])?->format('Y-m-d');unset($calendarRow);
 }
 $campaign=null;$recipientCount=null;$targetError='';
 $reopenDesignerUnavailable=$view==='campaign'&&(int)($_SESSION['audience_designer_unavailable']??0)===$id;
@@ -186,9 +187,11 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
     $planChoices=$store->all('SELECT id,name FROM marketing_campaign_plans WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);
     $planWhere=$plan?' AND t.plan_id=?':'';$planParams=$plan?[$id]:[];
     [$plannerStart,$plannerEnd]=audienceCampaignPlannerRange($plannerDate,$plannerScale);
+    $plannerStart=new DateTimeImmutable($plannerStart->format('Y-m-d'),userDisplayTimezone());
+    $plannerEnd=new DateTimeImmutable($plannerEnd->format('Y-m-d'),userDisplayTimezone());
     $touchpointArchived=$plannerLayout==='agenda'&&($_GET['touchpoint_trash']??'0')==='1';
     $touchpointStateWhere=$touchpointArchived?"t.deleted_at IS NOT NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(t.data_json,'$._permanently_deleted')),'0') NOT IN ('1','true')":'t.deleted_at IS NULL AND (t.plan_id IS NULL OR p.deleted_at IS NULL)';
-    $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id LEFT JOIN marketing_campaign_plans p ON p.id=t.plan_id AND p.audience_id=t.audience_id WHERE t.audience_id=? AND $touchpointStateWhere $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->format('Y-m-d'),$plannerStart->format('Y-m-d')]);
+    $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id LEFT JOIN marketing_campaign_plans p ON p.id=t.plan_id AND p.audience_id=t.audience_id WHERE t.audience_id=? AND $touchpointStateWhere $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$plannerStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
     $plannerEmails=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);
 }
 $deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];

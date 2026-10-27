@@ -71,8 +71,8 @@
                     return;
                 }
             }
-            // Allow more than the exporter's 310-second timeout before offering a retry.
-            if (Date.now() - started >= 360000) {
+            // Allow more than the backup route's 930-second timeout before offering a retry.
+            if (Date.now() - started >= 960000) {
                 finish();
                 showStatus('warning', 'Download confirmation was not received. Check your browser’s Downloads before trying again with a fresh authenticator or recovery code.');
             }

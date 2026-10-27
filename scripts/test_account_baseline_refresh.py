@@ -20,6 +20,8 @@ engagement_financial_reports engagement_financial_drafts engagement_financial_re
 reimbursement_setup reimbursement_cost_centers reimbursement_expenses reimbursement_requests reimbursement_request_items
 reimbursement_receipts reimbursement_events reimbursement_submissions standard_event_tasks'''.split()
 # Reset only reviewed MessageMonkey business data; preserve delivery/identity secrets.
+# subscription-notice uses the already-cleared marketing_service_mail table;
+# no notices, consent challenges or outbound work may replay after a restore.
 MESSAGE_MONKEY_TABLES="""marketing_contacts marketing_tags marketing_contact_tags marketing_segments
 marketing_contact_events marketing_fields marketing_group_categories marketing_group_options marketing_contact_groups
 marketing_notes marketing_campaign_folders marketing_campaigns marketing_campaign_deliveries marketing_campaign_recipients
@@ -30,6 +32,7 @@ marketing_flows marketing_flow_revisions marketing_flow_runs marketing_flow_step
 marketing_inbox_threads marketing_inbox_messages marketing_inbox_drafts marketing_inbox_attachments
 marketing_inbox_labels marketing_inbox_thread_labels marketing_inbox_templates marketing_inbox_read_state""".split()
 TABLES += MESSAGE_MONKEY_TABLES
+# Users include the selected display timezone; baseline restores preserve it.
 PRESERVE=['users','account_profile','calendar_subscriptions','marketing_audiences',
  'marketing_ses_settings','marketing_ses_credentials','marketing_delivery_policy',
  'marketing_sending_domains','marketing_sending_addresses','marketing_inbox_settings','marketing_inbox_user_settings']

@@ -33,7 +33,7 @@ def set_route(key, enabled):
     target = 'http://moed-member-' + key + '/'
     if enabled:
         lines += [f'RedirectMatch 302 "^/a/{key}$" "{prefix}"',
-                  f'ProxyPass "{prefix}database_maintenance.php" "{target}database_maintenance.php" connectiontimeout=5 timeout=300 retry=0 disablereuse=On',
+                  f'ProxyPass "{prefix}database_maintenance.php" "{target}database_maintenance.php" connectiontimeout=5 timeout=930 retry=0 disablereuse=On',
                   f'ProxyPass "{prefix}" "{target}" connectiontimeout=5 timeout=120 retry=0 disablereuse=On',
                   f'ProxyPassReverse "{prefix}" "{target}"']
     else:

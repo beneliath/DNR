@@ -142,6 +142,8 @@ try{
     $jobsBefore=(int)$store->one('SELECT COUNT(*) n FROM marketing_jobs')['n'];
     $invalid=$sendProtected($editor,'audience.php',['action'=>'unsubscribe_emails','emails'=>"valid@example.test\nbad-address"]);
     audienceHttpExpect(str_contains($invalid['body'],'line 2')&&(int)$store->one('SELECT COUNT(*) n FROM marketing_jobs')['n']===$jobsBefore,'Invalid unsubscribe input creates no job and preserves entered values');
+    require __DIR__.'/audience_connection_unlock_http.php';
+    require __DIR__.'/audience_collection_publish_http.php';
     $unlock(null);echo 'Audience protected actions, unsubscribe, and counts: '.$checks." checks passed.\n";
 }finally{foreach($cookies as$cookie)if(is_file($cookie))unlink($cookie);}
 ob_end_flush();

@@ -90,7 +90,7 @@ if(in_array($view,['home','analytics'],true)){
 <main id="audience-content" class="audience-content">
     <div class="audience-page-heading<?= $view==='home'?' analytics-home-heading':($view==='campaigns'?' campaign-list-heading':($view==='campaign'?' campaign-editor-heading':'')) ?>">
         <?php if($view==='flow-templates'&&!empty($flowPreview)): ?><div class="flow-preview-heading"><a href="<?= $h($url(['view'=>'flow-templates'])) ?>" data-flow-catalog-back aria-label="Back to flow templates">←</a><div><nav class="flow-preview-breadcrumbs" aria-label="Breadcrumbs"><a href="<?= $h($url(['view'=>'automations'])) ?>">Automation flows</a><span>/</span><a data-flow-catalog-back href="<?= $h($url(['view'=>'flow-templates'])) ?>">Flow templates</a></nav><h1><?= $h($pageTitle) ?></h1></div></div><?php else: ?><div<?= $view==='form'?' class="collection-editor-heading"':'' ?>>
-            <?php if($view==='form'): ?><a class="audience-logo-wrap collection-editor-logo" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><?php endif; ?>
+            <?php if($view==='form'): ?><a class="collection-editor-back" href="<?= $h($url(['view'=>'forms'])) ?>" aria-label="Back to Forms" title="Back to Forms">←</a><a class="audience-logo-wrap collection-editor-logo" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><?php endif; ?>
             <h1><?= $h($pageTitle) ?><?php if($isAiAnalytics): ?><span class="analytics-ai-beta">Beta</span><?php endif; ?></h1>
         </div><?php endif; ?>
         <?php if($view==='home'): ?><div class="analytics-home-date-tools"><?php include __DIR__.'/analytics-filters.php'; ?></div><?php endif; ?>
@@ -123,7 +123,7 @@ if(in_array($view,['home','analytics'],true)){
         <?php elseif($view==='contact'&&$id): ?>
             <details class="audience-menu primary"><summary>Actions ⌄</summary><div>
                 <?php if($canExport): ?><a href="<?= $h($url(['view'=>'contact','id'=>$id,'export'=>'person'])) ?>">Export</a><?php endif; ?>
-                <?php if($canManage): ?><button data-person-operation="<?= $contact['is_archived']?'restore':'archive' ?>"><?= $contact['is_archived']?'Unarchive':'Archive' ?></button><button data-person-operation="unsubscribe">Unsubscribe (Email)</button><?php if($canDelete): ?><button class="danger-text" data-person-operation="delete">Permanently delete</button><?php endif; ?><?php endif; ?>
+                <?php if($canManage): ?><button data-person-operation="<?= $contact['is_archived']?'restore':'archive' ?>"><?= $contact['is_archived']?'Unarchive':'Archive' ?></button><button data-person-operation="unsubscribe">Unsubscribe (Email)</button><?php if($canDelete): ?><button class="danger-text" data-person-operation="delete" data-admin-unlock-required title="Permanently delete (Admin Unlock required)">Permanently delete</button><?php endif; ?><?php endif; ?>
             </div></details>
         <?php endif; ?>
         </div>

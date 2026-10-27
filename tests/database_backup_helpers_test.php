@@ -127,6 +127,25 @@ expectDatabaseBackup(
     'backup capacity calculations should match base64 block expansion.'
 );
 $maximum_pdf_bytes = 100 * 1024 * 1024;
+$original_backup_limit = getenv('DNR_DATABASE_BACKUP_MAX_BYTES');
+try {
+    putenv('DNR_DATABASE_BACKUP_MAX_BYTES');
+    expectDatabaseBackup(databaseBackupMaximumBytes() === 2147483648, 'the default export and restore limit should support 2 GiB.');
+    foreach ([1048576, 1073741824, 2147483648] as $limit) {
+        putenv('DNR_DATABASE_BACKUP_MAX_BYTES=' . $limit);
+        expectDatabaseBackup(databaseBackupMaximumBytes() === $limit, 'valid lower limits and the 2 GiB boundary should be accepted.');
+    }
+    foreach (['1048575', '2147483649', '-1', 'invalid'] as $limit) {
+        putenv('DNR_DATABASE_BACKUP_MAX_BYTES=' . $limit);
+        $rejected = false;
+        try { databaseBackupMaximumBytes(); } catch (RuntimeException $e) { $rejected = true; }
+        expectDatabaseBackup($rejected, 'out-of-range and malformed configured limits must be rejected.');
+    }
+    expectDatabaseBackup(databaseBackupMaximumEncryptedBytes(2147483648) > 2147483648,
+        'the encrypted limit must allow authenticated framing above the full 2 GiB plaintext limit.');
+} finally {
+    putenv($original_backup_limit === false ? 'DNR_DATABASE_BACKUP_MAX_BYTES' : 'DNR_DATABASE_BACKUP_MAX_BYTES=' . $original_backup_limit);
+}
 expectDatabaseBackup(
     DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES
         >= databaseBackupBase64EncodedBytes($maximum_pdf_bytes) + (64 * 1024 * 1024),

@@ -72,7 +72,7 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
             <?php elseif(str_starts_with($key,'group:')): foreach($rowGroups[$row['id']]as$group): if((string)$group['category_id']!==substr($key,6))continue; ?><span class="audience-tag" title="<?= $h($group['category']) ?>"><?= $h($group['name']) ?></span><?php endforeach; ?>
             <?php elseif($key==='email_status'): ?><span class="audience-status <?= $h($row[$key]) ?>"><?= $h(ucfirst($row[$key])) ?></span>
             <?php elseif(str_starts_with($key,'custom:')): $v=$custom[substr($key,7)]??''; ?><?= $h(is_array($v)?implode(', ',$v):$v) ?>
-            <?php else: ?><?= $h(in_array($key,['created_at','updated_at'],true)?substr($row[$key],0,16):$row[$key]) ?><?php endif; ?>
+            <?php else: ?><?= $h(in_array($key,['created_at','updated_at'],true)?formatUserTimestamp($row[$key],'Y-m-d H:i'):$row[$key]) ?><?php endif; ?>
         </td><?php endforeach; ?>
     </tr><?php endforeach; ?>
     <?php if(!$rows): ?><tr><td colspan="<?= count($columns)+($canManage?1:0) ?>" class="audience-empty"><h2><?= (int)($counts['records']??$counts['total'])===0?'Build your audience':'No connections found' ?></h2><p><?= (int)($counts['records']??$counts['total'])===0?'Import your connections or add a connection to get started.':'Try another search or change your filters.' ?></p><?php if($canManage): ?><a class="button primary" href="<?= $h($url(['view'=>'import'])) ?>">Import connections</a><?php endif; ?></td></tr><?php endif; ?>

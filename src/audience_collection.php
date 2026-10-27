@@ -422,6 +422,7 @@ trait AudienceCollection
             }
             // Unauthenticated signups never overwrite a known person's profile or interests.
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)],JSON_THROW_ON_ERROR)]);
+            if ($wasSubscribed && !$optout) $this->queueSubscriptionNotice($person);
             if ($person['email_status']!=='subscribed') {
                 if ($confirmation) {
                     $ses=$this->sesSettings();

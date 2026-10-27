@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/audience_pagination.php';
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/user_time_helpers.php';
 require_once __DIR__ . '/account_helpers.php';
 require_once __DIR__ . '/account_login_helpers.php';
 require_once __DIR__ . '/text_rendering_helpers.php';
@@ -79,11 +80,13 @@ function renderPageHead($title, array $options = []) {
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
+    echo '    <meta name="user-timezone" content="'.htmlspecialchars(userDisplayTimezoneName(),ENT_QUOTES,'UTF-8').'">' . PHP_EOL;
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
     echo '    <link rel="icon" type="image/svg+xml" href="'
         . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
     renderScript('assets/js/account-context.min.js', false);
     renderScript('assets/js/theme-init.min.js', false);
+    renderScript('assets/js/user-time.min.js', false);
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
@@ -1171,7 +1174,7 @@ function requireLogin() {
     $accountColumns = accountsEnabled() ? ', is_superadmin, platform_identity_id' : '';
     $stmt = $conn->prepare(
         'SELECT id, username, role, auth_version, must_change_password, account_status, two_factor_enabled,
-                first_name, last_name, profile_picture_updated_at' . $accountColumns . '
+                first_name, last_name, profile_picture_updated_at, display_timezone' . $accountColumns . '
          FROM users
          WHERE id = ?'
     );
@@ -1208,6 +1211,7 @@ function requireLogin() {
                 $user['username'] = $identity['username'];
                 $user['first_name'] = $identity['first_name'];
                 $user['last_name'] = $identity['last_name'];
+                $user['display_timezone'] = $identity['display_timezone']??null;
             } catch (Throwable $error) {
                 session_unset(); session_regenerate_id(true);
                 http_response_code(403); exit('SuperAdmin access could not be verified. Return to the primary Account.');
@@ -1228,6 +1232,7 @@ function requireLogin() {
     }
     $_SESSION['role'] = $preview_role ?? $authenticated_role;
     $_SESSION['profile_first_name'] = trim((string) ($user['first_name'] ?? ''));
+    $_SESSION['display_timezone'] = $user['display_timezone']??null;
     $profile_display_name = trim(
         trim((string) ($user['first_name'] ?? ''))
         . ' '

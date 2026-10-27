@@ -186,7 +186,7 @@ if ($activeLink !== null) {
                 <?php endif; ?>
                 <div class="stats-summary-copy">
                     <h2 class="stats-headline"><strong><?php echo number_format($stats['total']); ?></strong> Tracked Visits in the Selected Period</h2>
-                    <p class="stats-meta"><?php echo $h($from); ?> – <?php echo $h($to); ?> · <?php echo number_format($linkCount); ?> <?php echo $linkCount === 1 ? 'link' : 'links'; ?> · Updated at <?php echo $h(applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'H:i T')); ?></p>
+                    <p class="stats-meta"><?php echo $h($from); ?> – <?php echo $h($to); ?> · <?php echo number_format($linkCount); ?> <?php echo $linkCount === 1 ? 'link' : 'links'; ?> · Updated at <?php echo $h(formatUserTimestamp(gmdate('Y-m-d H:i:s'), 'H:i T')); ?></p>
                 </div>
             </div>
             <nav class="stats-periods" aria-label="Statistics Date Range">

@@ -88,6 +88,8 @@ test('only the current download acknowledgement confirms success and clears cred
     f.acknowledge(f.receipt, 'another-tab');
     f.tick();
     assert.equal(f.status.dataset.state, 'pending');
+    f.tick(900000);
+    assert.equal(f.status.dataset.state, 'pending');
     f.acknowledge();
     f.tick();
     assert.equal(f.status.dataset.state, 'success');
@@ -122,7 +124,9 @@ test('malformed receipts never report success', () => {
 test('an unconfirmed response times out without claiming failure or changing backup history', () => {
     const f = fixture();
     f.submit();
-    f.tick(359999);
+    f.tick(360000);
+    assert.equal(f.status.dataset.state, 'pending');
+    f.tick(599999);
     assert.equal(f.button.disabled, true);
     f.tick(1);
     assert.equal(f.status.dataset.state, 'warning');
@@ -137,7 +141,7 @@ test('retries use a new token so a late response cannot confirm the wrong export
     const f = fixture();
     f.submit();
     const firstToken = f.token.value;
-    f.tick(360000);
+    f.tick(960000);
     f.submit();
     assert.notEqual(f.token.value, firstToken);
     f.acknowledge(f.receipt, firstToken);

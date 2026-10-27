@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/user_time_helpers.php';
 require_once __DIR__ . '/mattermost_email_helpers.php';
 
 use ZBateson\MailMimeParser\Header\AddressHeader;
@@ -1264,9 +1265,9 @@ function formatInboundEmailChronEntry(array $message): string
     }
     $lines[] = 'Subject: ' . ((string) ($message['subject'] ?? '') ?: '(no subject)');
     if (!empty($message['sent_at'])) {
-        $lines[] = 'Sent: ' . applicationTimestampLabel($message['sent_at'], 'Y-m-d H:i:s T');
+        $lines[] = 'Sent: ' . formatUserTimestamp($message['sent_at'], 'Y-m-d H:i:s T');
     }
-    $lines[] = 'Received by ' . $brandName . ': ' . applicationTimestampLabel($message['received_at'] ?? '', 'Y-m-d H:i:s T');
+    $lines[] = 'Received by ' . $brandName . ': ' . formatUserTimestamp($message['received_at'] ?? '', 'Y-m-d H:i:s T');
     if ($attachments) {
         $lines[] = 'Attachments: ' . implode(', ', $attachments);
     }

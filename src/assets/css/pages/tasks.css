@@ -13,6 +13,22 @@ html.dark-mode .tasks-page {
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
 
+/* Keep purpose columns aligned with 16px between the shared 40px icon buttons. */
+.tasks-page .task-table {
+    --listing-action-slot: 56px;
+}
+
+html body .tasks-page .task-actions > .task-assign-action {
+    grid-column: 8;
+    width: auto !important;
+}
+
+@media (max-width: 760px) {
+    .tasks-page .task-table {
+        --listing-action-slot: 60px;
+    }
+}
+
 .tasks-page .task-list-controls {
     padding: 0;
     border: 0;

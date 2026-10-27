@@ -17,7 +17,7 @@ try {
     $request = json_decode($body, true, 16, JSON_THROW_ON_ERROR);
     if (!is_array($request)) throw new InvalidArgumentException('Invalid backup request.');
     ignore_user_abort(true);
-    set_time_limit(300);
+    set_time_limit(900);
     $backup = createAuthenticatedDatabaseExport($conn, $request, APP_VERSION);
     header('Content-Type: application/octet-stream');
     header('Content-Length: ' . $backup['size']);

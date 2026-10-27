@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN display_timezone VARCHAR(64) NULL DEFAULT NULL;

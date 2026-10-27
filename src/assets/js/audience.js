@@ -176,7 +176,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     });
     $$('[data-campaign-recent-date]').forEach(time => {
         const date = new Date(time.dateTime);
-        if (!Number.isNaN(date.getTime())) time.textContent = date.toLocaleString(undefined, {dateStyle:'medium',timeStyle:'short'});
+        if (!Number.isNaN(date.getTime())) time.textContent = window.DnrUserTime.format(date, {dateStyle:'medium',timeStyle:'short'});
     });
     const mainToolbar = $('body > .audience-topbar');
     const campaignBack = campaignCreate?.querySelector('[data-campaign-create-back]');
@@ -268,7 +268,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
             const title = el('span', {class:'audience-search-title'}, item.title);
             if (item.status) { const labels = {draft:'Draft',sent:'Sent',sending:'Sending',scheduled:'Scheduled',paused:'Paused'}; title.append(el('span', {class:`audience-search-status ${item.status === 'sent' ? 'sent' : ''}`}, labels[item.status] || item.status)); }
             copy.append(title); let detail = item.description;
-            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last edited ${new Intl.DateTimeFormat(undefined, {weekday:'short',month:'long',day:'numeric',year:'numeric'}).format(date)}`; }
+            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last edited ${window.DnrUserTime.format(date, {weekday:'short',month:'long',day:'numeric',year:'numeric'})}`; }
             copy.append(el('span', {class:'audience-search-detail'}, detail)); row.append(icon(item.icon), copy);
             if (item.external) { row.target = '_blank'; row.rel = 'noopener noreferrer'; row.setAttribute('aria-label', `${item.title} (opens in a new tab)`); }
             row.addEventListener('click', remember); return row;
@@ -648,8 +648,9 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         $('[data-bulk-description]').textContent = descriptions[action];
     };
     bulkOperation?.addEventListener('change', updateBulk); updateBulk();
-    $$('[data-person-operation]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-person-operation]').forEach(b => b.addEventListener('click', async () => {
         const action = b.dataset.personOperation, form = $('#person-action form');
+        if (action === 'delete' && !(await window.DnrAdminUnlock?.request())) return;
         setValue(form, 'operation', action); setValue(form, 'confirm_text', '');
         $('[data-person-action-title]').textContent = `${({restore: 'Unarchive', delete: 'Permanently delete'})[action] || action[0].toUpperCase() + action.slice(1)} connection`;
         $('[data-person-action-description]').textContent = descriptions[action];
@@ -1049,9 +1050,10 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         show(dialog.id);
     };
     $$('[data-campaign-lifecycle-selected]').forEach(button => button.addEventListener('click', () => openCampaignLifecycle(button.dataset.campaignLifecycleSelected)));
-    $$('[data-campaign-delete-form],[data-flow-delete-form]').forEach(deleteForm => {
+    $$('[data-campaign-delete-form],[data-flow-delete-form],#person-action form,#bulk-people-form').forEach(deleteForm => {
         let approved = false, checking = false;
         deleteForm.addEventListener('submit', async event => {
+            if (deleteForm.matches('#person-action form,#bulk-people-form') && deleteForm.elements.operation.value !== 'delete') return;
             if (approved) { approved = false; return; }
             event.preventDefault(); event.stopImmediatePropagation();
             if (checking) return;

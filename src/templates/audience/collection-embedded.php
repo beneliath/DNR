@@ -87,7 +87,7 @@ $orderedFields=array_values(array_unique([...$d['fields'],...array_keys($fieldLa
 <p role="status" data-embedded-publish-status><?= $resource['state']==='published'?'Published form available. Publish any draft changes before copying.':'Save and publish before installing this form.' ?></p>
 <label>Embed code<textarea readonly rows="5" data-embedded-code spellcheck="false"><?= $h(audienceCollectionEmbedCode($publicUrl,$d)) ?></textarea></label>
 <button type="button" data-embedded-copy disabled>Copy Code</button><p role="status" data-embedded-copy-status></p>
-<p class="audience-help"><?= $resource['installed_at']?'Last installed '. $h($resource['installed_at']).' UTC':'Installation is confirmed when your website loads the published form.' ?></p>
+<p class="audience-help"><?= $resource['installed_at']?'Last installed '. $h(formatUserTimestamp($resource['installed_at'])):'Installation is confirmed when your website loads the published form.' ?></p>
 </section>
 <p class="embedded-feedback" role="status" data-embedded-status></p>
 </form>

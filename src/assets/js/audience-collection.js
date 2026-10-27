@@ -236,6 +236,15 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const inputChanged = event => { if (event.target.matches('[data-doc="logo_width"]')) model.logo_resized = true; changed(); };
     form.addEventListener('input', inputChanged); form.addEventListener('change', inputChanged);
     form.addEventListener('submit', () => { clearTimeout(timer); sync(); });
+    document.querySelector('#collection-publish form')?.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+            event.preventDefault(); document.getElementById('collection-publish').close(); form.reportValidity(); return;
+        }
+        clearTimeout(timer); sync();
+        event.currentTarget.elements.document_json.value = hidden.value;
+        event.currentTarget.elements.name.value = form.elements.name.value;
+        event.currentTarget.elements.version.value = form.elements.version.value;
+    });
     let selectedTab = config.kind === 'survey' ? 'questions' : 'design';
     const selectTab = tab => {
         selectedTab = tab;

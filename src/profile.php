@@ -14,7 +14,7 @@ $user_id = (int) $_SESSION['user_id'];
 function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
         'SELECT id, username, role, first_name, last_name, phone, email, reimbursement_reviewer_email, pending_email, email_verified_at, auth_version, two_factor_enabled,
-                task_digest_enabled, task_digest_time, task_digest_days,
+                task_digest_enabled, task_digest_time, task_digest_days, display_timezone,
                 profile_picture_mime, profile_picture_sha256, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -139,8 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $remove_profile_picture = isset($_POST['remove_profile_picture']);
     $picture = null;
+    $display_timezone = $user['display_timezone']??null;
 
     try {
+        $display_timezone=validateUserTimezone($_POST['display_timezone']??$display_timezone);
         if ($reimbursement_reviewer_email !== '') $reimbursement_reviewer_email = normalizeAccountEmail($reimbursement_reviewer_email);
         if (mb_strlen($first_name, 'UTF-8') > 100 || mb_strlen($last_name, 'UTF-8') > 100) {
             throw new InvalidArgumentException('First and last names must be 100 characters or fewer.');
@@ -270,6 +272,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        $timezone_update=$conn->prepare("UPDATE users SET display_timezone=? WHERE id=? AND auth_version=? AND account_status='active'");
+        $timezone_update->bind_param('sii',$display_timezone,$user_id,$profile_auth_version);
+        $timezone_update->execute();$timezone_update->close();
         if ($reimbursement_reviewer_email !== (string)($user['reimbursement_reviewer_email'] ?? '')) {
             require_once __DIR__ . '/reimbursement_workflow_helpers.php';
             reimbursementEvent($conn,'profile',$user_id,'reviewer_email_updated','Reimbursement reviewer email changed.',$user_id);
@@ -281,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $user['username'],
         ]);
         $_SESSION['profile_first_name'] = $first_name;
+        $_SESSION['display_timezone'] = $display_timezone;
         if ($picture !== null || $remove_profile_picture) {
             $_SESSION['profile_picture_version'] = time();
         }
@@ -303,6 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user['task_digest_enabled'] = $task_digest_enabled_requested ? 1 : 0;
     $user['task_digest_time'] = $task_digest_time;
     $user['task_digest_days'] = $task_digest_days;
+    $user['display_timezone'] = $display_timezone;
     }
 }
 
@@ -365,7 +372,7 @@ $task_digest_day_options = [
         <p class="success">Your daily work digest was paused until the new email address is verified.</p>
     <?php endif; ?>
 
-    <form method="post" action="profile.php" enctype="multipart/form-data" class="profile-form">
+    <form method="post" action="profile.php" enctype="multipart/form-data" class="profile-form" data-profile-unsaved="<?= !empty($error)&&($_POST['action']??'save')==='save'?'1':'0' ?>">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="action" value="save">
         <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading" data-profile-picture-field>
@@ -416,6 +423,16 @@ $task_digest_day_options = [
                         <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="tel-national" inputmode="tel" placeholder="(555) 555-0123" data-phone-number>
                     </div>
                 </div>
+            </div>
+            <div class="form-group profile-timezone-field">
+                <label for="display_timezone">Display Timezone</label>
+                <select id="display_timezone" name="display_timezone" aria-describedby="display-timezone-help">
+                    <option value="">Not selected — UTC</option>
+                    <?php foreach(userTimezoneOptions()as$timezone=>$label): ?>
+                    <option value="<?= htmlspecialchars($timezone,ENT_QUOTES,'UTF-8') ?>"<?= ($user['display_timezone']??'')===$timezone?' selected':'' ?>><?= htmlspecialchars($label,ENT_QUOTES,'UTF-8') ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="field-help" id="display-timezone-help">Display timestamps throughout MOED and MessageMonkey in this timezone. Without a selection, timestamps are shown in UTC.</p>
             </div>
             <div class="profile-account-meta">
                 <span><strong>Username</strong><?php echo htmlspecialchars((string) $user['username'], ENT_QUOTES, 'UTF-8'); ?></span>
@@ -482,7 +499,8 @@ $task_digest_day_options = [
         <div class="action-buttons profile-actions">
             <div class="profile-save-actions">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
-                <button type="submit" class="save-button">Save Changes</button>
+                <button type="submit" class="save-button" data-profile-save aria-describedby="profile-unsaved-status">Save Changes</button>
+                <span class="sr-only" id="profile-unsaved-status" data-profile-unsaved-status aria-live="polite"></span>
             </div>
             <?php if ($account_security_access && (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at'])))): ?>
                 <button type="submit" form="profile-resend-verification-form" class="button-secondary profile-verification-button" data-resend-verification>Resend Email Verification</button>

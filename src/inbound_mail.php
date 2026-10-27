@@ -237,7 +237,7 @@ $statusLabels = [
                         <span class="inbound-message-card-heading"><span class="inbound-sender"><?php echo htmlspecialchars($senderLabel, ENT_QUOTES, 'UTF-8'); ?></span><span class="inbound-status inbound-status-<?php echo htmlspecialchars((string) $message['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusLabels[(string) $message['status']] ?? ucfirst((string) $message['status']), ENT_QUOTES, 'UTF-8'); ?></span></span>
                         <strong class="inbound-subject"><?php echo htmlspecialchars((string) ($message['subject'] ?: '(no subject)'), ENT_QUOTES, 'UTF-8'); ?></strong>
                         <?php if (!empty($message['review_reason'])): ?><span class="inbound-message-excerpt"><?php echo htmlspecialchars((string) $message['review_reason'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
-                        <time datetime="<?php echo htmlspecialchars((string) $message['received_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(chronLogTimestampDetails($message['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></time>
+                        <time datetime="<?php echo htmlspecialchars(formatUserTimestamp($message['received_at'],'Y-m-d H:i:s'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(chronLogTimestampDetails($message['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></time>
                     </a>
                 <?php endforeach; ?>
                 <?php if (!$messages): ?>
@@ -266,7 +266,7 @@ $statusLabels = [
                 <div class="inbound-detail-workspace">
                     <div class="inbound-reader">
                         <div class="inbound-detail-heading"><h2><?php echo htmlspecialchars((string) ($selectedMessage['subject'] ?: '(no subject)'), ENT_QUOTES, 'UTF-8'); ?></h2></div>
-                        <div class="inbound-sender-summary"><strong><?php echo htmlspecialchars(trim((string) $selectedMessage['sender_name']) ?: (string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></strong><span><?php echo htmlspecialchars((string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></span><time datetime="<?php echo htmlspecialchars((string) $selectedMessage['received_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(chronLogTimestampDetails($selectedMessage['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></time></div>
+                        <div class="inbound-sender-summary"><strong><?php echo htmlspecialchars(trim((string) $selectedMessage['sender_name']) ?: (string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></strong><span><?php echo htmlspecialchars((string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></span><time datetime="<?php echo htmlspecialchars(formatUserTimestamp($selectedMessage['received_at'],'Y-m-d H:i:s'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(chronLogTimestampDetails($selectedMessage['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></time></div>
                         <details class="inbound-envelope-details">
                             <summary>Message details<?php echo $attachmentNames ? ' · ' . count($attachmentNames) . ' attachment' . (count($attachmentNames) === 1 ? '' : 's') : ''; ?></summary>
                             <dl class="inbound-message-headers">
