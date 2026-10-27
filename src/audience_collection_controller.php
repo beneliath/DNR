@@ -6,7 +6,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
     $audienceId=$store->audienceId; $isPost=$_SERVER['REQUEST_METHOD']==='POST';
-    $available=$store->collectionAvailable(); $resource=null; $recover=null; $operationRedirect=null;
+    $available=$store->collectionAvailable(); $resource=null; $recover=null; $operationRedirect=null; $collectionEditorError=null;
     if ($isPost) {
         requireValidCsrfToken();
         $action=audienceText($_POST,'action',40);
@@ -96,7 +96,8 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
             }
             $_SESSION['audience_message']=$message; header('Location: '.$url($operationRedirect??($id?['view'=>'form','id'=>$id]:['view'=>'forms']))); return;
         } catch (InvalidArgumentException $e) {
-            if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()],JSON_THROW_ON_ERROR); return; }
+            if($e instanceof AudienceCollectionOriginException)$collectionEditorError=['field'=>'origins','message'=>$e->getMessage()];
+            if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()]+($collectionEditorError?['field'=>$collectionEditorError['field']]:[]),JSON_THROW_ON_ERROR); return; }
             $error=$e->getMessage(); if ($action==='collection_save'||($action==='collection_operation'&&audienceText($_POST,'operation')==='publish'&&isset($_POST['document_json']))) $recover=$_POST;
             if($action==='collection_operation'&&in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true))$id=0;
         }
@@ -189,7 +190,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         $ses=$store->sesSettings();$signupEmailBlocked=(bool)audienceSesReasons($ses,$ses['from_email']??'');
     }
     $pageTitle=match($view){'form'=>$resource['name'],'collection-create'=>'Setup your '.match($creationKind){'landing'=>'landing page','survey'=>'survey','popup'=>'popup form','embedded'=>'embedded form','preferences'=>'preference center',default=>'subscribe form'},'form-settings'=>'Forms Settings','landing-pages'=>'Landing pages','surveys'=>'Surveys','preferences'=>'Subscriber preferences','collection-report'=>$resource['name'].' · Results',default=>'Forms'};
-    $collectionBrand=$resource&&$resource['kind']!=='embedded'?($store->contentSettings()['settings']['brand']??[]):[];
+    $collectionBrand=$resource?($store->contentSettings()['settings']['brand']??[]):[];
     $csrf=csrfInput(); $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
     ?>

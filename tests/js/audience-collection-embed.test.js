@@ -4,6 +4,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/audience-collection-embed.js'), 'utf8');
+test('editor installation code retains both embed modes and escapes attributes', async () => {
+    const {collectionEmbedCode} = await import('../../src/assets/js/audience-collection-install.mjs');
+    const url = 'https://forms.example/form?key=abc&lang=en';
+    assert.equal(collectionEmbedCode(url, {embedded:{disable_javascript:false}}), '<script src="https://forms.example/form?key=abc&amp;lang=en&amp;embed=1" defer></script>');
+    const code = collectionEmbedCode(url, {title:'A "title" <tag> & friends',embedded:{disable_javascript:true}});
+    assert.equal(code, '<iframe src="https://forms.example/form?key=abc&amp;lang=en" title="A &quot;title&quot; &lt;tag&gt; &amp; friends" width="100%" height="720" frameborder="0" sandbox="allow-forms allow-same-origin allow-popups" referrerpolicy="origin"></iframe>');
+});
 function fixture(overrides = {}, origin = 'https://website.example') {
     let inserted = false;
     const listeners = {}, frame = {style: {}, attrs: {}, contentWindow: {}, setAttribute(k,v) { this.attrs[k] = v; }};

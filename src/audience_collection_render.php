@@ -7,6 +7,29 @@ function audienceCollectionHasAddress(array $resource,array $fields):bool
     return false;
 }
 
+function audienceCollectionHasPhone(array $resource,array $fields):bool
+{
+    if(($resource['kind']??'')==='survey')foreach($resource['document']['questions']??[]as$question)if($question['type']==='contact')return true;
+    foreach($fields as$field)if($field['is_public']&&$field['field_type']==='phone'&&in_array('custom:'.$field['id'],$resource['document']['fields']??[],true))return true;
+    return false;
+}
+
+function audienceCollectionPhoneControl(string $name,string $label,mixed $value,bool $required,array $messages,string $help,bool $native):string
+{
+    $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+    $id='f-'.substr(hash('sha256',$name),0,12);
+    if(is_array($value)){
+        $country=is_scalar($value['country_code']??null)?(string)$value['country_code']:applicationDefaultPhoneCountryCode();
+        $number=is_scalar($value['number']??null)?(string)$value['number']:'';
+    }else [$country,$number]=phoneNumberInputParts(is_scalar($value)?(string)$value:'');
+    $mark=$required?' <span aria-label="'.$h($messages['required']).'">*</span>':'';
+    $html='<label for="'.$id.'">'.$h($label).$mark.'</label><div class="collection-phone phone-input-group" data-phone-input-group>';
+    $html.=phoneCountryPicker($name.'[country_code]',$country,$label.' country code',$native);
+    $html.='<input type="tel" id="'.$id.'" name="'.$h($name.'[number]').'" value="'.$h($number).'" maxlength="80" autocomplete="tel-national" inputmode="tel" data-phone-number'.($required?' required':'').($help!==''?' aria-describedby="'.$id.'-help"':'').'></div>';
+    if($help!=='')$html.='<small class="collection-field-help" id="'.$id.'-help">'.$h($help).'</small>';
+    return $html;
+}
+
 function audienceCollectionAddressControl(string $name,string $label,mixed $value,bool $required,array $messages,string $help):string
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
@@ -26,7 +49,7 @@ function audienceCollectionAddressControl(string $name,string $label,mixed $valu
     return $html.'</fieldset>';
 }
 
-function audienceCollectionControl(string $name,string $label,string $type,mixed $value,bool $required=false,array $options=[],array $messages=[],string $help=''): string
+function audienceCollectionControl(string $name,string $label,string $type,mixed $value,bool $required=false,array $options=[],array $messages=[],string $help='',bool $nativePhone=false): string
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $id='f-'.substr(hash('sha256',$name),0,12); $need=$required?' required':'';
@@ -34,6 +57,7 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
     $hint=$help!==''?'<small class="collection-field-help" id="'.$id.'-help">'.$h($help).'</small>':'';
     $messages=array_replace(audienceCollectionMessages(),$messages);$mark=$required?' <span aria-label="'.$h($messages['required']).'">*</span>':''; $v=is_scalar($value)?(string)$value:'';
     if($type==='address'&&(!is_string($value)||substr_count($value,"\n")<=5))return audienceCollectionAddressControl($name,$label,$value,$required,$messages,$help);
+    if($type==='phone')return audienceCollectionPhoneControl($name,$label,$value,$required,$messages,$help,$nativePhone);
     if (in_array($type,['radio','checkboxes'],true)) {
         $html='<fieldset'.$description.'><legend>'.$h($label).$mark.'</legend>';
         foreach ($options as $i=>$option) {
@@ -53,7 +77,7 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
     return $html.'<input id="'.$id.'" name="'.$h($name).'" type="'.$inputType.'" value="'.$h($v).'" maxlength="2000"'.($type==='number'?' step="any"':'').($type==='birthday'?' placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"':'').$need.$description.'>'.$hint;
 }
 
-/** Shared branded document; previews remain inert and address behavior is trusted application code. */
+/** Shared branded document; preview controls use trusted application code without executing frame scripts. */
 function audienceCollectionHtml(array $r,array $fields,array $groups,string $action,string $proof='',array $values=[],string $error='',string $success='',?array $person=null,bool $preview=false,string $unavailable='',string $previewNonce=''): string
 {
     $d=array_replace(audienceCollectionDefaults($r['kind']==='confirm'||$r['kind']==='unsubscribe'?'hosted':$r['kind']),$r['document']); $messages=array_replace(audienceCollectionMessages(),$d['messages']); $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $nonce=contentSecurityPolicyNonce();
@@ -63,12 +87,13 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     }
     $embedded=$r['kind']==='embedded';$embedOptions=array_replace(audienceCollectionEmbedDefaults(),$d['embedded']);
     $hasAddress=audienceCollectionHasAddress($r,$fields);
+    $hasPhone=audienceCollectionHasPhone($r,$fields);
     $nativeAddress=$embedded&&($embedOptions['disable_javascript']||$embedOptions['remove_css']);
-    $control=static fn($name,$label,$type,$value,$required=false,$options=[],$help='')=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages,$help);
+    $control=static fn($name,$label,$type,$value,$required=false,$options=[],$help='')=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages,$help,$nativeAddress);
     // All pages use their canonical content; historical variation receipts remain readable.
     ob_start();
     ?>
-    <!doctype html><html<?= $nativeAddress?' data-address-inputs="native"':'' ?> lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
+    <!doctype html><html<?= $nativeAddress?' data-address-inputs="native" data-phone-inputs="native"':'' ?> lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
     <style nonce="<?= $h($nonce) ?>">
     <?php if($d['web_font']!==''): ?>@font-face{font-family:MOEDCollectionBrandFont;src:url(<?= audienceDesignWebFont($d['web_font']) ?>);font-display:swap}<?php endif; ?>
     :root{--collection-accent:<?= $d['color'] ?>;--collection-background:<?= $d['background'] ?>;--collection-text:<?= $d['text_color'] ?>;--collection-font:<?= $d['web_font']!==''?'MOEDCollectionBrandFont,':'' ?><?= $d['font'] ?>;--collection-width:<?= $d['width']?(int)$d['width'].'px':'100%' ?><?php if($r['kind']==='landing'||!empty($d['logo_resized'])): ?>;--collection-logo-width:<?= (int)$d['logo_width'] ?>px;--collection-logo-height:none<?php endif; ?>}
@@ -93,7 +118,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php endif; ?>
     </style></head><body<?= $embedded?' class="collection-embedded"':'' ?>><main>
     <?php if($d['logo']): ?><img class="logo" src="<?= $h($d['logo']) ?>" alt="" referrerpolicy="no-referrer"><?php endif; ?>
-    <?php if(!$embedded||$embedOptions['show_title']): ?><h1><?= $h($d['title']) ?></h1><?php endif; ?>
+    <?php if($d['title']!==''&&(!$embedded||$embedOptions['show_title'])): ?><h1><?= $h($d['title']) ?></h1><?php endif; ?>
     <?php if($success!==''): ?><div class="success" role="status"><p><?= $h($success) ?></p></div>
     <?php else: ?>
     <?php if($d['intro']!==''): ?><p class="collection-intro"><?= $h($d['intro']) ?></p><?php endif; ?>
@@ -136,6 +161,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <script type="application/json" id="address-region-data" nonce="<?= $h($nonce) ?>"><?= json_encode(addressRegionClientData(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
     <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/address-inputs-public.min.js')) ?>" defer></script><?php endif; ?>
     <?php endif; ?>
+    <?php if($hasPhone&&!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/phone-input.min.js')) ?>" defer></script><?php endif; ?>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>
     <script type="application/json" id="collection-resize-config"><?= json_encode(['key'=>$r['public_key'],'origins'=>$d['origins']],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
     <script nonce="<?= $h($nonce) ?>" src="<?= $h($r['resize_script']) ?>" defer></script>

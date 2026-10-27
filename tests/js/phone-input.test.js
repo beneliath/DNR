@@ -4,9 +4,22 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
     formatNationalInput,
+    initializePhoneInputs,
     localDigits,
     normalizedCountryCode
 } = require("../../src/assets/js/phone-input.js");
+
+test('phone behavior can initialize each preview document once', () => {
+    const events = [];
+    const first = {addEventListener: name => events.push(name)};
+    initializePhoneInputs(first);
+    const count = events.length;
+    assert(count > 0);
+    initializePhoneInputs(first);
+    assert.equal(events.length, count);
+    initializePhoneInputs({addEventListener: name => events.push(name)});
+    assert.equal(events.length, count * 2);
+});
 
 function phoneInput(value, countryValue) {
     const countryInput = {
