@@ -1195,11 +1195,18 @@ backup password. That password is required to restore the file and is never stor
 complete `.dnrbackup` archive is encrypted with a key derived by Argon2id using libsodium's
 moderate resource profile and authenticated with XChaCha20-Poly1305 secretstream. New backup
 passwords must contain at least 16 characters. The versioned reader retains support for older
-`DNRBACKUP-ENC-1` archives while new exports use the stronger `DNRBACKUP-ENC-2` profile. Backups contain
+`DNRBACKUP-ENC-1` and `DNRBACKUP-ENC-2` archives. New exports use `DNRBACKUP-ENC-3`:
+each 64 KiB data chunk is gzip-compressed before encryption, with the format identifier
+authenticated alongside each encrypted frame. Compression and restore use bounded memory;
+restore authenticates each frame before decompressing it and enforces both the per-chunk
+and total uncompressed size limits. Native server backups already compress their SQL and
+file archives before encryption and retain their existing `DNRBACKUP-ENC-2` envelope. Backups contain
 every application table, including user authentication and audit data, plus all registered
 persistent uploaded files. Version 3 archives stream file chunks and verify each file against its
 stored size and SHA-256 checksum. Missing or damaged files cause export to fail rather than
-producing an incomplete backup. The configured size limit includes both the database and files. Treat encrypted files as
+producing an incomplete backup. The configured size limit and page estimate include the
+uncompressed serialized database and files; the compressed download size depends on the contents.
+Treat encrypted files as
 secrets, use a strong unique backup password, and keep the password separately in a password
 manager. A forgotten backup password cannot be recovered.
 

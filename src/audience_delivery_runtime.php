@@ -216,11 +216,16 @@ trait AudienceDeliveryRuntime
         return $this->transaction(function()use($token){
             $challenge=$this->one("SELECT q.*,m.state mail_state FROM marketing_consent_challenges q JOIN marketing_service_mail m ON m.id=q.service_mail_id AND m.audience_id=q.audience_id AND m.contact_id=q.contact_id WHERE q.audience_id=? AND q.token_hash=? FOR UPDATE",[$this->audienceId,hash('sha256',$token)]);
             if(!$challenge||$challenge['used_at']||strtotime($challenge['expires_at'].' UTC')<=time()||$challenge['mail_state']!=='accepted')return false;
-            $person=$this->person((int)$challenge['contact_id'],true);if($person['is_archived']||$person['email_status']==='cleaned'||!hash_equals($challenge['email_hash'],audienceDispatchEmailHash($person['email'])))return false;
-            if($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]))return false;
+            $person=$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,(int)$challenge['contact_id']]);
+            if(!$person||$person['deleted_at']||$person['is_archived']||$person['email_status']==='cleaned'||!hash_equals($challenge['email_hash'],audienceDispatchEmailHash($person['email'])))return false;
+            $attribution=$this->one("SELECT details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-confirmation' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.challenge_id'))=? ORDER BY id DESC LIMIT 1",[$person['id'],(string)$challenge['id']]);
+            $deleted=$this->one('SELECT deleted_at FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=? FOR SHARE',[$this->audienceId,$challenge['email_hash']]);
+            // A pre-deletion token or an administrator's confirmation request cannot lift suppression.
+            if($deleted&&(!$attribution||$person['created_at']<$deleted['deleted_at']||$challenge['created_at']<$deleted['deleted_at']||$attribution['created_at']<$deleted['deleted_at']))return false;
             $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);$this->write('DELETE FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]);$this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE id=?',[$challenge['id']]);
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','subscription-confirmed',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'],JSON_THROW_ON_ERROR)]);
-            $attribution=$this->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-confirmation' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.challenge_id'))=? ORDER BY id DESC LIMIT 1",[$person['id'],(string)$challenge['id']]);
+            $details=['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'];
+            if($deleted)$details['resubscribed_email_hash']=$challenge['email_hash'];
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','subscription-confirmed',?)",[$person['id'],json_encode($details,JSON_THROW_ON_ERROR)]);
             if($person['email_status']!=='subscribed'&&$attribution&&$this->collectionAvailable()){
                 $context=audienceJson($attribution['details_json']);
                 // Deleting a form must not invalidate an already delivered opt-in confirmation.

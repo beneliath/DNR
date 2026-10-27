@@ -1,5 +1,5 @@
 {
-  "version": "2.8.3",
+  "version": "2.8.4",
   "edition_date": "October 27, 2026",
   "pages": 189,
   "screenshots": 114,
@@ -520,7 +520,7 @@
     "__total__": 189
   },
   "outline_entries": 397,
-  "edition_scope": "Application release 2.8.3",
+  "edition_scope": "Application release 2.8.4",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -1104,8 +1104,8 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "6c92f9fda669994cb6c5f51da95478c2dfffaffc4f4ae769752724a6c6f6bff7",
-    "bytes": 110737,
+    "sha256": "833abbb598dfcaa26487be1ae63b09dfa6108bb72d615658932011df321c7645",
+    "bytes": 111265,
     "start_page": 163,
     "sections": 62,
     "attachment": "README.md"
