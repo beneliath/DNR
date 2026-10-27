@@ -82,6 +82,58 @@
     color: var(--warning);
 }
 
+.database-backup-progress-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .35rem 1rem;
+}
+
+.database-backup-elapsed {
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.database-backup-progress {
+    height: .6rem;
+    margin-block: .75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-subtle));
+}
+
+.database-backup-progress[hidden] { display: none; }
+
+.database-backup-progress > span {
+    display: block;
+    width: 35%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    animation: database-backup-working 1.8s ease-in-out infinite;
+}
+
+.database-backup-status[data-state="success"] .database-backup-progress > span {
+    width: 100%;
+    background: var(--success);
+    animation: none;
+}
+
+#database-backup-message { margin: 0; }
+
+@keyframes database-backup-working {
+    from { transform: translateX(-110%); }
+    to { transform: translateX(390%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .database-backup-progress > span { animation: none; transform: translateX(90%); }
+    .database-backup-status[data-state="success"] .database-backup-progress > span { transform: none; }
+}
+
 @media (max-width: 1000px) {
     .database-maintenance-grid {
         grid-template-columns: 1fr;

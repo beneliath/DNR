@@ -20,7 +20,7 @@ function fixture({ secure = true, fail = false } = {}) {
     };
     const window = { isSecureContext: secure, addEventListener() {}, setTimeout() {}, clearTimeout() {} };
     const navigator = { clipboard: { async writeText(value) { if (fail) throw Error('Denied'); copied.push(value); } } };
-    vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/page-actions.js'), 'utf8'), { document, window, navigator });
+    vm.runInNewContext(require('./helpers/page-actions.js'), { document, window, navigator });
     document.start();
     return { cards, copied, async click(index) { for (const cb of clicks) await cb({ target: cards[index].button }); } };
 }

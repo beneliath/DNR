@@ -34,6 +34,22 @@ function audienceAiDialogueMessages(string $instructions,array $context):array
     return $messages;
 }
 
+/** Resolve only a literal, unambiguous campaign cardinality, never a calendar duration. */
+function audienceAiExplicitCampaignCount(string $question): ?int
+{
+    $number='(?:[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten)';
+    if (preg_match('/\b(?:not|never|without|avoid|don.?t|instead of|rather than)\b/iu',$question)
+        || preg_match('/\b(?:last|past|previous)\s+'.$number.'\s+(?:days?|weeks?|months?|years?)\b|\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b/i',$question)) return null;
+    preg_match_all('/\b(?:last|latest|most recent)\s+('.$number.')\s+(?:email\s+)?campaigns?\b(?!\s+(?:days?|weeks?|months?|years?)\b)/i',$question,$matches);
+    $words=array_flip(['zero','one','two','three','four','five','six','seven','eight','nine','ten']);$counts=[];
+    foreach ($matches[1] as $value) {
+        $count=ctype_digit($value)?(int)$value:($words[strtolower($value)]??0);
+        if ($count<1 || $count>10) return null;
+        $counts[$count]=true;
+    }
+    return count($counts)===1?(int)array_key_first($counts):null;
+}
+
 trait AudienceAiPlanning
 {
     public function planningPayload(string $question,array $state,string $correction='',array $route=[]):array
@@ -225,6 +241,8 @@ trait AudienceAiPlanning
         $reportOnly=$plan['queries']&&!array_filter($plan['queries'],static fn($q)=>$q['tool']!=='report');
         $conditions=$reportOnly?['type'=>'array','maxItems'=>0,'items'=>['type'=>'object']]:$this->toolSpecification()['shapes'][0]['properties']['filters'];
         $unresolved=['type'=>'array','maxItems'=>1,'items'=>['type'=>'object','additionalProperties'=>false,'properties'=>['phrase'=>['type'=>'string','maxLength'=>160],'question'=>['type'=>'string','maxLength'=>350]],'required'=>['phrase','question']]];
+        $unresolved['items']['properties']['kind']=['type'=>'string','enum'=>['measurement','scope','reference','criterion'],'description'=>'Classify what is missing. A campaign count versus calendar duration is scope; an unavailable metric is measurement.'];
+        $unresolved['items']['required'][]='kind';
         $reportMetrics=['type'=>'array','maxItems'=>$reportOnly?4:0,'items'=>['type'=>'string','enum'=>array_keys(audienceAnalyticsMetricLabels())]];
         $proposed=array_replace($plan,['queries'=>array_map(fn($q)=>$this->publicQuery($q),$plan['queries'])]);
         // Select measurements from the user's intent, independently of the planner's
@@ -243,7 +261,13 @@ trait AudienceAiPlanning
             ],'Determine the report measurements requested by the FINAL user message, then verify the proposed population, dates and grouping. Choose the smallest set of catalog metrics that directly answers that message. For a rate, share, fraction, proportion or percentage choose its percentage metric alone, not absolute counts or other rates. Use the catalog formula to distinguish ratios with different denominators. Do not include a ratio\'s ingredients as extra outputs. A follow-up can reuse campaigns without reusing earlier output columns: replace the measurements when a new measure is requested, unless the user explicitly asks to show them together. Preserve previous measurements if only the population, period or grouping changes. The proposed plan intentionally omits metrics; you choose them independently. Explicit dates, durations, recent-campaign counts and catalog measurements require no clarification. The selected report window is the default when no other period is requested. Ask a specific clarification in unresolved only for an actually undefined criterion/reference or unavailable measurement; quote that phrase exactly from a user turn. Never substitute engagement for financial measures or invent benchmarks. Unsupported measures have report_metrics=[]. A clear request has unresolved=[]. valid checks population/scope/grouping, not the unshown draft metrics. conditions is always empty. Do not retrieve or invent results.',
                 ['metrics'=>$metrics,'report_capabilities'=>array_intersect_key($catalog,array_flip($datasets)),'selected_report_scope'=>array_intersect_key($this->window,array_flip(['start','end','dataset'])),'conversation'=>$this->publicState($state),'proposed'=>$proposed,'question'=>$question],2000);
             if(!$metrics)$payload['messages'][0]['content'].=' This report dimension has fixed native observations. Return report_metrics=[]; no measurement override is needed to retrieve those observations.';
-            $payload['think']=true;return $payload;
+            // Count-only catalogs need no ratio/denominator reasoning, but still
+            // use the independent plan review and all its typed validation gates.
+            // Preserve extended reasoning whenever any available metric is derived.
+            $derived = array_filter($metrics, static fn($metric) => isset($metric['calculation']) || $metric['unit'] !== 'count');
+            if ($derived) $payload['think'] = true;
+            else $payload['options']['num_predict'] = 700;
+            return $payload;
         }
         $payload=$this->dialoguePayload(['unresolved'=>$unresolved,'conditions'=>$conditions,'report_metrics'=>$reportMetrics,'result_type'=>['type'=>'string','enum'=>$reportOnly?['report','multiple']:['contacts','count','frequency','sum','average','report','multiple']],'assessment'=>['type'=>'string','maxLength'=>500],'valid'=>['type'=>'boolean'],'correction'=>['type'=>'string','maxLength'=>500]],
             'Review the proposed plan before any data is read. First identify undefined qualifiers in the CURRENT request, including inherited conditions for a continuation. Use conversation definitions already supplied by the user; do not reopen resolved ambiguities or import conditions from an unrelated topic. In unresolved, quote an undefined phrase exactly from a user question and ask a specific question about its missing criterion. Do not merely repeat the user question. Undefined qualities, membership tiers, vague duration, success or locality must not be mapped to subscription status or invented cutoffs. Unsupported measures require asking which available measure to use. Otherwise unresolved is empty. Catalog fields, presence/absence operators, explicit durations and latest-campaign counts are already defined and require no clarification. The selected report scope is a valid default. Next independently enumerate ALL required audience filters in conditions, including unchanged conditions after clarification. Do not copy missing or invented filters from the proposal. Displayed/grouped columns are not population filters; grouping already excludes blank group values. Report conditions are empty. result_type specifies the desired eventual data output even if a criterion is unresolved: contacts for records, count for how many, frequency for grouped counts, report for campaign/aggregate measures. Preserve the previous output type when the user only changes a condition. Check output, filters, metrics, scope and limits. If the plan is correct, valid=true and correction empty; otherwise give the precise correction. A proposed clarification is valid only if unresolved identifies a real missing requirement. Evaluate the plan, not whether results have already been retrieved.',
@@ -327,6 +351,14 @@ function audienceAiDialogueGenerate(array $request,AudienceAiQueries $queries,fl
                 }unset($edit);
             }
             $plan=$queries->resolvePlan($value,$state);
+            $explicitCampaigns=audienceAiExplicitCampaignCount($request['prompt']);
+            if ($explicitCampaigns !== null) {
+                foreach ($plan['queries'] as &$query) if ($query['tool']==='report' && $query['dataset']==='email') {
+                    $query=array_replace($query,['recent_campaigns'=>$explicitCampaigns,'last_days'=>0,'start'=>'','end'=>'']);
+                }
+                unset($query);
+                $plan['queries']=$queries->validate(['queries'=>$plan['queries']]);
+            }
             $review=$call($queries->planReviewPayload($request['prompt'],$state,$plan),5);
             if(!is_bool($review['valid']??null))throw new InvalidArgumentException('Invalid plan review.');
             $required=$review['conditions']??[];$type=$review['result_type']??null;
@@ -339,9 +371,15 @@ function audienceAiDialogueGenerate(array $request,AudienceAiQueries $queries,fl
                 $questions=implode("\n",[...array_column($state['turns'],'question'),$request['prompt']]);
                 if($phrase===''||$question===''||mb_stripos($questions,$phrase)===false)throw new InvalidArgumentException('A clarification must identify an actual user requirement.');
                 if(mb_strtolower(trim($question))===mb_strtolower(trim($request['prompt'])))throw new InvalidArgumentException('Ask a specific question about the missing criterion instead of repeating the user question.');
-                // No reviewed metric means the requested measurement is genuinely unresolved.
+                $kind=$unresolved[0]['kind']??'measurement';
+                if (!in_array($kind,['measurement','scope','reference','criterion'],true)) throw new InvalidArgumentException('Invalid clarification kind.');
+                if ($type==='report' && $kind==='scope' && $explicitCampaigns !== null) {
+                    $correction='The user explicitly selected '.$explicitCampaigns.' recent campaigns, not a number of days. Rebuild the requested report using that campaign count; do not ask to confirm it.';
+                    continue;
+                }
+                // Missing metrics are conservative blockers, except for separately reviewed scope questions.
                 // A confirmation check must not replace missing financial/benchmark data with engagement metrics.
-                if($type==='report'&&empty($review['report_metrics'])){$plan=$queries->clarificationPlan($plan,$state,$route['context'],$required,$type,$question);$approved=true;break;}
+                if($type==='report'&&empty($review['report_metrics'])&&$kind!=='scope'){$plan=$queries->clarificationPlan($plan,$state,$route['context'],$required,$type,$question);$approved=true;break;}
                 $clarity=$call($queries->clarificationReviewPayload($request['prompt'],$state,$question,$type,$review['report_metrics']??[]),4);
                 if(!is_bool($clarity['needed']??null))throw new InvalidArgumentException('Invalid clarification review.');
                 if(!$clarity['needed']){

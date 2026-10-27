@@ -1,3 +1,4 @@
+import { initializeAddressInputs } from './address-inputs.mjs';
 import { renderAudiencePagination } from './audience-pagination.mjs';
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { initEmbeddedForm } from './audience-embedded.mjs';
@@ -224,7 +225,8 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             if (image) resizeImage(block, image, 'image section', width => { section.width = width; renderList('sections'); });
         });
     };
-    frame.addEventListener('load', () => { previewTools(); fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
+    frame.addEventListener('load', () => { if (frame.contentDocument) initializeAddressInputs(frame.contentDocument); previewTools(); fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
+    if (frame.contentDocument?.readyState === 'complete') initializeAddressInputs(frame.contentDocument);
     let frameWidth = frame.getBoundingClientRect().width;
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => {
         const width = frame.getBoundingClientRect().width;

@@ -238,7 +238,7 @@ trait AudienceDeliveryRuntime
     {
         $this->transaction(function()use($personId,$version,$input,$scope){
             $person=$this->person($personId,true);if($person['is_archived'])throw new InvalidArgumentException('These preferences are unavailable.');if((int)$person['version']!==$version)throw new InvalidArgumentException('Your preferences changed. Reload before saving.');
-            $custom=$person['custom'];$values=is_array($input['custom']??null)?$input['custom']:[];foreach($this->fields()as$f)if($f['is_public']&&($scope===null||in_array('custom:'.$f['id'],$scope['fields'],true)))$custom[$f['id']]=audienceFieldValue($f,$values[$f['id']]??'');
+            $custom=$person['custom'];$values=is_array($input['custom']??null)?$input['custom']:[];foreach($this->fields()as$f)if($f['is_public']&&($scope===null||in_array('custom:'.$f['id'],$scope['fields'],true)))$custom[$f['id']]=audienceCollectionFieldValue($f,$values[$f['id']]??'');
             $public=[];$groups=[];foreach($this->groups()as$g)if($g['display_type']!=='hidden'&&($scope===null||in_array((int)$g['id'],$scope['group_ids'],true))){foreach($g['options']as$o)$public[]=(int)$o['id'];$groups[]=$g;}
             $chosen=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]))]);if(array_diff($chosen,$public))throw new InvalidArgumentException('Choose valid interests.');
             foreach($groups as$g)if(in_array($g['display_type'],['radio','dropdown'],true)&&count(array_intersect($chosen,array_column($g['options'],'id')))>1)throw new InvalidArgumentException('Choose one interest for '.$g['name'].'.');

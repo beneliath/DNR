@@ -35,6 +35,12 @@ try {
     $packet=aiCoachFeedbackPacket($pending());
     feedbackExpect(count($packet['groups'])===1 && $packet['groups'][0]['helpful']===1 && $packet['groups'][0]['problems']===1,'Related positive and negative questions grouped without erasing disagreement');
     feedbackExpect(!str_contains(json_encode($packet),'user_id') && !str_contains(json_encode($packet),'do not export'),'Private identities and nonstructural UI fields excluded');
+    $conn->execute_query("UPDATE ai_coach_requests SET page_path='audience.php',guided_step='retired-step' WHERE id=?",[$id]);
+    $historicalPacket=aiCoachFeedbackPacket($pending());
+    $historical=[]; foreach($historicalPacket['groups'] as $g) foreach($g['requests'] as $r) $historical[$r['id']]=$r;
+    feedbackExpect(count($historical)===2 && $historical[$id]['original_page']==='audience.php','Unsupported historical page does not block or drop the batch');
+    feedbackExpect(!$historical[$id]['context_compatibility']['step_supported'] && $historical[$id]['candidate_topics']===[],'Historical step is retained without invented manual evidence');
+    $conn->execute_query("UPDATE ai_coach_requests SET page_path='help.php',guided_step='' WHERE id=?",[$id]);
     $receipt=$report($pending());
     $bad=$receipt; $bad['sources'][0]['sha256']=str_repeat('0',64);
     try { aiCoachCompleteFeedbackReview($conn,$bad,$root); throw new LogicException('Stale evidence accepted'); } catch (InvalidArgumentException $expected) {}

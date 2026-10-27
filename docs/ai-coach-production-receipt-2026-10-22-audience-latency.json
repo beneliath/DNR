@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-22",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.6.19"
+  },
+  "production_guidance_revision": "cf8e599f5b5c59371c7c98a5ba1f519eebff1ecda9ca5c9a04af0a5ace01ace5",
+  "requests": [
+    {
+      "id": 31,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "fe1ca262cad63e4abf5baddfb76a888cac2056997a7d3d8986377482cd9ef2e7",
+      "original_application_version": "2.6.18",
+      "disposition": "fixed_locally",
+      "summary": "Count-only report plan review uses concise structured output, retaining independent verification. Local synthetic replay latency improved; production has not been deployed or retimed.",
+      "original_duration_ms": 47671
+    }
+  ],
+  "investigation": {
+    "cause": "Extended hidden reasoning in the independent report-plan verifier dominated latency. The original path used three model calls; the change retains all three and the existing validation/clarification gates.",
+    "scope": "Only report catalogs whose available metrics are all non-derived counts (including audience growth) receive think=false with a 700-token output budget. Any derived or percentage metric retains the original extended reasoning path. Non-report and clarification verification are unchanged.",
+    "semantic_guard": "An initial broader fast-review variant chose the wrong ratio metrics in a fresh probe. It was narrowed before completion; the final ratio probe selected clicks_per_open correctly, and an unavailable audience revenue probe requested clarification without substituting a metric.",
+    "data": "Synthetic in-memory report fixtures; original private request used only as an untracked replay input. No production business records imported. Actual calculations and three-stage model pipeline executed using the local development model in a disposable container.",
+    "model": "qwen3:8b",
+    "initial_local_seconds": 55.948,
+    "warm_original_seconds": 38.246,
+    "final_optimized_seconds": 4.199,
+    "reduction_percent": 89.0,
+    "original_stages": [
+      {
+        "seconds": 1.592,
+        "think": false,
+        "response_token_budget": 700
+      },
+      {
+        "seconds": 35.955,
+        "think": true,
+        "response_token_budget": 2000
+      },
+      {
+        "seconds": 0.699,
+        "think": false,
+        "response_token_budget": 1000
+      }
+    ],
+    "optimized_stages": [
+      {
+        "seconds": 1.58,
+        "think": false,
+        "response_token_budget": 700
+      },
+      {
+        "seconds": 1.918,
+        "think": false,
+        "response_token_budget": 700
+      },
+      {
+        "seconds": 0.7,
+        "think": false,
+        "response_token_budget": 1000
+      }
+    ],
+    "identical_validated_query_and_evidence": true,
+    "model_calls_retained": 3,
+    "other_optimized_observations_seconds": [
+      4.109,
+      4.565
+    ],
+    "nearby_probes": [
+      {
+        "intent": "rate denominator with retained reasoning",
+        "seconds": 20.787,
+        "metrics": [
+          "clicks_per_open"
+        ],
+        "requested_clarification": false
+      },
+      {
+        "intent": "unavailable audience revenue",
+        "seconds": 2.149,
+        "metrics": [],
+        "requested_clarification": true
+      }
+    ]
+  },
+  "regression_failed_before_fix": true,
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_helpers_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_regression_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/integration_environment.py audience",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "integration": {
+    "http_checks": 1081,
+    "ai_http_checks": 63,
+    "analytics_http_checks": 129,
+    "initial_failure": "Old dnr-app:local image failed an unrelated embed frame-header assertion. Rebuilt uniquely tagged disposable images from the dedicated worktree; the full suite then passed. No security behavior was weakened."
+  },
+  "sources": [
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "e21cbf88d96efeb9a2ca68d28f0e1003d1a7ce70dbabf693f211515c4afb57a3"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "078ce039137be8bd391cfea62770cc16fc303e639897b9ee1dd8dd15c1cb1267"
+    },
+    {
+      "path": "src/audience_ai_findings.php",
+      "sha256": "5e2fa1d2663942a2d84810eb7472b077044ee9715fc19b1839f3a654b216c704"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "4dbd9c077ee6d07df8e0ec3393cfe52891513f499ca853b439b8fb8527372c53"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "e5efb1d2207c05cafbc26de90fdf9c87f6e09716483d2b572037a0daaeaca12d"
+    },
+    {
+      "path": "tests/audience_ai_test.php",
+      "sha256": "11ba09e581163155f0bca175630134b5849dd8c914eba69265adda98d74deeb4"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "623725ab407c700a70ee59aff253315c4e386a308fdad10bcba2590bfc862bf4"
+    }
+  ],
+  "limitations": [
+    "Timing is from controlled local model replays, not a production latency guarantee. Model load, cache and account data can affect elapsed time.",
+    "Reports requiring derived-metric reasoning can still take longer; no universal latency claim.",
+    "No deployment or production replay was performed."
+  ],
+  "shared_branch_preserved": true,
+  "shared_hashes_changed_during_run": [
+    "src/assets/asset-manifest.php",
+    "src/assets/js/audience-designer.js",
+    "src/audience_design.php",
+    "src/audience_design_controller.php",
+    "src/templates/audience/email-templates.php",
+    "tests/browser/audience-template-lifecycle-fixture.php"
+  ],
+  "shared_checkout_note": "No commands wrote shared-checkout files or reverted concurrent work.",
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR"
+}

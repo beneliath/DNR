@@ -7,7 +7,16 @@ const source = fs.readFileSync(require.resolve('../../src/assets/js/database-bac
 
 function fixture({ crypto = true } = {}) {
     const button = { disabled: false, textContent: 'Encrypt and Download Backup' };
-    const status = { hidden: true, dataset: {}, textContent: '' };
+    const status = { hidden: true, dataset: {}, textContent: '', scrollIntoView(options) { this.scrollOptions = options; } };
+    const message = { textContent: '' };
+    const stage = { textContent: '' };
+    const elapsed = { hidden: false, textContent: '' };
+    const progressAttributes = {};
+    const progress = {
+        hidden: false,
+        setAttribute(name, value) { progressAttributes[name] = value; },
+        removeAttribute(name) { delete progressAttributes[name]; }
+    };
     const token = { value: '' };
     const lastCreated = { textContent: 'Previous backup' };
     const fields = ['admin password', '123456', 'archive password', 'archive password'].map(value => ({ value, readOnly: false }));
@@ -28,6 +37,8 @@ function fixture({ crypto = true } = {}) {
     const elements = {
         'database-backup-form': form, 'database-backup-status': status,
         'database-backup-token': token, 'database-backup-last-created': lastCreated,
+        'database-backup-message': message, 'database-backup-stage': stage,
+        'database-backup-progress': progress, 'database-backup-elapsed': elapsed,
         'database-backup-error': { remove() { errorRemoved = true; } }
     };
     const document = {
@@ -48,7 +59,8 @@ function fixture({ crypto = true } = {}) {
     vm.runInNewContext(source, { document, window, Date: { now: () => now } });
     const receipt = { filename: 'dnr-database-20260913-190000Z.dnrbackup', createdAt: 'Sep 13, 2026 2:00:00 PM CDT' };
     return {
-        button, status, token, lastCreated, fields, attributes, events, timers, cookies, receipt,
+        button, status, message, stage, progress, progressAttributes, elapsed,
+        token, lastCreated, fields, attributes, events, timers, cookies, receipt,
         errorRemoved: () => errorRemoved,
         submit(defaultPrevented = false) {
             const event = { defaultPrevented, preventDefault() { this.defaultPrevented = true; } };
@@ -71,6 +83,11 @@ test('native submission shows progress, preserves posted credentials, and blocks
     assert.match(f.token.value, /^[a-f0-9]{32}$/);
     assert.equal(f.status.dataset.state, 'pending');
     assert.equal(f.status.hidden, false);
+    assert.equal(f.status.scrollOptions.block, 'nearest');
+    assert.equal(f.stage.textContent, 'Creating your backup');
+    assert.equal(f.progress.hidden, false);
+    assert.equal(f.progressAttributes['aria-valuenow'], undefined);
+    assert.equal(f.elapsed.textContent, '0:00 elapsed');
     assert.equal(f.attributes['aria-busy'], 'true');
     assert.equal(f.button.disabled, true);
     assert.ok(f.fields.every(field => field.readOnly && field.value));
@@ -93,9 +110,12 @@ test('only the current download acknowledgement confirms success and clears cred
     f.acknowledge();
     f.tick();
     assert.equal(f.status.dataset.state, 'success');
-    assert.match(f.status.textContent, /Backup created successfully\. Download started:/);
-    assert.ok(f.status.textContent.includes(f.receipt.filename));
-    assert.match(f.status.textContent, /confirm the file finished saving/);
+    assert.match(f.message.textContent, /Backup created successfully\. Download started:/);
+    assert.ok(f.message.textContent.includes(f.receipt.filename));
+    assert.match(f.message.textContent, /confirm the file finished saving/);
+    assert.equal(f.stage.textContent, 'Backup ready');
+    assert.equal(f.progressAttributes['aria-valuenow'], '100');
+    assert.equal(f.elapsed.hidden, true);
     assert.equal(f.lastCreated.textContent, f.receipt.createdAt);
     assert.ok(f.fields.every(field => !field.readOnly && field.value === ''));
     assert.equal(f.button.disabled, false);
@@ -130,8 +150,10 @@ test('an unconfirmed response times out without claiming failure or changing bac
     assert.equal(f.button.disabled, true);
     f.tick(1);
     assert.equal(f.status.dataset.state, 'warning');
-    assert.match(f.status.textContent, /confirmation was not received/);
-    assert.match(f.status.textContent, /fresh authenticator or recovery code/);
+    assert.match(f.message.textContent, /confirmation was not received/);
+    assert.match(f.message.textContent, /fresh authenticator or recovery code/);
+    assert.equal(f.progress.hidden, true);
+    assert.equal(f.progressAttributes['aria-valuenow'], undefined);
     assert.equal(f.lastCreated.textContent, 'Previous backup');
     assert.equal(f.button.disabled, false);
     assert.equal(f.timers.size, 0);
@@ -144,6 +166,9 @@ test('retries use a new token so a late response cannot confirm the wrong export
     f.tick(960000);
     f.submit();
     assert.notEqual(f.token.value, firstToken);
+    assert.equal(f.elapsed.textContent, '0:00 elapsed');
+    assert.equal(f.progress.hidden, false);
+    assert.equal(f.progressAttributes['aria-valuenow'], undefined);
     f.acknowledge(f.receipt, firstToken);
     f.tick();
     assert.equal(f.status.dataset.state, 'pending');
@@ -157,7 +182,24 @@ test('returning through the back-forward cache restores usable controls without 
     f.submit();
     f.events.pageshow({ persisted: true });
     assert.equal(f.status.dataset.state, 'warning');
+    assert.equal(f.progress.hidden, true);
     assert.equal(f.button.disabled, false);
+    assert.equal(f.timers.size, 0);
+});
+
+test('elapsed time remains accurate across a slow backup without inventing a completion percentage', () => {
+    const f = fixture();
+    f.submit();
+    f.tick(50000);
+    assert.equal(f.elapsed.textContent, '0:50 elapsed');
+    assert.equal(f.stage.textContent, 'Creating your backup');
+    assert.equal(f.progressAttributes['aria-valuenow'], undefined);
+    assert.equal(f.status.dataset.state, 'pending');
+    f.tick(15000);
+    assert.equal(f.elapsed.textContent, '1:05 elapsed');
+    f.acknowledge();
+    f.tick();
+    assert.equal(f.progressAttributes['aria-valuenow'], '100');
     assert.equal(f.timers.size, 0);
 });
 

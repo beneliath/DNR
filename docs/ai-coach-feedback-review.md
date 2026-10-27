@@ -12,7 +12,7 @@ be available for a scheduled review to execute.
 ### Scheduled production intake
 
 The daily 7:15 a.m. America/Chicago task reads **s1 production** feedback, not
-localhost:8080. From `/Users/dgilmore/DNR`, run:
+localhost:8080. From the dedicated feedback-review worktree, run:
 
 ```sh
 python3 scripts/ai_help/read_production_feedback.py
@@ -22,7 +22,15 @@ python3 scripts/ai_help/read_production_feedback.py --summary
 
 The reader connects as `dgilmore@192.168.1.150` to `moed-web-1`, uses the deployed
 application's packet helpers inside a read-only database transaction, and returns
-production version/guidance metadata and recent receipts. It does not install
+production version/guidance metadata and recent receipts. It exports only the bounded
+packet-input fields and groups them locally with the worktree's packet builder,
+without requiring a deployed helper update. `packet.guidance_revision` remains the
+production revision; `builder_guidance_revision` and `builder_source` identify the
+local analysis. Original unsupported historical pages and steps remain in the
+evidence with explicit `context_compatibility` flags, neutral analysis context,
+and no inferred workflow or manual-topic candidates. This does not enable those
+pages for live coach requests. Local grouping failure remains a blocker, never a
+reason to substitute local feedback. It does not install
 files, run inference, or complete production reviews. SSH failure, missing schema,
 or unavailable helpers are blockers; never substitute local feedback silently.
 

@@ -491,7 +491,8 @@ function addressCountryPicker(
     $field_name,
     $selected_country = null,
     $address_prefix = '',
-    $required = false
+    $required = false,
+    $native_fallback = false
 ) {
     $selected_country = $selected_country ?? applicationDefaultCountry();
     $selected_code = normalizeAddressCountryCode($selected_country) ?? applicationDefaultCountry();
@@ -506,12 +507,12 @@ function addressCountryPicker(
     $menu_id = $id_token . '-country-menu';
 
     $html = '<div class="address-country-picker" data-address-country-picker>';
-    $html .= '<select class="address-country-native-select" name="' . $escape($field_name) . '"'
-        . ($required ? ' required' : '') . ' tabindex="-1" aria-hidden="true" data-address-country="'
+    $html .= '<select class="address-country-native-select" id="' . $escape($id_token . '-country') . '" name="' . $escape($field_name) . '"'
+        . ($required ? ' required' : '') . ($native_fallback ? '' : ' tabindex="-1" aria-hidden="true"') . ' data-address-country="'
         . $escape($address_prefix) . '" data-address-country-native>';
     $html .= addressCountrySelectOptions($selected_code);
     $html .= '</select>';
-    $html .= '<button type="button" class="address-country-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="'
+    $html .= '<button type="button" class="address-country-trigger"' . ($native_fallback ? ' hidden' : '') . ' aria-haspopup="listbox" aria-expanded="false" aria-controls="'
         . $escape($menu_id) . '" aria-label="' . $escape('Country: ' . $selected_choice['name'] . ' (' . $selected_code . ')')
         . '" data-address-country-toggle>';
     $html .= '<span class="address-country-flag" aria-hidden="true" data-address-country-flag>'
