@@ -1,3 +1,4 @@
+import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
 import { initializeAddressInputs } from './address-inputs.mjs';
 import { initializeInputModality } from './input-modality.mjs';
 import phoneInputs from './phone-input.js';
@@ -437,11 +438,14 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             card.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; });
             card.addEventListener('drop', event => { event.preventDefault(); const [source, from] = event.dataTransfer.getData('text/plain').split(':'); const n = Number(from); if (source !== key || !Number.isInteger(n) || n < 0 || n >= model[key].length) return; const [item] = model[key].splice(n, 1); model[key].splice(index, 0, item); renderList(key); changed(); });
             head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz choice'} ${index + 1}`));
-            const move = delta => { const to = index + delta; if (to < 0 || to >= model[key].length) return; [model[key][index], model[key][to]] = [model[key][to], model[key][index]]; renderList(key); changed(); };
-            [['↑', () => move(-1), 'Move up'], ['↓', () => move(1), 'Move down'], ['×', () => { model[key].splice(index, 1); renderList(key); changed(); }, 'Remove']].forEach(([text, action, label]) => {
-                if (key === 'questions' && model[key].length === 1 && label !== 'Remove') return;
-                const button = el('button', text); button.type = 'button'; button.setAttribute('aria-label', `${label} ${index + 1}`); button.addEventListener('click', action); head.append(button);
-            });
+            const handle = createReorderHandle(`Reorder ${key === 'questions' ? 'question' : key === 'sections' ? 'section' : 'quiz choice'} ${index + 1}`);
+            wireReorderHandle({handle,item:card,list,onMove:(from,to)=>{
+                const [moved] = model[key].splice(from,1);model[key].splice(to,0,moved);renderList(key);changed();
+                lists[key].children[to]?.querySelector('.mm-reorder-handle')?.focus();
+            }});
+            head.prepend(handle);
+            const removeItem = el('button','×');removeItem.type='button';removeItem.setAttribute('aria-label',`Remove ${index + 1}`);
+            removeItem.addEventListener('click',()=>{model[key].splice(index,1);renderList(key);changed();});head.append(removeItem);
             card.append(head);
             if (key === 'questions') {
                 card.classList.add('collection-question');

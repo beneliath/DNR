@@ -1,12 +1,12 @@
 <?php $defaultConnectionColumns=['email','first_name','last_name','tags','email_status','source','created_at','updated_at'];$columns=['email'=>'Email Address','first_name'=>'First Name','last_name'=>'Last Name','tags'=>'Tags','email_status'=>'Status','source'=>'Source','created_at'=>'Date Added','updated_at'=>'Last Changed'];foreach($groups as$group)$columns['group:'.$group['id']]='Groups: '.$group['name'];foreach($fields as$field)$columns['custom:'.$field['id']]=$field['label']; ?>
 <?php
-$statusHelp=['subscribed'=>'Opted in to receive audience email','unsubscribed'=>'Opted out after subscribing','non-subscribed'=>'Never opted in to receive audience email','cleaned'=>'Email address is invalid or bounced'];
+$statusHelp=['subscribed'=>'Opted in to receive audience email','unsubscribed'=>'Opted out after subscribing','non-subscribed'=>'Never opted in to receive audience email','pending'=>'Waiting for email confirmation','cleaned'=>'Email address is invalid or bounced'];
 $sourceOptions=[];$sourceLabels=audienceSignupSourceLabels();foreach($sources as$source)$sourceOptions['type:'.$source['source_type']]=$sourceLabels[$source['source_type']];asort($sourceOptions);
 foreach($filters['source']as$value)if(!str_starts_with($value,'type:'))$sourceOptions[$value]=$value;
 $activeRules=audienceActiveRules($filters,$rules);$hasFilters=$activeRules['rules']!==[]||$segment;
 $countStatuses=array_values(array_unique($filters['status']));sort($countStatuses,SORT_STRING);
-$countSelections=$filters['archived']==='1'?((int)$total===(int)($counts['archived']??0)?['archived']:[]):match($countStatuses){['non-subscribed','subscribed','unsubscribed']=>['total'],['subscribed']=>['subscribed'],['cleaned']=>['cleaned'],default=>[]};
-if($filters['archived']==='0'&&!$hasFilters)$countSelections=['total','cleaned'];
+$countSelections=$filters['archived']==='1'?((int)$total===(int)($counts['archived']??0)?['archived']:[]):match($countStatuses){['non-subscribed','subscribed','unsubscribed']=>['total'],['subscribed']=>['subscribed'],['unsubscribed']=>['unsubscribed'],['non-subscribed']=>['non-subscribed'],['pending']=>['pending'],['cleaned']=>['cleaned'],default=>[]};
+if($filters['archived']==='0'&&!$hasFilters)$countSelections=['total','pending','cleaned'];
 $chips=[];
 if($filters['q']!=='')$chips[]=['key'=>'q','value'=>$filters['q'],'label'=>'Search: '.$filters['q']];
 foreach($filters['status']as$value)$chips[]=['key'=>'status','value'=>$value,'label'=>ucfirst($value)];
@@ -14,6 +14,7 @@ $tagNames=array_column($tags,'name','id');foreach($filters['tags']as$value)$chip
 foreach($filters['source']as$value)$chips[]=['key'=>'source','value'=>$value,'label'=>'Source: '.($sourceOptions[$value]??$value)];
 if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];elseif($rules['rules'])$chips[]=['key'=>'rules','value'=>'','label'=>'Advanced filters'];
 ?>
+<div class="audience-connections-controls">
 <div class="audience-people-toolbar">
 <form class="audience-filters audience-filter-popovers" method="get"><?php audienceInputs($baseForm+['archived'=>$filters['archived'],'rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize,'segment'=>$segment['id']??0]); ?>
     <label class="audience-people-search"><span class="sr-only">Search connections</span><?php audienceNavIcon('search'); ?><input id="contact-search" list="connection-search-options" type="search" autocomplete="off" name="q" placeholder="Search connections" value="<?= $h($filters['q']) ?>"></label>
@@ -49,18 +50,26 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
 </div>
 <?php endif; ?>
 <div class="audience-counts"><p>
+<span class="audience-count-equation" role="group" aria-label="Total connections equals subscribed plus unsubscribed plus non-subscribed">
 <a class="audience-count-pill<?= in_array('total',$countSelections,true)?' is-selected':'' ?>" data-audience-count="total" href="<?= $h($url(['archived'=>'0','status'=>['subscribed','unsubscribed','non-subscribed']])) ?>" title="Active connections excluding pending and cleaned addresses"<?= count($countSelections)===1&&in_array('total',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['total']) ?></strong> Total Connections</a>
-<a class="audience-count-pill<?= in_array('subscribed',$countSelections,true)?' is-selected':'' ?>" data-audience-count="subscribed" href="<?= $h($url(['archived'=>'0','status'=>['subscribed']])) ?>"<?= count($countSelections)===1&&in_array('subscribed',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['subscribed']) ?></strong> Email Subscribers</a>
-<a class="audience-count-pill<?= in_array('archived',$countSelections,true)?' is-selected':'' ?>" data-audience-count="archived" href="<?= $h($url(['archived'=>'1'])) ?>"<?= count($countSelections)===1&&in_array('archived',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['archived']??0)) ?></strong> Archived</a>
+<span class="audience-count-term"><span class="audience-count-operator" aria-hidden="true">=</span><a class="audience-count-pill<?= in_array('subscribed',$countSelections,true)?' is-selected':'' ?>" data-audience-count="subscribed" href="<?= $h($url(['archived'=>'0','status'=>['subscribed']])) ?>"<?= count($countSelections)===1&&in_array('subscribed',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['subscribed']) ?></strong> Subscribed</a></span>
+<span class="audience-count-term"><span class="audience-count-operator" aria-hidden="true">+</span><a class="audience-count-pill<?= in_array('unsubscribed',$countSelections,true)?' is-selected':'' ?>" data-audience-count="unsubscribed" href="<?= $h($url(['archived'=>'0','status'=>['unsubscribed']])) ?>"<?= count($countSelections)===1&&in_array('unsubscribed',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['unsubscribed']??0)) ?></strong> Unsubscribed</a></span>
+<span class="audience-count-term"><span class="audience-count-operator" aria-hidden="true">+</span><a class="audience-count-pill<?= in_array('non-subscribed',$countSelections,true)?' is-selected':'' ?>" data-audience-count="non-subscribed" href="<?= $h($url(['archived'=>'0','status'=>['non-subscribed']])) ?>"<?= count($countSelections)===1&&in_array('non-subscribed',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['non_subscribed']??0)) ?></strong> Non-subscribed</a></span>
+</span>
+<span class="audience-count-other" role="group" aria-label="Pending, cleaned, and archived connections">
+<a class="audience-count-pill<?= in_array('pending',$countSelections,true)?' is-selected':'' ?>" data-audience-count="pending" href="<?= $h($url(['archived'=>'0','status'=>['pending']])) ?>"<?= count($countSelections)===1&&in_array('pending',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['pending']??0)) ?></strong> Pending</a>
 <a class="audience-count-pill<?= in_array('cleaned',$countSelections,true)?' is-selected':'' ?>" data-audience-count="cleaned" href="<?= $h($url(['archived'=>'0','status'=>['cleaned']])) ?>"<?= count($countSelections)===1&&in_array('cleaned',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)$counts['cleaned']) ?></strong> Cleaned</a>
+<a class="audience-count-pill<?= in_array('archived',$countSelections,true)?' is-selected':'' ?>" data-audience-count="archived" href="<?= $h($url(['archived'=>'1'])) ?>"<?= count($countSelections)===1&&in_array('archived',$countSelections,true)?' aria-current="page"':'' ?>><strong><?= number_format((int)($counts['archived']??0)) ?></strong> Archived</a>
+</span>
 </p></div>
 </div>
+</div>
 <section class="audience-table-card" aria-label="Connections" data-audience-results>
-    <div class="audience-table-tools"><span><?= number_format($total) ?> matching <?= $filters['archived']==='1'?'archived ':'' ?>connections</span><div><button type="button" class="text-button audience-columns-trigger" popovertarget="columns" aria-haspopup="dialog">Columns <?php audienceNavIcon('chevron'); ?></button>
+    <div class="audience-table-tools"><span class="audience-matching-count<?= $filters['archived']==='0'&&!$hasFilters?' is-aggregate':'' ?>"><?= number_format($total) ?> matching <?= $filters['archived']==='1'?'archived ':'' ?>connections</span><div><button type="button" class="text-button audience-columns-trigger" popovertarget="columns" aria-haspopup="dialog">Columns <?php audienceNavIcon('chevron'); ?></button>
         <?php if($canExport): ?><form method="post" id="people-export"><?= $csrf ?><?php audienceInputs($baseForm+$query+['action'=>'queue_export','selection_scope'=>'all']); ?><span data-export-selection></span><button class="text-button" type="submit" data-export-label data-export-base-label="<?= $hasFilters?'↓ Export segment':'↓ Export connections' ?>"><?= $hasFilters?'↓ Export segment':'↓ Export connections' ?></button></form><?php endif; ?>
     </div></div>
     <?php if($canManage): ?><div class="audience-bulk-toolbar" hidden data-bulk-toolbar><span data-selection-count>0 connections selected</span><button data-select-matches type="button">Select all <?= number_format($total) ?></button><button type="button" data-open-dialog="bulk-people">Actions ⌄</button><button data-clear-selection type="button">Clear selection</button></div><?php endif; ?>
-    <div class="audience-table-scroll"><table data-mm-paginated-table class="data-table audience-table" data-people-table><thead><tr>
+    <div class="audience-table-scroll" tabindex="0" role="region" aria-label="Connections table"><table data-mm-paginated-table class="data-table audience-table" data-people-table><thead><tr>
         <?php if($canManage): ?><th class="selection-cell"><input type="checkbox" data-select-page aria-label="Select this page"></th><?php endif; ?>
         <?php foreach($columns as$key=>$label): ?><th scope="col" data-column="<?= $h($key) ?>"<?= !in_array($key,$defaultConnectionColumns,true)?' hidden':'' ?><?= in_array($key,$sortColumns,true)?' aria-sort="'.($sort===$key?($direction==='asc'?'ascending':'descending'):'none').'"':'' ?>><?php if(in_array($key,$sortColumns,true)): ?><a href="<?= $h($url(array_replace($query,['sort'=>$key,'direction'=>$sort===$key&&$direction==='asc'?'desc':'asc']))) ?>"><?= $h($label) ?><?= $sort===$key?($direction==='asc'?' ↑':' ↓'):'' ?></a><?php else: ?><?= $h($label) ?><?php endif; ?></th><?php endforeach; ?>
     </tr></thead><tbody>

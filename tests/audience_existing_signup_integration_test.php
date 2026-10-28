@@ -13,7 +13,7 @@ $priorSes=$store->sesSettings();$priorQueue=$store->all("SELECT id,next_attempt_
 foreach($priorQueue as$row)$store->write('UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 2 DAY) WHERE id=?',[$row['id']]);
 $people=[];
 try{
-    $db->query("UPDATE marketing_ses_settings SET enabled=1,from_email='sender@example.test',access_key_tail='TEST',check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=1000,max_rate=10,sent_last_day=0,quota_checked_at=UTC_TIMESTAMP(),aws_account_id='111122223333',region='us-east-2',subscription_arn='arn:aws:sns:us-east-2:111122223333:fixture:confirmed' WHERE audience_id=1");
+    $db->query("UPDATE marketing_ses_settings SET enabled=1,from_email='sender@example.test',access_key_tail='TEST',check_state='ready',checked_at=UTC_TIMESTAMP(),production_access=1,sending_enabled=1,max_daily=1000,max_rate=1000,sent_last_day=0,quota_checked_at=UTC_TIMESTAMP(),aws_account_id='111122223333',region='us-east-2',subscription_arn='arn:aws:sns:us-east-2:111122223333:fixture:confirmed' WHERE audience_id=1");
     $address=$store->saveField(['label'=>'Address '.$suffix,'merge_tag'=>'ADDR_'.strtoupper($suffix),'field_type'=>'address','is_public'=>'1'],0,0);
     $phone=$store->saveField(['label'=>'Phone '.$suffix,'merge_tag'=>'PHONE_'.strtoupper($suffix),'field_type'=>'text','is_public'=>'1'],0,0);
     $details=['first_name'=>'Submitted private first','last_name'=>'Submitted private last','custom'=>[$address=>['address1'=>'123 Private Street','address2'=>'','city'=>'Private City','region'=>'TN','postal_code'=>'37024','country'=>'US'],$phone=>'+1 555 0199']];
@@ -25,7 +25,7 @@ try{
     };
     $submit=static function(array $form,string $email,array $values,?array $payload=null)use($store,$suffix):array{
         if($payload===null){$proof=$store->collectionChallenge($form,bin2hex(random_bytes(32)));$p=json_decode(\Dnr\Security\ApplicationKey::open($proof),true,12,JSON_THROW_ON_ERROR);$p['issued']-=5;$payload=$values+['email'=>$email,'permission'=>'1','proof'=>\Dnr\Security\ApplicationKey::seal(json_encode($p,JSON_THROW_ON_ERROR))];}
-        return [$store->submitCollection($form,$payload,'existing-'.$suffix,'https://newsletter.example.test'),$payload];
+        return [$store->submitCollection($form,$payload,'existing-'.$suffix.'-'.substr(hash('sha256',$email),0,12),'https://newsletter.example.test'),$payload];
     };
     $latest=static function(int $id)use($store):array{
         $mail=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=1 AND contact_id=? AND kind='confirmation' ORDER BY id DESC LIMIT 1",[$id]);
@@ -60,6 +60,67 @@ try{
         $event=$store->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-confirmation' ORDER BY id DESC LIMIT 1",[$id]);
         $expect(!isset(audienceJson($event['details_json'])['profile_ciphertext']),'Applied pending profile is removed from confirmation evidence');
     }
+    // Archived records use the same form flow, but remain retired until the fresh link is confirmed.
+    foreach($forms as$form)foreach(['subscribed','unsubscribed','non-subscribed','pending']as$status){
+        [$id,$email]=$newPerson('archived-'.$form['id'].'-'.$status,$status);
+        $store->mutatePerson($id,(int)$store->person($id)['version'],'archive');
+        [$result,$input]=$submit($form,$email,$details);[$mail,$message,$token]=$latest($id);
+        $person=$store->person($id,true);
+        $expect($result['confirmed']===true&&$person['is_archived']&&$person['email_status']===$status,'Every form kind and opt-in mode keeps archived records unchanged before confirmation');
+        $expect($person['last_name']===''&&!$store->confirmSubscription($token),'An unsent confirmation cannot restore or enrich an archived record');
+        foreach([$email,'Recorded first',$details['last_name'],'123 Private Street',$details['custom'][$phone]]as$private)$expect(!str_contains($message['text'],$private),'Archived signup emails do not expose recipient profile information');
+        [$duplicate]=$submit($form,$email,$details,$input);
+        $expect($duplicate['duplicate']&&(int)$store->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE contact_id=?",[$id])['n']===1,'Replaying an archived form submission queues no duplicate confirmation');
+        $expect(in_array([$email,'confirmation'],$deliver(),true),'The actual service-mail worker delivers a fresh archived signup confirmation');
+        $expect((bool)$store->person($id,true)['is_archived'],'Email delivery alone never unarchives the connection');
+        $expect($store->confirmSubscription($token),'An archived connection can confirm ownership');
+        $person=$store->person($id);
+        $expect(!$person['is_archived']&&$person['email_status']==='subscribed'&&$person['first_name']==='Recorded first'&&$person['last_name']===$details['last_name'],'Confirmation atomically restores the same connection, subscribes it, and fills only missing details');
+        $expect((int)$store->one('SELECT COUNT(*) n FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])['n']===1,'Archived resubscription never creates a duplicate connection');
+        $restored=$store->one("SELECT details_json,actor_type FROM marketing_contact_events WHERE contact_id=? AND event_type='contact_restored' ORDER BY id DESC LIMIT 1",[$id]);
+        $expect($restored['actor_type']==='recipient'&&audienceJson($restored['details_json'])['source']==='Confirmed signup form','Owner-confirmed restoration has an audit event');
+        $expect((bool)$store->one("SELECT id FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-converted'",[$id]),'Restoring an archived subscriber records a confirmed form conversion');
+        $expect(!$store->confirmSubscription($token),'The restoration link is single-use');
+    }
+    // Only a fresh form confirmation can lift an archive; later staff actions win.
+    $archive=static fn(int $id)=>$store->mutatePerson($id,(int)$store->person($id,true)['version'],'archive');
+    $ageArchived=static fn(int $id)=>$store->write('UPDATE marketing_consent_challenges SET created_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 2 MINUTE) WHERE contact_id=?',[$id]);
+    [$id,$email]=$newPerson('archived-admin','unsubscribed');$archive($id);
+    $reject(static fn()=>$store->requestSubscriptionConfirmation($id,'https://newsletter.example.test'),'An administrator confirmation request cannot directly restore an archived record');
+    foreach(['queued','accepted']as$mailState){
+        [$id,$email]=$newPerson('before-archive-'.$mailState,'unsubscribed');$submit($forms[0],$email,$details);[$mail,,$token]=$latest($id);
+        if($mailState==='accepted')$deliver();$archive($id);
+        if($mailState==='queued')$expect(!in_array([$email,'confirmation'],$deliver(),true),'A confirmation queued before archiving is not delivered after archiving');
+        $expect(!$store->confirmSubscription($token)&&$store->person($id,true)['is_archived'],'A pre-archive confirmation cannot undo the archive');
+        $ageArchived($id);$submit($forms[1],$email,$details);[,,$freshToken]=$latest($id);$deliver();
+        $expect($store->confirmSubscription($freshToken)&&!$store->person($id)['is_archived'],'A genuinely fresh submission after archiving can restore the connection');
+        $archive($id);$expect(!$store->confirmSubscription($freshToken)&&$store->person($id,true)['is_archived'],'An already used link cannot undo a later re-archive');
+    }
+    foreach(['queued','accepted']as$mailState){
+        [$id,$email]=$newPerson('rearchive-'.$mailState,'unsubscribed');$archive($id);$submit($forms[0],$email,$details);[$mail,,$token]=$latest($id);
+        if($mailState==='accepted')$deliver();$archive($id);
+        if($mailState==='queued')$expect(!in_array([$email,'confirmation'],$deliver(),true),'Re-archiving cancels an earlier queued restoration confirmation');
+        $expect(!$store->confirmSubscription($token)&&$store->person($id,true)['is_archived']&&$store->person($id,true)['last_name']==='','A later archive decision invalidates earlier restoration permission and profile additions');
+    }
+    [$id,$email]=$newPerson('archived-expired','unsubscribed');$archive($id);$submit($forms[0],$email,$details);[$mail,,$token]=$latest($id);$deliver();
+    $store->write('UPDATE marketing_consent_challenges SET expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE) WHERE service_mail_id=?',[$mail['id']]);
+    $expect(!$store->confirmSubscription($token)&&$store->person($id,true)['is_archived'],'An expired link cannot unarchive a connection');
+    [$id,$email]=$newPerson('archived-superseded','unsubscribed');$archive($id);$submit($forms[0],$email,$details);[,,$oldToken]=$latest($id);$ageArchived($id);$submit($forms[1],$email,$details);[,,$newToken]=$latest($id);$deliver();
+    $expect(!$store->confirmSubscription($oldToken)&&$store->person($id,true)['is_archived'],'A superseded link cannot restore an archived record');
+    $expect($store->confirmSubscription($newToken),'The newest delivered archived signup confirmation remains usable');
+    [$id,$email]=$newPerson('archived-cleaned','cleaned');$archive($id);$submit($forms[0],$email,$details);
+    $expect(!$store->one("SELECT id FROM marketing_service_mail WHERE contact_id=?",[$id])&&$store->person($id,true)['is_archived']&&$store->person($id,true)['email_status']==='cleaned','Archiving never bypasses the cleaned-address delivery block');
+    [$id,$email]=$newPerson('legacy-archived','unsubscribed');$store->write('UPDATE marketing_contacts SET is_archived=1,version=version+1 WHERE id=?',[$id]);
+    $submit($forms[0],$email,$details);[,,$token]=$latest($id);$deliver();
+    $expect($store->person($id,true)['is_archived']&&!$store->one("SELECT id FROM marketing_contact_events WHERE contact_id=? AND event_type='contact_archived'",[$id]),'Legacy archived records without an archive event stay archived while waiting');
+    $expect($store->confirmSubscription($token)&&!$store->person($id)['is_archived'],'A fresh confirmation can restore a legacy archived record');
+    [$id,$email]=$newPerson('archived-rate-limit','unsubscribed');$archive($id);$submit($forms[0],$email,$details);
+    $cooldown=$reject(static fn()=>$submit($forms[1],$email,$details),'Archived submissions share the cross-form confirmation cooldown');
+    $expect($cooldown instanceof AudienceRateLimitException&&$cooldown->publicMessageKey==='confirmation_wait','Archived signup cooldown uses the normal safe guidance');
+    foreach([1,2]as$index){$ageArchived($id);$submit($forms[$index],$email,$details);}
+    $ageArchived($id);$limit=$reject(static fn()=>$submit($forms[3],$email,$details),'Archiving cannot bypass the daily confirmation limit');
+    $expect($limit instanceof AudienceRateLimitException&&$limit->publicMessageKey==='confirmation_limit'&&$store->person($id,true)['is_archived'],'Rate-limited archived records stay archived');
+    $expect((int)$store->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE contact_id=? AND kind='confirmation'",[$id])['n']===3,'Archived records cannot queue more than three confirmations in 24 hours');
     // Cross-form attempts share the same cooldown and daily allowance.
     $id=$people[0];$email=$store->person($id)['email'];$other=$forms[count($forms)-1];
     $cooldown=$reject(static fn()=>$submit($other,$email,$details),'Another form cannot bypass the confirmation cooldown');

@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import http.client
+import http.cookiejar
 import json
 from pathlib import Path
 import subprocess
@@ -9,6 +10,7 @@ import sys
 import tempfile
 import time
 import uuid
+import urllib.request
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from account_ingress_security import configuration
@@ -36,6 +38,8 @@ def main():
         for asset in ['js/button-feedback.min.js', 'css/style.min.css', 'css/modern.min.css']:
             (root/'assets'/Path(asset).name).write_bytes((repository/'src/assets'/asset).read_bytes())
         (root/'download_feedback_helpers.php').write_bytes((repository/'src/download_feedback_helpers.php').read_bytes())
+        for helper in ['pagination_helpers.php','audience_pagination.php']:
+            (root/helper).write_bytes((repository/'src'/helper).read_bytes())
         (root/'assets/browser-check.js').write_text('''
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('trusted').textContent = 'PASS: trusted ingress script loaded';
@@ -45,6 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
 ''')
         (root/'assets/denied.php').write_text('<?php echo "not executable";')
         (root/'backend.php').write_text('''<?php
+if (str_contains($_SERVER['REQUEST_URI'], '/page-size.php')) {
+    function currentAccountKey() { return 'test-account'; }
+    function accountIsPrimary() { return true; }
+    function accountCookiePath() { return '/a/test-account/'; }
+    function requestUsesHttps() { return false; }
+    function applicationRequiresHttps() { return false; }
+    require '/fixture/audience_pagination.php';
+    $input=audienceRememberPageSizes($_GET,'contacts',31);
+    header('Content-Type: application/json');echo json_encode(['size'=>audiencePageSize($input)]);exit;
+}
 if (str_contains($_SERVER['REQUEST_URI'], '/untrusted.php')) {
     header('Content-Type: application/javascript'); echo 'window.untrustedExecuted=true;'; exit;
 }
@@ -76,6 +90,8 @@ header('Set-Cookie: SIBLING=overwrite; Path=/; Domain=localhost', false);
 header('Set-Cookie: OWN=valid; Path=/; Domain=localhost; HttpOnly; SameSite=Lax', false);
 header('Set-Cookie: OWN=deleted; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0', false);
 header('Set-Cookie: dnr_rows_per_page_tasks=25; Path=/; Domain=localhost', false);
+header('Set-Cookie: dnr_rows_per_page_mm_aaaaaaaaaaaaaaaaaaaaaaaa=50; Path=/; HttpOnly; SameSite=Lax', false);
+header('Set-Cookie: dnr_rows_per_page_mm_aaaaaaaaaaaaaaaaaaaaaaaa=deleted; Path=/a/test-account/; Max-Age=0', false);
 header('Set-Cookie: dnr_download_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=started; Path=/; Domain=localhost; SameSite=Strict', false);
 header('Set-Cookie: dnr_backup_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb=created; Path=/; Domain=localhost; SameSite=Strict', false);
 header('Set-Cookie: dnr_download_not-a-valid-token=started; Path=/', false);
@@ -97,6 +113,7 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
             run('run','-d','--name',name,'--network',name,'-p','127.0.0.1::80',
                 '--mount','type=bind,src='+str(root/'proxy.conf')+',dst=/etc/apache2/conf-enabled/zz-dnr-ingress.conf,readonly',
                 '--mount','type=bind,src='+str(root/'security.conf')+',dst=/etc/apache2/conf-enabled/zy-dnr-account-security.conf,readonly',
+                '--mount','type=bind,src='+str(repository/'docker/apache-security.conf')+',dst=/etc/apache2/conf-available/zz-dnr-security.conf,readonly',
                 '--mount','type=bind,src='+str(root/'assets')+',dst=/opt/dnr/account-assets,readonly',options.image)
             port=int(run('port',name,'80/tcp').rsplit(':',1)[1])
             def request(path='/',cookie=''):
@@ -119,7 +136,7 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
             status,headers,body=request(cookie=own+'=allowed; dnr_rows_per_page_tasks=25; unknown=hidden')
             assert 'dnr_rows_per_page_tasks=25' in json.loads(body)['cookie']
             cookies=[v for k,v in headers if k.lower()=='set-cookie' and v]
-            assert len(cookies)==5,cookies
+            assert len(cookies)==7,cookies
             assert all(sibling not in v and 'Domain=' not in v for v in cookies),cookies
             assert all('Path=/a/'+key+'/' in v for v in cookies),cookies
             assert any('Max-Age=0' in v and 'Expires=' in v for v in cookies),cookies
@@ -158,6 +175,23 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
                 acknowledgements=[v for k,v in headers if k.lower()=='set-cookie' and v.startswith(('dnr_download_','dnr_backup_'))]
                 expected_path='/a/'+key+'/' if path.startswith('/a/') else '/'
                 assert len(acknowledgements)==2 and all('Path='+expected_path+';' in v for v in acknowledgements),acknowledgements
+                preferences=[v for k,v in headers if k.lower()=='set-cookie' and v.startswith('dnr_rows_per_page_mm_')]
+                assert len(preferences)==2,preferences
+                assert any('=50;' in v and 'Path=/;' in v for v in preferences),preferences
+                assert any('=deleted;' in v and 'Path=/a/'+key+'/' in v for v in preferences),preferences
+                assert all('Path=/a/'+key+'/' in v for k,v in headers if k.lower()=='set-cookie' and v.startswith('dnr_rows_per_page_tasks=')),headers
+            # Real PHP preference cookies must survive the real Apache rewrite,
+            # including cleanup of the old, narrower cookie.
+            jar=http.cookiejar.CookieJar(); client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+            for path,expected in [('/page-size.php?per_page=50&page_size_change=per_page',50),
+                                  ('/page-size.php?per_page=25&archived=1',50),
+                                  ('/page-size.php',50),
+                                  ('/a/'+key+'/page-size.php?per_page=10',50),
+                                  ('/page-size.php?per_page=100&page_size_change=per_page',100),
+                                  ('/page-size.php?status%5B0%5D=pending',100)]:
+                with client.open('http://127.0.0.1:'+str(port)+path,timeout=5) as response:
+                    assert json.load(response)['size']==expected,path
+            assert any(c.name.startswith('dnr_rows_per_page_mm_')and c.value=='100'and c.path=='/'for c in jar)
             assert sibling in json.loads(request('/a/other-account/profile.php',cookie=sibling+'=private')[2])['cookie']
             assert request('/a/test-account/assets/test.js')[2]==b'/* trusted fixture */'
             # Exercise the actual PHP helper through Apache for streamed and
