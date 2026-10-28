@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-28",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.8.10"
+  },
+  "production_guidance_revision": "2c6748228f92d78ede1f00af5cacf31bed8ecddea83449bca524d69b3ec26e07",
+  "local_builder_guidance_revision_at_intake": "135916734abf4b6300bafc3cca9bc3a40abaa233e06e91b506083a4cd9d0030b",
+  "tested_base_commit": "fed6199b3bfa9a6e04c6938659fe0318d9e00d2f",
+  "merged_main_commit": "403a670e90ece0b4d9516152e04a7dde2ffde4c0",
+  "pending_in_batch": 17,
+  "new_signal_versions": 1,
+  "unchanged_previously_reviewed_signals": 16,
+  "requests": [
+    {
+      "id": 43,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.8.9",
+      "original_guidance_revision": "2c6748228f92d78ede1f00af5cacf31bed8ecddea83449bca524d69b3ec26e07",
+      "disposition": "deferred",
+      "summary": "Native audience-history scope and calculated findings verified; production latency remains unverified and no safe additional correction was demonstrated.",
+      "original_duration_ms": 19770,
+      "local_replay_seconds": 5.641
+    }
+  ],
+  "investigation": {
+    "behavior": "Report used the requested calendar duration, observed net subscription changes, whole-period totals and explicitly sampled time-group cards. Synthetic history replay retained the same scope and correctly totalled all observations.",
+    "production_timing": {
+      "model_calls": 3,
+      "first_prompt_eval_ms": 11392.65,
+      "first_model_total_ms": 13665.01,
+      "remaining_model_total_ms": [
+        2807.54,
+        2898.82
+      ],
+      "queue_ms": 127
+    },
+    "timing_interpretation": "Most recorded delay occurred in initial prompt evaluation. Local replay completed in 5.641 seconds with three non-reasoning calls. This is insufficient to establish the production cause or warrant reducing independent validation.",
+    "local_stage_seconds": [
+      1.528,
+      1.646,
+      2.465
+    ],
+    "replay": "Private original question supplied only through untracked temporary input; in-memory fictional history and isolated ephemeral local model client, with dedicated-worktree source mounts. No production records, inference or writes. An initial fixture attempt lacked a report-row method; fixture was completed before the successful replay.",
+    "manual_and_controls": "Comprehensive User Guide analytics and Ask Analytics AI sections require selected reporting period/scope and inspection of evidence. Controller accepts the audience section and date presets; native history distinguishes subscriptions, opt-outs and net changes. No UI or manual correction was indicated; no PDF/index rebuild needed.",
+    "deferred_review": "New guidance differences concern database maintenance/manual indexes and refreshed procedure hashes; no new evidence resolves deferred calendar/event/task visibility or historical inference availability. Derived-metric latency remains deferred.",
+    "application_changes": false
+  },
+  "verification": {
+    "query_checks": 141,
+    "findings_checks": 37,
+    "integration_rerun": false,
+    "reason": "No application or test code changed; existing focused scope, role and grounded-findings regressions passed."
+  },
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "9d25ef6fabc559d9ce5b25ed8ea7a3960b8fa913a9e3e9a77438087765c91f55"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "df82577fbcb457ffe05166137f0de6e40e8589b48a78360da6dde53087bee309"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "17c43ba2fbbebdeca24a9b75894816c97e9f53cf138f1fc8184d74f7d49a6292"
+    },
+    {
+      "path": "src/audience_analytics_controller.php",
+      "sha256": "b12eea1b7f69b5be26ab8e700695bc476efc53e1386640f8522137dcc315fef9"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "5185d19f49a1f1b7be200615b247525b635b9431a68337bf9024b9ba3159fbf3"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "623725ab407c700a70ee59aff253315c4e386a308fdad10bcba2590bfc862bf4"
+    },
+    {
+      "path": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "sha256": "29f9799e5a99f64e8f6463c1cfba5cc0d1a5a29b6a9e5f5f6f3ee5e0f7cd09ad"
+    }
+  ],
+  "limitations": [
+    "Synthetic local timing does not establish production cold-start, contention or sustained latency.",
+    "Production query results were not recomputed against business records.",
+    "No authenticated UI visibility issue was closed by source inspection."
+  ],
+  "production_versions_rechecked": true,
+  "final_source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.8.10"
+  },
+  "final_production_guidance_revision": "2c6748228f92d78ede1f00af5cacf31bed8ecddea83449bca524d69b3ec26e07",
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "shared_branch_observed": "main",
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false
+}
