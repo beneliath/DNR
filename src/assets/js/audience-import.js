@@ -64,6 +64,54 @@
         describeSelection();
     }
 
-    if (typeof module === 'object' && module.exports) module.exports = {wireImportFileDrop};
-    if (typeof document !== 'undefined') document.querySelectorAll('[data-import-drop]').forEach(wireImportFileDrop);
+    function wireImportTagging(panel) {
+        const tags = Array.from(panel.querySelectorAll('input[name="tag_ids[]"]'));
+        const groups = Array.from(panel.querySelectorAll('input[name="group_ids[]"]'));
+        const search = panel.querySelector('[data-import-tag-search]');
+        const selected = panel.querySelector('[data-import-selected-tags]');
+        const tagCount = panel.querySelector('[data-import-tag-count]');
+        const groupCount = panel.querySelector('[data-import-group-count]');
+        const doc = panel.ownerDocument;
+        const updateCount = (host, inputs) => {
+            const text = `${inputs.filter(input => input.checked).length} selected`;
+            if (host.textContent !== text) host.textContent = text;
+        };
+        const refreshSelected = () => {
+            updateCount(tagCount, tags);updateCount(groupCount, groups);
+            if (!selected) return;
+            selected.replaceChildren();
+            for (const input of tags.filter(input => input.checked)) {
+                const name = input.parentElement.querySelector('span').textContent;
+                const button = doc.createElement('button'), label = doc.createElement('span'), icon = doc.createElement('span');
+                button.type = 'button';button.className = 'import-selected-tag';button.setAttribute('aria-label', `Remove ${name} tag`);
+                label.textContent = name;icon.textContent = '×';icon.setAttribute('aria-hidden', 'true');button.append(label, icon);
+                button.addEventListener('click', () => {
+                    input.checked = false;input.dispatchEvent(new Event('change', {bubbles: true}));
+                    if (!input.parentElement.hidden) input.focus();else search?.focus();
+                });
+                selected.append(button);
+            }
+            if (!selected.childElementCount) {
+                const empty = doc.createElement('span');empty.className = 'import-selection-empty';empty.textContent = 'No tags selected';selected.append(empty);
+            }
+        };
+        const filter = () => {
+            const query = search.value.trim().toLocaleLowerCase();
+            let visible = 0;
+            for (const input of tags) {
+                const option = input.parentElement;option.hidden = !option.textContent.toLocaleLowerCase().includes(query);
+                if (!option.hidden) visible++;
+            }
+            panel.querySelector('[data-import-tags-empty]').hidden = visible > 0;
+        };
+        if (search) {panel.querySelector('[data-import-tag-search-wrap]').hidden = false;search.addEventListener('input', filter);search.addEventListener('search', filter);}
+        panel.addEventListener('change', event => {if (tags.includes(event.target) || groups.includes(event.target)) refreshSelected();});
+        refreshSelected();
+    }
+
+    if (typeof module === 'object' && module.exports) module.exports = {wireImportFileDrop, wireImportTagging};
+    if (typeof document !== 'undefined') {
+        document.querySelectorAll('[data-import-drop]').forEach(wireImportFileDrop);
+        document.querySelectorAll('[data-import-tagging]').forEach(wireImportTagging);
+    }
 })();

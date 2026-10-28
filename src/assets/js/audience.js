@@ -638,6 +638,13 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         allMatching = false; if (event.target.matches('[data-select-page]')) selectedBoxes.forEach(input => { input.checked = event.target.checked; }); updateSelection();
     });
     peopleResults?.addEventListener('click',event => {
+        const row = event.target.closest('[data-connection-row]');
+        if (row && !event.defaultPrevented && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey
+            && !event.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [contenteditable], .selection-cell')
+            && !window.getSelection()?.toString()) {
+            $('[data-connection-link]',row)?.click();
+            return;
+        }
         const action = event.target.closest('[data-select-matches], [data-clear-selection], [data-open-dialog]'); if (!action) return;
         if (action.dataset.openDialog) { show(action.dataset.openDialog); return; }
         allMatching = action.hasAttribute('data-select-matches'); selectedBoxes.forEach(input => { input.checked = allMatching; }); updateSelection();

@@ -22,6 +22,15 @@ function audienceNotificationPreferences(array $input,array $users):array
     return $p;
 }
 
+/** Most recent daily email slot: 23:11 Chicago time, including daylight saving. */
+function audienceDailySummaryDue(int $now):int
+{
+    $local=(new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone('America/Chicago'));
+    $due=$local->setTime(23,11);
+    if($due>$local)$due=$due->modify('-1 day');
+    return $due->getTimestamp();
+}
+
 trait AudienceSettings
 {
     public function audienceNotificationUsers():array
@@ -44,7 +53,9 @@ trait AudienceSettings
                 $oldValues=array_intersect_key($old,$prefs);$newValues=$prefs;ksort($oldValues);ksort($newValues);
                 if($oldValues!==$newValues){
                     $cursor=(int)$this->one('SELECT COALESCE(MAX(e.id),0) id FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=?',[$this->audienceId])['id'];
-                    $s['subscriber_notifications']=$prefs+['generation'=>bin2hex(random_bytes(16)),'start_event'=>$cursor,'start_at'=>gmdate('Y-m-d H:i:s')];
+                    // Recipient and bell edits start fresh individual alerts, but must
+                    // not discard changes already observed for the daily summary.
+                    $s['subscriber_notifications']=$prefs+['generation'=>bin2hex(random_bytes(16)),'start_event'=>$cursor,'start_at'=>gmdate('Y-m-d H:i:s'),'digest_start_event'=>(int)($old['digest_start_event']??$old['start_event']??$cursor)];
                 }
             }
             $this->write('UPDATE marketing_audiences SET name=?,settings_json=?,version=version+1 WHERE id=?',[$name,json_encode($s,JSON_THROW_ON_ERROR),$this->audienceId]);
@@ -69,6 +80,6 @@ trait AudienceSettings
 function audienceNotificationDigest(mysqli $db,int $audience,array $p,int $now):array
 {
     $until=gmdate('Y-m-d',$now).' 00:00:00';$from=gmdate('Y-m-d',$now-86400).' 00:00:00';$counts=['signup'=>0,'unsubscribe'=>0];
-    $rows=$db->execute_query("SELECT e.event_type,e.details_json,COUNT(*) n FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND c.deleted_at IS NULL AND e.id>? AND e.created_at>=? AND e.created_at<? AND e.event_type IN ('contact_added','subscription_changed','subscription-confirmed','status') GROUP BY e.event_type,e.details_json",[$audience,$p['start_event']??0,$from,$until])->fetch_all(MYSQLI_ASSOC);
+    $rows=$db->execute_query("SELECT e.event_type,e.details_json,COUNT(*) n FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND c.deleted_at IS NULL AND e.id>? AND e.created_at>=? AND e.created_at<? AND e.event_type IN ('contact_added','subscription_changed','subscription-confirmed','status') GROUP BY e.event_type,e.details_json",[$audience,$p['digest_start_event']??$p['start_event']??0,$from,$until])->fetch_all(MYSQLI_ASSOC);
     foreach($rows as$e){$kind=audienceSubscriptionChange($e['event_type'],audienceJson($e['details_json']));if($kind)$counts[$kind]+=(int)$e['n'];}return $counts;
 }
