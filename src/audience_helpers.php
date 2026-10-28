@@ -11,6 +11,23 @@ final class AudienceRateLimitException extends InvalidArgumentException
     }
 }
 
+/** Archive events bind a fresh form confirmation to the current archive decision. */
+function audienceLatestArchiveEvent(mysqli $db,int $audience,int $contact):int
+{
+    return (int)$db->execute_query("SELECT COALESCE(MAX(e.id),0) id FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND c.id=? AND e.event_type='contact_archived'",[$audience,$contact])->fetch_assoc()['id'];
+}
+
+function audienceConfirmationArchiveAllowed(mysqli $db,int $audience,array $person,int $challenge,?array $context=null):bool
+{
+    if(!$person['is_archived'])return true;
+    if($context===null){
+        $event=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='collection-confirmation' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.challenge_id'))=? ORDER BY id DESC LIMIT 1",[$person['id'],(string)$challenge])->fetch_assoc();
+        $context=audienceJson($event['details_json']??'');
+    }
+    $archive=$context['archive_event_id']??null;
+    return is_int($archive)&&$archive>=0&&$archive===audienceLatestArchiveEvent($db,$audience,(int)$person['id']);
+}
+
 const AUDIENCE_STATUSES = ['non-subscribed', 'subscribed', 'unsubscribed', 'pending', 'cleaned'];
 const AUDIENCE_PERMISSION_EVENT_TYPES=['contact_added','subscription_changed','subscription-confirmed','status','collection-converted'];
 

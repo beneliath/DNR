@@ -482,7 +482,7 @@ trait AudienceCollection
         $newPerson=!$person;
         $deleted=$this->one('SELECT deleted_at FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=? FOR SHARE',[$this->audienceId,$hash]);
         $resubscribe=$deleted&&(!$person||($person['email_status']==='pending'&&$person['created_at']>=$deleted['deleted_at']));
-        $blocked=($deleted&&!$resubscribe&&audienceDeletedEmailSuppressed($this->db,$this->audienceId,(int)$person['id'],$hash)) || ($person && ($person['deleted_at'] || $person['is_archived'] || $person['email_status']==='cleaned'));
+        $blocked=($deleted&&!$resubscribe&&audienceDeletedEmailSuppressed($this->db,$this->audienceId,(int)$person['id'],$hash)) || ($person && ($person['deleted_at'] || $person['email_status']==='cleaned'));
         $confirmation=$confirmation||$resubscribe;
         // A deleted address must verify ownership again even on a single opt-in form.
         if($resubscribe){$ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.');}

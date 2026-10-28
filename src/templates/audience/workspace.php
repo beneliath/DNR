@@ -56,7 +56,7 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>
@@ -133,7 +133,7 @@ if(in_array($view,['home','analytics'],true)){
     <?php if($error!==''): ?><p class="audience-notice error" role="alert" tabindex="-1" data-operation-error><?= $h($error) ?></p><?php endif; ?>
     <?php include __DIR__.'/'.match($view){'manual'=>'manual.php','assistant'=>'ai.php','home'=>'analytics.php','analytics'=>'analytics-dashboard.php','automations','flow','flow-templates','flow-report'=>'flows.php','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'=>'collection.php','templates'=>'email-templates.php','campaigns','campaign'=>'campaigns.php','campaign-manager','campaign-plan'=>'campaign-manager.php','campaign-review'=>'campaign-review.php','campaign-send','campaign-delivery'=>'campaign-delivery.php','content','brand'=>'content.php','delivery'=>'delivery-setup.php','contact'=>'person.php','tags','groups','fields','settings'=>'manage.php','segments'=>'segments.php','import','jobs','job'=>'imports.php',default=>'people.php'}; ?>
     </div>
-    <?php if (!$isAiAnalytics&&!$isAiWriting&&$view!=='form') include __DIR__ . '/../app-footer.php'; ?>
+    <?php if (!$isAiAnalytics&&!$isAiWriting&&!in_array($view,['form','contacts'],true)) include __DIR__ . '/../app-footer.php'; ?>
 </main>
 <?php include __DIR__.'/search.php'; ?>
 <?php if($canManage&&!in_array($view,['home','analytics','assistant','manual'],true)&&!$isCampaignView&&!$isContentView&&!$isCollectionView&&!$isFlowView)include __DIR__.'/dialogs.php'; ?>

@@ -2,6 +2,7 @@
 <nav class="mm-pagination" data-mm-pagination aria-label="<?= $escape($options['label']??'Results pages') ?>">
     <form class="mm-pagination-size" method="get" action="<?= $escape(parse_url($base,PHP_URL_PATH)??'') ?>">
         <?php $inputs($params); ?>
+        <input type="hidden" name="page_size_change" value="<?= $escape($sizeKey) ?>">
         <label>Items per page <select name="<?= $escape($sizeKey) ?>" data-mm-page-size><?php foreach([10,25,50,100]as$value): ?><option value="<?= $value ?>"<?= $size===$value?' selected':'' ?>><?= $value ?></option><?php endforeach; ?></select></label>
         <noscript><button type="submit">Apply</button></noscript>
     </form>

@@ -245,8 +245,16 @@ body.audience-app:has(>.audience-content>.app-footer)>.audience-topbar{flex-shri
 .audience-counts{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .audience-counts p{font-size:calc(17px * var(--audience-font-scale, 1));margin:0 0 4px}
 .audience-counts strong{color:var(--audience-link);font-weight:600}
-.audience-counts p{display:flex;flex-wrap:wrap;gap:8px 16px}
+.audience-counts p{display:flex;flex-wrap:wrap;gap:18px 40px;padding:4px 0 6px}
 .audience-counts .audience-count-pill{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;background:#def3f1;color:var(--audience-text);text-decoration:none;white-space:nowrap}
+.audience-count-equation,.audience-count-other{display:inline-flex;flex-wrap:wrap;align-items:center;gap:16px 20px}
+.audience-count-term{display:inline-flex;align-items:center;gap:16px}
+.audience-count-other [data-audience-count="archived"]{margin-inline-start:12px}
+.audience-count-operator{color:var(--audience-muted);font-weight:600}
+.audience-app .mm-reorder-handle{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-width:32px;min-height:40px;padding:4px;border:0;background:transparent;color:inherit;cursor:grab;touch-action:none}
+.mm-reorder-handle svg{width:22px;height:26px;fill:currentColor}
+.mm-reorder-handle:active{cursor:grabbing}
+.mm-reorder-dragging{outline:1px dashed var(--audience-border)}
 .audience-counts .audience-count-pill:hover{background:#c8eae6;text-decoration:none}
 html.dark-mode .audience-counts .audience-count-pill{background:#183f40}
 html.dark-mode .audience-counts .audience-count-pill:hover{background:#205253}
@@ -399,9 +407,13 @@ dialog .primary{margin-top:16px}
 .audience-group-card>summary{cursor:pointer;padding:20px 24px;display:flex;justify-content:space-between;gap:20px}
 .audience-group-card>summary span{color:var(--audience-muted)}
 .group-toolbar{display:flex;gap:var(--audience-action-gap,16px);padding:0 24px 16px}
-.group-option-row{display:flex;gap:8px;margin:12px 0}
+.group-option-row{display:flex;align-items:center;gap:8px;margin:12px 0}
+.group-option-row.dragging{background:var(--audience-hover);outline:1px dashed var(--audience-border)}
 .group-option-row input[type=text]{flex:1;min-width:0;margin:0}
 .group-option-row button{flex-shrink:0;padding:6px 10px}
+.group-option-row .group-option-drag{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:44px;padding:4px;border:0;background:transparent;cursor:grab;touch-action:none}
+.group-option-drag svg{width:22px;height:26px}
+.group-option-drag:active{cursor:grabbing}
 .audience-person-layout{display:grid;grid-template-columns:minmax(290px,360px) minmax(0,1fr);gap:30px;align-items:start}
 .audience-person-summary{display:flex;flex-direction:column;gap:22px;min-width:0}
 .person-identity{font-size:calc(19px * var(--audience-font-scale, 1));overflow-wrap:anywhere;line-height:1.45}
@@ -1614,7 +1626,7 @@ html.dark-mode .campaign-calendar{--campaign-grid-line:#71818b}
 .audience-app .audience-lifecycle-tabs>a{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:var(--audience-text);text-decoration:none;font-size:inherit;font-weight:400}
 .audience-app .audience-lifecycle-tabs>a[aria-current=page]{background:transparent;border-bottom-color:var(--audience-primary);font-weight:600}
 .audience-app .audience-lifecycle-tabs>a:hover{background:transparent;color:var(--audience-link)}
-.audience-page-body:has(>.audience-people-toolbar){padding-top:8px}
+.audience-page-body:has(>.audience-people-toolbar,>.audience-connections-controls){padding-top:8px}
 .audience-page-body:has(>.campaign-archive-tabs){padding-top:8px}
 .audience-app .campaign-archive-tabs{margin-bottom:44px}
 .audience-app .campaign-archive-tabs:has(+.campaign-archive-help){margin-bottom:0}
@@ -1624,6 +1636,20 @@ html.dark-mode .campaign-calendar{--campaign-grid-line:#71818b}
 .audience-people-toolbar>.audience-filters{flex:1 1 700px;min-width:0;margin:0}
 .audience-app .audience-people-toolbar>[data-audience-lifecycle]{flex:0 0 auto;margin:0 0 0 auto}
 .audience-app [data-audience-lifecycle]>a{min-height:44px;padding-block:8px}
+
+/* Keep the Connections controls in place; only the list scrolls. */
+body.audience-app.audience-connections-mode{display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden}
+.audience-connections-mode>.audience-topbar{flex-shrink:0}
+.audience-connections-mode>.audience-content{display:flex;flex:1;flex-direction:column;min-height:0}
+.audience-connections-mode .audience-page-heading{flex-shrink:0}
+.audience-connections-mode .audience-page-body{display:flex;flex:1;flex-direction:column;min-height:0;overflow:clip;padding-bottom:0}
+.audience-connections-controls{flex-shrink:0;min-height:0;max-height:clamp(88px,calc(100% - var(--audience-connections-reserve,320px)),45dvh);overflow:auto;overscroll-behavior:contain;padding:6px;margin:-6px -6px 0}
+.audience-connections-mode [data-audience-results]{display:flex;flex:1;flex-direction:column;min-height:0}
+.audience-connections-mode [data-audience-results]>.audience-table-tools,
+.audience-connections-mode [data-audience-results]>.audience-bulk-toolbar,
+.audience-connections-mode [data-audience-results]>.mm-pagination{flex-shrink:0}
+.audience-connections-mode [data-audience-results]>.audience-table-scroll{flex:1;min-height:0;overscroll-behavior:contain}
+.audience-connections-mode [data-people-table] thead{position:sticky;top:0;z-index:1}
 
 html .audience-app .audience-actions:has(>.action-icon-button,>form>.action-icon-button){column-gap:var(--audience-action-gap)}
 
@@ -1659,3 +1685,5 @@ html .audience-app .audience-actions:has(>.action-icon-button,>form>.action-icon
 
 .collection-controls .collection-section-divider{margin:0;border:0;border-top:1px solid var(--audience-border)}
 .collection-controls .collection-interests-section{border-top:0}
+
+.audience-matching-count{display:inline-block;padding:2px 4px;border-radius:4px}

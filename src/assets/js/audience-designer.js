@@ -8,6 +8,7 @@ import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-mode
 import { templatePreviewBoundary } from './audience-template-preview.mjs';
 import { imageCropLayout, imageCropZoom } from './audience-image-crop.mjs';
 import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-drop.mjs';
+import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
 (() => {
   'use strict';
   const $ = (s, root = document) => root.querySelector(s);
@@ -427,13 +428,16 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
       tools.append(button('Comment on this block',()=>{panel='comments';renderTools();}));
     }
     tools.append(button('Save & close',async()=>{if(await save(false)){selected=null;panel='add';render();}},'primary designer-close-block'));
-    const actions=el('div',undefined,'designer-block-actions');actions.append(button('Move up',()=>move(-1)),button('Move down',()=>move(1)),button('Duplicate',duplicate),button('Delete',remove));tools.append(actions);
+    const actions=el('div',undefined,'designer-block-actions');actions.append(blockReorderHandle(selected,'Reorder block'),button('Duplicate',duplicate),button('Delete',remove));tools.append(actions);
   }
   function renderSections(){
     tools.append(el('h2','Email Sections'),el('p','Create and edit your email structure, or insert pre-built sections.','designer-panel-help'),tabs({manage:'Manage',prebuilt:'Pre-built',saved:'Saved'},sectionTab,v=>{sectionTab=v;renderTools();}));
     if(sectionTab==='manage'){
+      const sectionList=el('div',undefined,'designer-section-list');tools.append(sectionList);
       design.rows.forEach((row,r)=>{const item=el('div',undefined,'designer-section-row');item.draggable=true;item.ondragstart=e=>{drag={section:r};e.dataTransfer.setData('text/plain','section');};item.ondragover=e=>e.preventDefault();item.ondrop=e=>{e.preventDefault();if(drag?.section!==undefined){const from=drag.section;drag=null;mutate(()=>{const moved=design.rows.splice(from,1)[0];design.rows.splice(r,0,moved);selected=null;selectedRow=null;});}};
-        item.append(button(row.name,()=>{selectedRow=r;selected=null;panel='section';render();}),button('↑',()=>rowMove(r,-1)),button('↓',()=>rowMove(r,1)));const menu=el('details',undefined,'designer-section-menu');menu.append(el('summary','•••'));const list=el('div');list.append(button('Rename',()=>nameDialog('Rename section',row.name,name=>mutate(()=>row.name=name))),button('Duplicate',()=>mutate(()=>design.rows.splice(r+1,0,freshCopy(row)))),button('Save',()=>saveSection(row)),button('Delete',()=>confirmDesignAction('Delete section?','This removes the section and its content. You can undo the change.',()=>mutate(()=>{design.rows.splice(r,1);selected=null;selectedRow=null;}))));menu.append(list);item.append(menu);tools.append(item);});
+        item.dataset.sectionId=row.id;const handle=createReorderHandle('Reorder '+row.name);
+        wireReorderHandle({handle,item,list:sectionList,onMove:(from,to)=>moveSection(from,to,'.designer-section-list')});
+        item.append(button(row.name,()=>{selectedRow=r;selected=null;panel='section';render();}),handle);const menu=el('details',undefined,'designer-section-menu');menu.append(el('summary','•••'));const list=el('div');list.append(button('Rename',()=>nameDialog('Rename section',row.name,name=>mutate(()=>row.name=name))),button('Duplicate',()=>mutate(()=>design.rows.splice(r+1,0,freshCopy(row)))),button('Save',()=>saveSection(row)),button('Delete',()=>confirmDesignAction('Delete section?','This removes the section and its content. You can undo the change.',()=>mutate(()=>{design.rows.splice(r,1);selected=null;selectedRow=null;}))));menu.append(list);item.append(menu);sectionList.append(item);});
       tools.append(button('+ Add blank section',()=>mutate(()=>design.rows.push(freshRow(1,'Blank section')))));
     }else if(sectionTab==='prebuilt'){
       const presets={Header:['heading','text','boxed-text','image-text'],Hero:['image','heading','button'],Features:['heading','text','boxed-text','image-text'],Footer:['social','text']},actions=el('div',undefined,'designer-more-actions');Object.entries(presets).forEach(([name,types])=>actions.append(button(name,()=>mutate(()=>{const row=freshRow(name==='Features'?2:1,name);row.region=name==='Header'?'header':name==='Footer'?'footer':'body';row.columns.forEach(col=>types.forEach(type=>col.push(defaultBlock(type))));design.rows.push(row);}))));tools.append(actions,el('p','Pre-built sections adapt to your email styles.','designer-panel-help'));
@@ -447,7 +451,11 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     tools.append(fieldGrid(field('Section name',row.name,v=>row.name=v),field('Email region',row.region,v=>row.region=v,'select',{preheader:'Preheader',header:'Header',body:'Body',footer:'Footer'}),field('Background color',target.background||design.styles.body,v=>target.background=v,'color'),field('Text color',target.color||design.styles.text,v=>target.color=v,'color'),field('Padding',target.padding||0,v=>target.padding=v,'number'),field('Font size',target.size||design.styles.fontSize,v=>target.size=v,'number'),field('Alignment',target.align||'left',v=>target.align=v,'select',{left:'Left',center:'Center',right:'Right',justify:'Justify'})),conditionEditor(row),button('Save section',()=>saveSection(row)),button('Duplicate section',()=>mutate(()=>design.rows.splice(selectedRow+1,0,freshCopy(row)))));
   }
   function saveSection(row){nameDialog('Save section',row.name,async name=>{await request('design_library_save',{type:'section',name,data:JSON.stringify({...design,mode:'visual',rows:[row],code:'',areas:{}})});status.textContent='Section saved';});}
-  function rowMove(r,delta){if(r+delta<0||r+delta>=design.rows.length)return;mutate(()=>{[design.rows[r],design.rows[r+delta]]=[design.rows[r+delta],design.rows[r]];selected=null;selectedRow=null;});}
+  function moveSection(from,to,scope){
+    const id=design.rows[from].id;
+    mutate(()=>{design.rows.splice(to,0,design.rows.splice(from,1)[0]);selected=null;selectedRow=null;});
+    $(`[data-section-id="${CSS.escape(id)}"] .mm-reorder-handle`,$(scope))?.focus({preventScroll:true});
+  }
   function move(delta){if(!selected)return;const[r,c,i]=selected,col=design.rows[r].columns[c];if(i+delta>=0&&i+delta<col.length)mutate(()=>{[col[i],col[i+delta]]=[col[i+delta],col[i]];selected=[r,c,i+delta];});else if(r+delta>=0&&r+delta<design.rows.length)mutate(()=>{const nextC=Math.min(c,design.rows[r+delta].columns.length-1),next=design.rows[r+delta].columns[nextC],index=delta<0?next.length:0;next.splice(index,0,col.splice(i,1)[0]);selected=[r+delta,nextC,index];});}
   function duplicate(){const b=blockAt();if(b)mutate(()=>{const[r,c,i]=selected;design.rows[r].columns[c].splice(i+1,0,freshCopy(b));selected=[r,c,i+1];});}
   function remove(){if(blockAt())mutate(()=>{const[r,c,i]=selected;design.rows[r].columns[c].splice(i,1);selected=null;panel='add';});}
@@ -464,6 +472,32 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
   document.addEventListener('dragover',event=>{if(!drag)return;dragPointer={x:event.clientX,y:event.clientY};if(!dragScrollFrame)dragScrollFrame=requestAnimationFrame(scrollDraggedBlock);},{capture:true});
   document.addEventListener('dragend',finishDrag);document.addEventListener('drop',finishDrag);
   function drop(target){if(!drag)return;const from=drag;finishDrag();if(from.type)addBlock(from.type,target,from.initial);else if(from.position)mutate(()=>{selected=moveEmailBlock(design,from.position,target);panel='block';});}
+  function blockReorderHandle(position,label){
+    const handle=createReorderHandle(label),[r,c,i]=position,id=design.rows[r].columns[c][i].id;
+    const focus=()=> $(`[data-block-id="${CSS.escape(id)}"] .designer-block-move`,canvas)?.focus({preventScroll:true});
+    handle.addEventListener('keydown',event=>{
+      if(event.altKey||event.ctrlKey||event.metaKey||!['ArrowUp','ArrowDown'].includes(event.key))return;
+      event.preventDefault();event.stopPropagation();selected=[...position];move(event.key==='ArrowUp'?-1:1);focus();
+    });
+    handle.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.isPrimary===false)return;
+      event.preventDefault();event.stopPropagation();handle.focus();finishDrag();drag={position:[...position]};
+      const pointerId=event.pointerId;
+      const movePointer=e=>{if(e.pointerId!==pointerId)return;e.preventDefault();dragPointer={x:e.clientX,y:e.clientY};dropSpace.update(e.clientX,e.clientY);if(!dragScrollFrame)dragScrollFrame=requestAnimationFrame(scrollDraggedBlock);};
+      const finish=cancelled=>{
+        const target=!cancelled&&dragPointer?dropSpace.update(dragPointer.x,dragPointer.y):null;
+        document.removeEventListener('pointermove',movePointer,true);document.removeEventListener('pointerup',up,true);
+        document.removeEventListener('pointercancel',cancel,true);document.removeEventListener('keydown',escape,true);window.removeEventListener('blur',cancel);
+        if(target)drop(target);else finishDrag();focus();
+      };
+      const up=e=>{if(e.pointerId===pointerId)finish(false);};
+      const cancel=e=>{if(e.pointerId==null||e.pointerId===pointerId)finish(true);};
+      const escape=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true);}};
+      document.addEventListener('pointermove',movePointer,{capture:true,passive:false});document.addEventListener('pointerup',up,true);
+      document.addEventListener('pointercancel',cancel,true);document.addEventListener('keydown',escape,true);window.addEventListener('blur',cancel);
+    });
+    return handle;
+  }
   function imageNode(item){if(!item.image)return el('div','▧ Add an image','designer-image-placeholder');const image=el('img');image.src=item.image;image.alt=item.alt||'';return image;}
   function highlightSelection(block,previous){
     // Keep the five-blink sequence on its original clock when editing redraws the canvas.
@@ -483,7 +517,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
     }
     if(design.preheader.showArchive){const pre=el('div','View this email in your browser','designer-archive-link');pre.onclick=()=>{panel='styles';styleArea='preheader';renderTools();};canvas.append(pre);}
     design.rows.forEach((row,r)=>{
-      const rn=el('div',undefined,'designer-row');rn.dataset.sectionId=row.id;applyStyle(rn,{padding:0,size:s.fontSize,...design.regions[row.region||'body'],...row.styles,...(device==='mobile'?row.mobile:{})},doc);if(selectedRow===r)rn.classList.add('selected');const rowTools=el('div',undefined,'designer-layout-tools');rowTools.append(button('↑',()=>rowMove(r,-1)),button('↓',()=>rowMove(r,1)),button('⧉',()=>mutate(()=>design.rows.splice(r+1,0,freshCopy(row)))),button('⚙',()=>{selectedRow=r;selected=null;panel='section';render();}));['Move section up','Move section down','Duplicate section','Section styles'].forEach((label,i)=>$('button:nth-child('+(i+1)+')',rowTools).setAttribute('aria-label',label));rn.append(rowTools);
+      const rn=el('div',undefined,'designer-row');rn.dataset.sectionId=row.id;applyStyle(rn,{padding:0,size:s.fontSize,...design.regions[row.region||'body'],...row.styles,...(device==='mobile'?row.mobile:{})},doc);if(selectedRow===r)rn.classList.add('selected');const rowTools=el('div',undefined,'designer-layout-tools'),sectionHandle=createReorderHandle('Reorder '+row.name);wireReorderHandle({handle:sectionHandle,item:rn,list:canvas,getItems:()=>$$('.designer-row',canvas),onMove:(from,to)=>moveSection(from,to,'#email-canvas')});rowTools.append(sectionHandle,button('⧉',()=>mutate(()=>design.rows.splice(r+1,0,freshCopy(row)))),button('⚙',()=>{selectedRow=r;selected=null;panel='section';render();}));['Duplicate section','Section styles'].forEach((label,i)=>$('button:nth-child('+(i+2)+')',rowTools).setAttribute('aria-label',label));rn.append(rowTools);
       row.columns.forEach((col,c)=>{
         const cn=el('div',undefined,'designer-column');cn.dataset.row=r;cn.dataset.column=c;
         col.forEach((b,i)=>{
@@ -506,7 +540,7 @@ import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-dro
           else if(b.type==='button'){const bt=el('span',b.text,'designer-email-button');Object.assign(bt.style,{background:b.inherit.includes('background')?s.button:b.background,color:b.styles.color||s.buttonText,borderRadius:`${b.inherit.includes('radius')?(s.buttonRadius||4):b.radius}px`,border:b.styles.borderWidth?`${b.styles.borderWidth}px ${b.styles.borderStyle||'solid'} ${b.styles.borderColor||'#24292d'}`:'none'});content.append(bt);}
           else content.append(rich());
           if(b.condition.rules.length)bn.append(el('span','Dynamic content','designer-dynamic-badge'));bn.append(content);
-          const bar=el('div',undefined,'designer-block-hover-tools'),handle=button('',event=>{event.stopPropagation();});handle.className='designer-block-move';handle.title='Drag';handle.setAttribute('aria-label','Drag Block');const moveIcon=el('img');moveIcon.src='assets/editor-icons/block-move.svg';moveIcon.alt='';handle.append(moveIcon);handle.draggable=true;bar.append(handle);
+          const bar=el('div',undefined,'designer-block-hover-tools'),handle=blockReorderHandle([r,c,i],'Reorder '+b.type+' block');handle.classList.add('designer-block-move');handle.title='Drag to reorder';bar.append(handle);
           const actions=el('div',undefined,'designer-block-hover-actions');for(const [icon,label,fn]of [['edit','Edit Block',()=>{selected=[r,c,i];selectedRow=null;panel='block';render();}],['duplicate','Duplicate Block',()=>{selected=[r,c,i];duplicate();}],['delete','Delete Block',()=>{selected=[r,c,i];remove();}]]){const control=button('',event=>{event.stopPropagation();fn();});control.setAttribute('aria-label',label);const image=el('img');image.src='assets/editor-icons/block-'+icon+'.svg';image.alt='';const tip=el('span',label,'designer-block-tooltip');tip.setAttribute('role','tooltip');control.append(image,tip);actions.append(control);}bar.append(actions);bn.append(bar);cn.append(bn);
         });if(!col.length)cn.append(el('div','Drop content here','designer-drop-empty'));rn.append(cn);
       });canvas.append(rn);

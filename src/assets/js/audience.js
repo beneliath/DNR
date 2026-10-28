@@ -361,6 +361,22 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         $('[data-filter-empty]', panel).hidden = options.some(choice => !choice.hidden) || !options.length;
     }));
     const filterForm = $('.audience-filter-popovers'), peopleResults = $('[data-audience-results]'), filterSummary = $('[data-audience-filter-summary]');
+    if (peopleResults && document.body.classList.contains('audience-connections-mode')) {
+        // Wrapped controls and bulk actions must always leave room for connection rows.
+        const reserveRows = () => {
+            const height = ['.audience-table-tools','.audience-bulk-toolbar','.mm-pagination','thead']
+                .reduce((sum,selector) => sum + ($(selector,peopleResults)?.getBoundingClientRect().height || 0),120);
+            document.body.style.setProperty('--audience-connections-reserve',`${Math.ceil(height + 2)}px`);
+        };
+        const sizes = new ResizeObserver(reserveRows);
+        const observeResults = () => {
+            sizes.disconnect();
+            [peopleResults,...$$('.audience-table-tools,.audience-bulk-toolbar,.mm-pagination,thead',peopleResults)].forEach(node => sizes.observe(node));
+            reserveRows();
+        };
+        new MutationObserver(observeResults).observe(peopleResults,{childList:true});
+        observeResults();
+    }
     let filterRequest, filterSequence = 0, filterSearchTimer, filterPending = Promise.resolve(true), refreshPeopleColumns = () => {};
     const refreshFilters = () => {
         clearTimeout(filterSearchTimer); filterSearchTimer = undefined; const sequence = ++filterSequence; filterRequest?.abort(); filterRequest = new AbortController();
@@ -379,6 +395,8 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
                 const parsed = JSON.parse(nextConfig.textContent), columnsTrigger = $('[popovertarget="columns"]',peopleResults);
                 if (columnsTrigger) $('[popovertarget="columns"]',nextResults)?.replaceWith(columnsTrigger);
                 peopleResults.replaceChildren(...nextResults.childNodes); filterSummary.replaceChildren(...nextSummary.childNodes);
+                const pageSize = $('[data-mm-page-size]',peopleResults)?.value;
+                if (pageSize) { filterForm.elements.per_page.value = pageSize; url.searchParams.set('per_page',pageSize); }
                 const lifecycle = $('[data-audience-lifecycle]'), nextLifecycle = $('[data-audience-lifecycle]',page);
                 if (lifecycle && nextLifecycle) lifecycle.replaceChildren(...nextLifecycle.childNodes);
                 Object.assign(config,parsed); $('#audience-config').textContent = nextConfig.textContent;
@@ -661,18 +679,65 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         $('[data-tag-heading]').textContent = data.id ? 'Rename tag' : 'Create tag'; show('tag-editor');
     }));
     $$('[data-bulk-tag-id]').forEach(b => b.addEventListener('click', () => { $('#bulk-tag-id').value = b.dataset.bulkTagId; show('bulk-tag'); }));
-    const groupOptions = $('[data-group-options]');
+    const groupOptions = $('[data-group-options]'), groupDialog = $('#group-editor');
+    let stopGroupDrag;
     const renumberOptions = () => {
         $$('[data-group-option]', groupOptions).forEach((row, index) => {
             $('input[type=hidden]', row).name = `options[${index}][id]`;
-            $('input[type=text]', row).name = `options[${index}][name]`;
+            const input = $('input[type=text]', row);
+            input.name = `options[${index}][name]`;
+            $('[data-group-drag]', row)?.setAttribute('aria-label', `Reorder ${input.value.trim() || 'group option ' + (index + 1)}`);
         });
     };
     const addGroupOption = (option = {}) => {
         const row = el('div', {'data-group-option': '', class: 'group-option-row'});
-        row.append(hidden('', option.id || 0), el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group choice name'}));
-        row.append(button('↑', event => { if (row.previousElementSibling) row.previousElementSibling.before(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice up'));
-        row.append(button('↓', event => { if (row.nextElementSibling) row.nextElementSibling.after(row); renumberOptions(); event.currentTarget.focus(); }, 'Move group choice down'));
+        const handle = el('button', {type:'button', class:'group-option-drag', 'data-group-drag':'', 'aria-describedby':'group-options-reorder-help'});
+        const icon = $('[data-group-drag-icon]');
+        if (icon) handle.append(icon.content.cloneNode(true)); else handle.textContent = '⋮⋮';
+        row.append(hidden('', option.id || 0), handle, el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group choice name'}));
+        const announce = () => { $('[data-group-order-announcement]').textContent = `${$('input[type=text]', row).value || 'Group option'}, position ${Array.from(groupOptions.children).indexOf(row) + 1}`; };
+        handle.addEventListener('keydown', event => {
+            if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
+            event.preventDefault();
+            if (event.key === 'ArrowUp') row.previousElementSibling?.before(row);
+            else row.nextElementSibling?.after(row);
+            renumberOptions(); handle.focus(); announce();
+        });
+        handle.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.isPrimary === false) return;
+            event.preventDefault(); stopGroupDrag?.(); handle.focus(); row.classList.add('dragging');
+            const pointerId = event.pointerId;
+            let pointerY = event.clientY, frame;
+            const reorder = () => {
+                const next = $$('[data-group-option]', groupOptions).filter(other => other !== row).find(other => {
+                    const rect = other.getBoundingClientRect(); return pointerY < rect.top + rect.height / 2;
+                });
+                if (next && row.nextElementSibling !== next) next.before(row);
+                else if (!next && row.nextElementSibling) groupOptions.append(row);
+                renumberOptions();
+            };
+            const scroll = () => {
+                const bounds = groupDialog.getBoundingClientRect(), before = groupDialog.scrollTop;
+                if (pointerY < bounds.top + 35) groupDialog.scrollTop -= 8;
+                else if (pointerY > bounds.bottom - 35) groupDialog.scrollTop += 8;
+                if (before !== groupDialog.scrollTop) reorder();
+                frame = requestAnimationFrame(scroll);
+            };
+            const move = event => {
+                if (event.pointerId !== pointerId) return;
+                event.preventDefault(); pointerY = event.clientY; reorder();
+            };
+            const finish = event => {
+                if (event?.pointerId != null && event.pointerId !== pointerId) return;
+                cancelAnimationFrame(frame); stopGroupDrag = null; row.classList.remove('dragging');
+                document.removeEventListener('pointermove', move, true); document.removeEventListener('pointerup', finish, true);
+                document.removeEventListener('pointercancel', finish, true); window.removeEventListener('blur', finish);
+                announce(); handle.focus({preventScroll:true});
+            };
+            document.addEventListener('pointermove', move, {capture:true, passive:false});
+            document.addEventListener('pointerup', finish, true); document.addEventListener('pointercancel', finish, true);
+            window.addEventListener('blur', finish); stopGroupDrag = finish; frame = requestAnimationFrame(scroll);
+        });
         const remove = button('×', async () => {
             if (option.id && !(await window.DnrAdminUnlock?.request())) return;
             const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus();
@@ -681,6 +746,8 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         row.append(remove);
         groupOptions.append(row); renumberOptions();
     };
+    groupDialog?.addEventListener('close', () => stopGroupDrag?.());
+    groupOptions?.addEventListener('input', renumberOptions);
     $('[data-add-group-option]')?.addEventListener('click', () => { addGroupOption(); $('[data-group-option]:last-child input[type=text]', groupOptions)?.focus(); });
     $$('[data-group-edit]').forEach(b => b.addEventListener('click', () => {
         const data = JSON.parse(b.dataset.groupEdit), form = $('#group-editor form');

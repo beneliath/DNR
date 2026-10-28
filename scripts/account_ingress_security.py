@@ -53,6 +53,11 @@ def configuration(key, public_url, primary=False, stripped=True):
         if primary:
             # The primary cookie also serves the common login/recovery endpoints.
             lines.append(f'    Header {table} edit Set-Cookie "^({session}=[^;]*;(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
+            # MessageMonkey preference names include account and user identity.
+            # Keep valid sizes usable on both primary root and canonical URLs.
+            # Expired legacy cookies retain their scoped path, so their deletion
+            # cannot remove the newly saved root preference.
+            lines.append(f'    Header {table} edit Set-Cookie "^(dnr_rows_per_page_mm_[a-f0-9]{{24}}=(?:10|25|50|100);(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
             if not stripped:
                 # Legacy root pages must be able to read their non-auth download
                 # acknowledgements. Canonical Account pages keep the scoped path.
