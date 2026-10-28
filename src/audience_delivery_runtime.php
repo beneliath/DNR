@@ -94,14 +94,15 @@ function audienceServiceMailStatus(array $mail,array $events):array
 }
 trait AudienceDeliveryRuntime
 {
-    public function serviceMailActivity():array
+    public function serviceMailActivity(int $size=25,int $offset=0):array
     {
-        $rows=$this->all('SELECT id,kind,actor_label,state,attempts,next_attempt_at,error_message,created_at FROM marketing_service_mail WHERE audience_id=? ORDER BY id DESC LIMIT 25',[$this->audienceId]);
+        $size=audiencePageSize(['per_page'=>$size]);$offset=max(0,$offset);
+        $rows=$this->all('SELECT id,kind,actor_label,state,attempts,next_attempt_at,error_message,created_at FROM marketing_service_mail WHERE audience_id=? ORDER BY id DESC LIMIT ? OFFSET ?',[$this->audienceId,$size,$offset]);
         $events=[];
         if($rows&&$this->inboxAvailable())foreach($this->all('SELECT service_mail_id,event_type,event_at FROM marketing_inbox_delivery_events WHERE audience_id=? AND service_mail_id IN ('.implode(',',array_fill(0,count($rows),'?')).') ORDER BY event_at,id',[$this->audienceId,...array_column($rows,'id')])as$event)$events[$event['service_mail_id']][]=$event;
         foreach($rows as&$row){
             $row['recipient']='';
-            // Read one frozen email at a time: 25 large designs must not all live in memory.
+            // Read one frozen email at a time so large designs never all live in memory.
             $sealed=$this->one('SELECT payload_ciphertext FROM marketing_service_mail WHERE audience_id=? AND id=?',[$this->audienceId,$row['id']])['payload_ciphertext']??'';
             if($sealed!=='')try{
                 $payload=json_decode(\Dnr\Security\ApplicationKey::open($sealed),true,64,JSON_THROW_ON_ERROR);

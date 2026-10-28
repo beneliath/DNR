@@ -71,6 +71,19 @@ try {
         expectBackupCompression(file_get_contents($decrypted['path']) === $data, 'Binary round trip failed.');
     }
 
+    // Keep an exact-boundary fixture reproducible across PHP/zlib builds, and
+    // cover a gzip member whose final DEFLATE block follows a flushed full frame.
+    $boundaryData = '';
+    for ($i = 0; $i < 2048; ++$i) $boundaryData .= hash('sha256', pack('N', $i), true);
+    $deflater = deflate_init(ZLIB_ENCODING_GZIP);
+    $boundaryGzip = deflate_add($deflater, $boundaryData, ZLIB_SYNC_FLUSH)
+        . deflate_add($deflater, '', ZLIB_FINISH);
+    $boundaryArchive = compressionTestEnvelope([$boundaryGzip], $password, "DNRBACKUP-ENC-3\n");
+    $restored = decryptDatabaseBackup($temporary($boundaryArchive), $password, strlen($boundaryData));
+    $paths[] = $restored['path'];
+    expectBackupCompression(file_get_contents($restored['path']) === $boundaryData,
+        'An exact 64 KiB frame with a separate final block must restore.');
+
     // Model the real archive: base64 attachments plus repeated JSON row data.
     $data = base64_encode(random_bytes(1048576)) . str_repeat('{"table":"contacts","values":["MQ==","dGVzdA=="]}' . "\n", 10000);
     $source = $temporary($data);
