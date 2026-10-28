@@ -181,7 +181,11 @@ deliveries/queues referring to discarded tester data are cleared, never replayed
 It verifies data/assets and the demo policy and makes a verified final snapshot
 before resuming the saved services without recreating containers.
 
-The job shares the deployment lock and has its own overlap lock. It upgrades the
+The job shares the deployment lock and has its own overlap lock. It waits up to
+30 minutes for each busy lock, allowing a rehearsal or deployment to finish, and
+then reads the current date, deployment metadata and qualified images. A lock
+timeout is recorded as a failed attempt in `status.json` and the system journal,
+so an earlier success cannot mask a skipped refresh. It upgrades the
 disposable baseline copy using Test Account's frozen qualified migration files,
 then requires the migration ledger and column definitions to match the live schema.
 The live schema/ledger and immutable baseline remain unchanged. Cleanup includes

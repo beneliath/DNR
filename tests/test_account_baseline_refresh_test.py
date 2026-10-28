@@ -1,15 +1,20 @@
 """Date boundaries and cron preservation for the recurring baseline restore."""
 import datetime
+import fcntl
 import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
+import threading
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
-from test_account_baseline_refresh import month_shift,migration_plan,upgrade_staged_schema,check_external_references,report_import_sql,MESSAGE_MONKEY_TABLES,PRESERVE,CLEAR_TABLES
+import test_account_baseline_refresh as refresh_operator
+from test_account_baseline_refresh import wait_for_lock,month_shift,migration_plan,upgrade_staged_schema,check_external_references,report_import_sql,MESSAGE_MONKEY_TABLES,PRESERVE,CLEAR_TABLES
 from install_test_account_refresh_schedule import scheduled_crontab,BEGIN,END
 
 
@@ -104,6 +109,78 @@ class BaselineRefreshTest(unittest.TestCase):
         for invalid in ['NULL','',"5B5D; DELETE FROM users",'123']:
             with patch('test_account_baseline_refresh.query',return_value=invalid):
                 with self.assertRaises(RuntimeError):report_import_sql('stage')
+
+
+class RefreshLockTest(unittest.TestCase):
+    def test_waits_for_a_real_overlap_lock_and_retains_exclusion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'run.lock'
+            with path.open('a') as holder,path.open('a') as waiter:
+                fcntl.flock(holder,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                release=threading.Timer(.05,lambda:fcntl.flock(holder,fcntl.LOCK_UN))
+                release.start()
+                try:
+                    wait_for_lock(waiter,'Fixture overlap lock',timeout=5,poll_interval=.01)
+                    with path.open('a') as probe:
+                        with self.assertRaises(BlockingIOError):fcntl.flock(probe,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                finally:
+                    release.join()
+
+    def test_overlap_timeout_replaces_stale_success_without_running_refresh(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=Path(directory)
+            (state/'status.json').write_text(json.dumps({'ok':True,'completed_at':'2026-10-26T22:04:47+00:00'}))
+            with (state/'run.lock').open('a') as holder:
+                fcntl.flock(holder,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                with patch.object(refresh_operator,'STATE',state),patch.object(refresh_operator,'LOCK_WAIT_SECONDS',0),patch.object(refresh_operator,'refresh') as refresh,patch.object(refresh_operator.signal,'signal'):
+                    with self.assertRaisesRegex(RuntimeError,'Refresh overlap lock remained busy'):
+                        refresh_operator.main(['--apply'])
+                    refresh.assert_not_called()
+            status=json.loads((state/'status.json').read_text())
+            self.assertFalse(status['ok'])
+            self.assertIn('failed_at',status)
+            self.assertIn('no data replaced',status['error'])
+            self.assertNotIn('completed_at',status)
+
+    def test_live_refresh_holds_overlap_lock_until_completion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=Path(directory)
+            def refresh(args):
+                self.assertTrue(args.apply)
+                with (state/'run.lock').open('a') as probe:
+                    with self.assertRaises(BlockingIOError):fcntl.flock(probe,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            with patch.object(refresh_operator,'STATE',state),patch.object(refresh_operator,'refresh',side_effect=refresh),patch.object(refresh_operator.signal,'signal'):
+                refresh_operator.main(['--apply'])
+            self.assertTrue(json.loads((state/'status.json').read_text())['ok'])
+            with (state/'run.lock').open('a') as probe:fcntl.flock(probe,fcntl.LOCK_EX|fcntl.LOCK_NB)
+
+    def test_rehearsal_preserves_live_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=Path(directory);status='{"ok":true,"completed_at":"previous-live-refresh"}'
+            (state/'status.json').write_text(status)
+            with patch.object(refresh_operator,'STATE',state),patch.object(refresh_operator,'refresh'),patch.object(refresh_operator.signal,'signal'):
+                refresh_operator.main([])
+            self.assertEqual((state/'status.json').read_text(),status)
+
+    def test_failure_after_acquiring_lock_is_recorded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state=Path(directory)
+            with patch.object(refresh_operator,'STATE',state),patch.object(refresh_operator,'refresh',side_effect=RuntimeError('Fixture validation failure')),patch.object(refresh_operator.signal,'signal'):
+                with self.assertRaisesRegex(RuntimeError,'Fixture validation failure'):refresh_operator.main(['--apply'])
+            status=json.loads((state/'status.json').read_text())
+            self.assertFalse(status['ok'])
+            self.assertEqual(status['error'],'Fixture validation failure')
+
+    def test_deployment_metadata_is_read_after_waiting_for_lock(self):
+        class StopAfterMetadata(Exception):pass
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'.git/dnr-deploy').mkdir(parents=True)
+            account=root/'var/accounts/test-account';account.mkdir(parents=True)
+            def finish_deployment(lock):
+                (account/'deployment.json').write_text(json.dumps({'account_key':'test-account','project':'moed-account-test-account','mode':'production'}))
+            with patch.object(refresh_operator,'ROOT',root),patch.object(refresh_operator,'deployment_lock',side_effect=finish_deployment) as lock,patch.object(refresh_operator,'query',side_effect=StopAfterMetadata):
+                with self.assertRaises(StopAfterMetadata):refresh_operator.refresh(SimpleNamespace(apply=False,as_of=None))
+                lock.assert_called_once()
 
 
 if __name__=='__main__':unittest.main()
