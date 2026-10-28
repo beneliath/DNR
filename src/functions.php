@@ -2174,11 +2174,11 @@ function actionIconSvg($action)
     static $icons = [
         'view' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>',
         'edit' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>',
-        'duplicate' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
+        'duplicate' => '<svg class="action-icon action-icon-duplicate" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
         'create-email' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M13 19H3V5h18v7M3 5l9 7 9-7M18 15v6M15 18h6"/></svg>',
-        'export-csv' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M14 3H4v18h16V9ZM14 3v6h6M8 17h8M12 10v5m-3-3 3 3 3-3"/></svg>',
+        'export-csv' => '<svg class="action-icon action-icon-export" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M14 3H4v18h16V9ZM14 3v6h6M8 17h8M12 10v5m-3-3 3 3 3-3"/></svg>',
         'plain-text-email' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M14 3H4v18h16V9ZM14 3v6h6M8 13h8M12 13v5M10 18h4"/></svg>',
-        'export-html' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8ZM14 3v5h5M10 12l-3 3 3 3M14 12l3 3-3 3"/></svg>',
+        'export-html' => '<svg class="action-icon action-icon-export" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8ZM14 3v5h5M10 12l-3 3 3 3M14 12l3 3-3 3"/></svg>',
         'rename' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M4 7V4h10v3M9 4v16M6 20h6M17 4h4M19 4v16M17 20h4"/></svg>',
         'folder' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 20V5h6l2 3h10v12ZM8 14h8M13 11l3 3-3 3"/></svg>',
         'extend' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18M12 7v5l-3 2M18 3v8M14 7h8"/></svg>',
@@ -2187,10 +2187,10 @@ function actionIconSvg($action)
         'complete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>',
         'submit' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>',
         'save' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M4 3h14l3 3v15H3V3h1Z"/><path d="M7 3v6h10V3M7 21v-8h10v8M14 3v4"/></svg>',
-        'archive' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M9 12h6"/></svg>',
-        'restore' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+        'archive' => '<svg class="action-icon action-icon-archive" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M9 12h6"/></svg>',
+        'restore' => '<svg class="action-icon action-icon-restore" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
         'pause' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>',
-        'results' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 21V12h4v9Zm7 0V7h4v14Zm7 0V2h4v19Z"/></svg>',
+        'results' => '<svg class="action-icon action-icon-results" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 21V12h4v9Zm7 0V7h4v14Zm7 0V2h4v19Z"/></svg>',
         'delete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></svg>',
     ];
 

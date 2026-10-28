@@ -104,6 +104,11 @@ body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68p
 .audience-app .admin-unlock-banner button{white-space:nowrap}
 .audience-app .action-icon-button{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--audience-text);text-decoration:none;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}
 .audience-app .action-icon-button .action-icon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.audience-app .action-icon-button .action-icon-export{stroke:#f0f}
+.audience-app .action-icon-button .action-icon-archive{stroke:#b026ff}
+.audience-app .action-icon-button .action-icon-results{stroke:#007dff}
+.audience-app .action-icon-button .action-icon-restore{stroke:#39c900}
+.audience-app .action-icon-button .action-icon-duplicate{stroke:#00b8d9}
 .audience-app .action-icon-button:is(:hover,:focus-visible):not(:disabled),.audience-app .audience-account-tools>:is(.audience-admin-unlock-trigger,.audience-theme-trigger,.audience-notification-trigger):is(:hover,:focus-visible):not(:disabled){border-color:var(--audience-action-hover-color);background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color);text-decoration:none}
 .audience-app .action-icon-button:focus-visible{outline:2px solid var(--audience-action-hover-color);outline-offset:2px}
 .audience-app .admin-unlock-countdown{display:flex;align-items:center;justify-self:end;gap:12px}
