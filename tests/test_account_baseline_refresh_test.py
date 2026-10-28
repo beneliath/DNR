@@ -96,6 +96,7 @@ class BaselineRefreshTest(unittest.TestCase):
         self.assertIn('marketing_campaign_recipients',MESSAGE_MONKEY_TABLES)
         self.assertIn('marketing_inbox_attachments',MESSAGE_MONKEY_TABLES)
         self.assertIn('marketing_service_mail',CLEAR_TABLES)
+        self.assertIn('marketing_notification_dismissals',CLEAR_TABLES)
         self.assertIn('marketing_ses_credentials',PRESERVE)
         self.assertFalse(set(PRESERVE)&set(MESSAGE_MONKEY_TABLES+CLEAR_TABLES))
         links='marketing_inbox_attachments\tmarketing_inbox_messages\nmarketing_message_events\tmarketing_campaign_recipients'

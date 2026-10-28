@@ -13,7 +13,7 @@ $icon=static function(string $name)use($h):void{
 $time=static function(string $value,bool $short=false)use($h):void{$iso=str_replace(' ','T',$value).'Z';?><time datetime="<?= $h($iso) ?>" data-inbox-time="<?= $short?'short':'full' ?>" title="<?= $h(formatUserTimestamp($value,'Y-m-d H:i:s')) ?>"><?= $h(formatUserTimestamp($value,$short?'M j, H:i':'Y-m-d H:i:s')) ?></time><?php };
 $filtered=!empty($list['q'])||!empty($list['label'])||!empty($list['source'])||!empty($list['unread']);
 ?>
-<body class="audience-app audience-inbox-app" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app audience-inbox-app" data-mm-workspace="inbox" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php';include __DIR__.'/../account-identity-banner.php';include __DIR__.'/../role-preview-banner.php';include __DIR__.'/../admin-unlock-banner.php'; ?>
 <a class="audience-skip" href="#inbox-main">Skip to Inbox</a>
 <header class="inbox-top"><a class="inbox-back" href="audience.php" aria-label="Back to Audience">←</a><a class="audience-logo-wrap" href="audience.php?view=home" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><div class="inbox-brand"><strong>Inbox</strong><span>Audience conversations</span></div><button type="button" class="inbox-mobile-nav" aria-controls="inbox-sidebar" aria-expanded="false">Menu</button><span class="inbox-top-spacer"></span><?php include __DIR__.'/account-tools.php'; ?></header>
@@ -75,4 +75,4 @@ $filtered=!empty($list['q'])||!empty($list['label'])||!empty($list['source'])||!
 <p id="inbox-link-error" class="dialog-inline-error" role="alert" hidden>Enter an HTTP, HTTPS, or email link without spaces.</p>
 <div class="confirmation-dialog-actions"><button type="button" data-inbox-dialog-cancel class="button-secondary">Cancel</button><button class="save-button" value="continue">Continue</button></div></form></dialog>
 <?php include __DIR__.'/../admin-unlock-dialog.php'; ?>
-<form hidden id="inbox-csrf"><?= $csrf ?></form><script type="application/json" id="inbox-config"><?= json_encode($config,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><script type="application/json" id="inbox-templates"><?= json_encode($templates,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script></body>
+<form hidden id="inbox-csrf"><?= $csrf ?></form><script type="application/json" id="inbox-config"><?= json_encode($config,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><script type="application/json" id="inbox-templates"><?= json_encode($templates,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script><?php include __DIR__.'/mobile-navigation.php'; ?></body>

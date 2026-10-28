@@ -44,6 +44,9 @@ inbound_email_quarantine inbound_mail_reconciliation notification_outbox'''.spli
 # These inbox records are scoped to inbound mail that the refresh replaces. They
 # must not retain stale references or make old mail look newly received/routed.
 CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
+# Dismissals refer to discarded notification identities; never carry them into
+# the refreshed examples, where numeric record IDs may be reused.
+CLEAR_TABLES += ['marketing_notification_dismissals']
 CLEAR_TABLES += """marketing_jobs marketing_job_items marketing_deleted_emails marketing_email_optouts
 marketing_service_mail marketing_consent_challenges marketing_collection_limits marketing_delivery_setup_jobs
 marketing_inbox_notifications marketing_inbox_delivery_events marketing_inbox_preferences marketing_inbox_optout_tokens

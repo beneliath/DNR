@@ -1,4 +1,4 @@
-<body class="audience-app email-designer" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app email-designer" data-mm-workspace="designer" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>
@@ -25,4 +25,4 @@
 <script type="application/json" id="designer-config"><?= json_encode($designerConfig,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
 <dialog id="design-ai-dialog" class="ai-inline-dialog" aria-labelledby="design-ai-title"><header><h2 id="design-ai-title">Write with AI</h2><button type="button" data-design-close aria-label="Close writing assistant">×</button></header><?php include __DIR__.'/ai-panel.php'; ?></dialog>
 <?php include __DIR__.'/../admin-unlock-dialog.php'; ?>
-</body>
+<?php include __DIR__.'/mobile-navigation.php'; ?></body>

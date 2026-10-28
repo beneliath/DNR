@@ -55,6 +55,16 @@ module.exports = fixture => {
  add('template-filters','view=templates',[{selector:'[data-template-all-filters]'}]);
  add('template-list','view=templates',[{selector:'[data-template-layout="list"]'},{selector:'.template-card',first:true,op:'scroll'}]);
  add('template-card','view=templates',[{selector:'[data-template-layout="grid"]'},{selector:'.template-card',first:true,op:'scroll'}]);
+ add('mobile-more','view=home',[{selector:'[data-mm-menu-open]'}],{mobileOnly:true});
+ add('mobile-counts','view=contacts',[{selector:'.mm-mobile-counts-toggle'}],{mobileOnly:true});
+ add('mobile-record-details','view=contacts',[{selector:'.mm-mobile-details-toggle',first:true}],{mobileOnly:true});
+ add('mobile-template-actions','view=templates',[{selector:'.mm-mobile-action-toggle',first:true}],{mobileOnly:true});
+ add('mobile-email-preview','view=templates',[{selector:'.mm-mobile-preview-button',first:true}],{mobileOnly:true});
+ add('mobile-form-preview','view=form&id='+f.collections.hosted,[{selector:'.mm-mobile-editor-switch button:has-text("Preview")'}],{mobileOnly:true});
+ add('manual-statuses','view=manual',[{selector:'#manual-subscription-status',op:'scroll'}]);
+ for(const view of ['contacts','campaigns','templates','forms','automations'])add(view+'-archived','view='+view+(view==='contacts'?'&archived=1':view==='templates'?'&tab=archived':'&trash=1'));
+ for(const view of ['contacts','campaigns','templates','content'])add(view+'-empty','view='+view+'&q=no-fixture-record-matches');
+ add('form-type-dialog','view=forms',[{selector:'[data-open-dialog="collection-create"]'}]);
  add('designer-preview-menu','view=designer&kind=campaign&id='+f.campaigns.newsletter,[{selector:'.designer-save-menu:has(#design-preview) > summary'}]);
  add('designer-template-menu','view=designer&kind=campaign&id='+f.campaigns.newsletter,[{selector:'.designer-save-menu:has(#design-change) > summary'}]);
  add('designer-text','view=designer&kind=campaign&id='+f.campaigns.newsletter,[{selector:'.designer-block:has([data-email-text])',first:true}]);

@@ -789,7 +789,7 @@ button.marketing-info{min-height:0;padding:0;background:transparent;color:var(--
 .audience-sidebar-collapsed .audience-sidebar-footer .audience-return{font-size:calc(20px * var(--audience-font-scale, 1));padding:8px}
 .audience-sidebar-collapsed .audience-sidebar-toggle{margin:0}
 }
-@media(max-width:860px){
+@media(max-width:860px),(max-width:1024px) and (hover:none) and (pointer:coarse){
 .audience-topbar{height:auto;min-height:68px;flex-wrap:wrap;padding:8px 12px;gap:8px}
 .audience-topbar .audience-brand{min-width:0;flex:1;gap:8px}
 .audience-topbar .audience-global-search{order:3;width:100%;max-width:none;margin:0}
