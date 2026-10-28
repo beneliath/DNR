@@ -146,7 +146,8 @@ final class AudienceStore
             if ($previous && (int)$previous['version'] !== $version) throw new InvalidArgumentException('This connection changed. Reload before saving.');
             $data = audienceContactInput(array_replace($input,['tags'=>'','notes'=>'']));
             audienceRequireConsent($data,$previous);
-            if ($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,hash('sha256',$data['email'])])) throw new InvalidArgumentException('This address was permanently deleted and cannot be added again.');
+            if ($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,hash('sha256',$data['email'])])
+                && ($origin==='Import'||!$previous||audienceDeletedEmailSuppressed($this->db,$this->audienceId,(int)$previous['id'],hash('sha256',$data['email'])))) throw new InvalidArgumentException('This address was permanently deleted. It can only resubscribe through a signup form and email confirmation.');
             $customInput = $input['custom'] ?? [];
             if (!is_array($customInput)) throw new InvalidArgumentException('Invalid audience fields.');
             $custom = [];
@@ -198,7 +199,8 @@ final class AudienceStore
                 $status=!empty($input['email_consent'])?'subscribed':($person['email_status']==='subscribed'?'unsubscribed':$person['email_status']);
                 $data=audienceContactInput(['email'=>audienceText($input,'email',254),'email_status'=>$status,'consent_note'=>audienceText($input,'consent_note',1000)]);
                 audienceRequireConsent($data,$person);
-                if ($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,hash('sha256',$data['email'])])) throw new InvalidArgumentException('This address was permanently deleted and cannot be added again.');
+                if ($this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,hash('sha256',$data['email'])])
+                    && audienceDeletedEmailSuppressed($this->db,$this->audienceId,$id,hash('sha256',$data['email']))) throw new InvalidArgumentException('This address was permanently deleted. It can only resubscribe through a signup form and email confirmation.');
                 $this->write('UPDATE marketing_contacts SET email=?,email_status=?,version=version+1 WHERE id=? AND audience_id=?',[$data['email'],$status,$id,$this->audienceId]);
                 $detail+=['email'=>$data['email'],'status'=>$status,'consent_note'=>$data['consent_note']];
                 if ($person['email_status']!==$status) $this->event($id,'subscription_changed',['from'=>$person['email_status'],'to'=>$status,'consent_note'=>$data['consent_note']]);

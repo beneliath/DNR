@@ -23,6 +23,13 @@ paginationExpect(audienceRememberPageSizes([],'contacts',31)===[],'Unchosen defa
 audienceRememberPageSizes(['per_page'=>'25'],'contacts',31);
 audienceRememberPageSizes(['segment_size'=>'10'],'segments',31);
 paginationExpect(audienceRememberPageSizes([],'contacts',31)['per_page']===25,'Connections restores its own choice');
+paginationExpect(audienceRememberPageSizes(['per_page'=>50,'page_size_change'=>'per_page'],'contacts',31)===['per_page'=>50],'The page size selector updates the remembered choice without leaking its marker');
+foreach([['status'=>['pending']],['status'=>['unsubscribed']],['status'=>['subscribed','non-subscribed']],['archived'=>'1'],['q'=>'example'],['tags'=>['7']],['source'=>['type:form']],['segment'=>3],['rules'=>'{"match":"all","rules":[]}']]as$filter){
+ $remembered=audienceRememberPageSizes($filter+['per_page'=>25],'contacts',31);
+ paginationExpect($remembered['per_page']===50&&array_intersect_key($remembered,$filter)===$filter,'Every filter permutation retains the selected size despite stale link parameters');
+}
+paginationExpect(audienceRememberPageSizes(['per_page'=>100,'page_size_change'=>'per_page'],'contacts',31)['per_page']===100&&audienceRememberPageSizes([],'contacts',31)['per_page']===100,'A later explicit selection replaces the preference');
+paginationExpect(audienceRememberPageSizes(['per_page'=>20,'page_size_change'=>'per_page'],'contacts',31)['per_page']===100,'An invalid explicit selection cannot erase the preference');
 paginationExpect(audienceRememberPageSizes([],'segments',31)['segment_size']===10,'Segments restores a separate choice');
 paginationExpect(audienceRememberPageSizes([],'segments',32)===[],'Users do not share list preferences');
 audienceRememberPageSizes(['activity_size'=>'50'],'contact',31);

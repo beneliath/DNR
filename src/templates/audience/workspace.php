@@ -8,7 +8,7 @@ function audienceFieldControl(array $field,mixed $value):void{
         if(is_string($value)&&substr_count($value,"\n")>5){
             echo '<label for="'.$fid.'">'.$h($field['label']).'</label><textarea id="'.$fid.'" name="'.$name.'" rows="6"'.($field['required']?' required':'').'>'.$h($value).'</textarea><p class="audience-help">Original imported address formatting is preserved.</p>';return;
         }
-        $parts=is_array($value)?$value:array_combine(['address1','address2','city','region','postal_code','country'],array_pad(explode("\n",str_replace("\r",'',(string)$value),6),6,''));
+        $parts=audienceAddressParts($value);
         echo '<fieldset class="address-fields"><legend>'.$h($field['label']).($field['required']?' *':'').'</legend><div class="form-grid">';
         foreach(['address1'=>'Street Address','address2'=>'Address Line 2','city'=>'City','region'=>'State/Prov/Region','postal_code'=>'Postal/Zip','country'=>'Country']as$key=>$label){
             echo '<div'.(in_array($key,['address1','address2'],true)?' class="span-two"':'').'><label for="'.$fid.'-'.$key.'">'.$label.'</label><input id="'.$fid.'-'.$key.'" name="'.$name.'['.$key.']" value="'.$h($parts[$key]??'').'" maxlength="300"'.($key==='address1'&&$field['required']?' required':'').'></div>';
@@ -56,7 +56,7 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode'.(($resource['kind']??'')==='embedded'?' audience-embedded-editor-mode':''):'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>
@@ -133,7 +133,7 @@ if(in_array($view,['home','analytics'],true)){
     <?php if($error!==''): ?><p class="audience-notice error" role="alert" tabindex="-1" data-operation-error><?= $h($error) ?></p><?php endif; ?>
     <?php include __DIR__.'/'.match($view){'manual'=>'manual.php','assistant'=>'ai.php','home'=>'analytics.php','analytics'=>'analytics-dashboard.php','automations','flow','flow-templates','flow-report'=>'flows.php','forms','form','form-settings','landing-pages','surveys','collection-report','preferences','collection-create'=>'collection.php','templates'=>'email-templates.php','campaigns','campaign'=>'campaigns.php','campaign-manager','campaign-plan'=>'campaign-manager.php','campaign-review'=>'campaign-review.php','campaign-send','campaign-delivery'=>'campaign-delivery.php','content','brand'=>'content.php','delivery'=>'delivery-setup.php','contact'=>'person.php','tags','groups','fields','settings'=>'manage.php','segments'=>'segments.php','import','jobs','job'=>'imports.php',default=>'people.php'}; ?>
     </div>
-    <?php if (!$isAiAnalytics&&!$isAiWriting) include __DIR__ . '/../app-footer.php'; ?>
+    <?php if (!$isAiAnalytics&&!$isAiWriting&&!in_array($view,['form','contacts'],true)) include __DIR__ . '/../app-footer.php'; ?>
 </main>
 <?php include __DIR__.'/search.php'; ?>
 <?php if($canManage&&!in_array($view,['home','analytics','assistant','manual'],true)&&!$isCampaignView&&!$isContentView&&!$isCollectionView&&!$isFlowView)include __DIR__.'/dialogs.php'; ?>

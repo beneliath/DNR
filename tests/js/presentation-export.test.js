@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(require.resolve('../../src/assets/js/page-actions.js'), 'utf8');
+const source = require('./helpers/page-actions.js');
 
 function fixture({ secure = true, fail = false, firstData } = {}) {
     const copied = [];

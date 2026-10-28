@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(require.resolve("../../src/assets/js/page-actions.js"), "utf8");
+const source = require("./helpers/page-actions.js");
 
 function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initialize = true } = {}) {
     const nodes = new Map();

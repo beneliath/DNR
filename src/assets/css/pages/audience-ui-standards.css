@@ -35,10 +35,10 @@ html:not(.dark-mode) .audience-app .mm-duplicate-action:is(:hover,:focus-visible
 .audience-app .mm-clear-all:is(:hover,:focus-visible){color:var(--audience-link);text-decoration:underline}
 .audience-app :has(>.mm-clear-all){column-gap:14px}
 @keyframes mm-control-outline-blink{0%,100%{outline-color:transparent}50%{outline-color:var(--mm-outline-color,var(--audience-primary))}}
-.audience-app :is(.content-filter-apply-reminder,.mm-search-pending,.audience-count-pill.is-selected){outline:3px solid var(--mm-outline-color,var(--audience-primary));outline-offset:3px;animation:mm-control-outline-blink 1.2s ease-in-out infinite}
-.audience-app .audience-count-pill.is-selected{--mm-outline-color:color-mix(in srgb,var(--audience-primary) 50%,white);animation-duration:2.4s}
+.audience-app :is(.content-filter-apply-reminder,.mm-search-pending,.audience-count-pill.is-selected,.audience-matching-count.is-aggregate){outline:3px solid var(--mm-outline-color,var(--audience-primary));outline-offset:3px;animation:mm-control-outline-blink 1.2s ease-in-out infinite}
+.audience-app :is(.audience-count-pill.is-selected,.audience-matching-count.is-aggregate){--mm-outline-color:color-mix(in srgb,var(--audience-primary) 50%,white);animation-duration:2.4s}
 .audience-app :is(.content-filter-apply-reminder,.mm-search-pending):focus-visible{animation:none}
-@media(prefers-reduced-motion:reduce){.audience-app :is(.content-filter-apply-reminder,.mm-search-pending,.audience-count-pill.is-selected){animation:none}}
+@media(prefers-reduced-motion:reduce){.audience-app :is(.content-filter-apply-reminder,.mm-search-pending,.audience-count-pill.is-selected,.audience-matching-count.is-aggregate){animation:none}}
 .audience-app :is(dialog,[role=dialog]) :is(header,.dialog-heading) :is(button[aria-label^="Close"],button[aria-label^="close"],button[data-design-close],button[data-close-dialog]):not(.primary){box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;margin:0;border:1px solid var(--audience-control-border)!important;border-radius:8px!important;background:var(--audience-surface);color:var(--audience-text);font-size:26px;line-height:1}
 .audience-app .mm-filter-group{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;max-width:100%;margin:0}
 .audience-app .mm-filter-label{font-size:calc(13px * var(--audience-font-scale,1));font-weight:500;margin-right:4px}

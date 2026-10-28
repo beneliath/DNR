@@ -33,7 +33,7 @@ $noticeSes=$campaignStore->one('SELECT * FROM marketing_ses_settings WHERE audie
 $campaignStore->write('UPDATE marketing_ses_settings SET enabled=1 WHERE audience_id=1');
 $noticeQueued=queueAudienceChangeAlerts($conn,500);
 audienceHttpExpect($noticeQueued===2&&queueAudienceChangeAlerts($conn,500)===0,'Individual alerts queue once despite repeated worker passes');
-$noticeJobs=$campaignStore->all("SELECT * FROM marketing_service_mail WHERE kind='audience-alert' ORDER BY id");
+$noticeJobs=$campaignStore->all("SELECT * FROM marketing_service_mail WHERE kind='audience-alert' AND actor_id=? ORDER BY id",[$noticeUser]);
 $noticeMessage=audienceJson(\Dnr\Security\ApplicationKey::open($noticeJobs[0]['payload_ciphertext']))['message'];
 audienceChangeAlertReady($conn,$noticeMessage);
 audienceHttpExpect($noticeMessage['email']===$noticeEmail&&!str_contains($noticeMessage['text'],'notice-person@example.test'),'Staff alert contains a scoped profile link without copying contact details');
@@ -41,9 +41,9 @@ $campaignStore->write('UPDATE users SET email_verified_at=NULL WHERE id=?',[$not
 $noticeRejected=false;try{audienceChangeAlertReady($conn,$noticeMessage);}catch(DomainException){$noticeRejected=true;}
 audienceHttpExpect($noticeRejected,'Dispatch rechecks staff verification');
 $campaignStore->write('UPDATE users SET email_verified_at=UTC_TIMESTAMP() WHERE id=?',[$noticeUser]);
-$clockTomorrow=time()+86400;$digest=audienceNotificationDigest($conn,1,$noticePrefs,$clockTomorrow);
+$clockTomorrow=(new DateTimeImmutable(gmdate('Y-m-d').' 23:11:00',new DateTimeZone('America/Chicago')))->getTimestamp();$digest=audienceNotificationDigest($conn,1,$noticePrefs,$clockTomorrow);
 audienceHttpExpect($digest===['signup'=>1,'unsubscribe'=>1],'Daily digest counts observed changes once and ignores imports');
-audienceHttpExpect(queueAudienceChangeAlerts($conn,500,$clockTomorrow)===1&&queueAudienceChangeAlerts($conn,500,$clockTomorrow)===0,'One daily summary per staff recipient and UTC day');
+audienceHttpExpect(queueAudienceChangeAlerts($conn,500,$clockTomorrow)===1&&queueAudienceChangeAlerts($conn,500,$clockTomorrow)===0,'One daily summary per staff recipient at the Chicago send time');
 $noticeChanged=$noticeDefaults;$noticeChanged['signup_emails']='';$campaignStore->saveAudienceDefaults($noticeChanged,$noticeVersion());
 $noticeRejected=false;try{audienceChangeAlertReady($conn,$noticeMessage);}catch(DomainException){$noticeRejected=true;}
 audienceHttpExpect($noticeRejected,'Changing notification preferences revokes queued alerts');

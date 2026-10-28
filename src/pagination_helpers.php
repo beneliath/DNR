@@ -74,21 +74,31 @@ function paginationPageSize(mixed $value, int $default = 20, array $allowed = [2
  * The key identifies a page and, where needed, a particular list on that page.
  * @param list<int> $allowed
  */
-function paginationPageSizePreference(string $key, mixed $value, int $default = 20, array $allowed = [20, 50, 100]): int {
+function paginationPageSizePreference(string $key, mixed $value, int $default = 20, array $allowed = [20, 50, 100], ?string $cookie_path = null): int {
     $cookie_name = 'dnr_rows_per_page_' . $key;
     $remembered_size = paginationPageSize($_COOKIE[$cookie_name] ?? null, $default, $allowed);
     $requested_size = paginationPageSize($value, 0, $allowed);
+    $legacy_path = accountCookiePath();
+    $path = $cookie_path ?? $legacy_path;
+    $migrate_path = $path !== $legacy_path && paginationPageSize($_COOKIE[$cookie_name] ?? null, 0, $allowed) > 0;
     if ($requested_size === 0) {
-        return $remembered_size;
+        if (!$migrate_path) return $remembered_size;
+        $requested_size = $remembered_size;
     }
 
-    if (($_COOKIE[$cookie_name] ?? null) !== (string) $requested_size && !headers_sent()) {
+    if ((($_COOKIE[$cookie_name] ?? null) !== (string) $requested_size || $path !== $legacy_path) && !headers_sent()) {
         setcookie($cookie_name, (string) $requested_size, [
             'expires' => time() + 365 * 86400,
-            'path' => accountCookiePath(),
+            'path' => $path,
             'secure' => requestUsesHttps() || applicationRequiresHttps(),
             'httponly' => true,
             'samesite' => 'Lax',
+        ]);
+        // Remove the old narrower cookie so it cannot override the new value.
+        if ($path !== $legacy_path) setcookie($cookie_name, '', [
+            'expires' => time() - 3600, 'path' => $legacy_path,
+            'secure' => requestUsesHttps() || applicationRequiresHttps(),
+            'httponly' => true, 'samesite' => 'Lax',
         ]);
         $_COOKIE[$cookie_name] = (string) $requested_size;
     }

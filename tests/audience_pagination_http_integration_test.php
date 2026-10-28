@@ -48,13 +48,24 @@ try{
   ['Conversation messages',['view'=>'inbox','thread'=>$thread],'Conversation message pages','message_page','message_size',null],
  ];
  foreach($cases as[$name,$params,$label,$pageKey,$sizeKey,$rows])foreach([10,50]as$size){
-  $response=$client('audience.php?'.http_build_query($params+[$sizeKey=>$size,$pageKey=>2]));paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),$name.' renders page size '.$size.' without runtime errors');
+  $response=$client('audience.php?'.http_build_query($params+[$sizeKey=>$size,$pageKey=>2,'page_size_change'=>$sizeKey]));paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),$name.' renders page size '.$size.' without runtime errors');
   if(getenv('DNR_PAGINATION_CAPTURE')==='1'&&$size===50){$folder='/tmp/mm-pagination-review';if(!is_dir($folder))mkdir($folder,0700);file_put_contents($folder.'/'.strtolower(str_replace(' ','-',$name)).'.html',$response['body']);}
   $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);$nav=$xpath->query('//nav[@data-mm-pagination and @aria-label="'.$label.'"]')->item(0);paginationHttpExpect($nav!==null,$name.' uses the shared pager');
   $range=$xpath->query('.//*[@class="mm-pagination-range"]',$nav)->item(0)->textContent;$expectedTotal=$name==='Export history'?$exportHistoryTotal:70;$expectedRange=($size+1).'–'.min($size*2,$expectedTotal).' of '.$expectedTotal;paginationHttpExpect(trim($range)===$expectedRange,$name.' reflects the actual requested slice: '.$range);
   if($rows!==null)paginationHttpExpect($xpath->query($rows)->length===($size===10?10:20),$name.' query returns the requested number of records');
   foreach($xpath->query('.//a',$nav)as$link){parse_str(parse_url($link->getAttribute('href'),PHP_URL_QUERY),$query);foreach($params as$key=>$value)paginationHttpExpect((string)($query[$key]??'')===(string)$value,$name.' retains '.$key);}
  }
+ foreach([['q'=>$prefix,'status'=>['non-subscribed'],'per_page'=>10],['q'=>$prefix,'archived'=>'1','per_page'=>25],['q'=>$prefix,'per_page'=>100],[]]as$filter){
+  $response=$client('audience.php?'.http_build_query($filter));paginationHttpExpect($response['status']===200,'Connections filter renders with its remembered page size');
+  $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);
+  $selected=$xpath->query('//nav[@aria-label="Connection pages"]//select[@data-mm-page-size]/option[@selected]')->item(0);
+  paginationHttpExpect($selected!==null&&$selected->getAttribute('value')==='50','Connections keeps the selected size across filters, archived views, stale links and return visits');
+ }
+ $changed=$client('audience.php?'.http_build_query(['q'=>$prefix,'per_page'=>100,'page_size_change'=>'per_page']));
+ paginationHttpExpect($changed['status']===200,'A later explicit size selection renders');
+ $again=$client('audience.php?'.http_build_query(['q'=>$prefix,'per_page'=>25,'status'=>['non-subscribed']]));
+ $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$again['body']);$xpath=new DOMXPath($dom);
+ paginationHttpExpect($xpath->query('//nav[@aria-label="Connection pages"]//select[@data-mm-page-size]/option[@selected and @value="100"]')->length===1,'A later selector change replaces the remembered size');
  foreach([10,50]as$size){
   $response=$client('audience.php?'.http_build_query(['view'=>'inbox','q'=>$prefix,'per_page'=>$size,'page'=>2]));
   paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),'Continuous conversation list renders without runtime errors');

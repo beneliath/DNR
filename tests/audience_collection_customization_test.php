@@ -1,11 +1,33 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/../src/functions.php';
 require_once __DIR__.'/../src/audience_store.php';
 require_once __DIR__.'/../src/audience_collection_render.php';
-function contentSecurityPolicyNonce():string{return 'collectionTestNonce123456';}
 $checks=0;
 $expect=static function(bool $ok,string $label)use(&$checks):void{if(!$ok)throw new RuntimeException($label);++$checks;};
 $reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Invalid document rejected');return;}throw new RuntimeException('Expected rejection');};
+$organization=['name'=>'Example connections','settings_json'=>json_encode(['brand'=>['name'=>'Example & Partners']])];
+foreach([audienceCollectionDefaults('hosted')['system']['confirm_intro'],'Confirm that you want to receive emails from this audience.']as$intro){
+    $intro=audienceCollectionConfirmationIntro($intro,$organization);
+    $expect($intro==='Confirm that you want to receive emails from Example & Partners.','Confirmation copy uses the organization name for new and existing saved defaults');
+    $confirmation=audienceCollectionDefaults('hosted');$confirmation['intro']=$intro;$confirmation['fields']=$confirmation['group_ids']=$confirmation['sections']=$confirmation['quiz']=[];
+    foreach([false,true]as$preview){
+        $confirmationHtml=audienceCollectionHtml(['kind'=>'confirm','document'=>$confirmation],[],[],'','',[],'','',null,$preview);
+        $expect(str_contains($confirmationHtml,'emails from Example &amp; Partners.')&&!str_contains($confirmationHtml,'*|LIST:COMPANY|*'),'Organization names are escaped in public and preview confirmation pages');
+        $expect(!str_contains($confirmationHtml,'<script'),'Confirmation pages remain script-free under their strict security policy');
+    }
+}
+$expect(audienceCollectionConfirmationIntro('Please confirm your signup.',$organization)==='Please confirm your signup.','Custom confirmation copy is preserved');
+$expect(audienceCollectionConfirmationIntro('Confirm for *|LIST:COMPANY|*.',$organization)==='Confirm for Example & Partners.','Custom confirmation copy can use the shared organization merge tag');
+$expect(audienceCollectionConfirmationIntro(audienceCollectionDefaults('hosted')['system']['confirm_intro'],['name'=>'Fallback organization','settings_json'=>'{}'])==='Confirm that you want to receive emails from Fallback organization.','Confirmation identity uses the same fallback as confirmation emails');
+foreach(AUDIENCE_COLLECTION_KINDS as$kind){
+    $blank=audienceCollectionDefaults($kind);$blank['title']='   ';
+    $blank=audienceCollectionDocument($blank,$kind,[],[],[]);
+    $expect($blank['title']==='','A blank heading stays empty when saving '.$kind);
+    $expect(audienceCollectionDocument($blank,$kind,[],[],[])['title']==='','A blank heading survives reloading '.$kind);
+    foreach([false,true]as$preview)$expect(!str_contains(audienceCollectionHtml(['kind'=>$kind,'document'=>$blank],[],[],'','',[],'','',null,$preview),'<h1>'),'Blank headings render without fallback text in '.$kind);
+    foreach(['button','thanks','permission']as$key)$reject(fn()=>audienceCollectionDocument(array_replace($blank,[$key=>'']),$kind,[],[],[]));
+}
 $doc=audienceCollectionDefaults('hosted');
 $doc['language']='he';$doc['messages']['error_title']='בדקו את התשובה';$doc['messages']['invalid']='נא למלא את השדות';
 $doc['advanced']=['enabled'=>true,'pages'=>['signup'=>'<section style="padding:20px" onclick="bad()"><script>bad()</script><h2>{{title}}</h2>{{message}}{{form}}</section>']];
@@ -20,14 +42,31 @@ $livePreview=audienceCollectionHtml($resource,[],[],'','',[],'','',null,true,'',
 preg_match_all('/<style nonce="([^"]+)"/',$livePreview,$previewStyles);
 $expect(count($previewStyles[1])>=2&&array_unique($previewStyles[1])===[$editorNonce],'AJAX preview and custom layout CSS use the containing editor nonce');
 $public=audienceCollectionHtml($resource,[],[],'','',[],'','',null,false,'',$editorNonce);
-$expect(str_contains($public,'nonce="collectionTestNonce123456"')&&!str_contains($public,$editorNonce),'Public rendering keeps its own response nonce');
+$expect(str_contains($public,'nonce="'.contentSecurityPolicyNonce().'"')&&!str_contains($public,$editorNonce),'Public rendering keeps its own response nonce');
 $reject(fn()=>audienceCollectionHtml($resource,[],[],'','',[],'','',null,true,'','invalid" nonce'));
 $expect(str_contains($livePreview,'class="trap" hidden aria-hidden="true"'),'The spam trap stays hidden even if preview CSS fails');
 $expect(str_contains($html,'dir="rtl"')&&str_contains($html,'בדקו את התשובה'),'Language and translated error heading reach the public page');
 $expect(str_contains($html,'נא למלא את השדות')&&!str_contains($html,'Original internal validation'),'Public error copy is editable without leaking internal errors');
+foreach(AUDIENCE_COLLECTION_KINDS as$kind){
+    $rateDoc=audienceCollectionDefaults($kind);
+    foreach(['confirmation_limit','confirmation_wait','rate_limit']as$key){
+        $exception=new AudienceRateLimitException($key,'Internal detail: private@example.invalid');
+        $limited=audienceCollectionHtml(['kind'=>$kind,'document'=>$rateDoc],[],[],'','',[],$exception);
+        $expect(str_contains($limited,$rateDoc['messages'][$key])&&!str_contains($limited,$rateDoc['messages']['invalid']),'Rate limits display their own public guidance in '.$kind);
+        $expect(!str_contains($limited,'private@example.invalid'),'Rate-limit guidance never exposes exception details in '.$kind);
+    }
+}
+$rateDoc=audienceCollectionDefaults('embedded');$rateDoc['messages']['confirmation_limit']='Retry later <b>please</b>';
+$translated=audienceCollectionHtml(['kind'=>'embedded','document'=>$rateDoc],[],[],'','',[],new AudienceRateLimitException('confirmation_limit','Private internal error'));
+$expect(str_contains($translated,'Retry later &lt;b&gt;please&lt;/b&gt;')&&!str_contains($translated,'<b>please</b>'),'Rate-limit messages remain editable and escaped');
+foreach([new InvalidArgumentException('Private internal error'),new AudienceRateLimitException('unsupported','Private internal error')]as$exception){
+    $masked=audienceCollectionHtml(['kind'=>'embedded','document'=>$rateDoc],[],[],'','',[],$exception);
+    $expect(str_contains($masked,$rateDoc['messages']['invalid'])&&!str_contains($masked,'Private internal error'),'Unclassified errors retain the generic safe message');
+}
 $expect(str_contains($html,'sealed-proof')&&str_contains($html,'action="/native-action"')&&str_contains($html,'name="permission"'),'Custom layouts retain native proof, destination and explicit permission');
-$expect(str_contains($html,'button:hover,.button:hover{filter:brightness(.9);text-decoration:none}')&&str_contains($html,'button:focus-visible,a:focus-visible{outline:3px solid #007c89')&&str_contains($html,'nonce="collectionTestNonce123456"'),'Public controls retain visible hover and keyboard focus in nonce-scoped styles');
-$expect(!str_contains($html,'<script')&&!str_contains($html,'rel="stylesheet"'),'Branded public forms and previews do not load MOED shell scripts or styles');
+$expect(str_contains($html,'button:hover,.button:hover{filter:brightness(.9);text-decoration:none}')&&str_contains($html,'button:focus-visible,a:focus-visible{outline:3px solid #007c89')&&str_contains($html,'nonce="'.contentSecurityPolicyNonce().'"'),'Public controls retain visible hover and keyboard focus in nonce-scoped styles');
+$expect(str_contains($html,'assets/js/audience-collection-public.min.js')&&!str_contains($html,'assets/js/audience.min.js')&&!str_contains($html,'rel="stylesheet"'),'Branded public forms use their dedicated behavior without loading MOED shell assets');
+$expect(!str_contains($livePreview,'<script'),'Editor previews remain script-free');
 $expect(str_contains($html,'appearance:none')&&str_contains($html,'select:dir(rtl)'),'Branded forms share native dropdown sizing and right-to-left arrow placement');
 $expect(!str_contains($html,' style="')&&str_contains($html,'padding:20px'),'Custom CSS is nonce authorized');
 $preview=audienceCollectionHtml($resource,[],[],'','',[],'','',null,true);

@@ -347,3 +347,9 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
   body.email-designer{height:auto;overflow:auto}
   body.audience-app.email-designer .designer-workspace{height:auto;grid-template-rows:300px 360px}
 }
+
+.designer-row:focus-within>.designer-layout-tools{display:flex}
+.designer-block:focus-within>.designer-block-hover-tools{display:flex}
+.designer-layout-tools .mm-reorder-handle{min-width:28px;min-height:32px}
+.designer-layout-tools .mm-reorder-handle svg{width:18px;height:22px}
+.designer-block-actions .mm-reorder-handle{border:1px solid var(--audience-border)}

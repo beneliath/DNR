@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/../src/functions.php';
 require_once __DIR__.'/../src/audience_store.php';
 require_once __DIR__.'/../src/audience_collection_render.php';
-function contentSecurityPolicyNonce():string{return 'embeddedTestNonce123456789';}
 $checks=0;
 $expect=static function(bool $ok,string $label)use(&$checks):void{if(!$ok)throw new RuntimeException($label);++$checks;};
 $reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Invalid settings rejected');return;}throw new RuntimeException('Expected rejection');};

@@ -59,7 +59,7 @@ trait AudienceInboxCompose
         if(!$person)$reasons[]='Link this sender to a subscribed connection before sending.';
         elseif($person['is_archived']||$person['email_status']!=='subscribed')$reasons[]='This connection is archived, cleaned, or is not subscribed to email.';
         if($person){$hash=hash('sha256',strtolower($person['email']));
-            if($this->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash])||$this->one('SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]))$reasons[]='This address is suppressed from receiving email.';
+            if($this->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash])||audienceDeletedEmailSuppressed($this->db,$this->audienceId,(int)$person['id'],$hash))$reasons[]='This address is suppressed from receiving email.';
             $preference=$this->one('SELECT optout_at,last_inbound_at FROM marketing_inbox_preferences WHERE audience_id=? AND email_hash=?',[$this->audienceId,$hash]);
             if($preference&&$preference['optout_at']&&(!$preference['last_inbound_at']||$preference['last_inbound_at']<=$preference['optout_at']))$reasons[]='This connection opted out of one-to-one Inbox messages.';
             if($thread&&strtolower($thread['sender_email'])!==strtolower($person['email']))$reasons[]='The connection email changed. Review the recipient before replying.';

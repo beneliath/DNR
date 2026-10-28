@@ -19,9 +19,10 @@ if (isset($_GET['embed'])) {
     readfile(__DIR__.'/assets/js/audience-collection-embed.js'); echo '})();'; exit;
 }
 $nonce=contentSecurityPolicyNonce(); $ancestors="'none'";
+$collectionFields=$store->fields();
 if (in_array($r['kind'],['embedded','popup'],true)) { $ancestors="'self' ".implode(' ',$d['origins']); header_remove('X-Frame-Options'); }
 $resize=$r['kind']==='embedded'&&empty($d['embedded']['disable_javascript']);
-$scriptPolicy=$resize?"; script-src 'nonce-{$nonce}'":'';
+$scriptPolicy="; script-src 'nonce-{$nonce}'";
 header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
 $r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$key;
 if($resize)$r['resize_script']=accountPrimaryPublicUrl().'/assets/js/audience-collection-resize.js';
@@ -39,7 +40,7 @@ $error=''; $success=''; $values=[]; $proof='';
 if($r['kind']==='survey' && isset($_GET['choice']) && count($d['questions'])===1){$q=$d['questions'][0];$choice=\Dnr\Http\RequestInput::positiveInt($_GET,'choice')??0;if($q['type']==='radio'&&$choice>0&&isset($q['options'][$choice-1]))$values['answers'][$q['id']]=$q['options'][$choice-1];}
 if(isset($_GET['preview_poll'])){
     if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit('Preview submissions are disabled.');}
-    echo audienceCollectionHtml($r,$store->fields(),$store->groups(),'','',$values,'','',null,true);exit;
+    echo audienceCollectionHtml($r,$collectionFields,$store->groups(),'','',$values,'','',null,true);exit;
 }
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     $values=$_POST;
@@ -47,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',accountPrimaryPublicUrl());
         $success=$result['confirmed']?$d['confirmation']:$d['thanks'];
         if ($d['quiz']) foreach($d['quiz']as$q)if($q['label']===audienceText($_POST,'quiz',200))$success.="\n\n".$q['outcome'];
-    } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e->getMessage(); }
+    } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e; }
     catch (Throwable $e) { http_response_code(503); $error='This form is temporarily unavailable. Please try again later.'; }
 }
 if ($success==='') $proof=$store->collectionChallenge($r,$visitor,$variant,$recipient);
@@ -64,4 +65,4 @@ if(in_array($r['kind'],['hosted','embedded','popup','landing'],true)&&$d['opt_in
     $ses=$store->sesSettings();
     if(audienceSesReasons($ses,$ses['from_email']??''))$unavailable='Email signup is temporarily unavailable. Please try again later.';
 }
-echo audienceCollectionHtml($r,$store->fields(),$store->groups(),$publicUrl.($recipient!==''?'&recipient='.rawurlencode($recipient):''),$proof,$values,$error,$success,$person,false,$unavailable);
+echo audienceCollectionHtml($r,$collectionFields,$store->groups(),$publicUrl.($recipient!==''?'&recipient='.rawurlencode($recipient):''),$proof,$values,$error,$success,$person,false,$unavailable);

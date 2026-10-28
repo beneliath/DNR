@@ -3,6 +3,28 @@ declare(strict_types=1);
 
 function audienceDispatchEmailHash(string $email):string { return hash('sha256',strtolower(trim($email))); }
 
+/** Deletion remains an import block; only fresh form-confirmed consent permits delivery. */
+function audienceDeletedEmailSuppressionSql(string $contactAlias='c'):string
+{
+    if(!preg_match('/^[a-z][a-z0-9_]*$/D',$contactAlias))throw new InvalidArgumentException('Invalid contact alias.');
+    return "EXISTS(SELECT 1 FROM marketing_deleted_emails deleted_email
+        WHERE deleted_email.audience_id=$contactAlias.audience_id
+        AND deleted_email.email_hash=SHA2(LOWER(TRIM($contactAlias.email)),256)
+        AND NOT EXISTS(SELECT 1 FROM marketing_contact_events renewed_consent
+            WHERE renewed_consent.contact_id=$contactAlias.id
+            AND renewed_consent.event_type='subscription-confirmed'
+            AND renewed_consent.created_at>=deleted_email.deleted_at
+            AND JSON_UNQUOTE(JSON_EXTRACT(renewed_consent.details_json,'$.resubscribed_email_hash'))=deleted_email.email_hash))";
+}
+
+function audienceDeletedEmailSuppressed(mysqli $db,int $audience,int $contact,string $emailHash):bool
+{
+    $policy=audienceDeletedEmailSuppressionSql();
+    $row=$db->execute_query("SELECT $policy blocked FROM marketing_contacts c
+        WHERE c.audience_id=? AND c.id=? AND SHA2(LOWER(TRIM(c.email)),256)=?",[$audience,$contact,$emailHash])->fetch_assoc();
+    return !$row||(bool)$row['blocked'];
+}
+
 function audienceDispatchBase(string $base):string
 {
     $base=rtrim($base,'/');$host=strtolower((string)parse_url($base,PHP_URL_HOST));
@@ -74,7 +96,8 @@ trait AudienceDispatch
     {
         if(empty($draft['recipients_saved']))throw new InvalidArgumentException('Save your recipients before sending.');
         [$where,$params]=$this->campaignTarget($draft);
-        return $this->all("SELECT c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.custom_json,c.timezone FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT EXISTS(SELECT 1 FROM marketing_deleted_emails x WHERE x.audience_id=c.audience_id AND x.email_hash=SHA2(LOWER(TRIM(c.email)),256)) ORDER BY c.id LIMIT 100001",$params);
+        $deletedEmailPolicy=audienceDeletedEmailSuppressionSql();
+        return $this->all("SELECT c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.custom_json,c.timezone FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT 100001",$params);
     }
     private function dispatchSnapshot(array $row,array $audience,string $base):array
     {

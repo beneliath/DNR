@@ -123,7 +123,8 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
         case 'unsubscribe':case 'archive':$store->mutatePerson((int)$p['id'],(int)$p['version'],$node['type']);$result=['changed'=>true];break;
         case 'exit':audienceFlowFinish($store,$run,'exited','Exit step',$now);$result=['exit'=>true];break;
         case 'email':
-            $optout=$store->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=? UNION ALL SELECT email_hash FROM marketing_deleted_emails WHERE audience_id=? AND email_hash=?',[$store->audienceId,audienceDispatchEmailHash($p['email']),$store->audienceId,audienceDispatchEmailHash($p['email'])]);
+            $optout=$store->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$store->audienceId,audienceDispatchEmailHash($p['email'])])
+                || audienceDeletedEmailSuppressed($store->db,$store->audienceId,(int)$p['id'],audienceDispatchEmailHash($p['email']));
             if($p['email_status']!=='subscribed'||$optout){$state='skipped';$result=['reason'=>'No longer subscribed'];break;}
             if(!$step){$due=audienceFlowWindow($d['settings'],$person['timezone'],$now);if($due>$now){$store->write('UPDATE marketing_flow_runs SET due_at=? WHERE id=?',[gmdate('Y-m-d H:i:s',$due),$run['id']]);return;}$result=['delivery_id'=>audienceFlowQueueEmail($store,$run,$node,$d,$person,$now),'event_cursor'=>$store->flowCursor()];$waiting=true;}
             else{

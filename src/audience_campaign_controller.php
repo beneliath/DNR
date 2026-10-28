@@ -194,12 +194,16 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
     $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id LEFT JOIN marketing_campaign_plans p ON p.id=t.plan_id AND p.audience_id=t.audience_id WHERE t.audience_id=? AND $touchpointStateWhere $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$plannerStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
     $plannerEmails=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);
 }
-$deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
+$deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailActivityTotal=0;$mailActivityPage=1;$mailActivitySize=audiencePageSize($_GET,'activity_size');$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
 $deliveryAvailable=$store->deliverySetupAvailable();$deliveryDomains=[];$deliveryAddresses=[];$deliverySender=null;$deliverySenderJob=null;$deliveryDomain=null;$deliveryDevelopmentCode='';$deliveryProbe=null;$senderReadiness=null;
 if($view==='delivery'){
     if($runtimeInstalled){
         if(!$store->sesAvailable()&&$canConfigureDelivery)foreach(['email_outbox'=>'Account access','notification_outbox'=>'Task notifications','engagement_email_deliveries'=>'Engagement correspondence','reimbursement_email_deliveries'=>'Reimbursement submissions']as$table=>$label)$operationalQueues[$label]=$store->all("SELECT status,COUNT(*) n,MIN(CASE WHEN status IN ('pending','retry') THEN next_attempt_at END) next_attempt FROM $table WHERE created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY status");
-        $mailActivity=$store->serviceMailActivity();
+        if(($_GET['tab']??'')==='activity'){
+            $mailActivityTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=?',[$audienceId])['n'];
+            $mailActivityPage=max(1,min(max(1,(int)ceil($mailActivityTotal/$mailActivitySize)),\Dnr\Http\RequestInput::positiveInt($_GET,'activity_page')??1));
+            $mailActivity=$store->serviceMailActivity($mailActivitySize,($mailActivityPage-1)*$mailActivitySize);
+        }
         if(!$store->sesAvailable())$mailUsage=$store->all("SELECT lane,COUNT(*) daily,SUM(created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)) hourly FROM marketing_relay_usage WHERE audience_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY lane",[$audienceId]);
         $eventSummary=$store->one("SELECT COUNT(*) n,MAX(created_at) latest FROM marketing_message_events WHERE audience_id=? AND source='provider'",[$audienceId]);
         if($store->sesAvailable())$sesInboxCounts=$store->one("SELECT SUM(state IN ('queued','processing')) pending,SUM(state='failed') failed FROM marketing_ses_inbox WHERE audience_id=?",[$audienceId])??[];

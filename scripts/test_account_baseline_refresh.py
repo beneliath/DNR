@@ -50,6 +50,7 @@ marketing_inbox_notifications marketing_inbox_delivery_events marketing_inbox_pr
 marketing_inbox_presence marketing_inbox_routes marketing_ses_inbox marketing_ses_notifications
 marketing_audience_notification_state""".split()
 STATE=Path.home()/'.local/state/moed-test-account-refresh'
+LOCK_WAIT_SECONDS=30*60
 
 def require(condition,message):
  if not condition:raise RuntimeError(message)
@@ -155,15 +156,24 @@ def upgrade_staged_schema(staged,current_ledger,current_columns,baseline_ledger)
  require(query(staged,SCHEMA_COLUMNS_SQL)==current_columns,'Migrated baseline columns do not match the current Test Account schema')
  return dict(plan,isolated=True,migration_ledger_verified=True,schema_columns_verified=True)
 
-def deployment_lock(lock):
- deadline=time.monotonic()+300
+def wait_for_lock(lock,label,timeout=None,poll_interval=2):
+ timeout=LOCK_WAIT_SECONDS if timeout is None else timeout
+ deadline=time.monotonic()+timeout;waiting=False
  while True:
   try:
    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+   if waiting:print(label+' acquired; continuing refresh.',flush=True)
    return
   except BlockingIOError:
-   if time.monotonic()>=deadline:raise RuntimeError('Deployment lock remained busy for five minutes; no data replaced')
-   time.sleep(2)
+   remaining=deadline-time.monotonic()
+   if remaining<=0:raise RuntimeError(label+' remained busy for '+str(timeout)+' seconds; no data replaced')
+   if not waiting:
+    print(label+' is busy; waiting up to '+str(timeout)+' seconds before giving up.',flush=True)
+    waiting=True
+   time.sleep(min(poll_interval,remaining))
+
+def deployment_lock(lock):
+ wait_for_lock(lock,'Deployment lock')
 
 def date_relationships(db):
  return [query(db,sql) for sql in [
@@ -253,23 +263,23 @@ def validate(db,anchor):
  assert int(query(db,"SELECT COUNT(*) FROM dnr.engagements e LEFT JOIN dnr.engagement_financial_reports r ON r.engagement_id=e.id WHERE e.is_deleted=0 AND e.lifecycle_status IN ('active','completed') AND e.event_end_date<'"+anchor.isoformat()+"' AND r.engagement_id IS NULL"))>0,'No dashboard closeout example'
  return query(db,"SELECT u.username,COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.status IN ('open','in_progress','waiting') AND t.is_archived=0 GROUP BY u.username ORDER BY u.username")
 def refresh(args):
- anchor=datetime.date.fromisoformat(args.as_of) if args.as_of else datetime.datetime.now(ZoneInfo('America/Chicago')).date()
  require(not args.apply or not args.as_of,'Live refresh always uses the current Chicago date')
- window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]
- directory=ROOT/'var/accounts'/KEY;metadata=json.loads((directory/'deployment.json').read_text())
- assert metadata['account_key']==KEY and metadata['project']==PROJECT and metadata['mode']=='production'
- assert query(DB,"SELECT CONCAT(account_key,'/',name) FROM dnr.account_profile WHERE id=1")=='test-account/Test Account'
- (BASE/'README.md').read_text()
- manifest=json.loads((BASE/'date-remap-manifest.json').read_text())
- require(manifest['source_anchor']=='2026-10-12' and manifest['account_key']==KEY,'Wrong approved baseline manifest')
- checks=json.loads((BASE/'SHA256SUMS.json').read_text());assert all(sha(BASE/f)==h for f,h in checks.items()),'Baseline changed'
- baseline=json.loads((BASE/'receipt.json').read_text());password=directory/'dnr_backup_password_file'
- web=inspect(WEB);image=web['Image'];database_image=inspect(DB)['Image']
- assert inspect(PRIMARY_WEB)['Image']==image,'Active production image parity failed'
- require(shutil.disk_usage(BUNDLE).free>2*1024**3,'Less than 2 GiB free for staging and verified backups')
  with (ROOT/'.git/dnr-deploy/deploy.lock').open('a') as lock:
   deployment_lock(lock)
-  require(inspect(WEB)['Image']==image and inspect(DB)['Image']==database_image and json.loads((directory/'deployment.json').read_text())==metadata,'Deployment changed while waiting; retry with the current release')
+  # Capture the current date, identity and qualified images after any deployment wait.
+  anchor=datetime.date.fromisoformat(args.as_of) if args.as_of else datetime.datetime.now(ZoneInfo('America/Chicago')).date()
+  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]
+  directory=ROOT/'var/accounts'/KEY;metadata=json.loads((directory/'deployment.json').read_text())
+  assert metadata['account_key']==KEY and metadata['project']==PROJECT and metadata['mode']=='production'
+  assert query(DB,"SELECT CONCAT(account_key,'/',name) FROM dnr.account_profile WHERE id=1")=='test-account/Test Account'
+  (BASE/'README.md').read_text()
+  manifest=json.loads((BASE/'date-remap-manifest.json').read_text())
+  require(manifest['source_anchor']=='2026-10-12' and manifest['account_key']==KEY,'Wrong approved baseline manifest')
+  checks=json.loads((BASE/'SHA256SUMS.json').read_text());assert all(sha(BASE/f)==h for f,h in checks.items()),'Baseline changed'
+  baseline=json.loads((BASE/'receipt.json').read_text());password=directory/'dnr_backup_password_file'
+  web=inspect(WEB);image=web['Image'];database_image=inspect(DB)['Image']
+  assert inspect(PRIMARY_WEB)['Image']==image,'Active production image parity failed'
+  require(shutil.disk_usage(BUNDLE).free>2*1024**3,'Less than 2 GiB free for staging and verified backups')
   current_ledger=query(DB,MIGRATIONS_SQL);current_columns=query(DB,SCHEMA_COLUMNS_SQL)
   migration_plan(baseline['database_state']['migrations'],current_ledger)
   dc=saved_compose(directory,PROJECT,metadata); services=saved_active_services(directory)
@@ -398,7 +408,7 @@ def refresh(args):
       subprocess.run(dc+['up','-d','--no-build','--no-deps','--no-recreate','--wait',*paused],check=True,stdout=subprocess.DEVNULL,env=clean_environment())
       service_health(services)
     print(json.dumps({k:receipt[k] for k in ['account','anchor','window','restore_verified','active_task_owners','primary_business_unchanged','users_settings_calendar_subscriptions_unchanged','baseline_unchanged']},indent=2),flush=True)
-def main():
+def main(argv=None):
  os.umask(0o077)
  require(__debug__,'Run without Python optimization; safety assertions must remain enabled')
  def interrupted(signum,frame):raise InterruptedError('Refresh interrupted by signal '+str(signum))
@@ -406,11 +416,11 @@ def main():
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument('--apply',action='store_true',help='Replace live Test Account business data after isolated validation and backup')
  parser.add_argument('--as-of',help='Rehearsal date only; defaults to current America/Chicago date')
- args=parser.parse_args()
+ args=parser.parse_args(argv)
  STATE.mkdir(mode=0o700,parents=True,exist_ok=True)
  with (STATE/'run.lock').open('a') as lock:
-  fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
   try:
+   wait_for_lock(lock,'Refresh overlap lock')
    refresh(args)
    if args.apply:save_state('status.json',{'ok':True,'completed_at':datetime.datetime.now(datetime.timezone.utc).isoformat()})
   except BaseException as error:

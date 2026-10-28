@@ -14,6 +14,7 @@ mkdir($directory, 0700);
 $previousRoot = getenv('DNR_FILE_STORAGE_PATH');
 putenv('DNR_FILE_STORAGE_PATH=' . $directory);
 $archive = tempnam(sys_get_temp_dir(), 'dnr-file-archive-');
+$encrypted = $decrypted = null;
 $source = $directory . '/source';
 $contents = random_bytes(120000);
 $metadata = ['storage_key' => '', 'filename' => 'notes.pdf', 'content_type' => 'application/pdf',
@@ -48,9 +49,12 @@ $writeArchive = static function (string $mode = '') use ($archive, $metadata, $c
 
 try {
     $writeArchive();
-    $result = inspectDatabaseBackup($archive, $schema, 1048576);
+    $encrypted = encryptDatabaseBackup($archive, 'persistent file backup test password', 1048576);
+    $decrypted = decryptDatabaseBackup($encrypted['path'], 'persistent file backup test password', 1048576);
+    expectFileBackup(hash_file('sha256', $archive) === hash_file('sha256', $decrypted['path']), 'Compression and encryption must preserve the complete file archive.');
+    $result = inspectDatabaseBackup($decrypted['path'], $schema, 1048576);
     expectFileBackup($result['file_count'] === 1 && !file_exists(persistentFilePath($metadata['storage_key'])), 'Inspection must validate files without writing them.');
-    inspectDatabaseBackup($archive, $schema, 1048576, null, true);
+    inspectDatabaseBackup($decrypted['path'], $schema, 1048576, null, true);
     expectFileBackup(file_get_contents(persistentFilePath($metadata['storage_key'])) === $contents, 'Restore must reproduce exact binary contents.');
     inspectDatabaseBackup($archive, $schema, 1048576, null, true);
     expectFileBackup(count(glob($directory . '/.restore-*')) === 0, 'Repeat restore must be idempotent and remove temporary files.');
@@ -76,6 +80,7 @@ try {
     expectFileBackup($rejected && file_get_contents($directory . '/' . $metadata['storage_key']) === 'conflict', 'Never overwrite an existing file during restore.');
     echo "Persistent file backup tests passed.\n";
 } finally {
+    foreach ([$encrypted, $decrypted] as $temporary) if ($temporary !== null) @unlink($temporary['path']);
     unlink($archive);
     foreach (array_merge(glob($directory . '/*'), glob($directory . '/.restore-*')) as $path) @unlink($path);
     @unlink($directory . '/.lifecycle.lock');

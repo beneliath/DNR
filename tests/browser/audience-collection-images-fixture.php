@@ -11,17 +11,20 @@ function collectionFixtureImage(string $label,int $color):string {
 $images=['primary'=>collectionFixtureImage('Primary',0x007c89),'secondary'=>collectionFixtureImage('Secondary',0x5b3980),'library'=>collectionFixtureImage('Content image',0xb05822)];
 if(($argv[1]??'')==='images'){echo json_encode($images,JSON_THROW_ON_ERROR);exit;}
 $fixtureKind=$argv[2]??'preferences';
-if(!in_array($fixtureKind,['hosted','popup','landing','survey','preferences'],true))throw new InvalidArgumentException('Unsupported fixture form kind.');
+if(!in_array($fixtureKind,['hosted','embedded','popup','landing','survey','preferences'],true))throw new InvalidArgumentException('Unsupported fixture form kind.');
 $fixtureFields=[];
 foreach(['Full Name','Date of Entry','Fund','Phone Number']as$index=>$label)$fixtureFields[]=['id'=>$index+1,'label'=>$label,'is_public'=>1,'required'=>0,'field_type'=>'text','default_value'=>'','options_json'=>'[]'];
+$fixtureFields[3]['field_type']='phone';
+$fixtureTags=$fixtureKind==='embedded'?[['id'=>7,'name'=>'Existing tag']]:[];
+if($fixtureKind==='embedded')$fixtureFields[]=['id'=>5,'label'=>'Address','is_public'=>1,'required'=>0,'field_type'=>'address','default_value'=>'','options_json'=>'[]'];
 $document=audienceCollectionDefaults($fixtureKind);$document['title']=$fixtureKind==='preferences'?'Preference center':'Branding Kit '.$fixtureKind;
 if(in_array($argv[1]??'',['preview','public'],true)){
     $input=json_decode(stream_get_contents(STDIN),true,32,JSON_THROW_ON_ERROR);
-    $document=audienceCollectionDocument($input['document'],$fixtureKind,$fixtureFields,[],[]);
+    $document=audienceCollectionDocument($input['document'],$fixtureKind,$fixtureFields,[],$input['tags']??$fixtureTags);
     echo audienceCollectionHtml(['kind'=>$fixtureKind,'document'=>$document],$fixtureFields,[],'','',[],'','',null,$argv[1]==='preview','',$input['nonce']??'');exit;
 }
 $editorInput=($argv[1]??'')==='editor'?json_decode(stream_get_contents(STDIN),true,32,JSON_THROW_ON_ERROR):null;
-if($editorInput)$document=audienceCollectionDocument($editorInput['document'],$fixtureKind,$fixtureFields,[],[]);
+if($editorInput)$document=audienceCollectionDocument($editorInput['document'],$fixtureKind,$fixtureFields,[],$editorInput['tags']??$fixtureTags);
 $recover=!empty($editorInput['recovered'])?['document_json'=>json_encode($document,JSON_THROW_ON_ERROR)]:null;
 $view='form';$role=$editorInput?($editorInput['role']??'admin'):($argv[1]??'admin');$id=7;$audienceId=1;
 $_SESSION=['user_id'=>11,'username'=>'fixture-'.$role,'role'=>$role,'_csrf_token'=>'fixture-token'];
@@ -29,10 +32,13 @@ $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');$url=s
 $_SERVER['PHP_SELF']='audience.php';$_SERVER['QUERY_STRING']='view=form&id=7';
 $themeKey='collection-image-fixture';$displayName='Example User';$pageTitle='Preference center';
 $canManage=$role!=='reviewer';$canDelete=$role==='admin';$message=$error='';$csrf=csrfInput();
+$collectionEditorError=$editorInput['editorError']??null;
+if($collectionEditorError)$error=$collectionEditorError['message'];
 $audience=['name'=>'Example audience','settings_json'=>'{}','version'=>1];$tags=$groups=$fields=$catalog=$query=$recentDesigns=[];
 $fields=$fixtureFields;
+$tags=$editorInput['tags']??$fixtureTags;
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
-$available=true;$resource=['id'=>7,'version'=>1,'name'=>$editorInput['name']??$document['title'],'kind'=>$fixtureKind,'state'=>'draft','draft'=>$document,'public_key'=>str_repeat('a',48),'deleted_at'=>null,'installed_at'=>null];
+$available=true;$resource=['id'=>7,'version'=>1,'name'=>$editorInput['name']??$document['title'],'kind'=>$fixtureKind,'state'=>$editorInput['state']??'draft','draft'=>$document,'public_key'=>str_repeat('a',48),'deleted_at'=>null,'installed_at'=>null];
 $collectionBrand=['logo'=>$images['primary'],'secondary_logo'=>$images['secondary']];$publicBase='https://collection.test';$publicUrl=$publicBase.'/audience_collect_public.php?key='.$resource['public_key'];$signupEmailBlocked=false;
 $collectionPublishPending=!isset($editorInput['published_document'])||$document!=$editorInput['published_document'];
 $resources=$blockedSignupIds=$listQuery=[];$q=$type='';$trash=false;$kinds=['preferences'];$creationKind='preferences';$collectionDirection='desc';$collectionPage=$collectionPages=1;$collectionPerPage=25;

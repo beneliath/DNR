@@ -1,6 +1,11 @@
+import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
+import { initializeAddressInputs } from './address-inputs.mjs';
+import { initializeInputModality } from './input-modality.mjs';
+import phoneInputs from './phone-input.js';
 import { renderAudiencePagination } from './audience-pagination.mjs';
 import { enhanceColorInput } from './audience-color-picker.mjs';
-import { initEmbeddedForm } from './audience-embedded.mjs';
+import { collectionEmbedCode } from './audience-collection-install.mjs';
+import { initializeCollectionFieldOrder } from './audience-collection-fields.mjs';
 import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
 (() => {
     'use strict';
@@ -54,7 +59,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const configNode = document.getElementById('collection-config');
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
-    if (config.kind === 'embedded') { initEmbeddedForm(form, config); return; }
     form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[]}));
     let model = structuredClone(config.document);
     model.variants = [];
@@ -71,7 +75,18 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const saveButtons = Array.from(document.querySelectorAll('[data-collection-save]')).filter(button => button.form === form);
     const unsavedStatus = document.getElementById('collection-unsaved-status');
     let savedDraft = null, savedName = '', wasDirty = null;
+    const embedCode = form.querySelector('[data-collection-embed-code]');
+    const embedCopy = form.querySelector('[data-copy-collection-embed]');
+    const embedStatus = form.querySelector('[data-collection-embed-status]');
+    const updateInstallation = () => {
+        if (!embedCode) return;
+        embedCode.value = collectionEmbedCode(config.publicUrl, config.kind === 'embedded' ? model : {});
+        const ready = config.canManage && config.state === 'published' && !config.publishPending && !config.recoveredDraft && hidden.value === savedDraft;
+        embedCopy.disabled = !ready;
+        embedStatus.textContent = ready ? 'Published installation code is ready to copy.' : 'Publish the current design before copying its installation code.';
+    };
     const updateDirty = () => {
+        updateInstallation();
         if (!config.canManage || savedDraft === null) return;
         const dirty = Boolean(config.recoveredDraft) || hidden.value !== savedDraft || form.elements.namedItem('name').value !== savedName;
         saveButtons.forEach(button => button.classList.toggle('collection-save-unsaved', dirty));
@@ -85,6 +100,11 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const readLines = value => value.split('\n').map(s => s.trim()).filter(Boolean);
     const sync = () => {
         form.querySelectorAll('[data-doc]').forEach(input => { model[input.dataset.doc] = input.type === 'checkbox' ? input.checked : input.type === 'number' ? Number(input.value) : input.value; });
+        form.querySelectorAll('[data-embed-option]').forEach(input => { model.embedded[input.dataset.embedOption] = input.type === 'checkbox' ? input.checked : input.value; });
+        form.querySelectorAll('[data-field-label]').forEach(label => {
+            const key = label.closest('[data-field]').dataset.field;
+            if (model.labels[key]) label.textContent = model.labels[key];
+        });
         form.querySelectorAll('[data-doc-message]').forEach(input => { model.messages[input.dataset.docMessage] = input.value; });
         const footerText = form.querySelector('[data-doc-message="powered"]');
         if (footerText) footerText.required = model.show_footer;
@@ -103,9 +123,12 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (fields.length) {
             const editable = new Set(fields.map(row => row.dataset.field));
             // Preserve saved audience fields that are no longer offered in the editor.
-            const retained = model.fields.filter(key => !editable.has(key));
+            const retained = new Set(model.fields.filter(key => !editable.has(key)));
             const retainedRequired = model.required.filter(key => !editable.has(key));
-            model.fields = [...fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field), ...retained];
+            const visible = fields.filter(row => row.querySelector('[data-field-visible]').checked).map(row => row.dataset.field);
+            let index = 0;
+            const ordered = model.fields.filter(key => retained.has(key) || visible.includes(key)).map(key => retained.has(key) ? key : visible[index++]);
+            model.fields = [...ordered, ...visible.slice(index)];
             model.required = [...fields.filter(row => row.querySelector('[data-field-required]').checked).map(row => row.dataset.field), ...retainedRequired];
         }
         form.querySelectorAll('[data-popup]').forEach(input => { model.popup[input.dataset.popup] = input.type === 'number' ? Number(input.value) : input.value; });
@@ -130,7 +153,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             frame.srcdoc = result.html; status.textContent = '';
         } catch (error) { if (error.name !== 'AbortError' && current === sequence) status.textContent = error.message || 'Preview unavailable. Save your work and try again.'; }
     };
-    const fit = () => { try { if (frame.contentDocument?.body) { frame.style.height = '1px'; const root = frame.contentDocument.documentElement; frame.style.height = Math.max(320, Math.ceil(Math.max(root.scrollHeight, root.getBoundingClientRect().height)) + 2) + 'px'; } } catch (_) {} };
     const previewTools = () => {
         if (!config.canManage || config.previewOnly) return;
         const doc = frame.contentDocument;
@@ -140,7 +162,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             block.setAttribute('role', 'group'); block.setAttribute('aria-label', label);
             const button = doc.createElement('button'); button.type = 'button'; button.className = 'collection-block-remove';
             button.textContent = '×'; button.title = `Remove ${label}`; button.setAttribute('aria-label', `Remove ${label}`);
-            button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); remove(); block.remove(); fit(); });
+            button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); remove(); block.remove(); });
             block.addEventListener('click', event => {
                 event.preventDefault();
                 doc.querySelectorAll('.collection-editable-block.is-selected').forEach(other => other.classList.remove('is-selected'));
@@ -151,7 +173,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         };
         const resizeImage = (block, image, label, save) => {
             if (!image.complete || !image.naturalWidth) {
-                image.addEventListener('load', () => { resizeImage(block, image, label, save); fit(); }, {once:true});
+                image.addEventListener('load', () => { resizeImage(block, image, label, save); }, {once:true});
                 return;
             }
             const isLogo = image.classList.contains('logo');
@@ -190,7 +212,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                 if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
                 if (cancelled) paint(startWidth);
                 else if (Math.round(startWidth) !== width) { save(width); changed(); }
-                fit();
             };
             handle.addEventListener('pointerup', event => finish(event));
             handle.addEventListener('pointercancel', event => finish(event, true));
@@ -224,14 +245,16 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             if (image) resizeImage(block, image, 'image section', width => { section.width = width; renderList('sections'); });
         });
     };
-    frame.addEventListener('load', () => { previewTools(); fit(); frame.contentDocument?.querySelectorAll('img').forEach(img => img.addEventListener('load', fit, {once:true})); frame.contentDocument?.fonts?.ready.then(fit); });
-    let frameWidth = frame.getBoundingClientRect().width;
-    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => {
-        const width = frame.getBoundingClientRect().width;
-        if (width !== frameWidth) { frameWidth = width; requestAnimationFrame(fit); }
-    }).observe(frame);
-    window.addEventListener('resize', fit);
-    fit();
+    const preparePreview = () => {
+        const doc = frame.contentDocument;
+        if (!doc) return;
+        doc.documentElement.style.overscrollBehavior = 'contain';
+        initializeInputModality(doc);
+        initializeAddressInputs(doc);
+        if (doc.documentElement.dataset.phoneInputs !== 'native') phoneInputs.initializePhoneInputs(doc);
+    };
+    frame.addEventListener('load', () => { preparePreview(); previewTools(); });
+    if (frame.contentDocument?.readyState === 'complete') preparePreview();
     const changed = () => { sync(); clearTimeout(timer); timer = setTimeout(preview, 300); queueMicrotask(record); };
     const inputChanged = event => { if (event.target.matches('[data-doc="logo_width"]')) model.logo_resized = true; changed(); };
     form.addEventListener('input', inputChanged); form.addEventListener('change', inputChanged);
@@ -241,6 +264,10 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             event.preventDefault(); document.getElementById('collection-publish').close(); form.reportValidity(); return;
         }
         clearTimeout(timer); sync();
+        if (form.querySelector('[data-doc-lines="origins"]') && model.origins.length === 0) {
+            event.preventDefault(); document.getElementById('collection-publish').close();
+            showOriginsError('Add the HTTPS website origin before publishing this form.'); return;
+        }
         event.currentTarget.elements.document_json.value = hidden.value;
         event.currentTarget.elements.name.value = form.elements.name.value;
         event.currentTarget.elements.version.value = form.elements.version.value;
@@ -248,6 +275,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     let selectedTab = config.kind === 'survey' ? 'questions' : 'design';
     const selectTab = tab => {
         selectedTab = tab;
+        form.scrollTop = 0;
         if(config.kind === 'survey'){const title=document.querySelector('.audience-page-heading h1');if(title)title.textContent=({questions:'Add questions',design:'Design survey',setup:'Survey details',publish:'Share your survey'})[tab]||'Survey';const next=document.querySelector('[data-survey-next]'), publish=document.querySelector('[data-survey-publish]');if(next){next.hidden=tab==='publish';next.textContent=tab==='questions'?'Continue to design':tab==='design'?'Continue to details':'Continue to share';}if(publish)publish.hidden=tab!=='publish';}
         const railTab = tab;
         document.querySelector('[data-collection-builder]').classList.toggle('survey-questions-active', config.kind === 'survey' && tab === 'questions');
@@ -262,6 +290,12 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         selectTab(button.dataset.collectionRail);
         if (button.dataset.collectionRail === 'outline') form.querySelector('[data-collection-fields]')?.scrollIntoView({block:'center'});
     }));
+    form.addEventListener('invalid', event => {
+        const panel = event.target.closest('[data-collection-panel]');
+        if (panel) selectTab(panel.dataset.collectionPanel);
+        let parent = event.target.parentElement;
+        while (parent && parent !== form) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+    }, true);
     const previewPanel = frame.closest('.collection-preview');
     const previewButton = document.querySelector('[data-collection-focus-preview]');
     const previewReturn = previewPanel.querySelector('[data-collection-back-to-editing]');
@@ -273,7 +307,6 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             previewButton.setAttribute('aria-pressed', String(enabled));
         }
         if (previewReturn) previewReturn.hidden = !enabled || Boolean(previewButton);
-        requestAnimationFrame(fit);
     };
     previewButton?.setAttribute('aria-pressed', 'false');
     previewButton?.setAttribute('aria-controls', frame.id);
@@ -282,18 +315,28 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         showPreview(false);
         document.querySelector('[data-collection-device][aria-pressed=true]')?.focus();
     });
+    const origins = form.querySelector('[data-doc-lines="origins"]');
+    const originsError = form.querySelector('[data-collection-origins-error]');
+    const showOriginsError = message => {
+        if (!origins || !originsError) return;
+        showPreview(false); selectTab('setup');
+        originsError.textContent = message; originsError.hidden = false;
+        origins.setAttribute('aria-invalid', 'true');
+        origins.setAttribute('aria-describedby', 'collection-origins-help collection-origins-error');
+        const label = origins.closest('label');
+        form.scrollTop += label.getBoundingClientRect().top - form.getBoundingClientRect().top - 24;
+        origins.focus({preventScroll:true});
+    };
+    origins?.addEventListener('input', () => {
+        origins.removeAttribute('aria-invalid'); origins.setAttribute('aria-describedby', 'collection-origins-help');
+        originsError.hidden = true; originsError.textContent = '';
+    });
     document.querySelectorAll('[data-collection-device]').forEach(button => button.addEventListener('click', () => {
         document.querySelectorAll('[data-collection-device]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
         frame.classList.toggle('mobile', button.dataset.collectionDevice === 'mobile');
         if (getComputedStyle(previewPanel).display === 'none') showPreview(true);
-        requestAnimationFrame(fit);
     }));
-    form.querySelectorAll('[data-field-move]').forEach(button => button.addEventListener('click', () => {
-        const row = button.closest('[data-field]');
-        if (button.dataset.fieldMove === 'up' && row.previousElementSibling) row.previousElementSibling.before(row);
-        if (button.dataset.fieldMove === 'down' && row.nextElementSibling) row.nextElementSibling.after(row);
-        changed(); button.focus();
-    }));
+    initializeCollectionFieldOrder(form.querySelector('[data-collection-fields]'), config.canManage, changed);
     form.querySelectorAll('[data-field-required]').forEach(box => box.addEventListener('change', () => { if (box.checked) box.closest('[data-field]').querySelector('[data-field-visible]').checked = true; }));
     const el = (tag, text, className) => { const node = document.createElement(tag); if (['form', 'input', 'textarea'].includes(tag)) node.setAttribute('autocomplete', 'off'); if (text) node.textContent = text; if (className) node.className = className; return node; };
     const control = (card, label, value, change, type = 'text', choices = []) => {
@@ -316,6 +359,27 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Sign in to MessageMonkey in another tab, then try again. Your draft is still open here.');
         const result = await response.json(); if (!response.ok || result.error) throw new Error(result.error || 'Unable to load the image.'); return result;
     };
+    form.querySelector('[data-collection-tag-create]')?.addEventListener('click', async event => {
+        const button = event.currentTarget, input = form.querySelector('[data-collection-tag-name]'), feedback = form.querySelector('[data-collection-tag-status]');
+        button.disabled = true; feedback.textContent = '';
+        try {
+            const tag = await api('collection_new_tag', {tag_name: input.value});
+            const list = form.querySelector('[data-collection-tags]');
+            let checkbox = list.querySelector(`input[value="${Number(tag.id)}"]`);
+            if (!checkbox) {
+                const label = el('label', '', 'audience-check'); checkbox = el('input'); checkbox.type = 'checkbox';
+                checkbox.dataset.docArray = 'tag_ids'; checkbox.value = String(tag.id);
+                label.append(checkbox, document.createTextNode(tag.name)); list.append(label);
+            }
+            checkbox.checked = true; input.value = ''; feedback.textContent = 'Tag added.'; changed();
+        } catch (error) { feedback.textContent = error.message; }
+        finally { button.disabled = false; }
+    });
+    embedCopy?.addEventListener('click', async () => {
+        if (embedCopy.disabled) return;
+        try { await navigator.clipboard.writeText(embedCode.value); embedStatus.textContent = 'Installation code copied.'; }
+        catch { embedCode.focus(); embedCode.select(); embedStatus.textContent = 'Select and copy this installation code.'; }
+    });
     const imageDialog = document.getElementById('collection-images'); let chooseImage = null; let imagePage = 1; let imageSize = 25; let imageLoad = 0;
     const loadImages = async () => {
         const current = ++imageLoad;
@@ -374,11 +438,14 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             card.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; });
             card.addEventListener('drop', event => { event.preventDefault(); const [source, from] = event.dataTransfer.getData('text/plain').split(':'); const n = Number(from); if (source !== key || !Number.isInteger(n) || n < 0 || n >= model[key].length) return; const [item] = model[key].splice(n, 1); model[key].splice(index, 0, item); renderList(key); changed(); });
             head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz choice'} ${index + 1}`));
-            const move = delta => { const to = index + delta; if (to < 0 || to >= model[key].length) return; [model[key][index], model[key][to]] = [model[key][to], model[key][index]]; renderList(key); changed(); };
-            [['↑', () => move(-1), 'Move up'], ['↓', () => move(1), 'Move down'], ['×', () => { model[key].splice(index, 1); renderList(key); changed(); }, 'Remove']].forEach(([text, action, label]) => {
-                if (key === 'questions' && model[key].length === 1 && label !== 'Remove') return;
-                const button = el('button', text); button.type = 'button'; button.setAttribute('aria-label', `${label} ${index + 1}`); button.addEventListener('click', action); head.append(button);
-            });
+            const handle = createReorderHandle(`Reorder ${key === 'questions' ? 'question' : key === 'sections' ? 'section' : 'quiz choice'} ${index + 1}`);
+            wireReorderHandle({handle,item:card,list,onMove:(from,to)=>{
+                const [moved] = model[key].splice(from,1);model[key].splice(to,0,moved);renderList(key);changed();
+                lists[key].children[to]?.querySelector('.mm-reorder-handle')?.focus();
+            }});
+            head.prepend(handle);
+            const removeItem = el('button','×');removeItem.type='button';removeItem.setAttribute('aria-label',`Remove ${index + 1}`);
+            removeItem.addEventListener('click',()=>{model[key].splice(index,1);renderList(key);changed();});head.append(removeItem);
             card.append(head);
             if (key === 'questions') {
                 card.classList.add('collection-question');
@@ -462,6 +529,8 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const restore = index => {
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
         form.querySelectorAll('[data-doc]').forEach(input => { if(input.type==='checkbox')input.checked=model[input.dataset.doc];else input.value=model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        if (config.kind === 'embedded' && model.width === 0) form.querySelector('[data-doc="width"]').value = '';
+        form.querySelectorAll('[data-embed-option]').forEach(input => { if(input.type==='checkbox')input.checked=model.embedded[input.dataset.embedOption];else input.value=model.embedded[input.dataset.embedOption]; });
         form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage]; });
         const font=form.querySelector('[data-collection-font]');if(font)font.value=model.web_font?(model.web_font===config.brandFont?.data?'brand':'saved-brand'):model.font;
         form.querySelectorAll('[data-advanced-page]').forEach(input => { input.value = model.advanced.pages[input.dataset.advancedPage] || ''; });
@@ -479,4 +548,5 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     undo?.addEventListener('click', () => restore(historyIndex - 1)); redo?.addEventListener('click', () => restore(historyIndex + 1));
     if (!config.canManage) form.querySelectorAll('button,input,textarea,select').forEach(input => { input.disabled = true; });
     selectTab(config.kind === 'survey' ? 'questions' : 'elements'); sync(); preview();
+    if (config.editorError?.field === 'origins') showOriginsError(config.editorError.message);
 })();

@@ -37,6 +37,10 @@
     white-space: nowrap;
 }
 
+.email-template-table td:nth-child(4) {
+    font-size: .8rem;
+}
+
 .email-template-fields {
     display: flex;
     flex-wrap: wrap;

@@ -8,8 +8,11 @@ const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
 const DNR_DATABASE_BACKUP_VERSION = 3;
 const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
-const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
+const DNR_DATABASE_BACKUP_ENCRYPTED_UNCOMPRESSED_MAGIC = "DNRBACKUP-ENC-2\n";
+const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-3\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
+// Gzip framing and worst-case DEFLATE expansion for one 64 KiB chunk.
+const DNR_DATABASE_BACKUP_COMPRESSION_OVERHEAD_BYTES = 64;
 const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 const DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES = 16;
 
@@ -88,7 +91,8 @@ function databaseBackupMaximumEncryptedBytes($maximum_plaintext_bytes) {
         + SODIUM_CRYPTO_PWHASH_SALTBYTES
         + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_HEADERBYTES
         + $maximum_plaintext_bytes
-        + ($frame_count * (4 + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES));
+        + ($frame_count * (DNR_DATABASE_BACKUP_COMPRESSION_OVERHEAD_BYTES
+            + 4 + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES));
 }
 
 function databaseBackupDeriveEncryptionKey($password, $salt, bool $legacy_profile = false) {
@@ -182,6 +186,7 @@ function encryptDatabaseBackup($plaintext_path, $password, $maximum_plaintext_by
         if ($current_chunk === false || $current_chunk === '') {
             throw new RuntimeException('The database backup is empty.');
         }
+        $plaintext_bytes = 0;
         while (true) {
             $next_chunk = fread($input, DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES);
             if ($next_chunk === false) {
@@ -191,10 +196,19 @@ function encryptDatabaseBackup($plaintext_path, $password, $maximum_plaintext_by
             $tag = $is_final
                 ? SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL
                 : SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_MESSAGE;
+            $plaintext_bytes += strlen($current_chunk);
+            if ($plaintext_bytes > $maximum_plaintext_bytes) {
+                throw new DatabaseBackupCapacityException($maximum_plaintext_bytes);
+            }
+            // Independent gzip members keep compression and decompression bounded.
+            $compressed_chunk = gzencode($current_chunk, 6);
+            if ($compressed_chunk === false) {
+                throw new RuntimeException('Unable to compress the database backup.');
+            }
             $ciphertext = sodium_crypto_secretstream_xchacha20poly1305_push(
                 $stream_state,
-                $current_chunk,
-                '',
+                $compressed_chunk,
+                DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC,
                 $tag
             );
             databaseBackupWriteBytes($output, pack('N', strlen($ciphertext)));
@@ -275,7 +289,8 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
     try {
         $magic = databaseBackupReadExactBytes($input, strlen(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC));
         $legacy_profile = hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC, $magic);
-        if (!hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC, $magic) && !$legacy_profile) {
+        $compressed = hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC, $magic);
+        if (!$compressed && !$legacy_profile && !hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_UNCOMPRESSED_MAGIC, $magic)) {
             throw new RuntimeException('The selected file is not an encrypted DNR backup.');
         }
         $salt = databaseBackupReadExactBytes($input, SODIUM_CRYPTO_PWHASH_SALTBYTES);
@@ -295,6 +310,7 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
             $length_bytes = databaseBackupReadExactBytes($input, 4);
             $length = unpack('Nlength', $length_bytes)['length'];
             $maximum_frame_length = DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES
+                + ($compressed ? DNR_DATABASE_BACKUP_COMPRESSION_OVERHEAD_BYTES : 0)
                 + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES;
             if ($length < SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES
                 || $length > $maximum_frame_length
@@ -305,7 +321,8 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
             $ciphertext = databaseBackupReadExactBytes($input, $length);
             $pulled = sodium_crypto_secretstream_xchacha20poly1305_pull(
                 $stream_state,
-                $ciphertext
+                $ciphertext,
+                $compressed ? $magic : ''
             );
             if ($pulled === false) {
                 throw new RuntimeException('The encrypted backup authentication failed.');
@@ -316,6 +333,16 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
                 SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL,
             ], true)) {
                 throw new RuntimeException('The encrypted backup contains an unsupported frame.');
+            }
+            if ($compressed) {
+                // Authenticate first, then bound expansion even for a malicious gzip member.
+                // Leave one sentinel byte for zlib to finish an exact-size frame.
+                // The check below still rejects output larger than the 64 KiB limit.
+                $plaintext = @gzdecode($plaintext, DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES + 1);
+                if ($plaintext === false || $plaintext === ''
+                    || strlen($plaintext) > DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES) {
+                    throw new RuntimeException('The compressed backup contains an invalid frame.');
+                }
             }
             $plaintext_bytes += strlen($plaintext);
             if ($plaintext_bytes > $maximum_plaintext_bytes) {
