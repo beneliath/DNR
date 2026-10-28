@@ -336,7 +336,9 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
             }
             if ($compressed) {
                 // Authenticate first, then bound expansion even for a malicious gzip member.
-                $plaintext = @gzdecode($plaintext, DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES);
+                // Leave one sentinel byte for zlib to finish an exact-size frame.
+                // The check below still rejects output larger than the 64 KiB limit.
+                $plaintext = @gzdecode($plaintext, DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES + 1);
                 if ($plaintext === false || $plaintext === ''
                     || strlen($plaintext) > DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES) {
                     throw new RuntimeException('The compressed backup contains an invalid frame.');
