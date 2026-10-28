@@ -140,3 +140,5 @@
 20261018_add_inbox_route_receipts.sql
 20261027_add_subscription_notice.sql
 20261027_add_user_display_timezone.sql
+
+20261028_add_audience_notification_dismissals.sql

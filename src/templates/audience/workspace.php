@@ -56,7 +56,7 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-mm-workspace="workspace" data-audience-key="<?= $h($themeKey) ?>">
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>
@@ -142,7 +142,7 @@ if(in_array($view,['home','analytics'],true)){
 <?php endif; ?>
 <script type="application/json" id="audience-config"><?= json_encode(['recovery'=>$editorRecovery??null,'canDelete'=>$canDelete,'audience'=>$audienceId,'url'=>$url(),'catalog'=>$catalog,'operators'=>array_combine(['text','number','date','choice','membership','set','event','engagement'],array_map('audienceRuleOperators',['text','number','date','choice','membership','set','event','engagement'])),'rules'=>$rules,'currentRules'=>audienceActiveRules($filters,$rules),'listContext'=>$view==='contacts'?['archived'=>$filters['archived'],'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize]:[],'segment'=>$segment,'csrf'=>generateCsrfToken(),'job'=>$job?array_intersect_key($job,array_flip(['id','state','total','processed','job_type'])):null],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
 <?php include __DIR__.'/../admin-unlock-dialog.php'; ?>
-</body>
+<?php include __DIR__.'/mobile-navigation.php'; ?></body>
 <?php
 /** Sidebar icons use the reference normal/active pairs; action icons stay independent. */
 function audienceSidebarIcon(string $name): void

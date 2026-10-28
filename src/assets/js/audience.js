@@ -1,8 +1,10 @@
 import { wireAudiencePagination } from './audience-pagination.mjs';
+import { wireAudienceMobile, audienceMobileQuery } from './audience-mobile.mjs';
 import { initializeInputModality } from './input-modality.mjs';
 import { wireMessageMonkeyUiStandards } from './audience-ui-standards.mjs';
 wireMessageMonkeyUiStandards();
 wireAudiencePagination();
+wireAudienceMobile();
 import { enhanceColorInput } from './audience-color-picker.mjs';
 import { prepareAudienceImage, imageFileSize, matchAudienceBrandLogos } from './audience-image-upload.mjs';
 import { fitBrandLogoPreview } from './audience-logo-preview.mjs';
@@ -51,7 +53,7 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
     systemTheme.addEventListener('change', syncTheme);
     const sidebarToggle = $('[data-sidebar-toggle]');
     const sidebarKey = 'moed:audience:sidebar-collapsed';
-    const mobileNavigation = window.matchMedia('(max-width: 860px)');
+    const mobileNavigation = window.matchMedia(audienceMobileQuery);
     let sidebarCollapsed = false;
     const sidebarPosition = () => {
         const item = $('.audience-nav-item.selected');

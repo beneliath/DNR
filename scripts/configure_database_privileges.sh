@@ -161,6 +161,7 @@ GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_delivery_policy TO '${MY
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_relay_usage TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_service_mail TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_audience_notification_state TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_notification_dismissals TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_consent_challenges TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_flows TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_flow_revisions TO '${MYSQL_USER}'@'%';

@@ -76,6 +76,7 @@ function renderPageHead($title, array $options = []) {
     $styles[] = 'assets/css/pages/native-selects.min.css';
     if (in_array('assets/css/pages/audience.min.css', $styles, true)) {
         $styles[] = 'assets/css/pages/audience-ui-standards.min.css';
+        $styles[] = 'assets/css/pages/audience-mobile.min.css';
     }
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;

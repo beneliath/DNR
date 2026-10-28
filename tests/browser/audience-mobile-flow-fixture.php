@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../../src/functions.php';
+require __DIR__.'/../../src/audience_store.php';
+require __DIR__.'/../../src/audience_flow_presentation.php';
+$_SESSION=['user_id'=>11,'username'=>'fixture-admin','role'=>'admin','_csrf_token'=>'fixture-token'];
+$h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
+$url=static fn(array $params=[])=>'audience.php?'.http_build_query($params);
+$view=($argv[1]??'')==='editor'?'flow':'automations';$themeKey='mobile-flow-fixture';$displayName='Example User';$pageTitle=$view==='flow'?'Welcome flow':'Automations';
+$canManage=$canDelete=$available=true;$canSend=false;$message=$error='';$csrf=csrfInput();$audienceId=1;$id=1;
+$audience=['name'=>'Example audience','settings_json'=>'{}','version'=>1];
+$tags=$groups=$fields=$catalog=$query=$recentDesigns=$campaignOptions=$surveyOptions=$flowOptions=$validation=[];
+$rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
+$classic=$trash=false;$q=$state='';$flowSort='created';$flowSize=25;$flowPage=1;$nativeFlowTotal=$flowTotal=3;$flowSetupTasks=[];$flowPreview='';
+$flow=$view==='flow'?['id'=>1,'version'=>1,'name'=>'Welcome flow','state'=>'draft','document'=>audienceFlowDefault('blank'),'paused_nodes'=>[],'deleted_at'=>null]:null;
+$report=['nodes'=>[]];
+$flows=[];foreach(['draft','running','paused']as$i=>$status)$flows[]=['id'=>$i+1,'name'=>['Welcome new connections','Community follow-up','Monthly announcement'][$i],'state'=>$status,'created_at'=>'2026-10-21 09:00:00','updated_at'=>'2026-10-25 09:00:00','published_revision'=>$i,'started'=>$i*3,'active'=>$i,'completed'=>$i*2,'version'=>1];
+echo '<!doctype html><html lang="en">';
+renderPageHead('Mobile automation fixture',['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-flows.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-flows.min.js']]);
+require __DIR__.'/../../src/templates/audience/workspace.php';echo '</html>';

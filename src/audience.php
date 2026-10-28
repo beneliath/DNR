@@ -20,6 +20,24 @@ if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['audience'])){
 }
 unset($_SESSION['marketing_audience']);
 $store=new AudienceStore($db,$audienceId,$actor,$displayName);
+if(($_GET['api']??null)==='notifications'){
+    header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
+    if(!$canManage){http_response_code(403);echo json_encode(['error'=>'Notifications require an editor or administrator.']);exit;}
+    if(!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)){http_response_code(405);header('Allow: GET, POST');echo json_encode(['error'=>'Use GET or POST.']);exit;}
+    if($_SERVER['REQUEST_METHOD']==='POST'&&!validateCsrfToken($_POST['csrf_token']??null)){http_response_code(400);echo json_encode(['error'=>'Invalid or expired request token. Reload the page.']);exit;}
+    releaseApplicationSessionLock();require_once __DIR__.'/audience_notification_state.php';
+    try{
+        if(!audienceBellSyncAvailable($store)){http_response_code(503);echo json_encode(['error'=>'Notification synchronization is being upgraded.']);exit;}
+        if($_SERVER['REQUEST_METHOD']==='POST'){
+            $keys=json_decode(audienceText($_POST,'keys',40000),true,512,JSON_THROW_ON_ERROR);
+            if(!is_array($keys)||!array_is_list($keys))throw new InvalidArgumentException('Invalid notification keys.');
+            audienceDismissBellItems($store,$keys);
+        }
+        echo json_encode(audienceBellState($store),JSON_THROW_ON_ERROR);
+    }catch(InvalidArgumentException|JsonException $e){http_response_code(400);echo json_encode(['error'=>'Invalid notification keys.']);}
+    catch(Throwable $e){applicationLog('error','Notification synchronization failed',['error'=>$e->getMessage()]);http_response_code(503);echo json_encode(['error'=>'Notifications could not be synchronized.']);}
+    exit;
+}
 if(($_GET['api']??null)==='workspace_search'){
     releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
     if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');$result=['error'=>'Search requires a GET request.'];}

@@ -15,7 +15,7 @@
 @media(max-width:700px){.email-designer .designer-title{width:auto;flex:1}.email-designer .designer-top-actions{order:3}.email-designer .audience-account-tools{margin-left:auto}.email-designer .designer-topbar{min-height:110px}.email-designer .designer-title strong{max-width:180px}.email-designer .audience-notifications{top:64px}}
 
 /* Saved template cards fit all eight 44px actions with 16px gaps; narrow screens wrap actions. */
-.template-gallery:not(.template-list){--template-card-width:calc(8 * 44px + 7 * 16px + 2 * 20px + 4px);grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--template-card-width)),var(--template-card-width)));justify-content:start}
+.template-gallery:not(.template-list){--template-card-width:calc(8 * 44px + 7 * 16px + 2 * 20px + 2px);grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--template-card-width)),var(--template-card-width)));justify-content:start}
 .template-gallery:not(.template-list) .template-card-actions{flex-wrap:wrap}
 @media(max-width:420px){.template-gallery:not(.template-list) .template-card-actions{gap:var(--audience-action-gap,16px);padding-inline:12px}}
 
@@ -30,7 +30,7 @@
 .template-gallery:not(.template-list) .template-card-info small{grid-row:3;margin-top:24px}
 .template-gallery:not(.template-list) .template-card-actions{align-items:end}
 .template-list .template-thumbnail{display:none}
-.template-gallery .template-card{border:2px solid #005f69}
+.template-gallery .template-card{border:1px solid #005f69}
 .template-card-actions form{display:flex;margin:0}
 .template-lifecycle-action[data-template-operation=delete]{color:#b42318}
 .template-gallery{--template-info-bg:#f4f4f4;--template-info-text:#24292d;--template-info-muted:#5e686d}
