@@ -77,11 +77,22 @@ function audienceDesignEmailRichText(string $html,int $paragraphSpacing=16):stri
 /** Versioned, allowlisted email document. No executable HTML or external resource fetching. */
 function audienceDesign(array $input): array { return audienceDesignDocument($input); }
 /** Resolve editor defaults without rewriting authored colors or sent snapshots. */
-function audienceDesignBrandDefaults(array $input,array $brand):array
+function audienceDesignBrandDefaults(array $input,array $brand,bool $newDesign=false):array
 {
     $design=audienceDesign($input);
     foreach(AUDIENCE_DESIGN_BRAND_COLORS as$key=>$default){
         if($design['styles']['brandColors'][$key]&&isset($brand['styles'][$key]))$design['styles'][$key]=audienceDesignColor($brand['styles'][$key]);
+    }
+    $brandWebFont=audienceDesignWebFont($brand['styles']['webFont']??'');
+    $usesCurrentFont=$design['styles']['webFont']===''||($brandWebFont!==''&&$design['styles']['webFont']===$brandWebFont);
+    if($newDesign||$usesCurrentFont){
+        $font=$brand['styles']['font']??'';
+        if($newDesign||$design['styles']['font']==='Arial')$design['styles']['font']=in_array($font,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$font:'Arial';
+        if($newDesign||$brandWebFont!==''){
+            $design['styles']['webFont']=$brandWebFont;
+            $design['styles']['webFontName']=$brandWebFont!==''?audienceBrandFont($brand)['name']:'';
+            $design['styles']['webFontDefault']=true;
+        }
     }
     return $design;
 }

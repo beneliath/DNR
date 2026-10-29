@@ -1,7 +1,10 @@
 import { enhanceColorInput } from './audience-color-picker.mjs';
-import { designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
+import { defaultDesignFont, designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
 import { setDesignColor } from './audience-design-model.mjs';
-export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPreview,onSave,brandFont}) {
+export function stylePanelSignature(design) {
+  return JSON.stringify([design.styles,design.regions,design.typography,design.badge,design.preheader,design.footer,design.mobile]);
+}
+export function renderDesignStylePanel({tools,design,originalDesign,area,setArea,button,el,onPreview,onSave,brandFont}) {
   const labels={page:'Page',preheader:'Preheader',header:'Header',body:'Body',footer:'Footer',mobile:'Mobile Styles',badge:'Referral Badge'};
   if(!area){
     for(const [key,label]of Object.entries(labels)){
@@ -12,7 +15,10 @@ export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPr
   const back=button('←',()=>setArea(''));back.setAttribute('aria-label','Back to Style');header.append(back,el('h2',labels[area]));
   const body=el('div',undefined,'designer-style-scroll'), footer=el('div',undefined,'designer-style-actions');
   const save=button('Save',()=>{const invalid=[...body.querySelectorAll('input,select,textarea')].find(input=>!input.checkValidity());if(invalid){invalid.reportValidity();return;}onSave();});save.className='primary';const cancel=button('Cancel',()=>setArea(''));cancel.className='designer-style-cancel';footer.append(save,cancel);tools.append(header,body,footer);
-  const preview=()=>onPreview();
+  const originalSignature=stylePanelSignature(originalDesign);
+  const markUnsaved=()=>save.classList.toggle('designer-style-unsaved',stylePanelSignature(design)!==originalSignature);
+  markUnsaved();
+  const preview=()=>{markUnsaved();onPreview();};
   const fonts=designFontChoices(design,brandFont);
   const label=(text,control)=>{const wrap=el(control.querySelector('.audience-color-control')?'div':'label',undefined,'designer-style-control');wrap.append(el('span',text),control);return wrap;};
   const select=(target,key,choices,value,changed=()=>{})=>{const input=el('select');for(const [v,text]of Object.entries(choices)){const option=el('option',text);option.value=v;input.append(option);}const current=String(target[key]??value);if(![...input.options].some(option=>option.value===current)){const option=el('option',current);option.value=current;input.append(option);}input.value=current;input.onchange=()=>{target[key]=typeof value==='number'?Number(input.value):input.value;changed();preview();};return input;};
@@ -30,7 +36,7 @@ export function renderDesignStylePanel({tools,design,area,setArea,button,el,onPr
   };
   const toggles=(target,key,choices,value,title)=>{const group=el('div',undefined,'designer-style-toggle-group');group.setAttribute('role','group');group.setAttribute('aria-label',title);for(const [v,text]of Object.entries(choices)){const control=button(text,()=>{target[key]=v;for(const item of group.children)item.setAttribute('aria-pressed',String(item.dataset.value===v));preview();});control.dataset.value=v;control.setAttribute('aria-label',title+': '+v);control.setAttribute('aria-pressed',String((target[key]??value)===v));if(key==='align'){control.textContent='';const icon=el('img');icon.src='assets/editor-icons/align-'+v+'.svg';icon.alt='';control.append(icon);}group.append(control);}return group;};
   const typography=(target,title,size,heading=false)=>{
-    const host=section(title);host.append(label('Font',select(target,'font',fonts,design.styles.font,()=>selectDesignFont(design,brandFont,target.font))),row(label('Size',number(target,'size',size,10,72,'px')),label('Color',color(target,'color',design.styles.text))));
+    const host=section(title);host.append(label('Font',select(target,'font',fonts,defaultDesignFont(design),()=>selectDesignFont(design,brandFont,target.font))),row(label('Size',number(target,'size',size,10,72,'px')),label('Color',color(target,'color',design.styles.text))));
     const emphasis=el('div',undefined,'designer-style-toggle-group');emphasis.setAttribute('role','group');emphasis.setAttribute('aria-label',title+' text styles');
     for(const [key,text,on,off,fallback]of [['weight','B','bold','normal',heading?'bold':'normal'],['fontStyle','I','italic','normal','normal']]){const control=button(text,()=>{target[key]=(target[key]??fallback)===on?off:on;control.setAttribute('aria-pressed',String(target[key]===on));preview();});control.className=key==='fontStyle'?'italic':'';control.setAttribute('aria-label',title+(key==='weight'?' bold':' italic'));control.setAttribute('aria-pressed',String((target[key]??fallback)===on));emphasis.append(control);}
     host.append(row(label('Styles',emphasis),label('Align',toggles(target,'align',{left:'Left',center:'Center',right:'Right',justify:'Justify'},'left',title+' alignment'))),row(label('Line height',select(target,'lineHeight',{100:'Single',125:'Slight',150:'Normal',160:'Comfortable',200:'Double'},target.lineHeight??design.styles.lineHeight)),label('Spacing',select(target,'letterSpacing',{'-1':'Tight',0:'Normal',1:'Wide',2:'Wider'},target.letterSpacing??design.styles.letterSpacing))));

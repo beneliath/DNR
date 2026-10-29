@@ -1,4 +1,4 @@
-<?php $d=array_replace(audienceCollectionDefaults($resource['kind']),$resource['draft']);$d['messages']=array_replace(audienceCollectionMessages(),$d['messages']);$d['advanced']=array_replace(audienceCollectionDefaults($resource['kind'])['advanced'],$d['advanced']);$isSurvey=$resource['kind']==='survey';$collectionEditorFields=audienceCollectionEditorFields($fields); ?>
+<?php $collectionBrand=$collectionBrand??[];$d=array_replace(audienceCollectionDefaults($resource['kind']),$resource['draft']);$d=audienceCollectionEditorFontDefaults($d,$collectionBrand);$d['messages']=array_replace(audienceCollectionMessages(),$d['messages']);$d['advanced']=array_replace(audienceCollectionDefaults($resource['kind'])['advanced'],$d['advanced']);$isSurvey=$resource['kind']==='survey';$collectionEditorFields=audienceCollectionEditorFields($fields); ?>
 <?php
 $isEmbedded=$resource['kind']==='embedded';$d['embedded']=array_replace(audienceCollectionEmbedDefaults(),$d['embedded']);
 $collectionBrand=$collectionBrand??[];$brandStyles=$collectionBrand['styles']??[];

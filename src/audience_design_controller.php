@@ -10,7 +10,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     $templateListUrl=static fn(string $tab='saved')=>$url(['view'=>'templates','tab'=>$tab]+($folderFilter!==''?['folder'=>$folderFilter]:[]));
     $kind=($_GET['kind']??'')==='template'?'template':'campaign';$starters=audienceDesignStarters();
     $brand=$store->contentSettings()['settings']['brand']??[];
-    foreach($starters as&$starter)$starter['design']=audienceDesignBrandDefaults($starter['design'],$brand);unset($starter);
+    foreach($starters as&$starter)$starter['design']=audienceDesignBrandDefaults($starter['design'],$brand,true);unset($starter);
     $variantRaw=$_GET['variant']??'0';if(!is_string($variantRaw)||!preg_match('/^[0-7]$/D',$variantRaw)||($kind==='template'&&$variantRaw!=='0')){http_response_code(404);exit('This content variation is unavailable.');}$variant=(int)$variantRaw;
     $jsonRequest=($_SERVER['HTTP_X_AUDIENCE_DESIGN']??'')==='1'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'design_'));
     $respond=static function(array $data,int $status=200):never{http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode($data,JSON_THROW_ON_ERROR);exit;};

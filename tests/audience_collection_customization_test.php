@@ -6,6 +6,16 @@ require_once __DIR__.'/../src/audience_collection_render.php';
 $checks=0;
 $expect=static function(bool $ok,string $label)use(&$checks):void{if(!$ok)throw new RuntimeException($label);++$checks;};
 $reject=static function(callable $call)use($expect):void{try{$call();}catch(InvalidArgumentException){$expect(true,'Invalid document rejected');return;}throw new RuntimeException('Expected rejection');};
+$fontBytes='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",44));
+$formBrand=['styles'=>['font'=>'Tahoma','webFont'=>$fontBytes],'web_font_name'=>'Example Light'];
+$brandedForm=audienceCollectionBrandFontDefaults(audienceCollectionDefaults('hosted'),$formBrand);
+$expect($brandedForm['font']==='Tahoma'&&$brandedForm['web_font']===$fontBytes&&$brandedForm['web_font_name']==='Example Light','New forms snapshot the uploaded Brand Kit font and fallback.');
+$expect(audienceCollectionEditorFontDefaults(audienceCollectionDefaults('hosted'),$formBrand)===$brandedForm,'Existing forms that still have the built-in default show the Brand Kit font in the editor.');
+$customForm=audienceCollectionDefaults('hosted');$customForm['font']='Verdana';
+$expect(audienceCollectionEditorFontDefaults($customForm,$formBrand)===$customForm,'An explicitly selected form font stays unchanged in the editor.');
+$expect(str_contains(audienceCollectionHtml(['kind'=>'hosted','document'=>$brandedForm],[],[],'',''),'--collection-font:MOEDCollectionBrandFont,Tahoma'),'Form preview uses the uploaded default font.');
+$fallbackForm=audienceCollectionBrandFontDefaults(audienceCollectionDefaults('hosted'),['styles'=>['font'=>'Georgia']]);
+$expect($fallbackForm['font']==='Georgia'&&$fallbackForm['web_font']===''&&str_contains(audienceCollectionHtml(['kind'=>'hosted','document'=>$fallbackForm],[],[],'',''),'--collection-font:Georgia'),'Without an upload, new forms use the Brand Kit fallback.');
 $organization=['name'=>'Example connections','settings_json'=>json_encode(['brand'=>['name'=>'Example & Partners']])];
 foreach([audienceCollectionDefaults('hosted')['system']['confirm_intro'],'Confirm that you want to receive emails from this audience.']as$intro){
     $intro=audienceCollectionConfirmationIntro($intro,$organization);

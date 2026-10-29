@@ -237,6 +237,8 @@ html.dark-mode .designer-rail img{filter:invert(1)}
 .designer-style-border{display:grid;gap:12px}.designer-style-border>select{max-width:280px}.designer-style-border-label{display:flex;align-items:center;gap:12px;font-size:16px}.designer-style-border-label button{border:0!important;background:transparent!important;padding:0!important;color:var(--audience-primary)!important;font-size:14px!important}
 .designer-style-actions{flex-shrink:0;padding:16px 20px;border-top:1px solid var(--audience-border);display:flex;align-items:center;gap:18px;background:var(--audience-surface)}
 .designer-style-actions>.primary{border-radius:24px!important;padding:10px 22px!important}.designer-style-cancel{border:0!important;background:transparent!important;color:var(--audience-primary)!important;text-decoration:underline;padding:0!important}
+.designer-style-actions>.designer-style-unsaved{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.designer-style-actions>.designer-style-unsaved{animation:none;outline:3px solid var(--audience-primary)}}
 .designer-block-hover-tools{position:absolute;top:0;left:0;right:0;min-height:48px;display:flex;align-items:center;justify-content:space-between;background:rgba(40,40,40,.78);opacity:0;pointer-events:none;z-index:6;transition:opacity .1s}
 .designer-block:hover>.designer-block-hover-tools,.designer-block:focus-within>.designer-block-hover-tools{opacity:1;pointer-events:auto}
 .designer-block-hover-tools button{position:relative;border:0!important;background:transparent!important;border-radius:0!important;color:#fff!important;padding:10px 16px!important;min-height:38px;line-height:1}

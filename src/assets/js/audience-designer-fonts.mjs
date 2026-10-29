@@ -15,6 +15,11 @@ export function designFontChoices(design,brandFont={}) {
   return choices;
 }
 
+export function defaultDesignFont(design) {
+  const styles=design.styles;
+  return styles.webFont&&styles.webFontDefault!==false?'MOEDBrandFont,'+styles.font:styles.font;
+}
+
 // Copy the font into the design only when selected. Saved templates and sent
 // emails retain their font even if the Brand Kit is changed later.
 export function selectDesignFont(design,brandFont,value) {

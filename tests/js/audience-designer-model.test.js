@@ -23,9 +23,12 @@ test('explicit editor palette choices stop inheriting while block overrides leav
 });
 
 test('Brand Kit font selection snapshots its bytes without changing the other text defaults', async () => {
-  const {designFontChoices,selectDesignFont}=await import('../../src/assets/js/audience-designer-fonts.mjs');
+  const {defaultDesignFont,designFontChoices,selectDesignFont}=await import('../../src/assets/js/audience-designer-fonts.mjs');
   const design={styles:{font:'Tahoma',webFont:''}};
   const brand={data:'data:font/ttf;base64,fixture',name:'Example Light'};
+  assert.equal(defaultDesignFont(design),'Tahoma');
+  assert.equal(defaultDesignFont({styles:{font:'Tahoma',webFont:brand.data,webFontDefault:true}}),'MOEDBrandFont,Tahoma');
+  assert.equal(defaultDesignFont({styles:{font:'Tahoma',webFont:brand.data,webFontDefault:false}}),'Tahoma');
   assert.equal(designFontChoices(design,brand)['MOEDBrandFont,Tahoma'],'Example Light (Brand Kit)');
   selectDesignFont(design,brand,'Georgia');
   assert.equal(design.styles.webFont,'');
@@ -38,6 +41,19 @@ test('Brand Kit font selection snapshots its bytes without changing the other te
   assert.equal(saved.styles.font,'Tahoma');
   assert.equal(designFontChoices(saved)['MOEDBrandFont,Tahoma'],'Example Light (Brand Kit)');
   assert.equal(Object.keys(designFontChoices({styles:{font:'Arial'}})).length,5);
+});
+
+test('Style Save tracks changes in every style panel without counting content edits', async () => {
+  const {stylePanelSignature}=await import('../../src/assets/js/audience-designer-styles.mjs');
+  const design={styles:{font:'Arial'},regions:{page:{},header:{},footer:{}},typography:{heading1:{},paragraph:{}},badge:{enabled:false},preheader:{text:''},footer:{text:''},mobile:{},rows:[{id:'content'}]};
+  const original=stylePanelSignature(design);
+  for(const [section,key,value] of [['styles','font','Georgia'],['regions','header',{font:'Georgia'}],['typography','heading1',{size:28}],['badge','enabled',true],['preheader','text','Preview'],['footer','text','Footer'],['mobile','size',14]]){
+    const changed=structuredClone(design);
+    changed[section][key]=value;
+    assert.notEqual(stylePanelSignature(changed),original,section);
+  }
+  const contentOnly=structuredClone(design);contentOnly.rows[0].id='different';
+  assert.equal(stylePanelSignature(contentOnly),original);
 });
 
 test('PHP empty-map payloads retain device styles, regions and footer edits through save/reload', async () => {
