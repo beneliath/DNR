@@ -167,7 +167,10 @@ def start_and_verify_members(members, config, release):
 
 
 def public_login_available(url):
-    page = subprocess.check_output(['curl', '--fail', '--silent', '--show-error', '--max-time', '20',
+    # Member Accounts redirect sign-in to the primary gateway. Follow that
+    # short HTTPS chain so the timestamp reflects the form users actually reach.
+    page = subprocess.check_output(['curl', '--fail', '--silent', '--show-error', '--location',
+                                    '--max-redirs', '3', '--proto-redir', '=https', '--max-time', '20',
                                     url.rstrip('/') + '/login.php'], text=True)
     if 'name="username"' not in page or 'name="password"' not in page:
         raise ValueError('Public login form is unavailable: ' + url)

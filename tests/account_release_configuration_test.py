@@ -32,6 +32,8 @@ class AccountReleaseConfigurationTest(unittest.TestCase):
         with patch.object(account_release.subprocess, 'check_output', return_value='<input name="username"><input name="password">') as curl:
             self.assertIsInstance(account_release.public_login_available('https://example.test/a/member/'), float)
         self.assertEqual(curl.call_args.args[0][-1], 'https://example.test/a/member/login.php')
+        self.assertIn('--location', curl.call_args.args[0])
+        self.assertIn('=https', curl.call_args.args[0])
         with patch.object(account_release.subprocess, 'check_output', return_value='<h1>Under maintenance</h1>'):
             with self.assertRaisesRegex(ValueError, 'Public login form is unavailable'):
                 account_release.public_login_available('https://example.test/a/member')
