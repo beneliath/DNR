@@ -109,6 +109,8 @@
 @container flow-rules (min-width:400px){
     .flow-rule-row:not(:has(>.flow-rule-group)){display:flex;flex-wrap:wrap;align-items:start;position:relative;padding-right:30px}
     .flow-rule-row:not(:has(>.flow-rule-group))>:is(select,input){flex:1 1 125px;width:0}
+    .flow-rule-row.flow-rule-choice>select:nth-child(2){flex:0 0 100px}
+    .flow-rule-row.flow-rule-choice>select:nth-child(3){flex:0 1 33%}
     .flow-rule-row:not(:has(>.flow-rule-group))>button{position:absolute;top:10px;right:0;width:24px}
 }
 .flow-recovery{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
