@@ -7,9 +7,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
-from deployment_notice import DeploymentNotice, NOTICE_LIFETIME_SECONDS
+from deployment_notice import DeploymentNotice, NOTICE_LIFETIME_SECONDS, login_restoration_estimate
 
 
 class NoticeLifecycle(unittest.TestCase):
@@ -35,7 +36,51 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(sum(self.sleeps), 300)
         self.assertEqual(result['phase'], 'deploying')
         self.assertEqual(result['commit'], self.commit)
+        self.assertEqual(result['expected_back_at'], self.now + 7 * 60)
         self.assertEqual(self.now, 1480)
+
+    def test_maintenance_estimate_can_be_configured(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
+        self.now += 300
+        with mock.patch.dict(os.environ, {'DNR_MAINTENANCE_ESTIMATE_MINUTES': '60'}):
+            result = self.notice.wait_and_claim(self.identifier, self.commit)
+        self.assertEqual(result['expected_back_at'], self.now + 3600)
+
+    def test_measured_login_estimate_sets_the_maintenance_deadline(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
+        self.now += 300
+        result = self.notice.wait_and_claim(self.identifier, self.commit, 180)
+        self.assertEqual(result['expected_back_at'], self.now + 180)
+
+    def test_observed_login_estimate_requires_five_comparable_successes(self):
+        records = self.root / '.git/dnr-deploy'
+        records.mkdir(parents=True)
+        for index, seconds in enumerate([300, 330, 360, 390, 420]):
+            record = {'outcome': 'success', 'phase': 'verified',
+                      'notice': {'updated_at': 1000}, 'all_accounts_login_available_at': 1000 + seconds,
+                      'accounts': [{}]}
+            path = records / (f'{index + 1:040x}.json')
+            path.write_text(json.dumps(record))
+            os.utime(path, (1000 + index, 1000 + index))
+        self.assertEqual(login_restoration_estimate(records, 0), 420)
+        self.assertEqual(login_restoration_estimate(records, 1), 360)
+        last = records / f'{5:040x}.json'
+        last.write_text(json.dumps({'outcome': 'failed', 'phase': 'verified',
+            'notice': {'updated_at': 1000}, 'all_accounts_login_available_at': 1420, 'accounts': [{}]}))
+        self.assertEqual(login_restoration_estimate(records, 1), 420)
+
+    def test_login_estimate_uses_latest_twenty_exact_measurements(self):
+        records = self.root / '.git/dnr-deploy'
+        records.mkdir(parents=True)
+        for index in range(22):
+            duration = 600 if index < 2 else 360
+            record = {'outcome': 'success', 'phase': 'verified',
+                      'notice': {'updated_at': 1000}, 'all_accounts_login_available_at': 1000 + duration,
+                      'accounts': [{}]}
+            path = records / (f'{index + 1:040x}.json')
+            path.write_text(json.dumps(record))
+            os.utime(path, (1000 + index, 1000 + index))
+        self.assertEqual(login_restoration_estimate(records, 1), 360)
 
     def test_long_preparation_has_no_countdown_and_then_gives_five_minutes(self):
         self.now += 1800

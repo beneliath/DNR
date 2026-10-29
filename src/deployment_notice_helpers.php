@@ -42,9 +42,13 @@ function deploymentNoticeStatus(?string $path = null, ?float $now = null): array
             return $payload;
         }
     }
+    if (isset($notice['expected_back_at']) && (!is_int($notice['expected_back_at']) && !is_float($notice['expected_back_at'])
+        || $notice['expected_back_at'] < $notice['not_before'])) {
+        return $payload;
+    }
     // Allowlist: no source SHA, paths, recovery details, credentials, or user data.
     $payload['notice'] = array_intersect_key($notice, array_flip([
-        'id', 'phase', 'started_at', 'countdown_started_at', 'not_before', 'expires_at',
+        'id', 'phase', 'started_at', 'countdown_started_at', 'not_before', 'expires_at', 'expected_back_at',
     ]));
     return $payload;
 }
