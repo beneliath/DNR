@@ -213,6 +213,7 @@
             if (rule.rules) ruleGroup(row,rule,depth + 1);
             else {
                 const definition = config.catalog[rule.field] || config.catalog.email;
+                if (definition.kind === 'choice') row.classList.add('flow-rule-choice');
                 row.append(options(Object.fromEntries(Object.entries(config.catalog).map(([key,value]) => [key,value.label])),rule.field,value => { checkpoint(); rule.field = value; delete rule.campaign_id; delete rule.link_hash; delete rule.bots; rule.operator = Object.keys(config.operators[config.catalog[value].kind])[0]; rule.value = config.catalog[value].kind === 'membership' ? [] : ''; changed(); renderInspector(); renderSettings(); }));
                 row.append(options(config.operators[definition.kind],rule.operator,value => { edit(rule,'operator',value); renderInspector(); renderSettings(); }));
                 if (!['empty','not_empty','ever','never'].includes(rule.operator)) {
