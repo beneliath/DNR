@@ -1182,6 +1182,35 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         updatePersonalization();
     });
     $('[data-campaign-recipient-preview]')?.form.addEventListener('reset', event => { $('[data-campaign-recipient-count]', event.currentTarget).textContent = ''; });
+    const dispatchForm = $('#campaign-send-confirm form');
+    if (dispatchForm) {
+        const dialog = dispatchForm.closest('dialog'), submit = $('[data-campaign-dispatch-submit]', dispatchForm);
+        const status = $('[data-campaign-dispatch-status]', dispatchForm), closeButtons = $$('[data-close-dialog]', dialog);
+        const originalLabel = submit.textContent, originallyDisabled = submit.disabled;
+        let pending = false;
+        dispatchForm.addEventListener('submit', event => {
+            event.preventDefault();
+            if (pending) return;
+            pending = true;
+            submit.textContent = submit.dataset.pendingLabel;
+            submit.classList.add('campaign-dispatch-submitting');
+            submit.disabled = true;
+            closeButtons.forEach(button => { button.disabled = true; });
+            status.hidden = false;
+            // Allow the loading state to paint before the browser starts the request.
+            window.setTimeout(() => HTMLFormElement.prototype.submit.call(dispatchForm), 60);
+        });
+        dialog.addEventListener('cancel', event => { if (pending) event.preventDefault(); });
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted) return;
+            pending = false;
+            submit.textContent = originalLabel;
+            submit.classList.remove('campaign-dispatch-submitting');
+            submit.disabled = originallyDisabled;
+            closeButtons.forEach(button => { button.disabled = false; });
+            status.hidden = true;
+        });
+    }
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
     $('[data-campaign-recipient-preview]')?.addEventListener('click', async event => {
         const button = event.currentTarget, form = button.form, output = $('[data-campaign-recipient-count]', form), body = new FormData(form); body.set('action', 'campaign_preview');
@@ -1485,6 +1514,14 @@ import { wireAudienceFileDrop, enhanceAudienceFileInput, setFileDropStatus, sele
         });
     }
     $$('[data-delivery-refresh]').forEach(button=>button.addEventListener('click',()=>location.reload()));
+    const campaignDeliveryRefresh = $('[data-campaign-delivery-auto-refresh]');
+    if (campaignDeliveryRefresh) {
+        const interval = Number(campaignDeliveryRefresh.dataset.campaignDeliveryAutoRefresh);
+        if (interval > 0) window.setInterval(() => {
+            const editing = document.activeElement?.matches('input:not([type="hidden"]), textarea, select, [contenteditable="true"]');
+            if (document.visibilityState === 'visible' && !document.querySelector('dialog[open]') && !editing) location.reload();
+        }, interval);
+    }
     $$('[data-copy-delivery]').forEach(button=>button.addEventListener('click',async()=>{const status=$('[data-delivery-copy-status]',button.closest('dialog')||document);try{await navigator.clipboard.writeText(button.dataset.copyDelivery);if(status)status.textContent='Copied.';}catch{if(status)status.textContent='Copy is unavailable. Select the record value and copy it.';}}));
     const brandApply=$('[data-brand-apply]');if(brandApply){const select=brandApply.elements.template_id;const update=()=>brandApply.elements.version.value=select.selectedOptions[0]?.dataset.version||'0';select.addEventListener('change',update);update();}
 })();

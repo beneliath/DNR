@@ -243,6 +243,8 @@ $cbSettings['brand']['styles']=array_replace($cbSettings['brand']['styles']??[],
 try{
     $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
     $cbId=$collectStore->saveCollection(['kind'=>'landing','name'=>'Brand Kit landing page']);$cbPath='audience.php?view=form&id='.$cbId;
+    $cbInitial=$collectStore->collectionResource($cbId)['draft'];
+    audienceHttpExpect($cbInitial['font']==='Tahoma'&&$cbInitial['web_font']===$cbFont&&$cbInitial['web_font_name']==='Example Light','New form drafts use the Brand Kit font by default');
     $cbEditor=$editor($cbPath);audienceHttpExpect($cbEditor['status']===200&&str_contains($cbEditor['body'],'Example Light (Brand Kit)')&&str_contains($cbEditor['body'],'"brandColors":[')&&str_contains($cbEditor['body'],'"value":"#3261b5"'),'Landing page editor exposes the current account Brand Kit font and colors');
     audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Primary logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary logo</option>'),'Landing page offers both account Brand Kit logos');
     $cbPreferences=$collectStore->saveCollection(['kind'=>'preferences','name'=>'Brand Kit preferences']);

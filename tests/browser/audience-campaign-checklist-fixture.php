@@ -26,7 +26,7 @@ if(in_array($fixtureMode,['sent-notice','plain-notice'],true))$reopenDesignerUna
 if($fixtureMode==='enabled'){$campaign['draft']['resend']=['enabled'=>true];$publication=['enabled'=>true,'archive_listed'=>true,'public_key'=>'fixture-key'];}
 if($fixtureMode==='archive-only')$publication=['enabled'=>false,'archive_listed'=>true];
 if(str_starts_with($fixtureMode,'send-')){
-    $view='campaign-send';$dispatchReview=null;$dispatchError='';$audience=['name'=>'Fixture audience'];$campaign['deleted_at']=null;$previewIdentity=[];
+    $view='campaign-send';$dispatchReview=['count'=>2,'recipients'=>[['id'=>1,'first_name'=>'Ada','last_name'=>'Example','email'=>'ada@example.test'],['id'=>2,'first_name'=>'<script>','last_name'=>'Recipient','email'=>'second@example.test']],'proof'=>'fixture-proof'];$dispatchError='';$audience=['name'=>'Fixture audience'];$campaign['deleted_at']=null;$previewIdentity=[];
     if($fixtureMode==='send-html')$campaign['draft']['design']=audienceDesignStarters()['newsletter']['design'];
     else{$campaign['campaign_type']='plain-text';$campaign['draft']['text']="Hello recipient,\n\n".str_repeat('Long preview text ',40)."\n<script>literal text</script>";}
 }

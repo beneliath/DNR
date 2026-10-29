@@ -51,7 +51,7 @@ if($isPost){
         if($store->sesAvailable()&&str_starts_with($action,'delivery_')&&!in_array($action,['delivery_ses_save','delivery_ses_operation'],true))throw new InvalidArgumentException('MessageMonkey delivery now uses this account’s SES API connection.');
         switch($action){
             case 'delivery_ses_save':$store->saveSesSettings($version,$_POST);$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES settings saved. A connection check is queued; no email is sent by this check.';break;
-            case 'delivery_ses_operation':$store->sesOperation($version,audienceText($_POST,'operation'));$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES connection updated.';break;
+            case 'delivery_ses_operation':$operation=audienceText($_POST,'operation');if($operation==='disconnect')requireRecentAdminElevation($url(['view'=>'delivery','tab'=>'relay']));$store->sesOperation($version,$operation);$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES connection updated.';break;
             case 'campaign_test':
                 if(!$runtimeInstalled)throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
                 $n=$store->queueCampaignTest($id,$version,$_POST,$audience,accountPrimaryPublicUrl());$redirect=$url(['view'=>'campaign','id'=>$id]);$message=$n.' test email(s) queued. Follow their receipts in Email delivery → Activity.';break;
