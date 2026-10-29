@@ -61,15 +61,33 @@ foreach (['/login.php', '/a/test-account/engagement.php', '/direct/content.pdf']
     checkNoticeHttp(str_contains($headers[0] ?? '', '503'), 'Unavailable pages must return HTTP 503: ' . ($headers[0] ?? '') . ' ' . substr((string) $body, 0, 200));
     checkNoticeHttp(str_contains($body, 'Temporarily unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
         && !str_contains($body, 'aria-label="MOED logo"') && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
-    checkNoticeHttp(str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')
-        && str_contains($body, 'src="/assets/js/maintenance-timer.js"'), 'Maintenance page must load the animated timer and readiness check.');
+    checkNoticeHttp(str_contains($body, '<meta http-equiv="refresh" content="30">')
+        && str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')
+        && str_contains($body, 'src="/assets/js/maintenance-timer.js?v='), 'Maintenance page must load the animated timer and readiness check.');
     checkNoticeHttp(str_contains($headerText, 'cache-control: no-store') && !str_contains($headerText, 'set-cookie:'), 'Maintenance page must not cache or touch sessions.');
 }
 [$script, $scriptHeaders] = noticeHttp('GET', '/assets/js/maintenance-timer.js');
-checkNoticeHttp(str_contains($scriptHeaders[0] ?? '', '200') && str_contains((string) $script, 'performance.now()'), 'Ingress must serve the countdown script without the application.');
+checkNoticeHttp(str_contains($scriptHeaders[0] ?? '', '200') && str_contains((string) $script, 'performance.now()')
+    && str_contains((string) $script, 'window.setInterval(checkReady, 30000)'),
+    'Ingress must serve the countdown script with a 30 second readiness check without the application.');
+$timerVersion = substr(hash('sha256', (string) $script), 0, 12);
+checkNoticeHttp(str_contains((string) $body, 'src="/assets/js/maintenance-timer.js?v=' . $timerVersion . '"'),
+    'Maintenance page must version the timer script so browsers load new behavior after deployment.');
 [$accountBody] = noticeHttp('GET', '/profile.php', 'X-Forwarded-Prefix: /a/test-account');
-checkNoticeHttp(str_contains((string) $accountBody, 'src="/a/test-account/assets/js/maintenance-timer.js"'), 'Account maintenance page must load its scoped timer script.');
+checkNoticeHttp(str_contains((string) $accountBody, 'src="/a/test-account/assets/js/maintenance-timer.js?v=' . $timerVersion . '"'), 'Account maintenance page must load its scoped timer script.');
 checkNoticeHttp(str_contains((string) $accountBody, 'data-ready-url="/a/test-account/ready.php"'), 'Account maintenance page must check its own readiness.');
+$state['started_at'] = $now - 360;
+$state['countdown_started_at'] = $now - 360;
+$state['not_before'] = $now - 60;
+$state['expected_back_at'] = $now - 30;
+file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
+[$body] = noticeHttp('GET', '/login.php');
+checkNoticeHttp(str_contains((string) $body, 'class="timer timer-expired"')
+    && str_contains((string) $body, 'data-remaining-seconds="0"')
+    && str_contains((string) $body, '>0:00:00</div>')
+    && str_contains((string) $body, 'The estimate has passed. Please check back soon.')
+    && str_contains((string) $body, 'src="/assets/js/maintenance-timer.js?v=' . $timerVersion . '"'),
+    'An elapsed estimate must keep a red flashing zero timer and continue checking readiness.');
 $state['phase'] = 'failed';
 file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
 [$body] = noticeHttp('GET', '/login.php');

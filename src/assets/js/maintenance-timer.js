@@ -21,6 +21,8 @@
         timer.textContent = display(seconds);
         if (seconds === 0) {
             window.clearInterval(interval);
+            timer.classList.add('timer-expired');
+            timer.setAttribute('aria-label', 'Estimated return time has passed');
             const detail = document.querySelector('[data-maintenance-estimate]');
             if (detail) detail.textContent = 'The estimate has passed. Please check back soon.';
         }
@@ -49,5 +51,5 @@
             checking = false;
         }
     }
-    window.setInterval(checkReady, 5000);
+    window.setInterval(checkReady, 30000);
 })();
