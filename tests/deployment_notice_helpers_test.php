@@ -37,8 +37,9 @@ try {
         expectDeploymentNotice(deploymentNoticeStatus($path, 1100)['notice'] === null, 'Inactive notices are hidden.');
     }
     foreach (['deploying', 'failed'] as $phase) {
-        file_put_contents($path, json_encode(array_replace($state, ['phase' => $phase])));
+        file_put_contents($path, json_encode(array_replace($state, ['phase' => $phase, 'expected_back_at' => 4000])));
         expectDeploymentNotice(deploymentNoticeStatus($path, 3000)['notice']['phase'] === $phase, 'Maintenance must not expire.');
+        expectDeploymentNotice(deploymentNoticeStatus($path, 3000)['notice']['expected_back_at'] === 4000, 'Expose only the return estimate.');
     }
     foreach (['{broken', '{}', json_encode(array_replace($state, ['not_before' => 1100])),
         json_encode(array_replace($state, ['not_before' => 'bad']))] as $contents) {

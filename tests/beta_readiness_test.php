@@ -112,7 +112,8 @@ expectBetaReadiness(
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
         && str_contains($ingress_dockerfile, 'a2enmod headers proxy proxy_http')
         && $ingress_source_copies[0] === [
-            'COPY src/deployment_status.php src/deployment_notice_helpers.php /var/www/html/',
+            'COPY src/deployment_status.php src/deployment_notice_helpers.php src/maintenance.php /var/www/html/',
+            'COPY src/assets/js/maintenance-timer.js /var/www/html/assets/js/maintenance-timer.js',
             'COPY src/assets/ /opt/dnr/account-assets/',
         ]
         && str_contains($compose, 'read_only: true')

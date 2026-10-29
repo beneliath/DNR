@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
 
 from deployment_backup import create_verified_backup, query, sha
 
@@ -55,7 +56,8 @@ def compose(member, *arguments):
 
 def pause_members(members):
     for member in members:
-        compose(member, 'stop', *member['active'])
+        # Keep ingress and its Traefik route available for the maintenance page.
+        compose(member, 'stop', *(service for service in member['active'] if service != 'ingress'))
 
 
 def backup_members(members, app_image, password_file, records):
@@ -159,5 +161,14 @@ def start_and_verify_members(members, config, release):
             '--max-time', '20', url.rstrip('/') + '/ready.php'], text=True))
         if ready.get('status') != 'ready' or ready.get('version') != release['version']:
             raise ValueError('Account public readiness/version differs from the qualified release')
-        results.append(dict(account_key=member['key'], commit=release['commit'], version=release['version'], status='ready'))
+        results.append(dict(account_key=member['key'], commit=release['commit'], version=release['version'],
+                            status='ready', public_ready_at=public_login_available(url)))
     return results
+
+
+def public_login_available(url):
+    page = subprocess.check_output(['curl', '--fail', '--silent', '--show-error', '--max-time', '20',
+                                    url.rstrip('/') + '/login.php'], text=True)
+    if 'name="username"' not in page or 'name="password"' not in page:
+        raise ValueError('Public login form is unavailable: ' + url)
+    return time.time()

@@ -149,16 +149,21 @@ class MemberReleaseTest(unittest.TestCase):
                 return inspect(identifier)
             import account_lifecycle_local
             for version in ['2.5.10', '2.5.11']:
+                def public_response(command, **_):
+                    if command[-1].endswith('/login.php'):
+                        return '<input name="username"><input name="password">'
+                    return json.dumps({'status': 'ready', 'version': version})
                 with self.subTest(version=version), patch.object(release, 'compose', side_effect=compose), \
                      patch.object(account_lifecycle_local, 'inspect', side_effect=state), \
                      patch.object(provisioning, 'run', return_value=SimpleNamespace(stdout='{"ok":true}')) as control, \
-                     patch.object(release.subprocess, 'check_output', return_value=json.dumps({'status': 'ready', 'version': version})):
+                     patch.object(release.subprocess, 'check_output', side_effect=public_response):
                     if version == '2.5.10':
                         with self.assertRaisesRegex(ValueError, 'readiness/version'):
                             release.start_and_verify_members([member], {'primary_web': 'primary'}, qualified)
                     else:
                         result = release.start_and_verify_members([member], {'primary_web': 'primary'}, qualified)
                         self.assertEqual(result[0]['commit'], qualified['commit'])
+                        self.assertIsInstance(result[0]['public_ready_at'], float)
                     self.assertEqual(control.call_args.args[0], ['docker', 'exec', '-i', 'primary',
                         'php', '/dev/stdin', 'probe', member['key'],
                         member['document']['services']['web']['environment']['DNR_PUBLIC_BASE_URL'], qualified['commit']])

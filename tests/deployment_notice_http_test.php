@@ -6,10 +6,10 @@ if (getenv('DNR_DEPLOYMENT_NOTICE_HTTP_TEST') !== '1') {
     exit;
 }
 
-function noticeHttp(string $method = 'GET'): array
+function noticeHttp(string $method = 'GET', string $path = '/deployment_status.php', string $requestHeaders = ''): array
 {
-    $context = stream_context_create(['http' => ['method' => $method, 'timeout' => 1, 'ignore_errors' => true]]);
-    $body = @file_get_contents('http://127.0.0.1/deployment_status.php', false, $context);
+    $context = stream_context_create(['http' => ['method' => $method, 'timeout' => 1, 'ignore_errors' => true, 'header' => $requestHeaders]]);
+    $body = @file_get_contents('http://127.0.0.1' . $path, false, $context);
     return [$body, http_get_last_response_headers() ?: []];
 }
 
@@ -52,4 +52,26 @@ foreach (['preparing', 'pending', 'deploying', 'failed', 'complete', 'cancelled'
 }
 [, $headers] = noticeHttp('POST');
 checkNoticeHttp(str_contains($headers[0] ?? '', '405'), 'Public endpoint must reject mutations.');
+$state['phase'] = 'deploying';
+$state['expected_back_at'] = $now + 2700;
+file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
+foreach (['/login.php', '/a/test-account/engagement.php', '/direct/content.pdf'] as $path) {
+    [$body, $headers] = noticeHttp('GET', $path);
+    $headerText = strtolower(implode("\n", $headers));
+    checkNoticeHttp(str_contains($headers[0] ?? '', '503'), 'Unavailable pages must return HTTP 503: ' . ($headers[0] ?? '') . ' ' . substr((string) $body, 0, 200));
+    checkNoticeHttp(str_contains($body, 'Temporarily unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
+        && !str_contains($body, 'aria-label="MOED logo"') && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
+    checkNoticeHttp(str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')
+        && str_contains($body, 'src="/assets/js/maintenance-timer.js"'), 'Maintenance page must load the animated timer and readiness check.');
+    checkNoticeHttp(str_contains($headerText, 'cache-control: no-store') && !str_contains($headerText, 'set-cookie:'), 'Maintenance page must not cache or touch sessions.');
+}
+[$script, $scriptHeaders] = noticeHttp('GET', '/assets/js/maintenance-timer.js');
+checkNoticeHttp(str_contains($scriptHeaders[0] ?? '', '200') && str_contains((string) $script, 'performance.now()'), 'Ingress must serve the countdown script without the application.');
+[$accountBody] = noticeHttp('GET', '/profile.php', 'X-Forwarded-Prefix: /a/test-account');
+checkNoticeHttp(str_contains((string) $accountBody, 'src="/a/test-account/assets/js/maintenance-timer.js"'), 'Account maintenance page must load its scoped timer script.');
+checkNoticeHttp(str_contains((string) $accountBody, 'data-ready-url="/a/test-account/ready.php"'), 'Account maintenance page must check its own readiness.');
+$state['phase'] = 'failed';
+file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
+[$body] = noticeHttp('GET', '/login.php');
+checkNoticeHttp(str_contains($body, 'taking longer than expected') && !str_contains($body, 'Estimated return'), 'Failed deployments must not promise an ETA.');
 echo "Deployment notice HTTP tests passed without application or database services.\n";

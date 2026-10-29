@@ -48,6 +48,11 @@ s1_host=${DNR_S1_HOST:-192.168.1.150}
 s1_project_directory=${DNR_S1_PROJECT_DIR:-/home/dgilmore/moed}
 backup_password_file=${DNR_S1_BACKUP_PASSWORD_FILE:-$s1_project_directory/secrets/deployment_backup_password}
 public_base_url=${DNR_S1_PUBLIC_BASE_URL:-https://moed.beneliath.com}
+maintenance_estimate_minutes=${DNR_MAINTENANCE_ESTIMATE_MINUTES:-}
+if [ -n "$maintenance_estimate_minutes" ]; then
+    printf '%s\n' "$maintenance_estimate_minutes" | grep -Eq '^[0-9]{1,3}$' || { echo 'Maintenance estimate must be 5–240 minutes.' >&2; exit 64; }
+    [ "$maintenance_estimate_minutes" -ge 5 ] && [ "$maintenance_estimate_minutes" -le 240 ] || { echo 'Maintenance estimate must be 5–240 minutes.' >&2; exit 64; }
+fi
 printf '%s\n' "$s1_user" | grep -Eq '^[A-Za-z0-9._-]+$'
 printf '%s\n' "$s1_host" | grep -Eq '^[A-Za-z0-9.:-]+$'
 printf '%s\n' "$s1_project_directory" "$backup_password_file" | while IFS= read -r value; do
@@ -77,5 +82,5 @@ PY
     ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" \
         "mv -f '$incoming/speaker-seed.upload.json' '$incoming/speaker-seed.json'"
 fi
-ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" python3 "$incoming/deploy_release_host.py" \
+ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" env "DNR_MAINTENANCE_ESTIMATE_MINUTES=$maintenance_estimate_minutes" python3 "$incoming/deploy_release_host.py" \
     "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}" "$notice_id" "$speaker_seed_sha256"
