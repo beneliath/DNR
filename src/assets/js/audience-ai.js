@@ -188,7 +188,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       reply.subjects.forEach(text => { const row = node('div'); const use = node('button','Use this subject'); use.type = 'button'; use.addEventListener('click',()=>{form.elements.subject.value=text; announce('Subject selected in this workspace. The campaign is unchanged');}); const copy=node('button','Copy subject');copy.type='button';copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);announce('Subject copied');}catch{announce('Select the subject text to copy it');}}); row.append(node('p',text),use,copy);subjects.append(row); });
       checks(reply.checks, false);
       writingActions(false);
-      output.scrollIntoView({block:'start'});
+      const destination = displayedRequest === uuid ? find('[data-ai-check-result]') : output;
+      destination.scrollIntoView({block:'start'});
     }
   }
   function renderHistory() {

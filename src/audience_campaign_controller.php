@@ -79,7 +79,13 @@ if($isPost){
                 }
                 if($operation==='purge'&&($_POST['confirm_delete']??'')!=='1')throw new InvalidArgumentException('Confirm permanent deletion of the selected files from Trash.');
                 $store->contentOperation($operation,audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$contentUrl($operation==='purge'?['trash'=>'1','page'=>1]:[]);$message=$operation==='purge'?'Files permanently deleted. Existing email snapshots are preserved.':'Files updated. Existing email snapshots are preserved.';break;
-            case 'content_folder':$store->contentFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
+            case 'content_folder':
+                $operation=audienceText($_POST,'operation');
+                if($operation==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can delete content folders.');}
+                    requireRecentAdminElevation($contentUrl());
+                }
+                $store->contentFolder($operation,audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
             case 'brand_apply':$store->applyBrand((int)audienceText($_POST,'template_id',12),$version,($_POST['include_logo']??'')==='1');$redirect=$url(['view'=>'templates','tab'=>'saved']);$message='Brand applied. The previous template revision is retained.';break;
             case 'campaign_plan_save':$planId=$store->saveCampaignPlan($_POST,$id,$version);$redirect=$url(['view'=>'campaign-plan','id'=>$planId]);$message='Campaign plan saved.';break;

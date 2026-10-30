@@ -11,6 +11,9 @@ const analyticsMarkup = execFileSync('php', ['tests/browser/audience-mobile-work
 const checks = {facts: [{label: 'Word count', value: 12, note: 'Counted from the supplied text'}], findings: [], note: 'Text checks only'};
 const reply = {purpose: 'audience-ai', mode: 'content', reason: '', headline: 'A community update', text: 'Thank you for being part of our community.',
     subjects: ['Community news', 'An update for you', 'Staying connected'], recommendations: ['Review the facts'], checks};
+const savedRequestId = 'saved-invitation';
+const savedReply = {...reply, headline: 'An invitation', text: 'Please join our next community gathering.',
+    checks: {...checks, facts: [{label: 'Word count', value: 7, note: 'Counted from the supplied text'}]}};
 const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => page.waitForFunction(({selector, paneSelector}) => {
     const element = document.querySelector(selector), pane = document.querySelector(paneSelector);
     if (!element || !pane) return false;
@@ -37,12 +40,14 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                     if (url.pathname.endsWith('audience_ai_api.php')) {
                         let data;
                         if (url.searchParams.get('action') === 'history') {
-                            data = {items: completed || analytics ? [{client_request_id: requestId, question: 'A saved request', manual_topic: `audience-ai:${analytics ? 'analytics' : 'content'}`, created_at: '2026-10-29 21:49:00', outcome: 'complete'}] : [], can_remove_history: true};
+                            const items = completed || analytics ? [{client_request_id: requestId, question: 'A saved request', manual_topic: `audience-ai:${analytics ? 'analytics' : 'content'}`, created_at: '2026-10-29 21:49:00', outcome: 'complete'}] : [];
+                            if (completed && !analytics) items.push({client_request_id: savedRequestId, question: 'Write a warm invitation', manual_topic: 'audience-ai:content', created_at: '2026-10-29 21:48:00', outcome: 'complete'});
+                            data = {items, can_remove_history: true};
                         } else if (route.request().method() === 'POST') {
                             const body = route.request().postDataJSON();
                             if (body.action === 'checks') data = checks;
                             else { submitted = true; requestId = body.request_id; data = {state: 'pending'}; }
-                        } else data = completed ? {state: 'complete', response: reply} : {state: 'pending', stage: 'generating'};
+                        } else data = completed ? {state: 'complete', response: url.searchParams.get('request_id') === savedRequestId ? savedReply : reply} : {state: 'pending', stage: 'generating'};
                         return route.fulfill({contentType: 'application/json', body: JSON.stringify(data)});
                     }
                     return route.fulfill({contentType: 'text/html', body: analytics ? analyticsMarkup : markup});
@@ -66,13 +71,17 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                 assert.ok(await page.locator('[data-ai-thinking]').isHidden());
                 assert.ok(await page.locator('[data-ai-generate]').isHidden());
                 assert.ok(await page.locator('[data-ai-checks]').isHidden());
-                await page.locator('.writing-ai-content').evaluate(el => { el.scrollTop = 0; });
-                if (await page.locator('[data-ai-history-panel]').isHidden()) {
-                    await page.locator(viewport.width < 700 ? '.mm-mobile-history-toggle' : '[data-ai-history-toggle]').click();
+                for (const [question, expected] of [['A saved request', reply], ['Write a warm invitation', savedReply], ['A saved request', reply]]) {
+                    await page.locator('.writing-ai-content').evaluate(el => { el.scrollTop = 0; });
+                    if (await page.locator('[data-ai-history-panel]').isHidden()) {
+                        await page.locator(viewport.width < 700 ? '.mm-mobile-history-toggle' : '[data-ai-history-toggle]').click();
+                    }
+                    await page.locator('[data-ai-history]').getByRole('button', {name: question, exact: true}).click();
+                    await visibleInPane(page, '[data-ai-check-result] h3');
+                    assert.equal(await page.locator('[data-ai-check-result] dd').textContent(), String(expected.checks.facts[0].value));
+                    assert.equal(await page.locator('[data-ai-text]').inputValue(), expected.text);
+                    assert.ok(await page.locator('[data-ai-generate]').isHidden());
                 }
-                await page.locator('.ai-history-open').click();
-                await visibleInPane(page, '[data-ai-result] h3');
-                assert.ok(await page.locator('[data-ai-generate]').isHidden());
                 await page.locator('[data-ai-new]').click();
                 assert.ok(await page.locator('[data-ai-generate]').isVisible());
                 await page.locator('[data-ai-history-reset]').click();
@@ -112,7 +121,7 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                 assert.equal(await page.locator('.analytics-ai-footer').count(), 0);
                 assert.deepEqual(errors, []);
                 await page.close();
-                console.log(`${name} ${viewport.width}px: writing results/checks and Analytics working dots visible; Reset list opens a fresh chat`);
+                console.log(`${name} ${viewport.width}px: history selections reveal the corresponding content checks; writing results and Analytics working dots visible; Reset list opens a fresh chat`);
             }
         } finally { await browser.close(); }
     }

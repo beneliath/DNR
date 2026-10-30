@@ -182,6 +182,23 @@ export function initializeContentWorkspace(show) {
         window.addEventListener('pageshow', syncFilters);
         syncFilters();
     }
+    const folderForm = $('[data-content-folder-form]');
+    if (folderForm) {
+        let approved = false, checking = false;
+        folderForm.addEventListener('submit', async event => {
+            const submitter = event.submitter;
+            if (submitter?.value !== 'delete' || approved) return;
+            event.preventDefault();
+            if (checking) return;
+            checking = true;
+            try {
+                if (await window.DnrAdminUnlock?.request()) {
+                    approved = true;
+                    folderForm.requestSubmit(submitter);
+                }
+            } finally { approved = false; checking = false; }
+        });
+    }
     const contentSelection = $('[data-content-selection]');
     if (contentSelection) {
         const all = $('[data-content-all]',contentSelection), items = $$('[data-content-select]',contentSelection);

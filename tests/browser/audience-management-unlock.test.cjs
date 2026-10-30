@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const root=path.resolve(__dirname,'../..');
 const fixture=(view,role)=>execFileSync('php',['tests/browser/audience-tag-actions-fixture.php',role,'active','locked',view==='add-person'?'27':'2','','',view],{cwd:root,encoding:'utf8'});
 let activeCase='';
-const actions={groups:'delete_group',fields:'delete_field',jobs:'delete_export_history',job:'undo_import'};
+const actions={groups:'delete_group',fields:'delete_field',jobs:'delete_export_history',job:'undo_import',content:'content_folder'};
 const views=process.argv.slice(2);if(views.some(view=>!Object.hasOwn(actions,view)))throw new Error('Unknown management view.');
 (async()=>{const browser=await chromium.launch({headless:true});let checks=0;try{
  for(const dark of [false,true])for(const width of [390,1600])for(const view of (views.length?views:Object.keys(actions))){
@@ -25,6 +25,23 @@ const views=process.argv.slice(2);if(views.some(view=>!Object.hasOwn(actions,vie
    const file=path.join(root,'src',url.pathname);return fs.existsSync(file)&&fs.statSync(file).isFile()?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'image/svg+xml'}):route.fulfill({status:404,body:''});
   });
   await page.goto('https://management.test/audience.php?view='+view);
+  if(view==='content'){
+   const folders=page.locator('#content-folder'),unlock=page.locator('#admin-unlock-dialog');
+   await page.getByRole('button',{name:'Manage folders',exact:true}).click();await folders.locator('select[name=name]').selectOption('SiMM photos');await folders.locator('[name=new_name]').fill('Preserved folder name');
+   const remove=folders.getByRole('button',{name:'Delete folder',exact:true});assert.equal(await remove.getAttribute('data-admin-unlock-required'),'');
+   await remove.click();await unlock.waitFor({state:'visible'});assert.equal(posts.length,0);await unlock.locator('[data-unlock-cancel]').click();
+   assert.equal(await folders.isVisible(),true);assert.equal(await folders.locator('select[name=name]').inputValue(),'SiMM photos');assert.equal(await folders.locator('[name=new_name]').inputValue(),'Preserved folder name');checks+=5;
+   await remove.click();await unlock.waitFor({state:'visible'});await unlock.locator('[name=admin_password]').fill('fixture-password');await unlock.locator('[name=admin_code]').fill('123456');await unlock.locator('[data-unlock-submit]').click();
+   await page.getByText('Protected fixture submitted',{exact:true}).waitFor();assert.equal(posts.length,1);assert.equal(posts[0].action,'content_folder');assert.equal(posts[0].operation,'delete');assert.equal(posts[0].name,'SiMM photos');assert.equal(posts[0].csrf_token,'rotated-token');checks+=5;
+   for(const role of ['editor','reviewer']){
+    await page.goto(`https://management.test/audience.php?view=content&role=${role}`);assert.equal(await page.locator('#content-folder [value=delete]').count(),0);checks++;
+    if(role==='editor'){
+     await page.getByRole('button',{name:'Manage folders',exact:true}).click();assert.equal(await folders.getByRole('button',{name:'Create folder',exact:true}).isVisible(),true);await folders.locator('[name=new_name]').fill('Renamed photos');
+     unlocked=false;await folders.getByRole('button',{name:'Rename',exact:true}).click();await page.getByText('Protected fixture submitted',{exact:true}).waitFor();assert.equal(posts.at(-1).operation,'rename');assert.equal(posts.at(-1).new_name,'Renamed photos');checks+=3;
+    }
+   }
+   assert.deepEqual(errors,[]);await page.close();continue;
+  }
   if(view==='groups'){
    assert.equal(await page.locator('.audience-group-grid article').count(),3);assert.equal(await page.locator('.audience-group-grid tbody tr:visible').count(),6);
    const boxes=await page.locator('.audience-group-grid article').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y})));
