@@ -44,6 +44,7 @@ foreach (['preparing', 'pending', 'deploying', 'failed', 'complete', 'cancelled'
     checkNoticeHttp(!str_contains($headerText, 'set-cookie:'), 'Status must not create or refresh sessions.');
     checkNoticeHttp(!str_contains($body, 'private-commit'), 'Source details must not be exposed.');
     checkNoticeHttp(isset($payload['server_now']), 'Server time is required.');
+    checkNoticeHttp($payload['deployment_complete'] === ($phase === 'complete'), 'Only the verified deployment may release waiting pages.');
     if (in_array($phase, ['complete', 'cancelled'], true)) {
         checkNoticeHttp($payload['notice'] === null, 'Terminal notices should disappear.');
     } else {
@@ -61,8 +62,9 @@ foreach (['/login.php', '/a/test-account/engagement.php', '/direct/content.pdf']
     checkNoticeHttp(str_contains($headers[0] ?? '', '503'), 'Unavailable pages must return HTTP 503: ' . ($headers[0] ?? '') . ' ' . substr((string) $body, 0, 200));
     checkNoticeHttp(str_contains($body, 'Temporarily unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
         && !str_contains($body, 'aria-label="MOED logo"') && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
-    checkNoticeHttp(str_contains($body, '<meta http-equiv="refresh" content="30">')
+    checkNoticeHttp(!str_contains($body, 'http-equiv="refresh"')
         && str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')
+        && str_contains($body, 'data-status-url="/deployment_status.php"') && str_contains($body, 'data-wait-for-deployment="true"')
         && str_contains($body, 'src="/assets/js/maintenance-timer.js?v='), 'Maintenance page must load the animated timer and readiness check.');
     checkNoticeHttp(str_contains($headerText, 'cache-control: no-store') && !str_contains($headerText, 'set-cookie:'), 'Maintenance page must not cache or touch sessions.');
 }
@@ -76,6 +78,7 @@ checkNoticeHttp(str_contains((string) $body, 'src="/assets/js/maintenance-timer.
 [$accountBody] = noticeHttp('GET', '/profile.php', 'X-Forwarded-Prefix: /a/test-account');
 checkNoticeHttp(str_contains((string) $accountBody, 'src="/a/test-account/assets/js/maintenance-timer.js?v=' . $timerVersion . '"'), 'Account maintenance page must load its scoped timer script.');
 checkNoticeHttp(str_contains((string) $accountBody, 'data-ready-url="/a/test-account/ready.php"'), 'Account maintenance page must check its own readiness.');
+checkNoticeHttp(str_contains((string) $accountBody, 'data-status-url="/a/test-account/deployment_status.php"'), 'Completion must use the same Account route as readiness.');
 $state['started_at'] = $now - 360;
 $state['countdown_started_at'] = $now - 360;
 $state['not_before'] = $now - 60;
@@ -92,4 +95,10 @@ $state['phase'] = 'failed';
 file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
 [$body] = noticeHttp('GET', '/login.php');
 checkNoticeHttp(str_contains($body, 'taking longer than expected') && !str_contains($body, 'Estimated return'), 'Failed deployments must not promise an ETA.');
+checkNoticeHttp(str_contains($body, 'data-wait-for-deployment="true"') && str_contains($body, '/assets/js/maintenance-timer.js?v=')
+    && !str_contains($body, 'http-equiv="refresh"'), 'Failed deployments must poll safely even without a countdown.');
+unlink('/run/dnr/deployment/notice.json');
+[$body] = noticeHttp('GET', '/login.php');
+checkNoticeHttp(str_contains($body, 'data-wait-for-deployment="false"') && str_contains($body, '/assets/js/maintenance-timer.js?v=')
+    && !str_contains($body, 'http-equiv="refresh"'), 'An unplanned outage must also recover without a blind page refresh.');
 echo "Deployment notice HTTP tests passed without application or database services.\n";

@@ -257,11 +257,18 @@ final class AudienceAiQueries
             if($recent){$args['scope']=['kind'=>'recent_campaigns','count'=>$args['count']??1];unset($args['count']);}
             $args['metrics']??=[];
             $args['dimension']??=match($index){1=>'campaign',2=>'source',3=>'resource',4=>'flow',default=>'country'};
-            if(!is_array($args['metrics']))throw new InvalidArgumentException('Choose report metrics.');
-            foreach($args['metrics']as$metric)if(!is_string($metric)||!isset(audienceAnalyticsMetricLabels()[$metric]))throw new InvalidArgumentException('Unsupported report metric.');
-            if(count($args['metrics'])>4){$args['metrics']=array_slice($args['metrics'],0,4);$this->queryNotices[]='Up to four requested metrics are returned per report call. Request another report for additional metrics.';}
+            $args['metrics']=$this->plannedReportMetrics($args['metrics']);
         }
         $plan=['queries'=>[$args]];$this->validate($plan);return $plan;
+    }
+
+    /** Normalize model drafts consistently before the independent metric review. */
+    private function plannedReportMetrics(mixed $metrics):array
+    {
+        if(!is_array($metrics)||!array_is_list($metrics))throw new InvalidArgumentException('Choose report metrics.');
+        foreach($metrics as$metric)if(!is_string($metric)||!isset(audienceAnalyticsMetricLabels()[$metric]))throw new InvalidArgumentException('Unsupported report metric.');
+        if(count($metrics)>4){$metrics=array_slice($metrics,0,4);$this->queryNotices[]='Up to four requested metrics are returned per report call. Request another report for additional metrics.';}
+        return $metrics;
     }
 
     private function scope(array $query):array

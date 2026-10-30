@@ -7,7 +7,9 @@ function deploymentNoticeStatus(?string $path = null, ?float $now = null): array
 {
     $now ??= microtime(true);
     $path ??= '/run/dnr/deployment/notice.json';
-    $payload = ['server_now' => $now, 'notice' => null];
+    // A missing/invalid notice is not proof that a deployment finished. Recovery
+    // pages need an explicit completion signal after public account checks pass.
+    $payload = ['server_now' => $now, 'notice' => null, 'deployment_complete' => false];
     if (!is_file($path)) {
         return $payload;
     }
@@ -16,7 +18,7 @@ function deploymentNoticeStatus(?string $path = null, ?float $now = null): array
     if (!is_array($notice)
         || !is_string($notice['id'] ?? null)
         || preg_match('/\A[a-f0-9]{32}\z/', $notice['id']) !== 1
-        || !in_array($notice['phase'] ?? null, ['preparing', 'pending', 'deploying', 'failed'], true)
+        || !in_array($notice['phase'] ?? null, ['preparing', 'pending', 'deploying', 'failed', 'complete'], true)
     ) {
         return $payload;
     }
@@ -44,6 +46,10 @@ function deploymentNoticeStatus(?string $path = null, ?float $now = null): array
     }
     if (isset($notice['expected_back_at']) && (!is_int($notice['expected_back_at']) && !is_float($notice['expected_back_at'])
         || $notice['expected_back_at'] < $notice['not_before'])) {
+        return $payload;
+    }
+    if ($notice['phase'] === 'complete') {
+        $payload['deployment_complete'] = true;
         return $payload;
     }
     // Allowlist: no source SHA, paths, recovery details, credentials, or user data.
