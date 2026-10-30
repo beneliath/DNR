@@ -1329,7 +1329,19 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "00630499246b863c53c0d70f88988949ecbfc69d65a38b7dbd8d14297e202bed"
+        "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
+        "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
+        "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
+        "shared/authentication-limits.php": "d2893060688e2f31d6928ac4f2aefa9f0fae427b4770d7732a9f82796c072222",
+        "shared/authentication.php": "301de4e63d24bc1b685d502ae2c53690ef73fbd2c73211d40f72881c3e729285",
+        "shared/authorization.php": "15f71dc6b5a403196e9d4b092ea8fffc24c1c331a39e7b8091d62ef9fc85e62c",
+        "shared/csrf.php": "5b4092f1bf66d1f12a7ff80a35bc6fd36bc037bc6387e5a78377003b656d9ca6",
+        "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
+        "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
+        "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
+        "shared/rendering.php": "88d5ae15b232bb01a9666170b25c887158f33df4066ef9f94eaa7dd3433d0b96",
+        "shared/sessions.php": "f7d1fe8249388df81d854b57be13bb2e5fd28f03c9db9d3409000cdb23afd393",
+        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa"
       }
     },
     {
@@ -1357,11 +1369,23 @@
         "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
         "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
         "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
-        "functions.php": "00630499246b863c53c0d70f88988949ecbfc69d65a38b7dbd8d14297e202bed",
+        "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
         "templates/footer.php": "585b8620ecfb524aa0631b1864c639e9cd03c1df4e92854cff45c0128c47184a",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
-        "ai_coach_guidance_helpers.php": "a01283579213f7ce89f8827004b307547dddcf796e77680fa5875fcc2cb17fbe"
+        "ai_coach_guidance_helpers.php": "a01283579213f7ce89f8827004b307547dddcf796e77680fa5875fcc2cb17fbe",
+        "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
+        "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
+        "shared/authentication-limits.php": "d2893060688e2f31d6928ac4f2aefa9f0fae427b4770d7732a9f82796c072222",
+        "shared/authentication.php": "301de4e63d24bc1b685d502ae2c53690ef73fbd2c73211d40f72881c3e729285",
+        "shared/authorization.php": "15f71dc6b5a403196e9d4b092ea8fffc24c1c331a39e7b8091d62ef9fc85e62c",
+        "shared/csrf.php": "5b4092f1bf66d1f12a7ff80a35bc6fd36bc037bc6387e5a78377003b656d9ca6",
+        "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
+        "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
+        "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
+        "shared/rendering.php": "88d5ae15b232bb01a9666170b25c887158f33df4066ef9f94eaa7dd3433d0b96",
+        "shared/sessions.php": "f7d1fe8249388df81d854b57be13bb2e5fd28f03c9db9d3409000cdb23afd393",
+        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa"
       },
       "subjects": [
         "presentation",

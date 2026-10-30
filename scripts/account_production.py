@@ -92,7 +92,7 @@ def labels(config, key, primary=False):
               'traefik.http.middlewares.'+name+'-slash.redirectregex.replacement': 'https://$${1}'+prefix+'/',
               'traefik.http.middlewares.'+name+'-strip.stripprefix.prefixes': prefix,
               service+'.loadbalancer.server.port': '80',
-              service+'.loadbalancer.healthcheck.path': '/ready.php',
+              service+'.loadbalancer.healthcheck.path': '/deployment_status.php',
               service+'.loadbalancer.healthcheck.interval': '10s'}
     if primary:
         result['traefik.http.routers.'+config['primary_router']+'.rule'] = result[router+'.rule']

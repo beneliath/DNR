@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectInboundFeature(bool $condition, string $message): void
 {
@@ -16,7 +18,7 @@ $engagementMigration = file_get_contents(
     $root . '/migrations/20260823_add_engagement_aware_inbound_mail.sql'
 );
 $quarantineMigration = file_get_contents($root . '/migrations/20260823_add_inbound_email_quarantine.sql');
-$helper = file_get_contents($root . '/src/inbound_email_helpers.php');
+$helper = readModuleSource($root . '/src/inbound_email_helpers.php');
 $worker = file_get_contents($root . '/scripts/process_inbound_mail.php');
 $sync = file_get_contents($root . '/src/inbound_ingestion_helpers.php');
 $review = file_get_contents($root . '/src/inbound_mail.php');

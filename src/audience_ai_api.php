@@ -81,6 +81,7 @@ try{
     }
     if($action!=='generate')throw new InvalidArgumentException('Choose a supported assistant action.');
     $request=audienceAiRequest($input,$role);$request['account']=currentAccountKey();
+    $request['display_timezone']=userDisplayTimezoneName();
     if($request['mode']==='analytics'){
         $window=audienceAiReportWindow(is_array($input['window']??null)?$input['window']:[]);
         $request['analysis_scope']=array_intersect_key($window,array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));

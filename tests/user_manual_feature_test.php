@@ -13,6 +13,7 @@ $header = file_get_contents(__DIR__ . '/../src/templates/header.php');
 $styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/help.css');
 $behavior = file_get_contents(__DIR__ . '/../src/assets/js/user-manual.js');
 $package = file_get_contents(__DIR__ . '/../package.json');
+$assetCatalog = file_get_contents(__DIR__ . '/../scripts/frontend-assets.mjs');
 
 foreach ([$manual, $header, $styles, $behavior, $package] as $source) {
     expectUserManual(is_string($source), 'all manual source files should be readable.');
@@ -286,8 +287,8 @@ expectUserManual(
 );
 
 expectUserManual(
-    str_contains($package, 'src/assets/js/user-manual.js')
-        && str_contains($package, 'src/assets/js/user-manual.min.js'),
+    str_contains($package, 'node scripts/build-frontend-assets.mjs js')
+        && str_contains($assetCatalog, "name: 'user-manual'"),
     'the production asset build should include the manual behavior.'
 );
 

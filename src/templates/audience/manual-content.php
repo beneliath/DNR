@@ -14,7 +14,7 @@ return [
 <p>Start at <strong>Home</strong> for a snapshot of activity. For a first campaign, review your connections, prepare your content, and check delivery setup before sending.</p>
 HTML],
             ['navigation', 'Navigation, search, and display', <<<'HTML'
-<p>The sidebar opens Campaigns, Automations, Forms, Audience, Content, Analytics, and the AI tools available to your role. Related pages appear beneath the active area. The sidebar control minimizes navigation; on a small screen, use the menu button to open it.</p>
+<p>The sidebar opens Campaigns, Automations, Forms, Audience, Content, Analytics, and the AI tools available to your role. Related pages appear beneath the active area; <strong>Groups</strong> follows <strong>Segments</strong> under Audience. The sidebar control minimizes navigation; on a small screen, use the menu button to open it.</p>
 <p>Use <strong>Search MessageMonkey</strong> in the top bar to find available pages, connections, campaigns, flows, and help. Use each page’s search box for that list. Theme controls in the account tools switch between light and dark display.</p>
 <p>Return here through <strong>User Manual</strong>. Search this guide with words such as “import”, “unsubscribe”, or “schedule”. Press <kbd>/</kbd> to focus the manual search, <kbd>Enter</kbd> to open the first matching topic, and <kbd>Escape</kbd> in the search field to clear it.</p>
 HTML],
@@ -89,6 +89,7 @@ HTML],
             ['tags', 'Tags: internal labels', <<<'HTML'
 <p>Tags are labels you apply to connections, such as a volunteer team or event interest. Open <strong>Audience → Tags</strong> to create or rename a tag. Click the tag’s name to see its connections; a separate View connections action is unnecessary.</p>
 <p>Apply tags from a profile, a selected audience list, the bulk-tag tool, or an import. Removing a tag from a connection changes that association. Deleting a tag definition removes the label and its associations while keeping the connections; protected deletion requires the access shown by the control.</p>
+<p>Click <strong>Tag name</strong> or <strong>Created</strong> in the table header to sort by that column. Click it again to reverse the direction.</p>
 HTML],
             ['groups-fields', 'Groups and profile fields', <<<'HTML'
 <p>Groups organize choices within a category, such as areas of interest. Choose the group’s display type and options to fit the question. When exposed in a signup or preferences form, these choices can be selected by the subscriber.</p>
@@ -98,6 +99,7 @@ HTML],
             ['segments', 'Segments: reusable audience rules', <<<'HTML'
 <ol><li>Open <strong>Audience → Segments</strong> and create a segment.</li><li>Add rules for the available profile, membership, activity, or engagement criteria.</li><li>Choose whether connections must match <strong>all</strong> rules or <strong>any</strong> rule. Review the resulting connections and count.</li><li>Save the segment with a name that explains its purpose, then use it when selecting a campaign audience.</li></ol>
 <p>A segment describes criteria, so membership can change as records and activity change. Recheck the campaign’s recipient review near send time. A match is not a promise of delivery: unsubscribes, suppressions, and other sending checks still apply.</p>
+<p>In the Segments list, click <strong>Segment name</strong> or <strong>Created</strong> to sort by that column; click again to reverse the direction. Suggested segment cards keep a steady background while their <strong>View details</strong> buttons highlight on hover.</p>
 HTML],
         ],
     ],
@@ -132,6 +134,7 @@ HTML],
             ['email-editor', 'Edit content and design', <<<'HTML'
 <ol><li>Select a content block to edit its text, image, button, or other supported content.</li><li>Use the block and style controls for spacing, alignment, colors, and typography. Keep button labels short and descriptive.</li><li>Insert approved files and logos from Content. Add useful image descriptions and check every destination URL.</li><li>Use Undo and Redo to correct recent edits, then Save. Review the saved state before leaving the editor.</li></ol>
 <p>Keep essential information in text as well as images. Include a meaningful link label, such as “View the event details”, so the message remains understandable when images are blocked.</p>
+<p>When an edit has not been saved, the <strong>Save</strong> button’s outline pulses. Save and wait for the saved state before leaving the designer.</p>
 HTML],
             ['email-preview', 'Preview, personalization, and test email', <<<'HTML'
 <p>Review desktop and mobile previews, the plain-text content where available, and the final subject and preview text. Check merge tags with realistic connection values and missing optional values. Confirm dates, names, amounts, contact information, and unsubscribe or preferences links.</p>
@@ -151,6 +154,7 @@ HTML],
             ['brand-kit', 'Set up the Brand Kit', <<<'HTML'
 <p>Use <strong>Content → Brand Kit</strong> to manage the logos, colors, and font choices offered by MessageMonkey. Review a logo against both light and dark backgrounds and choose colors with enough contrast for readable text and controls.</p>
 <p>Save the brand choices, then inspect them in the email or form you are building. Brand settings help you stay consistent, but each design still needs a preview. Verify the final appearance instead of assuming a brand update has revised every previously saved item.</p>
+<p>A newly created email design or form uses the uploaded Brand Kit font for its text styles when one is available. Otherwise it uses <strong>Default font and email fallback</strong>. Review headings, body text, and footer text in the editor; previously saved explicit font choices remain in place.</p>
 HTML],
         ],
     ],
@@ -162,15 +166,18 @@ HTML],
             ['delivery-setup', 'Prepare Email delivery', <<<'HTML'
 <p>An unrestricted administrator configures <strong>Campaigns → Email delivery</strong>. Follow the setup screen for the Amazon SES sending identity, domain authentication, event notifications, and public email links. Complete the displayed verification steps and review readiness results.</p>
 <p>Use an address and domain the account is authorized to send from. If verification is pending or a delivery requirement fails, fix that requirement before sending. Inbox receiving sources have their own setup; a working outgoing sender does not by itself establish an inbound route.</p>
+<p>When Amazon SES is connected, <strong>Disconnect</strong> requires a recent <strong>Admin Unlock</strong> and confirmation. Disconnecting stops MessageMonkey delivery until a connection is configured again.</p>
 HTML],
             ['send-review', 'Send or schedule a campaign', <<<'HTML'
 <ol><li>Open the saved campaign and complete its checklist. Recheck the recipients and exclusions, sender, reply address, subject, and content.</li><li>Run the available review and test tools. Resolve blockers and understand any warnings.</li><li>Choose <strong>Send</strong> or the scheduling option. Review the final recipient count and the date, time, and time zone displayed by the scheduling screen.</li><li>Complete the final confirmation. Wait for the success or queued result before leaving the page.</li><li>Open the delivery view to confirm the campaign’s actual state and progress.</li></ol>
 <p>Sending requires an unrestricted editor or administrator, suitable account security access, and successful readiness checks. A saved draft or planning touchpoint is not a scheduled send.</p>
+<p>On <strong>Review your email</strong>, choose <strong>Preview your recipients</strong> under To to inspect the eligible names and addresses. The displayed list may show only the first recipients when the audience is large; use the full eligible count for the send decision. After pressing the final <strong>Send now</strong> button, a progress animation indicates that the request is being processed. Wait for the result before taking another action.</p>
 HTML],
             ['delivery-results', 'Understand delivery and suppression', <<<'HTML'
 <p><strong>Queued</strong> means work is waiting to be processed. Provider acceptance is different from confirmed delivery. Delivery events can include delivered messages, bounces, complaints, and other failures. Read the campaign’s delivery details to understand which stage has been reached.</p>
 <p>Unsubscribed, cleaned, archived, or suppressed connections may be excluded from a send. Do not change status simply to force delivery. Investigate the reason, correct bad data when appropriate, and obtain valid permission where needed.</p>
 <p>If sending appears stalled, check the current delivery state and error details before retrying. A repeat confirmation or a duplicate campaign can create a second send; first establish what the original operation actually did.</p>
+<p>The campaign delivery page refreshes automatically every 20 seconds while it remains open. Use <strong>Refresh status</strong> when you need an immediate update.</p>
 HTML],
         ],
     ],
@@ -201,6 +208,7 @@ HTML],
             ['publish-form', 'Build and publish a signup form', <<<'HTML'
 <ol><li>Open <strong>Forms</strong> and choose the supported form type, such as hosted, embedded, or popup. Landing pages are available under Campaigns.</li><li>Edit the fields, wording, styling, success message, and settings. Request only information you need and make the subscription purpose clear.</li><li>Preview the form on desktop and mobile. Test required fields, validation, and the completion experience.</li><li>Publish when ready, then use the public link or supplied embed instructions. Check the published version from the place where visitors will find it.</li></ol>
 <p>Saving a draft does not publish it. If confirmation or double opt-in is enabled, test the confirmation email and follow-up step too. A submission awaiting confirmation is not the same as a confirmed subscription.</p>
+<p>In the editor, use the field list to choose and reorder fields. <strong>More actions</strong> offers pause, duplicate, and archive controls. A public Address field begins with <strong>Address Line 1</strong>, followed by its other address inputs; it does not add a separate Address heading above them.</p>
 HTML],
             ['survey-results', 'Create surveys and review results', <<<'HTML'
 <p>Open <strong>Audience → Surveys</strong>, choose a starting point, and edit the questions and answer choices. Preview the complete survey before publishing and sharing its public link. Check whether the questions collect the information you actually need.</p>

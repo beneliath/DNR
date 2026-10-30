@@ -42,10 +42,14 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     const message = node('article', undefined, 'analytics-ai-message analytics-ai-question-message');
     message.append(node('h2', 'You', 'sr-only'), node('p', text)); transcript.append(message);
     message.scrollIntoView({block:'nearest'});
+    // Adding the question changes transcript height after setBusy() revealed the
+    // indicator. Keep the working dots visible at their new position.
+    if (busy) find('[data-ai-thinking]')?.scrollIntoView({block:'nearest'});
   }
   function failure(message, uuid, prompt = '', reason = '') {
     announce(message);
-    if (!chat || shownAnswers.has(uuid)) return;
+    if (!chat) { writingActions(true); status.scrollIntoView({block:'nearest'}); return; }
+    if (shownAnswers.has(uuid)) return;
     question(prompt || questionTexts.get(uuid) || 'Saved request', uuid);
     shownAnswers.add(uuid);
     const answer=node('article',undefined,'analytics-ai-message analytics-ai-answer analytics-ai-error');
@@ -63,11 +67,22 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     config.window = next;
     find('[data-ai-chat-scope]').textContent = `${next.start} to ${next.end} UTC · ${next.dataset}`;
   }
+  function writingActions(visible) {
+    if (config.mode !== 'content') return;
+    for (const selector of ['[data-ai-generate]', '[data-ai-checks]']) {
+      const button = find(selector); if (button) button.hidden = !visible;
+    }
+  }
   const setBusy = value => {
     busy = value;
+    if (value) writingActions(true);
     find('[data-ai-generate]').disabled = value || !config.enabled;
     find('[data-ai-stop]').hidden = !value;
-    const thinking = find('[data-ai-thinking]'); if (thinking) thinking.hidden = !value;
+    const thinking = find('[data-ai-thinking]');
+    if (thinking) {
+      thinking.hidden = !value;
+      if (value) thinking.scrollIntoView({block:'nearest'});
+    }
     if (chat) status.classList.toggle('sr-only', value);
     root.setAttribute('aria-busy', String(value));
   };
@@ -81,7 +96,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       return result;
     } finally { clearTimeout(timer); }
   }
-  function checks(result) {
+  function checks(result, reveal = true) {
     const box = find('[data-ai-check-result]'); box.replaceChildren(); box.hidden = false;
     box.append(node('h3','Content checks'));
     const list = node('dl',undefined,'ai-facts');
@@ -89,6 +104,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     box.append(list);
     result.findings.forEach(text => box.append(node('p',text)));
     box.append(node('p',result.note,'ai-disclosure'));
+    if (reveal) box.scrollIntoView({block:'start'});
   }
   function chart(evidence, box) {
     const series = evidence.series;
@@ -112,8 +128,12 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     if (reply.mode === 'analytics') {
       question(prompt || form.elements.prompt.value || 'Saved analytics request', uuid);
       const box = chat ? node('article', undefined, 'analytics-ai-message analytics-ai-answer') : find('[data-ai-analysis]'); box.hidden = false; box.replaceChildren();
-      box.append(node('h3',reply.interpretation === 'clarification' ? 'A quick clarification' : reply.interpretation === 'calculated' ? 'Report results' : reply.interpretation === 'data-only' ? 'Query results' : 'AI interpretation'));
+      box.append(node('h3',reply.interpretation === 'information' ? 'Analytics AI' : reply.interpretation === 'clarification' ? 'A quick clarification' : reply.interpretation === 'calculated' ? 'Report results' : reply.interpretation === 'data-only' ? 'Query results' : 'AI interpretation'));
       if (reply.summary) box.append(node('p',reply.summary));
+      if (reply.interpretation === 'information') {
+        if (chat) { shownAnswers.add(uuid); transcript.append(box); box.scrollIntoView({block:'start'}); }
+        return;
+      }
       const evidence = reply.evidence;
       const cited = new Set(reply.observations.flatMap(item=>item.evidence_ids || [item.evidence_id]));
       box.append(node('p',evidence.scope_description || `Source report (${evidence.window.dataset || 'email'}): ${evidence.window.start} to ${evidence.window.end} UTC · ${evidence.window.bots==='filtered'?'Known bots excluded':'All observed activity'} · Comparison: ${evidence.window.compare}`,'ai-scope'));
@@ -166,7 +186,10 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       find('[data-ai-text]').value = reply.text;
       const subjects = find('[data-ai-subjects]'); subjects.replaceChildren(node('h3','Subject ideas'));
       reply.subjects.forEach(text => { const row = node('div'); const use = node('button','Use this subject'); use.type = 'button'; use.addEventListener('click',()=>{form.elements.subject.value=text; announce('Subject selected in this workspace. The campaign is unchanged');}); const copy=node('button','Copy subject');copy.type='button';copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);announce('Subject copied');}catch{announce('Select the subject text to copy it');}}); row.append(node('p',text),use,copy);subjects.append(row); });
-      checks(reply.checks);
+      checks(reply.checks, false);
+      writingActions(false);
+      const destination = displayedRequest === uuid ? find('[data-ai-check-result]') : output;
+      destination.scrollIntoView({block:'start'});
     }
   }
   function renderHistory() {
@@ -249,10 +272,11 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       if(chat&&active){const item=historyItems.find(item=>item.client_request_id===active);if(item)question(item.question,active);}
     } catch { /* History failure never prevents manual editing. */ }
   }
-  resetHistoryButton?.addEventListener('click', () => changeHistory('reset',() => {
+  resetHistoryButton?.addEventListener('click', () => changeHistory('reset',async () => {
     historyCutoff = historyItems.reduce((latest, item) => item.created_at > latest ? item.created_at : latest, historyCutoff);
     try { localStorage.setItem(historyResetKey, historyCutoff); } catch { /* The current list can still be reset. */ }
-    announce('Request list reset. Saved requests remain available for review.');
+    await newRequest();
+    announce('Request list reset. Ready for a new request. Saved responses are retained.');
   }));
   function complete(result, uuid) {
     clearPending(); active=''; setBusy(false);
@@ -288,7 +312,6 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     if (chat) form.elements.prompt.style.height = '';
     const uuid=crypto.randomUUID(),token=++generation;active=uuid;setBusy(true);output.hidden=true;announce('Saving your request');
     question(values.prompt, uuid);
-    if (chat) find('[data-ai-thinking]').scrollIntoView({block:'nearest'});
     const request={...values,mode:config.mode,request_id:uuid,window:config.window,parent:previous};
     form.elements.prompt.value = ''; form.elements.prompt.dispatchEvent(new Event('input'));
     try {
@@ -299,7 +322,13 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     }catch(error){if(token===generation){active='';setBusy(false);clearPending();failure(error.message,uuid,values.prompt);}}
   });
   find('[data-ai-stop]').addEventListener('click',stop);
-  find('[data-ai-new]').addEventListener('click',async()=>{generation++;if(busy)await stop();previous='';completed='';displayedRequest='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();if(!chat){for(const name of ['text','subject','prompt'])form.elements[name].value='';renderHistory();form.elements.prompt.focus();}announce('Ready for a new request');});
+  async function newRequest() {
+    generation++;if(busy)await stop();previous='';completed='';displayedRequest='';output.hidden=true;find('[data-ai-check-result]').hidden=true;resetChat();
+    if(!chat){writingActions(true);for(const name of ['text','subject','prompt'])form.elements[name].value='';renderHistory();form.elements.prompt.focus();}
+    announce('Ready for a new request');
+  }
+  find('[data-ai-new]').addEventListener('click',newRequest);
+  for (const event of ['input','change']) form.addEventListener(event,()=>{if(!busy)writingActions(true);});
   root.querySelectorAll('[data-ai-starter]').forEach(button=>button.addEventListener('click',()=>{if(busy)return;if(chat&&button.dataset.aiWindow)updateScope(JSON.parse(button.dataset.aiWindow));form.elements.prompt.value=button.textContent;form.elements.prompt.dispatchEvent(new Event('input'));form.elements.prompt.focus();}));
   if (chat) {
     const resize = () => { const input=form.elements.prompt; input.style.height='auto'; input.style.height=`${Math.min(160,input.scrollHeight)}px`; };
@@ -313,7 +342,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     window.addEventListener('resize',measure); measure();
   }
   find('[data-ai-checks]')?.addEventListener('click',async()=>{try{checks(await api({action:'checks',text:form.elements.text.value,subject:form.elements.subject.value}));announce('Content checks updated without an AI request');}catch(error){announce(error.message);}});
-  find('[data-ai-refine]')?.addEventListener('click',()=>{form.elements.text.value=find('[data-ai-text]').value;form.elements.operation.value='rewrite';form.elements.prompt.focus();announce('Reviewed text is now the source for your next request');});
+  find('[data-ai-refine]')?.addEventListener('click',()=>{writingActions(true);form.elements.text.value=find('[data-ai-text]').value;form.elements.operation.value='rewrite';form.elements.prompt.focus();announce('Reviewed text is now the source for your next request');});
   find('[data-ai-copy]')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(find('[data-ai-text]').value);announce('Reviewed text copied');}catch{find('[data-ai-text]').focus();find('[data-ai-text]').select();announce('Text selected. Use your keyboard to copy it');}});
   find('[data-ai-save]')?.addEventListener('submit',async event=>{
     event.preventDefault();const button=event.currentTarget.querySelector('button');button.disabled=true;
@@ -322,7 +351,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   find('[data-ai-apply]')?.addEventListener('click',()=>{if(!target){announce('Choose a text block before opening the assistant');return;}const event=new CustomEvent('audience-ai-apply',{detail:{target,text:find('[data-ai-text]').value},cancelable:true});document.dispatchEvent(event);if(event.defaultPrevented){root.closest('dialog')?.close();announce('Reviewed text applied');}else announce('The selected block changed. Close the assistant and select the text again');});
   document.addEventListener('audience-ai-open',event=>{
     if(busy){announce('Stop the current request before changing source text');return;}
-    target=event.detail.target;previous='';completed='';output.hidden=true;find('[data-ai-check-result]').hidden=true;
+    target=event.detail.target;previous='';completed='';output.hidden=true;find('[data-ai-check-result]').hidden=true;writingActions(true);
     form.elements.text.value=event.detail.text;form.elements.operation.value='rewrite';form.elements.prompt.value='';announce('Review the source text and choose what to change');root.closest('dialog')?.showModal();
   });
   root.closest('dialog')?.addEventListener('close',()=>{if(busy)stop();});

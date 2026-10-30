@@ -12,10 +12,32 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import account_production
+import account_release
 import deploy_release_host
 
 
 class AccountReleaseConfigurationTest(unittest.TestCase):
+    def test_writer_pause_keeps_account_ingress_for_maintenance(self):
+        member = {'active': ['web', 'ingress', 'mail-dispatch']}
+        with patch.object(account_release, 'compose') as compose:
+            account_release.pause_members([member])
+        compose.assert_called_once_with(member, 'stop', 'web', 'mail-dispatch')
+
+    def test_account_route_checks_live_ingress_during_writer_pause(self):
+        config = json.loads((ROOT/'deploy/account-production.example.json').read_text())
+        labels = account_production.labels(config, 'test-account')
+        self.assertEqual(labels['traefik.http.services.account-test-account.loadbalancer.healthcheck.path'], '/deployment_status.php')
+
+    def test_public_login_probe_requires_actual_sign_in_form(self):
+        with patch.object(account_release.subprocess, 'check_output', return_value='<input name="username"><input name="password">') as curl:
+            self.assertIsInstance(account_release.public_login_available('https://example.test/a/member/'), float)
+        self.assertEqual(curl.call_args.args[0][-1], 'https://example.test/a/member/login.php')
+        self.assertIn('--location', curl.call_args.args[0])
+        self.assertIn('=https', curl.call_args.args[0])
+        with patch.object(account_release.subprocess, 'check_output', return_value='<h1>Under maintenance</h1>'):
+            with self.assertRaisesRegex(ValueError, 'Public login form is unavailable'):
+                account_release.public_login_available('https://example.test/a/member')
+
     def test_enabled_platform_cannot_fall_back_to_naked_configuration(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ,{},clear=True):
             root=Path(temporary)

@@ -133,7 +133,8 @@ trait AudienceDispatch
         audienceDispatchMessage($snapshot+['asset_key'=>str_repeat('0',64)],$first,str_repeat('0',64),'<review@message-monkey.invalid>');
         $fingerprint=hash('sha256',json_encode([$snapshot,$candidates,$this->fields(),$this->tags(),$this->groups()],JSON_THROW_ON_ERROR));
         $proof=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'campaign'=>$id,'version'=>(int)$row['version'],'actor'=>$this->actorId,'expires'=>time()+900,'fingerprint'=>$fingerprint],JSON_THROW_ON_ERROR));
-        return ['proof'=>$proof,'count'=>count($candidates),'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint];
+        $preview=array_map(static fn(array $person):array=>['id'=>(int)$person['id'],'email'=>$person['email'],'first_name'=>$person['first_name'],'last_name'=>$person['last_name']],array_slice($candidates,0,100));
+        return ['proof'=>$proof,'count'=>count($candidates),'recipients'=>$preview,'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint];
     }
     public function confirmCampaignDispatch(int $id,int $version,string $proof,array $audience,string $base):int
     {

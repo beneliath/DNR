@@ -51,7 +51,7 @@ if($isPost){
         if($store->sesAvailable()&&str_starts_with($action,'delivery_')&&!in_array($action,['delivery_ses_save','delivery_ses_operation'],true))throw new InvalidArgumentException('MessageMonkey delivery now uses this account’s SES API connection.');
         switch($action){
             case 'delivery_ses_save':$store->saveSesSettings($version,$_POST);$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES settings saved. A connection check is queued; no email is sent by this check.';break;
-            case 'delivery_ses_operation':$store->sesOperation($version,audienceText($_POST,'operation'));$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES connection updated.';break;
+            case 'delivery_ses_operation':$operation=audienceText($_POST,'operation');if($operation==='disconnect')requireRecentAdminElevation($url(['view'=>'delivery','tab'=>'relay']));$store->sesOperation($version,$operation);$redirect=$url(['view'=>'delivery','tab'=>'relay']);$message='SES connection updated.';break;
             case 'campaign_test':
                 if(!$runtimeInstalled)throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
                 $n=$store->queueCampaignTest($id,$version,$_POST,$audience,accountPrimaryPublicUrl());$redirect=$url(['view'=>'campaign','id'=>$id]);$message=$n.' test email(s) queued. Follow their receipts in Email delivery → Activity.';break;
@@ -79,7 +79,13 @@ if($isPost){
                 }
                 if($operation==='purge'&&($_POST['confirm_delete']??'')!=='1')throw new InvalidArgumentException('Confirm permanent deletion of the selected files from Trash.');
                 $store->contentOperation($operation,audienceIds($_POST['selected']??[]),is_array($_POST['versions']??null)?$_POST['versions']:[],audienceText($_POST,'folder',100));$redirect=$contentUrl($operation==='purge'?['trash'=>'1','page'=>1]:[]);$message=$operation==='purge'?'Files permanently deleted. Existing email snapshots are preserved.':'Files updated. Existing email snapshots are preserved.';break;
-            case 'content_folder':$store->contentFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
+            case 'content_folder':
+                $operation=audienceText($_POST,'operation');
+                if($operation==='delete'){
+                    if(!$canDelete){http_response_code(403);exit('Only administrators can delete content folders.');}
+                    requireRecentAdminElevation($contentUrl());
+                }
+                $store->contentFolder($operation,audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);$redirect=$url(['view'=>'content']);$message='Folder updated.';break;
             case 'brand_save':$store->saveBrand($_POST,$version);$redirect=$url(['view'=>'brand']);$message='Brand settings saved.';break;
             case 'brand_apply':$store->applyBrand((int)audienceText($_POST,'template_id',12),$version,($_POST['include_logo']??'')==='1');$redirect=$url(['view'=>'templates','tab'=>'saved']);$message='Brand applied. The previous template revision is retained.';break;
             case 'campaign_plan_save':$planId=$store->saveCampaignPlan($_POST,$id,$version);$redirect=$url(['view'=>'campaign-plan','id'=>$planId]);$message='Campaign plan saved.';break;

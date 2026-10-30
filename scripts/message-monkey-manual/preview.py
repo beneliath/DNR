@@ -9,7 +9,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / 'tmp/pdfs/message-monkey-manual'
-PROJECT = 'dnr-mm-guide-20261026'
+PROJECT = 'dnr-mm-guide-20261029'
 LABEL = {'org.dnr.disposable-test': PROJECT}
 
 def docker(*args):

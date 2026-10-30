@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectMapFeature($condition, $message)
 {
     if (!$condition) {
@@ -10,7 +13,7 @@ function expectMapFeature($condition, $message)
 
 $root = dirname(__DIR__);
 $read = static function ($path) use ($root) {
-    $contents = file_get_contents($root . '/' . $path);
+    $contents = readModuleSource($root . '/' . $path);
     if ($contents === false) {
         throw new RuntimeException("Unable to read {$path}");
     }

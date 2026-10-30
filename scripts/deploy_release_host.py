@@ -13,9 +13,9 @@ import subprocess
 import sys
 from deployment_backup import create_verified_backup
 from storage_encryption_preflight import require_encrypted_upload_storage
-from deployment_notice import DeploymentNotice
+from deployment_notice import DeploymentNotice, login_restoration_estimate
 from release_timestamp import timestamp_utc
-from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members
+from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members, public_login_available
 
 
 def run(args, **kwargs):
@@ -188,7 +188,8 @@ def main():
         # Cancellation or interruption here must not stop application writers.
         try:
             notice.begin_countdown(notice_id, expected)
-            record['notice'] = notice.wait_and_claim(notice_id, expected)
+            estimate_seconds = login_restoration_estimate(records, len(members))
+            record['notice'] = notice.wait_and_claim(notice_id, expected, estimate_seconds)
         except BaseException as error:
             record.update(outcome='failed', error=str(error))
             save('awaiting-save-window')
@@ -257,8 +258,13 @@ def main():
             health = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', public_url + '/health.php']))
             if ready.get('status') != 'ready' or ready.get('version') != version or health.get('status') != 'ok':
                 raise ValueError('Public readiness failed')
+            record['primary_login_available_at'] = public_login_available(public_url)
+            save('primary-login-ready')
             save('verifying-accounts')
             record['accounts'] = start_and_verify_members(members, account_configuration['config'] if account_configuration else {}, release)
+            record['all_accounts_login_available_at'] = max(
+                [record['primary_login_available_at']] + [account['public_ready_at'] for account in record['accounts']])
+            save('accounts-login-ready')
             if account_worker:
                 # The new process loads the qualified checkout. Its lifecycle
                 # cycle observes this same deployment lock before doing work.

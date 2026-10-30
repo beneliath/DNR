@@ -7,11 +7,39 @@ import json
 import os
 from pathlib import Path
 import re
+import statistics
 import sys
 import time
 
 SAVE_WINDOW_SECONDS = 300
 NOTICE_LIFETIME_SECONDS = 6 * 60 * 60
+DEFAULT_MAINTENANCE_SECONDS = 7 * 60
+MIN_ESTIMATE_SAMPLES = 5
+
+
+def login_restoration_estimate(records, member_count):
+    """Average the latest comparable, successful public-login restoration times."""
+    samples = []
+    for path in Path(records).glob('*.json'):
+        if re.fullmatch(r'[a-f0-9]{40}\.json', path.name) is None or path.is_symlink():
+            continue
+        try:
+            record = json.loads(path.read_text())
+            claim = (record.get('notice') or {}).get('updated_at')
+            ready = record.get('all_accounts_login_available_at')
+            if record.get('outcome') != 'success' or record.get('phase') != 'verified' \
+                    or len(record.get('accounts') or []) != member_count \
+                    or not isinstance(claim, (int, float)) or not isinstance(ready, (int, float)):
+                continue
+            duration = ready - claim
+            if 60 <= duration <= 3600:
+                samples.append((path.stat().st_mtime, duration))
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+    if len(samples) < MIN_ESTIMATE_SAMPLES:
+        return DEFAULT_MAINTENANCE_SECONDS
+    samples.sort(reverse=True)
+    return round(statistics.mean(duration for _, duration in samples[:20]))
 
 
 class DeploymentNotice:
@@ -97,7 +125,7 @@ class DeploymentNotice:
             self.write(notice)
             return notice
 
-    def wait_and_claim(self, identifier, expected):
+    def wait_and_claim(self, identifier, expected, estimate_seconds=DEFAULT_MAINTENANCE_SECONDS):
         """Atomically enter maintenance only after the host deadline, never earlier."""
         if not re.fullmatch(r'[a-f0-9]{40}', expected):
             raise ValueError('Expected a full deployment commit SHA')
@@ -115,7 +143,15 @@ class DeploymentNotice:
                     raise ValueError('Invalid deployment save window')
                 remaining = max(0, notice['not_before'] - now)
                 if not remaining:
-                    notice.update(phase='deploying', commit=expected, updated_at=now)
+                    override = os.environ.get('DNR_MAINTENANCE_ESTIMATE_MINUTES')
+                    if override:
+                        estimate_seconds = int(override) * 60
+                        if not 5 * 60 <= estimate_seconds <= 240 * 60:
+                            raise ValueError('Operator maintenance estimate must be between 5 and 240 minutes')
+                    elif not isinstance(estimate_seconds, int) or not 60 <= estimate_seconds <= 3600:
+                        raise ValueError('Measured maintenance estimate must be between 1 and 60 minutes')
+                    notice.update(phase='deploying', commit=expected, updated_at=now,
+                                  expected_back_at=now + estimate_seconds)
                     self.write(notice)
                     return notice
             print(f'Waiting for user save window: {remaining:.0f}s remaining', flush=True)

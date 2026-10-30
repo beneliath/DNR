@@ -425,7 +425,7 @@ services:
       backend:
         ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}
     healthcheck:
-      test: ["CMD", "php", "-r", "exit((@fsockopen('127.0.0.1', 80) && @fsockopen('web', 80)) ? 0 : 1);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/deployment_status.php') === false ? 1 : 0);"]
       interval: 15s
       timeout: 5s
       retries: 5

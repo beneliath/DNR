@@ -120,6 +120,21 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
     ];
 }
 
+function audienceCollectionBrandFontDefaults(array $document,array $brand):array
+{
+    $font=$brand['styles']['font']??'';
+    $document['font']=in_array($font,['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$font:'Arial';
+    $document['web_font']=audienceDesignWebFont($brand['styles']['webFont']??'');
+    $document['web_font_name']=$document['web_font']!==''?audienceBrandFont($brand)['name']:'';
+    return $document;
+}
+
+function audienceCollectionEditorFontDefaults(array $document,array $brand):array
+{
+    return $document['font']==='Arial'&&$document['web_font']===''
+        ?audienceCollectionBrandFontDefaults($document,$brand):$document;
+}
+
 function audienceCollectionText(mixed $value, int $limit): string
 {
     if (!is_string($value) || mb_strlen($value)>$limit || str_contains($value,"\0")) throw new InvalidArgumentException('A form value is invalid or too long.');
@@ -277,6 +292,7 @@ trait AudienceCollection
             $doc=is_array($input['document']??null)?$input['document']:audienceCollectionStarter($kind,audienceText($input,'starter',40),$name);
             if (!isset($input['document'])) {
                 $settings=audienceJson($this->one('SELECT settings_json FROM marketing_audiences WHERE id=?',[$this->audienceId])['settings_json']);
+                $doc=audienceCollectionBrandFontDefaults($doc,$settings['brand']??[]);
                 foreach (['opt_in','permission','language'] as $key) if (isset($settings['collection'][$key])) $doc[$key]=$settings['collection'][$key];
                 foreach ($this->groups() as $group) if ($group['display_type']!=='hidden') $doc['group_ids'][]=(int)$group['id'];
                 if ($kind==='preferences') { $doc['title']='Update your preferences';$doc['intro']='Choose the information and interests you share with us.';$doc['button']='Save preferences';$doc['thanks']='Your preferences have been saved.'; }

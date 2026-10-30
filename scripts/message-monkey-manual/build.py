@@ -23,7 +23,7 @@ W,H=612,792
 M=42; CW=W-2*M
 INK=colors.HexColor('#202b2c'); TEAL=colors.HexColor('#007d8a'); PALE=colors.HexColor('#eaf6f5')
 MUTED=colors.HexColor('#59676c'); BORDER=colors.HexColor('#d6e1e4'); ORANGE=colors.HexColor('#d96b00')
-VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 27, 2026'
+VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 29, 2026'
 CHAPTERS=json.loads((DATA/'chapters.json').read_text())
 SHOTS=json.loads((DATA/'screenshots.json').read_text())
 rl_config.useA85=False

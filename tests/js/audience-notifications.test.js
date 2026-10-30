@@ -5,9 +5,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/audience-notifications.js'), 'utf8');
 
-function fixture(items = ['inbox-1', 'job-1'], scope = 'account-a-user-a', storage = new Map()) {
+function fixture(items = ['inbox-1', 'job-1'], scope = 'account-a-user-a', storage = new Map(), transport = null) {
     const badge = {};
-    const trigger = { dataset: { notificationScope: scope }, attrs: {}, querySelector: () => badge, setAttribute(k, v) { this.attrs[k] = v; }, focus() { this.focused = true; } };
+    const trigger = { dataset: { notificationScope: scope, ...(transport?{notificationEndpoint:'audience.php?api=notifications',notificationCsrf:'test-token'}:{}) }, attrs: {}, querySelector: () => badge, setAttribute(k, v) { this.attrs[k] = v; }, focus() { this.focused = true; } };
     const events = {};
     const control = () => ({ events: {}, addEventListener(k, fn) { this.events[k] = fn; }, focus() { this.focused = true; } });
     const rows = items.map(key => { const button = control(); return { dataset: { notificationKey: key }, button, querySelector: () => button }; });
@@ -15,7 +15,7 @@ function fixture(items = ['inbox-1', 'job-1'], scope = 'account-a-user-a', stora
     const panel = { open: true, hidePopover() { this.open = false; }, querySelectorAll: () => rows, querySelector: selector => ({ '[data-notification-empty]': empty, '[data-notification-actions]': actions, '[data-notification-list]': list, '[data-notification-clear-all]': clearAll, '[popovertargetaction="hide"]': close }[selector]), addEventListener(k, fn) { events[k] = fn; } };
     const windowEvents = {};
     const localStorage = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
-    vm.runInNewContext(source, { document: { querySelector: () => trigger, getElementById: () => panel }, window: { addEventListener(k, fn) { windowEvents[k] = fn; } }, localStorage });
+    vm.runInNewContext(source, { document: { hidden:false, addEventListener() {}, querySelector: () => trigger, getElementById: () => panel }, window: { setInterval() {}, addEventListener(k, fn) { windowEvents[k] = fn; } }, localStorage, fetch:transport, URLSearchParams, AbortSignal });
     return { badge, trigger, panel, events, windowEvents, storage, rows, empty, actions, list, clearAll, close };
 }
 
@@ -108,4 +108,40 @@ test('clearing the final item works even when browser storage is blocked', () =>
     assert.equal(f.empty.hidden, false);
     assert.equal(f.badge.hidden, true);
     assert.equal(f.close.focused, true);
+});
+
+const settled = () => new Promise(resolve => setImmediate(resolve));
+function server(keys = ['inbox-1','job-1']) {
+    const cleared = new Set(), requests = [];
+    let offline = false;
+    return {cleared, requests, setOffline(value) { offline = value; }, async fetch(url, options) {
+        requests.push(options.method || 'GET');
+        if (offline) throw new Error('Offline');
+        if (options.method === 'POST') {
+            assert.equal(options.body.get('csrf_token'), 'test-token');
+            JSON.parse(options.body.get('keys')).forEach(key => cleared.add(key));
+        }
+        return {ok:true, async json() { return {cleared:[...cleared],items:keys.map(key => ({key}))}; }};
+    }};
+}
+test('independent browsers merge concurrent dismissals through server state', async () => {
+    const backend=server();
+    const a=fixture(undefined,undefined,new Map(),backend.fetch), b=fixture(undefined,undefined,new Map(),backend.fetch);
+    await settled();
+    a.rows[0].button.events.click();b.rows[1].button.events.click();await settled();
+    a.windowEvents.focus();b.windowEvents.focus();await settled();
+    assert.equal(backend.cleared.size,2);assert.equal(a.badge.hidden,true);assert.equal(b.badge.hidden,true);
+});
+test('legacy browser dismissals migrate to the server and another browser', async () => {
+    const backend=server(),storage=new Map([['moed:audience:notifications:account-a-user-a:cleared','["inbox-1"]']]);
+    fixture(undefined,undefined,storage,backend.fetch);await settled();
+    const phone=fixture(undefined,undefined,new Map(),backend.fetch);await settled();
+    assert(backend.cleared.has('inbox-1'));assert.equal(phone.badge.textContent,'1');assert.equal(phone.rows[0].hidden,true);
+});
+test('failed writes retain local dismissals and retry when connectivity returns', async () => {
+    const backend=server();backend.setOffline(true);
+    const f=fixture(undefined,undefined,new Map(),backend.fetch);await settled();
+    f.rows[0].button.events.click();await settled();assert.equal(f.badge.textContent,'1');assert.equal(backend.cleared.size,0);
+    backend.setOffline(false);f.windowEvents.online();await settled();
+    assert(backend.cleared.has('inbox-1'));assert.equal(f.badge.textContent,'1');
 });

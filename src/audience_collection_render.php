@@ -35,7 +35,7 @@ function audienceCollectionAddressControl(string $name,string $label,mixed $valu
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $id='address-'.substr(hash('sha256',$name),0,12);$parts=audienceAddressParts($value);
     $mark=$required?' <span aria-label="'.$h($messages['required']).'">*</span>':'';
-    $html='<fieldset class="collection-address address-section"'.($help!==''?' aria-describedby="'.$id.'-help"':'').'><legend>'.$h($label).$mark.'</legend><div class="collection-address-grid">';
+    $html='<fieldset class="collection-address address-section" aria-label="'.$h($label).'"'.($help!==''?' aria-describedby="'.$id.'-help"':'').'><div class="collection-address-grid">';
     $labels=['address1'=>'Address Line 1','address2'=>'Address Line 2','city'=>'City','region'=>'State / Province','postal_code'=>'Postal Code'];
     $autocomplete=['address1'=>'address-line1','address2'=>'address-line2','city'=>'address-level2','region'=>'address-level1','postal_code'=>'postal-code'];
     foreach($labels as$key=>$text){

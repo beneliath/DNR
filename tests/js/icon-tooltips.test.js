@@ -1,10 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(require.resolve('../../src/assets/js/page-actions.js'), 'utf8');
-const code = source.slice(source.indexOf('    function initializeIconTooltips()'), source.indexOf('    function initialize()'));
+const code = require('./helpers/browser-module.js')('moed/workspace.mjs');
 function icon(attributes) {
   return {nodeType:1, textContent:'', attributes,
     matches:()=>true, querySelectorAll:()=>[],
@@ -16,7 +14,7 @@ function icon(attributes) {
 test('themed icon tooltips remove native titles and preserve accessible names for existing and dynamic controls', () => {
   const existing=icon({title:'Edit', 'data-tooltip':'Edit', 'aria-label':'Edit expense'});
   let observe;
-  vm.runInNewContext(code+'initializeIconTooltips();', {document:{body:{},querySelectorAll:()=>[existing]},MutationObserver:class {constructor(fn){observe=fn;} observe(){}}});
+  vm.runInNewContext(code+'BrowserModule.initializeIconTooltips();', {document:{body:{},querySelectorAll:()=>[existing]},MutationObserver:class {constructor(fn){observe=fn;} observe(){}}});
   assert.equal(existing.getAttribute('title'),null);
   assert.equal(existing.getAttribute('aria-label'),'Edit expense');
   const added=icon({title:'Delete'});

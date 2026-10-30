@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectBetaReadiness($condition, $message)
 {
     if (!$condition) {
@@ -10,7 +13,7 @@ function expectBetaReadiness($condition, $message)
 
 $root = dirname(__DIR__);
 $read = static function ($path) use ($root) {
-    $contents = file_get_contents($root . '/' . $path);
+    $contents = readModuleSource($root . '/' . $path);
     if ($contents === false) {
         throw new RuntimeException("Unable to read {$path}");
     }
@@ -112,7 +115,8 @@ expectBetaReadiness(
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
         && str_contains($ingress_dockerfile, 'a2enmod headers proxy proxy_http')
         && $ingress_source_copies[0] === [
-            'COPY src/deployment_status.php src/deployment_notice_helpers.php /var/www/html/',
+            'COPY src/deployment_status.php src/deployment_notice_helpers.php src/maintenance.php /var/www/html/',
+            'COPY src/assets/js/maintenance-timer.js /var/www/html/assets/js/maintenance-timer.js',
             'COPY src/assets/ /opt/dnr/account-assets/',
         ]
         && str_contains($compose, 'read_only: true')

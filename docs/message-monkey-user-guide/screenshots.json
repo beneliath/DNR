@@ -19,8 +19,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "e32d9aaa7ec8f4c45bf99a45cd93c7b22f3be2cd290d02bad2527e018c2d27fb"
+      "captured_at": "2026-10-29",
+      "sha256": "b4f8c600f95fa4dfc92f3a93a0b8d812e97d0f11155d62575f6b3c202791f16e"
     }
   },
   {
@@ -43,8 +43,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "b46a97a7f3fe51052354aef02f19202e11570f4588a8eb2f08d5de079f714c57"
+      "captured_at": "2026-10-29",
+      "sha256": "78adcf2c57a3cd4aa59f901591720f13cb3b025eb5ee10ef71ba0169b3dede8b"
     }
   },
   {
@@ -68,22 +68,22 @@
       },
       "clip_css": null,
       "theme": "dark",
-      "captured_at": "2026-10-26",
-      "sha256": "1e9a48ed22e01bb2481882b2959253a917f8adb65ef3399aa080aa6b392392c7"
+      "captured_at": "2026-10-29",
+      "sha256": "2c079b3a54d73c25bae430495f813a4d880fd890c63b6fa98a9a3b013d2550d6"
     }
   },
   {
     "id": "mobile",
     "chapter": 1,
     "title": "Use the workspace on a small screen",
-    "route": "audience.php?view=contacts",
+    "route": "audience.php?view=contacts&status=subscribed",
     "steps": [
       "Open the navigation menu to move between workspaces.",
       "Close the menu to work with the current page.",
       "Use horizontal scrolling where a table contains more columns than the screen can show."
     ],
     "viewport": {
-      "width": 390,
+      "width": 430,
       "height": 844
     },
     "file": "screenshots/mobile.png",
@@ -91,13 +91,13 @@
       "source": "Native browser PNG; no resizing or sharpening",
       "device_scale_factor": 3,
       "viewport_css": {
-        "width": 390,
+        "width": 430,
         "height": 844
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "01132e9b7f41c0d36ac28aa27fd946e580f048d024475d38bf7ea1b8178087cc"
+      "captured_at": "2026-10-29",
+      "sha256": "a65a797425421177e4fc5ac496ef8bc7e713af73f823c2a0aa66762a79daa33a"
     }
   },
   {
@@ -121,8 +121,8 @@
       },
       "clip_css": null,
       "theme": "dark",
-      "captured_at": "2026-10-26",
-      "sha256": "f068be6e5a99d38dc4a13e37925838cffe0b4a636bc9ad8d730b02aba633ed85"
+      "captured_at": "2026-10-29",
+      "sha256": "63cb7b8ba0d4f639015f0b86109e1ddca30c868bd6dd86de5b66c2bb4b84cfea"
     }
   },
   {
@@ -162,7 +162,7 @@
         "height": 850
       },
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "78588bc9391a7e2c1f5deefd31a1ffe984f58cb6ef9f075dc023033e90a5c7af"
     }
   },
@@ -186,8 +186,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "28c330d6cb60892e1afe6a9c2defee953da700ac28c05676d5b4fbd595520ace"
+      "captured_at": "2026-10-29",
+      "sha256": "28cff8cc325e5039c9a341410a7c29af6e6526f465a98e13a9a8bbf4ecfbf482"
     },
     "crop": [
       720,
@@ -216,8 +216,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "70c07c00cbb3eba4e73aad75dfd3f29280295449b4dcc9951053b9c5dac8db18"
+      "captured_at": "2026-10-29",
+      "sha256": "c0a45c70ed2ebf53bc33772a0936716fa9110a8b82530336e2194ef1b3e246e6"
     },
     "crop": [
       720,
@@ -246,8 +246,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "809a2ae238f84a354bbc6af32d5236c6f35e8f81763716da127ab72322e7a8ea"
+      "captured_at": "2026-10-29",
+      "sha256": "ddda08046fcb5798cc71018b50d68f1d611aaf23afe85ab0cc1a764d5d18121c"
     },
     "crop": [
       720,
@@ -276,8 +276,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "29974699a4230af7acc27f12f9e61332bf844babc6c01d053e669b20366d76d5"
+      "captured_at": "2026-10-29",
+      "sha256": "3c84d10a3a056491423e2270539548fe60f54d11a2f11777782412da04889cbf"
     },
     "crop": [
       720,
@@ -306,8 +306,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "95b4fdbb0bee045eab118b87fcfa1fd301138e9f2b0014c3dbfb8c3ca552651d"
+      "captured_at": "2026-10-29",
+      "sha256": "4f3cf4c6e306ef225bbdbeb2357a892587de213b32e233e6a06a8715692dc5dd"
     },
     "crop": [
       720,
@@ -336,8 +336,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "fd211c51a0c4c3eee9b76c8a08c7dab51c51147f529cadf4acb8aca740b7ab2f"
+      "captured_at": "2026-10-29",
+      "sha256": "fffee99a470278d28d584ba74e0d6d58ea4ccd5327393e91ca6767054e9b0485"
     },
     "crop": [
       720,
@@ -366,8 +366,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "e43dd803313c2c66b47ba6ea72509f330d76811061f2c1038cd26e8229ec6e44"
+      "captured_at": "2026-10-29",
+      "sha256": "278c14afe6d657860cdaee8add96f4330cd1f2a033f2fab0cab0000e81afdb8e"
     },
     "crop": [
       720,
@@ -396,8 +396,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "f8830b501486e40265d82c4423f62bb8f6e0154ef3e58ef635b70f11447cd46b"
+      "captured_at": "2026-10-29",
+      "sha256": "3265d9f42f3c405d48b4c889e74ed8e3e2cc01171fc21bee5cc0aca0d94a4560"
     },
     "crop": [
       720,
@@ -426,8 +426,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "5fe25af23d7886702be2793376ac64a85e6d061b36b783e5706c96595e861c75"
+      "captured_at": "2026-10-29",
+      "sha256": "46f9ead469ebc9b7233df9b2ba354c9e3ff570f3c9f395435390a266c5f940d1"
     },
     "crop": [
       720,
@@ -456,8 +456,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "c61153acb8f86bab08bef2b3de0810fdd575bafb046756fa8ef0f56e50086bae"
+      "captured_at": "2026-10-29",
+      "sha256": "775ccfbe5fc34176d71499b86cb1a8877f878cec8b64e6b5b2927a316c4b3813"
     },
     "crop": [
       720,
@@ -486,8 +486,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "9de90e39ce0ad6a2e1a9722758fae519c000ebf2e1bcb20520c73f424b9f1bdd"
+      "captured_at": "2026-10-29",
+      "sha256": "aa618fa86c6ce37b5302d9b5cffad327ba4b63641552168a82016ea7460e2c6a"
     },
     "crop": [
       720,
@@ -516,7 +516,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "02043272f32430b25f554c59d6f075a5e305e67d3afb0277f264b347b60be5e2"
     },
     "crop": [
@@ -546,7 +546,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "97662e7f4871f4acc46bef04a1aeaa0c013a7e6c442b2ad505cc1b8adb2d51cc"
     },
     "crop": [
@@ -576,8 +576,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "b6ed21685dea72e3233d4863f21fad0b37eea44855713b99e48959ad79b10f7c"
+      "captured_at": "2026-10-29",
+      "sha256": "7fcd4cf0bf1c5713ff35fbe0d74eb98a7ccf7ec2872be683debedf29ff16c13f"
     },
     "crop": [
       720,
@@ -606,8 +606,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "f8fab6c49902abcde91854d64d5a1c109d48d51f2659167729a4be9e5ca46af4"
+      "captured_at": "2026-10-29",
+      "sha256": "4813c0d34f930dab5785968dd903fcd9940e53bd1c04b46e37a4498f5cc671ae"
     },
     "crop": [
       720,
@@ -636,7 +636,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "e9f29426ab825b84e91cb58108e3257895bbc022e63fd26d65624399832a5edc"
     },
     "actions": []
@@ -661,7 +661,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "9a948103bfcb1378564be9e009a850b124f159b3fa761e74ea5b18b3015210e1"
     },
     "crop": [
@@ -701,7 +701,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "51f7f936af581b225ae82fbdc60701e1a61b90eae8ddade8d01d0aae11075b71"
     }
   },
@@ -739,7 +739,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "b0018ebad3b062202ebf841b087772036fba2d9954ddcc388a3b8fad5664f42a"
     }
   },
@@ -763,8 +763,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "1a316e25c565048af2254f0fb1f2d1ca5c1c2abde105e9473e95b19611f08be2"
+      "captured_at": "2026-10-29",
+      "sha256": "4da4e6bf30c93fd4e0cc2723cc35f053d1bfbce214695caf9bf92bddb92fafdd"
     },
     "crop": [
       720,
@@ -793,8 +793,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "489a1a3653f2b9c965335af3683ec9934f8fc75d15af1624522555b0f7c75554"
+      "captured_at": "2026-10-29",
+      "sha256": "38fe97741a2d2dbc2869c2ba740f781f2454ab770c7005a63f952fe70059e4db"
     },
     "crop": [
       720,
@@ -823,7 +823,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "79387d7531cecf239746239fa3baa438c9052c26b3a5eed59b91c2aaafca93e6"
     },
     "crop": [
@@ -853,8 +853,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "3770df90cdb8897f1cd683b4c6eeb638972d29850db0b0cb2a7830e8a2a910f2"
+      "captured_at": "2026-10-29",
+      "sha256": "97c9ec18ee80c98fd59eebac1c1d5bc8047bf3fadc94e41793dec45eff0e2ce4"
     },
     "crop": [
       720,
@@ -904,8 +904,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "03a25730090809048ab300917e0818830d5b04a0ef6b5a7b8f88a282b84959d7"
+      "captured_at": "2026-10-29",
+      "sha256": "726c56e9b872f5f459da23c5e503b7f3397c708c70236a6ff3f968d283dc7401"
     }
   },
   {
@@ -928,8 +928,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "e14b7491b5b88031335d4c854ce985a6c5f715b3ddb7f4d36b084df183a5c6cc"
+      "captured_at": "2026-10-29",
+      "sha256": "e4a42b837857a3c8ca042f4ea7ee3571cc0588692618be5d3cba0b0d4660e279"
     },
     "crop": [
       720,
@@ -958,7 +958,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "3997478c8d21c158c47b14d86239f6735470d77153ca96ab37fdae8ef688f9dc"
     },
     "crop": [
@@ -988,7 +988,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "beadd26e281a5d852d7b906ada94277d3dcf53b83a4a9d133db102ef6699211a"
     },
     "crop": [
@@ -1018,7 +1018,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "a8254db00859e3fadf7aff2d473d635f059770fa0140b685954d05b98de798ef"
     },
     "crop": [
@@ -1048,8 +1048,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "164ade2d2700a438d15c4da688e4761b4641e2322a903a57362b89054c547d1b"
+      "captured_at": "2026-10-29",
+      "sha256": "2e1716173c22755b13b3976316b9e5a56bd5f604b68d7cb661da2da595c7fb1c"
     },
     "crop": [
       720,
@@ -1078,8 +1078,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "e456c6ec766bff10fd821e952fe1aa9ce45ee104da94f875a4b526dce71e6ee8"
+      "captured_at": "2026-10-29",
+      "sha256": "b44cd75d20b6aecce3805eb1eb466844f54e6f694cc3fb16910878f5c2f8aae4"
     }
   },
   {
@@ -1102,8 +1102,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "988f78ecf5253337f91823e2a00d6199ff8636822366958b349905b4f4433b2f"
+      "captured_at": "2026-10-29",
+      "sha256": "ed9839b3804603100eedc9c4c1db9fe892fb5eabb77ae7a86b412bc08e5cc8ac"
     }
   },
   {
@@ -1126,8 +1126,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "c730abb7def0c8e443b0badd9677f0cc58464d46f550a86a29c7c5aa20a2fe97"
+      "captured_at": "2026-10-29",
+      "sha256": "c18feafb67281221e7e837975ca81b3b3edc251c0ce2147f2ecf25360c882759"
     }
   },
   {
@@ -1150,8 +1150,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "9a0752665e878369cf58e34380ab983b180d00a7a3ba68cf3a9e2c72de43d75a"
+      "captured_at": "2026-10-29",
+      "sha256": "d55a46bf473d8780dc460bcb123a8f75a8a980bb9773223030b6230035f37789"
     }
   },
   {
@@ -1174,8 +1174,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "c46f1e3308d3790b33360eabad4b9b5e09793be8f22c3cc6605ca5581645c5d6"
+      "captured_at": "2026-10-29",
+      "sha256": "45d946c6bdd9c3a154eb0ed61c9d8461c49bd02f442b540febb806f5672911c4"
     },
     "crop": [
       720,
@@ -1204,8 +1204,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "57fa21d4a1be7b698cfabb931219a536cfa1ce3c4c826f08ee26f104feb7c335"
+      "captured_at": "2026-10-29",
+      "sha256": "4f7a58c5759c4ca477bd7d60dbf04cb6263a979eb8088b11abc8e289849ba048"
     }
   },
   {
@@ -1228,8 +1228,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "b2b2425b7291d1a4b668ca854869162b0eff54e765420043f46ac45149d78803"
+      "captured_at": "2026-10-29",
+      "sha256": "cc228f0ec48a63fe385336e19fddb16ef2038e7816ed07c843c2017da93c2d8b"
     },
     "crop": [
       720,
@@ -1258,8 +1258,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "99fa65a7a4d2d2cb1aef24a7c9b8c9c12aa28c7ddceaf38006ea91d38418f9b1"
+      "captured_at": "2026-10-29",
+      "sha256": "02348a353daadf685530ffb31a17b4f464932421bb74a74e7f007a7e9e8dc215"
     },
     "crop": [
       720,
@@ -1288,8 +1288,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "0887eb140dd970f36c6f99bac68d12c51606ab40ef7d6ad7d59102fd52b99f94"
+      "captured_at": "2026-10-29",
+      "sha256": "7d32f5383342cfe82f926f1c4bd89f59aa5affc673938463588a570160f05f03"
     },
     "crop": [
       0,
@@ -1318,8 +1318,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "eaa018dedff4c2474313e0c6c9321e8efb847f60137df795e6daa91dbba005e7"
+      "captured_at": "2026-10-29",
+      "sha256": "458b0fc017e69433833c08887b54979232e1dd46540c067860c2803eb047d904"
     },
     "crop": [
       0,
@@ -1348,7 +1348,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "4a939031ba889220c42ab7553ff75ee2b9b5a674fa12b2d2f214d205cabc4aa9"
     },
     "crop": [
@@ -1378,8 +1378,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "b19bf3330d5545c92daf2470a86def7d370580703bc28568ba5f7a27b03d6594"
+      "captured_at": "2026-10-29",
+      "sha256": "4d281e30e39c0864df71d81be73147503f23df30e377485bd93048232a5d091b"
     },
     "crop": [
       0,
@@ -1408,7 +1408,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "84e3dfff3e45a8b2ceea433449e031fc34ff05a39690b70fc8ccd735234567e2"
     },
     "crop": [
@@ -1438,7 +1438,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "de34f382ab34f8a8cfd4396163b99c5b67e23426e169fde734fc9a1033d695a1"
     },
     "crop": [
@@ -1468,8 +1468,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "ee2c02f065c3acace8a03542be301fdbc5c2f240f397bb652486f7a6884df5af"
+      "captured_at": "2026-10-29",
+      "sha256": "252b2487a3561094910d96cf3f95b5a6c36dc5fd0128acb765b422198d48470c"
     },
     "crop": [
       720,
@@ -1482,7 +1482,7 @@
     "id": "report-builder",
     "chapter": 12,
     "title": "Review and share a saved custom report",
-    "route": "audience.php?view=analytics&section=custom&report=aa8086d83ef58ffce113fa81",
+    "route": "audience.php?view=analytics&section=custom&report=11c7f4c680998f157b2eab45",
     "steps": [
       "Review the dataset, grouping, metrics, and exact saved date range.",
       "Change the scope and update the report to inspect a different question.",
@@ -1504,7 +1504,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "183550ea94d74fa2ca933fdc5bfbd6b0350a34fb94aede7628b52b0a6cbffaf8"
     }
   },
@@ -1528,7 +1528,7 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
+      "captured_at": "2026-10-29",
       "sha256": "115ce131c6f9bf19afe93222ca325a6e5ad68445fc8c3a8dbd23fd7d3b82826e"
     },
     "crop": [
@@ -1558,8 +1558,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "c90714fa59346881fd5d964cbde819e6f918c6fa56bbb497357cd6003055936c"
+      "captured_at": "2026-10-29",
+      "sha256": "9cd8a0a5b525defe27f119b21c3bcc3f4f552fe935f11d7438d59f2fd79f1243"
     },
     "crop": [
       720,
@@ -1588,8 +1588,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "1349477fa12265e19106eb6184b7aa4149db591aef5e4d39e267c5d78937c805"
+      "captured_at": "2026-10-29",
+      "sha256": "cd17e51b772e09fe21af109b7ba8502d4c242452317b7361b392204ce5887b5c"
     },
     "crop": [
       720,
@@ -1641,8 +1641,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "97f4cc3cc5276decdcd66efb9de13de1b4424e00ce8e280718d4e4a3e9efb3dd"
+      "captured_at": "2026-10-29",
+      "sha256": "469e4478fdc7d53d47e55c4b4ae34773469073f316f6c4a5503aca01e375a697"
     }
   },
   {
@@ -1672,8 +1672,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-26",
-      "sha256": "0f686ef8da99df7dbac4b3b2170aa459c3b40fdd19970e0d28980e7b6cf45069"
+      "captured_at": "2026-10-29",
+      "sha256": "47e403718b6f2d05f4d82d27f53038d00b87f9cdefe830b2dc6d4063c261c2bb"
     },
     "crop": [
       720,

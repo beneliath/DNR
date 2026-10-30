@@ -12,7 +12,7 @@ class Element {
   querySelectorAll(){return this.children.flatMap(child=>[...(['button','select'].includes(child.tagName)?[child]:[]),...child.querySelectorAll()]);}
   closest(){return null;}
   focus(){}
-  scrollIntoView(){}
+  scrollIntoView(options){this.scrolled=options;}
   dispatchEvent(event){this.listeners[event.type]?.(event);}
 }
 function page(fetcher, mode='content', options={}){
@@ -41,9 +41,32 @@ test('stop prevents a late response from appearing and recovery stores no source
 test('reviewed output stays editable literal text and can become the next source',async()=>{
   const p=page(()=>({state:'complete',response:reply}));await p.submit();
   assert.equal(p.find('[data-ai-text]').value,reply.text);assert.equal(p.find('[data-ai-result]').hidden,false);
+  assert.equal(p.find('[data-ai-result]').scrolled.block,'start');
+  assert.equal(p.find('[data-ai-generate]').hidden,true);assert.equal(p.find('[data-ai-checks]').hidden,true);
   p.find('[data-ai-text]').value='Human-reviewed text';p.find('[data-ai-refine]').listeners.click();
   assert.equal(p.find('[data-ai-form]').elements.text.value,'Human-reviewed text');
   assert.equal(p.find('[data-ai-form]').elements.operation.value,'rewrite');
+  assert.equal(p.find('[data-ai-generate]').hidden,false);assert.equal(p.find('[data-ai-checks]').hidden,false);
+});
+test('completed writing controls return for an edited or new request',async()=>{
+  const p=page(()=>({state:'complete',response:reply}));await p.submit();
+  p.find('[data-ai-form]').listeners.input();
+  assert.equal(p.find('[data-ai-generate]').hidden,false);
+  await p.submit();assert.equal(p.find('[data-ai-generate]').hidden,true);
+  await p.find('[data-ai-new]').listeners.click();
+  assert.equal(p.find('[data-ai-generate]').hidden,false);assert.equal(p.find('[data-ai-checks]').hidden,false);
+});
+test('writing reveals the shared working dots immediately and brings content checks into view',async()=>{
+  let finish;const p=page((_url,options)=>JSON.parse(options.body).action==='checks'?reply.checks:new Promise(resolve=>{finish=resolve;}));
+  const submitting=p.submit();
+  assert.equal(p.find('[data-ai-thinking]').hidden,false);
+  assert.equal(p.find('[data-ai-thinking]').scrolled.block,'nearest');
+  assert.equal(p.find('[data-ai-generate]').disabled,true);
+  await tick();finish({state:'complete',response:reply});await submitting;
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);
+  await p.find('[data-ai-checks]').listeners.click();
+  assert.equal(p.find('[data-ai-check-result]').hidden,false);
+  assert.equal(p.find('[data-ai-check-result]').scrolled.block,'start');
 });
 test('wrong-purpose and failed replies never appear as usable results',async()=>{
   for(const response of [{...reply,purpose:'coach'},{...reply,reason:'unavailable',message:'Unavailable'}]){
@@ -55,6 +78,14 @@ const reportWindow={start:'2026-01-01',end:'2026-01-31',compare:'previous',bots:
 const analyticsReply={purpose:'audience-ai',reason:'',mode:'analytics',summary:'Observed results',recommendations:[],observations:[{evidence_id:'accepted',text:'Sending volume changed.'}],evidence:{window:reportWindow,series:[],facts:[{id:'accepted',label:'Accepted messages',value:7,previous:4,change:75,unit:'count'}],includes_samples:false,calculations:{},limitations:[]}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const textOf=element=>[element.textContent,...element.children.map(textOf)].join(' ');
+
+test('informational analytics answers do not pretend to be a sourced report',async()=>{
+  const p=page(()=>({state:'complete',response:{...analyticsReply,interpretation:'information',summary:'Hello! Ask about your contacts.'}}),'analytics',{chat:true,window:reportWindow});
+  await p.submit();
+  const transcript=textOf(p.find('[data-ai-chat-transcript]'));
+  assert.match(transcript,/Hello! Ask about your contacts/);
+  assert.ok(!transcript.includes('Source report')&&!transcript.includes('Source calculations'));
+});
 
 test('analytics recovery keeps waiting within the semantic validation deadline',async()=>{
   const p=page(()=>({state:'complete',question:'A longer analysis',response:analyticsReply}),'analytics',{
@@ -121,17 +152,19 @@ test('an audience answer retains follow-up context when its data scope differs f
   assert.equal(requests[1].window.dataset,'audience');
 });
 
-test('reset list persists its cutoff, retains a visible answer, and admits later requests',async()=>{
+test('reset list persists its cutoff, starts a fresh chat, and admits later requests',async()=>{
   const options={chat:true,window:reportWindow,historyItems:[{client_request_id:'old',question:'Old request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00.000001',outcome:'complete'}]};
   const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',options);await tick();await p.submit();await tick();
-  const turns=p.find('[data-ai-chat-transcript]').children.length;
   await p.find('[data-ai-history-reset]').listeners.click();
-  assert.equal(p.find('[data-ai-history]').children.length,0);assert.equal(p.find('[data-ai-chat-transcript]').children.length,turns);
+  assert.equal(p.find('[data-ai-history]').children.length,0);assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);
+  assert.equal(p.find('[data-ai-welcome]').hidden,false);assert.equal(p.find('[data-ai-chat-suggestions]').hidden,false);
   assert.equal([...p.localStorage.values()][0],'2026-01-01 12:00:00.000001');
   options.historyItems.push({...options.historyItems[0],client_request_id:'new',question:'New request',created_at:'2026-01-01 12:00:01.000001'});
   p.find('[data-ai-form]').elements.prompt.value='Another question';await p.submit();await tick();
   assert.equal(p.find('[data-ai-history]').children.length,1);
   assert.equal(textOf(p.find('[data-ai-history]')).includes('Old request'),false);
+  const requests=p.requests.filter(request=>request.options?.method==='POST').map(request=>JSON.parse(request.options.body));
+  assert.equal(requests.at(-1).parent,'');
 });
 
 test('new chat invalidates a pending history response',async()=>{
@@ -140,6 +173,18 @@ test('new chat invalidates a pending history response',async()=>{
   const opening=p.find('[data-ai-history]').children[0].children[0].listeners.click();
   await p.find('[data-ai-new]').listeners.click();finish({state:'complete',response:analyticsReply});await opening;
   assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);assert.equal(p.find('[data-ai-welcome]').hidden,false);
+});
+
+test('reset list cancels pending work and prevents a late answer from filling the new chat',async()=>{
+  let finish;const options={chat:true,window:reportWindow,historyItems:[{client_request_id:'old',question:'Old request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'complete'}]};
+  const p=page((url,request)=>JSON.parse(request.body).action==='cancel'?{saved:true}:new Promise(resolve=>{finish=resolve;}),'analytics',options);
+  await tick();const submitting=p.submit();
+  await p.find('[data-ai-history-reset]').listeners.click();
+  finish({state:'complete',response:analyticsReply});await submitting;
+  assert.equal(p.find('[data-ai-chat-transcript]').children.length,0);
+  assert.equal(p.find('[data-ai-welcome]').hidden,false);
+  assert.equal(p.find('[data-ai-thinking]').hidden,true);
+  assert.equal(p.storage(),null);
 });
 
 test('circle-X permanently deletes only the confirmed response without admin unlock',async()=>{

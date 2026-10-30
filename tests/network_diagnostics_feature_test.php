@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectNetworkDiagnostics(bool $condition, string $message): void
 {
@@ -17,7 +19,7 @@ $helpers = (string) file_get_contents($root . '/src/network_diagnostics_helpers.
 $dashboardScript = (string) file_get_contents($root . '/src/assets/js/network-diagnostics.js');
 $collectorScript = (string) file_get_contents($root . '/src/assets/js/network-performance.js');
 $styles = (string) file_get_contents($root . '/src/assets/css/pages/network_diagnostics.css');
-$functions = (string) file_get_contents($root . '/src/functions.php');
+$functions = (string) readModuleSource($root . '/src/functions.php');
 $footer = (string) file_get_contents($root . '/src/templates/footer.php');
 $migration = (string) file_get_contents($root . '/migrations/20260913_add_network_performance_samples.sql');
 $grants = (string) file_get_contents($root . '/scripts/configure_database_privileges.sh');
