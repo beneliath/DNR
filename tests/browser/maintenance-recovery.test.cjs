@@ -56,10 +56,17 @@ function render(seconds, phase = 'deploying') {
                             return schedule(callback, delay);
                         };
                     });
-                    await page.route(origin + '/**', route => {
+                    await page.route(origin + '/**', async route => {
                         const request = route.request(), url = new URL(request.url());
                         assert.equal(request.method(), 'GET', 'Recovery must never replay a form POST');
                         requests.push({path: url.pathname, phase, backendReady, statusCode});
+                        // Three healthy responses on a slow phone exceed the
+                        // previous shared four-second budget. Each must get a
+                        // fresh timeout so recovery can actually finish.
+                        if (name === 'iPhone WebKit' && fixture.seconds === 80 && phase === 'complete'
+                            && backendReady && /\/(deployment_status|ready)\.php$/.test(url.pathname)) {
+                            await new Promise(resolve => setTimeout(resolve, 1600));
+                        }
                         if (url.pathname.endsWith('/assets/js/maintenance-timer.js')) {
                             return route.fulfill({contentType: 'text/javascript', body: script});
                         }

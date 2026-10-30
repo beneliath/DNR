@@ -8,14 +8,14 @@ RUN apt-get update \
     && apt-mark auto $PHPIZE_DEPS \
     && apt-get autoremove -y --purge \
     && rm -rf /var/lib/apt/lists/* \
-    && a2enmod headers proxy proxy_http deflate expires \
+    && a2enmod headers proxy proxy_http deflate expires rewrite \
     && a2disconf other-vhosts-access-log \
     && rm -rf /var/www/html/*
 
 COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf
 COPY docker/apache-ingress.conf /etc/apache2/conf-enabled/zz-dnr-ingress.conf
 COPY --chmod=0755 docker/development-ingress-entrypoint.sh /usr/local/bin/dnr-development-ingress-entrypoint
-COPY src/deployment_status.php src/deployment_notice_helpers.php src/maintenance.php /var/www/html/
+COPY src/deployment_status.php src/deployment_notice_helpers.php src/maintenance.php src/maintenance_guard.php /var/www/html/
 COPY src/assets/js/maintenance-timer.js /var/www/html/assets/js/maintenance-timer.js
 # Account ingress serves its qualified static scripts itself. A compromised PHP
 # container must not supply executable code under the shared browser origin.

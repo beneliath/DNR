@@ -14,6 +14,7 @@ import sys
 from deployment_backup import create_verified_backup
 from storage_encryption_preflight import require_encrypted_upload_storage
 from deployment_notice import DeploymentNotice, login_restoration_estimate
+from deployment_guard import DeploymentGuard
 from release_timestamp import timestamp_utc
 from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members, public_login_available
 
@@ -141,6 +142,10 @@ def main():
         account_configuration = account_release_configuration(root, inspect(container('web'))['Config']['Env'])
         account_worker = active_account_worker(root) if account_configuration else None
         members = discover_members(root, account_configuration['config']) if account_configuration else []
+        if account_configuration is None:
+            raise ValueError('s1 maintenance routing requires the prepared Account configuration')
+        guard = DeploymentGuard(root, account_configuration['config'], images['ingress'], notice_id,
+            [account_configuration['config']['primary_key']] + [member['key'] for member in members])
         storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
         def speaker_seed(action):
@@ -174,7 +179,8 @@ def main():
                       backup=None, manifest=release, storage_encryption=storage_encryption,
                       mirrors=json.loads(Path(manifest_path).with_name('mirrors.json').read_text()),
                       phase='preflight', outcome='running', speaker_seed_sha256=speaker_seed_sha256 or None,
-                      previous_account_configuration=account_configuration)
+                      previous_account_configuration=account_configuration,
+                      maintenance_guard={'container': guard.name, 'draining_marker': str(guard.marker)})
         record_path = records / (expected + '.json')
         def save(phase):
             record['phase'] = phase
@@ -194,7 +200,11 @@ def main():
             record.update(outcome='failed', error=str(error))
             save('awaiting-save-window')
             raise
+        writers_paused = False
         try:
+            save('protecting-public-routes')
+            guard.start()
+            writers_paused = True
             compose('stop', *application_writers())
             pause_members(members)
             save('backing-up')
@@ -254,16 +264,14 @@ def main():
             version = run(['docker', 'exec', container('web'), 'cat', '/opt/dnr/VERSION'])
             if version != release['version']:
                 raise ValueError('Running application version differs from the release')
-            ready = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', public_url + '/ready.php']))
-            health = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', public_url + '/health.php']))
+            ready = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', *guard.probe_options, public_url + '/ready.php']))
+            health = json.loads(run(['curl', '--fail', '--silent', '--show-error', '--max-time', '20', *guard.probe_options, public_url + '/health.php']))
             if ready.get('status') != 'ready' or ready.get('version') != version or health.get('status') != 'ok':
                 raise ValueError('Public readiness failed')
-            record['primary_login_available_at'] = public_login_available(public_url)
+            public_login_available(public_url, guard.probe_options)
             save('primary-login-ready')
             save('verifying-accounts')
-            record['accounts'] = start_and_verify_members(members, account_configuration['config'] if account_configuration else {}, release)
-            record['all_accounts_login_available_at'] = max(
-                [record['primary_login_available_at']] + [account['public_ready_at'] for account in record['accounts']])
+            record['accounts'] = start_and_verify_members(members, account_configuration['config'], release, guard.probe_options)
             save('accounts-login-ready')
             if account_worker:
                 # The new process loads the qualified checkout. Its lifecycle
@@ -272,6 +280,16 @@ def main():
                 if run(['systemctl', '--user', 'is-active', 'moed-account-worker.service']) != 'active':
                     raise ValueError('Account worker failed to restart on the qualified checkout')
                 record['account_worker_restarted'] = True
+            save('restoring-public-routes')
+            guard.withdraw()
+            # Measure when ordinary users can actually sign in, after the guard
+            # has drained and every restored route has been observed publicly.
+            record['primary_login_available_at'] = public_login_available(public_url)
+            for account in record['accounts']:
+                account['public_ready_at'] = public_login_available(
+                    account_configuration['config']['origin'] + '/a/' + account['account_key'])
+            record['all_accounts_login_available_at'] = max(
+                [record['primary_login_available_at']] + [account['public_ready_at'] for account in record['accounts']])
             record['outcome'] = 'success'
             save('verified')
             (records / 'current.json').write_text(json.dumps(record, indent=2) + '\n')
@@ -279,16 +297,27 @@ def main():
         except BaseException as error:
             record['outcome'] = 'failed'
             record['error'] = str(error)
+            if writers_paused and guard.started:
+                try: guard.protect()
+                except (OSError, RuntimeError) as protection_error:
+                    print('Maintenance route requires operator attention: ' + str(protection_error), file=sys.stderr)
             # Schema may have advanced. Do not restart old writers or attempt a MySQL downgrade.
-            try: compose('stop', *application_writers())
-            except subprocess.CalledProcessError: pass
-            try: pause_members(members)
-            except subprocess.CalledProcessError: pass
+            if writers_paused:
+                try: compose('stop', *application_writers())
+                except subprocess.CalledProcessError: pass
+                try: pause_members(members)
+                except subprocess.CalledProcessError: pass
             save(record['phase'])
             notice.finish(notice_id, 'failed')
-            print('Deployment failed; writers remain paused. Recovery record: ' + str(record_path), file=sys.stderr)
+            print('Deployment failed; ' + ('writers remain paused' if writers_paused else 'writers were not stopped')
+                  + '. Recovery record: ' + str(record_path), file=sys.stderr)
             raise
         notice.finish(notice_id, 'complete')
+        try: guard.remove()
+        except subprocess.CalledProcessError:
+            # The route has already drained; cleanup failure must not pause a
+            # verified release or withdraw its working public ingress.
+            print('Remove drained maintenance container: ' + guard.name, file=sys.stderr)
 
 if __name__ == '__main__':
     def interrupted(signum, frame):
