@@ -35,6 +35,11 @@ if($view==='brand'){
     $brand=['logo'=>$svg('<rect x="20" y="55" width="200" height="60" fill="#007c89"/>'),'secondary_logo'=>$svg('<rect x="102" y="15" width="36" height="130" fill="#315ea8"/>'),'organization_name'=>'Example organization','mailing_address'=>'123 Example Street','styles'=>[]];
     $contentContext=['version'=>1,'settings'=>['brand'=>$brand]];$brandTemplates=[];$brandPreview=audienceDesignStarters()['blank']['design'];$campaignRecovery=null;
 }
+if($view==='content'){
+    $contentContext=['version'=>1,'settings'=>['content_folders'=>['SiMM photos','Community updates']]];$contentItem=$campaignRecovery=null;
+    $contentLibrary=['items'=>[],'total'=>0,'page'=>1,'per_page'=>100,'trash'=>false,'search'=>'','folder'=>'','type'=>'','sort'=>'updated_at','direction'=>'desc','layout'=>'grid'];
+    $contentUrl=static fn(array $changes=[])=>$url(['view'=>'content']+$changes);
+}
 if($view==='groups')foreach(['Daily updates','Community news','Subscriber interests']as$i=>$name)$groups[]=['id'=>7+$i,'version'=>1,'name'=>$name,'display_type'=>'checkboxes','options'=>[['id'=>30+$i,'name'=>'Newsletter updates','contact_count'=>4714],['id'=>40+$i,'name'=>'Events and reminders','contact_count'=>128]]];
 if($view==='fields')$fields=[['id'=>17,'version'=>1,'label'=>'Interest','field_type'=>'text','merge_tag'=>'INTEREST','default_value'=>'','options_json'=>'[]','required'=>0,'is_public'=>1,'position'=>0]];
 if(in_array($view,['jobs','job'],true)){

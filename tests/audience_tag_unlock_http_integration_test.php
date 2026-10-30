@@ -105,6 +105,17 @@ try{
         foreach([null,time()-301]as$at){$unlock($at);$response=$sendProtected($admin,$path,$input);audienceHttpExpect($response['status']===302&&str_contains($response['headers'],'admin_elevation.php?')&&$preserved(),$input['action'].' preserves data while locked or expired');}
         $unlock(time());audienceHttpExpect($admin($path,['csrf_token'=>'invalid']+$input)['status']===400,$input['action'].' enforces CSRF after unlock');
     };
+    $contentPath='audience.php?view=content';$folderName='Protected content '.$suffix;$renamedFolder=$folderName.' renamed';$unlock(null);
+    $created=$sendProtected($editor,$contentPath,['action'=>'content_folder','operation'=>'create','name'=>$folderName,'version'=>$store->contentSettings()['version']]);
+    audienceHttpExpect($created['status']===302&&in_array($folderName,$store->contentSettings()['settings']['content_folders'],true),'Editors can create content folders without Admin Unlock');
+    $renamed=$sendProtected($editor,$contentPath,['action'=>'content_folder','operation'=>'rename','name'=>$folderName,'new_name'=>$renamedFolder,'version'=>$store->contentSettings()['version']]);
+    audienceHttpExpect($renamed['status']===302&&in_array($renamedFolder,$store->contentSettings()['settings']['content_folders'],true),'Editors can rename content folders without Admin Unlock');
+    $folderSettings=$store->contentSettings();$folderInput=['action'=>'content_folder','operation'=>'delete','name'=>$renamedFolder,'version'=>$folderSettings['version']];
+    $assertProtected($contentPath,$folderInput,fn()=>$store->contentSettings()===$folderSettings);
+    $stale=$sendProtected($admin,$contentPath,array_replace($folderInput,['version'=>$folderSettings['version']+1]));
+    audienceHttpExpect(str_contains($stale['body'],'Content settings changed')&&$store->contentSettings()===$folderSettings,'Unlocked content folder deletion rejects stale settings');
+    $deleted=$sendProtected($admin,$contentPath,$folderInput);
+    audienceHttpExpect($deleted['status']===302&&!str_contains($deleted['headers'],'admin_elevation.php')&&!in_array($renamedFolder,$store->contentSettings()['settings']['content_folders'],true),'An unlocked administrator can delete an empty content folder');
     $field=$store->saveField(['label'=>'Protected field '.$suffix,'merge_tag'=>'SAFE_'.strtoupper($suffix),'field_type'=>'text','is_public'=>'1'],0,0);
     $fieldInput=['action'=>'delete_field','id'=>$field,'version'=>1];
     $assertProtected('audience.php?view=fields',$fieldInput,fn()=>(bool)$store->one('SELECT id FROM marketing_fields WHERE id=?',[$field]));
