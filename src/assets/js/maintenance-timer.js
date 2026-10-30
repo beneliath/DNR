@@ -39,14 +39,21 @@
     async function checkReady() {
         if (checking || returning) return;
         checking = true;
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 4000);
         try {
-            const options = {cache: 'no-store', credentials: 'omit', signal: controller.signal};
+            async function readStatus(url) {
+                // Each request gets its own budget. Three valid but slow mobile
+                // responses must not repeatedly exceed a shared four-second limit.
+                const controller = new AbortController();
+                const timeout = window.setTimeout(() => controller.abort(), 10000);
+                try {
+                    const response = await fetch(url, {cache: 'no-store', credentials: 'omit', signal: controller.signal});
+                    return response.ok ? await response.json() : null;
+                } finally {
+                    window.clearTimeout(timeout);
+                }
+            }
             async function deploymentFinished() {
-                const response = await fetch(statusUrl, options);
-                if (!response.ok) return false;
-                const status = await response.json();
+                const status = await readStatus(statusUrl);
                 return status !== null && Number.isFinite(status.server_now) && status.notice === null
                     && (waitForDeployment !== 'true' || status.deployment_complete === true);
             }
@@ -54,8 +61,8 @@
             // restores its routes. Only the host's completed transaction releases
             // this page; missing notices, proxy 404s and failed deployments do not.
             if (!await deploymentFinished()) return;
-            const response = await fetch(readyUrl, options);
-            if (response.ok && (await response.json()).status === 'ready' && await deploymentFinished()) {
+            const readiness = await readStatus(readyUrl);
+            if (readiness?.status === 'ready' && await deploymentFinished()) {
                 returning = true;
                 // Always request the original page/query with GET; reload() could
                 // replay an interrupted POST. Drop any anchor so this cannot be
@@ -65,9 +72,14 @@
         } catch (_) {
             // Leave the rendered page in place through routing/transport failures.
         } finally {
-            window.clearTimeout(timeout);
             checking = false;
         }
     }
     window.setInterval(checkReady, 30000);
+    // Background/suspended mobile tabs may pause intervals. Resume checking as
+    // soon as the page is visible or the connection returns, even after zero.
+    window.addEventListener('online', checkReady);
+    window.addEventListener('pageshow', checkReady);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReady(); });
+    checkReady();
 })();
