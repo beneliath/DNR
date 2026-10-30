@@ -254,13 +254,28 @@ function audienceAiClarificationReply(string $question,array $scope,array $metri
     return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'clarification','summary'=>$question,'observations'=>[],'recommendations'=>[],'evidence'=>['window'=>audienceAiReportWindow($scope),'facts'=>[],'tables'=>[],'series'=>[],'queries'=>[],'includes_samples'=>false,'calculations'=>[],'limitations'=>[],'scope_description'=>'Current account'],'reason'=>'','message'=>'Clarification requested','telemetry'=>$metrics+['route'=>'audience-ai','model_calls'=>$calls]];
 }
 
+/** Informational replies contain application-owned facts, never model prose. */
+function audienceAiInformationReply(string $kind,array $scope,string $timezone='UTC',?DateTimeImmutable $now=null):array
+{
+    try{$zone=new DateTimeZone($timezone);}catch(Exception){$zone=new DateTimeZone('UTC');}
+    $summary=match($kind){
+        'greeting'=>'Hello! I can help you explore your contacts and communication performance. What would you like to know?',
+        'current_date'=>'Today is '.($now??new DateTimeImmutable('now'))->setTimezone($zone)->format('l, F j, Y').' ('.$zone->getName().').',
+        'help'=>'I can look up saved contacts and analyze audience growth, email campaigns, signup forms, and automations. Ask a question about your records; use Write with AI to draft or revise text.',
+        'unsupported'=>'I can help with your saved contacts and communication analytics. Ask about your account data, or use Write with AI for drafting and rewriting.',
+        default=>throw new InvalidArgumentException('Unsupported information classification.'),
+    };
+    $reply=audienceAiClarificationReply($summary,$scope,[],0);
+    return array_replace($reply,['interpretation'=>'information','message'=>'Answer ready','telemetry'=>[]]);
+}
+
 function audienceAiGenerate(array $stored,float $deadline,?callable $cancelled=null,?callable $transport=null,?AudienceAiQueries $queries=null):array
 {
     $stage='validation';$calls=0;$metrics=[];$resolved=false;
     try{
         $request=audienceAiRequest($stored,(string)($stored['role']??''));
         if(($stored['_audience_ai']??null)!==1||!in_array($stored['account']??'', [currentAccountKey()],true))throw new DomainException('Assistant scope changed.');
-        foreach(['brand','evidence','previous_reply']as$key)if(isset($stored[$key]))$request[$key]=$stored[$key];
+        foreach(['brand','evidence','previous_reply','display_timezone']as$key)if(isset($stored[$key]))$request[$key]=$stored[$key];
         if($request['mode']==='analytics'&&!isset($request['evidence']['facts'])&&!isset($stored['analysis_scope']))throw new RuntimeException('Analysis evidence is missing.');
         if($request['mode']==='analytics'&&(!in_array($request['evidence']['window']['origin']??'native',['native'],true)||!empty($request['evidence']['window']['source_audience'])||($request['evidence']['window']['bots']??'')==='exported'))throw new DomainException('Analysis source is no longer available.');
         $base=rtrim((string)getenv('DNR_AI_COACH_URL'),'/');$url=parse_url($base);

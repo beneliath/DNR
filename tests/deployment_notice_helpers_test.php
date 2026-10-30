@@ -34,21 +34,28 @@ try {
     expectDeploymentNotice(deploymentNoticeStatus($path, 1900)['notice'] === null, 'Reject a shortened window after long preparation.');
     foreach (['complete', 'cancelled', 'unknown'] as $phase) {
         file_put_contents($path, json_encode(array_replace($state, ['phase' => $phase])));
-        expectDeploymentNotice(deploymentNoticeStatus($path, 1100)['notice'] === null, 'Inactive notices are hidden.');
+        $result = deploymentNoticeStatus($path, 1100);
+        expectDeploymentNotice($result['notice'] === null, 'Inactive notices are hidden.');
+        expectDeploymentNotice($result['deployment_complete'] === ($phase === 'complete'), 'Only a completed transaction releases maintenance pages.');
     }
     foreach (['deploying', 'failed'] as $phase) {
         file_put_contents($path, json_encode(array_replace($state, ['phase' => $phase, 'expected_back_at' => 4000])));
         expectDeploymentNotice(deploymentNoticeStatus($path, 3000)['notice']['phase'] === $phase, 'Maintenance must not expire.');
         expectDeploymentNotice(deploymentNoticeStatus($path, 3000)['notice']['expected_back_at'] === 4000, 'Expose only the return estimate.');
+        expectDeploymentNotice(!deploymentNoticeStatus($path, 3000)['deployment_complete'], 'Active or failed maintenance must never signal completion.');
     }
     foreach (['{broken', '{}', json_encode(array_replace($state, ['not_before' => 1100])),
         json_encode(array_replace($state, ['not_before' => 'bad']))] as $contents) {
         file_put_contents($path, $contents);
         expectDeploymentNotice(deploymentNoticeStatus($path, 1100)['notice'] === null, 'Malformed notices do not render.');
+        expectDeploymentNotice(!deploymentNoticeStatus($path, 1100)['deployment_complete'], 'Malformed state is not a completed deployment.');
     }
+    file_put_contents($path, json_encode(array_replace($state, ['phase' => 'complete', 'not_before' => 'bad'])));
+    expectDeploymentNotice(!deploymentNoticeStatus($path, 1100)['deployment_complete'], 'Malformed completion must fail closed.');
     expectDeploymentNotice(session_status() === PHP_SESSION_NONE, 'Polling must not start/refresh a session.');
 } finally {
     unlink($path);
 }
 expectDeploymentNotice(deploymentNoticeStatus($path, 1100)['notice'] === null, 'Absent notice is normal.');
+expectDeploymentNotice(!deploymentNoticeStatus($path, 1100)['deployment_complete'], 'An absent notice is not proof of completion.');
 echo "Deployment notice helper tests passed.\n";

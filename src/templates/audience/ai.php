@@ -14,7 +14,6 @@
             <?php $aiFullPage=true;include __DIR__.'/ai-panel.php'; ?>
         </div></div>
     </div>
-    <div class="analytics-ai-footer"><?php include __DIR__.'/../app-footer.php'; ?></div>
 </section>
 <?php } ?>
 <dialog data-ai-history-confirm aria-labelledby="ai-history-confirm-title" aria-describedby="ai-history-confirm-message">

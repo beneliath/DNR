@@ -1,13 +1,8 @@
 (function () {
     'use strict';
 
-    const timer = document.querySelector('[data-maintenance-timer]');
-    if (!timer) return;
-    const initialSeconds = Number(timer.dataset.remainingSeconds);
-    if (!Number.isFinite(initialSeconds) || initialSeconds < 0) return;
-    const started = performance.now();
-    // The HTML refresh remains a fallback when JavaScript is unavailable.
-    document.querySelector('meta[http-equiv="refresh"]')?.remove();
+    const page = document.querySelector('[data-maintenance-page]');
+    if (!page) return;
 
     function display(seconds) {
         const hours = Math.floor(seconds / 3600);
@@ -16,6 +11,9 @@
         return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     }
 
+    const timer = document.querySelector('[data-maintenance-timer]');
+    const initialSeconds = timer ? Number(timer.dataset.remainingSeconds) : NaN;
+    const started = performance.now();
     function tick() {
         const seconds = Math.max(0, Math.ceil(initialSeconds - (performance.now() - started) / 1000));
         timer.textContent = display(seconds);
@@ -28,24 +26,44 @@
         }
     }
 
-    const interval = window.setInterval(tick, 250);
-    tick();
+    let interval;
+    if (Number.isFinite(initialSeconds) && initialSeconds >= 0) {
+        interval = window.setInterval(tick, 250);
+        tick();
+    }
 
-    const readyUrl = timer.dataset.readyUrl;
-    if (!readyUrl) return;
+    const {readyUrl, statusUrl, waitForDeployment} = page.dataset;
+    if (!readyUrl || !statusUrl) return;
     let checking = false;
+    let returning = false;
     async function checkReady() {
-        if (checking) return;
+        if (checking || returning) return;
         checking = true;
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 4000);
         try {
-            const response = await fetch(readyUrl, {cache: 'no-store', credentials: 'omit', signal: controller.signal});
-            if (response.ok && (await response.json()).status === 'ready') {
-                window.location.replace(window.location.href);
+            const options = {cache: 'no-store', credentials: 'omit', signal: controller.signal};
+            async function deploymentFinished() {
+                const response = await fetch(statusUrl, options);
+                if (!response.ok) return false;
+                const status = await response.json();
+                return status !== null && Number.isFinite(status.server_now) && status.notice === null
+                    && (waitForDeployment !== 'true' || status.deployment_complete === true);
+            }
+            // web can become ready before Compose replaces ingress and Traefik
+            // restores its routes. Only the host's completed transaction releases
+            // this page; missing notices, proxy 404s and failed deployments do not.
+            if (!await deploymentFinished()) return;
+            const response = await fetch(readyUrl, options);
+            if (response.ok && (await response.json()).status === 'ready' && await deploymentFinished()) {
+                returning = true;
+                // Always request the original page/query with GET; reload() could
+                // replay an interrupted POST. Drop any anchor so this cannot be
+                // treated as a same-document scroll instead of loading content.
+                window.location.replace(window.location.href.split('#')[0]);
             }
         } catch (_) {
-            // Keep the timer running while the backend is unavailable.
+            // Leave the rendered page in place through routing/transport failures.
         } finally {
             window.clearTimeout(timeout);
             checking = false;

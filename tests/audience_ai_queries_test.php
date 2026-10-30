@@ -161,7 +161,49 @@ $empty=$tools->execute(['queries'=>[]]);$expect($empty['facts']===[]&&$empty['li
 
 putenv('DNR_AI_COACH_URL=http://ai-coach-tunnel:11437');
 $request=['_audience_ai'=>1,'account'=>currentAccountKey(),'mode'=>'analytics','operation'=>'analyze','role'=>'admin','prompt'=>'A fresh population question','request_id'=>'12345678-1234-4234-a234-123456789012','analysis_scope'=>$window];
+foreach(['greeting','current_date','help','unsupported']as$kind){
+    $calls=0;$readsBefore=count($store->reads);$reportsBefore=count($store->reports);
+    $transport=static function()use(&$calls,$raw,$kind):array{
+        return ++$calls===1?['done'=>true,'done_reason'=>'stop','message'=>['content'=>'Unverified prose claiming 999 contacts and an invented date.']]:$raw(['kind'=>$kind]);
+    };
+    $answer=audienceAiGenerate($request+['display_timezone'=>'America/Chicago'],microtime(true)+30,null,$transport,$tools);
+    $expect($answer['reason']===''&&$answer['interpretation']==='information'&&$answer['telemetry']['model_calls']===2,'Plain informational turns use a typed classification and application-owned response.');
+    $expect(!str_contains($answer['summary'],'999')&&count($store->reads)===$readsBefore&&count($store->reports)===$reportsBefore,'Informational turns neither echo unverified model claims nor read account data.');
+}
+$date=audienceAiInformationReply('current_date',$window,'America/Chicago',new DateTimeImmutable('2026-10-30T02:53:00Z'));
+$expect(str_contains($date['summary'],'Thursday, October 29, 2026 (America/Chicago)'),'Current date uses the server clock and user timezone, not the model date.');
+$reject(static fn()=>audienceAiInformationReply('execute_sql',$window),'Unknown informational classifications fail closed.');
+$calls=0;$readsBefore=count($store->reads);
+$answer=audienceAiGenerate($request,microtime(true)+30,null,static function()use(&$calls,$raw):array{
+    return ++$calls%2===1?['done'=>true,'done_reason'=>'stop','message'=>['content'=>'You have 999 contacts.']]:$raw(['kind'=>'data']);
+},$tools);
+$expect($calls===4&&$answer['reason']==='unavailable'&&count($store->reads)===$readsBefore,'A prose answer to a data question must replan within the bounded retry budget, never become verified data.');
 $state=['version'=>1,'turns'=>[],'queries'=>[]];
+$benchmarkState=['version'=>1,'turns'=>[['question'=>'How did my last email perform compared to similar emails and to benchmarks?','response'=>'Which benchmarks should I use?']],
+    'queries'=>$tools->validate($tools->nativeQuery(['function'=>['name'=>'recent_email_campaign_report','arguments'=>['count'=>1,'dimension'=>'campaign','metrics'=>['open_rate']]]]))];
+$editMetrics=['open_rate','click_rate','bounce_rate','complaint_rate','unsubscribed'];
+$edited=$tools->selectedPlan(['done'=>true,'done_reason'=>'stop','message'=>['tool_calls'=>[['function'=>['name'=>'edit_report_query','arguments'=>['metrics'=>$editMetrics]]]]]],$benchmarkState);
+$resolvedEdit=$tools->resolvePlan($edited,$benchmarkState);
+$expect(count($resolvedEdit['queries'][0]['metrics'])===4&&$resolvedEdit['queries'][0]['recent_campaigns']===1,'Follow-up report drafts use the same bounded metrics as new reports without losing the latest campaign selection.');
+$reject(static fn()=>$tools->selectedPlan(['done'=>true,'done_reason'=>'stop','message'=>['tool_calls'=>[['function'=>['name'=>'edit_report_query','arguments'=>['metrics'=>[...$editMetrics,'invented_metric']]]]]]],$benchmarkState),'Every metric is validated, including extra draft metrics beyond the displayed limit.');
+$clarificationOnly=['context'=>'continuation','queries'=>[],'clarification'=>['issue'=>'missing_criterion','question'=>'Which benchmark?']];
+$review=$tools->planReviewPayload('historical averages',$benchmarkState,$clarificationOnly);
+$expect(isset($review['format']['properties']['report_metrics']['items']['enum'])&&in_array('open_rate',$review['format']['properties']['report_metrics']['items']['enum'],true),'Clarification-only follow-ups retain their report catalog during independent review.');
+$calls=0;$reportsBefore=count($store->reports);
+$answer=audienceAiGenerate(array_replace($request,['prompt'=>'historical averages','previous_context'=>['state'=>$benchmarkState]]),microtime(true)+30,null,static function($base,$payload)use(&$calls,$raw,$clarificationOnly):array{
+    $calls++;
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw(['context'=>'continuation','requests'=>[],'clarification'=>$clarificationOnly['clarification']]);
+    if(isset($payload['format']['properties']['context']))return $raw(['context'=>'continuation']);
+    return $raw(['valid'=>true,'conditions'=>[],'result_type'=>'report','report_metrics'=>[],'unresolved'=>[['phrase'=>'historical_campaign_averages','question'=>'Which historical averages?','kind'=>'measurement','unavailable_capability'=>'historical_campaign_averages']],'correction'=>'']);
+},$tools);
+$expect($calls===3&&$answer['reason']===''&&$answer['interpretation']==='clarification'&&str_contains($answer['summary'],'do not support historical per-campaign averages'),'Unsupported historical averages produce a clear capability explanation instead of an invalid-response error.');
+$expect(count($store->reports)===$reportsBefore&&$answer['conversation_state']['queries'][0]['recent_campaigns']===1,'Unsupported comparisons do not run substitute data queries or discard the original campaign selection.');
+$structured=$tools->planningPayload('Show the last email metrics',$benchmarkState,'Return tools, not prose.',['context'=>'continuation'],true);
+$expect(!isset($structured['tools'])&&isset($structured['format']['properties']['calls']['items']['anyOf']),'A native prose failure can retry with an enforced structured tool-call schema.');
+$selected=$tools->selectedPlan($raw(['calls'=>[['name'=>'edit_report_query','arguments'=>['metrics'=>['click_rate']]]]]),$benchmarkState);
+$expect($tools->resolvePlan($selected,$benchmarkState)['queries'][0]['recent_campaigns']===1,'Structured retries pass through the same context-preserving query validation as native tools.');
+$reject(static fn()=>$tools->selectedPlan($raw(['calls'=>[['name'=>'execute_sql','arguments'=>['sql'=>'SELECT secret']]]]),$benchmarkState),'Structured retries cannot introduce new data tools.');
+$reject(static fn()=>$tools->resolvePlan($tools->selectedPlan($raw(['calls'=>[['name'=>'edit_report_query','arguments'=>['account_id'=>2]]]]),$benchmarkState),$benchmarkState),'Structured retries cannot change account scope.');
 $plan=static fn(array $changes,int $base=-1,array $remove=[],string $issue='none',string $question=''):array=>['assessment'=>'Resolve the requested conditions and output.','context'=>$base<0?'new_topic':'continuation','requests'=>[['base_query'=>$base,'changes'=>$changes,'remove_filters'=>$remove]],'clarification'=>['issue'=>$issue,'question'=>$question]];
 $filters=[['field'=>'email_status','operator'=>'eq','value'=>'subscribed'],['field'=>'email_domain','operator'=>'eq','value'=>'example.test'],['field'=>'last_name','operator'=>'is_not_empty']];
 $initial=$tools->resolvePlan($plan(['tool'=>'count','filters'=>$filters]),$state);
@@ -200,18 +242,18 @@ $expect($countFromList['queries'][0]['limit']===5&&$countFromList['queries'][0][
 $calls=0;$readCount=count($store->reads);
 $partial=$plan(['tool'=>'count','filters'=>$filters],-1,[],'missing_criterion','Which date range defines recent?');
 $request['prompt']='Count recent subscribed contacts at example.test with a recorded last name.';
-$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$partial,$raw,$filters):array{$calls++;if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>true,'explanation'=>'No date range was supplied.']);return $raw(isset($payload['tools'])?$partial:['unresolved'=>[['phrase'=>'recent','question'=>'Which date range defines recent?']],'conditions'=>$filters,'result_type'=>'count','valid'=>false,'correction'=>'Define recent.']);};
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$partial,$raw,$filters):array{$calls++;if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>true,'explanation'=>'No date range was supplied.']);return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$partial:['unresolved'=>[['phrase'=>'recent','question'=>'Which date range defines recent?']],'conditions'=>$filters,'result_type'=>'count','valid'=>false,'correction'=>'Define recent.']);};
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($answer['interpretation']==='clarification'&&count($store->reads)===$readCount&&count($answer['conversation_state']['queries'][0]['filters'])===3,'Clarifications retain known conditions without running partial queries.');
 $next=$request+['previous_context'=>audienceAiPreviousContext($request['prompt'],$answer)];$next['prompt']='Use the first week of February and list seven.';
-$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{if(isset($payload['format']['properties']['context']))return $raw(['context'=>'continuation','result_type'=>'contacts']);return $raw(isset($payload['tools'])?$plan(['tool'=>'contacts','limit'=>7],0):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);};
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{if(isset($payload['format']['properties']['context']))return $raw(['context'=>'continuation','result_type'=>'contacts']);return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'contacts','limit'=>7],0):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);};
 $answer=audienceAiGenerate($next,microtime(true)+45,null,$transport,$tools);
 $expect(count($answer['evidence']['queries'][0]['filters'])===3&&count($answer['conversation_state']['turns'])===2,'An answer to clarification preserves conditions and the original question through the owned response.');
 $expect(str_contains($answer['summary'],'Showing 2 of 2')&&count($answer['evidence']['tables'][0]['rows'])===2,'Displayed-row claims use actual returned rows, never the requested limit.');
 $expect(count($answer['observations'])===1&&$answer['observations'][0]['evidence_id']==='query_0_contacts','Contact results cite their actual table.');
 $request['prompt']='How many contacts?';
 $calls=0;
-$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{$calls++;if($calls>2)throw new RuntimeException('No prose generation is allowed for a count.');return $raw(isset($payload['tools'])?$plan(['tool'=>'count']):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);};
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{$calls++;if($calls>2)throw new RuntimeException('No prose generation is allowed for a count.');return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'count']):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);};
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($calls===2&&$answer['evidence']['tables']===[]&&!str_contains($answer['summary'],'Showing')&&$answer['observations'][0]['text']==='Count · audience records: 2.','Count answers cannot invent a displayed list or unsupported numeric prose.');
 
@@ -225,14 +267,14 @@ $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$ca
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($feedback&&$calls===4&&count($store->reads)===$readsBefore+2&&count($answer['evidence']['tables'])===1,'An incorrect output plan is repaired before any data read, rather than retaining misleading count evidence.');
 $calls=0;$readsBefore=count($store->reads);
-$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{$calls++;return $raw(isset($payload['tools'])?$plan(['tool'=>'count']):['conditions'=>[],'result_type'=>'multiple','valid'=>false,'correction'=>'A required condition is unresolved.']);};
+$transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{$calls++;return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'count']):['conditions'=>[],'result_type'=>'multiple','valid'=>false,'correction'=>'A required condition is unresolved.']);};
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($calls===4&&$answer['reason']==='unavailable'&&count($store->reads)===$readsBefore,'An unverified plan never executes and never claims the requested rows were retrieved.');
 $calls=0;
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
     $calls++;
     if($calls===1)return $raw($plan(['tool'=>'frequency','field'=>'nonexistent']));
-    return $raw(isset($payload['tools'])?$plan(['tool'=>'frequency','field'=>'first_name']):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);
+    return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'frequency','field'=>'first_name']):['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);
 };
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($calls===3&&$answer['reason']===''&&count($answer['evidence']['facts'])===4,'Invalid fields receive a bounded correction and grouping retains all verified facts and ties.');
@@ -241,7 +283,7 @@ $store->reportRows=[['label'=>'Newsletter','click_rate'=>18.18,'clicks_per_open'
 $reportRequest=array_replace($request,['prompt'=>'Compare two campaigns.']);$calls=0;$reportsBefore=count($store->reports);$readsBefore=count($store->reads);
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
     $calls++;
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['click_rate'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['click_rate'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
     if(isset($payload['format']['properties']['valid']))return $raw(['conditions'=>[],'result_type'=>'multiple','valid'=>true,'correction'=>'']);
     return $raw(['finding_ids'=>['compare:query_0_0_click_rate:member'],'limitation_ids'=>[],'recommendations'=>[]]);
 };
@@ -292,7 +334,7 @@ $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect(!$feedback&&$calls===2&&count($store->reads)===$readsBefore+1&&count($answer['evidence']['queries'][0]['filters'])===3,'Typed required conditions are compiled into the approved query before reading any records, without another model round trip.');
 $calls=0;$readsBefore=count($store->reads);$ambiguous=array_replace($request,['prompt'=>'Who are our priority members?']);
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw,$filters):array{
-    $calls++;if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>true,'explanation'=>'Membership has no definition.']);return $raw(isset($payload['tools'])?$plan(['tool'=>'contacts','filters'=>[$filters[0]]]):['unresolved'=>[['phrase'=>'priority members','question'=>'What criterion defines a priority member?']],'conditions'=>[],'result_type'=>'contacts','valid'=>false,'correction'=>'Do not guess membership.']);
+    $calls++;if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>true,'explanation'=>'Membership has no definition.']);return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'contacts','filters'=>[$filters[0]]]):['unresolved'=>[['phrase'=>'priority members','question'=>'What criterion defines a priority member?']],'conditions'=>[],'result_type'=>'contacts','valid'=>false,'correction'=>'Do not guess membership.']);
 };
 $answer=audienceAiGenerate($ambiguous,microtime(true)+45,null,$transport,$tools);
 $expect($calls===3&&count($store->reads)===$readsBefore&&$answer['interpretation']==='clarification'&&$answer['conversation_state']['queries'][0]['filters']===[],'Undefined membership prompts ask for a criterion and never execute the guessed subscription filter.');
@@ -301,7 +343,7 @@ $answer=audienceAiGenerate($failed,microtime(true)+45,null,static function(){thr
 $expect(count($answer['conversation_state']['turns'])===2&&$answer['conversation_state']['queries'][0]['tool']==='contacts','A failed model call preserves earlier conversation state for the next follow-up.');
 $resolved=array_replace($request,['prompt'=>'Count contacts added on or before February 21, 2026.']);$readsBefore=count($store->reads);
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{
-    if(isset($payload['tools']))return $raw(['context'=>'new_topic','requests'=>[],'clarification'=>['issue'=>'missing_criterion','question'=>'Should I use February 21, 2026 as the cutoff?']]);
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw(['context'=>'new_topic','requests'=>[],'clarification'=>['issue'=>'missing_criterion','question'=>'Should I use February 21, 2026 as the cutoff?']]);
     if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>false,'conditions'=>[['field'=>'created_at','operator'=>'lte','value'=>'2026-02-21','value_quote'=>'February 21, 2026']],'explanation'=>'The user explicitly supplied this cutoff.']);
     return $raw(['unresolved'=>[['phrase'=>'on or before February 21, 2026','question'=>'Should I use February 21, 2026 as the cutoff?']],'conditions'=>[['field'=>'created_at','operator'=>'lte','value'=>'2026-02-21']],'result_type'=>'count','valid'=>true,'correction'=>'']);
 };
@@ -309,18 +351,18 @@ $answer=audienceAiGenerate($resolved,microtime(true)+45,null,$transport,$tools);
 $expect($answer['interpretation']==='data-only'&&count($store->reads)===$readsBefore+1&&$answer['evidence']['queries'][0]['filters'][0]['value']==='2026-02-21','Confirmation of an explicitly supplied criterion becomes a verified count instead of a repeated clarification.');
 $calls=0;
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw,$filters):array{
-    $calls++;return $raw(isset($payload['tools'])?$plan(['tool'=>'frequency','field'=>'source','filters'=>$filters,'limit'=>9]):['unresolved'=>[],'conditions'=>[],'result_type'=>'contacts','valid'=>true,'correction'=>'']);
+    $calls++;return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'frequency','field'=>'source','filters'=>$filters,'limit'=>9]):['unresolved'=>[],'conditions'=>[],'result_type'=>'contacts','valid'=>true,'correction'=>'']);
 };
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($calls===2&&$answer['evidence']['queries'][0]['tool']==='contacts'&&$answer['evidence']['queries'][0]['limit']===9&&count($answer['evidence']['queries'][0]['filters'])===3,'An approved contact-row intent changes the output without losing the selected row limit or population.');
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw,$filters):array{
-    return $raw(isset($payload['tools'])?$plan(['tool'=>'count','filters'=>$filters,'limit'=>7]):['unresolved'=>[],'conditions'=>$filters,'result_type'=>'contacts','valid'=>true,'correction'=>'']);
+    return $raw((isset($payload['tools'])||isset($payload['format']['properties']['calls']))?$plan(['tool'=>'count','filters'=>$filters,'limit'=>7]):['unresolved'=>[],'conditions'=>$filters,'result_type'=>'contacts','valid'=>true,'correction'=>'']);
 };
 $answer=audienceAiGenerate($request,microtime(true)+45,null,$transport,$tools);
 $expect($answer['evidence']['queries'][0]['tool']==='contacts'&&$answer['evidence']['queries'][0]['limit']===7,'A scalar draft cannot erase the requested row count before the verified contact output is compiled.');
 
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
     if(isset($payload['format']['properties']['valid']))return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>['click_rate'],'result_type'=>'report','valid'=>true,'correction'=>'']);
     return $raw(['finding_ids'=>['compare:query_0_0_click_rate:member'],'limitation_ids'=>[],'recommendations'=>[]]);
 };
@@ -329,7 +371,7 @@ $expect($answer['evidence']['queries'][0]['metrics']===['click_rate']&&$answer['
 $calls=0;
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
     $calls++;
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
     if(isset($payload['format']['properties']['valid']))return $raw(['unresolved'=>[['phrase'=>'click percentage','question'=>'Should I use the percentage of delivered messages clicked?']],'conditions'=>[],'report_metrics'=>['click_rate'],'result_type'=>'report','valid'=>true,'correction'=>'']);
     if(isset($payload['format']['properties']['needed']))return $raw(['needed'=>false,'conditions'=>[],'report_metrics'=>['clicks'],'explanation'=>'The percentage is already specified.']);
     return $raw(['finding_ids'=>['compare:query_0_0_click_rate:member'],'limitation_ids'=>[],'recommendations'=>[]]);
@@ -339,7 +381,7 @@ $expect($calls===4&&$answer['evidence']['queries'][0]['metrics']===['click_rate'
 $calls=0;$readsBefore=count($store->reads);
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
     $calls++;
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'campaign','metrics'=>['clicks'],'scope'=>['kind'=>'recent_campaigns','count'=>2]]));
     return $raw(['unresolved'=>[['phrase'=>'profitability','question'=>'Profit data is unavailable. Which recorded performance measure should I compare?']],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>false,'correction'=>'Unsupported measure.']);
 };
 $answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Compare profitability for the latest two campaigns.']),microtime(true)+45,null,$transport,$tools);
@@ -347,7 +389,7 @@ $expect($calls===2&&count($store->reads)===$readsBefore&&$answer['interpretation
 foreach (['Show the last 2 campaigns'=>2,'Compare the latest four email campaigns'=>4,'Most recent ten campaigns'=>10] as $text=>$count) $expect(audienceAiExplicitCampaignCount($text)===$count,'Explicit cardinality uses campaign units.');
 foreach (['Show the last 3 days','Compare the last 2 campaigns and last 4 campaigns','Not the last 3 campaigns',"Don't use the last 3 campaigns",'Avoid the latest four campaigns','The last 3 campaigns in the past 30 days','Latest 11 campaigns','The last 3 campaign days'] as $text) $expect(audienceAiExplicitCampaignCount($text)===null,'Ambiguous, unsupported or date-qualified selections are not silently rewritten.');
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use($plan,$raw):array{
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'last_days','days'=>4],'limit'=>7]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'last_days','days'=>4],'limit'=>7]));
     return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>true,'correction'=>'']);
 };
 $answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Show clicked links in the latest four campaigns.']),microtime(true)+45,null,$transport,$tools);
@@ -360,7 +402,7 @@ foreach (['admin','editor','reviewer'] as $role) {
         if ($calls===1) return $raw(['context'=>'new_topic','requests'=>[],'clarification'=>['issue'=>'missing_criterion','question'=>'Campaigns or days?']]);
         if ($calls===2) return $raw(['unresolved'=>[['phrase'=>'latest four campaigns','question'=>'Do you mean four campaigns or four days?','kind'=>'scope']],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>false,'correction'=>'Confirm scope.']);
         if (isset($payload['format']['properties']['needed'])) return $raw(['needed'=>false,'conditions'=>[],'explanation'=>'The user already specified a count of campaigns.']);
-        if (isset($payload['tools'])) return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'recent_campaigns','count'=>4],'limit'=>7]));
+        if ((isset($payload['tools'])||isset($payload['format']['properties']['calls']))) return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'recent_campaigns','count'=>4],'limit'=>7]));
         return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>true,'correction'=>'']);
     };
     $answer=audienceAiGenerate(array_replace($reportRequest,['role'=>$role,'prompt'=>'Show clicked links in the latest four campaigns.']),microtime(true)+45,null,$transport,$tools);
@@ -370,7 +412,7 @@ foreach (['admin','editor','reviewer'] as $role) {
 $calls=0;$reportsBefore=count($store->reports);
 $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$plan,$raw):array{
     $calls++;
-    if(isset($payload['tools']))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'selected']]));
+    if((isset($payload['tools'])||isset($payload['format']['properties']['calls'])))return $raw($plan(['tool'=>'report','dataset'=>'email','dimension'=>'links','metrics'=>[],'scope'=>['kind'=>'selected']]));
     if(isset($payload['format']['properties']['valid']))return $raw(['unresolved'=>[['phrase'=>'recent campaigns','question'=>'How many recent campaigns should I use?','kind'=>'scope']],'conditions'=>[],'report_metrics'=>[],'result_type'=>'report','valid'=>false,'correction'=>'Missing campaign count.']);
     return $raw(['needed'=>true,'conditions'=>[],'explanation'=>'No number of campaigns was supplied.']);
 };
