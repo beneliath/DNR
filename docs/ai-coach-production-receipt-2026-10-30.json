@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-30",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.1"
+  },
+  "production_guidance_revision": "1c088d0176f400128e021a216b56cdaf618b7d0674e5cc24e9bb9ebc527aa160",
+  "local_builder_guidance_revision_at_intake": "2c6748228f92d78ede1f00af5cacf31bed8ecddea83449bca524d69b3ec26e07",
+  "tested_base_commit": "cf50f9fc2f903eed739e998fa46c79ded115bbe2",
+  "merged_main_commit": "de65f7ecffb47500ed8f92729815b4becb741c93",
+  "local_application_version": "2.10.2",
+  "pending_in_batch": 17,
+  "new_signal_versions": 2,
+  "unchanged_previously_reviewed_signals": 15,
+  "requests": [
+    {
+      "id": 50,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.10.1",
+      "original_guidance_revision": "1c088d0176f400128e021a216b56cdaf618b7d0674e5cc24e9bb9ebc527aa160",
+      "disposition": "deferred",
+      "summary": "Current-date reply uses the server clock in the display timezone without account reads; original latency remains unverified.",
+      "original_duration_ms": 17156,
+      "original_model_stage_total_ms": [
+        16245.86,
+        801.76
+      ],
+      "original_first_prompt_eval_ms": 11861.66,
+      "local_replay_seconds": 12.832,
+      "local_stage_seconds": [
+        12.106,
+        0.726
+      ],
+      "local_account_read_count": 0
+    },
+    {
+      "id": 51,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.10.1",
+      "original_guidance_revision": "1c088d0176f400128e021a216b56cdaf618b7d0674e5cc24e9bb9ebc527aa160",
+      "disposition": "deferred",
+      "summary": "Geographic and device tracking report preserved both requested dimensions and observation limitations; original latency remains unverified.",
+      "original_duration_ms": 17620,
+      "original_model_stage_total_ms": [
+        9445.96,
+        4788.63,
+        3159.56
+      ],
+      "original_first_prompt_eval_ms": 7785.54,
+      "local_replay_seconds": 9.883,
+      "local_stage_seconds": [
+        1.822,
+        4.884,
+        3.176
+      ],
+      "local_account_read_count": 2
+    }
+  ],
+  "investigation": {
+    "behavior": "Both production responses completed with structurally supported results. The date matches the recorded request date in America/Chicago. The tracking report exposes observed engaged-message counts rather than delivery rates. Synthetic local replays preserved these behaviors.",
+    "timing": "Original first model stages spent 11.862 and 7.786 seconds in prompt evaluation. The date also recorded 3.915 seconds model loading. Local replays took 12.832 and 9.883 seconds. These observations do not isolate production contention/cache behavior or establish a safe further code correction. Independent classification and plan validation remain intact.",
+    "source_verification": "Application-owned date formatting uses the server clock and display timezone. Native tracking SQL counts distinct campaign recipients with observed open/click events by country/device, accounts for bot filtering and provider failures, and exposes unknown/proxy limitations. Production business counts were not recomputed.",
+    "manual_verification": "Comprehensive User Guide Analytics and Ask Analytics AI sections require selected scope and evidence inspection; locations and clients are supported report views. No documentation defect demonstrated; no PDF/index rebuild.",
+    "replays": "Private original questions supplied only through untracked temporary input to a disposable local model client. Fictional in-memory tracking observations, source mounts from the dedicated worktree, no production data or inference. Existing tunnel namespace used without network/IP allocation or service changes.",
+    "deferred_review": "Current main adds informational classification, bounded structured planning retry and unavailable-capability handling; it retains count-only review and derived-metric reasoning. Task modules were refactored and procedural hashes refreshed. No authenticated visibility evidence closes prior UI findings, and historical availability/derived-report latency remain deferred.",
+    "application_changes": false
+  },
+  "verification": {
+    "query_checks": 161,
+    "findings_checks": 37,
+    "integration_rerun": false,
+    "reason": "No new application or test changes; current focused informational/timezone, query, role and grounded-findings regressions passed."
+  },
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/audience_ai.php",
+      "sha256": "d3cb4e30d1de896e41fd6e356cd75567bb00b230180276dd3e4a9c85e1a7a8cf"
+    },
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "1ea99c3baaa757f3799478ca1ac3a2c1926b4bf27c9ece19cf8d09cbc4417445"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "4abd38c1061c44965d55c10537586aa27c8924434535fe8f040b37e5d3b6745d"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "17c43ba2fbbebdeca24a9b75894816c97e9f53cf138f1fc8184d74f7d49a6292"
+    },
+    {
+      "path": "src/audience_analytics_controller.php",
+      "sha256": "b12eea1b7f69b5be26ab8e700695bc476efc53e1386640f8522137dcc315fef9"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "142bfde5e20fb43e5363852bf67cba43d341e159ca9488b8a0cdaf3dff80bd85"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "623725ab407c700a70ee59aff253315c4e386a308fdad10bcba2590bfc862bf4"
+    },
+    {
+      "path": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "sha256": "e17a16919e25655805b9ecb80c49d6f0c6f1e20691ed4d05ae2f0e0f6fda375c"
+    }
+  ],
+  "limitations": [
+    "Synthetic local timing does not establish sustained production performance.",
+    "No safe further latency correction was demonstrated.",
+    "No production business values or authenticated UI visibility claims were independently verified."
+  ],
+  "production_versions_rechecked": true,
+  "final_source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.1"
+  },
+  "final_production_guidance_revision": "1c088d0176f400128e021a216b56cdaf618b7d0674e5cc24e9bb9ebc527aa160",
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "shared_branch_observed": "main",
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false
+}
