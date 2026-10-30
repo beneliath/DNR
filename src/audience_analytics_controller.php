@@ -43,7 +43,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     if(!in_array($metric,array_keys(audienceAnalyticsMetricLabels()),true)||!in_array($group,['campaign','day','week','month'],true)){http_response_code(400);$error='Choose supported report controls.';$metric='accepted';$group='campaign';}
     $definition=null;$customRows=[];$activityReport=null;$activitySize=audiencePageSize($reportInput);$activity=audienceText($reportInput,'activity',20)?:'accepted';$page=max(1,(int)($reportInput['page']??1));
     $linkHash=audienceText($reportInput,'link',64);
-    $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=? ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;
+    $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
         if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);

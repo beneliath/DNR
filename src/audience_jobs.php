@@ -71,7 +71,8 @@ trait AudienceJobs
             $consent=audienceText($input,'consent_note',1000);if($consent==='')$consent=$job['params']['consent_note']??'';
             if($start&&$status==='subscribed'&&($consent===''||empty($input['permission_confirmed'])))throw new InvalidArgumentException('Confirm permission and describe how these connections subscribed.');
             $tags=audienceIds($input['tag_ids']??(($input['import_step']??'')==='tag'?[]:($job['params']['tag_ids']??[])));$groups=audienceIds($input['group_ids']??(($input['import_step']??'')==='tag'?[]:($job['params']['group_ids']??[])));
-            $catalog=$this->catalog();if(array_diff($tags,array_map('intval',array_keys($catalog['tags']['options'])))||array_diff($groups,array_map('intval',array_keys($catalog['groups']['options']))))throw new InvalidArgumentException('A selected tag or group is unavailable.');
+            $activeTags=array_map('intval',array_column($this->tags(),'id'));$activeGroups=[];foreach($this->groups()as$group)array_push($activeGroups,...array_map('intval',array_column($group['options'],'id')));
+            if(array_diff($tags,$activeTags)||array_diff($groups,$activeGroups))throw new InvalidArgumentException('A selected tag or group is unavailable.');
             $params=array_replace($job['params'],['mapping'=>$mapping,'status'=>$status,'consent_note'=>$consent,'update_existing'=>!empty($input['update_existing']),'tag_ids'=>$tags,'group_ids'=>$groups,'new_fields'=>$newFields]);
             $this->write('UPDATE marketing_jobs SET params_json=?,state=? WHERE id=?',[json_encode($params,JSON_THROW_ON_ERROR),$start?'queued':'draft',$id]);
         });
@@ -92,13 +93,13 @@ trait AudienceJobs
             if($type==='bulk'){
                 $action=$params['action']??'';
                 if(!in_array($action,['archive','restore','unsubscribe','tag','untag','group','ungroup','delete'],true))throw new InvalidArgumentException('Choose a supported connections action.');
-                if(in_array($action,['tag','untag'],true)&&!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?',[(int)($params['tag_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
-                if(in_array($action,['group','ungroup'],true)&&!$this->one('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?',[(int)($params['option_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available group.');
+                if(in_array($action,['tag','untag'],true)&&!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?'.($action==='tag'&&$this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[(int)($params['tag_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
+                if(in_array($action,['group','ungroup'],true)&&!$this->one('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?'.($action==='group'&&$this->definitionArchiveAvailable()?' AND g.archived_at IS NULL':''),[(int)($params['option_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available group.');
             }
-            $params['fields']=$this->fields();$params['tag_names']=array_column($this->tags(),'name','id');$params['group_names']=$this->catalog()['groups']['options'];
+            $params['fields']=$this->fields();$params['tag_names']=array_column($this->tags(true),'name','id');$params['group_names']=$this->catalog()['groups']['options'];
             if($type==='export'){
                 $params['export_format']='mailchimp';$params['export_token']=bin2hex(random_bytes(5));
-                $groups=$this->groups();usort($groups,static fn($a,$b)=>(int)$a['id']<=>(int)$b['id']);
+                $groups=$this->groups(true);usort($groups,static fn($a,$b)=>(int)$a['id']<=>(int)$b['id']);
                 $params['export_groups']=array_map(static fn($g)=>['name'=>$g['name'],'options'=>array_map(static fn($o)=>['id'=>(int)$o['id'],'name'=>$o['name']],$g['options'])],$groups);
             }
             $this->write('INSERT INTO marketing_jobs (audience_id,job_type,name,state,actor_user_id,actor_label,params_json) VALUES (?,?,?,\'queued\',?,?,?)',[$this->audienceId,$type,$name,$this->actorId,$this->actorLabel,json_encode($params,JSON_THROW_ON_ERROR)]);$id=(int)$this->db->insert_id;
@@ -159,7 +160,7 @@ trait AudienceJobs
         if($old)$input['email_status']=$params['status']==='unsubscribed'&&$old['email_status']!=='cleaned'?'unsubscribed':$old['email_status'];
         $input['consent_note']=$params['consent_note'];$input['tag_ids']=array_values(array_unique([...($input['tag_ids']??[]),...$params['tag_ids']]));$input['group_ids']=array_values(array_unique([...($input['group_ids']??[]),...$params['group_ids']]));
         $input['tag_names']=audienceParseListCell($mapped['tags']??'');
-        if(!empty($mapped['groups'])){$options=array_flip($this->catalog()['groups']['options']);foreach(audienceParseListCell($mapped['groups'])as$name){if(!isset($options[$name]))throw new InvalidArgumentException('Unknown group: '.$name);$input['group_ids'][]=(int)$options[$name];}}
+        if(!empty($mapped['groups'])){$activeOptions=[];foreach($this->groups()as$group)foreach($group['options']as$option)$activeOptions[$group['name'].': '.$option['name']]=(int)$option['id'];foreach(audienceParseListCell($mapped['groups'])as$name){if(!isset($activeOptions[$name]))throw new InvalidArgumentException('Unknown group: '.$name);$input['group_ids'][]=$activeOptions[$name];}}
         $id=$this->savePerson($input,(int)($old['id']??0),(int)($old['version']??0),'Import');$this->event($id,'imported',['job_id'=>$job['id'],'row'=>$item['source_row']]);
         return ['state'=>$old?'updated':'added','person_id'=>$id,'version'=>(int)($old['version']??0)+1];
     }

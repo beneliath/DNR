@@ -180,6 +180,23 @@ trait AudienceInbox
                 if($operation==='trash')$this->write("UPDATE marketing_service_mail s JOIN marketing_inbox_messages m ON m.service_mail_id=s.id AND m.audience_id=s.audience_id SET s.state='cancelled',s.error_message='The conversation was moved to Trash.' WHERE m.audience_id=? AND m.thread_id=? AND (s.state='queued' OR (s.state='processing' AND s.delivery_started_at IS NULL))",[$this->audienceId,$id]);
                 $status=$operation==='restore'?$t['previous_status']:$operation;
                 $this->write('UPDATE marketing_inbox_threads SET previous_status=?,status=?,version=version+1 WHERE audience_id=? AND id=?',[$t['status']==='trash'?$t['previous_status']:$t['status'],$status,$this->audienceId,$id]);
+            }elseif($operation==='purge'){
+                if($t['status']!=='trash')throw new InvalidArgumentException('Move this conversation to Trash before permanently deleting it.');
+                // Keep delivery receipts, but remove frozen message payloads and stop unsent mail.
+                $cancel="s.state=IF(s.state='queued' OR (s.state='processing' AND s.delivery_started_at IS NULL),'cancelled',s.state),s.payload_ciphertext=''";
+                $this->write("UPDATE marketing_service_mail s JOIN marketing_inbox_messages m ON m.service_mail_id=s.id AND m.audience_id=s.audience_id SET $cancel WHERE m.audience_id=? AND m.thread_id=? AND s.kind='inbox'",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_service_mail s JOIN marketing_inbox_drafts d ON d.service_mail_id=s.id AND d.audience_id=s.audience_id SET $cancel WHERE d.audience_id=? AND d.thread_id=? AND s.kind='inbox'",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_service_mail s JOIN marketing_inbox_notifications n ON n.email_mail_id=s.id AND n.audience_id=s.audience_id SET $cancel WHERE n.audience_id=? AND n.thread_id=? AND s.kind='inbox-alert'",[$this->audienceId,$id]);
+                $this->write("UPDATE marketing_inbox_routes SET enabled=0 WHERE audience_id=? AND source='thread' AND reference_id=?",[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_attachments WHERE audience_id=? AND (message_id IN (SELECT id FROM marketing_inbox_messages WHERE audience_id=? AND thread_id=?) OR draft_id IN (SELECT id FROM marketing_inbox_drafts WHERE audience_id=? AND thread_id=?))',[$this->audienceId,$this->audienceId,$id,$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_notifications WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_read_state WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_thread_labels WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_presence WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_drafts WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write('DELETE FROM marketing_inbox_messages WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]);
+                $this->write("DELETE FROM marketing_inbox_threads WHERE audience_id=? AND id=? AND status='trash' AND version=?",[$this->audienceId,$id,$version]);
+                if($this->db->affected_rows!==1)throw new InvalidArgumentException('This conversation changed. Reload before continuing.');
             }elseif($operation==='labels'){
                 $labels=audienceIds($input['labels']??[]);if(count($labels)>100)throw new InvalidArgumentException('Choose up to 100 labels.');
                 foreach($labels as$label)if(!$this->one('SELECT id FROM marketing_inbox_labels WHERE audience_id=? AND id=? AND deleted_at IS NULL',[$this->audienceId,$label]))throw new InvalidArgumentException('Choose an existing label.');
@@ -187,7 +204,21 @@ trait AudienceInbox
                 foreach($labels as$label)$this->write('INSERT INTO marketing_inbox_thread_labels(audience_id,thread_id,label_id) VALUES (?,?,?)',[$this->audienceId,$id,$label]);
                 $this->write('UPDATE marketing_inbox_threads SET version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$id]);
             }else throw new InvalidArgumentException('Choose a supported conversation action.');
-        });}finally{$this->one('SELECT RELEASE_LOCK(?) released',[$lock]);}
+        });if($operation==='purge'&&function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_inbox_conversation_purged','actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_inbox_threads','entity_id'=>$id,'details'=>'Conversation and Inbox content permanently deleted.']);}finally{$this->one('SELECT RELEASE_LOCK(?) released',[$lock]);}
+    }
+    public function inboxPurgeThreads(mixed $selected):int
+    {
+        if(!is_array($selected)||!array_is_list($selected)||!$selected||count($selected)>1000)throw new InvalidArgumentException('Select up to 1,000 conversations from Trash.');
+        $versions=[];
+        foreach($selected as$value){
+            if(!is_string($value)||!preg_match('/\A([1-9][0-9]*):([1-9][0-9]*)\z/D',$value,$match))throw new InvalidArgumentException('Reload Trash and select conversations again.');
+            $id=filter_var($match[1],FILTER_VALIDATE_INT);$version=filter_var($match[2],FILTER_VALIDATE_INT);
+            if($id===false||$version===false||isset($versions[$id]))throw new InvalidArgumentException('Reload Trash and select conversations again.');
+            $versions[$id]=$version;
+        }
+        ksort($versions,SORT_NUMERIC);
+        $this->transaction(function()use($versions){foreach($versions as$id=>$version)$this->inboxThreadOperation($id,$version,'purge');});
+        return count($versions);
     }
     private function inboxNotify(int $thread,int $message,string $kind):void
     {

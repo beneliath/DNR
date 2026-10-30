@@ -4,16 +4,35 @@ declare(strict_types=1);
 
 trait AudienceDefinitions
 {
-    public function fields(): array { return $this->all('SELECT * FROM marketing_fields WHERE audience_id=? ORDER BY position,id',[$this->audienceId]); }
+    private ?bool $definitionArchiveAvailable = null;
 
-    public function tags(): array
+    public function definitionArchiveAvailable(): bool
     {
-        return $this->all('SELECT t.*,COUNT(c.id) AS contact_count FROM marketing_tags t LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE t.audience_id=? GROUP BY t.id ORDER BY t.name',[$this->audienceId]);
+        return $this->definitionArchiveAvailable ??= (int)$this->one("SELECT COUNT(*) n FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name IN ('marketing_tags','marketing_segments','marketing_group_categories') AND column_name='archived_at'")['n']===3;
     }
 
-    public function groups(): array
+    private function archiveAwareRows(string $currentSql,string $legacySql,array $params): array
     {
-        $groups = $this->all('SELECT * FROM marketing_group_categories WHERE audience_id=? ORDER BY name,id',[$this->audienceId]);
+        if($this->definitionArchiveAvailable===false)return $this->all($legacySql,$params);
+        try{$rows=$this->all($currentSql,$params);$this->definitionArchiveAvailable=true;return $rows;}
+        catch(mysqli_sql_exception $error){
+            if((int)$error->getCode()!==1054)throw $error;
+            $this->definitionArchiveAvailable=false;
+            return $this->all($legacySql,$params);
+        }
+    }
+
+    public function fields(): array { return $this->all('SELECT * FROM marketing_fields WHERE audience_id=? ORDER BY position,id',[$this->audienceId]); }
+
+    public function tags(bool $includeArchived = false): array
+    {
+        $base=' FROM marketing_tags t LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE t.audience_id=?';
+        return $this->archiveAwareRows('SELECT t.*,t.archived_at AS archive_state,COUNT(c.id) AS contact_count'.$base.($includeArchived?'':' AND t.archived_at IS NULL').' GROUP BY t.id ORDER BY t.name','SELECT t.*,NULL AS archived_at,COUNT(c.id) AS contact_count'.$base.' GROUP BY t.id ORDER BY t.name',[$this->audienceId]);
+    }
+
+    public function groups(bool $includeArchived = false): array
+    {
+        $groups = $this->archiveAwareRows('SELECT *,archived_at AS archive_state FROM marketing_group_categories WHERE audience_id=?'.($includeArchived?'':' AND archived_at IS NULL').' ORDER BY name,id','SELECT *,NULL AS archived_at FROM marketing_group_categories WHERE audience_id=? ORDER BY name,id',[$this->audienceId]);
         $options = [];
         if ($groups) {
             foreach ($this->all('SELECT o.*,COUNT(c.id) AS contact_count FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=g.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE g.audience_id=? GROUP BY o.id ORDER BY o.position,o.id',[$this->audienceId]) as $option) {
@@ -30,13 +49,16 @@ trait AudienceDefinitions
         $campaigns=array_column($this->all('SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$this->audienceId]),'name','id');
         $links=[];
         if($this->deliveryRuntimeAvailable())foreach($this->all("SELECT JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_hash')) hash,MAX(JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_label'))) label FROM marketing_message_events WHERE audience_id=? AND event_type='click' GROUP BY hash",[$this->audienceId])as$link)if(preg_match('/^[a-f0-9]{64}$/D',(string)$link['hash']))$links[$link['hash']]=$link['label']?:'Tracked link '.substr($link['hash'],0,8);
-        return audienceRuleCatalog($this->fields(),$this->tags(),$this->groups(),$campaigns,$links);
+        return audienceRuleCatalog($this->fields(),$this->tags(true),$this->groups(true),$campaigns,$links);
     }
 
     public function ensureTag(string $name): int
     {
         $name=audienceText(['name'=>$name],'name'); if ($name==='') throw new InvalidArgumentException('Enter a tag name.');
-        $this->write('INSERT INTO marketing_tags (audience_id,name,created_at) VALUES (?,?,CURRENT_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',[$this->audienceId,$name]); return (int)$this->db->insert_id;
+        $this->write('INSERT INTO marketing_tags (audience_id,name,created_at) VALUES (?,?,CURRENT_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',[$this->audienceId,$name]);
+        $id=(int)$this->db->insert_id;
+        if($this->definitionArchiveAvailable()&&$this->one('SELECT archived_at FROM marketing_tags WHERE id=? AND audience_id=? AND archived_at IS NOT NULL',[$id,$this->audienceId]))throw new InvalidArgumentException('This tag is archived. Restore it before assigning it.');
+        return $id;
     }
 
     public function saveTag(string $name, int $id, int $version): int
@@ -44,7 +66,7 @@ trait AudienceDefinitions
         return $this->transaction(function () use($name,$id,$version) {
             $name=audienceText(['name'=>$name],'name');if($name==='')throw new InvalidArgumentException('Enter a tag name.');
             if (!$id) { $this->write('INSERT INTO marketing_tags (audience_id,name,created_at) VALUES (?,?,CURRENT_TIMESTAMP(6))',[$this->audienceId,$name]); return (int)$this->db->insert_id; }
-            $this->write('UPDATE marketing_tags SET name=?,version=version+1 WHERE id=? AND audience_id=? AND version=?',[$name,$id,$this->audienceId,$version]);
+            $this->write('UPDATE marketing_tags SET name=?,version=version+1 WHERE id=? AND audience_id=? AND version=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$name,$id,$this->audienceId,$version]);
             if ($this->db->affected_rows!==1)throw new InvalidArgumentException('This tag changed. Reload before editing.');return $id;
         });
     }
@@ -80,13 +102,59 @@ trait AudienceDefinitions
         });
     }
 
+    /** Archive changes availability, never stored memberships or saved rule IDs. */
+    public function setDefinitionArchived(string $kind, int $id, int $version, bool $archive): void
+    {
+        if(!$this->definitionArchiveAvailable())throw new InvalidArgumentException('Definition archiving is unavailable until the database migration is applied.');
+        $table=match($kind){'tag'=>'marketing_tags','segment'=>'marketing_segments','group'=>'marketing_group_categories',default=>throw new InvalidArgumentException('Choose a tag, segment, or group.')};
+        $this->transaction(function()use($kind,$table,$id,$version,$archive):void{
+            $row=$this->one("SELECT id,name,archived_at FROM $table WHERE id=? AND audience_id=? AND version=? FOR UPDATE",[$id,$this->audienceId,$version]);
+            if(!$row)throw new InvalidArgumentException('This definition changed or is unavailable. Reload before trying again.');
+            if($archive!==($row['archived_at']===null))throw new InvalidArgumentException('This definition changed. Reload before trying again.');
+            if($archive&&$kind!=='segment'){
+                $dependencies=$this->definitionWriteDependencies($kind,$id);
+                if($dependencies)throw new InvalidArgumentException('Archive blocked. Update these active items first: '.implode(', ',array_slice($dependencies,0,5)).(count($dependencies)>5?' and '.(count($dependencies)-5).' more':'').'.');
+            }
+            $this->write("UPDATE $table SET archived_at=".($archive?'UTC_TIMESTAMP(6)':'NULL').',version=version+1 WHERE id=? AND audience_id=? AND version=?',[$id,$this->audienceId,$version]);
+            if($this->db->affected_rows!==1)throw new InvalidArgumentException('This definition changed. Reload before trying again.');
+        });
+    }
+
+    private function definitionWriteDependencies(string $kind,int $id): array
+    {
+        $dependencies=[];
+        $forms=$this->all("SELECT r.name,r.kind,v.document_json FROM marketing_collection_resources r JOIN marketing_collection_revisions v ON v.id=r.published_revision AND v.resource_id=r.id AND v.audience_id=r.audience_id WHERE r.audience_id=? AND r.state='published' AND r.deleted_at IS NULL",[$this->audienceId]);
+        foreach($forms as$form){
+            $doc=audienceJson($form['document_json']);$uses=false;
+            if($kind==='group')$uses=in_array($id,array_map('intval',(array)($doc['group_ids']??[])),true);
+            else{
+                $uses=in_array($id,array_map('intval',(array)($doc['tag_ids']??[])),true);
+                foreach($doc['questions']??[]as$question)foreach($question['answer_tags']??[]as$tags)if(in_array($id,array_map('intval',(array)$tags),true))$uses=true;
+            }
+            if($uses)$dependencies[]=$form['kind'].' form “'.$form['name'].'”';
+        }
+        $flows=$this->all("SELECT f.name,v.document_json FROM marketing_flows f JOIN marketing_flow_revisions v ON v.id=f.published_revision AND v.flow_id=f.id AND v.audience_id=f.audience_id WHERE f.audience_id=? AND f.state='running' AND f.deleted_at IS NULL",[$this->audienceId]);
+        if($kind==='tag')foreach($flows as$flow){$doc=audienceJson($flow['document_json']);foreach($doc['nodes']??[]as$node)if(($node['type']??'')==='tag'&&empty($node['remove'])&&(int)($node['tag_id']??0)===$id){$dependencies[]='automation “'.$flow['name'].'”';break;} }
+        if($kind==='group'){
+            $options=array_map('intval',array_column($this->all('SELECT id FROM marketing_group_options WHERE category_id=?',[$id]),'id'));
+            foreach($flows as$flow){$doc=audienceJson($flow['document_json']);foreach($doc['nodes']??[]as$node)if(($node['type']??'')==='group'&&empty($node['remove'])&&in_array((int)($node['option_id']??0),$options,true)){$dependencies[]='automation “'.$flow['name'].'”';break;}}
+        }
+        foreach($this->all("SELECT name,job_type,params_json FROM marketing_jobs WHERE audience_id=? AND state IN ('queued','processing')",[$this->audienceId])as$job){
+            $params=audienceJson($job['params_json']);$uses=$kind==='tag'
+                ?((($params['action']??'')==='tag'&&(int)($params['tag_id']??0)===$id)||in_array($id,array_map('intval',(array)($params['tag_ids']??[])),true))
+                :((($params['action']??'')==='group'&&in_array((int)($params['option_id']??0),$options??[],true))||count(array_intersect($options??[],array_map('intval',(array)($params['group_ids']??[]))))>0);
+            if($uses)$dependencies[]='queued job “'.$job['name'].'”';
+        }
+        return array_values(array_unique($dependencies));
+    }
+
     public function saveGroup(array $input,int $id,int $version): int
     {
         return $this->transaction(function()use($input,$id,$version){
             $name=audienceText($input,'name');$type=audienceText($input,'display_type');
             if($name===''||!in_array($type,['checkboxes','radio','dropdown','hidden'],true))throw new InvalidArgumentException('Enter a group category name and display type.');
             $options=$input['options']??[];if(!is_array($options)||!$options||count($options)>100)throw new InvalidArgumentException('Add between 1 and 100 group choices.');
-            if($id){$old=$this->one('SELECT * FROM marketing_group_categories WHERE id=? AND audience_id=? AND version=? FOR UPDATE',[$id,$this->audienceId,$version]);if(!$old)throw new InvalidArgumentException('This group changed. Reload before editing.');
+            if($id){$old=$this->one('SELECT * FROM marketing_group_categories WHERE id=? AND audience_id=? AND version=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' FOR UPDATE',[$id,$this->audienceId,$version]);if(!$old)throw new InvalidArgumentException('This group changed. Reload before editing.');
                 if(in_array($type,['radio','dropdown'],true)&&$this->one('SELECT cg.contact_id FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id WHERE o.category_id=? GROUP BY cg.contact_id HAVING COUNT(*)>1 LIMIT 1',[$id]))throw new InvalidArgumentException('Some connections have multiple choices. Keep checkboxes or remove their extra choices first.');
                 $this->write('UPDATE marketing_group_categories SET name=?,display_type=?,version=version+1 WHERE id=?',[$name,$type,$id]);
             }else{$this->write('INSERT INTO marketing_group_categories (audience_id,name,display_type) VALUES (?,?,?)',[$this->audienceId,$name,$type]);$id=(int)$this->db->insert_id;}
@@ -150,7 +218,7 @@ trait AudienceDefinitions
     {
         if(count($segments)>100)throw new InvalidArgumentException('Count up to 100 visible segments at a time.');
         if(!$segments)return [];
-        $catalog=$this->catalog();$tags=$this->tags();$expressions=[];$params=[];$ids=[];
+        $catalog=$this->catalog();$tags=$this->tags(true);$expressions=[];$params=[];$ids=[];
         foreach($segments as$segment){
             $id=(int)($segment['id']??0);
             if($id<1||(isset($segment['audience_id'])&&(int)$segment['audience_id']!==$this->audienceId))throw new InvalidArgumentException('This segment is unavailable.');
@@ -167,8 +235,26 @@ trait AudienceDefinitions
     {
         return $this->transaction(function()use($name,$tree,$id,$version){
             $name=audienceText(['name'=>$name],'name');if($name==='')throw new InvalidArgumentException('Enter a segment name.');audienceCompileRules($tree,$this->catalog());$json=json_encode($tree,JSON_THROW_ON_ERROR);
-            if($id){$this->write('UPDATE marketing_segments SET name=?,filters_json=?,version=version+1 WHERE id=? AND audience_id=? AND version=?',[$name,$json,$id,$this->audienceId,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This segment changed. Reload before editing.');}
+            if($this->definitionArchiveAvailable()){
+                $previous=$id?$this->one('SELECT filters_json FROM marketing_segments WHERE id=? AND audience_id=?',[$id,$this->audienceId]):null;
+                $oldRefs=$previous?$this->archivedRuleReferences(audienceJson($previous['filters_json'])):[];
+                if(array_diff($this->archivedRuleReferences($tree),$oldRefs))throw new InvalidArgumentException('Archived tags or groups cannot be added to a saved segment. Restore them first.');
+            }
+            if($id){$this->write('UPDATE marketing_segments SET name=?,filters_json=?,version=version+1 WHERE id=? AND audience_id=? AND version=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$name,$json,$id,$this->audienceId,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This segment changed. Reload before editing.');}
             else{$this->write('INSERT INTO marketing_segments (audience_id,name,filters_json) VALUES (?,?,?)',[$this->audienceId,$name,$json]);$id=(int)$this->db->insert_id;}return $id;
         });
+    }
+
+    private function archivedRuleReferences(array $tree): array
+    {
+        $archivedTags=array_fill_keys(array_map('intval',array_column(array_filter($this->tags(true),static fn($tag)=>!empty($tag['archived_at'])),'id')),true);
+        $archivedOptions=[];foreach($this->groups(true)as$group)if(!empty($group['archived_at']))foreach($group['options']as$option)$archivedOptions[(int)$option['id']]=true;
+        $found=[];$walk=function(array $node)use(&$walk,&$found,$archivedTags,$archivedOptions):void{
+            if(isset($node['rules'])){foreach($node['rules']as$rule)if(is_array($rule))$walk($rule);return;}
+            $field=$node['field']??'';if($field!=='tags'&&$field!=='groups')return;
+            if(in_array($node['operator']??'',['empty','not_empty'],true))return;
+            $archived=$field==='tags'?$archivedTags:$archivedOptions;
+            foreach(audienceIds($node['value']??[])as$id)if(isset($archived[$id]))$found[]=$field.':'.$id;
+        };$walk($tree);return array_values(array_unique($found));
     }
 }

@@ -142,3 +142,4 @@
 20261027_add_user_display_timezone.sql
 
 20261028_add_audience_notification_dismissals.sql
+20261030_archive_marketing_definitions.sql

@@ -62,7 +62,7 @@ trait AudienceAnalyticsReports
         if(!empty($w['segment'])){
             $segment=$this->one('SELECT filters_json FROM marketing_segments WHERE audience_id=? AND id=?',[$this->audienceId,$w['segment']]);
             if(!$segment)throw new InvalidArgumentException('This saved segment is unavailable in this audience.');
-            $tree=audienceLegacyRules(audienceJson($segment['filters_json']),$this->tags());[$membership,$values]=$this->where(audienceListFilters([]),$tree);
+            $tree=audienceLegacyRules(audienceJson($segment['filters_json']),$this->tags(true));[$membership,$values]=$this->where(audienceListFilters([]),$tree);
             $sql.=" AND r.contact_id IN (SELECT c.id FROM marketing_contacts c WHERE $membership)";array_push($p,...$values);
         }
         return [$sql,$p];

@@ -11,6 +11,7 @@ import {initializeWorkspaceSearch} from './message-monkey/search.mjs';
 import {initializeConnectionsWorkspace} from './message-monkey/connections.mjs';
 import {initializeRecentCampaigns, initializeCampaignWorkspace} from './message-monkey/campaigns.mjs';
 import {initializeContentWorkspace} from './message-monkey/content.mjs';
+import {initializeAudienceDefaults} from './message-monkey/settings.mjs';
 
 wireMessageMonkeyUiStandards();
 wireAudiencePagination();
@@ -29,4 +30,5 @@ wireAudienceMobile();
     initializeConnectionsWorkspace(config, show);
     initializeCampaignWorkspace(show, confirmations);
     initializeContentWorkspace(show);
+    initializeAudienceDefaults();
 })();

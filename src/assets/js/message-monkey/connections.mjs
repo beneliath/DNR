@@ -1,6 +1,9 @@
 import {$, $$, el, button, setValue, hidden, request, workspaceUrl} from './dom.mjs';
 import {initializeSegmentBuilder} from './segments.mjs';
 
+export const iconTooltipCaretLeft = (rect, tooltipLeft, tooltipWidth) =>
+    Math.max(6, Math.min(tooltipWidth - 20, rect.left + rect.width / 2 - tooltipLeft - 7));
+
 export function initializeConnectionsWorkspace(config, show) {
     const audienceUrl = params => workspaceUrl(config, params);
     const definitionSelection = $('[data-definition-selection]');
@@ -117,7 +120,9 @@ export function initializeConnectionsWorkspace(config, show) {
             const above = icon && !target.closest('.admin-unlock-banner, .audience-account-tools') && rect.top >= box.height + 16;
             tooltip.classList.toggle('tooltip-below', !beside && !above);
             tooltip.classList.toggle('tooltip-above', above);
-            tooltip.style.left = `${beside ? rect.right + 12 : Math.max(8, Math.min(rect.left, innerWidth - box.width - 8))}px`;
+            const left = beside ? rect.right + 12 : Math.max(8, Math.min(rect.left, innerWidth - box.width - 8));
+            tooltip.style.left = `${left}px`;
+            if (icon) tooltip.style.setProperty('--audience-tooltip-caret-left', `${iconTooltipCaretLeft(rect, left, box.width)}px`);
             tooltip.style.top = `${Math.max(8, Math.min(beside ? rect.top + (rect.height - box.height) / 2 : above ? rect.top - box.height - 8 : rect.bottom + 8, innerHeight - box.height - 8))}px`;
         };
         const hideLater = () => { timer = window.setTimeout(() => { if (!target.matches(':hover,:focus') && !tooltip.matches(':hover')) hide(); }, 140); };

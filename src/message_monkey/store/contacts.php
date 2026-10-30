@@ -88,12 +88,16 @@ trait AudienceContacts
             if (isset($input['tag_names']) && !is_array($input['tag_names'])) throw new InvalidArgumentException('Invalid tag names.');
             foreach (($input['tag_names'] ?? []) as $name) { if (!is_string($name)) throw new InvalidArgumentException('Invalid tag name.'); $tagIds[] = $this->ensureTag($name); }
             $tagIds = array_values(array_unique($tagIds));
-            if (array_diff($tagIds,array_map('intval',array_column($this->tags(),'id')))) throw new InvalidArgumentException('A selected tag belongs to another audience or was removed.');
+            $availableTags=array_map('intval',array_column($this->tags(),'id'));
+            if($previous)$availableTags=[...$availableTags,...$previous['tag_ids']];
+            if (array_diff($tagIds,$availableTags)) throw new InvalidArgumentException('A selected tag is unavailable for new assignments.');
             $availableGroups=[];
-            foreach ($this->groups() as $group) {
+            foreach ($this->groups(true) as $group) {
                 $optionIds=array_map('intval',array_column($group['options'],'id')); array_push($availableGroups,...$optionIds);
                 if (in_array($group['display_type'],['radio','dropdown'],true) && count(array_intersect($optionIds,$groupIds))>1) throw new InvalidArgumentException('Choose one option for '.$group['name'].'.');
             }
+            $activeGroupIds=[];foreach($this->groups()as$group)array_push($activeGroupIds,...array_map('intval',array_column($group['options'],'id')));
+            $availableGroups=$previous?[...$activeGroupIds,...$previous['group_ids']]:$activeGroupIds;
             if (array_diff($groupIds,$availableGroups)) throw new InvalidArgumentException('A selected group is unavailable in this audience.');
             $values=[$data['email'],$data['first_name'],$data['last_name'],$data['email_status'],json_encode((object)$custom,JSON_THROW_ON_ERROR),$language,$timezone];
             if ($id) $this->write('UPDATE marketing_contacts SET email=?,first_name=?,last_name=?,email_status=?,custom_json=?,language=?,timezone=?,version=version+1 WHERE id=? AND audience_id=?',[...$values,$id,$this->audienceId]);
@@ -135,10 +139,12 @@ trait AudienceContacts
             } elseif ($section==='groups') {
                 $ids=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]),fn($v)=>$v!=='')]);
                 $available=[];
-                foreach ($this->groups() as $group) {
+                foreach ($this->groups(true) as $group) {
                     $choices=array_map('intval',array_column($group['options'],'id'));array_push($available,...$choices);
                     if (in_array($group['display_type'],['radio','dropdown'],true)&&count(array_intersect($choices,$ids))>1) throw new InvalidArgumentException('Choose one option for '.$group['name'].'.');
                 }
+                $available=[];foreach($this->groups()as$group)array_push($available,...array_map('intval',array_column($group['options'],'id')));
+                $available=[...$available,...$person['group_ids']];
                 if (array_diff($ids,$available)) throw new InvalidArgumentException('A selected group is unavailable in this audience.');
                 $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);
                 foreach ($ids as $option) $this->write('INSERT INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$id,$option]);
@@ -179,10 +185,10 @@ trait AudienceContacts
                 $this->write("UPDATE marketing_contacts SET $column=?,version=version+1 WHERE id=?",[$value,$id]);$details=['action'=>$action];if($action==='unsubscribe')$details+=['from'=>$person['email_status'],'to'=>$value];$this->event($id,match($action){'archive'=>'contact_archived','restore'=>'contact_restored',default=>'subscription_changed'},$details);return;
             }
             if(in_array($action,['tag','untag'],true)){
-                $tag=(int)($params['tag_id']??0);if(!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?',[$tag,$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
+                $tag=(int)($params['tag_id']??0);if(!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?'.($action==='tag'&&$this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$tag,$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
                 if($action==='tag')$this->write('INSERT IGNORE INTO marketing_contact_tags (contact_id,tag_id) VALUES (?,?)',[$id,$tag]);else $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=? AND tag_id=?',[$id,$tag]);$this->event($id,'tags_changed',['action'=>$action,'tag_id'=>$tag,'added'=>$action==='tag'&&!in_array($tag,$person['tag_ids'],true)?[$tag]:[],'removed'=>$action==='untag'&&in_array($tag,$person['tag_ids'],true)?[$tag]:[]]);
             }elseif(in_array($action,['group','ungroup'],true)){
-                $option=(int)($params['option_id']??0);$group=$this->one('SELECT o.category_id,g.display_type FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?',[$option,$this->audienceId]);if(!$group)throw new InvalidArgumentException('Choose an available group.');
+                $option=(int)($params['option_id']??0);$group=$this->one('SELECT o.category_id,g.display_type FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?'.($action==='group'&&$this->definitionArchiveAvailable()?' AND g.archived_at IS NULL':''),[$option,$this->audienceId]);if(!$group)throw new InvalidArgumentException('Choose an available group.');
                 if($action==='group'){if(in_array($group['display_type'],['radio','dropdown'],true))$this->write('DELETE cg FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id WHERE cg.contact_id=? AND o.category_id=?',[$id,$group['category_id']]);$this->write('INSERT IGNORE INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$option]);}else $this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$id,$option]);$this->event($id,'groups_changed',['action'=>$action,'option_id'=>$option,'added'=>array_values(array_diff($this->person($id)['group_ids'],$person['group_ids'])),'removed'=>array_values(array_diff($person['group_ids'],$this->person($id)['group_ids']))]);
             }else throw new InvalidArgumentException('Choose a supported connections action.');
             $this->write('UPDATE marketing_contacts SET version=version+1 WHERE id=?',[$id]);
