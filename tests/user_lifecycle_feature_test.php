@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 require_once __DIR__ . '/../src/email_helpers.php';
 require_once __DIR__ . '/../src/user_lifecycle_helpers.php';
 
@@ -12,7 +15,7 @@ function expectUserLifecycle($condition, $message)
 }
 
 $root = dirname(__DIR__);
-$read = static fn($path) => file_get_contents($root . '/' . $path);
+$read = static fn($path) => readModuleSource($root . '/' . $path);
 
 expectUserLifecycle(
     normalizeAccountEmail('  User.Name+tag@Example.ORG ') === 'user.name+tag@example.org',

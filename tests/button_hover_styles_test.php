@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectHoverStyle($condition, $message) {
     if (!$condition) {
         fwrite(STDERR, "FAIL: {$message}\n");
@@ -192,10 +195,10 @@ expectHoverStyle(
 );
 
 expectHoverStyle(
-    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "assetUrl((string) \$style)")
-        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css')
-        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "hash_file('sha256', \$local_path)")
-        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "\$identity = 'h='"),
+    str_contains(readModuleSource(__DIR__ . '/../src/functions.php'), "assetUrl((string) \$style)")
+        && str_contains(readModuleSource(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css')
+        && str_contains(readModuleSource(__DIR__ . '/../src/functions.php'), "hash_file('sha256', \$local_path)")
+        && str_contains(readModuleSource(__DIR__ . '/../src/functions.php'), "\$identity = 'h='"),
     'stylesheets should use content-fingerprint cache keys with a version fallback.'
 );
 
@@ -206,7 +209,7 @@ expectHoverStyle(
 );
 
 expectHoverStyle(
-    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/modern.min.css'),
+    str_contains(readModuleSource(__DIR__ . '/../src/functions.php'), 'assets/css/modern.min.css'),
     'the shared page head should load the modern control system.'
 );
 

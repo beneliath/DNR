@@ -80,6 +80,8 @@ parameters:
         - src/inbound_email_helpers.php
         - src/two_factor_helpers.php
         - src/user_lifecycle_helpers.php
+    scanDirectories:
+        - src/moed
     tmpDir: /tmp/dnr-phpstan-modern-routes
     parallel:
         maximumNumberOfProcesses: 1

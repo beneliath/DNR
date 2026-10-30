@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectMinifiedAsset($condition, $message)
 {
     if (!$condition) {
@@ -109,7 +112,7 @@ foreach (array_merge(array_values($asset_pairs), $bundled_assets, ['assets/favic
         $runtime_asset . ' should have a build-time fingerprint.'
     );
 }
-$functions = file_get_contents(__DIR__ . '/../src/functions.php');
+$functions = readModuleSource(__DIR__ . '/../src/functions.php');
 expectMinifiedAsset(
     is_string($functions)
         && str_contains($functions, "require \$manifest_path")

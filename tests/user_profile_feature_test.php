@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 require_once __DIR__ . '/../src/profile_helpers.php';
 
 function expectUserProfile($condition, $message) {
@@ -10,7 +13,7 @@ function expectUserProfile($condition, $message) {
 }
 
 $root = dirname(__DIR__);
-$read = static fn($path) => file_get_contents($root . '/' . $path);
+$read = static fn($path) => readModuleSource($root . '/' . $path);
 
 expectUserProfile(
     profileDisplayName([

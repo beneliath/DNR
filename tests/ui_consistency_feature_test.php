@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectUiConsistency($condition, $message)
 {
     if (!$condition) {
@@ -9,7 +12,7 @@ function expectUiConsistency($condition, $message)
 }
 
 $root = dirname(__DIR__);
-$read = static fn(string $path): string => (string) file_get_contents($root . '/' . $path);
+$read = static fn(string $path): string => (string) readModuleSource($root . '/' . $path);
 
 $modern = $read('src/assets/css/modern.css');
 $legacy = $read('src/assets/css/style.css');

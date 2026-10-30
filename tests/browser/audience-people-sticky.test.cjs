@@ -16,6 +16,30 @@ const root=path.resolve(__dirname,'../..');
   });
   await page.goto('https://sticky.test/audience.php?fixture_role=admin');
   const scroll=page.getByRole('region',{name:'Connections table',exact:true}),table=page.locator('[data-people-table]');
+  if(viewport.width===390){
+   // Phone layouts intentionally scroll the document and render connection cards.
+   // Desktop keeps the surrounding workspace fixed and scrolls only the table.
+   assert.equal(await table.getAttribute('data-mm-card-table'),'');
+   assert.equal(await scroll.evaluate(n=>getComputedStyle(n).overflowY),'visible');
+   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollHeight>innerHeight),true);
+   assert.equal(await table.locator('tbody tr').count(),22);
+   const dock=page.locator('.mm-mobile-dock');assert.equal(await dock.isVisible(),true);
+   const last=table.locator('tbody tr').last();await last.scrollIntoViewIfNeeded();
+   assert((await page.evaluate(()=>scrollY))>0,'The phone document scrolls to later connections');
+   const lastBox=await last.boundingBox(),dockBox=await dock.boundingBox();
+   assert(lastBox.y>=0&&lastBox.y+lastBox.height<=dockBox.y,'The last connection stays above the fixed phone navigation');
+   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);
+   const selected=table.locator('[data-person-select]').first();await selected.check();
+   assert.equal(await page.locator('[data-bulk-toolbar]').isVisible(),true);
+   assert.equal(await page.locator('.app-footer').count(),0);
+   // Resizing restores the desktop scroll container without losing selection.
+   await page.setViewportSize({width:1600,height:600});
+   await page.waitForFunction(()=>!document.querySelector('[data-people-table]').hasAttribute('data-mm-card-table'));
+   assert.equal(await scroll.evaluate(n=>n.scrollHeight>n.clientHeight),true);
+   assert.equal(await selected.isChecked(),true);
+   assert.equal(await page.evaluate(()=>scrollY),0);
+   assert.deepEqual(errors,[]);checks+=15;await page.close();continue;
+  }
   const pinned=['.account-identity-banner','.audience-topbar','.audience-page-heading','.audience-people-toolbar','.audience-counts','.audience-table-tools','[data-people-table] thead'];
   const positions=()=>page.evaluate(selectors=>selectors.map(s=>document.querySelector(s).getBoundingClientRect().top),pinned);
   const start=await positions(),rowTop=await table.locator('tbody tr').first().evaluate(n=>n.getBoundingClientRect().top);

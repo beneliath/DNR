@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 require_once __DIR__ . '/../src/mattermost_integration_helpers.php';
 
@@ -22,7 +24,7 @@ $migrationOrder = file_get_contents($root . '/migrations/order.txt');
 $api = file_get_contents($root . '/src/api/v1/mattermost.php');
 $emailHelpers = file_get_contents($root . '/src/mattermost_email_helpers.php');
 $emailQueue = file_get_contents($root . '/src/engagement_email_helpers.php');
-$inboundEmail = file_get_contents($root . '/src/inbound_email_helpers.php');
+$inboundEmail = readModuleSource($root . '/src/inbound_email_helpers.php');
 $databasePrivileges = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $accountPage = file_get_contents($root . '/src/mattermost.php');
 $accountPageStyles = file_get_contents($root . '/src/assets/css/pages/mattermost.css');

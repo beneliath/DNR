@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 require_once __DIR__ . '/../src/functions.php';
 
 function expectOrganizationRegionFeature(bool $condition, string $message): void
@@ -15,7 +18,7 @@ $add_organization = file_get_contents($root . '/src/add_organization.php');
 $add_organization_styles = file_get_contents($root . '/src/assets/css/pages/add_organization.css');
 $edit_organization = file_get_contents($root . '/src/edit_organization.php');
 $edit_organization_styles = file_get_contents($root . '/src/assets/css/pages/edit_organization.css');
-$page_actions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$page_actions = readModuleSource($root . '/src/assets/js/page-actions.js');
 $address_inputs = file_get_contents($root . '/src/assets/js/address-inputs.mjs');
 $modern_styles = file_get_contents($root . '/src/assets/css/modern.css');
 $us_regions = addressRegionChoices('US');

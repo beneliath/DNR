@@ -1,11 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const vm = require('node:vm');
-
-const source = fs.readFileSync(require.resolve('../../src/assets/js/page-actions.js'), 'utf8');
-const initialize = source.slice(source.indexOf('    function initializeEngagementForm()'), source.indexOf('    function initializeSelectAll('));
+const initialize = require('./helpers/browser-module.js')('moed/engagement-forms.mjs');
 
 function fixture() {
     const documentEvents = {};
@@ -23,7 +20,7 @@ function fixture() {
         getElementById(id) { return id === 'new-chron-entry' ? entry : null; },
         addEventListener(type, fn, capture) { documentEvents[type] = {fn, capture}; }
     };
-    vm.runInNewContext(initialize + '\ninitializeEngagementForm();', {document, window: {}, setConditionalField() {}});
+    vm.runInNewContext(initialize + '\nBrowserModule.initializeEngagementForm();', {document, window: {}});
     function submit(addChron) {
         const button = {type: 'submit', form, matches() { return addChron; }};
         documentEvents.click.fn({target: {closest() { return button; }}});

@@ -100,7 +100,15 @@
         "add_task.php": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
-        "follow_up_task_helpers.php": "da9c0a7528eb0f1a12d7fb42cc3ba7560acc0d5a43618219b9ffc0509fbc736b"
+        "follow_up_task_helpers.php": "de5a0ba8a1caac0158c26e943479b2de541d57e006b3ce114df18d927c3a6301",
+        "moed/tasks/generation.php": "62705064e24fd7fd6a4521f9929ce2fed9979bf835399a2ea0dfc17de95f7ef6",
+        "moed/tasks/input.php": "52bf58fa9ddd7055545efc30ffdcd5a157494c30b924a8c025a915be1d5f0622",
+        "moed/tasks/lifecycle.php": "9f2a415061ae9536e82669a6ec04a7f28000b69b1ff9d583c3426cf28d99619a",
+        "moed/tasks/policy.php": "316dedd3c6aa1cf5e3e4c6e14861e07b333c0a2b51cdbac887c3781c109a73f2",
+        "moed/tasks/presentation.php": "f54b9b86f461bda8a65b32ad8eb86df8a80ff2d2f3a30167d6c1a8e39ae21904",
+        "moed/tasks/repository.php": "29af180c6c168067207e365e54d888df31bb4c6f81416530854f9b9f8d43ed6b",
+        "moed/tasks/subjects.php": "7b0ea616f3d1cf6ca0eb16c9eb326b03d7e2ab6c71d01753ecda748d51f16972",
+        "moed/tasks/templates.php": "5df81cd25625fe0ede008f248a5de9459628627b1c24cc5c8c3968285fcfc4ff"
       },
       "controls": {
         "task-title": {

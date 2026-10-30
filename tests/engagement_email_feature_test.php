@@ -29,6 +29,7 @@ $mailCompose = $read('docker-compose.mail.yaml');
 $javascript = $read('src/assets/js/engagement-email.js');
 $emailStyles = $read('src/assets/css/pages/engagement_email.css');
 $package = $read('package.json');
+$assetCatalog = $read('scripts/frontend-assets.mjs');
 $environment = $read('.env.example');
 $readme = $read('README.md');
 $chronView = $read('src/templates/entity_chron_log_view_section.php');
@@ -144,7 +145,8 @@ expectEngagementEmailFeature(
     str_contains($javascript, 'suggested_roles')
         && str_contains($javascript, 'dataset.selectRecipientRole')
         && str_contains($javascript, 'updateCount')
-        && str_contains($package, 'engagement-email.min.js'),
+        && str_contains($package, 'node scripts/build-frontend-assets.mjs js')
+        && str_contains($assetCatalog, "name: 'engagement-email'"),
     'the committed asset pipeline should support template and role-based recipient controls.'
 );
 expectEngagementEmailFeature(

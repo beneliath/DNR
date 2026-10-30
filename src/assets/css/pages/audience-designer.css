@@ -35,8 +35,6 @@
 .template-lifecycle-action[data-template-operation=delete]{color:#b42318}
 .template-gallery{--template-info-bg:#f4f4f4;--template-info-text:#24292d;--template-info-muted:#5e686d}
 html.dark-mode .template-gallery{--template-info-bg:transparent;--template-info-text:var(--audience-text);--template-info-muted:var(--audience-muted)}
-html.dark-mode .template-card-actions .action-icon-button{background:#f3f6fb;color:#21262a;border-color:#c3ced5}
-html.dark-mode .template-card-actions [data-template-operation=delete]{color:#b42318}
 .template-gallery:not(.template-list) .template-card-info,.template-gallery:not(.template-list) .template-card-actions{background:var(--template-info-bg);color:var(--template-info-text)}
 .template-gallery:not(.template-list) .template-card-info{border-radius:14px 14px 0 0}
 .template-gallery:not(.template-list) .template-card-info h3{color:var(--template-info-text)}

@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectServiceDatabaseIsolation(bool $condition, string $message): void
 {
@@ -18,7 +20,7 @@ $smtpCa = file_get_contents($root . '/docker-compose.smtp-ca.yaml');
 $grants = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $emailHelpers = file_get_contents($root . '/src/email_helpers.php');
 $notificationHelpers = file_get_contents($root . '/src/notification_helpers.php');
-$inboundEmailHelpers = file_get_contents($root . '/src/inbound_email_helpers.php');
+$inboundEmailHelpers = readModuleSource($root . '/src/inbound_email_helpers.php');
 $smtpWebSection = explode("\n  mail-dispatch:", $smtp, 2)[0];
 $baseWebSection = explode("\nservices:", $compose, 2)[0];
 $webGrantSection = explode("CREATE USER IF NOT EXISTS '\${geocoder_user}'", $grants, 2)[0];
