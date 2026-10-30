@@ -16,7 +16,7 @@ $failed = 0;
 foreach ($cases as $case) {
     $r = aiCoachValidateRequest(['question' => $case['question'], 'page' => $case['page']], 'editor');
     $start = microtime(true);
-    $record = ['model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3:8b', 'question' => $case['question'], 'page' => $case['page'], 'expected_workflow' => $case['workflow']];
+    $record = ['model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3.5:9b-q4_K_M', 'question' => $case['question'], 'page' => $case['page'], 'expected_workflow' => $case['workflow']];
     try {
         // Exercise the real entry point, including direct overview and verified workflow paths.
         $record['answer'] = aiCoachGenerate($r);

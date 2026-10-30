@@ -13,6 +13,7 @@ $evidence=['facts'=>[$fact('overall','Selected period overall',13.64),$fact('a',
 $calculate=static fn(array $ids,string $operation='compare',?array $data=null)=>audienceAiCalculateFinding(['operation'=>$operation,'evidence_ids'=>$ids],$data??$evidence);
 $pair=$calculate(['b','a']);
 $expect($pair['text']==='Click rate: Newsletter (18.18%) is higher than Invitation (9.09%) by 9.09 percentage points.','Order comes from the values, and percentage points are not relative percent change.');
+$expect(audienceAiFindingValue(1,'percentage points')==='1 percentage point'&&audienceAiFindingValue(.5,'percentage points')==='0.5 percentage points','Calculated percentage-point findings use singular wording only for one point.');
 $expect($pair['evidence_ids']===['b','a'],'Both compared source cards remain cited.');
 $rank=$calculate(['overall','b','a']);
 $expect($rank['text']==='Click rate, highest to lowest among these results: Newsletter (18.18%); Selected period overall (13.64%); Invitation (9.09%).','The formerly false lower-than-both claim is replaced by the correct computed ranking.');

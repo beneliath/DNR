@@ -26,7 +26,7 @@ $aiStarters=[
             <form class="analytics-ai-composer" data-ai-form method="post"><?= csrfInput() ?><label class="sr-only" for="analytics-ai-question">Ask anything about your communication performance</label><textarea id="analytics-ai-question" name="prompt" rows="1" maxlength="1500" required placeholder="Ask anything about your communication performance"<?= $aiPrompt!==''?' autofocus':'' ?>><?= $h($aiPrompt) ?></textarea><button type="submit" data-ai-generate aria-label="Ask Analytics AI" title="Ask Analytics AI"<?= !$aiConfig['enabled']?' disabled':'' ?>><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 3 17 9-17 9 3-9-3-9Zm3 9h14"/></svg></button><button type="button" data-ai-stop hidden>Stop</button></form>
             <p data-ai-status role="status" aria-live="polite"></p>
             <?php if(!$aiConfig['enabled']): ?><p class="audience-notice">AI assistance is not enabled for this deployment.</p><?php endif; ?>
-            <p class="analytics-ai-disclosure">AI can make mistakes. Review answers against the source calculations.</p>
+            <p class="analytics-ai-disclosure">AI can make mistakes. Check important info.</p>
         </div>
     </div>
     <script type="application/json" id="audience-ai-config"><?= json_encode($aiConfig,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>

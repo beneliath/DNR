@@ -77,7 +77,7 @@ $answer = aiCoachGenerate(aiCoachValidateRequest(['question' => 'How do calendar
 expectCoach($answer['mode'] === 'manual' && count($answer['sources']) > 0 && $answer['reason'] === 'unavailable', 'Offline explanations preserve manual help');
 $answer = aiCoachGenerate(aiCoachValidateRequest(['question' => 'Can I archive the required financial closeout reminder?', 'step' => 'presentation-save'], 'editor'));
 expectCoach($answer['mode'] === 'guide' && str_contains($answer['message'], 'cannot'), 'Critical closeout restriction never relies on inference');
-foreach (['how do i add speaker notes', 'on this page, how do i add speaker notes PDF?', 'How do I replace the speaker notes?'] as $question) {
+foreach (['how do i add speaker notes', 'on this page, how do i add speaker notes PDF?', 'How do I replace the speaker notes?', 'The speaker sent me his notes as a PDF. Can you show me where it goes?'] as $question) {
     $answer = aiCoachGenerate(aiCoachValidateRequest(['question' => $question, 'page' => 'view_engagement.php', 'step' => 'presentation-edit'], 'editor'));
     expectCoach($answer['workflow'] === 'notes' && $answer['start_workflow'] === true, 'Speaker notes questions start the PDF workflow even during a different walkthrough');
     expectCoach($answer['sources'][0]['id'] === 'manual-topic-engagements-pdf-speaker-notes', 'PDF guidance cites the PDF manual topic');

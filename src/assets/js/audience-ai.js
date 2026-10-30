@@ -26,6 +26,24 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   let active = '', completed = '', previous = '', displayedRequest = '', generation = 0, target = null, busy = false;
   const node = (tag, text, className) => { const element = document.createElement(tag); if (text !== undefined) element.textContent = text; if (className) element.className = className; return element; };
   const announce = text => { status.textContent = text; };
+  function copyPromptButton(text, className) {
+    const copy = node('button', undefined, className); copy.type = 'button';
+    copy.setAttribute('aria-label', `Copy prompt: ${text}`); copy.dataset.tooltip = 'Copy prompt';
+    const namespace = 'http://www.w3.org/2000/svg', icon = document.createElementNS(namespace, 'svg');
+    const sheet = document.createElementNS(namespace, 'rect'), back = document.createElementNS(namespace, 'path');
+    icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('aria-hidden', 'true');
+    sheet.setAttribute('x', '8'); sheet.setAttribute('y', '7'); sheet.setAttribute('width', '12'); sheet.setAttribute('height', '14'); sheet.setAttribute('rx', '2');
+    back.setAttribute('d', 'M16 7V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2');
+    icon.append(back, sheet); copy.append(icon);
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        copy.setAttribute('aria-label', 'Prompt copied'); copy.dataset.tooltip = 'Copied'; announce('Prompt copied');
+        setTimeout(() => { copy.setAttribute('aria-label', `Copy prompt: ${text}`); copy.dataset.tooltip = 'Copy prompt'; }, 2000);
+      } catch { announce('The prompt could not be copied. Select its text and copy it with your keyboard'); }
+    });
+    return copy;
+  }
   const clearPending = () => { try { sessionStorage.removeItem(storageKey); } catch { /* Recovery is optional. */ } };
   function resetChat() {
     if (!chat) return;
@@ -40,7 +58,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     shownQuestions.add(uuid); questionTexts.set(uuid,text); transcript.hidden = false;
     find('[data-ai-welcome]').hidden = true; find('[data-ai-chat-suggestions]').hidden = true;
     const message = node('article', undefined, 'analytics-ai-message analytics-ai-question-message');
-    message.append(node('h2', 'You', 'sr-only'), node('p', text)); transcript.append(message);
+    message.append(node('h2', 'You', 'sr-only'), node('p', text), copyPromptButton(text, 'ai-copy-prompt analytics-ai-copy-prompt')); transcript.append(message);
     message.scrollIntoView({block:'nearest'});
     // Adding the question changes transcript height after setBusy() revealed the
     // indicator. Keep the working dots visible at their new position.
@@ -117,6 +135,32 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     series.forEach((row,index) => { const bar = document.createElementNS(namespace,'rect'); const height = row.accepted/max*140; bar.setAttribute('x',String(index*width)); bar.setAttribute('y',String(150-height)); bar.setAttribute('width',String(Math.max(.5,width-1))); bar.setAttribute('height',String(height)); const title = document.createElementNS(namespace,'title'); title.textContent = `${row.day}${row.until ? ` – ${row.until}` : ''} UTC: ${row.accepted} accepted messages`; bar.append(title); svg.append(bar); });
     const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption','Accepted email by period · UTC · application-calculated')); box.append(figure);
   }
+  function sourceContactsPanel(uuid, factId) {
+    const panel=node('section',undefined,'analytics-ai-source-contacts');panel.id=`ai-source-contacts-${uuid}-${factId}`;panel.hidden=true;
+    panel.setAttribute('aria-label','Matching connections');
+    const caption=node('caption','Matching connections'),table=node('table'),head=node('thead'),body=node('tbody');
+    table.append(caption,head,body);
+    const scroll=node('div',undefined,'analytics-ai-table-scroll');scroll.append(table);
+    const notice=node('p','These are current matching connections. The saved count may have changed.','ai-scope');
+    const status=node('p','');status.setAttribute('role','status');
+    const more=node('button','Load more connections');more.type='button';more.hidden=true;
+    panel.append(node('h4','Matching connections'),notice,scroll,status,more);
+    let nextOffset=0,shown=0,total=0,loading=false,loaded=false;
+    const load=async()=>{
+      if(loading||nextOffset===null)return;loading=true;more.disabled=true;status.textContent='Loading matching connections…';
+      try{
+        const response=await api(null,`?action=contacts&request_id=${encodeURIComponent(uuid)}&table_id=${encodeURIComponent(factId)}&offset=${nextOffset}&per_page=100`);
+        const result=response.table;if(result?.id!==factId||!Array.isArray(result.columns)||!Array.isArray(result.rows))throw new Error('Matching connections could not be loaded.');
+        if(shown===0){const row=node('tr');result.columns.forEach(column=>{const cell=node('th',column.label);cell.setAttribute('scope','col');row.append(cell);});head.replaceChildren(row);}
+        result.rows.forEach(saved=>{const row=node('tr');result.columns.forEach(column=>row.append(node('td',String(saved[column.key]??''))));body.append(row);});
+        shown+=result.rows.length;total=result.total;nextOffset=result.next_offset;loaded=true;caption.textContent=`Matching connections · Showing ${shown} of ${total}`;
+        more.hidden=nextOffset===null;status.textContent=shown?'':'No matching connections remain.';
+      }catch(error){status.textContent=error.message;}
+      finally{loading=false;more.disabled=false;}
+    };
+    more.addEventListener('click',load);
+    return {panel,open:()=>{panel.hidden=false;panel.scrollIntoView({block:'nearest'});if(!loaded&&!loading)load();}};
+  }
   function render(reply, uuid, prompt = '') {
     if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt,reply?.purpose === 'audience-ai' ? reply.reason : ''); return; }
     if (reply.mode !== config.mode) { announce('This request belongs to the other assistant. Open it from the matching tab'); return; }
@@ -171,11 +215,30 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       displayedFacts.forEach(fact => { const item = node('div'); item.id = `ai-evidence-${uuid}-${fact.id}`; const display = value => value === null ? '—' : Number(value).toLocaleString(undefined,{maximumFractionDigits:2})+(fact.unit === '%' ? '%' : ['count','messages'].includes(fact.unit) ? '' : ` ${fact.unit}`); item.append(node('dt',fact.label),node('dd',display(fact.value)),node('small',fact.previous === null ? 'No comparison baseline' : `Previous: ${display(fact.previous)}${fact.change === null ? '' : fact.change === 0 ? ' · Unchanged' : ` · ${fact.change>0?'↑':'↓'} ${Math.abs(fact.change)}%`}`)); cards.append(item); }); if(displayedFacts.length)box.append(cards);
       reply.observations.forEach(observation => {
         const p = node('p',observation.text+' ');
+        const sourcePanels=[];
         (observation.evidence_ids || [observation.evidence_id]).forEach(id => {
           const source = evidence.facts.find(item => item.id === id) || (evidence.tables || []).find(item => item.id === id);
-          if(source){const link = node('a',`Source: ${source.label || source.title}`); link.href = `#ai-evidence-${uuid}-${source.id}`; p.append(link,document.createTextNode(' '));}
+          if(source){
+            const count=source.id.match(/^query_([0-9]+)_result$/);
+            const query=count?evidence.queries?.[Number(count[1])]:null;
+            const browsable=query?.tool==='count'&&query.field==='';
+            const link = node('a',browsable?'View matching connections':`Source: ${source.label || source.title}`);
+            if(browsable){
+              const sourceView=sourceContactsPanel(uuid,source.id);sourcePanels.push(sourceView.panel);link.href=`#${sourceView.panel.id}`;
+              link.addEventListener('click',event=>{event.preventDefault();sourceView.open();});
+            }else{
+              const evidenceId=`ai-evidence-${uuid}-${source.id}`;link.href=`#${evidenceId}`;
+              link.addEventListener('click',event=>{
+                const target=document.getElementById(evidenceId);if(!target)return;
+                event.preventDefault();target.tabIndex=-1;target.focus({preventScroll:true});
+                target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+                target.classList.add('ai-evidence-focus');setTimeout(()=>target.classList.remove('ai-evidence-focus'),2500);
+              });
+            }
+            p.append(link,document.createTextNode(' '));
+          }
         });
-        box.append(p);
+        box.append(p,...sourcePanels);
       });
       const detail = node('details'); detail.append(node('summary','Source calculations and limitations'));
       Object.entries(evidence.calculations).forEach(([key,text])=>detail.append(node('p',`${key}: ${text}`)));

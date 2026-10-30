@@ -290,7 +290,7 @@ identity and the separate user Ollama instance are preserved.
 
 ## Response-time pilot (September 22, 2026)
 
-The preview now uses Qwen3:8b. With focused chapter retrieval, bounded answers,
+The September preview used Qwen3:8b. With focused chapter retrieval, bounded answers,
 ordinary thinking disabled, and the model kept warm, seven public regression
 questions completed in 2.4–9.5 seconds. The same 14B sample ranged up to 23.4
 seconds. The user’s functions-of-MOED question took 7.7 seconds in the 8B sample,
@@ -298,6 +298,23 @@ including model loading. All seven 8B workflow/citation checks passed after
 adding workflow guards; this is not an accuracy score. See
 [the public regression record](ai-coach-evaluation.json) for answers and limits.
 The 15–20-second response goal is not a hard bound under queuing or outages.
+
+On October 30, 2026, the localhost:8080 preview was switched to
+`qwen3.5:9b-q4_K_M` on Shunbun's existing Ollama 0.33.0 service. The seven
+read-only coach checks passed after the speaker-PDF wording was added to the
+verified Notes route; the slowest completed in 6.2 seconds. Synthetic
+MessageMonkey writing preserved its merge tag, and aggregate analytics passed
+response validation. The local trial does not establish production quality or
+multi-user capacity. The separate Ollama 0.40.12 MLX benchmark is not the
+runtime used by this preview.
+
+The first browser request for a 30-day campaign summary exposed a report-review
+timeout: the review forced extended model thinking despite the preview's
+`DNR_AI_COACH_REASONING=0` setting. Report and clarification reviews now honor
+that setting and cap non-thinking output at 700 tokens. A synthetic run of the
+same 30-day question completed the planning, review, and report path in 19.42
+seconds with no validation failure. The actual account request still needs a
+fresh browser retry to confirm the user-facing result.
 
 
 ## Improvement loop and regression gates
@@ -360,8 +377,8 @@ stale procedures. This is a source-verified catalog; it is not a claim that all 
 have been exercised through every browser, role, and record state.
 
 The implementation benchmark and its limits are recorded in
-[ai-coach-improvement-results.json](ai-coach-improvement-results.json). Qwen3:8b remains
-the selected model. Streaming and an embedding model have not been introduced: ordinary
+[ai-coach-improvement-results.json](ai-coach-improvement-results.json). That benchmark
+used Qwen3:8b; the current localhost trial uses Qwen3.5 9B. Streaming and an embedding model have not been introduced: ordinary
 answers use one model call, and verified procedures use none. A separate held-out quality
 review and cold-start/browser latency measurements remain necessary before a production
 release or an expert-accuracy claim.
@@ -373,7 +390,7 @@ The answer call classifies explanation, action, troubleshooting, or ambiguity an
 can select a permission-filtered procedure. Clear requests still use a zero-model
 path. Compound requests bypass that shortcut so their sequence is not reduced to
 one matching operation. Low-confidence procedure selections ask for clarification.
-The configured model remains Qwen3:8b; no extra routing call is required.
+The routing change in this section used Qwen3:8b; no extra routing call is required.
 
 `src/data/ai-coach-forms.json` records reviewed entry points, field labels, visibility
 conditions, and source hashes. It supplies both model evidence and the browser's
