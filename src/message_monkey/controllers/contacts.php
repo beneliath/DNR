@@ -16,7 +16,6 @@ function renderAudienceContactsWorkspace(
     $redirect = $url(['view' => $view]);
 $tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
 $definitionArchiveAvailable=$store->definitionArchiveAvailable();
-$definitionStatus=($_GET['definition_status']??'active')==='archived'?'archived':'active';
 $rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;
 try{
     $filters=audienceListFilters($isPost?$_POST:$_GET);

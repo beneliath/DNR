@@ -1,4 +1,5 @@
 <?php
+$definitionStatus=($_GET['definition_status']??'active')==='archived'?'archived':'active';
 $listSearch=audienceText($_GET,'list_search');$listPage=max(1,(int)($_GET['list_page']??1));$listSize=audiencePageSize($_GET,'list_size');
 if($view==='tags')$items=array_values(array_filter($tags,fn($t)=>($definitionStatus==='archived'?!empty($t['archived_at']):empty($t['archived_at']))&&($listSearch===''||mb_stripos($t['name'],$listSearch)!==false)));
 elseif($view==='groups')$items=array_values(array_filter($groups,fn($g)=>$definitionStatus==='archived'?!empty($g['archived_at']):empty($g['archived_at'])));
