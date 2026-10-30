@@ -70,6 +70,7 @@ function audienceAiFindingNumber(float|int $value):string
 function audienceAiFindingValue(float|int|null $value,string $unit):string
 {
     if($value===null)return 'unavailable';
+    if($unit==='percentage points')return audienceAiFindingNumber($value).' percentage '.(round(abs((float)$value),2)===1.0?'point':'points');
     return audienceAiFindingNumber($value).match($unit){'%'=>'%','count'=>'',default=>' '.$unit};
 }
 

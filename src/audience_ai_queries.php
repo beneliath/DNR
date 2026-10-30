@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 /** The model supplies arguments to these read-only tools, never SQL or account identifiers. */
 require_once __DIR__.'/audience_ai_dialogue.php';
+require_once __DIR__.'/shared/addresses.php';
 
 final class AudienceAiQueries
 {
@@ -14,6 +15,9 @@ final class AudienceAiQueries
     private const AUDIENCE_FUNCTIONS=['list_audience_contacts'=>'contacts','count_audience_contacts'=>'count','group_audience_values'=>'frequency','sum_audience_values'=>'sum','average_audience_values'=>'average'];
 
     private const FUNCTIONS=['query_audience','email_campaign_report','audience_growth_report','signup_form_report','automation_report','email_tracking_report'];
+    // UN M49 region 002 (Africa), including its listed territories, as ISO alpha-2 codes.
+    // https://unstats.un.org/unsd/methodology/m49/overview
+    private const AFRICA_COUNTRY_CODES=['DZ','EG','LY','MA','SD','TN','EH','IO','BI','KM','DJ','ER','ET','TF','KE','MG','MW','MU','YT','MZ','RE','RW','SC','SO','SS','UG','TZ','ZM','ZW','AO','CM','CF','TD','CG','CD','GQ','GA','ST','BW','SZ','LS','NA','ZA','BJ','BF','CV','CI','GM','GH','GN','GW','LR','ML','MR','NE','NG','SH','SN','SL','TG'];
 
     public function __construct(private readonly AudienceStore $store,private readonly array $window)
     {
@@ -37,7 +41,15 @@ final class AudienceAiQueries
             $value="CASE WHEN JSON_TYPE($value)='NULL' THEN NULL ELSE JSON_UNQUOTE($value) END";
             $type=$field['field_type'];
             $this->fields['custom:'.$id]=['label'=>$field['label'],'type'=>$type,'sql'=>$value];
-            if($type==='address')$this->fields['custom:'.$id]['description']='Postal or street mailing address, distinct from the email address. Count this field to count records with address information filled out.';
+            if($type==='address'){
+                $this->fields['custom:'.$id]['description']='Postal or street mailing address, distinct from the email address. Count this field to count records with address information filled out.';
+                $this->fields['custom:'.$id.':us_state']=['label'=>$field['label'].' · US state','type'=>'region','original_field'=>'custom:'.$id,'address_sql'=>$value,
+                    'description'=>'Filter-only US state of a saved postal address. Use eq with a state name or two-letter code. Structured addresses use their State / Province component; imported single-line addresses must have the state directly before a ZIP code.'];
+                $this->fields['custom:'.$id.':country']=['label'=>$field['label'].' · country','type'=>'country','original_field'=>'custom:'.$id,'address_sql'=>$value,
+                    'description'=>'Filter-only country of a saved postal address. Use eq with a country name or two-letter code. Structured addresses use their Country component; imported addresses must end with an explicit country name or code.'];
+                $this->fields['custom:'.$id.':continent']=['label'=>$field['label'].' · continent','type'=>'continent','original_field'=>'custom:'.$id,'address_sql'=>$value,
+                    'enum'=>['Africa'],'description'=>'Filter-only UN M49 African region of an explicitly saved postal-address country. Use eq with Africa. Addresses without an explicit country are excluded.'];
+            }
             if(in_array($type,['dropdown','radio'],true))$this->fields['custom:'.$id]['enum']=is_array($field['options_json']??null)?$field['options_json']:json_decode($field['options_json']??'[]',true,16,JSON_THROW_ON_ERROR);
             if($type==='phone'){
                 $digits="REGEXP_REPLACE(COALESCE(($value),''),'[^0-9]','')";
@@ -54,7 +66,8 @@ final class AudienceAiQueries
 
     private function toolSpecification():array
     {
-        $field=['type'=>'string','enum'=>['',...array_keys($this->fields)],'description'=>'Calculation or display column ONLY, never a filter. For count, OMIT field to count people matching filters; a field instead counts only its nonblank values. Frequency/sum/average require a field. For contacts, field adds a returned column. Put every required value or presence/absence condition in filters.'];
+        $displayFields=array_keys(array_filter($this->fields,static fn($item)=>!in_array($item['type'],['region','country','continent'],true)));
+        $field=['type'=>'string','enum'=>['',...$displayFields],'description'=>'Calculation or display column ONLY, never a filter. For count, OMIT field to count people matching filters; a field instead counts only its nonblank values. Frequency/sum/average require a field. For contacts, field adds a returned column. Put every required value or presence/absence condition in filters.'];
         $condition=['type'=>'object','additionalProperties'=>false,'properties'=>['field'=>['type'=>'string','enum'=>array_keys($this->fields)],'operator'=>['type'=>'string','enum'=>['eq','contains','starts_with','gte','lte','is_empty','is_not_empty']],'value'=>['type'=>'string','description'=>'Required except for is_empty and is_not_empty.']],'required'=>['field','operator']];
         $shape=static fn(array $properties):array=>['type'=>'object','properties'=>$properties,'required'=>array_keys($properties),'additionalProperties'=>false];
         $limit=['type'=>'integer','minimum'=>1,'maximum'=>10,'description'=>'Maximum result groups or contact rows to display.'];
@@ -117,7 +130,7 @@ final class AudienceAiQueries
                 }elseif($period['kind']==='dates'){$query['start']=$period['start'];$query['end']=$period['end'];}
             }
             $query+=$defaults;
-            if(!in_array($query['tool'],['contacts','frequency','count','sum','average','report'],true)||!is_string($query['field'])||($query['field']!==''&&!isset($this->fields[$query['field']])))throw new InvalidArgumentException('Unsupported analytics tool or field.');
+            if(!in_array($query['tool'],['contacts','frequency','count','sum','average','report'],true)||!is_string($query['field'])||($query['field']!==''&&(!isset($this->fields[$query['field']])||in_array($this->fields[$query['field']]['type'],['region','country','continent'],true))))throw new InvalidArgumentException('Unsupported analytics tool or field.');
             audienceText($query,'search',200);
             if(!is_int($query['limit'])||$query['limit']<1||$query['limit']>($query['tool']==='contacts'?100:10)||!is_array($query['filters'])||!array_is_list($query['filters'])||count($query['filters'])>4)throw new InvalidArgumentException('Analytics query exceeds its result limits.');
             foreach($query['filters']as&$filter){
@@ -126,6 +139,9 @@ final class AudienceAiQueries
                 if($filter['operator']==='eq'&&trim($filter['value'])==='')$filter['operator']='is_empty';
                 if(in_array($filter['operator'],['is_empty','is_not_empty'],true))$filter['value']='';
                 elseif(trim($filter['value'])==='')throw new InvalidArgumentException('This comparison needs a value; use is_empty or is_not_empty for field presence.');
+                if($this->fields[$filter['field']]['type']==='region'&&($filter['operator']!=='eq'||!isset(addressRegionChoices('US')[normalizeAddressRegion('US',$filter['value'])??''])))throw new InvalidArgumentException('Choose a valid US state for an address state filter.');
+                if($this->fields[$filter['field']]['type']==='country'&&($filter['operator']!=='eq'||!isset(addressCountryChoices()[normalizeAddressCountryCode($filter['value'])??''])))throw new InvalidArgumentException('Choose a valid country for an address country filter.');
+                if($this->fields[$filter['field']]['type']==='continent'&&($filter['operator']!=='eq'||strcasecmp($filter['value'],'Africa')!==0))throw new InvalidArgumentException('Choose a supported continent for an address continent filter.');
                 if($filter['operator']==='eq'&&isset($this->fields[$filter['field']]['enum'])&&!in_array(mb_strtolower($filter['value']),array_map('mb_strtolower',$this->fields[$filter['field']]['enum']),true))throw new InvalidArgumentException('Choose a catalog value for '.$this->fields[$filter['field']]['label'].'.');
             }
             unset($filter);
@@ -197,7 +213,7 @@ final class AudienceAiQueries
             $shape=$shapes[0];unset($shape['properties']['tool']);$shape['required']=[];
             if($operation==='count')unset($shape['properties']['field'],$shape['properties']['limit']);
             elseif(in_array($operation,['frequency','sum','average'],true)){
-                $shape['required']=['field'];$shape['properties']['field']['enum']=array_keys(array_filter($this->fields,static fn($f)=>$operation==='frequency'||$f['type']==='number'));
+                $shape['required']=['field'];$shape['properties']['field']['enum']=array_keys(array_filter($this->fields,static fn($f)=>!in_array($f['type'],['region','country','continent'],true)&&($operation==='frequency'||$f['type']==='number')));
                 $shape['properties']['field']['description']='Required field to group or calculate. Conditions belong in filters.';
                 if($operation==='frequency')$shape['properties']['limit']['maximum']=10;
                 else unset($shape['properties']['limit']);
@@ -277,7 +293,39 @@ final class AudienceAiQueries
         if(($this->window['source']??'')!==''){$where[]='c.source=?';$params[]=$this->window['source'];}
         $like=static fn(string $value):string=>strtr($value,['!'=>'!!','%'=>'!%','_'=>'!_']);
         foreach($query['filters']as$filter){
-            $field=$this->fields[$filter['field']]['sql'];$value=$filter['value'];
+            $definition=$this->fields[$filter['field']];$value=$filter['value'];
+            if($definition['type']==='region'){
+                $code=normalizeAddressRegion('US',$value);$name=addressRegionName('US',$code);
+                $address="REPLACE(COALESCE(({$definition['address_sql']}),''),CHAR(13),'')";
+                $lines="LENGTH($address)-LENGTH(REPLACE($address,CHAR(10),''))";
+                $structured="TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX($address,CHAR(10),4),CHAR(10),-1))";
+                $pattern='(^|[[:space:],])('.$code.'|'.$name.')[[:space:]]+[0-9]{5}(-[0-9]{4})?([[:space:],]|$)';
+                $where[]="(($lines>=3 AND LOWER($structured) IN (LOWER(?),LOWER(?))) OR ($lines<3 AND REGEXP_LIKE($address,?,'i')))";
+                array_push($params,$code,$name,$pattern);
+                continue;
+            }
+            if($definition['type']==='country'){
+                $code=normalizeAddressCountryCode($value);$name=addressCountryName($code);
+                $address="REPLACE(COALESCE(({$definition['address_sql']}),''),CHAR(13),'')";
+                $lines="LENGTH($address)-LENGTH(REPLACE($address,CHAR(10),''))";
+                $structured="TRIM(SUBSTRING_INDEX($address,CHAR(10),-1))";
+                $pattern='(^|[[:space:],])('.preg_quote($code,'/').'|'.preg_quote($name,'/').')$';
+                $where[]="(($lines>=5 AND LOWER($structured) IN (LOWER(?),LOWER(?))) OR ($lines<5 AND REGEXP_LIKE(TRIM($address),?,'i')))";
+                array_push($params,$code,$name,$pattern);
+                continue;
+            }
+            if($definition['type']==='continent'){
+                $choices=addressCountryChoices();$tokens=[];
+                foreach(self::AFRICA_COUNTRY_CODES as$code)if(isset($choices[$code]))array_push($tokens,$code,$choices[$code]['name']);
+                $alternatives=implode('|',array_map(static fn($token)=>preg_quote($token,'/'),$tokens));
+                $address="REPLACE(COALESCE(({$definition['address_sql']}),''),CHAR(13),'')";
+                $lines="LENGTH($address)-LENGTH(REPLACE($address,CHAR(10),''))";
+                $structured="TRIM(SUBSTRING_INDEX($address,CHAR(10),-1))";
+                $where[]="(($lines>=5 AND REGEXP_LIKE($structured,?,'i')) OR ($lines<5 AND REGEXP_LIKE(TRIM($address),?,'i')))";
+                array_push($params,'^('.$alternatives.')$','(^|[[:space:],])('.$alternatives.')$');
+                continue;
+            }
+            $field=$definition['sql'];
             if(in_array($filter['operator'],['is_empty','is_not_empty'],true))$where[]="NULLIF(TRIM(REGEXP_REPLACE(COALESCE(($field),''),'[[:space:]]+',' ')),'') IS ".($filter['operator']==='is_not_empty'?'NOT ':'').'NULL';
             elseif(in_array($filter['operator'],['contains','starts_with'],true)){$where[]="($field) LIKE ? ESCAPE '!'";$params[]=($filter['operator']==='contains'?'%':'').$like($value).'%';}
             else{$operator=['eq'=>'=','gte'=>'>=','lte'=>'<='][$filter['operator']];$where[]="($field) $operator ?";$params[]=$value;}
@@ -330,7 +378,11 @@ final class AudienceAiQueries
                 $evidence['facts'][]=self::fact($prefix.'result',ucfirst($query['tool']).' · '.$label,$value===null?null:round((float)$value,2));
             }
             $evidence['limitations'][]='Audience queries use current, unarchived records in this account and the selected signup source, including all subscription statuses. Deleted records are excluded. Report dates apply only when explicitly used as contact filters.';
-            foreach(array_unique([$query['field'],...array_column($query['filters'],'field')])as$field)if(str_ends_with($field,':area_code'))$evidence['limitations'][]=$this->fields[$field]['description'];
+            foreach(array_unique([$query['field'],...array_column($query['filters'],'field')])as$field){
+                if(str_ends_with($field,':area_code'))$evidence['limitations'][]=$this->fields[$field]['description'];
+                if(str_ends_with($field,':country'))$evidence['limitations'][]='Country counts include only saved addresses with an explicit country component or an imported address ending in a country name or code.';
+                if(str_ends_with($field,':continent'))$evidence['limitations'][]='Africa uses the UN M49 geographic region. Only saved addresses with an explicit recognized country component or country ending are counted.';
+            }
         }
         $hasReport=(bool)array_filter($queries,static fn($query)=>$query['tool']==='report');
         if(!$hasReport)$evidence['window']=array_intersect_key(audienceAiReportWindow(array_replace($this->window,['dataset'=>'audience'])),array_flip(['start','end','compare','bots','channel','messages_mode','messages','segment','dataset','source']));
