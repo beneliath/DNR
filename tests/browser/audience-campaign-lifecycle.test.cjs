@@ -1,3 +1,4 @@
+const {expandRowActions, assertActionGeometry}=require('./helpers/responsive-workspace.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'../..');
@@ -12,15 +13,15 @@ const open=async({dark=false,width=1600,role='admin',tab='active',mode='',view='
 };
 try{
  for(const dark of [false,true])for(const width of [390,1600])for(const role of ['admin','editor','reviewer'])for(const tab of ['active','archived']){
-  const {page,errors}=await open({dark,width,role,tab});const row=page.locator('.campaign-row-actions').first();await row.scrollIntoViewIfNeeded();
+  const {page,errors}=await open({dark,width,role,tab});const row=page.locator('.campaign-row-actions').first();await row.scrollIntoViewIfNeeded();const mobile=width<861;await expandRowActions(row,true);await assertActionGeometry(page,row.locator('.action-icon-button'),mobile);
   assert.equal(await row.locator('[data-campaign-op=delete]').count(),role==='admin'&&tab==='archived'?1:0);
   assert.equal(await row.locator('[data-campaign-op=archive]').count(),role!=='reviewer'&&tab==='active'?1:0);
   assert.equal(await row.locator('[data-campaign-op=restore]').count(),role!=='reviewer'&&tab==='archived'?1:0);
   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);
-  for(const button of await row.locator('a,button').all()){assert.ok(await button.getAttribute('aria-label'));assert.ok(await button.getAttribute('data-tooltip'));assert.equal(await button.locator('svg').count(),1);const box=await button.boundingBox();assert.equal(box.height,44);assert.equal(box.width,44);await button.hover();await page.waitForTimeout(180);const action=await button.getAttribute('data-campaign-op')||await button.getAttribute('data-campaign-action');
+  for(const button of await row.locator('.action-icon-button').all()){assert.ok(await button.getAttribute('aria-label'));assert.ok(await button.getAttribute('data-tooltip'));assert.equal(await button.locator('svg').count(),1);await button.hover();await page.waitForTimeout(180);const action=await button.getAttribute('data-campaign-op')||await button.getAttribute('data-campaign-action');
    const hoverColors={replicate:['rgb(255, 244, 204)','rgb(74, 58, 18)'],archive:['rgb(241, 234, 255)','rgb(56, 38, 80)'],restore:['rgb(229, 248, 233)','rgb(23, 61, 43)'],delete:['rgb(254, 226, 226)','rgb(74, 34, 40)'],report:['rgb(232, 240, 255)','rgb(33, 55, 84)']};
    assert.equal(await button.evaluate(n=>getComputedStyle(n).backgroundColor),(hoverColors[action]||['rgb(204, 251, 241)','rgb(19, 78, 74)'])[Number(dark)],action+' uses the approved action color');}
-  if(tab==='active'){
+  if(tab==='active'&&!mobile){
    const edit=await row.locator('[data-campaign-action=edit]').boundingBox(),report=await page.locator('.campaign-row-actions').nth(2).locator('[data-campaign-action=report]').boundingBox();assert.equal(edit.x-report.x,60,'Report is one icon column left of Edit with the shared 16px gap');
   }
   if(role!=='reviewer'){
@@ -42,7 +43,7 @@ try{
   if(process.env.DNR_BROWSER_SCREENSHOT_DIR&&role==='admin'&&width===1600){fs.mkdirSync(process.env.DNR_BROWSER_SCREENSHOT_DIR,{recursive:true});await page.mouse.move(1,1);await page.screenshot({path:path.join(process.env.DNR_BROWSER_SCREENSHOT_DIR,`campaigns-${tab}${dark?'-dark':''}.png`),fullPage:true});}assert.deepEqual(errors,[]);checks++;await page.close();
  }
  for(const dark of [false,true])for(const width of [390,1600]){
-  const {page,errors}=await open({dark,width,tab:'archived',mode:'middle'});const nav=page.getByRole('navigation',{name:'Campaign pages'});assert.equal(await nav.locator('.mm-pagination-range').textContent(),'26–50 of 70');const links=nav.locator('a');assert.equal(await links.count(),2);for(const link of await links.all()){assert.match(await link.getAttribute('href'),/trash=1/);assert.match(await link.getAttribute('aria-label'),/^(Previous|Next) page$/);assert.equal(await link.locator('svg[aria-hidden=true]').count(),1);const box=await link.boundingBox();assert.equal(box.height,40);}
+  const {page,errors}=await open({dark,width,tab:'archived',mode:'middle'});const nav=page.getByRole('navigation',{name:'Campaign pages'});assert.equal(await nav.locator('.mm-pagination-range').textContent(),'26–50 of 70');const links=nav.locator('a');assert.equal(await links.count(),2);for(const link of await links.all()){assert.match(await link.getAttribute('href'),/trash=1/);assert.match(await link.getAttribute('aria-label'),/^(Previous|Next) page$/);assert.equal(await link.locator('svg[aria-hidden=true]').count(),1);const box=await link.boundingBox();assert.equal(box.height,width<861?44:40,'Pagination retains its desktop size and phone touch target');}
   const count=await nav.locator('.mm-pagination-range').boundingBox(),control=await links.first().boundingBox();if(width===1600)assert.equal(count.y+count.height/2,control.y+control.height/2);assert.deepEqual(errors,[]);checks++;await page.close();
   const {page:empty}=await open({dark,width,mode:'empty'});assert.equal(await empty.locator('.mm-pagination-range').textContent(),'0 of 0');assert.equal(await empty.locator('.mm-pagination-arrow:disabled').count(),2);checks++;await empty.close();
   const {page:home,errors:homeErrors}=await open({dark,width,view:'home'});const buttons=home.locator('.audience-home-hover,.analytics-quick-actions>.audience-button');assert.equal(await buttons.count(),5);for(const button of await buttons.all()){await button.hover();await home.waitForTimeout(180);assert.equal(await button.evaluate(n=>getComputedStyle(n).backgroundColor),dark?'rgb(19, 78, 74)':'rgb(204, 251, 241)');await button.focus();assert.equal(await button.evaluate(n=>getComputedStyle(n).backgroundColor),dark?'rgb(19, 78, 74)':'rgb(204, 251, 241)');}assert.deepEqual(homeErrors,[]);checks++;await home.close();

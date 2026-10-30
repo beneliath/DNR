@@ -3,13 +3,17 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const sourceDirectory = join(process.cwd(), 'src', 'assets', 'js');
-const sourceFiles = readdirSync(sourceDirectory)
-    .filter((file) => file.endsWith('.js') && !file.endsWith('.min.js'))
-    .sort();
+function sourceFilesIn(directory) {
+    return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) return entry.name === 'vendor' ? [] : sourceFilesIn(path);
+        return entry.isFile() && /\.(?:mjs|js)$/.test(entry.name) && !/\.min\.(?:mjs|js)$/.test(entry.name) ? [path] : [];
+    });
+}
+const sourceFiles = sourceFilesIn(sourceDirectory).sort();
 
 for (const sourceFile of sourceFiles) {
-    const sourcePath = join(sourceDirectory, sourceFile);
-    const result = spawnSync(process.execPath, ['--check', sourcePath], { stdio: 'inherit' });
+    const result = spawnSync(process.execPath, ['--check', sourceFile], { stdio: 'inherit' });
     if (result.status !== 0) process.exit(result.status || 1);
 }
 

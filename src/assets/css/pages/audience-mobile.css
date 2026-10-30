@@ -130,6 +130,8 @@
   /* Action names stay readable while the icon retains its semantic color. */
   body[data-mm-workspace] [data-mm-actions]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch;justify-content:stretch;padding:12px 0 0;margin:0;width:100%;border-top:1px solid var(--audience-border)}
   body[data-mm-workspace] [data-mm-actions]>form{display:flex;margin:0;min-width:0;width:auto}
+  /* Desktop campaign slots must not create extra columns in the phone grid. */
+  body[data-mm-workspace] .campaign-row-actions .action-icon-button{grid-column:auto;grid-row:auto}
   body[data-mm-workspace] [data-mm-actions] .action-icon-button{display:flex!important;justify-content:flex-start;gap:8px;flex:1;min-width:0!important;max-width:100%;width:100%!important;height:auto!important;min-height:46px!important;padding:10px!important;border:1px solid var(--audience-border)!important;border-radius:10px!important;background:var(--audience-surface);font-size:13px;line-height:1.25;text-decoration:none}
   body[data-mm-workspace] [data-mm-actions] .action-icon-button>svg{flex:none;width:20px!important;height:20px!important}
   .mm-mobile-action-label{color:var(--audience-text);text-align:left;font-weight:500}

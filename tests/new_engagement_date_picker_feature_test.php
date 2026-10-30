@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectNewEngagementDatePicker(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -10,7 +13,7 @@ function expectNewEngagementDatePicker(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $new_engagement_page = file_get_contents($root . '/src/index.php');
-$page_actions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$page_actions = readModuleSource($root . '/src/assets/js/page-actions.js');
 
 expectNewEngagementDatePicker(
     str_contains($new_engagement_page, 'id="new-engagement-form"'),

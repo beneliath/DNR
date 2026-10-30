@@ -56,8 +56,7 @@ function fixture(index, dark, normalize = true) {
 
 function publicForm(language) {
     return execFileSync('php', ['-r', `
-        require 'src/audience_store.php';require 'src/audience_collection_render.php';
-        function contentSecurityPolicyNonce():string{return 'nativeSelectTestNonce';}
+        require 'src/functions.php';require 'src/audience_store.php';require 'src/audience_collection_render.php';
         $d=audienceCollectionDefaults('survey');$d['language']=$argv[1];
         $d['questions']=[['id'=>'choice','label'=>'Choose','type'=>'dropdown','required'=>true,'options'=>['One','Two'],'other'=>false]];
         echo audienceCollectionHtml(['kind'=>'survey','document'=>$d],[],[],'');

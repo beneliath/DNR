@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectConfirmationHandler(bool $condition, string $message): void
 {
@@ -12,7 +14,7 @@ function expectConfirmationHandler(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $footerScript = file_get_contents($root . '/src/assets/js/footer.js');
-$pageActions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$pageActions = readModuleSource($root . '/src/assets/js/page-actions.js');
 $footerTemplate = file_get_contents($root . '/src/templates/footer.php');
 $modernStyles = file_get_contents($root . '/src/assets/css/modern.css');
 

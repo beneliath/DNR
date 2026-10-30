@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectEngagementMarkerCopy(bool $condition, string $message): void
 {
@@ -12,7 +14,7 @@ function expectEngagementMarkerCopy(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $page = file_get_contents($root . '/src/view_engagement.php');
-$actions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$actions = readModuleSource($root . '/src/assets/js/page-actions.js');
 $styles = file_get_contents($root . '/src/assets/css/pages/view_engagement.css');
 
 expectEngagementMarkerCopy(

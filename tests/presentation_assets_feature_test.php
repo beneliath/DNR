@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 require_once __DIR__ . '/../src/presentation_helpers.php';
 
@@ -23,7 +25,7 @@ $new_engagement = file_get_contents($root . '/src/index.php');
 $edit_engagement = file_get_contents($root . '/src/edit_engagement.php');
 $view_engagement = file_get_contents($root . '/src/view_engagement.php');
 $presentation_script = file_get_contents($root . '/src/assets/js/presentation-form.js');
-$page_actions = file_get_contents($root . '/src/assets/js/page-actions.js');
+$page_actions = readModuleSource($root . '/src/assets/js/page-actions.js');
 $modern_css = file_get_contents($root . '/src/assets/css/modern.css');
 $view_engagement_css = file_get_contents($root . '/src/assets/css/pages/view_engagement.css');
 $production_ini = file_get_contents($root . '/docker/php-production.ini');

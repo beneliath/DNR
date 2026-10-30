@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/support/source_modules.php';
+
+
 function expectPhoneFeature($condition, $message) {
     if (!$condition) {
         fwrite(STDERR, "Phone number feature test failed: {$message}\n");
@@ -8,7 +11,7 @@ function expectPhoneFeature($condition, $message) {
 }
 
 $root = dirname(__DIR__);
-$read = static fn($path) => file_get_contents($root . '/' . $path);
+$read = static fn($path) => readModuleSource($root . '/' . $path);
 
 $entry_pages = [
     'src/add_organization.php',

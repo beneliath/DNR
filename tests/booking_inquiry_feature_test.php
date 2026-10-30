@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/support/source_modules.php';
+
 
 function expectBookingInquiryFeature(bool $condition, string $message): void
 {
@@ -12,7 +14,7 @@ function expectBookingInquiryFeature(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $read = static function (string $path) use ($root): string {
-    $contents = file_get_contents($root . '/' . $path);
+    $contents = readModuleSource($root . '/' . $path);
     if (!is_string($contents)) {
         throw new RuntimeException("Unable to read {$path}.");
     }
