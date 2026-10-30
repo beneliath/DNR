@@ -36,8 +36,9 @@
             if (!control || controls.has(control)) return function () {};
             const attributes = ['aria-busy', 'aria-disabled', 'aria-label'].map(name => [name, control.getAttribute(name)]);
             const children = Array.from(control.childNodes);
+            const iconOnly = control.classList.contains('action-icon-button') || control.classList.contains('inbox-icon-button');
             // Keep input values and submitter names intact: they can determine the server action.
-            if (label && control.tagName !== 'INPUT' && !control.classList.contains('action-icon-button')) {
+            if (label && control.tagName !== 'INPUT' && !iconOnly) {
                 control.textContent = label;
             }
             control.setAttribute('aria-busy', 'true');
@@ -50,7 +51,7 @@
                 if (finished) return;
                 finished = true;
                 controls.delete(control);
-                if (label && control.tagName !== 'INPUT' && !control.classList.contains('action-icon-button')) {
+                if (label && control.tagName !== 'INPUT' && !iconOnly) {
                     control.replaceChildren(...children);
                 }
                 attributes.forEach(function ([name, value]) {

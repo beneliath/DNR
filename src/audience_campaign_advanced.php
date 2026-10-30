@@ -84,7 +84,7 @@ trait AudienceCampaignAdvanced
         }
         if(preg_match('/^segment:([1-9][0-9]*)$/D',$target,$m)){
             $segment=$this->one('SELECT filters_json FROM marketing_segments WHERE audience_id=? AND id=?',[$this->audienceId,(int)$m[1]]);if(!$segment)throw new InvalidArgumentException('A selected segment is unavailable.');
-            return audienceLegacyRules(audienceJson($segment['filters_json']),$this->tags());
+            return audienceLegacyRules(audienceJson($segment['filters_json']),$this->tags(true));
         }
         throw new InvalidArgumentException('Choose an available tag or segment.');
     }

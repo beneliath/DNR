@@ -103,6 +103,20 @@ test('confirmation cancellation stays usable; accepted native submissions block 
     assert.equal(owner.getAttribute('aria-busy'), null);
 });
 
+test('Inbox trash keeps its icon while the native submission navigates', () => {
+    const page = fixture(), button = node('BUTTON', 'trash icon', { class: 'inbox-icon-button', 'aria-label': 'Move to Trash' });
+    const original = button.childNodes[0], owner = form(button);
+    page.emit('window', 'submit', owner, { submitter: button });
+    assert.equal(button.childNodes[0], original);
+    assert.equal(button.textContent, 'trash icon');
+    assert.equal(button.getAttribute('aria-label'), 'Move to Trash — in progress');
+    assert.equal(page.emit('window', 'submit', owner, { submitter: button }, true).defaultPrevented, true);
+    page.emit('window', 'pageshow', page.win);
+    assert.equal(button.childNodes[0], original);
+    assert.equal(button.getAttribute('aria-label'), 'Move to Trash');
+    assert.equal(owner.getAttribute('aria-busy'), null);
+});
+
 test('native uploads acknowledge files, while existing managed submissions retain their own feedback', () => {
     const page = fixture(), button = node(), owner = form(button);
     owner.elements.push({ type: 'file', files: [{}] });

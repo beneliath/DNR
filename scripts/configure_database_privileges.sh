@@ -287,21 +287,21 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geo
 
 -- Native Inbox uses account-local storage and existing restricted workers.
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_route_receipts TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_drafts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_attachments TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_labels TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_thread_labels TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_templates TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_read_state TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_read_state TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_user_settings TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_preferences TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_optout_tokens TO '${MYSQL_USER}'@'%';
-GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_presence TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_presence TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_inbound_parts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_delivery_events TO '${MYSQL_USER}'@'%';
 

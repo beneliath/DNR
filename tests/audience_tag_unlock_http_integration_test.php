@@ -23,6 +23,58 @@ try{
     $store=new AudienceStore($conn,1,1,'Tag unlock qualification');$path='audience.php?view=tags';
     $unlock=static function(?int $at)use($adminSessionName,$adminSessionId):void{session_name($adminSessionName);session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);if($at!==null)$_SESSION['_admin_elevated_at']=$at;session_write_close();};
     $send=static function(callable $client,array $values)use($path):array{$page=$client($path);return $client($path,['csrf_token'=>audienceHttpCsrf($page)]+$values);};
+    audienceHttpExpect($store->definitionArchiveAvailable(),'Audience definition archive migration is installed');
+    $archiveTag=$store->saveTag('Archive tag '.$suffix,0,0);
+    $archiveGroup=$store->saveGroup(['name'=>'Archive group '.$suffix,'display_type'=>'checkboxes','options'=>[['name'=>'Archive choice']]],0,0);
+    $archiveOption=(int)$store->one('SELECT id FROM marketing_group_options WHERE category_id=?',[$archiveGroup])['id'];
+    $archivePerson=$store->savePerson(['email'=>'archive-definitions-'.$suffix.'@example.test','email_status'=>'non-subscribed','tag_ids'=>[$archiveTag],'group_ids'=>[$archiveOption]]);
+    $archiveRules=['match'=>'all','rules'=>[['field'=>'tags','operator'=>'any','value'=>[$archiveTag]],['field'=>'groups','operator'=>'any','value'=>[$archiveOption]]]];
+    $archiveSegment=$store->saveSegment('Archive segment '.$suffix,$archiveRules,0,0);
+    $savedFilter=$store->saveSegment('Active saved filter '.$suffix,$archiveRules,0,0);
+    foreach(['tags'=>['Delete tag Archive tag ','Archive tag Archive tag '],'segments'=>['Delete segment Archive segment ','Archive segment Archive segment '],'groups'=>['Delete Archive group ','Archive Archive group ']]as$view=>[$deleteLabel,$archiveLabel]){
+        $body=$admin('audience.php?view='.$view)['body'];
+        audienceHttpExpect(!str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$archiveLabel.$suffix.'"')&&str_contains($body,'data-tooltip="Archive (Admin Unlock required)"'),ucfirst($view).' Active tab shows gated Archive without Delete');
+        audienceHttpExpect(!str_contains($editor('audience.php?view='.$view)['body'],'aria-label="'.$archiveLabel.$suffix.'"'),ucfirst($view).' Archive control is limited to administrators');
+    }
+    foreach([['tag',$archiveTag,'marketing_tags'],['segment',$archiveSegment,'marketing_segments'],['group',$archiveGroup,'marketing_group_categories']]as[$kind,$definitionId,$table]){
+        $input=['action'=>'archive_definition','kind'=>$kind,'id'=>$definitionId,'version'=>1];
+        foreach([$reviewer,$editor]as$client)audienceHttpExpect($send($client,$input)['status']===403,ucfirst($kind).' archiving denies non-admin roles');
+        $unlock(null);$locked=$send($admin,$input);
+        audienceHttpExpect($locked['status']===302&&str_contains($locked['headers'],'Location: admin_elevation.php?')&&$store->one("SELECT archived_at FROM $table WHERE id=?",[$definitionId])['archived_at']===null,ucfirst($kind).' archiving requires Admin Unlock');
+        $unlock(time()-301);$expired=$send($admin,$input);
+        audienceHttpExpect($expired['status']===302&&str_contains($expired['headers'],'admin_elevation.php?'),ucfirst($kind).' archiving rejects an expired unlock');
+        $unlock(time());$archived=$send($admin,$input);
+        audienceHttpExpect($archived['status']===302&&$store->one("SELECT archived_at FROM $table WHERE id=?",[$definitionId])['archived_at']!==null,'Unlocked administrator can archive a '.$kind);
+    }
+    audienceHttpExpect($store->one('SELECT archived_at FROM marketing_tags WHERE id=?',[$archiveTag])['archived_at']!==null&&$store->one('SELECT archived_at FROM marketing_group_categories WHERE id=?',[$archiveGroup])['archived_at']!==null&&$store->one('SELECT archived_at FROM marketing_segments WHERE id=?',[$archiveSegment])['archived_at']!==null,'All three definitions retain archived state');
+    audienceHttpExpect($store->person($archivePerson)['tag_ids']===[$archiveTag]&&$store->person($archivePerson)['group_ids']===[$archiveOption],'Archiving retains connection assignments');
+    [$archiveWhere,$archiveValues]=$store->where(audienceListFilters([]),$archiveRules);
+    audienceHttpExpect((int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $archiveWhere",$archiveValues)['n']===1,'Saved filter keeps matching archived definitions');
+    audienceHttpExpect(!in_array($archiveTag,array_map('intval',array_column($store->tags(),'id')),true)&&!in_array($archiveGroup,array_map('intval',array_column($store->groups(),'id')),true),'Archived definitions leave new-use pickers');
+    audienceHttpExpect(str_contains($admin('audience.php?view=tags&definition_status=archived')['body'],'Archive tag '.$suffix)&&!str_contains($admin('audience.php?view=tags')['body'],'Restore tag Archive tag '.$suffix),'Tags separate active and archived views');
+    audienceHttpExpect(str_contains($admin('audience.php?view=segments&definition_status=archived')['body'],'Archive segment '.$suffix)&&str_contains($admin('audience.php?view=groups&definition_status=archived')['body'],'Archive group '.$suffix),'Archived Segments and Groups are restorable');
+    foreach(['tags'=>['Delete tag Archive tag ','Restore tag Archive tag '],'segments'=>['Delete segment Archive segment ','Restore segment Archive segment '],'groups'=>['Delete Archive group ','Restore Archive group ']]as$view=>[$deleteLabel,$restoreLabel]){
+        $body=$admin('audience.php?view='.$view.'&definition_status=archived')['body'];
+        audienceHttpExpect(str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$restoreLabel.$suffix.'"'),ucfirst($view).' Archived tab shows Delete beside Restore');
+    }
+    try{$store->savePerson(['email'=>'archive-new-'.$suffix.'@example.test','email_status'=>'non-subscribed','tag_ids'=>[$archiveTag]]);throw new RuntimeException('Archived tag accepted for new connection');}catch(InvalidArgumentException){}
+    try{$store->saveSegment('Illegal archived filter '.$suffix,$archiveRules,0,0);throw new RuntimeException('Archived rule accepted in new segment');}catch(InvalidArgumentException){}
+    $store->saveSegment('Active saved filter '.$suffix,$archiveRules,$savedFilter,1);
+    $archiveProfile=$store->person($archivePerson);$store->saveProfileSection($archivePerson,(int)$archiveProfile['version'],'groups',['group_ids'=>[$archiveOption]]);
+    audienceHttpExpect($store->person($archivePerson)['group_ids']===[$archiveOption],'Editing a connection preserves its archived group choice');
+    $store->setDefinitionArchived('tag',$archiveTag,2,false);$store->setDefinitionArchived('group',$archiveGroup,2,false);$store->setDefinitionArchived('segment',$archiveSegment,2,false);
+    audienceHttpExpect($store->one('SELECT archived_at FROM marketing_tags WHERE id=?',[$archiveTag])['archived_at']===null&&$store->person($archivePerson)['tag_ids']===[$archiveTag],'Restoring the same definition preserves assignments');
+    $dependentTag=$store->saveTag('Published form tag '.$suffix,0,0);
+    $dependentGroup=$store->saveGroup(['name'=>'Published form group '.$suffix,'display_type'=>'checkboxes','options'=>[['name'=>'Choice']]],0,0);
+    $store->write("INSERT INTO marketing_collection_resources(audience_id,kind,name,public_key,draft_json,state) VALUES (?,'hosted',?,?,JSON_OBJECT(),'published')",[1,'Archive dependency '.$suffix,bin2hex(random_bytes(32))]);$dependentForm=(int)$conn->insert_id;
+    $store->write('INSERT INTO marketing_collection_revisions(resource_id,audience_id,document_json) VALUES (?,?,?)',[$dependentForm,1,json_encode(['tag_ids'=>[$dependentTag],'group_ids'=>[$dependentGroup]],JSON_THROW_ON_ERROR)]);
+    $store->write('UPDATE marketing_collection_resources SET published_revision=? WHERE id=?',[$conn->insert_id,$dependentForm]);
+    foreach([['tag',$dependentTag],['group',$dependentGroup]]as[$kind,$definitionId]){
+        try{$store->setDefinitionArchived($kind,$definitionId,1,true);throw new RuntimeException('Published form dependency was ignored');}
+        catch(InvalidArgumentException $blocked){audienceHttpExpect(str_contains($blocked->getMessage(),'Archive dependency '.$suffix),'Published form blocks archiving a writing definition');}
+    }
+    $store->write("UPDATE marketing_collection_resources SET state='paused' WHERE id=?",[$dependentForm]);
+    $store->setDefinitionArchived('tag',$dependentTag,1,true);$store->setDefinitionArchived('group',$dependentGroup,1,true);
     $person=$store->savePerson(['email'=>'tag-unlock-'.$suffix.'@example.test','email_status'=>'non-subscribed']);
     foreach(['single','bulk']as$mode){
         $tag=$store->saveTag('Protected '.$mode.' '.$suffix,0,0);$store->write('INSERT INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$person,$tag]);

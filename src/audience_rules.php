@@ -86,10 +86,11 @@ function audienceRuleCatalog(array $fields, array $tags, array $groups,array $ca
     $catalog['email_status'] = ['label' => 'Email subscription status', 'kind' => 'choice', 'options' => array_combine(AUDIENCE_STATUSES, AUDIENCE_STATUSES), 'section' => 'Email'];
     $catalog['is_archived'] = ['label' => 'Archived', 'kind' => 'choice', 'options' => ['1' => 'Archived', '0' => 'Active'], 'section' => 'Connection information'];
     foreach (['created_at' => 'Date added', 'updated_at' => 'Information changed'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'date', 'section' => 'How your connections were acquired'];
-    $catalog['tags'] = ['label' => 'Tags', 'kind' => 'membership', 'options' => array_column($tags, 'name', 'id'), 'section' => 'Tags and groups'];
-    $opts = [];
-    foreach ($groups as $group) foreach ($group['options'] as $option) $opts[$option['id']] = $group['name'] . ': ' . $option['name'];
-    $catalog['groups'] = ['label' => 'Group membership', 'kind' => 'membership', 'options' => $opts, 'section' => 'Tags and groups'];
+    $tagOptions=[];$archivedTags=[];foreach($tags as$tag){$tagOptions[$tag['id']]=$tag['name'];if(!empty($tag['archived_at']))$archivedTags[]=(int)$tag['id'];}
+    $catalog['tags'] = ['label' => 'Tags', 'kind' => 'membership', 'options' => $tagOptions, 'archived_options'=>$archivedTags, 'section' => 'Tags and groups'];
+    $opts = [];$archivedGroups=[];
+    foreach ($groups as $group) foreach ($group['options'] as $option){$opts[$option['id']] = $group['name'] . ': ' . $option['name'];if(!empty($group['archived_at']))$archivedGroups[]=(int)$option['id'];}
+    $catalog['groups'] = ['label' => 'Group membership', 'kind' => 'membership', 'options' => $opts, 'archived_options'=>$archivedGroups, 'section' => 'Tags and groups'];
     foreach ($fields as $field) $catalog['custom:' . $field['id']] = ['label' => $field['label'], 'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience fields'];
     $events = ['contact_added' => 'Connection added', 'contact_updated' => 'Information updated', 'subscription_changed' => 'Subscription changed', 'tags_changed' => 'Tags changed', 'groups_changed' => 'Groups changed', 'contact_archived' => 'Connection archived', 'contact_restored' => 'Connection restored', 'note_added' => 'Note added', 'imported' => 'Imported'];
     foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection activity'];

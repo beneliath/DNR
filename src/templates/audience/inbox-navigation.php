@@ -45,8 +45,10 @@
     </form>
     <div class="inbox-list-tools"><form method="get" class="inbox-unread-form"><input type="hidden" name="view" value="inbox"><?php foreach($baseFilters as$key=>$value)if($key!=='unread'): ?><input type="hidden" name="<?= $h($key) ?>" value="<?= $h($value) ?>"><?php endif; ?><button class="inbox-unread-filter" name="unread" value="<?= empty($list['unread'])?'1':'0' ?>" aria-pressed="<?= !empty($list['unread'])?'true':'false' ?>"><span class="inbox-switch-track" aria-hidden="true"><span></span></span><span>Unread only</span><strong class="inbox-filter-state"><?= !empty($list['unread'])?'On':'Off' ?></strong></button></form><span>Newest first</span></div>
     <?php if($filtered): ?><div class="inbox-active-filters"><span><?= !empty($list['source'])?$h($sourceNames[$list['source']]).' · ':'' ?><?= !empty($list['label'])?'Label · ':'' ?><?= !empty($list['q'])?'“'.$h($list['q']).'” · ':'' ?><?= (int)$list['total'] ?> result<?= $list['total']===1?'':'s' ?></span><a href="<?= $h('audience.php?'.http_build_query(['view'=>'inbox','status'=>$list['status']])) ?>">Clear filters</a></div><?php endif; ?>
+    <?php if($list['status']==='trash'&&$canDelete&&$list['items']): ?><form id="inbox-trash-bulk" class="inbox-trash-bulk" method="post" data-admin-unlock-required data-confirm="Permanently delete the selected conversations and all their messages, drafts, and attachments from Inbox? This cannot be undone. Delivery receipts are kept."><?php $form('inbox_thread_bulk_purge'); ?><label><input type="checkbox" data-inbox-trash-all> Select all shown</label><span data-inbox-trash-count>0 selected</span><button type="submit" class="danger-text" data-admin-unlock-required data-inbox-trash-delete disabled>Delete selected permanently</button></form><?php endif; ?>
     <div class="inbox-thread-list">
         <?php foreach($list['items']as$item): $selected=$threadId===(int)$item['id']; ?>
+        <?php if($list['status']==='trash'&&$canDelete): ?><div class="inbox-trash-row"><label class="inbox-trash-select"><input type="checkbox" name="threads[]" value="<?= (int)$item['id'].':'.(int)$item['version'] ?>" form="inbox-trash-bulk" data-inbox-trash-select aria-label="Select <?= $h($item['subject']) ?> for permanent deletion"></label><?php endif; ?>
         <a class="inbox-thread-item<?= $selected?' selected':'' ?><?= $item['unread']?' unread':'' ?>" href="<?= $h($filterUrl(['thread'=>(int)$item['id']])) ?>"<?= $selected?' aria-current="true"':'' ?>>
             <span class="inbox-avatar inbox-avatar-<?= $h($item['source']) ?>" aria-hidden="true"><?= $h($initials($item['sender_name']?:$item['sender_email'])) ?></span>
             <div class="inbox-thread-copy">
@@ -57,6 +59,7 @@
             </div>
             <?php if($item['unread']): ?><span class="inbox-unread-dot" role="img" aria-label="Unread"></span><?php endif; ?>
         </a>
+        <?php if($list['status']==='trash'&&$canDelete): ?></div><?php endif; ?>
         <?php endforeach; ?>
         <?php if(!$list['items']): ?><div class="inbox-list-empty"><div class="inbox-empty-icon"><?php $icon($filtered?'search':($list['status']==='todo'?'done':'todo')); ?></div><h2><?= $filtered?'No matching conversations':($list['status']==='todo'?'All caught up':'No conversations here') ?></h2><p><?= $filtered?'Try another search or clear your filters.':($list['status']==='todo'?'New messages will appear here when they arrive.':'Conversations in this folder will appear here.') ?></p><?php if($filtered): ?><a href="<?= $h('audience.php?'.http_build_query(['view'=>'inbox','status'=>$list['status']])) ?>">Clear filters</a><?php endif; ?></div><?php endif; ?>
     </div>

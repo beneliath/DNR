@@ -50,8 +50,8 @@ function audienceFlowQueueEmail(AudienceStore $store,array $run,array $node,arra
     $snapshot['asset_key']=bin2hex(random_bytes(32));$snapshot['tracking_key']=bin2hex(random_bytes(32));
     $context=['EMAIL'=>$person['email'],'FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
     foreach($store->fields()as$f){$value=$person['custom'][$f['id']]??$f['default_value'];if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
-    foreach($store->tags()as$t)$context['tag:'.$t['id']]=in_array((int)$t['id'],$person['tag_ids'],true)?'1':'';
-    foreach($store->groups()as$g)foreach($g['options']as$o)$context['group:'.$o['id']]=in_array((int)$o['id'],$person['group_ids'],true)?'1':'';
+    foreach($store->tags(true)as$t)$context['tag:'.$t['id']]=in_array((int)$t['id'],$person['tag_ids'],true)?'1':'';
+    foreach($store->groups(true)as$g)foreach($g['options']as$o)$context['group:'.$o['id']]=in_array((int)$o['id'],$person['group_ids'],true)?'1':'';
     $token=bin2hex(random_bytes(32));$mid='<flow-'.bin2hex(random_bytes(24)).'@'.parse_url($snapshot['base'],PHP_URL_HOST).'>';
     audienceDispatchMessage($snapshot,$context,$token,$mid);
     $store->write("INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label,flow_run_id,flow_node) VALUES (?,?,?,'sending',?,?,?,?,1,0,'Automation flow',?,?)",[$store->audienceId,$snapshot['campaign_id'],$snapshot['campaign_version'],gmdate('Y-m-d H:i:s',$now),$d['settings']['timezone'],\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$snapshot['asset_key'],$run['id'],$node['id']]);$delivery=(int)$store->db->insert_id;
