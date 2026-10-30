@@ -304,7 +304,11 @@ $expect($draft['queries'][0]['limit']===100&&$draft['queries'][0]['filters']===[
 $draft=$tools->clarificationPlan(['queries'=>[]],$reportState,'continuation',[],'report','Which supported measure should be used?');
 $expect($draft['queries']===$reportState['queries'],'Unsupported report measures preserve the previously verified campaign selection while asking for clarification.');
 $review=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
-$expect($review['think']===true,'Report catalogs with derived metrics retain ratio and denominator reasoning.');
+$expect($review['think']===false&&$review['options']['num_predict']<=700,'Report review follows the disabled reasoning setting and keeps a bounded output budget.');
+putenv('DNR_AI_COACH_REASONING=1');
+$thinkingReview=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
+$expect($thinkingReview['think']===true,'Explicit reasoning opt-in still enables extended report review.');
+putenv('DNR_AI_COACH_REASONING=0');
 $growthQuery=['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['net'],'limit'=>5,'last_days'=>90];
 $growthReview=$tools->planReviewPayload('Show audience growth over the last quarter.',audienceAiDialogueState([]),['queries'=>$tools->validate(['queries'=>[$growthQuery]])]);
 $expect($growthReview['think']===false&&$growthReview['options']['num_predict']<=700,'Count-only report verification avoids extended reasoning while retaining independent checks.');

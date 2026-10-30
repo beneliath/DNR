@@ -259,8 +259,8 @@ function aiCoachMatchWorkflow(string $question): string
     $q = aiCoachNormalize($question);
     if (preg_match('/\b(reimbursements?|expenses?|receipts?|bookkeeper|chart of accounts)\b/', $q)) return '';
     if (preg_match('/\b(delete|remove|archive|download|view|print|export|what is|what are|why)\b/', $q)) return '';
-    $action = preg_match('/\b(add(?:ing)?|attach(?:ing)?|upload(?:ing)?|replac(?:e|ing)|choos(?:e|ing)|creat(?:e|ing)|new|set up|schedul(?:e|ing)|start|put|share|walk me through)\b/', $q);
-    $notes = preg_match('/\bspeaker s? ?notes?\b|\bspeakers notes?\b|\bspeaking notes?\b|\bnotes? pdf\b|\bpdf speaker notes?\b/', $q);
+    $action = preg_match('/\b(add(?:ing)?|attach(?:ing)?|upload(?:ing)?|replac(?:e|ing)|choos(?:e|ing)|creat(?:e|ing)|new|set up|schedul(?:e|ing)|start|put|share|walk me through|show me where)\b/', $q);
+    $notes = preg_match('/\bspeaker s? ?notes?\b|\bspeakers notes?\b|\bspeaking notes?\b|\bnotes? pdf\b|\bpdf speaker notes?\b|\bspeaker\b.{0,80}\bnotes?\b.{0,50}\bpdf\b/', $q);
     $ppt = preg_match('/\b(powerpoint|ppt|pptx|slidedeck|slide deck)\b/', $q);
     if ($action && $notes && $ppt) return 'attachments';
     if ($action && $notes) return 'notes';
@@ -370,7 +370,7 @@ function aiCoachRoutePayload(array $request, array $catalog): array
     $workflows = [];
     foreach (aiCoachWorkflowCandidates($request['question']) as $id) $workflows[$id] = aiCoachWorkflows()[$id]['intent'];
     return [
-        'model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3:8b', 'stream' => false, 'think' => false, 'keep_alive' => '30m',
+        'model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3.5:9b-q4_K_M', 'stream' => false, 'think' => false, 'keep_alive' => '30m',
         'options' => ['temperature' => 0, 'num_ctx' => 8192, 'num_predict' => 128],
         'format' => ['type' => 'object', 'properties' => [
             'chapters' => ['type' => 'array', 'maxItems' => 2, 'items' => ['type' => 'string', 'enum' => array_keys($chapters)]],
@@ -509,7 +509,7 @@ function aiCoachPayload(array $request, array $topics): array
             : ' For a reply to your earlier error clarification, use message="The cause remains unknown. Documented requirements describe possible conditions, not which one occurred." and question="". Do not request another detail in message. If the latest request is a genuinely different goal, that earlier clarification does not apply; ask once if missing information prevents helping with the new goal.';
     }
     return [
-        'model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3:8b', 'stream' => false, 'think' => aiCoachNeedsReasoning($request),
+        'model' => getenv('DNR_AI_COACH_MODEL') ?: 'qwen3.5:9b-q4_K_M', 'stream' => false, 'think' => aiCoachNeedsReasoning($request),
         'keep_alive' => '30m', 'options' => ['temperature' => 0, 'num_ctx' => 8192, 'num_predict' => aiCoachNeedsReasoning($request) ? 800 : 320],
         'format' => ['type' => 'object', 'properties' => [
             'message' => ['type' => 'string', 'maxLength' => 1400], 'question' => ['type' => 'string', 'maxLength' => 180],

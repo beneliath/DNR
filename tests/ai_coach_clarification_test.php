@@ -118,7 +118,7 @@ expectClarification($decode($answer, $request)['question'] === '', 'An explanati
 putenv('DNR_AI_COACH_MODEL');
 putenv('DNR_AI_COACH_REASONING');
 $payload = aiCoachPayload($request, $topics);
-expectClarification($payload['model'] === 'qwen3:8b' && $payload['think'] === false, 'Qwen remains the model with thinking off by default');
+expectClarification($payload['model'] === 'qwen3.5:9b-q4_K_M' && $payload['think'] === false, 'Qwen remains the model with thinking off by default');
 expectClarification($payload['options'] === ['temperature'=>0, 'num_ctx'=>8192, 'num_predict'=>320], 'Keep the existing inference budget');
 expectClarification(in_array('question', $payload['format']['required'], true), 'Clarification remains part of the structured contract');
 echo "Coach direct-answer and necessary-clarification checks passed.\n";

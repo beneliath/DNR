@@ -43,6 +43,13 @@ putenv('DNR_AI_COACH_URL=http://ai-coach-tunnel:11437');
 $request['account']=currentAccountKey();$calls=0;
 $result=audienceAiGenerate($request,microtime(true)+10,null,static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$calls,$raw,$reply):array{$calls++;if($url!=='http://ai-coach-tunnel:11437')throw new RuntimeException('Unexpected destination');$metrics=['eval_count'=>42];return $raw($reply);});
 $expect($calls===1&&($result['reason']??'')===''&&$result['telemetry']['model_calls']===1,'Generation reuses the configured transport exactly once');
+$repairCalls=0;
+$result=audienceAiGenerate($analysis+['account'=>currentAccountKey()],microtime(true)+10,null,static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$repairCalls,$raw,$interpretation):array{
+    $repairCalls++;
+    return $raw($repairCalls===1?array_replace($interpretation,['summary'=>'Sending volume rose by 999 messages.']):['summary'=>'Sending volume rose while engagement softened.']);
+});
+$expect($repairCalls===2&&($result['reason']??'')===''&&$result['interpretation']==='data-only'
+    &&$result['observations']===[],'Direct report analysis repairs unsupported numeric prose with a qualitative summary');
 $result=audienceAiGenerate(array_replace($request,['account'=>'other-account']),microtime(true)+10,null,static function()use(&$calls){$calls++;return [];});
 $expect($calls===1&&$result['reason']==='unavailable','Cross-account job data never reaches inference');
 $retired=$analysis+['account'=>currentAccountKey()];$retired['evidence']['window']['origin']='mailchimp';

@@ -50,7 +50,7 @@ function audienceAiFindingPayload(array $request):array
         'recommendations'=>['type'=>'array','maxItems'=>3,'items'=>['type'=>'string','maxLength'=>200]],
     ];
     if(!$limitations)$schema['limitation_ids']=['type'=>'array','maxItems'=>0,'items'=>['type'=>'string']];
-    $payload=['model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3:8b','stream'=>false,'think'=>false,'keep_alive'=>'30m',
+    $payload=['model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3.5:9b-q4_K_M','stream'=>false,'think'=>false,'keep_alive'=>'30m',
         'format'=>['type'=>'object','properties'=>$schema,'required'=>array_keys($schema),'additionalProperties'=>false],
         'options'=>['temperature'=>0,'num_ctx'=>8192,'num_predict'=>1000],
         'messages'=>[
@@ -137,5 +137,5 @@ function audienceAiFindingReply(array $value,array $request):array
         $summary[$id]=$request['evidence']['limitations'][(int)$match[1]];
     }
     foreach($recommendations as$text)if(!is_string($text)||!mb_check_encoding($text,'UTF-8')||mb_strlen($text)>200||str_contains($text,"\0")||preg_match('/<\/?[a-z][^>]*>/i',$text))throw new RuntimeException('Invalid report recommendation.');
-    return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'calculated','summary'=>implode(' ',$summary),'observations'=>array_values($observations),'recommendations'=>$recommendations,'evidence'=>$request['evidence'],'model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3:8b','message'=>'Report results ready','reason'=>'','sources'=>[],'question'=>''];
+    return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'calculated','summary'=>implode(' ',$summary),'observations'=>array_values($observations),'recommendations'=>$recommendations,'evidence'=>$request['evidence'],'model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3.5:9b-q4_K_M','message'=>'Report results ready','reason'=>'','sources'=>[],'question'=>''];
 }
