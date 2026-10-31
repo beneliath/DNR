@@ -14,7 +14,7 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import test_account_baseline_refresh as refresh_operator
-from test_account_baseline_refresh import wait_for_lock,month_shift,migration_plan,upgrade_staged_schema,check_external_references,report_import_sql,MESSAGE_MONKEY_TABLES,PRESERVE,CLEAR_TABLES
+from test_account_baseline_refresh import wait_for_lock,month_shift,migration_plan,upgrade_staged_schema,check_external_references,message_monkey_settings_import_sql,MESSAGE_MONKEY_TABLES,PRESERVE,CLEAR_TABLES
 from install_test_account_refresh_schedule import scheduled_crontab,BEGIN,END
 
 
@@ -88,6 +88,7 @@ class BaselineRefreshTest(unittest.TestCase):
             result=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of='+date],capture_output=True,text=True,check=True)
             plan=json.loads(result.stdout)
             self.assertEqual(plan['window'],[start,end])
+            self.assertEqual((plan['content_images'],plan['brand_logos'],plan['interaction_locations']),(6,2,32))
             self.assertEqual(plan['outgoing_jobs'],0)
         invalid=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of=2028-02-30'],capture_output=True)
         self.assertNotEqual(invalid.returncode,0)
@@ -104,12 +105,16 @@ class BaselineRefreshTest(unittest.TestCase):
         with patch('test_account_baseline_refresh.query',return_value='future_mail_records\tmarketing_service_mail'):
             with self.assertRaisesRegex(RuntimeError,'future_mail_records'):check_external_references()
 
-    def test_report_transfer_decodes_hex_as_utf8_before_mysql_json_cast(self):
-        with patch('test_account_baseline_refresh.query',return_value='5B5D'):
-            self.assertIn(b'CAST(CONVERT(0x5B5D USING utf8mb4) AS JSON)',report_import_sql('stage'))
-        for invalid in ['NULL','',"5B5D; DELETE FROM users",'123']:
+    def test_report_and_logo_transfer_decodes_json_without_replacing_other_settings(self):
+        with patch('test_account_baseline_refresh.query',return_value='5B5D\t226C6F676F22\t22616C7422'):
+            sql=message_monkey_settings_import_sql('stage')
+            for encoded in [b'5B5D',b'226C6F676F22',b'22616C7422']:
+                self.assertIn(b'CAST(CONVERT(0x'+encoded+b' USING utf8mb4) AS JSON)',sql)
+            self.assertIn(b"'$.brand.logo'",sql)
+            self.assertIn(b"'$.brand.secondary_logo'",sql)
+        for invalid in ['NULL','',"5B5D; DELETE FROM users\t226C6F676F22\t22616C7422",'5B5D\t123\t22616C7422']:
             with patch('test_account_baseline_refresh.query',return_value=invalid):
-                with self.assertRaises(RuntimeError):report_import_sql('stage')
+                with self.assertRaises(RuntimeError):message_monkey_settings_import_sql('stage')
 
 
 class RefreshLockTest(unittest.TestCase):

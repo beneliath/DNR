@@ -354,7 +354,14 @@
             const origin=from.startsWith('__trigger-')?'trigger':from;
             const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderMap();renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${origin==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
             plus.addEventListener('dragover',e=>{if(config.editable)e.preventDefault();});plus.addEventListener('drop',e=>{e.preventDefault();const type=e.dataTransfer.getData('text/plain');if(config.types[type]&&type!=='split')add(type,{id:origin,edge});});map.append(plus);
-            if(edge==='yes'||edge==='no'){const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');label.style.left=`${end.x+20}px`;label.style.top=`${end.y-37}px`;map.append(label);}
+            if(edge==='yes'||edge==='no'){
+                const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');
+                const labelSide=Math.sign(end.x-start.x)||(edge==='yes'?-1:1);
+                label.style.left=`${end.x+labelSide*20}px`;
+                if(labelSide<0)label.style.transform='translateX(-100%)';
+                label.style.top=`${end.y-37}px`;
+                map.append(label);
+            }
         };
         triggers.forEach((_,i)=>connect(`__trigger-${i}`,doc.start,'next'));nodes.forEach(n=>edges(n).forEach(edge=>connect(n.id,n[edge],edge)));
         const card=(id,title,detail,type,kind)=>{

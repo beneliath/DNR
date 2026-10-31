@@ -101,7 +101,7 @@
 .flow-node.paused{border-style:dashed}
 .flow-node-paused{position:absolute;right:8px;top:6px;background:var(--audience-heading-bg);padding:2px 5px;border-radius:4px;font-size:calc(11px * var(--audience-font-scale,1))}
 .flow-insert{position:absolute;z-index:2;width:28px;height:28px;min-height:28px;padding:0;border-radius:50%;background:var(--audience-surface);color:var(--audience-link)}
-.flow-branch-label{position:absolute;color:var(--audience-muted);font-size:calc(12px * var(--audience-font-scale,1))}
+.flow-branch-label{position:absolute;z-index:1;padding:0 2px;background:var(--audience-hover);color:var(--audience-muted);font-size:calc(12px * var(--audience-font-scale,1));white-space:nowrap;pointer-events:none}
 .flow-validation{padding:28px 32px;border-top:1px solid var(--audience-border)}
 .flow-validation h2{font-size:calc(20px * var(--audience-font-scale,1))}
 .flow-editor>[role=alert]{margin:20px}

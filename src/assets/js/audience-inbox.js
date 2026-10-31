@@ -116,8 +116,9 @@
   const linkField = document.getElementById('inbox-link-field');
   const linkInput = document.getElementById('inbox-link-url');
   const linkError = document.getElementById('inbox-link-error');
-  function ask(title, message, link = false) {
+  function ask(title, message, link = false, trashPurge = false) {
     if (dialog.open) return Promise.resolve(null);
+    dialog.classList.toggle('inbox-trash-purge-confirmation',trashPurge);
     document.getElementById('inbox-action-title').textContent = title;
     document.getElementById('inbox-action-message').textContent = message;
     linkField.hidden = !link; linkInput.value = ''; linkError.hidden = true;
@@ -167,7 +168,7 @@
     if (approvedForms.has(form)) { approvedForms.delete(form); return; }
     event.preventDefault(); const submitter = event.submitter;
     if (form.hasAttribute('data-admin-unlock-required') && !await window.DnrAdminUnlock?.request()) return;
-    if (await ask('Confirm action',form.dataset.confirm)) { approvedForms.add(form); form.requestSubmit(submitter || undefined); approvedForms.delete(form); }
+    if (await ask('Confirm action',form.dataset.confirm,false,form.id === 'inbox-trash-bulk')) { approvedForms.add(form); form.requestSubmit(submitter || undefined); approvedForms.delete(form); }
   },true));
   const compose = document.querySelector('[data-inbox-compose]');
   let dirty = false, saving = false, lastTyped = 0;
