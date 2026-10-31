@@ -51,6 +51,6 @@ function audienceReserveMail(mysqli $db,string $messageId,string $lane='operatio
 function audienceDeferOperationalMail(mysqli $db,string $table,int $id,?string $claim,Throwable $error):bool
 {
     if(!$error instanceof MailBudgetDeferredException)return false;
-    if(!in_array($table,['email_outbox','notification_outbox','engagement_email_deliveries','reimbursement_email_deliveries'],true))throw new InvalidArgumentException('Unknown outbound queue.');
+    if(!in_array($table,['email_outbox','notification_outbox','engagement_email_deliveries','reimbursement_email_deliveries','marketing_ses_alert_outbox'],true))throw new InvalidArgumentException('Unknown outbound queue.');
     $db->execute_query("UPDATE $table SET status='retry',attempts=GREATEST(0,attempts-1),processing_started_at=NULL,delivery_started_at=NULL,next_attempt_at=?,last_error=?,claim_token=NULL WHERE id=? AND claim_token<=>? AND status='processing'",[$error->retryAt,$error->getMessage(),$id,$claim]);return true;
 }
