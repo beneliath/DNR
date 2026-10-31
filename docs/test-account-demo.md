@@ -78,17 +78,22 @@ campaigns and three editable/paused examples; reusable designs and review commen
 a 13-month campaign planner; all six form kinds with illustrative responses; three
 inactive automation examples and completed history; and six inbox conversations
 covering to-do, done and trash, an attachment, internal comment, draft reply and
-saved replies. Email/audience reports are shared with the demo users. Historical
-sends, deliveries, opens, clicks and bounces are explicitly simulated; no mail was
+saved replies. Content → My files has six licensed, locally bundled sample photos;
+Content → Brand Kit has two Test Account sample logos. Email/audience reports are
+shared with the demo users. All 24 fictional connections show Interaction Location
+examples for signup, confirmation, preference changes and unsubscribe, using
+32 fictional events and documentation-only IP ranges. Historical sends,
+deliveries, opens, clicks and bounces are explicitly simulated; no mail was
 sent. All sample addresses use `example.invalid`.
 
 Each reset restores the original immutable baseline and then regenerates these
 examples using that day's Chicago anchor. Campaign history, form activity, inbox
 messages, custom event dates, report ranges and planning dates move with the reset.
 The planner spans three calendar months before through nine after, including
-month-end/leap-day clamping. MessageMonkey tester edits and saved reports reset;
-audience identity, branding and other settings, user preferences, SES secrets and
-existing demo permissions remain protected. The refresh rejects enabled/configured
+month-end/leap-day clamping. MessageMonkey tester edits, saved reports, sample
+photos and the two demo logos reset; audience identity, other Brand Kit fields,
+other settings, user preferences, SES secrets and existing demo permissions remain
+protected. The refresh rejects enabled/configured
 SES and sendable jobs, and checks the staged/live MessageMonkey tables match.
 Forms remain drafts and automations remain draft or paused.
 
@@ -175,8 +180,9 @@ rebuilds the date-relative MessageMonkey examples.
 Each run first restores/remaps/validates in a network-isolated disposable database.
 Only after that passes does it pause Test Account's ingress and workers, make a
 fresh encrypted restore-verified backup, and transactionally replace the explicit
-business-table allowlist. Users, passwords, MFA pins, account settings, calendar
-subscriptions, secrets and the shared app release are preserved. Pending business
+business-table allowlist. The two demo Brand Kit logos are restored; users,
+passwords, MFA pins, other account settings, calendar subscriptions, secrets and
+the shared app release are preserved. Pending business
 deliveries/queues referring to discarded tester data are cleared, never replayed.
 It verifies data/assets and the demo policy and makes a verified final snapshot
 before resuming the saved services without recreating containers.
