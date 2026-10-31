@@ -168,6 +168,7 @@ GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_flow_revisions T
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_flow_runs TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_flow_steps TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_message_events TO '${MYSQL_USER}'@'%';
+GRANT UPDATE (details_json) ON \`${MYSQL_DATABASE}\`.marketing_message_events TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_recipients TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_email_optouts TO '${MYSQL_USER}'@'%';

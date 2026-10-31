@@ -45,7 +45,7 @@ if(isset($_GET['preview_poll'])){
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     $values=$_POST;
     try {
-        $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',accountPrimaryPublicUrl());
+        $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',accountPrimaryPublicUrl(),audienceInteractionLocation($_SERVER));
         $success=$result['confirmed']?$d['confirmation']:$d['thanks'];
         if ($d['quiz']) foreach($d['quiz']as$q)if($q['label']===audienceText($_POST,'quiz',200))$success.="\n\n".$q['outcome'];
     } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e; }

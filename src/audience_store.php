@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/audience_helpers.php';
+require_once __DIR__ . '/audience_interaction_location.php';
 require_once __DIR__ . '/audience_rules.php';
 require_once __DIR__ . '/audience_jobs.php';
 require_once __DIR__ . '/audience_settings.php';

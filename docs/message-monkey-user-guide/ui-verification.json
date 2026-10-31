@@ -5,7 +5,7 @@
       "width": 1280,
       "overflow": false,
       "link": {
-        "height": 22.390625,
+        "height": 22.09375,
         "color": "rgb(0, 124, 137)"
       }
     },
@@ -14,7 +14,7 @@
       "width": 390,
       "overflow": false,
       "link": {
-        "height": 48.484375,
+        "height": 48.4921875,
         "color": "rgb(0, 124, 137)"
       }
     },
@@ -23,7 +23,7 @@
       "width": 1280,
       "overflow": false,
       "link": {
-        "height": 22.390625,
+        "height": 22.09375,
         "color": "rgb(112, 214, 208)"
       }
     },
@@ -32,7 +32,7 @@
       "width": 390,
       "overflow": false,
       "link": {
-        "height": 48.484375,
+        "height": 48.4921875,
         "color": "rgb(112, 214, 208)"
       }
     }

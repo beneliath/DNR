@@ -1,6 +1,6 @@
 # MessageMonkey Comprehensive User Guide
 
-This guide extends the shared online MessageMonkey manual with native, high-resolution application screenshots and offline navigation. The October 29, 2026 edition documents version 2.9.3. It uses fictional data in a separate local preview; no external email was sent.
+This guide extends the shared online MessageMonkey manual with native, high-resolution application screenshots and offline navigation. The October 31, 2026 edition documents version 2.10.7. Screens affected by user-visible changes were recaptured; unaffected figures retain their October 29 captures. It uses fictional data in a separate local preview; no external email was sent.
 
 ## Deliverables and sources
 
@@ -19,10 +19,10 @@ The PDF uses the repository's MessageMonkey logo as vector paths, illustrated wo
 
 Follow the account-release-parity and Docker collision-check rules before starting a preview. Inspect host routes and all Docker networks, including networks whose containers are stopped. `preview.py` selects an unused dedicated subnet and creates a loopback-only Compose configuration with new, labelled volumes. It refuses to reuse a running preview. Never point these scripts at a production account or reuse its data volumes.
 
-For this edition, the project is `dnr-mm-guide-20261029`, the configuration is `tmp/pdfs/message-monkey-manual/compose.json`, and the URL is `http://127.0.0.1:18146`. Update edition-specific values deliberately for a new edition. The preview has no dispatch worker, uses the log mail transport, and has no configured delivery or AI credentials. The scripts require `DNR_MANUAL_FIXTURE=disposable` and the dedicated account key.
+For this edition, the project is `dnr-mm-guide-20261031`, the configuration is `tmp/pdfs/message-monkey-manual/compose.json`, and the URL is `http://127.0.0.1:18147`. Update edition-specific values deliberately for a new edition. The preview has no dispatch worker, uses the log mail transport, and has no configured delivery or AI credentials. The scripts require `DNR_MANUAL_FIXTURE=disposable` and the dedicated account key.
 
 1. Run `python3 scripts/message-monkey-manual/preview.py` after checking routes and available images. Review its network record and generated configuration.
-2. Start only that project with `docker compose -p dnr-mm-guide-20261029 -f tmp/pdfs/message-monkey-manual/compose.json up -d --no-build --wait`.
+2. Start only that project with `docker compose -p dnr-mm-guide-20261031 -f tmp/pdfs/message-monkey-manual/compose.json up -d --no-build --wait`.
 3. Initialize its fresh database by running the existing `/opt/dnr/bin/migrate.sh` in the `db` service, with `DNR_PRIVILEGE_SCRIPT=/opt/dnr/bin/configure_database_privileges.sh`. This does not create or change migration source files.
 4. Run `/opt/dnr/bin/message-monkey-manual/account.php` as `www-data` in the `web` service. Redirect its output to the ignored `credentials.json` in the work directory. Never print, publish, or commit that file.
 5. Run `/opt/dnr/bin/seed_audience_demo.php` with `DNR_SEED_AUDIENCE_DEMO=local-only`, then `/opt/dnr/bin/message-monkey-manual/seed.php`, as `www-data` in `web`. Save the latter output as ignored `fixture.json`. Seed scripts refuse duplicate setup; inspect partial failures before retrying. If IDs differ from the clean fixture, update capture routes from the returned fixture IDs.

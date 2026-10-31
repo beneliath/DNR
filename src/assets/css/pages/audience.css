@@ -737,6 +737,11 @@ html.dark-mode .audience-brand>.audience-logo-wrap{background:transparent}
 .person-group-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:10px 0}
 .person-groups-card .section-title{margin-bottom:12px}
 .person-groups-card .section-title button{white-space:nowrap;background:var(--audience-heading-bg)}
+.person-interaction-card h3{font-size:calc(20px * var(--audience-font-scale, 1));margin:0 0 8px}
+.person-interaction-card>.audience-help{font-size:calc(13px * var(--audience-font-scale, 1));line-height:1.5}
+.person-interaction-entry{padding:14px 0;border-top:1px solid var(--audience-border);overflow-wrap:anywhere}
+.person-interaction-entry strong{font-size:calc(16px * var(--audience-font-scale, 1))}
+.person-interaction-entry p{margin:4px 0 0}
 .audience-person-main{padding:24px;min-height:700px;align-self:stretch}
 .audience-person-main .audience-tabs{margin:0 0 24px;padding:0;gap:0}
 .audience-person-main .audience-tabs a{padding:12px 16px;border-radius:6px 6px 0 0;color:var(--audience-text)}
