@@ -45,7 +45,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
             try{$a=$client->getAccount([]);}catch(Throwable){audienceSesDeferred('Unable to refresh the SES quota. No send attempted.');}
             $q=$a['SendQuota']??[];
             $db->execute_query('UPDATE marketing_ses_settings SET sending_enabled=?,production_access=?,max_daily=?,max_rate=?,sent_last_day=?,quota_checked_at=UTC_TIMESTAMP(6) WHERE audience_id=1 AND generation=?',[!empty($a['SendingEnabled'])?1:0,!empty($a['ProductionAccessEnabled'])?1:0,(float)($q['Max24HourSend']??0),(float)($q['MaxSendRate']??0),(float)($q['SentLast24Hours']??0),$s['generation']]);
-            $s=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();if(audienceSesReasons($s,$m['from_email']))audienceSesDeferred('SES sending is unavailable. Review Email delivery.',300);
+            $s=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();if(audienceSesReasons($s,$m['from_email'])){$db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='SES sending is disabled or its sending quota is unavailable. Review the AWS account.' WHERE audience_id=1");audienceSesDeferred('SES sending is unavailable. Review Email delivery.',300);}
         }
         $used=(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_ses_usage WHERE audience_id=1 AND aws_account_id=? AND region=? AND created_at>=?',[$s['aws_account_id'],$s['region'],$s['quota_checked_at']])->fetch_assoc()['n'];
         if($s['sent_last_day']+$used>=$s['max_daily'])audienceSesDeferred('Waiting for the SES rolling 24-hour recipient allowance.',60);

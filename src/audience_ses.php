@@ -47,6 +47,18 @@ function audienceSesCredentials(mysqli $db,int $audience):array
     if(!hash_equals(currentAccountKey(),$value['account']??''))throw new DomainException('SES credentials belong to a different MOED account.');
     return $value['credentials'];
 }
+/** Keep AWS diagnostics and credential material out of administrator email. */
+function audienceSesVerificationError(Throwable $error):string
+{
+    if($error instanceof \Aws\Exception\AwsException){
+        $code=$error->getAwsErrorCode();
+        if(in_array($code,['AccessDenied','AccessDeniedException'],true))return 'AWS denied the SES connection check. Review the saved key and its SES, SNS and STS IAM permissions.';
+        if(in_array($code,['ExpiredToken','ExpiredTokenException','UnrecognizedClientException','InvalidClientTokenId','SignatureDoesNotMatch','InvalidSignatureException'],true))return 'AWS rejected the saved SES credentials. Replace the access key or temporary session credentials.';
+        if(in_array($code,['NotFoundException','ResourceNotFoundException'],true))return 'AWS could not find the configured sender domain or event destination in this Region.';
+        if($error->getStatusCode()===null||$error->getStatusCode()===429||$error->getStatusCode()>=500)return 'AWS SES verification is temporarily unavailable. MOED will retry the connection check automatically.';
+    }
+    return 'Unable to verify SES. Check the credentials, IAM permissions, Region, sender domain and event destination.';
+}
 /** Read-only AWS setup check; it never sends, changes a plan, or provisions AWS resources. */
 function audienceSesCheck(mysqli $db,int $audience,?callable $factory=null,?callable $resolve=null):bool
 {
@@ -63,18 +75,21 @@ function audienceSesCheck(mysqli $db,int $audience,?callable $factory=null,?call
     $quota=$account['SendQuota']??[];$sending=!empty($account['SendingEnabled']);$production=!empty($account['ProductionAccessEnabled']);$ready=$sending&&$production&&$domainReady&&$configReady&&(float)($quota['Max24HourSend']??0)>0&&(float)($quota['MaxSendRate']??0)>0;
     $result=['domain'=>$domain,'domain_verified'=>$domainReady,'dmarc'=>$dmarc,'configuration_ready'=>$configReady,'event_types'=>array_values(array_unique($events)),'dkim'=>$identity['DkimAttributes']??[],'mail_from'=>$mailFrom,'pricing'=>$account['PricingAttributes']??[]];
     $reason=$ready?'':(!$production?'SES is in the sandbox. Request production access.':(!$sending?'AWS has paused SES sending.':(!$domainReady?'Verify the domain, enable DKIM and publish DMARC.':'Check the configuration set and required SNS event destination.')));
-    $db->execute_query("UPDATE marketing_ses_settings SET check_state=?,checked_at=UTC_TIMESTAMP(),error_message=?,production_access=?,sending_enabled=?,max_daily=?,max_rate=?,sent_last_day=?,quota_checked_at=?,result_json=? WHERE audience_id=? AND generation=? AND enabled=1",[$ready?'ready':'attention',$reason,$production?1:0,$sending?1:0,(float)($quota['Max24HourSend']??0),(float)($quota['MaxSendRate']??0),(float)($quota['SentLast24Hours']??0),$sample,json_encode($result,JSON_THROW_ON_ERROR),$audience,$s['generation']]);return $ready&&($db->execute_query('SELECT generation FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc()['generation']??'')===$s['generation'];
+    $db->execute_query("UPDATE marketing_ses_settings SET check_state=?,checked_at=UTC_TIMESTAMP(),error_message=?,production_access=?,sending_enabled=?,max_daily=?,max_rate=?,sent_last_day=?,quota_checked_at=?,result_json=?,alert_incident=IF(?,'',alert_incident) WHERE audience_id=? AND generation=? AND enabled=1",[$ready?'ready':'attention',$reason,$production?1:0,$sending?1:0,(float)($quota['Max24HourSend']??0),(float)($quota['MaxSendRate']??0),(float)($quota['SentLast24Hours']??0),$sample,json_encode($result,JSON_THROW_ON_ERROR),$ready?1:0,$audience,$s['generation']]);return $ready&&($db->execute_query('SELECT generation FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc()['generation']??'')===$s['generation'];
 }
 function processAudienceSesSetup(mysqli $db,int $limit=1,?callable $factory=null,?callable $resolve=null):int
 {
     if((function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())||!audienceSesInstalled($db))return 0;
-    $db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='The connection check stopped. Check again.' WHERE check_state='checking' AND check_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 5 MINUTE)");
+    $db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='The connection check stopped. MOED will retry automatically.' WHERE check_state='checking' AND (check_started_at IS NULL OR check_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 5 MINUTE))");
     // Refresh idle connections before their 15-minute readiness window expires.
     // Public double-opt-in forms cannot enqueue mail to trigger a send-time refresh.
-    $due="enabled=1 AND (check_state='queued' OR (check_state='ready' AND checked_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 10 MINUTE)))";
+    $due="enabled=1 AND (check_state='queued' OR (check_state='ready' AND (checked_at IS NULL OR checked_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 10 MINUTE))) OR (check_state='attention' AND (check_started_at IS NULL OR check_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 5 MINUTE))))";
     $row=$db->query("SELECT audience_id,generation FROM marketing_ses_settings WHERE $due ORDER BY (check_state='queued') DESC,checked_at,audience_id LIMIT 1")->fetch_assoc();if(!$row)return 0;
     $db->execute_query("UPDATE marketing_ses_settings SET check_state='checking',check_started_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=? AND $due",[$row['audience_id'],$row['generation']]);if($db->affected_rows!==1)return 0;
-    try{audienceSesCheck($db,(int)$row['audience_id'],$factory,$resolve);}catch(Throwable){$db->execute_query("UPDATE marketing_ses_settings SET check_state='attention',checked_at=NULL,error_message='Unable to verify SES. Check the credentials, IAM permissions, Region, sender domain and event destination.' WHERE audience_id=? AND generation=?",[$row['audience_id'],$row['generation']]);}return 1;
+    try{audienceSesCheck($db,(int)$row['audience_id'],$factory,$resolve);}catch(Throwable $error){
+        $db->execute_query("UPDATE marketing_ses_settings SET check_state='attention',checked_at=NULL,error_message=? WHERE audience_id=? AND generation=?",[audienceSesVerificationError($error),$row['audience_id'],$row['generation']]);
+        if(function_exists('applicationLog'))applicationLog('error','SES connection verification failed',['exception'=>get_class($error),'aws_code'=>$error instanceof \Aws\Exception\AwsException?$error->getAwsErrorCode():null]);
+    }return 1;
 }
 trait AudienceSesSetup
 {
@@ -88,7 +103,7 @@ trait AudienceSesSetup
             $credentials=['key'=>$key,'secret'=>$secret];if($token!=='')$credentials['token']=$token;$sealed=\Dnr\Security\ApplicationKey::seal(json_encode(['account'=>currentAccountKey(),'credentials'=>$credentials],JSON_THROW_ON_ERROR));
         }elseif($token!=='')throw new InvalidArgumentException('Enter all temporary credential fields together.');
         $this->transaction(function()use($version,$s,$key,$sealed){$old=$this->one('SELECT * FROM marketing_ses_settings WHERE audience_id=? FOR UPDATE',[$this->audienceId]);if(!$old||(int)$old['version']!==$version)throw new InvalidArgumentException('SES settings changed. Reload before saving.');if($sealed===null&&!$old['access_key_tail'])throw new InvalidArgumentException('Enter this MOED account’s SES API credentials.');
-            $sameTopic=$old['topic_arn']===$s['topic_arn'];$this->write("UPDATE marketing_ses_settings SET enabled=1,region=?,from_email=?,configuration_set=?,topic_arn=?,aws_account_id=?,access_key_tail=?,generation=?,check_state='queued',checked_at=NULL,production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,result_json=JSON_OBJECT(),subscription_arn=?,last_event_at=NULL,blocked_until=NULL,version=version+1 WHERE audience_id=?",[$s['region'],$s['from_email'],$s['configuration_set'],$s['topic_arn'],$s['aws_account_id'],$sealed!==null?substr($key,-4):$old['access_key_tail'],bin2hex(random_bytes(16)),$sameTopic?$old['subscription_arn']:'',$this->audienceId]);if($sealed!==null)$this->write('UPDATE marketing_ses_credentials SET credential_ciphertext=? WHERE audience_id=?',[$sealed,$this->audienceId]);
+            $sameTopic=$old['topic_arn']===$s['topic_arn'];$this->write("UPDATE marketing_ses_settings SET enabled=1,region=?,from_email=?,configuration_set=?,topic_arn=?,aws_account_id=?,access_key_tail=?,generation=?,check_state='queued',checked_at=NULL,alert_incident='',production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,result_json=JSON_OBJECT(),subscription_arn=?,last_event_at=NULL,blocked_until=NULL,version=version+1 WHERE audience_id=?",[$s['region'],$s['from_email'],$s['configuration_set'],$s['topic_arn'],$s['aws_account_id'],$sealed!==null?substr($key,-4):$old['access_key_tail'],bin2hex(random_bytes(16)),$sameTopic?$old['subscription_arn']:'',$this->audienceId]);if($sealed!==null)$this->write('UPDATE marketing_ses_credentials SET credential_ciphertext=? WHERE audience_id=?',[$sealed,$this->audienceId]);
             if(function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_ses_configured','actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_audience','entity_id'=>$this->audienceId,'details'=>'SES connection saved; credentials are encrypted and excluded from audit details.']);
         });
     }
@@ -96,7 +111,7 @@ trait AudienceSesSetup
     {
         $this->transaction(function()use($version,$operation){$s=$this->one('SELECT * FROM marketing_ses_settings WHERE audience_id=? FOR UPDATE',[$this->audienceId]);if(!$s||(int)$s['version']!==$version)throw new InvalidArgumentException('SES settings changed. Reload before continuing.');
             if($operation==='check'){$this->write("UPDATE marketing_ses_settings SET check_state='queued',version=version+1 WHERE audience_id=? AND enabled=1 AND check_state<>'checking'",[$this->audienceId]);}
-            elseif($operation==='disconnect'){$this->write("UPDATE marketing_ses_settings SET enabled=0,access_key_tail='',generation=?,check_state='unconfigured',checked_at=NULL,production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,subscription_arn='',last_event_at=NULL,error_message='',result_json=JSON_OBJECT(),version=version+1 WHERE audience_id=?",[bin2hex(random_bytes(16)),$this->audienceId]);$this->write("UPDATE marketing_ses_credentials SET credential_ciphertext='' WHERE audience_id=?",[$this->audienceId]);}
+            elseif($operation==='disconnect'){$this->write("UPDATE marketing_ses_settings SET enabled=0,access_key_tail='',generation=?,check_state='unconfigured',checked_at=NULL,alert_incident='',production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,subscription_arn='',last_event_at=NULL,error_message='',result_json=JSON_OBJECT(),version=version+1 WHERE audience_id=?",[bin2hex(random_bytes(16)),$this->audienceId]);$this->write("UPDATE marketing_ses_credentials SET credential_ciphertext='' WHERE audience_id=?",[$this->audienceId]);}
             else throw new InvalidArgumentException('Unknown SES operation.');
             if(function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_ses_'.$operation,'actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_audience','entity_id'=>$this->audienceId,'details'=>'MessageMonkey delivery connection operation.']);
         });

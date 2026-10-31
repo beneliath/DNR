@@ -41,6 +41,7 @@ CLEAR_TABLES='''document_scan_jobs reimbursement_email_deliveries
 mattermost_post_reaction_notifications mattermost_reply_notifications
 record_creation_operations record_merge_journal notes_cache_purge_queue
 inbound_email_quarantine inbound_mail_reconciliation notification_outbox'''.split()
+CLEAR_TABLES += ['marketing_ses_alert_outbox']
 # These inbox records are scoped to inbound mail that the refresh replaces. They
 # must not retain stale references or make old mail look newly received/routed.
 CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
@@ -245,8 +246,9 @@ def validate_message_monkey(db,anchor):
   'marketing_segments':"archived_at IS NOT NULL",
   'marketing_group_categories':"archived_at IS NOT NULL",
   'marketing_inbox_drafts':"state<>'draft'",
-  'marketing_ses_settings':"enabled<>0 OR production_access<>0 OR sending_enabled<>0",
+  'marketing_ses_settings':"enabled<>0 OR production_access<>0 OR sending_enabled<>0 OR alert_incident<>''",
   'marketing_ses_credentials':"credential_ciphertext<>''",
+  'marketing_ses_alert_outbox':'1=1',
   'marketing_service_mail':'1=1','marketing_jobs':"state IN ('queued','processing')",
   'marketing_inbox_notifications':'1=1'}.items():
   require(query(db,'SELECT COUNT(*) FROM dnr.'+table+' WHERE '+condition)=='0','Unsafe demo data: '+table)

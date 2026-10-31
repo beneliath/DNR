@@ -353,6 +353,7 @@ ALTER USER '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}'
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.account_profile TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_ses_settings TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_ses_alert_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_ses_credentials TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_ses_usage TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id,name,settings_json) ON \`${MYSQL_DATABASE}\`.marketing_audiences TO '${mail_dispatch_user}'@'%';

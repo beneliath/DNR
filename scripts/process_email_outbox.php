@@ -20,6 +20,7 @@ require_once '/var/www/html/audience_flow_runtime.php';
 require_once '/var/www/html/audience_ses_inbox.php';
 require_once '/var/www/html/audience_inbox_runtime.php';
 require_once '/var/www/html/audience_notification_runtime.php';
+require_once '/var/www/html/audience_ses_alerts.php';
 $reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
 $limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
 
@@ -79,6 +80,7 @@ do {
     $businessDate = applicationBusinessDate();
     $queues = $limitedQueues ? [] : [
         'account email' => static fn() => maintainQueuedAccountEmail($conn),
+        'SES failure alert' => static fn() => maintainQueuedAudienceSesAlerts($conn),
         'notification email' => static fn() => maintainQueuedNotificationEmail($conn, $businessDate),
         'engagement email' => static fn() => maintainQueuedEngagementEmail($conn),
     ];
@@ -100,15 +102,63 @@ do {
 
     if (!$reimbursementsOnly) {
         try {
-            // Marketing setup checks use this account’s encrypted SES credentials; operational mail stays on SMTP.
             $processed += processAudienceSnsInbox($conn);
-            $processed += processAudienceSesSetup($conn, 1);
         } catch (Throwable $exception) {
             $pass_succeeded = false;
-            applicationLog('error', 'Unable to process MessageMonkey delivery setup', [
+            applicationLog('error', 'Unable to process MessageMonkey SNS inbox', [
                 'exception' => get_class($exception),
             ]);
         }
+        // Capture an existing outage before an automatic recovery check clears it.
+        try { queueAudienceSesFailureAlerts($conn); }
+        catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to queue SES failure alert', ['exception' => get_class($exception)]);
+        }
+        try { $processed += processAudienceSesSetup($conn, 1); }
+        catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to process MessageMonkey SES setup', ['exception' => get_class($exception)]);
+        }
+        try { queueAudienceSesFailureAlerts($conn); }
+        catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to queue SES failure alert', ['exception' => get_class($exception)]);
+        }
+    }
+
+    for ($index = 0; $index < ($limitedQueues ? 0 : $batchSize); $index++) {
+        $queued = claimQueuedAudienceSesAlert($conn);
+        if ($queued === null) break;
+        $accepted = false;
+        try {
+            $message = audienceSesAlertMessage($queued['payload_ciphertext']);
+            startEmailDelivery($conn, 'marketing_ses_alert_outbox', $queued['id'], $queued['claim_token']);
+            deliverApplicationEmailWithSession(
+                $smtpSession, $message['recipient'], $message['subject'], $message['body'],
+                messageId: $queued['smtp_message_id'], budgetDb: $conn
+            );
+            $accepted = true;
+            completeQueuedAudienceSesAlert($conn, $queued['id'], $queued['claim_token']);
+        } catch (Throwable $exception) {
+            $pass_succeeded = false;
+            try {
+                failQueuedAudienceSesAlert(
+                    $conn, $queued['id'], $queued['claim_token'],
+                    $accepted ? new SmtpUncertainDeliveryException('Delivery accepted but completion could not be recorded.', 0, $exception) : $exception,
+                    $exception instanceof DomainException
+                );
+            } catch (Throwable $recordException) {
+                applicationLog('error', 'Unable to record SES alert delivery failure', [
+                    'outbox_id' => $queued['id'], 'error' => $recordException->getMessage(),
+                ]);
+            }
+            applicationLog('error', 'Queued SES alert delivery failed', [
+                'outbox_id' => $queued['id'], 'exception' => get_class($exception),
+            ]);
+        }
+        recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
+        $processed++;
     }
 
     for ($index = 0; $index < ($reimbursementsOnly ? 0 : $batchSize); $index++) {
