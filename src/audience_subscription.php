@@ -21,7 +21,7 @@ if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['preferences'])){
 $done=false;$preferenceMessage='';$preferenceError='';$preferenceAction=audienceText($_POST,'preference_action');$publicStore=new AudienceStore($db,1,0,'Email recipient');
 if($_SERVER['REQUEST_METHOD']==='POST'&&in_array($preferenceAction,['save','confirm'],true)){
     startSecureSession();requireValidCsrfToken();
-    try{$person=$publicStore->person((int)$recipient['contact_id']);if(!hash_equals($recipient['email_hash'],audienceDispatchEmailHash($person['email'])))throw new InvalidArgumentException('This preferences link no longer matches the current address.');if($preferenceAction==='save'){$publicStore->savePublicPreferences((int)$person['id'],(int)audienceText($_POST,'version',12),$_POST);$preferenceMessage='Your preferences have been saved.';}else{$publicStore->requestSubscriptionConfirmation((int)$person['id'],accountPrimaryPublicUrl());$preferenceMessage='Check your email to confirm your subscription. Your status will not change until you confirm.';}}catch(InvalidArgumentException $e){$preferenceError=$e->getMessage();}
+    try{$person=$publicStore->person((int)$recipient['contact_id']);if(!hash_equals($recipient['email_hash'],audienceDispatchEmailHash($person['email'])))throw new InvalidArgumentException('This preferences link no longer matches the current address.');if($preferenceAction==='save'){$publicStore->savePublicPreferences((int)$person['id'],(int)audienceText($_POST,'version',12),$_POST,null,audienceInteractionLocation($_SERVER));$preferenceMessage='Your preferences have been saved.';}else{$publicStore->requestSubscriptionConfirmation((int)$person['id'],accountPrimaryPublicUrl());$preferenceMessage='Check your email to confirm your subscription. Your status will not change until you confirm.';}}catch(InvalidArgumentException $e){$preferenceError=$e->getMessage();}
 }elseif($_SERVER['REQUEST_METHOD']==='POST'){
     if(($_POST['List-Unsubscribe']??'')!=='One-Click'&&($_POST['unsubscribe']??'')!=='1'){http_response_code(400);exit('Confirm unsubscribe to continue.');}
     $db->begin_transaction();
@@ -30,7 +30,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'&&in_array($preferenceAction,['save','conf
         $person=$db->execute_query('SELECT id,email,email_status FROM marketing_contacts WHERE id=? AND audience_id=? AND deleted_at IS NULL FOR UPDATE',[$recipient['contact_id'],$recipient['audience_id']])->fetch_assoc();
         if($person&&hash_equals($recipient['email_hash'],audienceDispatchEmailHash($person['email']))&&in_array($person['email_status'],['subscribed','pending','non-subscribed'],true)){
             $db->execute_query("UPDATE marketing_contacts SET email_status='unsubscribed',version=version+1 WHERE id=? AND audience_id=?",[$person['id'],$recipient['audience_id']]);
-            $db->execute_query("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','status',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>'unsubscribed','source'=>'Campaign unsubscribe','recipient_id'=>(int)$recipient['id'],'delivery_id'=>(int)$recipient['delivery_id']],JSON_THROW_ON_ERROR)]);
+            $details=['from'=>$person['email_status'],'to'=>'unsubscribed','source'=>'Campaign unsubscribe','recipient_id'=>(int)$recipient['id'],'delivery_id'=>(int)$recipient['delivery_id']];
+            $interactionLocation=audienceInteractionLocation($_SERVER);
+            if($interactionLocation)$details['interaction_location']=$interactionLocation;
+            $db->execute_query("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','status',?)",[$person['id'],json_encode($details,JSON_THROW_ON_ERROR)]);
         }
         $db->commit();$done=true;
     }catch(Throwable $e){$db->rollback();throw $e;}
