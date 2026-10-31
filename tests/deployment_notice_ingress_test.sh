@@ -17,3 +17,14 @@ docker run --rm --network none --read-only \
         trap '\''kill "$apache_pid" 2>/dev/null || true'\'' EXIT
         if ! php /opt/notice-test.php; then cat /tmp/apache.log; exit 1; fi
     '
+docker run --rm --network none --read-only \
+    --tmpfs /tmp --tmpfs /var/run/apache2 --tmpfs /var/lock/apache2 \
+    --mount "type=bind,src=$fixture,dst=/run/dnr/deployment" \
+    --mount "type=bind,src=$root/tests/maintenance_guard_http_test.php,dst=/opt/notice-test.php,readonly" \
+    -e DNR_DEPLOYMENT_NOTICE_HTTP_TEST=1 -e DNR_MAINTENANCE_GUARD_ID=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    --entrypoint sh "$image" -c '
+        apache2-foreground -D DNR_MAINTENANCE_GUARD >/tmp/apache.log 2>&1 &
+        apache_pid=$!
+        trap '\''kill "$apache_pid" 2>/dev/null || true'\'' EXIT
+        if ! php /opt/notice-test.php; then cat /tmp/apache.log; exit 1; fi
+    '

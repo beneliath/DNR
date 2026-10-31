@@ -132,4 +132,34 @@ $conn->query("UPDATE marketing_ses_settings SET production_access=1,check_state=
 $workerQueued=$ib->queueInboxDraft($workerDraft,1,$inboxAudience,'https://inbox.example.test');
 $conn->execute_query("UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 DAY) WHERE id=?",[$workerQueued['service_mail_id']]);
 $conn->query('UPDATE marketing_ses_settings SET production_access=0 WHERE audience_id=1');
+$purgeAttachment=audienceInboxAttachment('purge.png',$png,false);
+$purgeOne=$ib->inboxReceive('direct',0,'inbox-person@example.test','Inbox sender','Bulk purge one','Remove this message',hash('sha256','inbox-bulk-purge-one'),true,[],0,[$purgeAttachment]);
+$purgeTwo=$ib->inboxReceive('direct',0,'inbox-person@example.test','Inbox sender','Bulk purge two','Remove this message too',hash('sha256','inbox-bulk-purge-two'),true);
+$purgeAttachmentId=(int)$ib->one('SELECT id FROM marketing_inbox_attachments WHERE audience_id=1 AND message_id IN (SELECT id FROM marketing_inbox_messages WHERE audience_id=1 AND thread_id=?)',[$purgeOne])['id'];
+$purgeDraft=$ib->saveInboxDraft(['thread_id'=>$purgeOne,'subject'=>'Unsent purge draft','body_html'=>'<p>Remove this draft</p>']);
+$ib->inboxReplyRoute('thread',$purgeOne);
+$ib->inboxMarkRead($purgeOne,true);
+foreach([$purgeOne,$purgeTwo]as$purgeId){$row=$ib->inboxThread($purgeId);$ib->inboxThreadOperation($purgeId,(int)$row['version'],'trash');}
+$purgeOneVersion=(int)$ib->inboxThread($purgeOne)['version'];$purgeTwoVersion=(int)$ib->inboxThread($purgeTwo)['version'];
+$editorTrash=$editor($inboxPath.'&status=trash&thread='.$purgeOne);$adminTrash=$admin($inboxPath.'&status=trash&thread='.$purgeOne);
+audienceHttpExpect(!str_contains($editorTrash['body'],'inbox-trash-bulk')&&!str_contains($editorTrash['body'],'inbox-purge-button')&&str_contains($adminTrash['body'],'inbox-trash-bulk')&&str_contains($adminTrash['body'],'inbox-purge-button'),'Only administrators see Trash purge controls');
+$bulkPurge=['csrf_token'=>$adminInboxCsrf,'action'=>'inbox_thread_bulk_purge','threads'=>[$purgeOne.':'.$purgeOneVersion,$purgeTwo.':'.$purgeTwoVersion]];
+audienceHttpExpect($editor($inboxPath.'&status=trash',array_replace($bulkPurge,['csrf_token'=>$inboxCsrf]))['status']===403&&$ib->inboxThread($purgeOne),'Editors cannot purge Trash by direct request');
+$lockedPurge=$admin($inboxPath.'&status=trash',$bulkPurge);
+audienceHttpExpect($lockedPurge['status']===302&&str_contains($lockedPurge['headers'],'admin_elevation.php')&&$ib->inboxThread($purgeOne),'Bulk purge requires a fresh Admin Unlock');
+session_name($adminSessionName);session_id($adminSessionId);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();
+$activePurge=$admin($inboxPath.'&status=trash',['csrf_token'=>$adminInboxCsrf,'format'=>'json','action'=>'inbox_thread','thread_id'=>$tid,'version'=>$ib->inboxThread($tid)['version'],'operation'=>'purge']);
+audienceHttpExpect($activePurge['status']===422&&$ib->inboxThread($tid),'Purge rejects conversations outside Trash');
+$staleBulk=$admin($inboxPath.'&status=trash',array_replace($bulkPurge,['format'=>'json','threads'=>[$purgeOne.':'.$purgeOneVersion,$purgeTwo.':'.($purgeTwoVersion-1)]]));
+audienceHttpExpect($staleBulk['status']===422&&$ib->inboxThread($purgeOne)&&$ib->inboxThread($purgeTwo),'Stale bulk selection rolls back every deletion');
+$bulkDeleted=$admin($inboxPath.'&status=trash',$bulkPurge);
+audienceHttpExpect($bulkDeleted['status']===302&&str_contains($bulkDeleted['headers'],'status=trash')&&!$ib->one('SELECT id FROM marketing_inbox_threads WHERE audience_id=1 AND id IN (?,?)',[$purgeOne,$purgeTwo]),'Unlocked bulk purge removes selected Trash conversations');
+audienceHttpExpect(!$ib->one('SELECT id FROM marketing_inbox_messages WHERE audience_id=1 AND thread_id IN (?,?)',[$purgeOne,$purgeTwo])&&!$ib->one('SELECT id FROM marketing_inbox_drafts WHERE audience_id=1 AND id=?',[$purgeDraft])&&!$ib->one('SELECT id FROM marketing_inbox_attachments WHERE audience_id=1 AND id=?',[$purgeAttachmentId]),'Bulk purge removes messages, linked drafts, and attachments');
+audienceHttpExpect(!$ib->one('SELECT thread_id FROM marketing_inbox_read_state WHERE audience_id=1 AND thread_id=?',[$purgeOne])&&!$ib->one('SELECT thread_id FROM marketing_inbox_notifications WHERE audience_id=1 AND thread_id=?',[$purgeOne])&&(int)$ib->one("SELECT enabled FROM marketing_inbox_routes WHERE audience_id=1 AND source='thread' AND reference_id=?",[$purgeOne])['enabled']===0,'Bulk purge clears state and disables reply routing');
+$queuedThread=$ib->inboxThread((int)$queued['thread_id']);$ib->inboxThreadOperation((int)$queuedThread['id'],(int)$queuedThread['version'],'trash');$queuedThread=$ib->inboxThread((int)$queued['thread_id']);
+$singleDeleted=$admin($inboxPath.'&status=trash&thread='.$queuedThread['id'],['csrf_token'=>$adminInboxCsrf,'action'=>'inbox_thread','thread_id'=>$queuedThread['id'],'version'=>$queuedThread['version'],'operation'=>'purge']);
+audienceHttpExpect($singleDeleted['status']===302&&!$ib->one('SELECT id FROM marketing_inbox_threads WHERE audience_id=1 AND id=?',[$queuedThread['id']])&&$ib->one('SELECT id FROM marketing_inbox_delivery_events WHERE service_mail_id=?',[$job['id']])&&$ib->one('SELECT payload_ciphertext FROM marketing_service_mail WHERE id=?',[$job['id']])['payload_ciphertext']==='','Single purge keeps delivery receipts but erases frozen mail content');
+// The later restricted-ingest suite needs an active route for this sender.
+$ib->inboxReplyRoute('thread',$tid);
+session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);session_write_close();
 echo 'Inbox HTTP/storage qualification passed ('.($checks-$inboxStart)." checks); no external messages sent.\n";

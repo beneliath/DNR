@@ -14,7 +14,7 @@ function aiCoachRecordRequest(mysqli $conn, array $request, int $userId, bool &$
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
             $userId, $request['role'], $request['page'], $request['step'], $request['question'],
             json_encode($request['history'], JSON_THROW_ON_ERROR), $request['topic'],
-            mb_substr(getenv('DNR_AI_COACH_MODEL') ?: 'qwen3:8b', 0, 100), applicationVersion(), $revision, $request['request_id'] ?: null,
+            mb_substr(getenv('DNR_AI_COACH_MODEL') ?: 'qwen3.5:9b-q4_K_M', 0, 100), applicationVersion(), $revision, $request['request_id'] ?: null,
             json_encode($request['ui'] ?? [], JSON_THROW_ON_ERROR),
         ]);
         $created = true;

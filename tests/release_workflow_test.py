@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import io
+from contextlib import nullcontext
 import json
 from pathlib import Path
 import subprocess
@@ -291,7 +292,8 @@ class ReleaseWorkflow(unittest.TestCase):
             self.assertEqual((root/'VERSION').read_text(),'1.11.6\n')
 
 class DeploymentBackupGate(unittest.TestCase):
-    def exercise(self, backup_fails, seed_fails=False, photo_fails=False, qr_fails=False):
+    def exercise(self, backup_fails, seed_fails=False, photo_fails=False, qr_fails=False, guard_fails=False,
+                 complete_release=False, withdraw_fails=False):
         import datetime, hashlib, os
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'.git').mkdir()
@@ -328,11 +330,14 @@ class DeploymentBackupGate(unittest.TestCase):
                     return '2026-09-05T15:51:40+02:00'
                 if args[:2]==['docker','inspect']:
                     return json.dumps([dict(Id='image-id',Image='image-id',Config={'Env':[], 'Image':'mysql:8.4@sha256:'+'e'*64,'Labels':{'org.opencontainers.image.revision':expected}},State={'Health':{'Status':'healthy'}})])
+                if args[:2] == ['docker', 'exec'] and args[-1] == '/opt/dnr/VERSION': return '1.11.7'
+                if args[0] == 'curl':
+                    return json.dumps({'status': 'ready' if args[-1].endswith('/ready.php') else 'ok', 'version': '1.11.7'})
                 if args[:3]==['sh','scripts/compose_with_provenance.sh','production-ubuntu-proton-mattermost']:
                     self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]
                     if args[3]=='stop': self.assertGreaterEqual(clock[0],1480.0)
-                    if args[3:5]==['run','--rm']:
+                    if args[3:5]==['run','--rm'] and not complete_release:
                         if not seed_fails and not photo_fails and not qr_fails: raise ValueError('synthetic migration failure')
                         if args[-1] == '/opt/dnr/bin/optimize_existing_photos.php':
                             self.assertIn(['backup'], events)
@@ -355,14 +360,51 @@ class DeploymentBackupGate(unittest.TestCase):
                 return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True}
             cwd=Path.cwd()
             try:
-                with patch.object(deploy_release_host,'require_encrypted_upload_storage',return_value={'encryption':'dm-crypt'}), patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), self.assertRaisesRegex(ValueError,'synthetic'):
+                with patch.object(deploy_release_host, 'account_release_configuration', return_value={'config': {'primary_key': 'primary-account', 'origin': 'https://example.test'}}), \
+                        patch.object(deploy_release_host, 'active_account_worker', return_value=None), \
+                        patch.object(deploy_release_host, 'discover_members', return_value=[]), \
+                        patch.object(deploy_release_host, 'reload_account_operators'), \
+                        patch.object(deploy_release_host, 'public_login_available', side_effect=lambda url, options=(): events.append(['login-probe' if options else 'public-login']) or clock[0] + 1), \
+                        patch.object(deploy_release_host, 'DeploymentGuard') as guard, \
+                        patch.object(deploy_release_host,'require_encrypted_upload_storage',return_value={'encryption':'dm-crypt'}), patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), \
+                        (nullcontext() if complete_release and not withdraw_fails else self.assertRaisesRegex(ValueError,'synthetic')):
+                    guard.return_value.start.side_effect = ValueError('synthetic guard failure') if guard_fails else lambda: events.append(['maintenance-protected'])
+                    guard.return_value.name = 'fixture-maintenance'
+                    guard.return_value.marker = root / 'var/deployment/fixture.draining'
+                    guard.return_value.probe_options = ['--header', 'X-DNR-Deployment-Probe: fixture']
+                    guard.return_value.withdraw.side_effect = ValueError('synthetic handoff failure') if withdraw_fails else lambda: events.append(['guard-withdrawn'])
+                    guard.return_value.remove.side_effect = lambda: events.append(['guard-removed', notice.read()['phase']])
                     deploy_release_host.main()
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
+                if complete_release and not withdraw_fails:
+                    self.assertEqual(record['outcome'], 'success')
+                    self.assertEqual(notice.read()['phase'], 'complete')
+                    self.assertEqual(record['all_accounts_login_available_at'], clock[0] + 1)
+                    self.assertLess(events.index(['guard-withdrawn']), events.index(['public-login']))
+                    self.assertLess(events.index(['public-login']), events.index(['guard-removed', 'complete']))
+                    guard.return_value.protect.assert_not_called()
+                    return
                 self.assertEqual(record['outcome'],'failed')
                 self.assertEqual(clock[0],1480.0, 'Give a full five-minute window after host preflight')
                 self.assertEqual(notice.read()['phase'],'failed')
+                if withdraw_fails:
+                    self.assertEqual(record['phase'], 'restoring-public-routes')
+                    self.assertNotIn(['public-login'], events)
+                    guard.return_value.protect.assert_called_once()
+                    guard.return_value.remove.assert_not_called()
+                    return
+                if guard_fails:
+                    self.assertNotIn(['backup'], events)
+                    self.assertFalse(any('stop' in event for event in events))
+                    guard.return_value.withdraw.assert_not_called()
+                    self.assertEqual(record['phase'], 'protecting-public-routes')
+                    return
                 merge=[i for i,event in enumerate(events) if event[:2]==['git','merge']]
                 backup_index=events.index(['backup'])
+                self.assertLess(events.index(['maintenance-protected']), backup_index)
+                guard.return_value.protect.assert_called_once()
+                guard.return_value.withdraw.assert_not_called()
+                guard.return_value.remove.assert_not_called()
                 if backup_fails:
                     self.assertFalse(merge)
                     self.assertEqual(record['phase'],'backing-up')
@@ -374,6 +416,9 @@ class DeploymentBackupGate(unittest.TestCase):
                 self.assertIn('stop',events[-1], 'Failure must leave writers paused')
             finally: os.chdir(cwd)
     def test_backup_failure_prevents_checkout_and_database_upgrade(self): self.exercise(True)
+    def test_missing_maintenance_route_never_stops_writers(self): self.exercise(False, guard_fails=True)
+    def test_success_drains_routes_before_recording_login_and_releasing_browsers(self): self.exercise(False, complete_release=True)
+    def test_failed_handoff_reactivates_maintenance_and_never_announces_completion(self): self.exercise(False, complete_release=True, withdraw_fails=True)
     def test_migration_failure_retains_verified_recovery_record(self): self.exercise(False)
     def test_speaker_import_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, True)
     def test_photo_optimization_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, photo_fails=True)

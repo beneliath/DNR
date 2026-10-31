@@ -80,8 +80,11 @@ trait AudienceAiPlanning
         if(($route['context']??'')==='continuation'&&$state['queries'])$payload['tools']=array_values(array_filter($payload['tools'],static fn($tool)=>in_array($tool['function']['name'],['edit_audience_query','edit_report_query','ask_clarification'],true)));
         if(($route['context']??'')==='new_topic')$payload['tools']=array_values(array_filter($payload['tools'],static fn($tool)=>!in_array($tool['function']['name'],['edit_audience_query','edit_report_query'],true)));
         $payload['messages'][0]['content'].=' Keep saved audience fields separate from aggregate report metrics. For follow-ups use edit_audience_query or edit_report_query with the saved base_query index; omit unchanged arguments. New independent questions use the ordinary data tools. Recorded/filled/present means is_not_empty, missing/blank means is_empty: these catalog operators need no clarification. Report dates default to the selected range; a count of recent campaigns needs no additional cutoff. Ask clarification only for genuinely undefined criteria/references or unavailable measures, and name the actual missing requirement. If a question needs clarification, you may also specify its already-known conditions with a data tool: this is only a draft, and no query will execute until clarification is resolved. Never drop conditions stated before a clarification.';
-        $payload['messages'][0]['content'].=' A general request to improve email performance is executable without clarification: retrieve open_rate, click_rate and bounce_rate from email_campaign_report with the selected scope, unless the user requested a different period or specific measure. Improvement advice must be grounded in that report. Select the data tools now; do not answer with a generic essay.';
+        $payload['messages'][0]['content'].=' A general request to improve email performance is executable without clarification: retrieve open_rate, click_rate and bounce_rate from email_campaign_report with the selected scope, unless the user requested a different period or specific measure. Improvement advice must be grounded in that report. Select the data tools now; do not answer with a generic essay. Most common or most frequent field value means rank grouped values by their occurrence counts: use group_audience_values, not count_audience_contacts. No count-versus-percentage clarification is needed for that ranking.';
         $payload['messages'][0]['content'].=' The catalog has no industry/competitor benchmarks, similar-content matching, or historical per-campaign averages. Do not offer these as clarification choices. When one is requested, explain the missing capability and offer supported individual campaign metrics instead. Selected-period totals and rates are not historical campaign averages. Never invent a date range or replace the original campaign selection to manufacture a benchmark.';
+        $payload['messages'][0]['content'].=' A postal-address US state is available through the matching address field ending in :us_state. For a count of people in a named US state, count audience records with an eq filter on that field. Do not substitute a count of all addresses or say state data is absent.';
+        $payload['messages'][0]['content'].=' A postal-address country is available through the matching address field ending in :country. For a count of people in a named country, count audience records with an eq filter on that field. Do not use email-engagement geography as the contact address country.';
+        $payload['messages'][0]['content'].=' For saved postal addresses in Africa, use an eq filter on the address field ending in :continent. That filter groups explicitly recorded countries by the UN M49 Africa region. Do not interpret it as email-engagement geography.';
         $payload['messages']=audienceAiDialogueMessages($payload['messages'][0]['content'],['fields'=>$this->catalog(),'reports'=>$this->toolSpecification()['reports'],'metrics'=>$this->metricCatalog(),'selected_report_scope'=>array_intersect_key($this->window,array_flip(['start','end','compare','dataset'])),'conversation'=>$this->publicState($state),'turn_changes'=>$route,'correction'=>$correction,'question'=>$question]);
         if($structured){
             $choices=[];
@@ -110,7 +113,8 @@ trait AudienceAiPlanning
         $payload=$this->dialoguePayload(['needed'=>['type'=>'boolean'],'conditions'=>$conditions,'explanation'=>['type'=>'string','maxLength'=>250]],
             'Resolve ONLY the proposed clarification. Is the information actually missing from the user conversation? Return needed=false when the user already supplied the answer, or the question merely seeks confirmation of an explicit value/condition. When needed=false, translate that answer into exact catalog conditions (audience) or report_metrics (reports). Each condition needs a literal value_quote from a USER turn that supplies its value. Assistant examples and proposed clarification examples are NOT user definitions. Never invent a cutoff for a vague duration. Return only the condition being clarified, not unrelated conditions. A rate, percentage, proportion, ratio or share specifies a relative measurement, not an absolute count. Return needed=true with no invented resolution only if a definition, reference or unsupported measure genuinely needs more input. Do not answer the underlying data question.',
             ['fields'=>$type==='report'?[]:$this->catalog(),'verified_metrics'=>$type==='report'?array_intersect_key($this->metricCatalog(),array_flip($metrics)):[],'conversation'=>$state['turns'],'proposed_clarification'=>$clarification,'question'=>$question],1500);
-        $payload['think']=true;
+        $payload['think']=aiCoachNeedsReasoning([]);
+        if (!$payload['think']) $payload['options']['num_predict']=700;
         return $payload;
     }
 
@@ -196,7 +200,7 @@ trait AudienceAiPlanning
 
     private function dialoguePayload(array $schema,string $instructions,array $context,int $tokens):array
     {
-        return ['model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3:8b','stream'=>false,'think'=>false,'keep_alive'=>'30m',
+        return ['model'=>getenv('DNR_AI_COACH_MODEL')?:'qwen3.5:9b-q4_K_M','stream'=>false,'think'=>false,'keep_alive'=>'30m',
             'format'=>['type'=>'object','additionalProperties'=>false,'properties'=>$schema,'required'=>array_keys($schema)],
             'options'=>['temperature'=>0,'num_ctx'=>8192,'num_predict'=>$tokens],
             'messages'=>audienceAiDialogueMessages($instructions,$context)];
@@ -287,19 +291,19 @@ trait AudienceAiPlanning
             ],'Determine the report measurements requested by the FINAL user message, then verify the proposed population, dates and grouping. Choose the smallest set of catalog metrics that directly answers that message. For a rate, share, fraction, proportion or percentage choose its percentage metric alone, not absolute counts or other rates. Use the catalog formula to distinguish ratios with different denominators. Do not include a ratio\'s ingredients as extra outputs. A follow-up can reuse campaigns without reusing earlier output columns: replace the measurements when a new measure is requested, unless the user explicitly asks to show them together. Preserve previous measurements if only the population, period or grouping changes. The proposed plan intentionally omits metrics; you choose them independently. Explicit dates, durations, recent-campaign counts and catalog measurements require no clarification. The selected report window is the default when no other period is requested. General email-performance improvement advice needs no clarification: use open_rate, click_rate and bounce_rate in the selected scope. Ask a specific clarification in unresolved only for an actually undefined criterion/reference or unavailable measurement; quote that phrase exactly from a user turn. Never substitute engagement for financial measures or invent benchmarks. Industry/competitor benchmarks, similarity matching and historical per-campaign averages are unavailable; selected-period rates are not historical campaign averages. Identify these with unresolved.unavailable_capability=external_benchmarks, similar_campaigns or historical_campaign_averages, respectively; use none for other missing requirements. The question must be a complete helpful sentence, never just the quoted phrase. For these requests explain the limitation and offer supported individual campaign metrics, rather than asking the user to choose an unavailable benchmark. Unsupported measures have report_metrics=[]. A clear request has unresolved=[]. valid checks population/scope/grouping, not the unshown draft metrics. conditions is always empty. Do not retrieve or invent results.',
                 ['metrics'=>$metrics,'report_capabilities'=>array_intersect_key($catalog,array_flip($datasets)),'selected_report_scope'=>array_intersect_key($this->window,array_flip(['start','end','dataset'])),'conversation'=>$this->publicState($state),'proposed'=>$proposed,'question'=>$question],2000);
             if(!$metrics)$payload['messages'][0]['content'].=' This report dimension has fixed native observations. Return report_metrics=[]; no measurement override is needed to retrieve those observations.';
-            // Count-only catalogs need no ratio/denominator reasoning, but still
-            // use the independent plan review and all its typed validation gates.
-            // Preserve extended reasoning whenever any available metric is derived.
-            $derived = array_filter($metrics, static fn($metric) => isset($metric['calculation']) || $metric['unit'] !== 'count');
-            if ($derived) $payload['think'] = true;
-            else $payload['options']['num_predict'] = 700;
+            // The independent typed review still runs when extra model reasoning
+            // is disabled. Keep its output budget bounded on the default path.
+            $payload['think']=aiCoachNeedsReasoning([]);
+            if (!$payload['think']) $payload['options']['num_predict']=700;
             return $payload;
         }
         $payload=$this->dialoguePayload(['unresolved'=>$unresolved,'conditions'=>$conditions,'report_metrics'=>$reportMetrics,'result_type'=>['type'=>'string','enum'=>$reportOnly?['report','multiple']:['contacts','count','frequency','sum','average','report','multiple']],'assessment'=>['type'=>'string','maxLength'=>500],'valid'=>['type'=>'boolean'],'correction'=>['type'=>'string','maxLength'=>500]],
             'Review the proposed plan before any data is read. First identify undefined qualifiers in the CURRENT request, including inherited conditions for a continuation. Use conversation definitions already supplied by the user; do not reopen resolved ambiguities or import conditions from an unrelated topic. In unresolved, quote an undefined phrase exactly from a user question and ask a specific question about its missing criterion. Do not merely repeat the user question. Undefined qualities, membership tiers, vague duration, success or locality must not be mapped to subscription status or invented cutoffs. Unsupported measures require asking which available measure to use. Otherwise unresolved is empty. Catalog fields, presence/absence operators, explicit durations and latest-campaign counts are already defined and require no clarification. The selected report scope is a valid default. Next independently enumerate ALL required audience filters in conditions, including unchanged conditions after clarification. Do not copy missing or invented filters from the proposal. Displayed/grouped columns are not population filters; grouping already excludes blank group values. Report conditions are empty. result_type specifies the desired eventual data output even if a criterion is unresolved: contacts for records, count for how many, frequency for grouped counts, report for campaign/aggregate measures. Preserve the previous output type when the user only changes a condition. Check output, filters, metrics, scope and limits. If the plan is correct, valid=true and correction empty; otherwise give the precise correction. A proposed clarification is valid only if unresolved identifies a real missing requirement. Evaluate the plan, not whether results have already been retrieved.',
             ['fields'=>$reportOnly?[]:$this->catalog(),'reports'=>$reportOnly?$this->toolSpecification()['reports']:[],'metrics'=>$reportOnly?$this->metricCatalog():[],'selected_report_scope'=>array_intersect_key($this->window,array_flip(['start','end','dataset'])),'conversation'=>$this->publicState($state),'proposed'=>$proposed,'question'=>$question],2000);
-        $payload['think']=true;
-        $payload['messages'][0]['content'].=' A general request to improve email performance requires no clarification: retrieve open_rate, click_rate and bounce_rate for the selected report scope. If the proposed plan asks which metric, mark it invalid and give that correction with unresolved=[]. Keep reasoning concise. For reports, proposed queries describe population and scope only; independently select report_metrics from the catalog based on the current question. Counts and percentages are different measurements: shares, ratios and percentages require the corresponding percentage metric. Return directly requested measurements, not the ingredients used to calculate them. A follow-up can retain the campaign population without retaining its previous output columns. If the current question names a new measurement, select only that measurement; include earlier measurements only when the user explicitly requests them together. Preserve earlier metrics when only scope or grouping changes. For other requests report_metrics is empty.';
+        $payload['think']=aiCoachNeedsReasoning([]);
+        if (!$payload['think']) $payload['options']['num_predict']=700;
+        $payload['messages'][0]['content'].=' A general request to improve email performance requires no clarification: retrieve open_rate, click_rate and bounce_rate for the selected report scope. If the proposed plan asks which metric, mark it invalid and give that correction with unresolved=[]. Keep reasoning concise. Most common or most frequent field value requires a grouped frequency result ranked by occurrence count, never a scalar count of all records; raw count versus percentage share does not require clarification. For reports, proposed queries describe population and scope only; independently select report_metrics from the catalog based on the current question. Counts and percentages are different measurements: shares, ratios and percentages require the corresponding percentage metric. Return directly requested measurements, not the ingredients used to calculate them. A follow-up can retain the campaign population without retaining its previous output columns. If the current question names a new measurement, select only that measurement; include earlier measurements only when the user explicitly requests them together. Preserve earlier metrics when only scope or grouping changes. For other requests report_metrics is empty.';
+        $payload['messages'][0]['content'].=' When a postal-address US-state field exists, a named state can be used as an eq filter; review the filter rather than declaring the address state unavailable. A whole-address presence filter cannot answer a state-specific question.';
         return $payload;
     }
 
@@ -356,9 +360,141 @@ function audienceAiAudienceResult(array $evidence):array
     return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'data-only','summary'=>implode(' ',$summary),'observations'=>$observations,'recommendations'=>[],'evidence'=>$evidence,'message'=>'Query results ready','reason'=>'','sources'=>[],'question'=>''];
 }
 
+/** A word puzzle is never a request for saved audience or campaign measurements. */
+function audienceAiClearlyUnrelated(string $question):bool
+{
+    $text=aiCoachNormalize($question);
+    if (preg_match('/\b(contacts?|campaigns?|emails?|messages?|audience|forms?|flows?|subjects?|newsletters?|recipients?)\b/', $text)) return false;
+    return (bool)(preg_match('/\b(how many|count|number of)\b.{0,100}\b(letters?|characters?|in (the )?word)\b/', $text)
+        || preg_match('/\bhow many\s+[a-z](?:\s+s)?\s+(?:are\s+)?in\s+(?:the\s+word\s+)?[a-z]{2,}\b/', $text));
+}
+
+function audienceAiUnavailableCampaignRevenue(string $question):bool
+{
+    $text=aiCoachNormalize($question);
+    if (!preg_match('/\b(campaigns?|emails?|messages?)\b/', $text)
+        || preg_match('/\b(contacts?|addresses?|domains?|subscribers?)\b/', $text)) return false;
+    return (bool)(preg_match('/\b(revenue|profit|roi)\s+(?:from|for|of|generated|attributed|earned|produced|by)\b|\b(?:campaign|email|message)\s+(?:revenue|profit|roi)\b|\b(?:total|amount of|how much)\s+(?:the\s+)?(?:revenue|profit)\b|\breturn on investment\b/', $text)
+        || preg_match('/\b(sales|orders|purchases)\s+(?:from|for|of|generated|attributed|by)\b|\b(?:how many|how much|total|number of)\s+(?:sales|orders|purchases)\b|\b(?:campaign|email|message)\s+(?:sales|orders|purchases)\b/', $text));
+}
+
+/** Unqualified top-name questions have an exact, read-only grouped interpretation. */
+function audienceAiSimpleTopNameField(string $question,array $state):?string
+{
+    $text=aiCoachNormalize($question);
+    if ($text==='total occurrences') {
+        $turns=$state['turns']??[];
+        $text=aiCoachNormalize((string)($turns[array_key_last($turns)]['question']??''));
+    }
+    $audience='(?:in|among) (?:the|my|our) (?:audience|contacts)';
+    if (preg_match('/^(?:what|which) is the (?:most common|most frequent) (last name|first name|surname) '.$audience.'$/',$text,$match)
+        || preg_match('/^(?:what|which) is the (last name|first name|surname) with the (?:largest|highest|most) (?:total )?(?:occurrences|frequency) '.$audience.'$/',$text,$match))
+        return $match[1]==='first name'?'first_name':'last_name';
+    return null;
+}
+
+/** A simple US-state address count is answerable from the validated address filter. */
+function audienceAiSimpleAddressStateCount(string $question,array $catalog):?array
+{
+    $text=aiCoachNormalize($question);
+    if (!preg_match('/^how many (?:of the )?(?:audience|contacts|connections) have (?:an? )?addresses? (?:in|for (?:the )?state of) ([a-z ]+)$/',$text,$match)
+        && !preg_match('/^how many (?:of the )?(?:audience|contacts|connections) have an? ([a-z ]+) address$/',$text,$match)) return null;
+    $code=normalizeAddressRegion('US',$match[1]);
+    if (!is_string($code)||!isset(addressRegionChoices('US')[$code])) return null;
+    $fields=array_keys(array_filter($catalog,static fn($item,$key)=>($item['type']??'')==='region'&&str_ends_with((string)$key,':us_state'),ARRAY_FILTER_USE_BOTH));
+    if (count($fields)!==1) return null;
+    return ['field'=>$fields[0],'code'=>$code,'name'=>addressRegionName('US',$code)];
+}
+
+/** A named country can be counted from the saved address without model planning. */
+function audienceAiSimpleAddressCountryCount(string $question,array $catalog):?array
+{
+    $text=aiCoachNormalize($question);
+    if (!preg_match('/^how many (?:of the )?(?:audience|contacts|connections) (?:are|live) in ([a-z .-]+)$/',$text,$match)
+        && !preg_match('/^how many (?:of the )?(?:audience|contacts|connections) have (?:an? )?addresses? in ([a-z .-]+)$/',$text,$match)) return null;
+    $code=normalizeAddressCountryCode($match[1]);
+    if (!is_string($code)||!isset(addressCountryChoices()[$code])) return null;
+    $fields=array_keys(array_filter($catalog,static fn($item,$key)=>($item['type']??'')==='country'&&str_ends_with((string)$key,':country'),ARRAY_FILTER_USE_BOTH));
+    if (count($fields)!==1) return null;
+    return ['field'=>$fields[0],'code'=>$code,'name'=>addressCountryName($code)];
+}
+
+/** Africa is a supported grouping of explicitly saved address countries. */
+function audienceAiSimpleAddressContinentCount(string $question,array $catalog):?array
+{
+    $text=aiCoachNormalize($question);
+    if (!preg_match('/^how many (?:of the )?(?:audience|contacts|connections) (?:are|live) in africa$/',$text)
+        && !preg_match('/^how many (?:of the )?(?:audience|contacts|connections) have (?:an? )?addresses? in africa$/',$text)) return null;
+    $fields=array_keys(array_filter($catalog,static fn($item,$key)=>($item['type']??'')==='continent'&&str_ends_with((string)$key,':continent'),ARRAY_FILTER_USE_BOTH));
+    if (count($fields)!==1) return null;
+    return ['field'=>$fields[0],'name'=>'Africa'];
+}
+
 function audienceAiDialogueGenerate(array $request,AudienceAiQueries $queries,float $deadline,?callable $cancelled,callable $transport,string $base):array
 {
     $state=audienceAiDialogueState($request['previous_context']??[]);$calls=0;$telemetry=[];$correction='';$plan=null;$approved=false;
+    if (audienceAiClearlyUnrelated($request['prompt']) || audienceAiUnavailableCampaignRevenue($request['prompt'])) {
+        $reply=audienceAiInformationReply('unsupported',$request['analysis_scope'],$request['display_timezone']??'UTC');
+        if (audienceAiUnavailableCampaignRevenue($request['prompt']))
+            $reply['summary']='MessageMonkey campaign reports do not include revenue or sales. I can show recorded sending, delivery, opens, and clicks.';
+        $state['turns'][]=['question'=>$request['prompt'],'response'=>$reply['summary']];
+        $state['turns']=array_slice($state['turns'],-6);
+        return array_replace($reply,['conversation_state'=>$state,'telemetry'=>['route'=>'audience-ai','model_calls'=>0,'steps'=>[]]]);
+    }
+    if ($field=audienceAiSimpleTopNameField($request['prompt'],$state)) {
+        $selected=$queries->validate(['queries'=>[['tool'=>'frequency','field'=>$field,'search'=>'','filters'=>[],'limit'=>1]]]);
+        $evidence=$queries->execute(['queries'=>$selected],$cancelled);
+        $reply=audienceAiAudienceResult($evidence);
+        $top=array_values(array_filter($evidence['facts'],static fn($fact)=>(bool)preg_match('/^query_0_value_[0-9]+$/D',$fact['id'])));
+        $name=$field==='last_name'?'last name':'first name';
+        if (!$top) $reply['summary']='No audience contacts have a recorded '.$name.'.';
+        elseif (count($top)>1) $reply['summary']='The most common '.$name.' is tied among the names shown below, with '.audienceAiFindingNumber($top[0]['value']).' occurrences each.';
+        else $reply['summary']='The most common '.$name.' is '.mb_substr((string)$top[0]['source_value'],0,120).', with '.audienceAiFindingNumber($top[0]['value']).' occurrences.';
+        $state['turns'][]=['question'=>$request['prompt'],'response'=>$reply['summary']];
+        $state['turns']=array_slice($state['turns'],-6);
+        $state['queries']=$selected;
+        return array_replace($reply,['conversation_state'=>$state,'telemetry'=>['route'=>'audience-ai','model_calls'=>0,'steps'=>[]]]);
+    }
+    if ($region=audienceAiSimpleAddressStateCount($request['prompt'],$queries->catalog())) {
+        $selected=$queries->validate(['queries'=>[['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>$region['field'],'operator'=>'eq','value'=>$region['code']]],'limit'=>5]]]);
+        $evidence=$queries->execute(['queries'=>$selected],$cancelled);
+        $count=$evidence['facts'][0]['value'];
+        $evidence['facts'][0]['label']='Contacts with an address in '.$region['name'];
+        $evidence['calculations']['address_state']='Structured addresses use the saved US state component. Imported one-line addresses are matched only when the state is directly followed by a ZIP code.';
+        $evidence['limitations'][]='Imported addresses without a recognizable state and ZIP code are excluded from this state count.';
+        $reply=audienceAiAudienceResult($evidence);
+        $reply['summary']=audienceAiFindingNumber($count).' current audience contacts have a saved address identified as '.$region['name'].'.';
+        $state['turns'][]=['question'=>$request['prompt'],'response'=>$reply['summary']];
+        $state['turns']=array_slice($state['turns'],-6);
+        $state['queries']=$selected;
+        return array_replace($reply,['conversation_state'=>$state,'telemetry'=>['route'=>'audience-ai','model_calls'=>0,'steps'=>[]]]);
+    }
+    if ($country=audienceAiSimpleAddressCountryCount($request['prompt'],$queries->catalog())) {
+        $selected=$queries->validate(['queries'=>[['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>$country['field'],'operator'=>'eq','value'=>$country['code']]],'limit'=>5]]]);
+        $evidence=$queries->execute(['queries'=>$selected],$cancelled);
+        $count=$evidence['facts'][0]['value'];
+        $evidence['facts'][0]['label']='Contacts with an address in '.$country['name'];
+        $evidence['calculations']['address_country']='Structured addresses use the saved country component. Imported addresses match only when an explicit country name or code appears at the end.';
+        $reply=audienceAiAudienceResult($evidence);
+        $reply['summary']=audienceAiFindingNumber($count).' current audience contacts have a saved address identified as '.$country['name'].'.';
+        $state['turns'][]=['question'=>$request['prompt'],'response'=>$reply['summary']];
+        $state['turns']=array_slice($state['turns'],-6);
+        $state['queries']=$selected;
+        return array_replace($reply,['conversation_state'=>$state,'telemetry'=>['route'=>'audience-ai','model_calls'=>0,'steps'=>[]]]);
+    }
+    if ($continent=audienceAiSimpleAddressContinentCount($request['prompt'],$queries->catalog())) {
+        $selected=$queries->validate(['queries'=>[['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>$continent['field'],'operator'=>'eq','value'=>$continent['name']]],'limit'=>5]]]);
+        $evidence=$queries->execute(['queries'=>$selected],$cancelled);
+        $count=$evidence['facts'][0]['value'];
+        $evidence['facts'][0]['label']='Contacts with an address in '.$continent['name'];
+        $evidence['calculations']['address_continent']='Saved address countries are grouped using the UN M49 Africa region. Imported addresses match only when an explicit country name or code appears at the end.';
+        $reply=audienceAiAudienceResult($evidence);
+        $reply['summary']=audienceAiFindingNumber($count).' current audience contacts have a saved address identified as being in '.$continent['name'].'.';
+        $state['turns'][]=['question'=>$request['prompt'],'response'=>$reply['summary']];
+        $state['turns']=array_slice($state['turns'],-6);
+        $state['queries']=$selected;
+        return array_replace($reply,['conversation_state'=>$state,'telemetry'=>['route'=>'audience-ai','model_calls'=>0,'steps'=>[]]]);
+    }
     $call=static function(array $payload,int $reserve=0,bool $decode=true)use($transport,$base,$deadline,$cancelled,&$calls,&$telemetry):array{
         $metrics=[];$calls++;$raw=$transport($base,$payload,$deadline-$reserve,$cancelled,$metrics);$telemetry[]=$metrics;return $decode?aiCoachDecodeObject($raw):$raw;
     };

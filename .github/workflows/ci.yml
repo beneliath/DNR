@@ -290,6 +290,8 @@ jobs:
         run: sh scripts/build_release_images.sh
       - name: Verify deployment notices survive application downtime
         run: sh tests/deployment_notice_ingress_test.sh "$(cat release/ingress.digest)"
+      - name: Verify maintenance survives public route replacement
+        run: python3 tests/deployment_guard_integration_test.py --image "$(cat release/ingress.digest)"
       - name: Scan images and retain software inventories
         run: sh scripts/scan_release_images.sh
       - name: Build plugin artifact

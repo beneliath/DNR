@@ -25,7 +25,7 @@ function page(fetcher, mode='content', options={}){
     FormData:class{constructor(){return [['text',form.elements.text.value],['prompt',form.elements.prompt.value],['operation',mode==='analytics'?'analyze':'rewrite']][Symbol.iterator]();}},
     crypto:{randomUUID:()=> `01234567-1234-1234-1234-${String(++sequence).padStart(12,'0')}`},sessionStorage:{getItem:()=>saved,setItem:(_,value)=>{saved=value;},removeItem:()=>{saved=null;}},
     localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},window:{addEventListener(){},DnrAdminUnlock:options.omitUnlock?undefined:{request:async()=>{unlockRequests++;return options.unlock?options.unlock():true;}}},Event:class{constructor(type){this.type=type;}},
-    AbortController,setTimeout:()=>1,clearTimeout(){},console,
+    AbortController,setTimeout:()=>1,clearTimeout(){},navigator:{clipboard:options.clipboard},console,
     fetch:async(url,requestOptions)=>{requests.push({url,options:requestOptions});return {ok:true,json:()=>url.endsWith('?action=history')?{items:options.historyItems||[],can_remove_history:options.canRemoveHistory!==false}:fetcher(url,requestOptions)};}};
   runInNewContext(source,context);
   return {find,requests,unlockRequests:()=>unlockRequests,localStorage:storage,storage:()=>saved,submit:()=>form.listeners.submit({preventDefault(){}})};
@@ -78,6 +78,7 @@ const reportWindow={start:'2026-01-01',end:'2026-01-31',compare:'previous',bots:
 const analyticsReply={purpose:'audience-ai',reason:'',mode:'analytics',summary:'Observed results',recommendations:[],observations:[{evidence_id:'accepted',text:'Sending volume changed.'}],evidence:{window:reportWindow,series:[],facts:[{id:'accepted',label:'Accepted messages',value:7,previous:4,change:75,unit:'count'}],includes_samples:false,calculations:{},limitations:[]}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const textOf=element=>[element.textContent,...element.children.map(textOf)].join(' ');
+const removeAction=entry=>entry.children.find(child=>child.className==='ai-history-remove');
 
 test('informational analytics answers do not pretend to be a sourced report',async()=>{
   const p=page(()=>({state:'complete',response:{...analyticsReply,interpretation:'information',summary:'Hello! Ask about your contacts.'}}),'analytics',{chat:true,window:reportWindow});
@@ -112,6 +113,51 @@ test('chat shows working animation immediately, then preserves follow-up turns a
   const firstCard=transcript.children[1].children.find(child=>child.children.some(item=>item.id));
   const secondCard=transcript.children[3].children.find(child=>child.children.some(item=>item.id));
   assert.notEqual(firstCard.children[0].id,secondCard.children[0].id);
+});
+
+test('a prior prompt can be copied without changing the current draft',async()=>{
+  const copied=[];
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',{chat:true,window:reportWindow,clipboard:{writeText:async text=>copied.push(text)}});
+  p.find('[data-ai-form]').elements.prompt.value='How many connections are in Florida?';
+  await p.submit();
+  p.find('[data-ai-form]').elements.prompt.value='What about Texas?';
+  await p.submit();
+  p.find('[data-ai-form]').elements.prompt.value='Unsaved draft';
+  const firstQuestion=p.find('[data-ai-chat-transcript]').children[0];
+  const copy=firstQuestion.children.find(child=>child.tagName==='button');
+  assert.equal(copy.children[0].tagName,'svg');
+  assert.match(copy.attributes['aria-label'],/^Copy prompt:/);
+  await copy.listeners.click();
+  assert.deepEqual(copied,['How many connections are in Florida?']);
+  assert.equal(copy.attributes['aria-label'],'Prompt copied');
+  assert.equal(p.find('[data-ai-form]').elements.prompt.value,'Unsaved draft');
+});
+
+test('recent history keeps its prompt and timestamp without a copy action',async()=>{
+  const saved={client_request_id:'saved-prompt',question:'How many connections are in Germany?',manual_topic:'audience-ai:analytics',outcome:'complete',created_at:'2026-10-30 20:03:29.000000'};
+  const p=page(()=>({state:'complete',response:analyticsReply}),'analytics',{chat:true,window:reportWindow,historyItems:[saved]});
+  await tick();
+  const entry=p.find('[data-ai-history]').children[0];
+  assert.equal(entry.children[0].className,'ai-history-open');
+  assert.equal(entry.children.some(child=>child.className?.includes('ai-history-copy')),false);
+  assert.match(textOf(entry.children[0]),/How many connections are in Germany\?.*2026-10-30 20:03:29 UTC/);
+});
+
+test('a saved count source opens its matching connections instead of linking back to the count card',async()=>{
+  const response={...analyticsReply,summary:'Two contacts match.',observations:[{evidence_id:'query_0_result',text:'Two contacts match.'}],
+    evidence:{...analyticsReply.evidence,facts:[{id:'query_0_result',label:'Contacts with an address in California',value:2,previous:null,change:null,unit:'count'}],
+      queries:[{tool:'count',field:'',search:'',filters:[{field:'custom:9:us_state',operator:'eq',value:'CA'}],limit:5}]}};
+  const p=page(url=>url.includes('action=contacts')?{table:{id:'query_0_result',title:'Matching audience records',columns:[{key:'first_name',label:'First name'},{key:'email',label:'Email address'}],rows:[{first_name:'John',email:'john@example.test'},{first_name:'Jane',email:'jane@example.test'}],total:2,next_offset:null}}:{state:'complete',response},'analytics',{chat:true,window:reportWindow});
+  await p.submit();
+  const answer=p.find('[data-ai-chat-transcript]').children[1];
+  const citation=answer.children.find(child=>child.tagName==='p'&&child.children.some(item=>item.tagName==='a'));
+  const link=citation.children.find(child=>child.tagName==='a');
+  assert.equal(link.textContent,'View matching connections');
+  link.listeners.click({preventDefault(){}});await tick();
+  const panel=answer.children.find(child=>child.tagName==='section'&&child.className==='analytics-ai-source-contacts');
+  assert.equal(panel.hidden,false);
+  assert.match(textOf(panel),/Showing 2 of 2.*John.*john@example\.test.*Jane/);
+  assert.ok(p.requests.some(request=>request.url.includes('action=contacts')&&request.url.includes('table_id=query_0_result')));
 });
 
 test('stopping chat immediately shows a stopped card with Retry and ignores late answers',async()=>{
@@ -193,7 +239,7 @@ test('circle-X permanently deletes only the confirmed response without admin unl
     {client_request_id:'second',question:'Second request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
   ],omitUnlock:true};
   const p=page(()=>({deleted:true}),'analytics',options);await tick();
-  const remove=p.find('[data-ai-history]').children[0].children[1];
+  const remove=removeAction(p.find('[data-ai-history]').children[0]);
   assert.equal(remove.className,'ai-history-remove');assert.equal(remove.children[0].tagName,'svg');
   assert.equal(remove.attributes['data-admin-unlock-required'],undefined);
   await remove.listeners.click();
@@ -370,7 +416,7 @@ test('history removal controls are unavailable without server-granted editing pe
 test('cancelling or missing confirmation preserves responses without sending deletion',async()=>{
   for(const permission of [{confirm:()=>false},{omitConfirmation:true}]){
     const p=page(()=>({}),'analytics',{chat:true,historyItems:protectedHistory,...permission});await tick();
-    await p.find('[data-ai-history]').children[0].children[1].listeners.click();
+    await removeAction(p.find('[data-ai-history]').children[0]).listeners.click();
     await p.find('[data-ai-history-reset]').listeners.click();
     assert.equal(p.find('[data-ai-history]').children.length,2);assert.equal(p.localStorage.size,0);
     assert.equal(p.requests.some(request=>request.options?.method==='POST'),false);
@@ -380,7 +426,7 @@ test('cancelling or missing confirmation preserves responses without sending del
 test('history deletion waits for confirmation and ignores duplicate actions',async()=>{
   let approve;
   const p=page(()=>({deleted:true}),'analytics',{chat:true,historyItems:protectedHistory,confirm:()=>new Promise(resolve=>{approve=resolve;})});await tick();
-  const pending=p.find('[data-ai-history]').children[0].children[1].listeners.click();
+  const pending=removeAction(p.find('[data-ai-history]').children[0]).listeners.click();
   await p.find('[data-ai-history-reset]').listeners.click();
   assert.equal(p.find('[data-ai-history]').children.length,2);assert.equal(p.requests.some(request=>request.options?.method==='POST'),false);
   approve(true);await pending;
@@ -388,7 +434,7 @@ test('history deletion waits for confirmation and ignores duplicate actions',asy
 });
 test('failed deletion preserves the response and reports the server error',async()=>{
   const p=page(()=>({error:'Response is unavailable.'}),'analytics',{chat:true,historyItems:protectedHistory});await tick();
-  await p.find('[data-ai-history]').children[0].children[1].listeners.click();
+  await removeAction(p.find('[data-ai-history]').children[0]).listeners.click();
   assert.equal(p.find('[data-ai-history]').children.length,2);
   assert.match(p.find('[data-ai-status]').textContent,/Response is unavailable/);
 });

@@ -10,7 +10,10 @@ if($filters['archived']==='0'&&!$hasFilters)$countSelections=['total','pending',
 $chips=[];
 if($filters['q']!=='')$chips[]=['key'=>'q','value'=>$filters['q'],'label'=>'Search: '.$filters['q']];
 foreach($filters['status']as$value)$chips[]=['key'=>'status','value'=>$value,'label'=>ucfirst($value)];
-$tagNames=array_column($tags,'name','id');foreach($filters['tags']as$value)$chips[]=['key'=>'tags','value'=>$value,'label'=>'Tag: '.($tagNames[$value]??'Unavailable tag')];
+$tagNames=array_column($tags,'name','id');$filterTagNames=array_column(array_filter($tags,static fn($tag)=>empty($tag['archived_at'])),'name','id');
+foreach($tags as$tag)if(!empty($tag['archived_at'])&&in_array((int)$tag['id'],array_map('intval',$filters['tags']),true))$filterTagNames[$tag['id']]=$tag['name'].' (Archived)';
+foreach($filters['tags']as$value)$chips[]=['key'=>'tags','value'=>$value,'label'=>'Tag: '.($tagNames[$value]??'Unavailable tag')];
+$pickerSegments=array_values(array_filter($segments,static fn($saved)=>empty($saved['archived_at'])||($segment&&(int)$segment['id']===(int)$saved['id'])));
 foreach($filters['source']as$value)$chips[]=['key'=>'source','value'=>$value,'label'=>'Source: '.($sourceOptions[$value]??$value)];
 if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];elseif($rules['rules'])$chips[]=['key'=>'rules','value'=>'','label'=>'Advanced filters'];
 ?>
@@ -21,10 +24,10 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
     <button type="button" class="audience-filter-trigger" popovertarget="filter-segments" aria-haspopup="dialog" title="Filter by Segments"><?= $segment?$h($segment['name']):'Segments' ?><?php audienceNavIcon('chevron'); ?></button>
     <div id="filter-segments" class="audience-filter-panel" popover="auto" role="dialog" aria-label="Filter by Segments" data-filter-panel>
         <label class="filter-search"><?php audienceNavIcon('search'); ?><input type="search" autocomplete="off" placeholder="Search" aria-label="Search segments" data-filter-search></label>
-        <div class="filter-choice-scroll"><?php foreach($segments as$s): ?><a data-filter-choice href="<?= $h($url(['segment'=>$s['id'],'archived'=>$filters['archived'],'per_page'=>$pageSize,'sort'=>$sort,'direction'=>$direction])) ?>"<?= $segment&&(int)$segment['id']===(int)$s['id']?' aria-current="true"':'' ?>><?= $h($s['name']) ?></a><?php endforeach; ?><?php if(!$segments): ?><p class="filter-empty">No saved segments yet.</p><?php endif; ?><p class="filter-empty" data-filter-empty hidden>No matching segments</p></div>
+        <div class="filter-choice-scroll"><?php foreach($pickerSegments as$s): ?><a data-filter-choice href="<?= $h($url(['segment'=>$s['id'],'archived'=>$filters['archived'],'per_page'=>$pageSize,'sort'=>$sort,'direction'=>$direction])) ?>"<?= $segment&&(int)$segment['id']===(int)$s['id']?' aria-current="true"':'' ?>><?= $h($s['name']) ?><?= !empty($s['archived_at'])?' (Archived)':'' ?></a><?php endforeach; ?><?php if(!$pickerSegments): ?><p class="filter-empty">No saved segments yet.</p><?php endif; ?><p class="filter-empty" data-filter-empty hidden>No matching segments</p></div>
         <a class="filter-manage-link" href="<?= $h($url(['view'=>'segments'])) ?>">Manage segments</a>
     </div>
-    <?php foreach(['status'=>'Subscription status','tags'=>'Tags','source'=>'Signup source']as$key=>$label): $options=$key==='status'?array_combine(array_keys($statusHelp),array_map('ucfirst',array_keys($statusHelp))):($key==='tags'?$tagNames:$sourceOptions);$reopen=($_GET['open_filter']??'')===$key; ?>
+    <?php foreach(['status'=>'Subscription status','tags'=>'Tags','source'=>'Signup source']as$key=>$label): $options=$key==='status'?array_combine(array_keys($statusHelp),array_map('ucfirst',array_keys($statusHelp))):($key==='tags'?$filterTagNames:$sourceOptions);$reopen=($_GET['open_filter']??'')===$key; ?>
     <button type="button" class="audience-filter-trigger<?= count($filters[$key])?' active':'' ?>" popovertarget="filter-<?= $key ?>" aria-haspopup="dialog" title="Filter by <?= $label ?>"><?= $label ?><?= count($filters[$key])?' ('.count($filters[$key]).')':'' ?><?php audienceNavIcon('chevron'); ?></button>
     <div id="filter-<?= $key ?>" class="audience-filter-panel" popover="auto" role="dialog" aria-label="Filter by <?= $label ?>" data-filter-panel<?= $reopen?' data-reopen-filter':'' ?>>
         <?php if($key==='status'): ?><div class="filter-section-label">Email</div><?php else: ?><label class="filter-search"><?php audienceNavIcon('search'); ?><input type="search" autocomplete="off" placeholder="Search" aria-label="Search <?= strtolower($label) ?>" value="<?= $reopen?$h(audienceText($_GET,'filter_query',200)):'' ?>" data-filter-search></label><?php endif; ?>

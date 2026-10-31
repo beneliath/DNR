@@ -5,7 +5,7 @@ services:
       DNR_AI_COACH_ENABLED: "1"
       DNR_AI_COACH_ASYNC: "1"
       DNR_AI_COACH_URL: http://ai-coach-tunnel:11437
-      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3:8b}
+      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3.5:9b-q4_K_M}
       DNR_AI_COACH_REASONING: ${DNR_AI_COACH_REASONING:-0}
     networks:
       backend:
@@ -14,7 +14,7 @@ services:
   ai-coach-worker:
     environment:
       DNR_AI_COACH_URL: http://ai-coach-tunnel:11437
-      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3:8b}
+      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3.5:9b-q4_K_M}
       DNR_AI_COACH_REASONING: ${DNR_AI_COACH_REASONING:-0}
     networks: [backend, coach_client]
 

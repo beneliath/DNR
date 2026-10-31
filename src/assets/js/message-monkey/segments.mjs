@@ -105,9 +105,10 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                         const picker = el('details', {class: 'rule-membership'}), checked = Array.isArray(rule.value) ? rule.value.map(String) : [];
                         const summary = el('summary', {}, checked.length ? `${checked.length} selected` : 'Choose values'); const list = el('div', {class: 'rule-membership-options'});
                         for (const [key, label] of Object.entries(definition.options || {})) {
-                            const choice = el('input', {type: 'checkbox', value: key, checked: checked.includes(key)});
+                            const archived = (definition.archived_options || []).includes(Number(key));
+                            const choice = el('input', {type: 'checkbox', value: key, checked: checked.includes(key), disabled: archived && !checked.includes(key)});
                             choice.addEventListener('change', () => { rule.value = $$('input:checked', list).map(input => Number(input.value)); summary.textContent = rule.value.length ? `${rule.value.length} selected` : 'Choose values'; clearPreview(); });
-                            const labelNode = el('label', {class: 'audience-check'}); labelNode.append(choice, document.createTextNode(label)); list.append(labelNode);
+                            const labelNode = el('label', {class: 'audience-check'}); labelNode.append(choice, document.createTextNode(label + (archived ? ' (Archived)' : ''))); list.append(labelNode);
                         }
                         if (!list.children.length) list.append(el('p', {}, 'No values available. Create a tag or group first.'));
                         picker.append(summary, list); row.append(picker);

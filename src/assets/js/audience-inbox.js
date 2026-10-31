@@ -91,6 +91,24 @@
     time.title = window.DnrUserTime.format(date,{dateStyle:'full',timeStyle:'long'});
   };
   document.querySelectorAll('[data-inbox-time]').forEach(renderTime);
+  const trashBulk = document.getElementById('inbox-trash-bulk');
+  if (trashBulk) {
+    const selectAll = trashBulk.querySelector('[data-inbox-trash-all]');
+    const selections = [...document.querySelectorAll('[data-inbox-trash-select]')];
+    const count = trashBulk.querySelector('[data-inbox-trash-count]');
+    const submit = trashBulk.querySelector('[data-inbox-trash-delete]');
+    const update = () => {
+      const chosen = selections.filter(input => input.checked).length;
+      count.textContent = `${chosen} selected`;
+      submit.disabled = chosen === 0;
+      selectAll.checked = chosen === selections.length;
+      selectAll.indeterminate = chosen > 0 && chosen < selections.length;
+    };
+    selectAll.addEventListener('change',() => { selections.forEach(input => { input.checked = selectAll.checked; }); update(); });
+    selections.forEach(input => input.addEventListener('change',update));
+    window.addEventListener('pageshow',update);
+    update();
+  }
   const csrf = document.querySelector('input[name="csrf_token"]');
   const status = document.getElementById('inbox-live-status');
   const announce = message => { status.hidden = false; status.textContent = message; };

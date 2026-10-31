@@ -130,6 +130,12 @@ $direct['summary']='See query_0_contacts for John Smith at john@example.test.';
 $expect(audienceAiReply($raw($direct),['mode'=>'analytics','operation'=>'analyze','evidence'=>$contacts])['summary']===$direct['summary'],'An exact source identifier is not an invented numerical claim.');
 [$sql,$params]=$store->reads[count($store->reads)-1];
 $expect($params[0]===73&&!str_contains($sql,'john%_smith')&&in_array('%john!%!_smith%',$params,true),'Account scope and literal wildcard search use bound parameters.');
+$countSource=$tools->execute(['queries'=>[array_replace($base,['tool'=>'count','field'=>'','filters'=>[['field'=>'last_name','operator'=>'eq','value'=>'Smith']]])]]);
+$sourcePage=audienceAiContactPage($tools,$countSource,'query_0_result',0,25);
+$expect($sourcePage['id']==='query_0_result'&&$sourcePage['total']===2
+    &&in_array('Smith',$store->reads[array_key_last($store->reads)][1],true),'A saved scalar count can reopen its matching contacts using the same account-scoped filters.');
+$reject(static fn()=>audienceAiContactPage($tools,$countSource,'query_9_result',0),'A count source cannot select a fact outside its saved evidence.');
+$reject(static fn()=>audienceAiContactPage($tools,$contacts,'query_0_result',0),'A contact table cannot be misrepresented as a scalar count source.');
 $report=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'limit'=>5])]]);
 $expect(count($report['facts'])===1&&str_contains($report['facts'][0]['label'],'Total sends'),'Report queries return only requested metrics.');
 $expect(str_contains($report['scope_description'],'Email reports exclude test emails'),'Report scope visibly distinguishes campaign-recipient data from test activity.');
@@ -161,6 +167,94 @@ $empty=$tools->execute(['queries'=>[]]);$expect($empty['facts']===[]&&$empty['li
 
 putenv('DNR_AI_COACH_URL=http://ai-coach-tunnel:11437');
 $request=['_audience_ai'=>1,'account'=>currentAccountKey(),'mode'=>'analytics','operation'=>'analyze','role'=>'admin','prompt'=>'A fresh population question','request_id'=>'12345678-1234-4234-a234-123456789012','analysis_scope'=>$window];
+$wordQuestion='how many "r"s are in the word strawberry?';
+$expect(audienceAiClearlyUnrelated($wordQuestion)&&!audienceAiClearlyUnrelated('How many contacts have an r in their email address?'),'Word puzzles are outside analytics without blocking saved-contact questions.');
+$expect(audienceAiClearlyUnrelated("How many r's in strawberry?")&&!audienceAiClearlyUnrelated('How many characters are in the subject of my last campaign?'),'Short word-count phrasing is recognized without intercepting campaign content questions.');
+$expect(audienceAiUnavailableCampaignRevenue('What was the revenue from those campaigns?')
+    &&audienceAiUnavailableCampaignRevenue('How many purchases came from the last email?')
+    &&!audienceAiUnavailableCampaignRevenue('List contacts whose email address contains sales')
+    &&!audienceAiUnavailableCampaignRevenue("What was the Sales campaign's open rate?"),'Unsupported financial measures do not hide supported contact or campaign metrics.');
+$readsBefore=count($store->reads);$reportsBefore=count($store->reports);
+$wordReply=audienceAiGenerate(array_replace($request,['prompt'=>$wordQuestion]),microtime(true)+30,null,static fn()=>throw new RuntimeException('Word puzzles must not call the model.'),$tools);
+$expect($wordReply['interpretation']==='information'&&$wordReply['telemetry']['model_calls']===0
+    &&count($store->reads)===$readsBefore&&count($store->reports)===$reportsBefore,'Unrelated word counting gets an application-owned scope reply without data access.');
+$revenueReply=audienceAiGenerate(array_replace($request,['prompt'=>'What was the revenue from those campaigns?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('Unsupported revenue must not call the model.'),$tools);
+$expect($revenueReply['interpretation']==='information'&&str_contains($revenueReply['summary'],'do not include revenue')
+    &&$revenueReply['telemetry']['model_calls']===0&&count($store->reads)===$readsBefore&&count($store->reports)===$reportsBefore,'Unavailable campaign revenue gets a precise scope reply without data access.');
+$topNameQuestion='what is the most common last name in the audience?';
+$expect(audienceAiSimpleTopNameField($topNameQuestion,['turns'=>[]])==='last_name'
+    &&audienceAiSimpleTopNameField('what is the last name with the largest total occurrences in the audience?',['turns'=>[]])==='last_name'
+    &&audienceAiSimpleTopNameField('most common last name among subscribed contacts',['turns'=>[]])===null,'Unqualified top-name requests are exact grouped reads; filtered questions remain with the planner.');
+$topName=audienceAiGenerate(array_replace($request,['prompt'=>$topNameQuestion]),microtime(true)+30,null,static fn()=>throw new RuntimeException('Unambiguous top-name questions must not call the model.'),$tools);
+$expect($topName['conversation_state']['queries'][0]['tool']==='frequency'
+    &&$topName['conversation_state']['queries'][0]['field']==='last_name'
+    &&$topName['telemetry']['model_calls']===0&&str_contains($topName['summary'],'most common last name')
+    &&count($store->reads)===$readsBefore+1,'Most common last name groups recorded names and answers from the top values.');
+$clarified=['state'=>['version'=>1,'turns'=>[['question'=>$topNameQuestion,'response'=>'Which metric should be used: total occurrences or percentage share?']],'queries'=>[]]];
+$topFollowup=audienceAiGenerate(array_replace($request,['prompt'=>'total occurrences','previous_context'=>$clarified]),microtime(true)+30,null,static fn()=>throw new RuntimeException('Clarification follow-up must not call the model.'),$tools);
+$expect($topFollowup['conversation_state']['queries'][0]['tool']==='frequency'
+    &&$topFollowup['conversation_state']['queries'][0]['field']==='last_name'
+    &&count($store->reads)===$readsBefore+2,'Total occurrences after a top-name clarification retains grouping rather than counting every contact.');
+$topRestated=audienceAiGenerate(array_replace($request,['prompt'=>'what is the last name with the largest total occurrences in the audience?','previous_context'=>audienceAiPreviousContext('total occurrences',$topFollowup)]),microtime(true)+30,null,static fn()=>throw new RuntimeException('Restated top-name question must not call the model.'),$tools);
+$expect($topRestated['conversation_state']['queries'][0]['tool']==='frequency'
+    &&$topRestated['conversation_state']['queries'][0]['field']==='last_name'
+    &&count($store->reads)===$readsBefore+3,'Restating the ranking after a follow-up cannot turn it into an overall audience count.');
+$addressCatalog=$tools->catalog();
+$expect(isset($addressCatalog['custom:9:us_state'])&&$addressCatalog['custom:9:us_state']['type']==='region'
+    &&audienceAiSimpleAddressStateCount('how many of the audience have addresses in Texas?',$addressCatalog)['code']==='TX'
+    &&audienceAiSimpleAddressStateCount('how many connections have a California address?',$addressCatalog)['code']==='CA'
+    &&audienceAiSimpleAddressStateCount('how many connections have an address?',$addressCatalog)===null,'Simple named-state address questions use the owned state filter without treating any address as a match.');
+$texasQuery=['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>'custom:9:us_state','operator'=>'eq','value'=>'Texas']],'limit'=>5];
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($texasQuery,['field'=>'custom:9:us_state'])]]),'Address state cannot be used as an unscoped display or calculation field.');
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($texasQuery,['filters'=>[['field'=>'custom:9:us_state','operator'=>'contains','value'=>'Texas']]])]]),'Address state requires an exact recognized state rather than a loose text match.');
+$addressReads=count($store->reads);
+$texasReply=audienceAiGenerate(array_replace($request,['prompt'=>'how many of the audience have addresses in Texas?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('Simple state count must not call the model.'),$tools);
+$addressSql=$store->reads[array_key_last($store->reads)];
+$expect($texasReply['conversation_state']['queries'][0]['filters'][0]['field']==='custom:9:us_state'
+    &&$texasReply['telemetry']['model_calls']===0&&str_contains($texasReply['summary'],'Texas')
+    &&count($store->reads)===$addressReads+1&&str_contains($addressSql[0],'REGEXP_LIKE')
+    &&in_array('TX',$addressSql[1],true)&&in_array('Texas',$addressSql[1],true),'Texas count uses a bound state and ZIP pattern plus the structured state component.');
+$californiaReply=audienceAiGenerate(array_replace($request,['prompt'=>'how many connections have a California address?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('California state count must not call the model.'),$tools);
+$expect($californiaReply['conversation_state']['queries'][0]['filters'][0]['value']==='CA'
+    &&str_contains($californiaReply['summary'],'California')&&count($store->reads)===$addressReads+2,'California address phrasing uses the same state-specific count.');
+$expect(isset($addressCatalog['custom:9:country'])&&$addressCatalog['custom:9:country']['type']==='country'
+    &&audienceAiSimpleAddressCountryCount('how many connections are in Germany?',$addressCatalog)['code']==='DE'
+    &&audienceAiSimpleAddressCountryCount('how many connections are in Australia?',$addressCatalog)['code']==='AU'
+    &&audienceAiSimpleAddressCountryCount('how many connections are in Florida?',$addressCatalog)===null,'Named countries use the saved postal country while US states retain their separate path.');
+$germanyQuery=['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>'custom:9:country','operator'=>'eq','value'=>'Germany']],'limit'=>5];
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($germanyQuery,['field'=>'custom:9:country'])]]),'Address country cannot be used as an unscoped display field.');
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($germanyQuery,['filters'=>[['field'=>'custom:9:country','operator'=>'contains','value'=>'Germany']]])]]),'Address country requires an exact recognized country.');
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($germanyQuery,['filters'=>[['field'=>'custom:9:country','operator'=>'eq','value'=>'Atlantis']]])]]),'Unknown countries cannot silently return a zero count.');
+$countryReads=count($store->reads);
+$germanyReply=audienceAiGenerate(array_replace($request,['prompt'=>'how many connections are in Germany?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('Simple country count must not call the model.'),$tools);
+$countrySql=$store->reads[array_key_last($store->reads)];
+$expect($germanyReply['conversation_state']['queries'][0]['filters'][0]['value']==='DE'
+    &&$germanyReply['telemetry']['model_calls']===0&&str_contains($germanyReply['summary'],'Germany')
+    &&count($store->reads)===$countryReads+1&&str_contains($countrySql[0],'REGEXP_LIKE')
+    &&in_array('DE',$countrySql[1],true)&&in_array('Germany',$countrySql[1],true),'Germany count uses bound country values and an explicit country suffix for imported addresses.');
+$australiaReply=audienceAiGenerate(array_replace($request,['prompt'=>'how many connections are in Australia?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('Australia count must not call the model.'),$tools);
+$expect($australiaReply['conversation_state']['queries'][0]['filters'][0]['value']==='AU'
+    &&str_contains($australiaReply['summary'],'Australia')&&count($store->reads)===$countryReads+2,'Australia country phrasing uses the same verified count.');
+$africaCodes=(new ReflectionClass(AudienceAiQueries::class))->getConstant('AFRICA_COUNTRY_CODES');
+$expect(count($africaCodes)===60&&array_diff($africaCodes,array_keys(addressCountryChoices()))===[]
+    &&in_array('ZA',$africaCodes,true)&&in_array('EG',$africaCodes,true)&&!in_array('DE',$africaCodes,true),'UN M49 Africa codes map to supported saved-address countries without including Germany.');
+$expect(isset($addressCatalog['custom:9:continent'])&&$addressCatalog['custom:9:continent']['enum']===['Africa']
+    &&audienceAiSimpleAddressContinentCount('how many connections are in Africa?',$addressCatalog)['field']==='custom:9:continent'
+    &&audienceAiSimpleAddressCountryCount('how many connections are in Africa?',$addressCatalog)===null,'A continent request uses its explicit address-country grouping rather than a fabricated country.');
+$africaQuery=['tool'=>'count','field'=>'','search'=>'','filters'=>[['field'=>'custom:9:continent','operator'=>'eq','value'=>'Africa']],'limit'=>5];
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($africaQuery,['field'=>'custom:9:continent'])]]),'Continent is filter-only, not a display or calculation field.');
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($africaQuery,['filters'=>[['field'=>'custom:9:continent','operator'=>'contains','value'=>'Africa']]])]]),'Continent requires an exact supported region.');
+$reject(static fn()=>$tools->validate(['queries'=>[array_replace($africaQuery,['filters'=>[['field'=>'custom:9:continent','operator'=>'eq','value'=>'Atlantis']]])]]),'Unsupported regions cannot silently return zero.');
+$africaReads=count($store->reads);
+$africaReply=audienceAiGenerate(array_replace($request,['prompt'=>'how many connections are in Africa?']),microtime(true)+30,null,static fn()=>throw new RuntimeException('Africa count must not call the model.'),$tools);
+$africaSql=$store->reads[array_key_last($store->reads)];
+$expect($africaReply['conversation_state']['queries'][0]['filters'][0]['value']==='Africa'
+    &&$africaReply['telemetry']['model_calls']===0&&str_contains($africaReply['summary'],'Africa')
+    &&count($store->reads)===$africaReads+1&&str_contains($africaSql[0],'REGEXP_LIKE')
+    &&str_contains($africaSql[1][1],'ZA')&&str_contains($africaSql[1][1],'Egypt')
+    &&!str_contains($africaSql[1][1],'Germany'),'Africa count uses bound UN country grouping and excludes non-African countries.');
+$africaPage=audienceAiContactPage($tools,$africaReply['evidence'],'query_0_result',0,25);
+$expect($africaPage['id']==='query_0_result'&&$africaPage['total']===2,'Africa count source reopens its matching connections with the same validated filters.');
 foreach(['greeting','current_date','help','unsupported']as$kind){
     $calls=0;$readsBefore=count($store->reads);$reportsBefore=count($store->reports);
     $transport=static function()use(&$calls,$raw,$kind):array{
@@ -304,7 +398,11 @@ $expect($draft['queries'][0]['limit']===100&&$draft['queries'][0]['filters']===[
 $draft=$tools->clarificationPlan(['queries'=>[]],$reportState,'continuation',[],'report','Which supported measure should be used?');
 $expect($draft['queries']===$reportState['queries'],'Unsupported report measures preserve the previously verified campaign selection while asking for clarification.');
 $review=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
-$expect($review['think']===true,'Report catalogs with derived metrics retain ratio and denominator reasoning.');
+$expect($review['think']===false&&$review['options']['num_predict']<=700,'Report review follows the disabled reasoning setting and keeps a bounded output budget.');
+putenv('DNR_AI_COACH_REASONING=1');
+$thinkingReview=$tools->planReviewPayload('Compare these campaigns.',$reportState,['queries'=>$reportState['queries']]);
+$expect($thinkingReview['think']===true,'Explicit reasoning opt-in still enables extended report review.');
+putenv('DNR_AI_COACH_REASONING=0');
 $growthQuery=['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['net'],'limit'=>5,'last_days'=>90];
 $growthReview=$tools->planReviewPayload('Show audience growth over the last quarter.',audienceAiDialogueState([]),['queries'=>$tools->validate(['queries'=>[$growthQuery]])]);
 $expect($growthReview['think']===false&&$growthReview['options']['num_predict']<=700,'Count-only report verification avoids extended reasoning while retaining independent checks.');

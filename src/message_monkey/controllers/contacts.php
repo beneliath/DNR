@@ -14,7 +14,8 @@ function renderAudienceContactsWorkspace(
     $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     $url = static fn(array $params = []): string => 'audience.php' . ($params ? '?' . http_build_query($params) : '');
     $redirect = $url(['view' => $view]);
-$tags=$store->tags();$groups=$store->groups();$fields=$store->fields();
+$tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
+$definitionArchiveAvailable=$store->definitionArchiveAvailable();
 $rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;
 try{
     $filters=audienceListFilters($isPost?$_POST:$_GET);
@@ -32,6 +33,7 @@ if($isPost){
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
         $protectedViews=['delete_tag'=>'tags','delete_segment'=>'segments','delete_group'=>'groups','delete_field'=>'fields','undo_import'=>'job','delete_export_history'=>'jobs'];
         $protectedView=$protectedViews[$action]??null;
+        if($action==='archive_definition')$protectedView=match(audienceText($_POST,'kind')){'tag'=>'tags','segment'=>'segments','group'=>'groups',default=>throw new InvalidArgumentException('Choose a tag, segment, or group.')};
         if(in_array($action,['person_action','bulk'],true)&&audienceText($_POST,'operation')==='delete')$protectedView=$action==='person_action'?'contact':'contacts';
         if($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))$protectedView=audienceText($_POST,'kind');
         if($action==='save_group'&&$id){
@@ -67,6 +69,11 @@ if($isPost){
             case 'delete_selected_definitions':
                 $kind=audienceText($_POST,'kind');if(!is_array($_POST['selected_ids']??null)||!is_array($_POST['versions']??null))throw new InvalidArgumentException('Select items to delete.');
                 $deleted=$store->deleteSelectedDefinitions($kind,$_POST['selected_ids'],$_POST['versions']);$redirect=$url(['view'=>$kind]);$message=$deleted.' '.$kind.' deleted. Connections were kept.';break;
+            case 'archive_definition':case 'restore_definition':
+                $kind=audienceText($_POST,'kind');$targetView=match($kind){'tag'=>'tags','segment'=>'segments','group'=>'groups',default=>throw new InvalidArgumentException('Choose a tag, segment, or group.')};
+                $archive=$action==='archive_definition';$store->setDefinitionArchived($kind,$id,$version,$archive);
+                $redirect=$url(['view'=>$targetView,'definition_status'=>$archive?'active':'archived']);
+                $message=ucfirst($kind).($archive?' archived. Existing assignments and saved filters were kept.':' restored.');break;
             case 'save_tag':$store->saveTag(audienceText($_POST,'name'),$id,$version);$redirect=$url(['view'=>'tags']);$message='Tag saved.';break;
             case 'delete_tag':$store->deleteTag($id,$version);$redirect=$url(['view'=>'tags']);$message='Tag deleted. Its connections were kept.';break;
             case 'save_group':$store->saveGroup($_POST,$id,$version);$redirect=$url(['view'=>'groups']);$message='Group saved.';break;
@@ -144,7 +151,9 @@ if(isset($_GET['download'])){
 if(($_GET['export']??'')==='person'){
     if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$store->fields(),'tag_names'=>array_column($store->tags(),'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
 }
-$tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();
+$tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();$catalog=$store->catalog();
+$activeTags=array_values(array_filter($tags,static fn($tag)=>empty($tag['archived_at'])));
+$activeGroups=array_values(array_filter($groups,static fn($group)=>empty($group['archived_at'])));
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDER BY name,id',[$audienceId]);
 $sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
 $counts=$store->one("SELECT COALESCE(SUM(is_archived=0),0) records,COALESCE(SUM(is_archived=0 AND email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(is_archived=0 AND email_status='subscribed'),0) subscribed,COALESCE(SUM(is_archived=0 AND email_status='unsubscribed'),0) unsubscribed,COALESCE(SUM(is_archived=0 AND email_status='non-subscribed'),0) non_subscribed,COALESCE(SUM(is_archived=0 AND email_status='pending'),0) pending,COALESCE(SUM(is_archived=1),0) archived,COALESCE(SUM(is_archived=0 AND email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL",[$audienceId]);

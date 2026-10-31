@@ -20,7 +20,8 @@ trait AudienceFlows
     public function flowValidate(array $d,bool $activate=false): array
     {
         $catalog=$this->catalog();foreach(['entry','exit']as$key)audienceCompileRules($d[$key],$catalog);
-        $errors=[];$trigger=$d['trigger'];$tagIds=array_map('intval',array_column($this->tags(),'id'));$groupIds=[];foreach($this->groups()as$g)foreach($g['options']as$o)$groupIds[]=(int)$o['id'];
+        $errors=[];$trigger=$d['trigger'];$tagIds=array_map('intval',array_column($this->tags(true),'id'));$groupIds=[];foreach($this->groups(true)as$g)foreach($g['options']as$o)$groupIds[]=(int)$o['id'];
+        $activeTagIds=array_map('intval',array_column($this->tags(),'id'));$activeGroupIds=[];foreach($this->groups()as$g)foreach($g['options']as$o)$activeGroupIds[]=(int)$o['id'];
         $validateTrigger=function(array $t)use(&$errors,$tagIds,$groupIds):void{
             $id=(int)($t['id']??0);
             if(in_array($t['type'],['tag','untag'],true)&&!in_array($id,$tagIds,true))$errors[]='Choose an available trigger tag.';
@@ -41,8 +42,8 @@ trait AudienceFlows
             if(!isset($reachable[$n['id']]))$errors[]=$n['label'].': connect this step to the flow.';
             if(in_array($n['type'],['condition'],true))audienceCompileRules($n['rules'],$catalog);
             if($n['type']==='condition'&&empty($n['rules']['rules']))$errors[]=$n['label'].': add at least one condition.';
-            if($n['type']==='tag'&&!in_array($n['tag_id'],$tagIds,true))$errors[]=$n['label'].': choose an available tag.';
-            if($n['type']==='group'&&!in_array($n['option_id'],$groupIds,true))$errors[]=$n['label'].': choose an available group.';
+            if($n['type']==='tag'&&!in_array($n['tag_id'],$n['remove']?$tagIds:$activeTagIds,true))$errors[]=$n['label'].': choose an available tag.';
+            if($n['type']==='group'&&!in_array($n['option_id'],$n['remove']?$groupIds:$activeGroupIds,true))$errors[]=$n['label'].': choose an available group.';
             if($n['type']==='split')$errors[]='Percentage testing is not available in MessageMonkey. Use audience conditions to choose a path.';
             if($n['type']==='until'&&!preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D',$n['time']))$errors[]=$n['label'].': choose a time.';
             if($n['type']==='wait'){if(!isset($n['trigger']))$errors[]=$n['label'].': choose a trigger.';else $validateTrigger($n['trigger']);if($n['timeout']<60)$errors[]=$n['label'].': choose a timeout of at least one minute.';}
