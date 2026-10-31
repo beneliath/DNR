@@ -410,6 +410,10 @@ $expect(isset($growthReview['format']['properties']['valid'],$growthReview['form
 $expect(!in_array('clarification',$review['format']['properties']['result_type']['enum'],true)&&$review['format']['properties']['conditions']['maxItems']===0,'Report validation cannot contradict its own ambiguity decision or invent contact filters.');
 $reviewContext=json_decode($review['messages'][1]['content'],true);
 $expect(!isset($reviewContext['proposed']['queries'][0]['metrics'])&&isset($reviewContext['conversation']['queries'][0]['metrics']),'Measurement intent is selected independently of unverified planner columns while retaining verified conversational scope.');
+$scopeText=$reviewContext['report_capabilities']['email']['scope']??'';
+$expect(str_contains($scopeText,'Test emails')&&str_contains($scopeText,'tracked separately')&&str_contains($scopeText,'confirmed delivery counts require delivery receipts'),'Independent metric review knows campaign evidence excludes separately tracked test sends and acceptance is not delivery.');
+$planningContext=json_decode($tools->planningPayload('Explain campaign delivery evidence.',audienceAiDialogueState([]))['messages'][1]['content'],true);
+$expect($scopeText!==''&&($planningContext['reports']['email']['scope']??null)===$scopeText,'Planning and independent review share the same native email scope instead of inventing test-email inclusion.');
 $fixedQuery=array_replace($reportState['queries'][0],['dimension'=>'links','metrics'=>[]]);
 $fixedReview=$tools->planReviewPayload('Compare the tracked links.', ['queries'=>[],'turns'=>[]], ['queries'=>[$fixedQuery]]);
 $expect($fixedReview['format']['properties']['report_metrics']['maxItems']===0,'Fixed-observation report dimensions cannot acquire incompatible metric overrides during review.');

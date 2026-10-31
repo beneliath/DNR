@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-10-31",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.5"
+  },
+  "production_guidance_revision": "6144d321bb4f7c7bad3e49778904231ed84d8923462469f3ffe9f840a1ea4279",
+  "local_builder_guidance_revision_at_intake": "1c088d0176f400128e021a216b56cdaf618b7d0674e5cc24e9bb9ebc527aa160",
+  "tested_base_commit": "32e3a8cb7831878ba66a6a5d672b2a6afd4cf846",
+  "merged_main_commit": "e6e4e5b1a654a35b74e98aef61eaf8900ace0507",
+  "pending_in_batch": 17,
+  "new_signal_versions": 0,
+  "unchanged_previously_reviewed_signals": 17,
+  "deferred_signals_reinvestigated": 2,
+  "reopened_reason": "Application model and reasoning defaults changed in main/production; deferred derived-report latency was actionable for a bounded local reassessment.",
+  "requests": [
+    {
+      "id": 33,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.7.0",
+      "original_guidance_revision": "d3f87e7a414b5b40b3c4dcae905ca256d22352a7372f0568cf70386f12834d3f",
+      "disposition": "fixed_locally",
+      "summary": "Planning and independent metric review now share the native email scope, preventing an unrelated capability refusal while preserving test-send and delivery-receipt limitations.",
+      "original_duration_ms": 50634,
+      "before_local_seconds": 28.312,
+      "before_local_interpretation": "clarification",
+      "after_local_seconds": 14.862,
+      "after_local_interpretation": "calculated",
+      "local_model": "qwen3.5:9b-q4_K_M"
+    },
+    {
+      "id": 34,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.7.3",
+      "original_guidance_revision": "d3f87e7a414b5b40b3c4dcae905ca256d22352a7372f0568cf70386f12834d3f",
+      "disposition": "deferred",
+      "summary": "Campaign performance replay retained the requested period and supported rate metrics. Sustained production latency remains unverified.",
+      "original_duration_ms": 62680,
+      "before_local_seconds": 14.194,
+      "before_local_interpretation": "calculated",
+      "after_local_seconds": 16.661,
+      "after_local_interpretation": "calculated",
+      "local_model": "qwen3.5:9b-q4_K_M"
+    }
+  ],
+  "investigation": {
+    "cause": "Model-facing report catalog omitted native scope already shown with output. Independent review incorrectly inferred that campaign metrics include test sends and assigned an unrelated unsupported-capability classification.",
+    "correction": "Reuse the existing source-verified email scope string in the planning/review catalog and result limitations. Explain that documented scope and metric meanings need no clarification. Native query validation, independent review, unsupported-measure gates and authorization remain active.",
+    "before": "Fresh local evidence summary was incorrectly refused as automatic matching of similar emails without any account read.",
+    "after": "Fresh local answer retrieved accepted and confirmed-delivery evidence and explained separate test activity and receipt limitations.",
+    "model_policy": "The qwen3.5:9b-q4_K_M default and reasoning policy came from current main and were preserved. No model installation or service setting changes were made by this run.",
+    "manual_verification": "Current Comprehensive User Guide Analytics sections distinguish sending/delivery and require checking metric denominators and report scope. SQL uses campaign recipients; receipts establish confirmed delivery. No manual or index change required.",
+    "nearby_replays": [
+      {
+        "intent": "campaign performance",
+        "role": "admin",
+        "seconds": 16.661,
+        "result": "Correct 30-day campaign report with open, click and bounce rates."
+      },
+      {
+        "intent": "clicks per opens ratio",
+        "role": "reviewer",
+        "seconds": 13.099,
+        "result": "Selected clicks_per_open alone for three recent campaigns; retained the correct denominator."
+      },
+      {
+        "intent": "test-email-only count",
+        "role": "editor",
+        "result": "Unverified: two local transport failures followed by a diagnostic model HTTP 500 before a completed stage; zero account reads. No claim of successful clarification."
+      }
+    ],
+    "replay_isolation": "Private original questions remained in temporary input only. Fresh local model calls used fictional in-memory reports and read-only dedicated-worktree source mounts. No production records or inference. No shared service changes.",
+    "remaining_deferred": "Production latency, historical availability and authenticated UI visibility remain unverified. The test-only nearby replay is specifically blocked by the local model service error."
+  },
+  "regression_failed_before_fix": true,
+  "verification": {
+    "query_checks": 194,
+    "findings_checks": 38,
+    "audience_http_checks": 1354,
+    "ai_http_checks": 128,
+    "analytics_http_storage_checks": 129,
+    "integration_exit_code": 0,
+    "integration_project": "dnr-test-7efd29ca1812",
+    "integration_cleanup_complete": true
+  },
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/integration_environment.py audience",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "e1f5fe081d296e2a0a7f3de33d115dde77772fa97e3bf0f427f827fd39d8eaaf"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "42c6ab7d50d7c113332747197a8050977af700acb331f9feee642df031d4f8ab"
+    },
+    {
+      "path": "src/audience_analytics.php",
+      "sha256": "49c5206935197facb53f86e83522171f6076fe5fec87333d22da45569af00236"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "3cafbfaca6245113c5d44e2809de13f0f73a3ee85b7fe30085610fb1e8785f6e"
+    },
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "702ee476c303a2654068eed5be053d66a5c8a9983788ea12ed1cae964affef84"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "83204e5ad452e5aaa06721fdce0fe5ea0067a8e0d62c1839b25325cb02ab48e8"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "2decc83ce3dbcd1fc134260fde143a4b2d978a1bfdf9b9340117385a335eb48d"
+    },
+    {
+      "path": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "sha256": "e17a16919e25655805b9ecb80c49d6f0c6f1e20691ed4d05ae2f0e0f6fda375c"
+    }
+  ],
+  "limitations": [
+    "A successful local semantic correction does not establish post-deployment production latency.",
+    "The test-email-only editor replay remains unverified because the local model returned HTTP 500.",
+    "No production business counts were independently recomputed or feedback state written."
+  ],
+  "production_versions_rechecked": true,
+  "final_source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.5"
+  },
+  "final_production_guidance_revision": "6144d321bb4f7c7bad3e49778904231ed84d8923462469f3ffe9f840a1ea4279",
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "shared_branch_observed": "main",
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false
+}
