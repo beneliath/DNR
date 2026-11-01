@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-11-01",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.12"
+  },
+  "production_guidance_revision": "5108e1fe0cedbfb3ce06eda6a8f6ee5cb25447ebb232712ab05806c5c051c136",
+  "local_builder_guidance_revision_at_intake": "6144d321bb4f7c7bad3e49778904231ed84d8923462469f3ffe9f840a1ea4279",
+  "tested_base_commit": "fa81e8eebfec90d76753eb99af969a8971ee28cf",
+  "merged_main_commit": "7a6a7e4c19a7d39afe0a6f6727ae3148d9cf554e",
+  "pending_in_batch": 18,
+  "new_signal_versions": 1,
+  "unchanged_previously_reviewed_signals": 17,
+  "requests": [
+    {
+      "id": 53,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_application_version": "2.10.5",
+      "original_guidance_revision": "6144d321bb4f7c7bad3e49778904231ed84d8923462469f3ffe9f840a1ea4279",
+      "role": "admin",
+      "disposition": "fixed_locally",
+      "summary": "Explicit combined report breakdowns are independently selected and compiled from a single validated scope, preventing substitution by campaign-level rates.",
+      "original_duration_ms": 32817,
+      "before_local_seconds": 27.638,
+      "after_local_seconds": 11.582,
+      "local_model": "qwen3.5:9b-q4_K_M"
+    }
+  ],
+  "investigation": {
+    "cause": "Draft planning substituted default campaign-rate measurements for explicit tracking breakdowns. Review saw the proposed grouping and approved it without a separately checked grouping requirement.",
+    "correction": "Independent review selects explicit dataset/dimension pairs without seeing draft dimensions. Native capabilities validate each pair. A single unambiguous report scope compiles those verified breakdowns using existing query validation; incomplete multi-scope plans require bounded replanning before reads. Fixed-observation tracking dimensions retain empty metric lists. No keyword-based grouping router or new data capability was added.",
+    "before": "Fresh synthetic local replay reproduced campaign grouping while omitting the requested two tracking dimensions.",
+    "after": "Fresh synthetic local replay returned country and device observations, retained the selected dates and existing tracking limitations, and used three model calls.",
+    "replays": "Private question was supplied only through temporary input. Synthetic in-memory report fixtures and read-only dedicated-worktree source mounts; local model endpoint only. No production records, inference or writes.",
+    "nearby_replays": [
+      {
+        "intent": "campaign-only",
+        "role": "editor",
+        "seconds": 14.001,
+        "queries": [
+          {
+            "dimension": "month",
+            "metrics": [
+              "accepted",
+              "delivered",
+              "open_rate",
+              "click_rate"
+            ],
+            "limit": 5,
+            "tool": "report",
+            "dataset": "email",
+            "filters": [],
+            "field": "",
+            "search": "",
+            "last_days": 30,
+            "recent_campaigns": 0,
+            "start": "",
+            "end": ""
+          }
+        ]
+      },
+      {
+        "intent": "daily",
+        "role": "reviewer",
+        "seconds": 14.612,
+        "queries": [
+          {
+            "dimension": "day",
+            "metrics": [
+              "accepted"
+            ],
+            "limit": 5,
+            "tool": "report",
+            "dataset": "email",
+            "filters": [],
+            "field": "",
+            "search": "",
+            "last_days": 30,
+            "recent_campaigns": 0,
+            "start": "",
+            "end": ""
+          }
+        ]
+      }
+    ],
+    "manual_and_source": "The Comprehensive User Guide requires checking dataset, grouping, metrics and exact dates; Locations and clients is an existing report view. Native analytics supplies distinct messages with observed engagement by country/device, with proxy/unknown and delivery limitations. No manual, index or PDF content changed.",
+    "deferred_review": "Prior local email-scope correction was preserved through the main merge. Historical UI visibility, availability, sustained production latency and the previously blocked test-only replay have no resolving new evidence and remain deferred."
+  },
+  "regression_failed_before_fix": true,
+  "verification": {
+    "query_checks": 204,
+    "findings_checks": 38,
+    "roles": [
+      "admin",
+      "editor",
+      "reviewer"
+    ],
+    "nearby_regressions": [
+      "complete combined breakdowns",
+      "temporal versus campaign grouping",
+      "invalid dataset/dimension pairs",
+      "extra unsupported grouping fields",
+      "existing metric and denominator checks"
+    ],
+    "audience_http_checks": 1361,
+    "ai_http_checks": 128,
+    "analytics_http_storage_checks": 129,
+    "integration_exit_code": 0,
+    "integration_project": "dnr-test-d2ce79425276",
+    "integration_cleanup_complete": true
+  },
+  "sources": [
+    {
+      "path": "src/audience_ai_dialogue.php",
+      "sha256": "bc0ac440f0024ac9a4428718e9e09e19734ae2eed00501d0fc99d937f1d05f36"
+    },
+    {
+      "path": "src/audience_ai_queries.php",
+      "sha256": "42c6ab7d50d7c113332747197a8050977af700acb331f9feee642df031d4f8ab"
+    },
+    {
+      "path": "src/audience_analytics_reports.php",
+      "sha256": "3cafbfaca6245113c5d44e2809de13f0f73a3ee85b7fe30085610fb1e8785f6e"
+    },
+    {
+      "path": "src/audience_analytics_controller.php",
+      "sha256": "91deaa8328cb165b261a84206c2234ed759f8d63622e28d22a39d2263069d518"
+    },
+    {
+      "path": "tests/audience_ai_queries_test.php",
+      "sha256": "2129a5bb88b08eb871e5a2a7e2c679e8551d32e7e4febd5a88cac83372590cb3"
+    },
+    {
+      "path": "tests/audience_ai_findings_test.php",
+      "sha256": "2decc83ce3dbcd1fc134260fde143a4b2d978a1bfdf9b9340117385a335eb48d"
+    },
+    {
+      "path": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "sha256": "8d7dc7a9df4b50b6981cf244358633b0383e0c1f698b41570188e5f93ca434dc"
+    }
+  ],
+  "limitations": [
+    "Local synthetic timings do not establish production latency after deployment.",
+    "Compilation applies only when one report query supplies an unambiguous validated scope; multi-scope omissions retain bounded retries.",
+    "Report grouping requirements remain model-selected typed evidence; they do not add unsupported data or permissions."
+  ],
+  "production_versions_rechecked": true,
+  "final_source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.10.12"
+  },
+  "final_production_guidance_revision": "5108e1fe0cedbfb3ce06eda6a8f6ee5cb25447ebb232712ab05806c5c051c136",
+  "worktree": "/Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR",
+  "shared_branch_observed": "main",
+  "shared_files_written_by_run": false,
+  "shared_services_restarted": false,
+  "production_feedback_writes": false,
+  "production_inference": false,
+  "deployment": false,
+  "tests": [
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_queries_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "docker run --rm --network none -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/src:/opt/dnr/src:ro -v /Users/dgilmore/.codex/worktrees/moed-feedback-review/DNR/tests:/opt/dnr/tests:ro --entrypoint php dnr-app:local -r 'require \"/opt/dnr/vendor/autoload.php\"; require $argv[1];' /opt/dnr/tests/audience_ai_findings_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/integration_environment.py audience",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 scripts/ai_help/read_production_feedback.py",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ]
+}
