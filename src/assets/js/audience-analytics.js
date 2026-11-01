@@ -226,10 +226,33 @@ import {calendarDates, formatCalendarDate, isoCalendarDate, parseCalendarDate} f
     const all = messageForm.querySelector('[data-analytics-all]');
     const choices = [...messageForm.querySelectorAll('[name="messages[]"]')];
     const status = messageForm.querySelector('[data-analytics-filter-status]');
+    const optionsList = messageForm.querySelector('.analytics-message-options');
+    const messagePanel = messageForm.closest('.analytics-message-popover');
+    const sizeMessageOptions = () => {
+      // The scroll viewport ends between complete rows, including wrapped names.
+      optionsList.style.maxHeight = '';
+      const limit = parseFloat(getComputedStyle(optionsList).maxHeight) || 300;
+      const visible = [...optionsList.querySelectorAll(':scope > label:not([hidden])')];
+      let height = 0;
+      for (const label of visible) {
+        const next = height + label.getBoundingClientRect().height;
+        if (height > 0 && next > limit) break;
+        height = next;
+      }
+      if (visible.length) optionsList.style.maxHeight = `${Math.ceil(height)}px`;
+    };
+    messagePanel?.addEventListener('toggle', () => {
+      if (messagePanel.matches(':popover-open')) requestAnimationFrame(sizeMessageOptions);
+    });
+    window.addEventListener('resize', () => {
+      if (messagePanel?.matches(':popover-open')) requestAnimationFrame(sizeMessageOptions);
+    });
     let pending; let request;
     messageForm.querySelector('[data-analytics-message-search]').addEventListener('input', event => {
       const query = event.target.value.toLocaleLowerCase();
       choices.forEach(input => { input.closest('label').hidden = !input.closest('label').textContent.toLocaleLowerCase().includes(query); });
+      optionsList.scrollTop = 0;
+      requestAnimationFrame(sizeMessageOptions);
     });
     const update = async () => {
       request?.abort(); request = new AbortController(); const activeRequest = request;

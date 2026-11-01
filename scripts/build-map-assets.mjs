@@ -13,7 +13,7 @@ const hash = createHash('sha256').update(await readFile(worker)).digest('hex').s
 for (const file of await readdir('src/assets/js')) {
     if (/^map-shared-[A-Z0-9]+\.min\.js$/.test(file)) await unlink(`src/assets/js/${file}`);
 }
-await build({entryPoints: ['src/assets/js/map.js', 'src/assets/js/map-pin.js'],
+await build({entryPoints: ['src/assets/js/map.js', 'src/assets/js/map-pin.js', 'src/assets/js/audience-interaction-map.js'],
         bundle: true, format: 'esm', splitting: true, outdir: 'src/assets/js',
         entryNames: '[name].min', chunkNames: 'map-shared-[hash].min',
         minify: true, legalComments: 'none',

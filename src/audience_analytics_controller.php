@@ -16,7 +16,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     }elseif($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET, POST');exit('Unsupported report method.');}
     $reportInput=$_SERVER['REQUEST_METHOD']==='POST'?$_POST:$_GET;
     $reportKey=audienceText($reportInput,'report',32);$section=audienceText($reportInput,'section',20)?:'email';
-    if(!in_array($section,['email','audience','conversions','reports','custom','activity','links','devices','insights'],true)){http_response_code(400);$error='Choose a supported report.';$section='email';}
+    if(!in_array($section,['email','audience','conversions','reports','custom','activity','links','devices','insights','locations'],true)){http_response_code(400);$error='Choose a supported report.';$section='email';}
     if($reportKey!==''&&$section==='custom'){
         try{
             $savedReport=$store->analyticsSavedReport($reportKey,$canDelete);$base=$savedReport['definition'];
@@ -26,7 +26,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         catch(InvalidArgumentException $e){http_response_code(403);exit($h($e->getMessage()));}
     }
     $presets=audienceAnalyticsPresets($view==='home');
-    $rangeKey=audienceText($reportInput,'range',20)?:((isset($reportInput['start'])||isset($reportInput['end']))?'custom':($view==='home'?'30':'90'));
+    $rangeKey=audienceText($reportInput,'range',20)?:((isset($reportInput['start'])||isset($reportInput['end']))?'custom':($view==='home'?'30':($section==='locations'?'7':'90')));
     if(!isset($reportInput['range'])&&isset($reportInput['start'],$reportInput['end']))foreach($presets as$key=>$preset)if($reportInput['start']===$preset['start']&&$reportInput['end']===$preset['end']){$rangeKey=(string)$key;break;}
     try{
         if($rangeKey!=='custom'){
@@ -43,12 +43,24 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     if(!in_array($metric,array_keys(audienceAnalyticsMetricLabels()),true)||!in_array($group,['campaign','day','week','month'],true)){http_response_code(400);$error='Choose supported report controls.';$metric='accepted';$group='campaign';}
     $definition=null;$customRows=[];$activityReport=null;$activitySize=audiencePageSize($reportInput);$activity=audienceText($reportInput,'activity',20)?:'accepted';$page=max(1,(int)($reportInput['page']??1));
     $linkHash=audienceText($reportInput,'link',64);
-    $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;
+    $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;$interactionLocations=null;$interactionMapProvider=null;
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
         if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);
         if(in_array($section,['links','devices','insights'],true))$evidence=$store->analyticsEvidence($window);
         if($section==='links'&&($reportInput['map']??'')==='1')$clickMap=$store->analyticsClickMap($window,max(0,(int)($reportInput['delivery']??0)));
+        if($section==='locations'){
+            require_once __DIR__.'/map_helpers.php';
+            $interactionLocations=$store->analyticsInteractionLocations($window);
+            $interactionMapProvider=[
+                'type'=>deploymentConfig()->string('map.provider'),
+                'styleUrl'=>engagementMapStyleUrl(),
+                'rasterTileUrl'=>deploymentConfig()->string('map.tile_url'),
+                'attributionText'=>deploymentConfig()->string('map.attribution_text'),
+                'attributionUrl'=>deploymentConfig()->string('map.attribution_url'),
+                'maximumZoom'=>deploymentConfig()->integer('map.maximum_zoom'),
+            ];
+        }
         if($section==='custom'&&$definition['dataset']==='audience')$sourceOptions=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);
         if($section==='audience'){$history=$store->analyticsAudienceHistory($window,$source);$sourceOptions=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);}
         if($section==='conversions')$nativeFunnels=$store->analyticsNativeFunnels($window);
@@ -78,8 +90,10 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         fclose($out);return;
     }
     $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;
-    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing',default=>'Email dashboard'};
+    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing','locations'=>'Interaction Locations',default=>'Email dashboard'};
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
-    ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-analytics.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
+    $styles=['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'];
+    if($section==='locations')$styles[]='assets/css/map.min.css';
+    ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>$styles,'scripts'=>['assets/js/audience.min.js','assets/js/audience-analytics.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
 }

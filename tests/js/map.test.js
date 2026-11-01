@@ -13,6 +13,7 @@ function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:
         matches(selector) { return selector === ':focus-visible' && this.focusVisible === true; }
         querySelector(selector) { return this.children.find(child => child.className?.split(' ').includes(selector.slice(1))); }
         focus() { this.focused = true; }
+        scrollIntoView(options) { this.scrolled = options; }
     }
     const ids = ['engagement-map', 'engagement-map-data', 'map-feedback', 'fit-map-pins', 'map-empty-state', 'map-empty-title', 'map-empty-description', 'map-list-empty', 'map-retry-feedback'];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
@@ -29,11 +30,15 @@ function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:
     const rows = initialEvents.map(event => {
         const row = new Element();
         row.dataset = {locationId: String(event.id), locationState: event.locationState};
-        const label = new Element(), help = new Element(), retry = new Element();
+        const label = new Element(), help = new Element(), retry = new Element(), mapLink = new Element();
         retry.dataset.retryLocation = String(event.id);
         retry.hidden = !['not_found', 'failed'].includes(event.locationState);
-        row.querySelector = selector => ({'[data-location-label]': label, '[data-location-help]': help, '[data-retry-location]': retry})[selector];
+        label.hidden = event.locationState === 'found';
+        mapLink.dataset.mapLocation = String(event.id);
+        mapLink.hidden = event.locationState !== 'found';
+        row.querySelector = selector => ({'[data-location-label]': label, '[data-location-help]': help, '[data-retry-location]': retry, '[data-map-location]': mapLink})[selector];
         row.retry = retry;
+        row.mapLink = mapLink;
         return row;
     });
     const filters = ['all', 'found', 'pending', 'needs_address', 'not_found'].map(state => {
@@ -45,7 +50,7 @@ function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:
     });
     const requests = [], timers = new Map(), documentListeners = {};
     let timerId = 0, responder = async () => ({status: 200, locations: []});
-    const mapCalls = {created: 0, resized: 0, pins: 0};
+    const mapCalls = {created: 0, resized: 0, pins: 0, flights: [], jumps: []};
     const markers = [], popups = [], loadCallbacks = [];
     class FakeMap {
         constructor(options) { mapCalls.created++; mapCalls.options = options; }
@@ -55,18 +60,27 @@ function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:
         resize() { mapCalls.resized++; }
         easeTo() {}
         fitBounds() {}
+        flyTo(options) { mapCalls.flights.push(options); }
+        jumpTo(options) { mapCalls.jumps.push(options); }
     }
     class Marker {
         constructor({element}) { this.element = element; markers.push(this); }
         setLngLat(point) { this.point = point; return this; }
-        setPopup() { return this; }
+        setPopup(popup) { this.popup = popup; return this; }
         addTo() { mapCalls.pins++; return this; }
         getLngLat() { return this.point; }
+        getPopup() { return this.popup; }
+        getElement() { return this.element; }
+        togglePopup() { if (this.element.covered) return this; this.popup.open = !this.popup.open; if (this.popup.open) this.popup.listeners.open?.(); return this; }
     }
     class Popup {
         constructor(options) { this.options = options; this.listeners = {}; popups.push(this); }
         setDOMContent(content) { this.content = content; return this; }
+        setLngLat(point) { this.point = point; return this; }
+        addTo() { this.open = true; this.listeners.open?.(); return this; }
         on(type, listener) { this.listeners[type] = listener; return this; }
+        isOpen() { return Boolean(this.open); }
+        remove() { this.open = false; }
     }
     class Bounds { extend() {} getCenter() { return [0, 0]; } }
     elements['engagement-map-data'].textContent = JSON.stringify({
@@ -77,11 +91,11 @@ function harness(initialEvents, mapProvider = {}, moduleUrl = 'http://localhost:
         document: {
             getElementById: id => elements[id], createElement: () => new Element(), visibilityState: 'visible',
             querySelector: selector => selector === '.map-filters' ? filterForm : null,
-            querySelectorAll: selector => ({'[data-location-id]': rows, '[data-location-filter]': filters, '[data-retry-location]': rows.map(row => row.retry)})[selector] || [],
+            querySelectorAll: selector => ({'[data-location-id]': rows, '[data-location-filter]': filters, '[data-retry-location]': rows.map(row => row.retry), '[data-map-location]': rows.map(row => row.mapLink)})[selector] || [],
             addEventListener: (type, fn) => { documentListeners[type] = fn; },
             dispatchEvent: event => documentListeners[event.type]?.(event)
         },
-        window: {setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id)},
+        window: {setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id), matchMedia: () => ({matches: false})},
         MapLibreMap: FakeMap, Marker, Popup, LngLatBounds: Bounds, NavigationControl: class {},
         setWorkerUrl: url => { mapCalls.workerUrl = url; }, DNR_MAPLIBRE_WORKER_URL: './maplibre-worker.min.js?v=test',
         URL, moduleUrl,
@@ -150,6 +164,29 @@ test('pointer-opened popups leave the action unfocused while keyboard-opened pop
     assert.equal(link.href, 'view_engagement.php?id=4');
 });
 
+test('On Map links focus their own pins and open the matching details', () => {
+    const h = harness([
+        {...unresolved, locationState: 'found', latitude: 32.9, longitude: -96.4},
+        {...unresolved, id: 5, title: 'Workshop', locationState: 'found', latitude: 41.9, longitude: -87.6}
+    ]);
+    let prevented = false;
+    h.markers[1].element.covered = true;
+    h.rows[1].mapLink.listeners.click({preventDefault: () => { prevented = true; }});
+    assert.equal(prevented, true);
+    assert.equal(h.mapCalls.flights.length, 1, 'The first click moves the map even before the tiles finish loading');
+    assert.deepEqual(Array.from(h.mapCalls.flights[0].center), [-87.6, 41.9]);
+    assert.equal(h.popups[1].isOpen(), true, 'A globe-hidden pin opens on the first click');
+    assert.equal(h.markers[1].element.focused, true);
+    assert.equal(h.elements['engagement-map'].scrolled.block, 'center');
+    h.load();
+    assert.equal(h.mapCalls.flights.length, 1, 'Initial map fitting does not override the selected location');
+
+    h.rows[0].mapLink.listeners.click({preventDefault() {}});
+    assert.deepEqual(Array.from(h.mapCalls.flights[1].center), [-96.4, 32.9]);
+    assert.equal(h.popups[0].isOpen(), true);
+    assert.equal(h.popups[1].isOpen(), false, 'Only the selected details remain open');
+});
+
 test('empty server results keep the base map and guidance visible without requesting lookups', () => {
     const h = harness([]);
     assert.equal(h.mapCalls.created, 1);
@@ -200,6 +237,7 @@ test('explicit retry updates queue, filters, counters and map without navigating
     assert.equal(h.elements['map-feedback'].textContent, '1 visible pin');
     assert.match(h.elements['map-retry-feedback'].textContent, /Location found/);
     assert.equal(h.rows[0].dataset.locationState, 'found');
+    assert.equal(h.rows[0].mapLink.hidden, false, 'The On Map link appears after a successful lookup');
 });
 
 test('failed retry remains usable and explains the error', async () => {

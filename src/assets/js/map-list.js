@@ -51,7 +51,12 @@
         if (!row) return;
         row.dataset.locationState = event.detail.state;
         const label = row.querySelector('[data-location-label]');
-        if (label) label.textContent = labels[event.detail.state];
+        if (label) {
+            label.textContent = labels[event.detail.state];
+            label.hidden = event.detail.state === 'found';
+        }
+        const mapLink = row.querySelector('[data-map-location]');
+        if (mapLink) mapLink.hidden = event.detail.state !== 'found';
         const description = row.querySelector('[data-location-help]');
         if (description) description.textContent = event.detail.locationNote || help[event.detail.state];
         const retry = row.querySelector('[data-retry-location]');

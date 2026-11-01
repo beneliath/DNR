@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audience_interaction_map.php';
 
 function audienceAnalyticsMetricLabels():array
 {
@@ -50,6 +51,37 @@ function audienceAnalyticsClientEvidence(string $agent,?string $country,string $
 
 trait AudienceAnalyticsReports
 {
+    public function analyticsInteractionLocations(array $window): array
+    {
+        // Use observation times, not the campaign send date. Every query stays in
+        // this audience, and only aggregate place counts leave the database.
+        $location = "JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.interaction_location.";
+        $fields = "{$location}country_code')) country_code,{$location}region')) region,{$location}city')) city";
+        $messageBot = $window['bots'] === 'filtered'
+            ? " AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'" : '';
+        $messageRows = $this->all("SELECT $fields,e.event_type,COUNT(*) observations
+            FROM marketing_message_events e
+            JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id
+            WHERE e.audience_id=? AND e.event_at>=? AND e.event_at<?
+                AND e.event_type IN ('open','click')
+                AND JSON_EXTRACT(e.details_json,'$.interaction_location') IS NOT NULL $messageBot
+            GROUP BY country_code,region,city,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
+        foreach ($messageRows as &$row) $row['source'] = 'message';
+        unset($row);
+        $contactRows = $this->all("SELECT $fields,e.event_type,COUNT(*) observations
+            FROM marketing_contact_events e
+            JOIN marketing_contacts c ON c.id=e.contact_id
+            WHERE c.audience_id=? AND e.created_at>=? AND e.created_at<?
+                AND e.actor_type='recipient'
+                AND e.event_type IN ('signup-permission','subscription-confirmed','preferences','status','survey-response')
+                AND (e.event_type<>'status' OR JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.to'))='unsubscribed')
+                AND JSON_EXTRACT(e.details_json,'$.interaction_location') IS NOT NULL
+            GROUP BY country_code,region,city,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
+        foreach ($contactRows as &$row) $row['source'] = 'contact';
+        unset($row);
+        return audienceInteractionMapSummarize([...$messageRows,...$contactRows]);
+    }
+
     private function analyticsRecipientScope(array $w):array
     {
         $sql="r.audience_id=? AND r.state='accepted' AND r.accepted_at>=? AND r.accepted_at<?";$p=[$this->audienceId,$w['from'],$w['until']];
@@ -284,7 +316,8 @@ trait AudienceAnalyticsReports
         $sealed=$this->one('SELECT snapshot_ciphertext FROM marketing_campaign_deliveries WHERE audience_id=? AND id=?',[$this->audienceId,$selected['id']]);
         $snapshot=audienceJson(\Dnr\Security\ApplicationKey::open($sealed['snapshot_ciphertext']));$draft=$snapshot['draft']??[];
         $plain=htmlspecialchars((string)($draft['text']??''),ENT_QUOTES,'UTF-8');$plain=preg_replace_callback('~https://[^\s<>]+~u',static fn($m)=>'<a href="'.$m[0].'">'.$m[0].'</a>',$plain);
-        $html=isset($draft['design'])?audienceDesignHtml($draft['design']):('<!doctype html><html><head></head><body><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'.$plain.'</pre></body></html>');
+        $hasDesign=isset($draft['design']);
+        $html=$hasDesign?audienceDesignHtml($draft['design']):('<!doctype html><html><head></head><body><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'.$plain.'</pre></body></html>');
         $bot=$w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'":'';
         $counts=array_column($this->all("SELECT COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')),'unknown') link_hash,COUNT(DISTINCT r.id) messages FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id WHERE $scope AND d.id=? AND e.event_type='click' AND e.event_at<? $bot AND NOT EXISTS(SELECT 1 FROM marketing_message_events failure WHERE failure.audience_id=r.audience_id AND failure.recipient_id=r.id AND failure.source='provider' AND failure.event_type IN ('hard-bounce','soft-bounce','rejected') AND failure.event_at<?) GROUP BY link_hash",[...$params,$selected['id'],$w['until'],$w['until']]),'messages','link_hash');
         $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$html,LIBXML_NONET);
@@ -292,9 +325,10 @@ trait AudienceAnalyticsReports
         foreach($dom->getElementsByTagName('*')as$node){foreach(iterator_to_array($node->attributes)as$attribute)if(str_starts_with(strtolower($attribute->name),'on'))$node->removeAttribute($attribute->name);}
         foreach(iterator_to_array($dom->getElementsByTagName('img'))as$node){$placeholder=$dom->createElement('div');$placeholder->appendChild($dom->createTextNode($node->getAttribute('alt')?:'Template image'));$placeholder->setAttribute('style','padding:30px;background:#eef1f2;color:#52616b;text-align:center');$node->parentNode?->replaceChild($placeholder,$node);}
         foreach(iterator_to_array($dom->getElementsByTagName('a'))as$node){$target=$node->getAttribute('href');$node->removeAttribute('href');$node->removeAttribute('target');$badge=$dom->createElement('span');
-            $label=str_contains($target,'*|')?'Personalized link':((int)($counts[hash('sha256',$target)]??0).' observed clicks');$badge->appendChild($dom->createTextNode(' ['.$label.']'));$badge->setAttribute('style','background:#ffe781;color:#18252b;padding:4px 6px;font-size:12px;font-family:Arial,sans-serif');$node->appendChild($badge);}
+            $count=(int)($counts[hash('sha256',$target)]??0);
+            $label=str_contains($target,'*|')?'Personalized link':($count.' observed '.($count===1?'click':'clicks'));$badge->appendChild($dom->createTextNode(' ['.$label.']'));$badge->setAttribute('style','background:#ffe781;color:#18252b;padding:4px 6px;font-size:12px;font-family:Arial,sans-serif');$node->appendChild($badge);}
         $nonce=contentSecurityPolicyNonce();$meta=$dom->createElement('meta');$meta->setAttribute('http-equiv','Content-Security-Policy');$meta->setAttribute('content',"default-src 'none'; style-src 'nonce-$nonce'; img-src 'none'; base-uri 'none'; form-action 'none'");$head=$dom->getElementsByTagName('head')->item(0);$head?->insertBefore($meta,$head->firstChild);
         $preview=audienceDesignPreviewSource($dom->saveHTML(),$nonce);foreach($options as&$o)unset($o['snapshot_ciphertext']);unset($o);
-        return ['options'=>$options,'delivery'=>(int)$selected['id'],'html'=>$preview];
+        return ['options'=>$options,'delivery'=>(int)$selected['id'],'html'=>$preview,'preview_kind'=>$hasDesign?'design':'text'];
     }
 }

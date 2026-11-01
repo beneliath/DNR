@@ -75,6 +75,7 @@ import {
     map.addControl(new NavigationControl({showCompass: false}), 'top-left');
 
     const markers = [];
+    const markersByEventId = new globalThis.Map();
     const coordinateCounts = new globalThis.Map();
     const pendingEvents = new globalThis.Map();
     let pinCount = 0;
@@ -84,6 +85,7 @@ import {
     const withoutAddressCount = Number(payload.withoutAddressCount) || 0;
     const resultsTruncated = payload.resultsTruncated === true;
     let providerError = '';
+    let selectedEventId = null;
 
     function plural(count, singular, pluralForm) {
         return count + ' ' + (count === 1 ? singular : (pluralForm || singular + 's'));
@@ -129,7 +131,38 @@ import {
         map.fitBounds(bounds, {padding: 42, maxZoom: 12});
     }
 
-    fitButton.addEventListener('click', fitMapToPins);
+    fitButton.addEventListener('click', function () {
+        selectedEventId = null;
+        fitMapToPins();
+    });
+
+    function focusLocation(eventId) {
+        const marker = markersByEventId.get(eventId);
+        if (!marker) return false;
+        selectedEventId = eventId;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        mapElement.scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', block: 'center'});
+
+        const popup = marker.getPopup();
+        markers.forEach(function (otherMarker) {
+            const otherPopup = otherMarker.getPopup();
+            if (otherPopup !== popup && otherPopup.isOpen()) otherPopup.remove();
+        });
+        // MapLibre does not toggle popups for pins hidden by the globe. Open the
+        // selected popup directly so the first list click works from any view.
+        if (!popup.isOpen()) popup.setLngLat(marker.getLngLat()).addTo(map);
+        const target = {center: marker.getLngLat(), zoom: Math.min(14, maximumZoom)};
+        if (reduceMotion) map.jumpTo(target);
+        else map.flyTo({...target, essential: true});
+        marker.getElement().focus({preventScroll: true});
+        return true;
+    }
+
+    document.querySelectorAll('[data-map-location]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            if (focusLocation(Number(link.dataset.mapLocation))) event.preventDefault();
+        });
+    });
 
     function pinClass(status) {
         if (status === 'confirmed') return 'status-confirmed-pin';
@@ -221,6 +254,7 @@ import {
             .setPopup(popup)
             .addTo(map);
         markers.push(marker);
+        markersByEventId.set(Number(event.id), marker);
         pinCount++;
         return true;
     }
@@ -234,7 +268,7 @@ import {
     });
     updateFeedback();
     map.once('load', function () {
-        if (pinCount > 0) fitMapToPins();
+        if (selectedEventId === null && pinCount > 0) fitMapToPins();
     });
     map.on('error', function () {
         providerError = 'map provider unavailable';
@@ -285,7 +319,7 @@ import {
             document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: event.locationState, locationNote: result.locationNote || ''}}));
         });
         updateFeedback();
-        if (pinsChanged) fitMapToPins();
+        if (pinsChanged && selectedEventId === null) fitMapToPins();
     }
 
     async function requestLocationBatch(url, ids = Array.from(pendingEvents.keys()), retry = false) {

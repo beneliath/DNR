@@ -2495,7 +2495,7 @@
       ]
     },
     "map.php": {
-      "sha256": "b35d8f6752e8d42e0d0a5d1d1997c8de0c5ef86ab7129acd3431c7986e60a5e9",
+      "sha256": "595d9e6ebceeff43b2dcbbd761b9f3c0fd738c555fd24f1f6d2bd9eac1b26974",
       "controls": [
         {
           "kind": "h1",
@@ -2575,6 +2575,10 @@
         {
           "kind": "button",
           "label": "All on This Page"
+        },
+        {
+          "kind": "a",
+          "label": "On Map"
         },
         {
           "kind": "button",
