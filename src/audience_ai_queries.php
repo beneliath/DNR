@@ -7,6 +7,7 @@ require_once __DIR__.'/shared/addresses.php';
 
 final class AudienceAiQueries
 {
+    private const EMAIL_REPORT_SCOPE = 'Email reports use campaign-recipient records. Test emails are tracked separately in Email delivery → Activity. Provider acceptance is not confirmed delivery; confirmed delivery counts require delivery receipts.';
     use AudienceAiPlanning;
 
     private array $fields;
@@ -96,6 +97,7 @@ final class AudienceAiQueries
             ]));
         }
         $reports['email']['dimensions']=[...$reports['email']['dimensions'],'country','device','links'];
+        $reports['email']['scope']=self::EMAIL_REPORT_SCOPE;
         foreach(['email'=>'Email campaign sending, delivery, opens and clicks.','audience'=>'Contact list growth, additions, subscriptions and unsubscribes.','forms'=>'Signup form visits, submissions and confirmed subscriptions.','flows'=>'Automation flow runs and completion.']as$dataset=>$description)$reports[$dataset]['description']=$description;
         $reports['email']['tracking_dimensions']=['country'=>'Geographic distribution of observed email engagement','device'=>'Observed email engagement by device category','links'=>'Messages with observed clicks by tracked link'];
         $shapes[]=$shape(array_replace($reportProperties,['dataset'=>['type'=>'string','enum'=>['email']],'dimension'=>['type'=>'string','enum'=>['country','device','links']],'metrics'=>['type'=>'array','maxItems'=>0,'items'=>['type'=>'string']]]));
@@ -389,7 +391,7 @@ final class AudienceAiQueries
         $evidence['scope_description']=$hasReport?'Requested native reports · '.$evidence['window']['start'].' to '.$evidence['window']['end'].' UTC':'Current audience records · Current account';
         if (array_filter($queries, static fn($query) => $query['tool'] === 'report' && $query['dataset'] === 'email')) {
             $evidence['scope_description'] .= ' · Email reports exclude test emails';
-            $evidence['limitations'][] = 'Email reports use campaign-recipient records. Test emails are tracked separately in Email delivery → Activity. Provider acceptance is not confirmed delivery; confirmed delivery counts require delivery receipts.';
+            $evidence['limitations'][] = self::EMAIL_REPORT_SCOPE;
         }
         $evidence['limitations']=array_values(array_unique($evidence['limitations']));
         return $evidence;

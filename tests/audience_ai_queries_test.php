@@ -410,6 +410,10 @@ $expect(isset($growthReview['format']['properties']['valid'],$growthReview['form
 $expect(!in_array('clarification',$review['format']['properties']['result_type']['enum'],true)&&$review['format']['properties']['conditions']['maxItems']===0,'Report validation cannot contradict its own ambiguity decision or invent contact filters.');
 $reviewContext=json_decode($review['messages'][1]['content'],true);
 $expect(!isset($reviewContext['proposed']['queries'][0]['metrics'])&&isset($reviewContext['conversation']['queries'][0]['metrics']),'Measurement intent is selected independently of unverified planner columns while retaining verified conversational scope.');
+$scopeText=$reviewContext['report_capabilities']['email']['scope']??'';
+$expect(str_contains($scopeText,'Test emails')&&str_contains($scopeText,'tracked separately')&&str_contains($scopeText,'confirmed delivery counts require delivery receipts'),'Independent metric review knows campaign evidence excludes separately tracked test sends and acceptance is not delivery.');
+$planningContext=json_decode($tools->planningPayload('Explain campaign delivery evidence.',audienceAiDialogueState([]))['messages'][1]['content'],true);
+$expect($scopeText!==''&&($planningContext['reports']['email']['scope']??null)===$scopeText,'Planning and independent review share the same native email scope instead of inventing test-email inclusion.');
 $fixedQuery=array_replace($reportState['queries'][0],['dimension'=>'links','metrics'=>[]]);
 $fixedReview=$tools->planReviewPayload('Compare the tracked links.', ['queries'=>[],'turns'=>[]], ['queries'=>[$fixedQuery]]);
 $expect($fixedReview['format']['properties']['report_metrics']['maxItems']===0,'Fixed-observation report dimensions cannot acquire incompatible metric overrides during review.');
@@ -516,5 +520,25 @@ $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$ca
 };
 $answer=audienceAiGenerate(array_replace($reportRequest,['prompt'=>'Show links from recent campaigns.']),microtime(true)+45,null,$transport,$tools);
 $expect($calls===3&&count($store->reports)===$reportsBefore&&$answer['interpretation']==='clarification','A genuinely missing campaign count still clarifies before reading reports.');
+$expect($tools->missingReportGroups([['dataset'=>'email','dimension'=>'country'],['dataset'=>'email','dimension'=>'device']],[['tool'=>'report','dataset'=>'email','dimension'=>'country'],['tool'=>'report','dataset'=>'email','dimension'=>'device']])===[],'A complete multi-breakdown report needs no replanning.');
+$expect($tools->missingReportGroups([['dataset'=>'email','dimension'=>'day']],[['tool'=>'report','dataset'=>'email','dimension'=>'campaign']])===[['dataset'=>'email','dimension'=>'day']],'A temporal breakdown cannot be replaced by campaign grouping.');
+$reject(static fn()=>$tools->missingReportGroups([['dataset'=>'audience','dimension'=>'device']],[]),'Tracking groupings cannot be assigned to an unsupported dataset.');
+$reject(static fn()=>$tools->missingReportGroups([['dataset'=>'email','dimension'=>'secret','account'=>'other']],[]),'Grouping requirements cannot add fields, accounts or unsupported dimensions.');
+foreach(['admin','editor','reviewer'] as $groupRole){
+    $plannerCalls=0;$reportsBefore=count($store->reports);
+    $transport=static function($url,$payload,$deadline,$cancelled,&$metrics)use(&$plannerCalls,$reportsBefore,$store,$expect,$plan,$raw):array{
+        if(isset($payload['tools'])||isset($payload['format']['properties']['calls'])){
+            $plannerCalls++;
+            $expect(count($store->reports)===$reportsBefore,'An incomplete report grouping is corrected before any report reads.');
+            $draft=$plan(['tool'=>'report','dataset'=>'email','dimension'=>$plannerCalls===1?'campaign':'country','metrics'=>[],'scope'=>['kind'=>'last_days','days'=>30]]);
+            if($plannerCalls>1)$draft['requests'][]=['base_query'=>-1,'changes'=>['tool'=>'report','dataset'=>'email','dimension'=>'device','metrics'=>[],'scope'=>['kind'=>'last_days','days'=>30]],'remove_filters'=>[]];
+            return $raw($draft);
+        }
+        if(isset($payload['format']['properties']['valid']))return $raw(['unresolved'=>[],'conditions'=>[],'report_metrics'=>[],'report_groups'=>[['dataset'=>'email','dimension'=>'country'],['dataset'=>'email','dimension'=>'device']],'result_type'=>'report','valid'=>true,'correction'=>'']);
+        return $raw(['finding_ids'=>[],'limitation_ids'=>[],'recommendations'=>[]]);
+    };
+    $answer=audienceAiGenerate(array_replace($reportRequest,['role'=>$groupRole,'prompt'=>'Break down email engagement by geography and device.']),microtime(true)+45,null,$transport,$tools);
+    $expect($plannerCalls===1&&array_column($answer['evidence']['queries'],'dimension')===['country','device'],'Independent grouping requirements compile all requested breakdowns before reads for each analytics role.');
+}
 putenv('DNR_AI_COACH_URL');
 echo "Audience AI read-only query tools passed ($checks checks).\n";

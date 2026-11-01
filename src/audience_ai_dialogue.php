@@ -277,7 +277,7 @@ trait AudienceAiPlanning
         $proposed=array_replace($plan,['queries'=>array_map(fn($q)=>$this->publicQuery($q),$reviewQueries)]);
         // Select measurements from the user's intent, independently of the planner's
         // unverified choices. Otherwise the reviewer tends to copy extra columns.
-        if($reportOnly)foreach($proposed['queries']as&$query)unset($query['metrics']);unset($query);
+        if($reportOnly)foreach($proposed['queries']as&$query)unset($query['metrics'],$query['dimension']);unset($query);
         if($reportOnly){
             $catalog=$this->toolSpecification()['reports'];$datasets=array_unique(array_column($reviewQueries,'dataset'));
             $supported=[];$capabilities=audienceAnalyticsReportCapabilities();
@@ -285,10 +285,11 @@ trait AudienceAiPlanning
             $metrics=array_intersect_key($this->metricCatalog(),array_flip($supported));
             $payload=$this->dialoguePayload([
                 'assessment'=>['type'=>'string','maxLength'=>250,'description'=>'Identify the outputs requested by the current user, including the unit and denominator for a ratio.'],
+                'report_groups'=>['type'=>'array','maxItems'=>4,'items'=>['type'=>'object','additionalProperties'=>false,'properties'=>['dataset'=>['type'=>'string','enum'=>array_keys($catalog)],'dimension'=>['type'=>'string','enum'=>array_values(array_unique(array_merge(...array_column($catalog,'dimensions'))))]],'required'=>['dataset','dimension']]],
                 'report_metrics'=>$metrics?['type'=>'array','maxItems'=>4,'items'=>['type'=>'string','enum'=>array_keys($metrics)]]:['type'=>'array','maxItems'=>0,'items'=>['type'=>'string']],
                 'unresolved'=>$unresolved,'valid'=>['type'=>'boolean'],'correction'=>['type'=>'string','maxLength'=>300],
                 'conditions'=>$conditions,'result_type'=>['type'=>'string','enum'=>['report','multiple']],
-            ],'Determine the report measurements requested by the FINAL user message, then verify the proposed population, dates and grouping. Choose the smallest set of catalog metrics that directly answers that message. For a rate, share, fraction, proportion or percentage choose its percentage metric alone, not absolute counts or other rates. Use the catalog formula to distinguish ratios with different denominators. Do not include a ratio\'s ingredients as extra outputs. A follow-up can reuse campaigns without reusing earlier output columns: replace the measurements when a new measure is requested, unless the user explicitly asks to show them together. Preserve previous measurements if only the population, period or grouping changes. The proposed plan intentionally omits metrics; you choose them independently. Explicit dates, durations, recent-campaign counts and catalog measurements require no clarification. The selected report window is the default when no other period is requested. General email-performance improvement advice needs no clarification: use open_rate, click_rate and bounce_rate in the selected scope. Ask a specific clarification in unresolved only for an actually undefined criterion/reference or unavailable measurement; quote that phrase exactly from a user turn. Never substitute engagement for financial measures or invent benchmarks. Industry/competitor benchmarks, similarity matching and historical per-campaign averages are unavailable; selected-period rates are not historical campaign averages. Identify these with unresolved.unavailable_capability=external_benchmarks, similar_campaigns or historical_campaign_averages, respectively; use none for other missing requirements. The question must be a complete helpful sentence, never just the quoted phrase. For these requests explain the limitation and offer supported individual campaign metrics, rather than asking the user to choose an unavailable benchmark. Unsupported measures have report_metrics=[]. A clear request has unresolved=[]. valid checks population/scope/grouping, not the unshown draft metrics. conditions is always empty. Do not retrieve or invent results.',
+            ],'Determine the report measurements requested by the FINAL user message, then verify the proposed population, dates and grouping. Choose the smallest set of catalog metrics that directly answers that message. For a rate, share, fraction, proportion or percentage choose its percentage metric alone, not absolute counts or other rates. Use the catalog formula to distinguish ratios with different denominators. Do not include a ratio\'s ingredients as extra outputs. A follow-up can reuse campaigns without reusing earlier output columns: replace the measurements when a new measure is requested, unless the user explicitly asks to show them together. Preserve previous measurements if only the population, period or grouping changes. The proposed plan intentionally omits metrics and dimensions; choose them independently. In report_groups list every explicit dataset/dimension breakdown requested by the user, including all parts of a combined breakdown. Return [] when no grouping is specified. Preserve unchanged explicit groupings for a continuation. Geographic and device email engagement use the fixed native country and device tracking observations, not campaign-level performance rates. A general performance request never overrides explicit breakdowns. Each listed grouping must be supported by its dataset catalog. Explicit dates, durations, recent-campaign counts and catalog measurements require no clarification. Requests to explain documented report scope or metric meanings also need no clarification: use supported measurements and explain the catalog scope exclusions. Do not assume excluded records are included. The selected report window is the default when no other period is requested. General email-performance improvement advice needs no clarification: use open_rate, click_rate and bounce_rate in the selected scope. Ask a specific clarification in unresolved only for an actually undefined criterion/reference or unavailable measurement; quote that phrase exactly from a user turn. Never substitute engagement for financial measures or invent benchmarks. Industry/competitor benchmarks, similarity matching and historical per-campaign averages are unavailable; selected-period rates are not historical campaign averages. Identify these with unresolved.unavailable_capability=external_benchmarks, similar_campaigns or historical_campaign_averages, respectively; use none for other missing requirements. The question must be a complete helpful sentence, never just the quoted phrase. For these requests explain the limitation and offer supported individual campaign metrics, rather than asking the user to choose an unavailable benchmark. Unsupported measures have report_metrics=[]. A clear request has unresolved=[]. valid checks population and scope, not the unshown draft metrics or dimensions; report_groups verifies explicit grouping independently. conditions is always empty. Do not retrieve or invent results.',
                 ['metrics'=>$metrics,'report_capabilities'=>array_intersect_key($catalog,array_flip($datasets)),'selected_report_scope'=>array_intersect_key($this->window,array_flip(['start','end','dataset'])),'conversation'=>$this->publicState($state),'proposed'=>$proposed,'question'=>$question],2000);
             if(!$metrics)$payload['messages'][0]['content'].=' This report dimension has fixed native observations. Return report_metrics=[]; no measurement override is needed to retrieve those observations.';
             // The independent typed review still runs when extra model reasoning
@@ -305,6 +306,19 @@ trait AudienceAiPlanning
         $payload['messages'][0]['content'].=' A general request to improve email performance requires no clarification: retrieve open_rate, click_rate and bounce_rate for the selected report scope. If the proposed plan asks which metric, mark it invalid and give that correction with unresolved=[]. Keep reasoning concise. Most common or most frequent field value requires a grouped frequency result ranked by occurrence count, never a scalar count of all records; raw count versus percentage share does not require clarification. For reports, proposed queries describe population and scope only; independently select report_metrics from the catalog based on the current question. Counts and percentages are different measurements: shares, ratios and percentages require the corresponding percentage metric. Return directly requested measurements, not the ingredients used to calculate them. A follow-up can retain the campaign population without retaining its previous output columns. If the current question names a new measurement, select only that measurement; include earlier measurements only when the user explicitly requests them together. Preserve earlier metrics when only scope or grouping changes. For other requests report_metrics is empty.';
         $payload['messages'][0]['content'].=' When a postal-address US-state field exists, a named state can be used as an eq filter; review the filter rather than declaring the address state unavailable. A whole-address presence filter cannot answer a state-specific question.';
         return $payload;
+    }
+
+    /** Validate model-required groupings against native capabilities before any read. */
+    public function missingReportGroups(array $groups,array $queries):array
+    {
+        $catalog=$this->toolSpecification()['reports'];$missing=[];
+        foreach($groups as$group){
+            if(!is_array($group)||count($group)!==2||!is_string($group['dataset']??null)||!is_string($group['dimension']??null)
+                ||!in_array($group['dimension'],$catalog[$group['dataset']]['dimensions']??[],true))throw new InvalidArgumentException('Unsupported required report grouping.');
+            $found=false;foreach($queries as$query)if($query['tool']==='report'&&$query['dataset']===$group['dataset']&&$query['dimension']===$group['dimension'])$found=true;
+            if(!$found)$missing[]=$group;
+        }
+        return $missing;
     }
 
     private function metricCatalog():array
@@ -595,6 +609,24 @@ function audienceAiDialogueGenerate(array $request,AudienceAiQueries $queries,fl
                 $plan=$queries->clarificationPlan($plan,$state,$route['context'],$required,$type,$question);$approved=true;break;
             }
             $pending=$plan['clarification']['issue']!=='none';$missing=[];
+            $groups=$review['report_groups']??[];
+            if(!is_array($groups)||!array_is_list($groups)||count($groups)>4)throw new InvalidArgumentException('Invalid required report groupings.');
+            $missingGroups=$queries->missingReportGroups($groups,$plan['queries']);
+            // Compile independently verified breakdowns from one unambiguous scope,
+            // just as verified metrics replace an incorrect draft below.
+            if(!$pending&&$review['valid']&&$groups&&count($plan['queries'])===1&&$plan['queries'][0]['tool']==='report'){
+                $baseQuery=$plan['queries'][0];$datasets=array_unique(array_column($groups,'dataset'));
+                if(count($datasets)===1&&reset($datasets)===$baseQuery['dataset']){
+                    $compiled=[];$native=audienceAnalyticsReportCapabilities();
+                    foreach($groups as$group){
+                        $metrics=in_array($group['dimension'],$native[$group['dataset']][0],true)?($review['report_metrics']?:$baseQuery['metrics']):[];
+                        $compiled[]=array_replace($baseQuery,['dimension'=>$group['dimension'],'metrics'=>$metrics]);
+                    }
+                    $plan['queries']=$queries->validate(['queries'=>$compiled]);
+                    $missingGroups=$queries->missingReportGroups($groups,$plan['queries']);
+                }
+            }
+            foreach($missingGroups as$group)if(!$pending)$missing[]='Include the requested report grouping: '.json_encode($group,JSON_THROW_ON_ERROR).'.';
             if(!$pending&&$review['valid']&&count($plan['queries'])===1&&$plan['queries'][0]['tool']==='report'&&!empty($review['report_metrics'])){
                 $query=array_replace($plan['queries'][0],['metrics'=>$review['report_metrics']]);
                 $plan['queries']=$queries->validate(['queries'=>[$query]]);
