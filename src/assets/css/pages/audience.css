@@ -706,7 +706,8 @@ html.dark-mode .audience-brand>.audience-logo-wrap{background:transparent}
 .person-create-tag input{width:100%;margin-bottom:12px}
 .person-marketing-card{padding:20px;overflow:hidden}
 .person-marketing-card .section-title h3{font-size:calc(20px * var(--audience-font-scale, 1));display:flex;gap:10px;align-items:center}
-.marketing-info{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--audience-muted);border-radius:50%;width:16px;height:16px;font:600 calc(12px * var(--audience-font-scale, 1))/1 Georgia,serif;color:var(--audience-muted)}
+button.marketing-info{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;min-height:0;padding:0;border:0;background:transparent;color:var(--audience-muted);font:600 calc(13px * var(--audience-font-scale, 1))/1 Georgia,serif}
+button.marketing-info>span{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;border:1.5px solid currentColor;border-radius:50%}
 .person-status-address{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 14px}
 .person-status-address dd{overflow-wrap:anywhere;margin:0}
 .person-marketing-details{margin:18px -20px -20px;border-top:1px solid var(--audience-border)}
@@ -770,7 +771,6 @@ html.dark-mode .audience-brand>.audience-logo-wrap{background:transparent}
 .person-status-help{width:340px;padding:20px}
 .person-status-help dt{font-weight:600;margin-top:14px}
 .person-status-help dd{margin:4px 0 0;color:var(--audience-muted)}
-button.marketing-info{min-height:0;padding:0;background:transparent;color:var(--audience-muted);border:1.5px solid currentColor;border-radius:50%;width:17px;height:17px;font-size:calc(13px * var(--audience-font-scale, 1))}
 @media(max-width:850px){.audience-person-layout{grid-template-columns:minmax(0,1fr)}.audience-person-main{min-height:400px}}
 @media(max-width:500px){.audience-person-main{padding:16px}.audience-person-main .audience-tabs a{padding:12px 9px}.activity-filters label{width:100%;justify-content:space-between}.person-editor-body{padding:20px}.person-details-card dl{grid-template-columns:80px minmax(0,1fr)}}
 

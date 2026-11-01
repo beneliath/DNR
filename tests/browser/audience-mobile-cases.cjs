@@ -55,7 +55,7 @@ module.exports = fixture => {
  add('template-filters','view=templates',[{selector:'[data-template-all-filters]'}]);
  add('template-list','view=templates',[{selector:'[data-template-layout="list"]'},{selector:'.template-card',first:true,op:'scroll'}]);
  add('template-card','view=templates',[{selector:'[data-template-layout="grid"]'},{selector:'.template-card',first:true,op:'scroll'}]);
- add('mobile-more','view=home',[{selector:'[data-mm-menu-open]'}],{mobileOnly:true});
+ add('mobile-more','view=inbox',[{selector:'[data-mm-menu-open]'}],{mobileOnly:true});
  add('mobile-counts','view=contacts',[{selector:'.mm-mobile-counts-toggle'}],{mobileOnly:true});
  add('mobile-record-details','view=contacts',[{selector:'.mm-mobile-details-toggle',first:true}],{mobileOnly:true});
  add('mobile-template-actions','view=templates',[{selector:'.mm-mobile-action-toggle',first:true}],{mobileOnly:true});

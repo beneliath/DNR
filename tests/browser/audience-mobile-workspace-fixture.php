@@ -8,7 +8,7 @@ $url=static fn(array $params=[])=>'audience.php?'.http_build_query($params);
 $view=($_GET['view']??'')==='assistant'?'assistant':'contacts';$themeKey='audience-status-fixture';$displayName='Example User';$pageTitle=$view==='assistant'?'AI assistant':'Connections';
 $canManage=$canDelete=$canExport=true;$message=$error='';$csrf=csrfInput();$audienceId=1;
 $audience=['id'=>1,'name'=>'Example audience','settings_json'=>'{}','version'=>1];
-$tags=$groups=$fields=$catalog=$recentDesigns=$segments=$sources=[];$segment=$job=null;
+$tags=$groups=$fields=$catalog=$recentDesigns=$segments=$sources=$activeTags=[];$segment=$job=null;
 $filters=audienceListFilters($_GET);$rules=['match'=>'all','rules'=>[]];
 $pageSize=50;$page=1;$sort=$_GET['sort']??'email';$direction=$_GET['direction']??'asc';$sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];
 $query=$filters+['rules'=>json_encode($rules),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];

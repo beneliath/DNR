@@ -11,6 +11,7 @@ fs.mkdirSync(work, {recursive:true});
 const fixture = (name, ...args) => execFileSync('php', [`tests/browser/${name}-fixture.php`, ...args], {cwd:root, encoding:'utf8', maxBuffer:8*1024*1024});
 const views = {
     contacts: fixture('audience-mobile-workspace'),
+    profile: fixture('audience-tag-actions', 'admin', 'active', 'locked', '2', '', '', 'contact'),
     templates: fixture('audience-template-lifecycle', 'admin', 'saved', 'locked', 'bulk'),
     archive: fixture('audience-template-lifecycle', 'admin', 'archived', 'locked'),
     campaigns: fixture('audience-campaign-lifecycle', 'admin', 'active'),
@@ -96,9 +97,15 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
                         const geometry = await page.evaluate(() => ({width:document.scrollingElement.scrollWidth,viewport:innerWidth}));
                         if(geometry.width>width+1)await page.screenshot({path:path.join(work,`${engine}-${theme}-${width}-${current}-overflow.png`)});
                         assert.ok(geometry.width<=width+1, `${engine}/${theme}/${width}/${current} fits viewport: ${JSON.stringify(geometry)}`);
-                        assert.equal(await page.locator('.mm-mobile-dock').isVisible(), true);
-                        const targets = await page.locator('.mm-mobile-dock>a,.mm-mobile-dock>button').evaluateAll(nodes => nodes.map(node => {const r=node.getBoundingClientRect();return Math.min(r.width,r.height);}));
-                        assert.ok(targets.every(size=>size>=44),'navigation touch targets are at least 44px');
+                        assert.equal(await page.locator('.mm-mobile-dock').count(),0,'redundant bottom navigation is removed');
+                        const navigation = page.locator(['designer','inbox','conversation'].includes(current)?'.mm-mobile-tools-button':'[data-audience-nav-toggle]');
+                        assert.equal(await navigation.isVisible(),true,'top navigation remains available');
+                        assert.ok(await navigation.evaluate(node=>{const r=node.getBoundingClientRect();return r.width>=44&&r.height>=44;}),'top navigation has a 44px touch target');
+                        if(current==='profile'){
+                            const sizes=await page.locator('button.marketing-info,button.marketing-info>span').evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return [r.width,r.height];}));
+                            assert.ok(Math.abs(sizes[0][0]-44)<1&&Math.abs(sizes[0][1]-44)<1,'information button has a square mobile touch target');
+                            assert.ok(Math.abs(sizes[1][0]-17)<1&&Math.abs(sizes[1][1]-17)<1,'information ring remains circular');
+                        }
                         if(width===390 && ['templates','contacts','campaigns','home','inbox','conversation','automations','calendar'].includes(current))await page.screenshot({path:path.join(work,`${engine}-${theme}-${current}.png`)});
                         layouts++;
                     }
@@ -120,11 +127,16 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
             assert.equal(await page.locator('#filter-status').isVisible(),true);
             await page.keyboard.press('Escape');
 
-            await page.locator('[data-mm-menu-open]').tap();
-            assert.equal(await page.locator('#mm-mobile-menu').isVisible(),true);
-            assert.equal(await page.getByRole('link',{name:'Email templates',exact:true}).last().isVisible(),true);
+            await page.locator('[data-audience-nav-toggle]').tap();
+            assert.equal(await page.locator('#audience-sidebar').isVisible(),true);
+            for(const destination of ['home','campaigns','inbox'])assert.equal(await page.locator(`#audience-sidebar a[href*="view=${destination}"]`).first().isVisible(),true,`${destination} remains in the hamburger navigation`);
+            await page.locator('[data-audience-nav-close]').tap();
+            assert.equal(await page.locator('[data-audience-nav-toggle]').getAttribute('aria-expanded'),'false');
+
+            current='profile';await visit('http://mobile-workspace.test/audience.php');await settle(page);
+            await page.locator('button.marketing-info').tap();
+            assert.equal(await page.locator('#marketing-status-help').isVisible(),true,'subscription help opens from the circular icon');
             await page.keyboard.press('Escape');
-            assert.equal(await page.locator('[data-mm-menu-open]').evaluate(node=>node===document.activeElement),true,'menu dismissal restores focus');
 
             current='templates'; await visit('http://mobile-workspace.test/audience.php'); await settle(page);
             const group=page.locator('.template-card-actions').first();
@@ -140,6 +152,11 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
             await page.getByRole('button',{name:'Close',exact:true}).click();
 
             current='designer'; await visit('http://mobile-workspace.test/audience.php'); await settle(page);
+            await page.locator('[data-mm-menu-open]').tap();
+            assert.equal(await page.locator('#mm-mobile-menu').isVisible(),true);
+            assert.equal(await page.locator('#mm-mobile-menu a[href*="view=home"]').isVisible(),true);
+            await page.keyboard.press('Escape');
+            assert.equal(await page.locator('[data-mm-menu-open]').evaluate(node=>node===document.activeElement),true,'designer menu dismissal restores focus');
             assert.equal(await page.locator('.designer-inspector').isVisible(),false);
             await page.locator('.designer-block').first().click();
             assert.equal(await page.locator('.designer-inspector').isVisible(),true,'selecting content opens its editor');
@@ -159,6 +176,9 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
             assert.equal(await page.locator('.flow-inspector').isVisible(),true);
 
             current='inbox';await visit('http://mobile-workspace.test/audience.php');await settle(page);
+            await page.locator('[data-mm-menu-open]').tap();
+            assert.equal(await page.locator('#mm-mobile-menu a[href*="view=campaigns"]').isVisible(),true,'Inbox keeps access to the workspace destinations');
+            await page.keyboard.press('Escape');
             assert.equal(await page.locator('.inbox-list').isVisible(),true);
             const conversationUrl=await page.locator('.inbox-thread-item').first().getAttribute('href');
             current='conversation';await visit(new URL(conversationUrl,'http://mobile-workspace.test/').href);await settle(page);
@@ -166,10 +186,10 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
             assert.equal(await page.locator('.inbox-return').isVisible(),true,'conversation has an obvious way back');
 
             current='reviewer';await visit('http://mobile-workspace.test/audience.php');await settle(page);
-            await page.locator('[data-mm-menu-open]').click();
-            assert.equal(await page.locator('#mm-mobile-menu .mm-mobile-create').count(),0,'reviewers cannot create campaigns');
-            assert.equal(await page.locator('#mm-mobile-menu a[href*="view=import"]').count(),0,'reviewers have no import control');
-            await page.keyboard.press('Escape');
+            await page.locator('[data-audience-nav-toggle]').click();
+            assert.equal(await page.locator('#audience-sidebar .audience-create').count(),0,'reviewers cannot create campaigns');
+            assert.equal(await page.locator('#audience-sidebar a[href*="view=inbox"]').count(),0,'reviewers have no Inbox control');
+            await page.locator('[data-audience-nav-close]').click();
 
             // Mobile changes must clean up on resize. Compare actual desktop pixels
             // against the previous bundle and without the new mobile stylesheet.
@@ -181,7 +201,7 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
                 await page.setViewportSize({width:390,height:844});
                 await visit('http://mobile-workspace.test/audience.php');await settle(page);
                 await page.setViewportSize({width:1440,height:1000});await settle(page);
-                assert.equal(await page.locator('.mm-mobile-dock').isVisible(),false);
+                assert.equal(await page.locator('.mm-mobile-dock').count(),0);
                 assert.equal(await page.locator('[data-mm-card-table],[data-mm-actions],[data-mm-filters]').count(),0,'mobile enhancements clean up at desktop size');
                 const geometry=await desktopGeometry(page);
                 const actual=await page.screenshot({animations:'disabled'});

@@ -5,7 +5,7 @@
         <section class="audience-panel subtle person-marketing-card">
             <h2 class="person-identity"><?= $h($contact['email']) ?></h2>
             <p class="audience-help">Created on <?= $h(audienceProfileDate($contact['created_at'])) ?></p><hr>
-            <div class="section-title"><h3>Subscription status <button type="button" class="marketing-info" popovertarget="marketing-status-help" aria-label="What do these statuses mean?">i</button></h3><?php if($canManage): ?><button class="text-button" data-open-dialog="edit-marketing">Edit</button><?php endif; ?></div>
+            <div class="section-title"><h3>Subscription status <button type="button" class="marketing-info" popovertarget="marketing-status-help" aria-label="What do these statuses mean?"><span aria-hidden="true">i</span></button></h3><?php if($canManage): ?><button class="text-button" data-open-dialog="edit-marketing">Edit</button><?php endif; ?></div>
             <dl class="person-status-address"><dt>Email</dt><dd><?= $h($contact['email']) ?></dd></dl>
             <details class="person-marketing-details">
                 <summary><?php audienceNavIcon('chevron'); ?><strong>Email</strong><span class="audience-status <?= $h($contact['email_status']) ?>"><?= $h(ucfirst($contact['email_status'])) ?></span></summary>
