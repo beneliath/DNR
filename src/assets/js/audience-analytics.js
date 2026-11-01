@@ -27,8 +27,6 @@
     document.querySelectorAll('.audience-topbar,.audience-page-heading').forEach(node => observer.observe(node));
   }
   const dateForm = document.querySelector('[data-analytics-range]');
-  const hideCalendars = () => document.querySelectorAll('.analytics-calendar').forEach(panel => { panel.hidden = true; });
-  const iso = date => date.toISOString().slice(0, 10);
   const make = (tag, text, className) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -41,64 +39,13 @@
     preset.addEventListener('change', () => {
       const option = preset.selectedOptions[0];
       if (option.dataset.start) { inputs[0].value = option.dataset.start; inputs[1].value = option.dataset.end; }
-      hideCalendars();
     });
-    inputs.forEach(input => input.addEventListener('input', () => { preset.value = 'custom'; }));
+    inputs.forEach(input => ['input', 'change'].forEach(type => input.addEventListener(type, () => { preset.value = 'custom'; })));
     dateForm.querySelector('[data-analytics-range-cancel]').addEventListener('click', () => {
-      dateForm.reset(); hideCalendars(); document.getElementById('analytics-range').hidePopover();
+      dateForm.reset(); document.getElementById('analytics-range').hidePopover();
       document.getElementById('analytics-range-trigger').focus();
     });
-    dateForm.querySelectorAll('[data-analytics-calendar]').forEach(trigger => {
-      const key = trigger.dataset.analyticsCalendar;
-      const input = dateForm.elements.namedItem(key);
-      const panel = dateForm.querySelector(`[data-calendar-for="${key}"]`);
-      let displayed;
-      const render = focusDate => {
-        panel.replaceChildren();
-        const header = make('header');
-        const previous = make('button', '‹'); previous.type = 'button'; previous.setAttribute('aria-label', 'Previous month');
-        const next = make('button', '›'); next.type = 'button'; next.setAttribute('aria-label', 'Next month');
-        const title = make('strong', displayed.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }));
-        header.append(previous, title, next); panel.append(header);
-        [previous, next].forEach((button, index) => button.addEventListener('click', () => {
-          displayed.setUTCMonth(displayed.getUTCMonth() + (index ? 1 : -1)); render();
-        }));
-        const grid = make('div', undefined, 'analytics-calendar-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', title.textContent);
-        ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].forEach(day => grid.append(make('span', day)));
-        const first = new Date(displayed); first.setUTCDate(1 - first.getUTCDay());
-        for (let index = 0; index < 42; index++) {
-          const day = new Date(first); day.setUTCDate(first.getUTCDate() + index);
-          const value = iso(day); const button = make('button', String(day.getUTCDate())); button.type = 'button';
-          button.dataset.date = value; button.disabled = value > input.max;
-          button.setAttribute('aria-label', day.toLocaleDateString('en-US', { dateStyle: 'full', timeZone: 'UTC' }));
-          if (day.getUTCMonth() !== displayed.getUTCMonth()) button.classList.add('outside-month');
-          if (value === input.value) { button.classList.add('selected'); button.setAttribute('aria-pressed', 'true'); }
-          button.addEventListener('click', () => { input.value = value; preset.value = 'custom'; panel.hidden = true; trigger.focus(); });
-          button.addEventListener('keydown', event => {
-            const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
-            if (!delta) return;
-            event.preventDefault(); const target = new Date(day); target.setUTCDate(target.getUTCDate() + delta);
-            if (iso(target) > input.max) return;
-            displayed = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), 1)); render(iso(target));
-          });
-          grid.append(button);
-        }
-        panel.append(grid);
-        if (focusDate) panel.querySelector(`[data-date="${focusDate}"]`)?.focus();
-      };
-      trigger.addEventListener('click', () => {
-        const open = !panel.hidden; hideCalendars(); if (open) return;
-        const chosen = new Date(`${input.value || input.max}T00:00:00Z`);
-        displayed = new Date(Date.UTC(chosen.getUTCFullYear(), chosen.getUTCMonth(), 1));
-        panel.hidden = false; render(input.value);
-      });
-    });
   }
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && document.querySelector('.analytics-calendar:not([hidden])')) {
-      event.preventDefault(); event.stopPropagation(); hideCalendars();
-    }
-  }, true);
   ['analytics-range', 'analytics-messages'].forEach(id => {
     const panel = document.getElementById(id); const trigger = document.getElementById(`${id === 'analytics-range' ? 'analytics-range' : 'analytics-message'}-trigger`);
     if (!panel || !trigger) return;
