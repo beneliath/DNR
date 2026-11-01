@@ -270,10 +270,17 @@ def validate_message_monkey(db,anchor):
  require(query(db,"SELECT COUNT(*) FROM dnr.marketing_design_library WHERE audience_id=1 AND item_type='image' AND deleted_at IS NULL AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.sample_dataset'))='test-account-message-monkey-media-v1'")=='6','Demo My Files images missing')
  require(query(db,"SELECT JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.brand.logo')) LIKE 'data:image/svg+xml;base64,%',JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.brand.secondary_logo')) LIKE 'data:image/svg+xml;base64,%' FROM dnr.marketing_audiences WHERE id=1")=='1\t1','Demo Brand Kit logos missing')
  location_where="JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.sample_dataset'))='test-account-interaction-location-v1'"
- require(query(db,'SELECT COUNT(*),COUNT(DISTINCT contact_id) FROM dnr.marketing_contact_events WHERE '+location_where)=='32\t24','Demo interaction locations missing')
- require(query(db,'SELECT event_type,COUNT(*) FROM dnr.marketing_contact_events WHERE '+location_where+' GROUP BY event_type ORDER BY event_type')=='preferences\t2\nsignup-permission\t24\nstatus\t2\nsubscription-confirmed\t4','Demo interaction location types changed')
+ require(query(db,'SELECT COUNT(*),COUNT(DISTINCT contact_id) FROM dnr.marketing_contact_events WHERE '+location_where)=='41\t24','Demo interaction locations missing')
+ require(query(db,'SELECT event_type,COUNT(*) FROM dnr.marketing_contact_events WHERE '+location_where+' GROUP BY event_type ORDER BY event_type')=='preferences\t11\nsignup-permission\t24\nstatus\t2\nsubscription-confirmed\t4','Demo interaction location types changed')
+ recent=(anchor-datetime.timedelta(days=6)).isoformat()
+ city="JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.interaction_location.city'))"
+ country="JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.interaction_location.country_code'))"
+ added=query(db,"SELECT CONCAT("+country+",'|',"+city+") FROM dnr.marketing_contact_events WHERE "+location_where+
+             " AND created_at>='"+recent+" 00:00:00' AND created_at<'"+(anchor+datetime.timedelta(days=1)).isoformat()+" 00:00:00'"+
+             " AND "+city+" IN ('Tel Aviv','Nazareth','Paris','Berlin','Rome','Sydney','Melbourne','Tokyo','Osaka') ORDER BY 1")
+ require(added=='\n'.join(['AU|Melbourne','AU|Sydney','DE|Berlin','FR|Paris','IL|Nazareth','IL|Tel Aviv','IT|Rome','JP|Osaka','JP|Tokyo']),'Recent regional interaction locations missing')
  require(query(db,"SELECT COUNT(*) FROM dnr.marketing_contacts c WHERE c.audience_id=1 AND c.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM dnr.marketing_contact_events e WHERE e.contact_id=c.id AND "+location_where+" AND JSON_CONTAINS_PATH(e.details_json,'all','$.interaction_location.ip_address','$.interaction_location.country_code'))")=='0','Demo connection without a sample location')
- return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2,brand_logos=2,interaction_locations=32)
+ return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2,brand_logos=2,interaction_locations=41)
 
 def validate(db,anchor):
  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]
