@@ -196,10 +196,10 @@ trait AudienceDeliveryRuntime
             }
         });
     }
-    public function confirmSubscription(string $token):bool
+    public function confirmSubscription(string $token,array $interactionLocation=[]):bool
     {
         if(!preg_match('/^[a-f0-9]{64}$/D',$token))return false;
-        return $this->transaction(function()use($token){
+        return $this->transaction(function()use($token,$interactionLocation){
             $challenge=$this->one("SELECT q.*,m.state mail_state FROM marketing_consent_challenges q JOIN marketing_service_mail m ON m.id=q.service_mail_id AND m.audience_id=q.audience_id AND m.contact_id=q.contact_id WHERE q.audience_id=? AND q.token_hash=? FOR UPDATE",[$this->audienceId,hash('sha256',$token)]);
             if(!$challenge||$challenge['used_at']||strtotime($challenge['expires_at'].' UTC')<=time()||$challenge['mail_state']!=='accepted')return false;
             $person=$this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? FOR UPDATE',[$this->audienceId,(int)$challenge['contact_id']]);
@@ -224,6 +224,7 @@ trait AudienceDeliveryRuntime
             if($person['is_archived'])$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','contact_restored',?)",[$person['id'],json_encode(['source'=>'Confirmed signup form','resource_id'=>$context['resource_id'],'challenge_id'=>(int)$challenge['id']],JSON_THROW_ON_ERROR)]);
             $details=['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'];
             if($deleted)$details['resubscribed_email_hash']=$challenge['email_hash'];
+            if($interactionLocation)$details['interaction_location']=$interactionLocation;
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','subscription-confirmed',?)",[$person['id'],json_encode($details,JSON_THROW_ON_ERROR)]);
             if(($person['is_archived']||$person['email_status']!=='subscribed')&&$attribution&&$this->collectionAvailable()){
                 $context=audienceJson($attribution['details_json']);
@@ -233,9 +234,9 @@ trait AudienceDeliveryRuntime
             return true;
         });
     }
-    public function savePublicPreferences(int $personId,int $version,array $input,?array $scope=null):void
+    public function savePublicPreferences(int $personId,int $version,array $input,?array $scope=null,array $interactionLocation=[]):void
     {
-        $this->transaction(function()use($personId,$version,$input,$scope){
+        $this->transaction(function()use($personId,$version,$input,$scope,$interactionLocation){
             $person=$this->person($personId,true);if($person['is_archived'])throw new InvalidArgumentException('These preferences are unavailable.');if((int)$person['version']!==$version)throw new InvalidArgumentException('Your preferences changed. Reload before saving.');
             $custom=$person['custom'];$values=is_array($input['custom']??null)?$input['custom']:[];
             foreach($this->fields()as$f)if($f['is_public']&&($scope===null||in_array('custom:'.$f['id'],$scope['fields'],true))){
@@ -250,7 +251,7 @@ trait AudienceDeliveryRuntime
             $this->write('UPDATE marketing_contacts SET first_name=?,last_name=?,custom_json=?,timezone=?,version=version+1 WHERE audience_id=? AND id=?',[audienceText($input,'first_name',100),audienceText($input,'last_name',100),json_encode((object)$custom,JSON_THROW_ON_ERROR),$zone,$this->audienceId,$personId]);
             foreach($public as$option)$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=? AND option_id=?',[$personId,$option]);foreach($chosen as$option)$this->write('INSERT INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$personId,$option]);
             $changed=[];foreach(['first_name','last_name']as$key)if($person[$key]!==audienceText($input,$key,100))$changed[]=$key;if($person['timezone']!==$zone)$changed[]='timezone';foreach($custom as$key=>$value)if(($person['custom'][$key]??'')!==$value)$changed[]=(string)$key;
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','preferences',?)",[$personId,json_encode(['source'=>'Private email preferences','changed_fields'=>$changed],JSON_THROW_ON_ERROR)]);
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','preferences',?)",[$personId,json_encode(['source'=>'Private email preferences','changed_fields'=>$changed]+($interactionLocation?['interaction_location'=>$interactionLocation]:[]),JSON_THROW_ON_ERROR)]);
             $beforeGroups=$person['group_ids'];$afterGroups=$this->person($personId)['group_ids'];if($beforeGroups!==$afterGroups)$this->event($personId,'groups_changed',['added'=>array_values(array_diff($afterGroups,$beforeGroups)),'removed'=>array_values(array_diff($beforeGroups,$afterGroups))]);
         });
     }

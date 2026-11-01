@@ -3,6 +3,7 @@ declare(strict_types=1);
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Public security tests skipped (disposable database required).\n");
 require_once (getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src').'/bootstrap.php';
 require_once (getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src').'/audience_store.php';
+require_once __DIR__.'/integration_auth_helpers.php';
 $db=applicationDatabaseConnection();$checks=0;
 $expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
 $request=static function(string $path,array $headers=[],?array $post=null):array{
@@ -11,7 +12,8 @@ $request=static function(string $path,array $headers=[],?array $post=null):array
     $body=curl_exec($curl);if($body===false)throw new RuntimeException('Public fixture request failed.');
     return ['status'=>(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'body'=>$body];
 };
-$db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',['public-security-'.bin2hex(random_bytes(6)),password_hash(bin2hex(random_bytes(16)),PASSWORD_DEFAULT),'admin']);
+$adminUsername='public-security-'.bin2hex(random_bytes(6));$adminPassword=bin2hex(random_bytes(16));
+$db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$adminUsername,password_hash($adminPassword,PASSWORD_DEFAULT),'admin']);
 $store=new AudienceStore($db,1,(int)$db->insert_id,'Public security fixture');
 $id=$store->saveCollection(['kind'=>'hosted','name'=>'Public security fixture']);
 $draft=$store->collectionResource($id)['draft'];$draft['opt_in']='single';
@@ -21,6 +23,7 @@ $path='audience_collect_public.php?key='.$resource['public_key'].'&visitor=';
 $count=static fn():int=>(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_visits WHERE resource_id=?',[$id])->fetch_assoc()['n'];
 $bucket=hash('sha256',currentAccountKey().'|collection|visit:127.0.0.1');$hour=gmdate('Y-m-d H:00:00');
 $previous=$db->execute_query('SELECT attempts FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$bucket,$hour])->fetch_assoc();
+$authCookies=[];
 try{
     $db->execute_query('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start,attempts) VALUES (1,?,?,299) ON DUPLICATE KEY UPDATE attempts=299',[$bucket,$hour]);
     $first=$request($path.str_repeat('1',64));$expect($first['status']===200&&$count()===1,'Final admitted view remains usable and recorded');
@@ -42,8 +45,70 @@ try{
     $post=['proof'=>\Dnr\Security\ApplicationKey::seal(json_encode($proof,JSON_THROW_ON_ERROR)),'email'=>$email,'first_name'=>'Security','last_name'=>'Fixture','website'=>'','permission'=>'1'];
     $submitted=$request($path.str_repeat('5',64),[],$post);
     $expect($submitted['status']===200&&(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc()['n']===1,'The analytics cap does not block a valid signup');
+    $contact=$db->execute_query('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc();
+    $signup=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission' ORDER BY id DESC LIMIT 1",[$contact['id']])->fetch_assoc();
+    $location=audienceJson($signup['details_json'])['interaction_location']??[];
+    $expect(($location['ip_address']??'')==='127.0.0.1'&&!isset($location['country_code']),'Signup records its verified address without inventing a location for localhost');
+    $expect(isset($store->personInteractionHistory((int)$contact['id'])['signup']),'Connection history exposes the recorded signup location');
+    $forgedSignup=$request($path.str_repeat('5',64),['X-Forwarded-For: 8.8.8.8','CF-Connecting-IP: 8.8.8.8','CF-IPCountry: US'],$post);
+    $expect($forgedSignup['status']===200&&(int)$db->execute_query("SELECT COUNT(*) n FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission'",[$contact['id']])->fetch_assoc()['n']===1,'A repeated or forged signup does not add a location record');
+    $campaign=$store->createCampaign(['name'=>'Location security fixture','campaign_type'=>'regular']);
+    $trackingKey=bin2hex(random_bytes(32));
+    $store->write("INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label) VALUES (1,?,1,'completed',UTC_TIMESTAMP(),'UTC',?,?,1,?,'Public security fixture')",[$campaign,\Dnr\Security\ApplicationKey::seal(json_encode(['tracking_key'=>$trackingKey],JSON_THROW_ON_ERROR)),bin2hex(random_bytes(32)),$store->actorId]);
+    $delivery=(int)$db->insert_id;$recipientToken=bin2hex(random_bytes(32));
+    $store->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,delivery_started_at,accepted_at) VALUES (1,?,?,?,?,?,?,'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())",[$delivery,$contact['id'],audienceDispatchEmailHash($email),\Dnr\Security\ApplicationKey::seal('{}'),hash('sha256',$recipientToken),'<location-'.bin2hex(random_bytes(12)).'@example.test>']);
+    $recipientId=(int)$db->insert_id;
+    $open=$request('audience_track.php?'.http_build_query(['token'=>$recipientToken,'open'=>1,'sig'=>hash_hmac('sha256','open',$trackingKey)]));
+    $link=rtrim(strtr(base64_encode('https://example.test/location'),'+/','-_'),'=');
+    $click=$request('audience_track.php?'.http_build_query(['token'=>$recipientToken,'url'=>$link,'sig'=>hash_hmac('sha256',$link,$trackingKey)]));
+    $tracked=$store->all("SELECT event_type,details_json FROM marketing_message_events WHERE recipient_id=? AND event_type IN ('open','click') ORDER BY id",[$recipientId]);
+    $expect($open['status']===200&&$click['status']===302&&count($tracked)===2&&array_reduce($tracked,static fn(bool $ok,array $event)=>$ok&&(audienceJson($event['details_json'])['interaction_location']['ip_address']??'')==='127.0.0.1',true),'Tracked email opens and clicks record the verified request address');
+    $privateProof=static function(array $resource)use($store,$recipientToken):string{
+        $sealed=$store->collectionChallenge($resource,bin2hex(random_bytes(32)),'A',$recipientToken);
+        $payload=json_decode(\Dnr\Security\ApplicationKey::open($sealed),true,12,JSON_THROW_ON_ERROR);$payload['issued']-=5;
+        return \Dnr\Security\ApplicationKey::seal(json_encode($payload,JSON_THROW_ON_ERROR));
+    };
+    $survey=$store->saveCollection(['kind'=>'survey','name'=>'Location survey']);$store->collectionOperation($survey,1,'publish');$surveyResource=$store->collectionResource($survey);$surveyActive=$store->collectionPublished($surveyResource['public_key']);
+    $surveyResponse=$request('audience_collect_public.php?key='.$surveyResource['public_key'],[],['proof'=>$privateProof($surveyActive),'answers'=>['q1'=>'Great']]);
+    $surveyEvent=$store->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='survey-response' ORDER BY id DESC LIMIT 1",[$contact['id']]);
+    $expect($surveyResponse['status']===200&&(audienceJson($surveyEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Linked survey records the verified visitor address');
+    $preferences=$store->saveCollection(['kind'=>'preferences','name'=>'Location preferences']);$store->collectionOperation($preferences,1,'publish');$preferencesResource=$store->collectionResource($preferences);$preferencesActive=$store->collectionPublished($preferencesResource['public_key']);
+    $current=$store->person((int)$contact['id']);
+    $preferencesResponse=$request('audience_collect_public.php?key='.$preferencesResource['public_key'].'&recipient='.$recipientToken,[],['proof'=>$privateProof($preferencesActive),'version'=>$current['version'],'first_name'=>'Location updated']);
+    $preferencesEvent=$store->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='preferences' ORDER BY id DESC LIMIT 1",[$contact['id']]);
+    $expect($preferencesResponse['status']===200&&(audienceJson($preferencesEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Published preferences record the verified visitor address');
+    $history=$store->personInteractionHistory((int)$contact['id']);
+    $expect(isset($history['signup'],$history['survey'],$history['preferences']),'Connection history groups signup, survey and preference locations');
+    $makeClient=static function(string $username,string $password)use(&$authCookies):callable{
+        $cookie=tempnam(sys_get_temp_dir(),'audience-location-cookie-');$authCookies[]=$cookie;
+        $client=static function(string $path,?array $post=null)use($cookie):array{
+            $curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie]);
+            if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));
+            $raw=curl_exec($curl);if($raw===false)throw new RuntimeException('Profile fixture request failed.');
+            $size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);return ['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];
+        };
+        $login=$client('login.php');preg_match('/name="csrf_token"[^>]*value="([^"]+)"/',$login['body'],$csrf);
+        if(empty($csrf[1]))throw new RuntimeException('Profile fixture login is missing CSRF.');
+        finishIntegrationTestEnrollment($client,$client('login.php',['csrf_token'=>html_entity_decode($csrf[1],ENT_QUOTES),'username'=>$username,'password'=>$password]));
+        return $client;
+    };
+    $adminClient=$makeClient($adminUsername,$adminPassword);
+    $adminProfile=$adminClient('audience.php?view=contact&id='.$contact['id']);
+    $expect($adminProfile['status']===200&&str_contains($adminProfile['body'],'Interaction locations')&&str_contains($adminProfile['body'],'Signup submitted')&&str_contains($adminProfile['body'],'Survey submitted')&&str_contains($adminProfile['body'],'Preferences updated')&&str_contains($adminProfile['body'],'Tracked email activity may reflect a mail service or scanner')&&str_contains($adminProfile['body'],'IP address: 127.0.0.1'),'Editors and administrators can review verified addresses on the connection profile');
+    $reviewerUsername='public-security-reviewer-'.bin2hex(random_bytes(6));$reviewerPassword=bin2hex(random_bytes(16));
+    $db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$reviewerUsername,password_hash($reviewerPassword,PASSWORD_DEFAULT),'reviewer']);
+    $reviewerClient=$makeClient($reviewerUsername,$reviewerPassword);
+    $reviewerProfile=$reviewerClient('audience.php?view=contact&id='.$contact['id']);
+    $expect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers do not see raw IP addresses');
+    $person=$store->person((int)$contact['id']);
+    $store->mutatePerson((int)$contact['id'],(int)$person['version'],'delete');
+    $redacted=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission' LIMIT 1",[$contact['id']])->fetch_assoc();
+    $expect(audienceJson($redacted['details_json'])===['redacted'=>true],'Permanent connection deletion removes recorded IP and location');
+    $expect((int)$db->execute_query("SELECT COUNT(*) n FROM marketing_contact_events WHERE contact_id=? AND JSON_CONTAINS_PATH(details_json,'one','$.interaction_location')",[$contact['id']])->fetch_assoc()['n']===0,'Permanent deletion removes location from every recorded interaction');
+    $expect((int)$db->execute_query("SELECT COUNT(*) n FROM marketing_message_events WHERE recipient_id=? AND JSON_CONTAINS_PATH(details_json,'one','$.interaction_location')",[$recipientId])->fetch_assoc()['n']===0,'Permanent deletion removes tracked email IP and location data');
     $expect($request('audience_collect_public.php?key='.str_repeat('0',64))['status']===404,'Unknown forms remain unavailable');
 }finally{
+    foreach($authCookies as $cookie)if(is_file($cookie))unlink($cookie);
     if($previous)$db->execute_query('UPDATE marketing_collection_limits SET attempts=? WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$previous['attempts'],$bucket,$hour]);
     else $db->execute_query('DELETE FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$bucket,$hour]);
 }

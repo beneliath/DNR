@@ -23,7 +23,7 @@ W,H=612,792
 M=42; CW=W-2*M
 INK=colors.HexColor('#202b2c'); TEAL=colors.HexColor('#007d8a'); PALE=colors.HexColor('#eaf6f5')
 MUTED=colors.HexColor('#59676c'); BORDER=colors.HexColor('#d6e1e4'); ORANGE=colors.HexColor('#d96b00')
-VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 29, 2026'
+VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='October 31, 2026'
 CHAPTERS=json.loads((DATA/'chapters.json').read_text())
 SHOTS=json.loads((DATA/'screenshots.json').read_text())
 rl_config.useA85=False
@@ -252,7 +252,7 @@ def story(known):
         ('Match the task to your access','Reviewer, Editor, and Administrator controls differ. Demo restrictions, role preview, security requirements, and Admin Unlock may further limit actions. The screenshots use an administrator in an isolated preview; your account may show fewer controls.'),
         ('Distinguish save, publish, and send','Save preserves a draft. Publish makes a supported resource available to visitors. Sending or activating an automation can contact people. Read the final confirmation, recipients, timing, and result for the action you are taking.'),
         ('Use the online guide for quick lookup','Open User Manual beneath Write with AI in the MessageMonkey sidebar. The online guide provides task search and role-aware links to the application. This PDF adds illustrated walkthroughs and offline navigation.'),
-        ('About this edition',f'This guide documents the MessageMonkey workspace in version {VERSION} as captured on {EDITION}. Screenshots are native 3x PNG captures embedded without lossy compression or resizing of their pixel data. Each displayed screenshot meets a minimum of 300 effective DPI. The PDF text and diagrams remain searchable or vector-based.')]:
+        ('About this edition',f'This text documents the MessageMonkey workspace in version {VERSION}, updated {EDITION}. Figures use fictional examples captured in isolated previews; individual capture dates are recorded with the guide source. Earlier captures remain where screens did not change materially. Screenshots are native 3x PNGs embedded without lossy compression or pixel resizing. Each displayed screenshot meets a minimum of 300 effective DPI. PDF text and diagrams remain searchable or vector-based.')]:
         out.extend([p(esc(title),'h2'),p(esc(body))])
     out.extend([PageBreak(),heading('Quick reference','quick-reference',chapter=0),p('Three distinctions prevent many common mistakes.','intro')])
     for title,body in [

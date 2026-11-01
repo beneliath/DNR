@@ -9,7 +9,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / 'tmp/pdfs/message-monkey-manual'
-PROJECT = 'dnr-mm-guide-20261029'
+PROJECT = 'dnr-mm-guide-20261031'
 LABEL = {'org.dnr.disposable-test': PROJECT}
 
 def docker(*args):
@@ -35,7 +35,7 @@ db_env.update(MYSQL_DATABASE='dnr', MYSQL_USER='dnruser')
 web_env = dict(DB_HOST='db',MYSQL_DATABASE='dnr',MYSQL_USER='dnruser',MYSQL_PASSWORD_FILE='/run/manual/db-password',
     DNR_2FA_ENCRYPTION_KEY_FILE='/run/manual/2fa-key',DNR_INBOUND_ROUTING_KEY_FILE='/run/manual/2fa-key',
     DNR_REQUIRE_HTTPS='0',DNR_MAIL_TRANSPORT='log',DNR_REQUIRE_STORAGE_MONITOR='0',
-    DNR_PUBLIC_BASE_URL='http://127.0.0.1:18146',DNR_PRIMARY_PUBLIC_URL='https://community.example.test',
+    DNR_PUBLIC_BASE_URL='http://127.0.0.1:18147',DNR_PRIMARY_PUBLIC_URL='https://community.example.test',
     DNR_TIMEZONE='America/Chicago',DNR_MANUAL_FIXTURE='disposable',DNR_MANUAL_USER='avery.guide',
     DNR_ACCOUNTS_ENABLED='0',DNR_ACCOUNT_MODE='legacy',DNR_ACCOUNT_KEY='message-monkey-guide',
     DNR_FILE_STORAGE_PATH='/var/lib/dnr/files',DNR_CONFIG_FILE='/run/dnr/config/application.yaml',
@@ -44,7 +44,7 @@ compose = {'services':{
     'db':{'image':'dnr-database:local','labels':LABEL,'environment':db_env,
           'volumes':shared+['database:/var/lib/mysql','keyring:/var/lib/mysql-keyring'],
           'healthcheck':{'test':['CMD','mysqladmin','ping','-h','localhost'],'interval':'2s','timeout':'3s','retries':50}},
-    'web':{'image':'dnr-app:local','labels':LABEL,'environment':web_env,'ports':['127.0.0.1:18146:80'],
+    'web':{'image':'dnr-app:local','labels':LABEL,'environment':web_env,'ports':['127.0.0.1:18147:80'],
            'tmpfs':['/var/lib/php/sessions:uid=33,gid=33,mode=0700'],
            'depends_on':{'db':{'condition':'service_healthy'}},'healthcheck':{'disable':True},
            'volumes':shared+[f'{ROOT}/src:/var/www/html:ro',f'{ROOT}/src:/opt/dnr/src:ro',f'{ROOT}/vendor:/opt/dnr/vendor:ro',
@@ -55,4 +55,4 @@ compose = {'services':{
     'networks':{'default':{'internal':False,'labels':LABEL,'ipam':{'config':[{'subnet':str(subnet)}]}}}}
 (WORK/'compose.json').write_text(json.dumps(compose,indent=2)+'\n')
 (WORK/'network-check.json').write_text(json.dumps({'subnet':str(subnet),'checked_docker_subnets':[str(n) for n in used],'static_addresses':[],'shared_networks':[]},indent=2)+'\n')
-print(f'Prepared {PROJECT}; separate subnet {subnet}; loopback port 18146; new labelled volumes.')
+print(f'Prepared {PROJECT}; separate subnet {subnet}; loopback port 18147; new labelled volumes.')

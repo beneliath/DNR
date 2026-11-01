@@ -131,20 +131,24 @@ export function initializeContentWorkspace(show) {
         brandDirtyStates.get(button.form)?.();
         contentStatus(button.form, 'Removed from this form. Save to keep the change.');
     }));
+    // Direct file and section links open once; refreshing or closing returns to My files.
+    const contentLocation = new URL(location.href);
+    if (contentLocation.searchParams.has('item')) {
+        contentLocation.searchParams.delete('item');
+        history.replaceState(history.state, '', contentLocation);
+    }
     const contentEditor = $('[data-content-editor]');
     if (contentEditor) {
-        // A file link opens its editor once; refreshing or closing returns to My files.
-        // Keep the form's explicit action so validation errors retain the edited file.
-        const contentLocation = new URL(location.href);
-        if (contentLocation.searchParams.has('item')) {
-            contentLocation.searchParams.delete('item');
-            history.replaceState(history.state, '', contentLocation);
-        }
         if (contentEditor.elements.image.value) setContentImage(contentEditor, 'image', contentEditor.elements.image.value);
         $('[data-content-new]')?.addEventListener('click', () => {
             contentEditor.reset(); for (const key of ['id','version']) contentEditor.elements[key].value = '0'; contentEditor.elements.file_kind.value = 'image';
             for (const key of ['image','name','alt','link','folder']) contentEditor.elements[key].value = '';
             setContentImage(contentEditor, 'image', ''); $('[data-content-dimensions]', contentEditor).textContent = '';
+            contentEditor.action = location.href;
+            const pdfDownload = $('a[href*="download=file"]', contentEditor)?.parentElement;
+            if (pdfDownload) pdfDownload.hidden = true;
+            const usage = $('[data-content-usage]', contentEditor);
+            if (usage) usage.hidden = true;
             $('#content-edit-title').textContent = 'Upload file'; contentStatus(contentEditor, ''); show('content-edit');
         });
         const editImage = rotate => {
@@ -165,6 +169,59 @@ export function initializeContentWorkspace(show) {
         $('[data-content-rotate]',contentEditor)?.addEventListener('click', () => editImage(true));
         contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && !(contentEditor.elements.file_kind.value === 'file' && Number(contentEditor.elements.id.value) > 0)) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
     }
+    const contentSection = $('#content-section');
+    $$('[data-content-card] .content-thumbnail').forEach(link => link.addEventListener('click', event => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const card = link.closest('[data-content-card]');
+        const type = card.dataset.contentType;
+        if (type === 'section') {
+            if (!contentSection) return;
+            event.preventDefault();
+            $('[data-content-section-title]', contentSection).textContent = card.dataset.contentName;
+            $('[data-content-section-layouts]', contentSection).textContent = `Saved section · ${card.dataset.contentRows} layout`;
+            const form = $('[data-content-section-rename]', contentSection);
+            if (form) {
+                form.action = link.href;
+                for (const key of ['id', 'version', 'name']) form.elements[key].value = card.dataset[`content${key[0].toUpperCase()}${key.slice(1)}`];
+            }
+            show('content-section');
+            return;
+        }
+        if (!contentEditor || !['image', 'file'].includes(type)) return;
+        event.preventDefault();
+        contentEditor.reset();
+        contentEditor.action = link.href;
+        for (const key of ['id', 'version', 'name', 'alt', 'link', 'folder']) contentEditor.elements[key].value = card.dataset[`content${key[0].toUpperCase()}${key.slice(1)}`];
+        contentEditor.elements.file_kind.value = type;
+        const upload = $('[data-content-upload="image"]', contentEditor);
+        if (upload) { upload.value = ''; setFileDropStatus(upload); }
+        $('[data-content-dimensions]', contentEditor).textContent = '';
+        setContentImage(contentEditor, 'image', type === 'image' ? $('img', link)?.getAttribute('src') || '' : '');
+        let pdfDownload = $('a[href*="download=file"]', contentEditor)?.parentElement;
+        if (type === 'file') {
+            if (!pdfDownload) {
+                pdfDownload = document.createElement('p');
+                pdfDownload.append(document.createElement('a'));
+                contentEditor.elements.image.before(pdfDownload);
+            }
+            const downloadUrl = new URL(link.href);
+            downloadUrl.searchParams.delete('item');
+            downloadUrl.searchParams.set('download', 'file');
+            downloadUrl.searchParams.set('id', card.dataset.contentId);
+            const download = $('a', pdfDownload);
+            download.href = downloadUrl.href;
+            download.textContent = 'Download PDF';
+        }
+        if (pdfDownload) pdfDownload.hidden = type !== 'file';
+        const usage = $('[data-content-usage]', contentEditor);
+        if (usage) {
+            usage.textContent = 'Existing campaign or template snapshots keep their inserted copies when this file is replaced or deleted.';
+            usage.hidden = false;
+        }
+        $('#content-edit-title').textContent = 'Edit file';
+        contentStatus(contentEditor, '');
+        show('content-edit');
+    }));
     const contentFilters = $('.content-filters');
     if (contentFilters) {
         const defaults = { search: '', folder: '', type: '', sort: 'updated_at', direction: 'desc', layout: 'grid', per_page: '25' };

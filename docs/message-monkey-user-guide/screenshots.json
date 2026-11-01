@@ -354,7 +354,7 @@
     "steps": [
       "Create or locate an internal label with a clear purpose.",
       "Click a tag name to open the associated connections.",
-      "Use the action labels to rename or delete a tag. Deleting the label keeps the connections."
+      "Check the Active and Archived tabs. Archived tags keep existing assignments until they are restored."
     ],
     "file": "screenshots/tags.png",
     "capture": {
@@ -366,8 +366,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "278c14afe6d657860cdaee8add96f4330cd1f2a033f2fab0cab0000e81afdb8e"
+      "captured_at": "2026-10-31",
+      "sha256": "2e35c2d62e01c53ba5f312ab78f7f5fcd4dc53490c17ac8e6b66e7fe9ee0d73b"
     },
     "crop": [
       720,
@@ -384,7 +384,7 @@
     "steps": [
       "Open an existing group or create a category for related choices.",
       "Choose the display type and options that fit the question.",
-      "Check which choices appear in signup and preferences forms."
+      "Check which choices appear in signup and preferences forms. The Archived view holds groups no longer available for new choices."
     ],
     "file": "screenshots/groups.png",
     "capture": {
@@ -396,8 +396,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "3265d9f42f3c405d48b4c889e74ed8e3e2cc01171fc21bee5cc0aca0d94a4560"
+      "captured_at": "2026-10-31",
+      "sha256": "1171862d1e24b9d7aad544904d52690c7612f54d17b453f0410ee94f05fec79f"
     },
     "crop": [
       720,
@@ -444,7 +444,7 @@
     "steps": [
       "Open a segment to inspect its rules.",
       "Review whether all rules or any rule must match and check the resulting connections.",
-      "Recheck recipient eligibility at send time; segment membership can change."
+      "Use the Archived view to find a retired segment; restore it before new targeting. Recheck recipient eligibility at send time."
     ],
     "file": "screenshots/segments.png",
     "capture": {
@@ -456,8 +456,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "775ccfbe5fc34176d71499b86cb1a8877f878cec8b64e6b5b2927a316c4b3813"
+      "captured_at": "2026-10-31",
+      "sha256": "f154905eb98211e64dad29f749b3682f9c74c14bfa2f3f0a12a7dd6a3e8d0dfe"
     },
     "crop": [
       720,
@@ -763,8 +763,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "4da4e6bf30c93fd4e0cc2723cc35f053d1bfbce214695caf9bf92bddb92fafdd"
+      "captured_at": "2026-10-31",
+      "sha256": "b405ec13967dab1da6709d33a6dd3ec1b2d1664f912cbeee8c6fe4f0c7e487d8"
     },
     "crop": [
       720,
@@ -975,7 +975,7 @@
     "route": "audience.php?view=flow&id=1",
     "steps": [
       "Review the entry trigger and the order of the steps.",
-      "Open each step to check its content, conditions, and timing.",
+      "Select each card to match it with Rules & Actions, then check its content, conditions, and timing.",
       "Validate the flow and linked email drafts before activating it. Activation can affect future eligible connections."
     ],
     "file": "screenshots/flow.png",
@@ -988,8 +988,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "beadd26e281a5d852d7b906ada94277d3dcf53b83a4a9d133db102ef6699211a"
+      "captured_at": "2026-10-31",
+      "sha256": "33ea909dff9006776c7f51bd25ccac4ab381cf10578a84c9c162e2745f485ebb"
     },
     "crop": [
       720,
@@ -1005,7 +1005,7 @@
     "route": "audience.php?view=flow-report&id=1",
     "steps": [
       "Confirm the flow and reporting scope.",
-      "Review enrollment and step or delivery outcomes where available.",
+      "Select a row in Step analysis to filter Connection activity; combine the status and step filters when needed.",
       "An empty report may simply mean that the flow has not run; inspect its status and trigger before changing it."
     ],
     "file": "screenshots/flow-results.png",
@@ -1018,8 +1018,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "a8254db00859e3fadf7aff2d473d635f059770fa0140b685954d05b98de798ef"
+      "captured_at": "2026-10-31",
+      "sha256": "80fc254c24ad5d008df8f94d4949ec4742a3e72fba53e6b7db8f5aa52ae01e4b"
     },
     "crop": [
       720,
@@ -1558,8 +1558,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "9cd8a0a5b525defe27f119b21c3bcc3f4f552fe935f11d7438d59f2fd79f1243"
+      "captured_at": "2026-10-31",
+      "sha256": "0eccf1a094ddcebc3cdfa04fd17cbb95cd945356fb2cc81561da7f2735afa59e"
     },
     "crop": [
       720,
@@ -1641,8 +1641,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-10-29",
-      "sha256": "469e4478fdc7d53d47e55c4b4ae34773469073f316f6c4a5503aca01e375a697"
+      "captured_at": "2026-10-31",
+      "sha256": "b644f3a599dac0161f228dade6af6ea06d2c77487214f86731166e332f834909"
     }
   },
   {

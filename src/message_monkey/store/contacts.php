@@ -17,6 +17,30 @@ trait AudienceContacts
             AND e.event_type IN ('$types') ORDER BY e.id DESC LIMIT 1",[$this->audienceId,$personId]);
     }
 
+    /** First signup and confirmation, plus the latest self-service changes. */
+    public function personInteractionHistory(int $personId): array
+    {
+        $this->person($personId);
+        $rows=$this->all("SELECT event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('signup-permission','subscription-confirmed','preferences','status','survey-response') AND JSON_CONTAINS_PATH(details_json,'one','$.interaction_location.ip_address') ORDER BY id",[$personId]);
+        $history=[];
+        foreach($rows as $row){
+            $details=audienceJson($row['details_json']);
+            if(!is_array($details['interaction_location']??null))continue;
+            $key=match($row['event_type']){
+                'signup-permission'=>'signup',
+                'subscription-confirmed'=>'confirmed',
+                'preferences'=>'preferences',
+                'survey-response'=>'survey',
+                'status'=>($details['to']??'')==='unsubscribed'?'unsubscribe':'',
+                default=>''
+            };
+            if($key==='')continue;
+            if(in_array($key,['signup','confirmed'],true)&&isset($history[$key]))continue;
+            $history[$key]=['at'=>$row['created_at'],'location'=>$details['interaction_location']];
+        }
+        return $history;
+    }
+
     public function person(int $id, bool $lock = false): array
     {
         $person = $this->one('SELECT * FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL' . ($lock ? ' FOR UPDATE' : ''), [$this->audienceId,$id]);
@@ -176,6 +200,7 @@ trait AudienceContacts
                 $this->write('INSERT IGNORE INTO marketing_deleted_emails (audience_id,email_hash) VALUES (?,?)',[$this->audienceId,hash('sha256',$person['email'])]);
                 $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_notes WHERE contact_id=?',[$id]);
                 $this->write("UPDATE marketing_contact_events SET details_json=JSON_OBJECT('redacted',true) WHERE contact_id=?",[$id]);
+                $this->write("UPDATE marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id SET e.details_json=JSON_REMOVE(e.details_json,'$.interaction_location') WHERE r.audience_id=? AND r.contact_id=? AND JSON_CONTAINS_PATH(e.details_json,'one','$.interaction_location')",[$this->audienceId,$id]);
                 if($this->collectionAvailable()&&$this->one('SELECT id FROM marketing_collection_responses WHERE audience_id=? AND contact_id=? LIMIT 1',[$this->audienceId,$id]))$this->write('UPDATE marketing_collection_responses SET contact_id=NULL,payload_ciphertext=? WHERE audience_id=? AND contact_id=?',[\Dnr\Security\ApplicationKey::seal('{"redacted":true}'),$this->audienceId,$id]);
                 $this->redactPersonJobs($id,$person['email']);
                 $this->write("UPDATE marketing_contacts SET email=?,first_name='',last_name='',source='',notes='',custom_json=JSON_OBJECT(),language='',timezone='',email_status='unsubscribed',is_archived=1,deleted_at=UTC_TIMESTAMP(6),version=version+1 WHERE id=?",['deleted-'.$id.'@invalid.example',$id]);$this->event($id,'person_deleted');return;

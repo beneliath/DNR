@@ -169,6 +169,9 @@ def main():
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/'+suite],
                         cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    'web', 'php', '/opt/dnr/tests/audience_ses_alert_admin_fixture.php'], cwd=ROOT, env=env, check=True)
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',

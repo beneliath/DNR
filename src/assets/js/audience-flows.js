@@ -337,6 +337,7 @@
     }
     function renderMap() {
         const nodes=doc.nodes, triggers=[doc.trigger,...(doc.additional_triggers || [])], rank=new Map(), incoming=new Map(nodes.map(n=>[n.id,0])), byId=new Map(nodes.map(n=>[n.id,n]));
+        if(selected!=='trigger'&&!byId.has(selected))selected='trigger';
         const edges=n=>['condition','split','wait'].includes(n.type)?['yes','no']:n.type==='exit'?[]:['next'];
         nodes.forEach(n=>edges(n).forEach(e=>{if(n[e]&&incoming.has(n[e]))incoming.set(n[e],incoming.get(n[e])+1);}));
         const queue=nodes.filter(n=>!incoming.get(n.id)); queue.forEach(n=>rank.set(n.id,1));
@@ -351,14 +352,22 @@
             const a=positions.get(from),b=positions.get(to);if(!a)return;const start={x:a.x+130,y:a.y+110},end=b?{x:b.x+130,y:b.y}:{x:a.x+130+(edge==='yes'?-75:edge==='no'?75:0),y:a.y+155};
             const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',`M${start.x},${start.y} V${start.y+30} H${end.x} V${end.y}`);svg.append(path);
             const origin=from.startsWith('__trigger-')?'trigger':from;
-            const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${origin==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
+            const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderMap();renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${origin==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
             plus.addEventListener('dragover',e=>{if(config.editable)e.preventDefault();});plus.addEventListener('drop',e=>{e.preventDefault();const type=e.dataTransfer.getData('text/plain');if(config.types[type]&&type!=='split')add(type,{id:origin,edge});});map.append(plus);
-            if(edge==='yes'||edge==='no'){const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');label.style.left=`${end.x+20}px`;label.style.top=`${end.y-37}px`;map.append(label);}
+            if(edge==='yes'||edge==='no'){
+                const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');
+                const labelSide=Math.sign(end.x-start.x)||(edge==='yes'?-1:1);
+                label.style.left=`${end.x+labelSide*20}px`;
+                if(labelSide<0)label.style.transform='translateX(-100%)';
+                label.style.top=`${end.y-37}px`;
+                map.append(label);
+            }
         };
         triggers.forEach((_,i)=>connect(`__trigger-${i}`,doc.start,'next'));nodes.forEach(n=>edges(n).forEach(edge=>connect(n.id,n[edge],edge)));
         const card=(id,title,detail,type,kind)=>{
             const identity=id.startsWith('__trigger-')?'trigger':id;
-            const p=positions.get(id), item=button('',()=>{selected=identity;renderMap();renderInspector();},{class:`flow-node kind-${kind}${selected===identity?' selected':''}${config.pausedNodes.includes(id)?' paused':''}`,'aria-pressed':selected===identity});
+            const active=selected===identity;
+            const p=positions.get(id), item=button('',()=>{selected=identity;renderMap();renderInspector();},{class:`flow-node kind-${kind}${active?' selected':''}${active&&config.editable?' editing':''}${config.pausedNodes.includes(id)?' paused':''}`,'aria-pressed':active});
             item.style.left=`${p.x}px`;item.style.top=`${p.y}px`;item.title=title+' · '+detail;item.append(icon(kind),el('span',{class:'flow-node-type'},type),el('strong',{},title),el('span',{class:'flow-node-detail'},detail));
             if(config.pausedNodes.includes(id))item.append(el('span',{class:'flow-node-paused'},'Paused'));
             const counts=config.counts.filter(c=>c.node_key===id);if(counts.length)item.append(el('small',{},counts.map(c=>`${c.n} ${c.state}`).join(' · ')));map.append(item);

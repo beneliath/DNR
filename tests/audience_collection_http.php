@@ -111,6 +111,8 @@ $associated=$public($surveyUrl,['proof'=>$proof($surveyActive,str_repeat('b',64)
 audienceHttpExpect($associated['status']===200,'A private email link accepts an eligible survey response');
 $linked=$collectStore->one('SELECT * FROM marketing_collection_responses WHERE resource_id=? AND contact_id=?',[$surveyId,$person['id']]);
 audienceHttpExpect($linked!==null,'Survey associates only the private token recipient');
+$surveyEvent=$collectStore->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='survey-response' ORDER BY id DESC LIMIT 1",[$person['id']]);
+audienceHttpExpect((audienceJson($surveyEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Linked survey records the verified visitor address');
 $prefId=$collectStore->saveCollection(['kind'=>'preferences','name'=>'Published preferences']);$pref=$collectStore->collectionResource($prefId);$prefDoc=$pref['draft'];$prefDoc['fields']=['email','first_name'];$prefDoc['group_ids']=[];
 $collectStore->saveCollection(['name'=>$pref['name'],'document'=>$prefDoc],$prefId,1);$collectStore->collectionOperation($prefId,2,'publish');$pref=$collectStore->collectionResource($prefId);$prefUrl='audience_collect_public.php?key='.$pref['public_key'];
 audienceHttpExpect($public($prefUrl)['status']===404,'Preference centers reject unauthenticated requests');
@@ -119,6 +121,12 @@ $prefActive=$collectStore->collectionPublished($pref['public_key']);$beforePerso
 $prefPost=$publicPayload($prefActive);$prefPost['proof']=$proof($prefActive,str_repeat('c',64),$privateToken);$prefPost['version']=$beforePerson['version'];$prefPost['first_name']='Updated privately';
 $prefSaved=$public($prefUrl.'&recipient='.$privateToken,$prefPost);$afterPerson=$collectStore->person((int)$person['id']);
 audienceHttpExpect($prefSaved['status']===200&&$afterPerson['first_name']==='Updated privately'&&$afterPerson['last_name']===$beforePerson['last_name']&&$afterPerson['email_status']==='unsubscribed','Preferences preserve hidden fields, interests and opt-out state');
+$preferenceEvent=$collectStore->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='preferences' ORDER BY id DESC LIMIT 1",[$person['id']]);
+audienceHttpExpect((audienceJson($preferenceEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Published preferences record the verified visitor address');
+$interactionProfile=$editor('audience.php?view=contact&id='.$person['id']);
+audienceHttpExpect($interactionProfile['status']===200&&str_contains($interactionProfile['body'],'Interaction locations')&&str_contains($interactionProfile['body'],'Signup submitted')&&str_contains($interactionProfile['body'],'Preferences updated')&&str_contains($interactionProfile['body'],'Survey submitted')&&str_contains($interactionProfile['body'],'IP address: 127.0.0.1'),'Connection profile shows self-service location history to editors');
+$reviewerProfile=$reviewer('audience.php?view=contact&id='.$person['id']);
+audienceHttpExpect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers see approximate places without raw IP addresses');
 audienceHttpExpect($public('audience_subscription.php?token='.$privateToken.'&preferences=1')['status']===302,'Native email preferences route to the published center');
 $tagForResponse=(int)$collectStore->ensureTag('Survey qualification tag');
 $linkedReport='audience.php?view=collection-report&id='.$surveyId;

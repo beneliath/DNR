@@ -1,7 +1,7 @@
 <?php
 $confirmation=\Dnr\Http\RequestInput::string($_GET,'confirm');$confirmationDone=false;$confirmationError='';
 startSecureSession();
-if($_SERVER['REQUEST_METHOD']==='POST'){requireValidCsrfToken();$publicStore=new AudienceStore($db,1,0,'Email recipient');try{$confirmationDone=$publicStore->confirmSubscription($confirmation);}catch(InvalidArgumentException){$confirmationDone=false;}if(!$confirmationDone)$confirmationError='This link has expired, was already used, or no longer matches an eligible address.';}
+if($_SERVER['REQUEST_METHOD']==='POST'){requireValidCsrfToken();$publicStore=new AudienceStore($db,1,0,'Email recipient');try{$confirmationDone=$publicStore->confirmSubscription($confirmation,audienceInteractionLocation($_SERVER));}catch(InvalidArgumentException){$confirmationDone=false;}if(!$confirmationDone)$confirmationError='This link has expired, was already used, or no longer matches an eligible address.';}
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
 $publicStore=new AudienceStore($db,1,0,'Email recipient');
 if($system=audienceCollectionSystem($publicStore,'confirm')){

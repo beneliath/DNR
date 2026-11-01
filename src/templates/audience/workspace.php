@@ -94,7 +94,7 @@ if(in_array($view,['home','analytics'],true)){
             <?php if($view==='form'): ?><a class="collection-editor-back" href="<?= $h($url(['view'=>'forms'])) ?>" aria-label="Back to Forms" title="Back to Forms">←</a><a class="audience-logo-wrap collection-editor-logo" href="<?= $h($url(['view'=>'home'])) ?>" data-audience-logo data-dashboard-url="dashboard.php" aria-label="MessageMonkey Home" title="MessageMonkey Home (Ctrl-click for MOED dashboard)"><?php readfile(__DIR__.'/../../assets/audience-logo-transparent.svg'); ?></a><?php endif; ?>
             <h1><?= $h($pageTitle) ?><?php if($isAiAnalytics): ?><span class="analytics-ai-beta">Beta</span><?php endif; ?></h1>
         </div><?php endif; ?>
-        <?php if($view==='home'): ?><div class="analytics-home-date-tools"><?php include __DIR__.'/analytics-filters.php'; ?></div><?php endif; ?>
+        <?php if($view==='home'): ?><div class="analytics-home-date-tools"><?php include __DIR__.'/analytics-filters.php'; ?></div><?php include __DIR__.'/analytics-range-summary.php'; ?><?php endif; ?>
         <div class="audience-actions">
         <?php if($isFlowView): ?>
         <?php if($canManage&&$view==='flow-templates'&&$flowPreview): ?><form method="post"><?= $csrf ?><?php audienceInputs(['action'=>'flow_create','template'=>$flowPreview,'name'=>audienceFlowTemplates()[$flowPreview]['name']]); ?><button class="primary">Use this flow</button></form>

@@ -374,7 +374,7 @@ trait AudienceCollection
     }
 
     /** The public response is deliberately identical for unknown and existing addresses. */
-    public function submitCollection(array $r, array $input, string $ip, string $base): array
+    public function submitCollection(array $r, array $input, string $ip, string $base, array $interactionLocation = []): array
     {
         $proof=audienceCollectionText($input['proof']??'',12000);
         try { $p=json_decode(\Dnr\Security\ApplicationKey::open($proof),true,12,JSON_THROW_ON_ERROR); }
@@ -382,7 +382,7 @@ trait AudienceCollection
         if (($p['account']??'')!==currentAccountKey() || ($p['audience']??0)!==$this->audienceId || ($p['resource']??0)!==(int)$r['id'] || ($p['revision']??0)!==(int)$r['published_revision'] || ($p['issued']??0)>time()-2 || ($p['issued']??0)<time()-7200 || !preg_match('/^[a-f0-9]{48}$/D',$p['nonce']??'') || !preg_match('/^[a-f0-9]{64}$/D',$p['visitor']??'')) throw new InvalidArgumentException('This form expired. Reload the page and try again.');
         if (audienceText($input,'website',200)!=='') throw new InvalidArgumentException('The response could not be accepted.');
         $this->collectionRateLimit($ip,60);
-        return $this->transaction(function() use($r,$input,$p,$base) {
+        return $this->transaction(function() use($r,$input,$p,$base,$interactionLocation) {
             $fresh=$this->collectionResource((int)$r['id'],true);
             if ($fresh['state']!=='published' || (int)$fresh['published_revision']!==(int)$p['revision']) throw new InvalidArgumentException('This form has changed. Reload and try again.');
             if(!empty($r['document']['close_at'])&&$r['document']['close_at']<=gmdate('Y-m-d\TH:i'))throw new InvalidArgumentException('This survey is closed.');
@@ -405,15 +405,18 @@ trait AudienceCollection
             } elseif ($r['kind']==='preferences') {
                 $contact=$this->collectionRecipient($p['recipient']??'');
                 if (!$contact) throw new InvalidArgumentException('Use the private preferences link in your email.');
-                $this->savePublicPreferences((int)$contact['id'],(int)audienceText($input,'version',12),$input,$d);
+                $this->savePublicPreferences((int)$contact['id'],(int)audienceText($input,'version',12),$input,$d,$interactionLocation);
                 $answers=['preferences'=>true];
             } else {
-                [$answers,$confirmation]=$this->collectionSignup($d,$input,array_replace($r,['variant'=>$p['variant']]),$base);
+                [$answers,$confirmation]=$this->collectionSignup($d,$input,array_replace($r,['variant'=>$p['variant']]),$base,$interactionLocation);
             }
             $sealed=\Dnr\Security\ApplicationKey::seal(json_encode($answers,JSON_THROW_ON_ERROR));
             $this->write('INSERT INTO marketing_collection_responses(audience_id,resource_id,revision_id,receipt_hash,visitor_hash,contact_id,payload_ciphertext,variant_key) VALUES (?,?,?,?,?,?,?,?)',[$this->audienceId,$r['id'],$r['published_revision'],$hash,$p['visitor'],$contact['id']??null,$sealed,$p['variant']]);
             $response=(int)$this->db->insert_id;
-            if($r['kind']==='survey')$this->inboxSurveyResponse($r,$answers,$contact,$response);
+            if($r['kind']==='survey'){
+                $this->inboxSurveyResponse($r,$answers,$contact,$response);
+                if($contact)$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Survey recipient','recipient','survey-response',?)",[$contact['id'],json_encode(['resource_id'=>(int)$r['id'],'response_id'=>$response]+($interactionLocation?['interaction_location'=>$interactionLocation]:[]),JSON_THROW_ON_ERROR)]);
+            }
             return ['confirmed'=>$confirmation,'duplicate'=>false];
         });
     }
@@ -466,7 +469,7 @@ trait AudienceCollection
         }while(count($batch)===200);
     }
 
-    private function collectionSignup(array $d, array $input, array $r, string $base): array
+    private function collectionSignup(array $d, array $input, array $r, string $base, array $interactionLocation = []): array
     {
         $format=($d['embedded']['show_format']??false)?audienceText($input,'email_format',4):'html';
         if($format==='')$format='html';
@@ -514,7 +517,7 @@ trait AudienceCollection
                 foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
             }
             // Existing profiles remain unchanged until the owner confirms this submission.
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)],JSON_THROW_ON_ERROR)]);
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)]+($interactionLocation?['interaction_location'=>$interactionLocation]:[]),JSON_THROW_ON_ERROR)]);
             if ($confirmation) {
                 $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
                 if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];

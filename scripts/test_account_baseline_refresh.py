@@ -41,6 +41,7 @@ CLEAR_TABLES='''document_scan_jobs reimbursement_email_deliveries
 mattermost_post_reaction_notifications mattermost_reply_notifications
 record_creation_operations record_merge_journal notes_cache_purge_queue
 inbound_email_quarantine inbound_mail_reconciliation notification_outbox'''.split()
+CLEAR_TABLES += ['marketing_ses_alert_outbox']
 # These inbox records are scoped to inbound mail that the refresh replaces. They
 # must not retain stale references or make old mail look newly received/routed.
 CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
@@ -191,8 +192,12 @@ def execute(db,sql):subprocess.run(root_command(db,'mysql','-uroot','dnr'),input
 def table_state(db,tables):
  result={t:query(db,'CHECKSUM TABLE dnr.`'+t+'`').split('\t')[-1] for t in tables if t!='marketing_audiences'}
  if 'marketing_audiences' in tables:
-  # Saved reports are business data inside settings; preserve every other setting.
-  result['marketing_audiences']=query(db,"SELECT id,name,JSON_REMOVE(settings_json,'$.analytics_reports'),created_at FROM dnr.marketing_audiences ORDER BY id")
+  # Saved reports and the two demo logos are refreshed; preserve all other settings.
+  result['marketing_audiences']=query(db,"""SELECT id,name,CASE
+   WHEN JSON_LENGTH(JSON_REMOVE(COALESCE(JSON_EXTRACT(settings_json,'$.brand'),JSON_OBJECT()),'$.logo','$.secondary_logo'))=0
+   THEN JSON_REMOVE(settings_json,'$.analytics_reports','$.brand')
+   ELSE JSON_REMOVE(settings_json,'$.analytics_reports','$.brand.logo','$.brand.secondary_logo') END,created_at
+   FROM dnr.marketing_audiences ORDER BY id""")
  return result
 def dump(db,tables):
  return subprocess.check_output(root_command(db,'mysqldump','-uroot','--no-create-info','--skip-triggers','--skip-add-locks','--skip-disable-keys','--skip-lock-tables','--complete-insert','--hex-blob','--set-gtid-purged=OFF','--no-tablespaces','--replace','dnr',*tables))
@@ -222,16 +227,24 @@ def foreign_key_errors(db):
   count=int(query(db,f'SELECT COUNT(*) FROM dnr.`{table}` c LEFT JOIN dnr.`{parent}` p ON p.`{key}`=c.`{column}` WHERE c.`{column}` IS NOT NULL AND p.`{key}` IS NULL'))
   if count:result.append([table,column,parent,count])
  return result
-def report_import_sql(db):
- reports=query(db,"SELECT HEX(JSON_EXTRACT(settings_json,'$.analytics_reports')) FROM dnr.marketing_audiences WHERE id=1")
- require(bool(re.fullmatch(r'(?:[0-9A-Fa-f]{2})+',reports)),'Invalid saved-report transfer encoding')
- # MySQL casts a binary hex literal to an opaque JSON BLOB, not a JSON array.
- # Decode it as UTF-8 text before parsing the JSON document.
- return ("UPDATE marketing_audiences SET settings_json=JSON_SET(settings_json,'$.analytics_reports',CAST(CONVERT(0x"+reports+" USING utf8mb4) AS JSON)),version=version+1 WHERE id=1;\n").encode()
+def message_monkey_settings_import_sql(db):
+ values=query(db,"""SELECT HEX(JSON_EXTRACT(settings_json,'$.analytics_reports')),
+  HEX(JSON_EXTRACT(settings_json,'$.brand.logo')),
+  HEX(JSON_EXTRACT(settings_json,'$.brand.secondary_logo'))
+  FROM dnr.marketing_audiences WHERE id=1""").split('\t')
+ require(len(values)==3 and all(re.fullmatch(r'(?:[0-9A-Fa-f]{2})+',value) for value in values),'Invalid MessageMonkey settings transfer encoding')
+ # Decode each hex literal as UTF-8 before casting it to JSON. Preserve every
+ # other Brand Kit field and account setting on the live Test Account.
+ reports,logo,secondary=map(lambda value:'CAST(CONVERT(0x'+value+' USING utf8mb4) AS JSON)',values)
+ return ("UPDATE marketing_audiences SET settings_json=JSON_SET("
+         "JSON_SET(settings_json,'$.brand',COALESCE(JSON_EXTRACT(settings_json,'$.brand'),JSON_OBJECT())),"
+         "'$.analytics_reports',"+reports+",'$.brand.logo',"+logo+",'$.brand.secondary_logo',"+secondary+")"
+         ",version=version+1 WHERE id=1;\n").encode()
 
 def validate_message_monkey(db,anchor):
  expected={'marketing_contacts':24,'marketing_campaigns':9,'marketing_collection_resources':6,
-           'marketing_flows':3,'marketing_inbox_threads':6,'marketing_campaign_touchpoints':13}
+           'marketing_flows':3,'marketing_inbox_threads':6,'marketing_campaign_touchpoints':13,
+           'marketing_design_library':6}
  for table,count in expected.items():
   require(int(query(db,'SELECT COUNT(*) FROM dnr.'+table))==count,'Wrong MessageMonkey sample count: '+table)
  for table,condition in {
@@ -245,15 +258,22 @@ def validate_message_monkey(db,anchor):
   'marketing_segments':"archived_at IS NOT NULL",
   'marketing_group_categories':"archived_at IS NOT NULL",
   'marketing_inbox_drafts':"state<>'draft'",
-  'marketing_ses_settings':"enabled<>0 OR production_access<>0 OR sending_enabled<>0",
+  'marketing_ses_settings':"enabled<>0 OR production_access<>0 OR sending_enabled<>0 OR alert_incident<>''",
   'marketing_ses_credentials':"credential_ciphertext<>''",
+  'marketing_ses_alert_outbox':'1=1',
   'marketing_service_mail':'1=1','marketing_jobs':"state IN ('queued','processing')",
   'marketing_inbox_notifications':'1=1'}.items():
   require(query(db,'SELECT COUNT(*) FROM dnr.'+table+' WHERE '+condition)=='0','Unsafe demo data: '+table)
  require(query(db,"SELECT MIN(DATE(start_at)),MAX(DATE(end_at)) FROM dnr.marketing_campaign_touchpoints")=='\t'.join([month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]),'MessageMonkey planner window mismatch')
  require(query(db,"SELECT COUNT(*) FROM dnr.marketing_campaigns WHERE DATE(sent_at)='"+(anchor-datetime.timedelta(days=3)).isoformat()+"'")=='1','MessageMonkey reporting dates were not refreshed')
  require(query(db,"SELECT JSON_TYPE(JSON_EXTRACT(settings_json,'$.analytics_reports')),JSON_LENGTH(JSON_EXTRACT(settings_json,'$.analytics_reports')),JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.analytics_reports[0].definition.end')),JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.analytics_reports[1].definition.end')) FROM dnr.marketing_audiences WHERE id=1")=='\t'.join(['ARRAY','2',anchor.isoformat(),anchor.isoformat()]),'Saved-report type, count or date mismatch')
- return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2)
+ require(query(db,"SELECT COUNT(*) FROM dnr.marketing_design_library WHERE audience_id=1 AND item_type='image' AND deleted_at IS NULL AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.sample_dataset'))='test-account-message-monkey-media-v1'")=='6','Demo My Files images missing')
+ require(query(db,"SELECT JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.brand.logo')) LIKE 'data:image/svg+xml;base64,%',JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.brand.secondary_logo')) LIKE 'data:image/svg+xml;base64,%' FROM dnr.marketing_audiences WHERE id=1")=='1\t1','Demo Brand Kit logos missing')
+ location_where="JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.sample_dataset'))='test-account-interaction-location-v1'"
+ require(query(db,'SELECT COUNT(*),COUNT(DISTINCT contact_id) FROM dnr.marketing_contact_events WHERE '+location_where)=='32\t24','Demo interaction locations missing')
+ require(query(db,'SELECT event_type,COUNT(*) FROM dnr.marketing_contact_events WHERE '+location_where+' GROUP BY event_type ORDER BY event_type')=='preferences\t2\nsignup-permission\t24\nstatus\t2\nsubscription-confirmed\t4','Demo interaction location types changed')
+ require(query(db,"SELECT COUNT(*) FROM dnr.marketing_contacts c WHERE c.audience_id=1 AND c.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM dnr.marketing_contact_events e WHERE e.contact_id=c.id AND "+location_where+" AND JSON_CONTAINS_PATH(e.details_json,'all','$.interaction_location.ip_address','$.interaction_location.country_code'))")=='0','Demo connection without a sample location')
+ return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2,brand_logos=2,interaction_locations=32)
 
 def validate(db,anchor):
  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]
@@ -339,7 +359,7 @@ def refresh(args):
     assert len(samples['added_task_ids'])==6 and ownership['users_and_settings_unchanged']
     message_monkey=stage_php(staged,work,image,(OPS/'test_account_message_monkey_samples.php').read_text(),['--apply','--as-of='+anchor.isoformat()])
     # Rehearse the exact saved-report transfer, including MySQL JSON typing.
-    execute(staged,report_import_sql(staged).decode())
+    execute(staged,message_monkey_settings_import_sql(staged).decode())
     message_monkey_validation=validate_message_monkey(staged,anchor)
     assert protected_before==table_state(staged,PRESERVE),'Protected staging tables changed'
     for t,n in before_counts.items():
@@ -363,7 +383,7 @@ def refresh(args):
      return
     sql=dump(staged,TABLES)
     marketing_state=table_state(staged,MESSAGE_MONKEY_TABLES)
-    report_sql=report_import_sql(staged)
+    settings_sql=message_monkey_settings_import_sql(staged)
     # Merge baseline/generated file inventory while preserving pre-existing metadata.
     file_sql=dump(staged,['stored_files']).replace(b'REPLACE INTO `stored_files`',b'INSERT IGNORE INTO `stored_files`')
     paused=[s for s in services if s not in ['web','account-control']]
@@ -382,7 +402,7 @@ def refresh(args):
       'else cp "$f" "/live/$k" && chown 33:33 "/live/$k" && chmod 0640 "/live/$k" || exit 1; fi; done']
      subprocess.run(copy,check=True,stdout=subprocess.DEVNULL)
      reset=('SET FOREIGN_KEY_CHECKS=0; START TRANSACTION;\n'+''.join('DELETE FROM `'+t+'`;\n' for t in CLEAR_TABLES+list(reversed(TABLES)))).encode()
-     final=reset+file_sql+sql+report_sql+b'\nCOMMIT; SET FOREIGN_KEY_CHECKS=1;'
+     final=reset+file_sql+sql+settings_sql+b'\nCOMMIT; SET FOREIGN_KEY_CHECKS=1;'
      changed=True
      subprocess.run(root_command(DB,'mysql','-uroot','dnr'),input=final,check=True,stdout=subprocess.DEVNULL)
      assert protected_before==table_state(DB,PRESERVE),'Protected live tables changed'
@@ -400,7 +420,7 @@ def refresh(args):
      receipt={'account':KEY,'anchor':anchor.isoformat(),'window':window,'approved_baseline':str(BASE),
       'before_backup':before['backup_path'],'pitstop_backup':after['backup_path'],'restore_verified':True,'remap':remap,
       'ownership':ownership,'team_task_samples':samples,'message_monkey':message_monkey,'message_monkey_validation':message_monkey_validation,'active_task_owners':owners,'primary_business_unchanged':source_state()==primary_before,
-      'users_settings_calendar_subscriptions_unchanged':True,'application_commit':metadata['commit'],'application_image':image,
+      'users_other_settings_calendar_subscriptions_unchanged':True,'application_commit':metadata['commit'],'application_image':image,
       'baseline_unchanged':True,'schema_upgrade':schema_upgrade,'cleared_operational_tables':CLEAR_TABLES,'consistency':json.loads(live_check),'files':filecheck}
      save_state('latest-receipt.json',receipt)
      receipt_written=True
@@ -413,7 +433,7 @@ def refresh(args):
      if not changed or receipt_written:
       subprocess.run(dc+['up','-d','--no-build','--no-deps','--no-recreate','--wait',*paused],check=True,stdout=subprocess.DEVNULL,env=clean_environment())
       service_health(services)
-    print(json.dumps({k:receipt[k] for k in ['account','anchor','window','restore_verified','active_task_owners','primary_business_unchanged','users_settings_calendar_subscriptions_unchanged','baseline_unchanged']},indent=2),flush=True)
+    print(json.dumps({k:receipt[k] for k in ['account','anchor','window','restore_verified','active_task_owners','primary_business_unchanged','users_other_settings_calendar_subscriptions_unchanged','baseline_unchanged']},indent=2),flush=True)
 def main(argv=None):
  os.umask(0o077)
  require(__debug__,'Run without Python optimization; safety assertions must remain enabled')

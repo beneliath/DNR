@@ -2,7 +2,7 @@
 /** Fictional, date-relative MessageMonkey data. Run only through the verified baseline operator. */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('Forbidden.'); }
-$options = getopt('', ['apply', 'as-of:']);
+$options = getopt('', ['apply', 'as-of:', 'media-only', 'locations-only']);
 $anchor = $options['as-of'] ?? (new DateTimeImmutable('now', new DateTimeZone('America/Chicago')))->format('Y-m-d');
 $today = DateTimeImmutable::createFromFormat('!Y-m-d', $anchor, new DateTimeZone('America/Chicago'));
 if (!$today || $today->format('Y-m-d') !== $anchor) throw new InvalidArgumentException('Invalid Chicago date.');
@@ -11,26 +11,127 @@ $month = static function(int $offset) use ($today): string {
     $first = $today->modify('first day of this month')->modify(($offset >= 0 ? '+' : '').$offset.' months');
     return $first->setDate((int)$first->format('Y'), (int)$first->format('m'), min((int)$today->format('d'), (int)$first->format('t')))->format('Y-m-d');
 };
-$plan = ['account'=>'test-account','anchor'=>$anchor,'window'=>[$month(-3),$month(9)],'contacts'=>24,'campaigns'=>9,'collection_resources'=>6,'flows'=>3,'inbox_threads'=>6,'outgoing_jobs'=>0];
+$plan = ['account'=>'test-account','anchor'=>$anchor,'window'=>[$month(-3),$month(9)],'contacts'=>24,'campaigns'=>9,'collection_resources'=>6,'flows'=>3,'inbox_threads'=>6,'content_images'=>6,'brand_logos'=>2,'interaction_locations'=>32,'outgoing_jobs'=>0];
 if (!isset($options['apply'])) { echo json_encode($plan, JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),"\n"; exit; }
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/audience_store.php';
 if (!accountsEnabled() || accountIsPrimary() || currentAccountKey() !== 'test-account' || currentAccountProfile()['account_key'] !== 'test-account') throw new RuntimeException('Test Account member only.');
-// The runner owns staging, replacement, backups and dependency classification.
-if (getenv('DNR_TEST_ACCOUNT_SAMPLE_STAGE') !== '1' || getenv('DB_HOST') !== '127.0.0.1' || getenv('MYSQL_USER') !== 'root' || getenv('DNR_MAIL_TRANSPORT') !== 'log') throw new RuntimeException('Isolated baseline staging required.');
+$mediaOnly = isset($options['media-only']);
+$locationsOnly = isset($options['locations-only']);
+if ($mediaOnly && $locationsOnly) throw new InvalidArgumentException('Choose one sample import.');
+// The runner owns full baseline staging and replacement. A guarded media-only
+// or locations-only entry point adds examples to the live Test Account without a reset.
+if ($mediaOnly || $locationsOnly) {
+    $gate=$mediaOnly?'DNR_TEST_ACCOUNT_MEDIA_IMPORT':'DNR_TEST_ACCOUNT_LOCATION_IMPORT';
+    if (getenv($gate) !== '1' || getenv('DNR_MAIL_TRANSPORT') !== 'log') throw new RuntimeException('Guarded Test Account sample import required.');
+} elseif (getenv('DNR_TEST_ACCOUNT_SAMPLE_STAGE') !== '1' || getenv('DB_HOST') !== '127.0.0.1' || getenv('MYSQL_USER') !== 'root' || getenv('DNR_MAIL_TRANSPORT') !== 'log') throw new RuntimeException('Isolated baseline staging required.');
 $user = $conn->query("SELECT * FROM users WHERE username='TestEditor'")->fetch_assoc();
 if (!$user || !demoPasswordOnlyAuthenticationAllowed($user) || $user['role'] !== 'editor' || accountSecurityAccessAllowed()) throw new RuntimeException('Pinned demo policy required.');
 $s = new AudienceStore($conn, 1, (int)$user['id'], 'Fictional Test Account sample');
-foreach (['marketing_contacts','marketing_campaigns','marketing_collection_resources','marketing_flows','marketing_inbox_threads'] as $table) {
+if (!$mediaOnly && !$locationsOnly) foreach (['marketing_contacts','marketing_campaigns','marketing_collection_resources','marketing_flows','marketing_inbox_threads','marketing_design_library'] as $table) {
     if ((int)$s->one('SELECT COUNT(*) n FROM '.$table)['n']) throw new RuntimeException('Empty staged MessageMonkey data required: '.$table);
 }
-if ($s->one('SELECT audience_id FROM marketing_ses_settings WHERE enabled<>0 OR sending_enabled<>0 OR production_access<>0') || $s->one("SELECT audience_id FROM marketing_ses_credentials WHERE credential_ciphertext<>''")) throw new RuntimeException('Test Account SES must remain unconfigured.');
+if ($s->one('SELECT audience_id FROM marketing_ses_settings WHERE enabled<>0 OR sending_enabled<>0 OR production_access<>0') || (!$mediaOnly && !$locationsOnly && $s->one("SELECT audience_id FROM marketing_ses_credentials WHERE credential_ciphertext<>''"))) throw new RuntimeException('Test Account SES must remain unconfigured.');
 $j = static fn(mixed $v): string => json_encode($v, JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
 $insert = static function(string $table, array $row) use ($s): int {
     $s->write('INSERT INTO `'.$table.'` (`'.implode('`,`',array_keys($row)).'`) VALUES ('.implode(',',array_fill(0,count($row),'?')).')',array_values($row));
     return (int)$s->db->insert_id;
 };
-$result = $s->transaction(function() use ($s,$insert,$j,$at,$month,$anchor,$plan): array {
+$sampleMedia = static function() use ($s,$insert,$j): array {
+    $directory='/var/www/html/assets/template-art/';
+    $manifest=json_decode((string)file_get_contents($directory.'sources.json'),true,64,JSON_THROW_ON_ERROR);
+    $byFile=array_column($manifest['assets']??[],null,'file');
+    $samples=[
+        'galilee-boat.jpg'=>'Demo · Sea of Galilee',
+        'negev-sunset.jpg'=>'Demo · Negev sunset',
+        'tel-aviv-market.jpg'=>'Demo · Tel Aviv market',
+        'ein-gedi-waterfall.jpg'=>'Demo · Ein Gedi waterfall',
+        'haifa-harbor.jpg'=>'Demo · Haifa harbor',
+        'jaffa-steps.jpg'=>'Demo · Old Jaffa',
+    ];
+    $imageIds=[];
+    foreach ($samples as $file=>$name) {
+        $photo=$byFile[$file]??null;
+        if (!$photo) throw new RuntimeException('Bundled sample photo is missing: '.$file);
+        $bytes=file_get_contents($directory.$file);
+        if ($bytes===false || hash('sha256',$bytes)!==$photo['sha256']) throw new RuntimeException('Bundled sample photo changed: '.$file);
+        $image=audienceDesignImage('data:image/jpeg;base64,'.base64_encode($bytes),1000000);
+        $dimensions=getimagesizefromstring($bytes);
+        $data=['image'=>$image,'document'=>'','alt'=>$photo['alt'],'url'=>'','folder'=>'','bytes'=>strlen($bytes),
+            'width'=>$dimensions[0],'height'=>$dimensions[1],'published'=>false,'rights_confirmed'=>false,
+            'sample_dataset'=>'test-account-message-monkey-media-v1','sample_key'=>$file,
+            'source_credit'=>$photo['creator'],'source_url'=>$photo['source'],'license'=>$photo['license']];
+        $existing=$s->one("SELECT id FROM marketing_design_library WHERE audience_id=? AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.sample_dataset'))='test-account-message-monkey-media-v1' AND JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.sample_key'))=? LIMIT 1 FOR UPDATE",[$s->audienceId,$file]);
+        if ($existing) {
+            $s->write('UPDATE marketing_design_library SET name=?,data_json=?,actor_label=?,deleted_at=NULL,version=version+1 WHERE audience_id=? AND id=?',[$name,$j($data),$s->actorLabel,$s->audienceId,$existing['id']]);
+            $imageIds[]=(int)$existing['id'];
+        } else $imageIds[]=$insert('marketing_design_library',['audience_id'=>$s->audienceId,'item_type'=>'image','name'=>$name,'data_json'=>$j($data),'actor_label'=>$s->actorLabel]);
+    }
+    $defaultLogo=<<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="180" viewBox="0 0 560 180"><rect width="560" height="180" rx="22" fill="#e8f4f2"/><circle cx="88" cy="90" r="53" fill="#007c89"/><path d="M61 93l19 19 37-44" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><text x="162" y="88" fill="#183d43" font-family="Arial" font-size="43" font-weight="700">Test Account</text><text x="165" y="122" fill="#42696e" font-family="Arial" font-size="18" letter-spacing="3">SAMPLE BRAND</text></svg>
+SVG;
+    $secondaryLogo=<<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="180" viewBox="0 0 560 180"><rect width="560" height="180" rx="22" fill="#183d43"/><circle cx="88" cy="90" r="53" fill="#fff"/><path d="M61 93l19 19 37-44" fill="none" stroke="#007c89" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><text x="162" y="88" fill="#fff" font-family="Arial" font-size="43" font-weight="700">Test Account</text><text x="165" y="122" fill="#bce5e3" font-family="Arial" font-size="18" letter-spacing="3">SAMPLE BRAND</text></svg>
+SVG;
+    $logos=audienceBrandLogos(['logo'=>'data:image/svg+xml;base64,'.base64_encode($defaultLogo),
+        'secondary_logo'=>'data:image/svg+xml;base64,'.base64_encode($secondaryLogo)]);
+    $context=$s->contentSettings(true);$settings=$context['settings'];$brand=is_array($settings['brand']??null)?$settings['brand']:[];
+    $settings['brand']=array_replace($brand,$logos);
+    $s->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[$j($settings),$s->audienceId]);
+    return ['image_ids'=>$imageIds,'brand_logos'=>array_keys($logos)];
+};
+if ($mediaOnly) {
+    echo $j(['account'=>'test-account','media'=>$s->transaction($sampleMedia)]),"\n";
+    exit;
+}
+$sampleLocations = static function() use ($s,$insert,$j,$at): array {
+    $place=static fn(string $ip,string $country='',string $region='',string $city=''):array=>
+        array_filter(['ip_address'=>$ip,'country_code'=>$country,'region'=>$region,'city'=>$city],static fn($value)=>$value!=='')
+        +['source'=>'fictional Test Account sample; documentation IP address','sample'=>true];
+    $chicago=$place('192.0.2.10','US','Illinois','Chicago');
+    $toronto=$place('198.51.100.24','CA','Ontario','Toronto');
+    $london=$place('203.0.113.42','GB','England','London');
+    $jerusalem=$place('198.51.100.88','IL','Jerusalem District','Jerusalem');
+    $haifa=$place('203.0.113.55','IL','Haifa District','Haifa');
+    $madison=$place('192.0.2.90','US','Wisconsin','Madison');
+    $names=['Avery','Jordan','Morgan','Riley','Casey','Taylor','Jamie','Quinn','Parker','Reese','Rowan','Skyler','Alex','Cameron','Drew','Emerson','Finley','Hayden','Kendall','Logan','Marley','Noel','Payton','Sage'];
+    $places=[$chicago,$toronto,$london,$jerusalem,$haifa,$madison];
+    $signupPlaces=['Avery'=>$chicago,'Jordan'=>$london,'Morgan'=>$jerusalem,'Riley'=>$madison,'Kendall'=>$madison,'Payton'=>$haifa];
+    $examples=[];
+    foreach ($names as $i=>$name) {
+        $location=$signupPlaces[$name]??$places[$i%count($places)];
+        if (!isset($signupPlaces[$name])) $location['ip_address']=['192.0.2.','198.51.100.','203.0.113.'][$i%3].(100+$i);
+        $examples[]=[$name,'signup-permission',-80+$i*3,$location];
+    }
+    array_push($examples,
+        ['Avery','subscription-confirmed',-79,$chicago],['Avery','preferences',-4,$toronto],
+        ['Jordan','subscription-confirmed',-76,$london],['Morgan','preferences',-7,$haifa],
+        ['Kendall','subscription-confirmed',-25,$madison],['Kendall','status',-2,$toronto],
+        ['Payton','subscription-confirmed',-13,$haifa],['Payton','status',-1,$chicago]
+    );
+    $ids=[];
+    foreach ($examples as [$name,$type,$day,$location]) {
+        $person=$s->one('SELECT id,email_status FROM marketing_contacts WHERE audience_id=? AND email=? AND source=? AND deleted_at IS NULL',[$s->audienceId,'demo.'.strtolower($name).'@example.invalid','Test Account sample']);
+        if (!$person) throw new RuntimeException('Fictional sample connection is missing: '.$name);
+        if ($type==='status' && $person['email_status']!=='unsubscribed') throw new RuntimeException('Fictional unsubscribe status changed: '.$name);
+        $key=strtolower($name).'-'.$type;
+        $details=['sample_dataset'=>'test-account-interaction-location-v1','sample_key'=>$key,'sample'=>true,
+            'source'=>'Fictional Test Account interaction','interaction_location'=>$location];
+        if ($type==='status') $details+=['from'=>'subscribed','to'=>'unsubscribed'];
+        if ($type==='preferences') $details['changed_fields']=['demo_interest'];
+        $existing=$s->one("SELECT id FROM marketing_contact_events WHERE contact_id=? AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.sample_dataset'))='test-account-interaction-location-v1' AND JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.sample_key'))=? LIMIT 1 FOR UPDATE",[$person['id'],$key]);
+        if ($existing) {
+            $s->write('UPDATE marketing_contact_events SET details_json=?,created_at=? WHERE id=?',[$j($details),$at($day),$existing['id']]);
+            $ids[]=(int)$existing['id'];
+        } else $ids[]=$insert('marketing_contact_events',['contact_id'=>$person['id'],'actor_user_id'=>null,'actor_label'=>'Fictional Test Account sample','actor_type'=>'recipient','event_type'=>$type,'details_json'=>$j($details),'created_at'=>$at($day)]);
+    }
+    return ['event_ids'=>$ids,'connections'=>count($names)];
+};
+if ($locationsOnly) {
+    echo $j(['account'=>'test-account','interaction_locations'=>$s->transaction($sampleLocations)]),"\n";
+    exit;
+}
+$result = $s->transaction(function() use ($s,$insert,$j,$at,$month,$anchor,$plan,$sampleMedia,$sampleLocations): array {
     $aid=['audience_id'=>1]; $actor=['actor_label'=>$s->actorLabel]; $people=[]; $tags=[];
     foreach (['Community news','Volunteers','Event guests','Follow up'] as $name) $tags[]=$insert('marketing_tags',$aid+['name'=>$name,'created_at'=>$at(-60)]);
     $group=$insert('marketing_group_categories',$aid+['name'=>'Demo interests','display_type'=>'checkboxes']); $groups=[];
@@ -127,6 +228,8 @@ $result = $s->transaction(function() use ($s,$insert,$j,$at,$month,$anchor,$plan
         $reports[]=['key'=>substr(hash('sha256','test-account-demo-'.$dataset),0,24),'owner'=>$s->actorId,'version'=>1,'favorites'=>[],'shared'=>true,'name'=>'Demo · '.$name,'description'=>'Simulated Test Account evidence. No messages were sent.','created_at'=>$anchor.'T10:00:00Z','updated_at'=>$anchor.'T10:00:00Z','definition'=>audienceAnalyticsReportDefinition($input)+array_intersect_key($window,array_flip(['start','end','bots','compare','channel','messages','messages_mode','segment']))];
     }
     $s->write("UPDATE marketing_audiences SET settings_json=JSON_SET(settings_json,'$.analytics_reports',CAST(? AS JSON)) WHERE id=1",[$j($reports)]);
-    return $plan+['campaign_ids'=>$campaigns,'fictional'=>true,'ses_unchanged'=>true];
+    $media=$sampleMedia();
+    $locations=$sampleLocations();
+    return $plan+['campaign_ids'=>$campaigns,'media'=>$media,'interaction_location_samples'=>$locations,'fictional'=>true,'ses_unchanged'=>true];
 });
 echo json_encode($result,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),"\n";

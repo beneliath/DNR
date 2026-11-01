@@ -143,3 +143,4 @@
 
 20261028_add_audience_notification_dismissals.sql
 20261030_archive_marketing_definitions.sql
+20261031_add_marketing_ses_alerts.sql
