@@ -141,6 +141,7 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 .analytics-interaction-table thead th{background:var(--audience-hover)}
 .analytics-interaction-table tbody :is(th,td){background:var(--audience-surface)}
 .analytics-interaction-table tbody tr:hover :is(th,td){background:var(--audience-hover)}
+.analytics-interaction-table tbody tr.is-popup-open :is(th,td){background:var(--audience-action-hover-bg)}
 .analytics-interaction-table tbody tr[data-interaction-pin]{cursor:pointer}
 .analytics-interaction-table .analytics-interaction-location-action{color:inherit;text-decoration:none}
 .analytics-interaction-table .analytics-interaction-location-action:is(:hover,:focus-visible){color:var(--audience-primary);text-decoration:underline}

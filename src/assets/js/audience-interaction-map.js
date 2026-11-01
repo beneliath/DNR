@@ -30,7 +30,14 @@ if (element && dataElement && feedback && fitButton) {
         map.addControl(new NavigationControl({showCompass: false}), 'top-left');
         const bounds = new LngLatBounds();
         const markers = new Array(pins.length);
+        const table = document.querySelector('.analytics-interaction-table');
+        const rows = new Map(Array.from(table?.querySelectorAll('tbody tr[data-interaction-pin]') || [], (row) => [Number(row.dataset.interactionPin), row]));
         let selectedIndex = null;
+        const setSelectedIndex = (index) => {
+            if (selectedIndex !== null) rows.get(selectedIndex)?.classList.remove('is-popup-open');
+            selectedIndex = index;
+            if (index !== null) rows.get(index)?.classList.add('is-popup-open');
+        };
         let visible = 0;
         for (const [index, pin] of pins.entries()) {
             const longitude = Number(pin.longitude);
@@ -65,9 +72,20 @@ if (element && dataElement && feedback && fitButton) {
             const accuracy = document.createElement('small');
             accuracy.textContent = pin.precision === 'city' ? 'Approximate city position' : 'Approximate country position';
             popupContent.append(accuracy);
+            const popup = new Popup({offset: 18, maxWidth: '320px'}).setDOMContent(popupContent);
+            popup.on('open', () => {
+                for (const otherMarker of markers) {
+                    const otherPopup = otherMarker?.getPopup();
+                    if (otherPopup && otherPopup !== popup && otherPopup.isOpen()) otherPopup.remove();
+                }
+                setSelectedIndex(index);
+            });
+            popup.on('close', () => {
+                if (selectedIndex === index) setSelectedIndex(null);
+            });
             markers[index] = new Marker({element: marker, anchor: 'bottom'})
                 .setLngLat([longitude, latitude])
-                .setPopup(new Popup({offset: 18, maxWidth: '320px'}).setDOMContent(popupContent))
+                .setPopup(popup)
                 .addTo(map);
             bounds.extend([longitude, latitude]);
             visible++;
@@ -85,12 +103,9 @@ if (element && dataElement && feedback && fitButton) {
             if (!selectedMarker) return;
             const position = selectedMarker.getLngLat();
             const popup = selectedMarker.getPopup();
-            for (const otherMarker of markers) {
-                const otherPopup = otherMarker?.getPopup();
-                if (otherPopup && otherPopup !== popup && otherPopup.isOpen()) otherPopup.remove();
-            }
             // MapLibre can skip a marker toggle while its pin is hidden by the globe.
             if (popup && !popup.isOpen()) popup.setLngLat(position).addTo(map);
+            setSelectedIndex(index);
             const zoom = pins[index].precision === 'city' ? 7 : 3;
             const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             if (reduceMotion) map.jumpTo({center: position, zoom});
@@ -98,22 +113,21 @@ if (element && dataElement && feedback && fitButton) {
             element.scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', block: 'center'});
             selectedMarker.getElement().focus({preventScroll: true});
         };
-        document.querySelector('.analytics-interaction-table')?.addEventListener('click', (event) => {
+        table?.addEventListener('click', (event) => {
             const row = event.target.closest('tr[data-interaction-pin]');
             if (!row) return;
             const index = Number(row.dataset.interactionPin);
             if (!markers[index]) return;
             event.preventDefault();
-            selectedIndex = index;
             selectPin(index);
         });
         fitButton.disabled = visible === 0;
         fitButton.addEventListener('click', () => {
-            selectedIndex = null;
             for (const marker of markers) {
                 const popup = marker?.getPopup();
                 if (popup?.isOpen()) popup.remove();
             }
+            setSelectedIndex(null);
             fitPins();
         });
         map.once('load', () => {
