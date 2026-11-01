@@ -82,4 +82,10 @@ test('a location row opens its globe-hidden pin on the first click', () => {
     table.listeners.click({target: {closest: () => ({dataset: {interactionPin: '0'}})}, preventDefault() {}});
     assert.equal(popups[0].isOpen(), true);
     assert.equal(popups[1].isOpen(), false);
+
+    popups[1].addTo();
+    elements['fit-interaction-pins'].listeners.click();
+    assert.equal(popups[0].isOpen(), false, 'Fit pins closes the selected card');
+    assert.equal(popups[1].isOpen(), false, 'Fit pins closes any other open card');
+    assert.equal(fitCount, 1, 'Fit pins still fits the visible locations');
 });

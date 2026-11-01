@@ -187,6 +187,18 @@ test('On Map links focus their own pins and open the matching details', () => {
     assert.equal(h.popups[1].isOpen(), false, 'Only the selected details remain open');
 });
 
+test('Fit Visible Pins closes every open pin card', () => {
+    const h = harness([
+        {...unresolved, locationState: 'found', latitude: 32.9, longitude: -96.4},
+        {...unresolved, id: 5, locationState: 'found', latitude: 41.9, longitude: -87.6}
+    ]);
+    h.popups[0].addTo();
+    h.popups[1].addTo();
+    h.elements['fit-map-pins'].listeners.click();
+    assert.equal(h.popups[0].isOpen(), false);
+    assert.equal(h.popups[1].isOpen(), false);
+});
+
 test('empty server results keep the base map and guidance visible without requesting lookups', () => {
     const h = harness([]);
     assert.equal(h.mapCalls.created, 1);
