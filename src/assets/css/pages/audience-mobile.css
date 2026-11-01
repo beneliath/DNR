@@ -5,12 +5,13 @@
 
 @media screen and (max-width:860px),screen and (max-width:1024px) and (hover:none) and (pointer:coarse){
   .mm-mobile-only{display:flex!important}
-  html:has(body[data-mm-workspace]){height:auto;overflow-x:clip;overflow-y:auto;scroll-padding-bottom:100px}
+  html:has(body[data-mm-workspace]){height:auto;overflow-x:clip;overflow-y:auto;scroll-padding-bottom:24px}
   html:has(body[data-mm-workspace].audience-navigation-open),html:has(body[data-mm-workspace] dialog[open]){overflow:hidden}
-  body.audience-app[data-mm-workspace]{position:static;inset:auto;width:100%;height:auto;min-height:100dvh;overflow:visible;--mm-mobile-bottom:calc(72px + env(safe-area-inset-bottom,0px));--audience-action-gap:8px;background:var(--audience-heading-bg);padding-bottom:var(--mm-mobile-bottom);font-size:16px;line-height:1.5}
+  body.audience-app[data-mm-workspace]{position:static;inset:auto;width:100%;height:auto;min-height:100dvh;overflow:visible;--audience-action-gap:8px;background:var(--audience-heading-bg);padding-bottom:env(safe-area-inset-bottom,0px);font-size:16px;line-height:1.5}
   body.audience-app[data-mm-workspace].audience-navigation-open{overflow:hidden}
   body[data-mm-workspace] :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea,[contenteditable=true]){font-size:max(16px,1em);max-width:100%;min-width:0}
   body[data-mm-workspace] :is(button,.audience-button,.button,summary){min-height:44px;touch-action:manipulation}
+  body[data-mm-workspace] button.marketing-info{flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px}
   body[data-mm-workspace] :is(input[type=checkbox],input[type=radio]){min-width:22px;min-height:22px}
   body[data-mm-workspace] :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid var(--audience-primary);outline-offset:3px}
   body[data-mm-workspace] :is(h1,h2,h3,p,a,label,dd){overflow-wrap:anywhere}
@@ -42,12 +43,9 @@
   body[data-mm-workspace] .app-footer{padding:24px 16px;margin-top:20px;font-size:12px}
   body[data-mm-workspace] .audience-notice{padding:14px;margin-block:12px;border-radius:12px}
 
-  /* Thumb navigation is shared by the workspace, Inbox and email editor. */
-  body[data-mm-workspace] .mm-mobile-dock{position:fixed;z-index:80;inset:auto 0 0;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;padding:6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--audience-border);background:var(--audience-surface);box-shadow:0 -4px 24px #0000000a}
-  body[data-mm-workspace] .mm-mobile-dock>:is(a,button){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:56px;min-width:0;padding:7px 2px;margin:0;border:0;border-radius:12px;font:inherit;font-size:11px;font-weight:650;line-height:1.2;text-decoration:none;color:var(--audience-muted);background:transparent}
-  body[data-mm-workspace] .mm-mobile-dock span{white-space:nowrap}
-  .mm-mobile-dock svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  body[data-mm-workspace] .mm-mobile-dock>:is([aria-current],.is-current){background:var(--audience-selected);color:var(--audience-link)}
+  /* Inbox and the designer use this compact entry to the shared tools menu. */
+  body[data-mm-workspace] .mm-mobile-tools-button{flex:0 0 44px;width:44px;height:44px;min-width:44px;padding:10px;border:0;background:transparent}
+  .mm-mobile-tools-button svg{display:block;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
   body[data-mm-workspace] .mm-mobile-menu[open]{position:fixed;inset:auto 0 0;margin:0;width:100%;max-width:100%;max-height:calc(100dvh - 24px);padding:0 16px calc(20px + env(safe-area-inset-bottom));border:1px solid var(--audience-border);border-bottom:0;border-radius:24px 24px 0 0;background:var(--audience-surface);color:var(--audience-text);overflow-y:auto;overscroll-behavior:contain}
   .mm-mobile-menu::backdrop{background:#07131bb3}
   .mm-mobile-menu>header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;background:var(--audience-surface);padding:20px 0 16px;border-bottom:1px solid var(--audience-border)}
@@ -243,14 +241,12 @@
   body[data-mm-workspace] :is(.dialog-actions,.confirmation-dialog-actions)>button{flex:1;min-width:100px}
   body[data-mm-workspace] [popover]{max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto}
   body[data-mm-workspace] :is(.audience-menu,.designer-save-menu)>div{left:0;right:auto;max-width:calc(100vw - 32px)}
-  body[data-mm-workspace]:has(dialog[open]) .mm-mobile-dock{visibility:hidden}
   body[data-mm-workspace] :is(.audience-count-pill.is-selected,.audience-matching-count.is-aggregate){animation:none}
 }
 
 @media screen and (max-width:360px){
   body[data-mm-workspace] .audience-topbar{padding-inline:6px;gap:0}
   body[data-mm-workspace] .audience-topbar .audience-logo-wrap{width:24px;height:28px;flex-basis:24px;padding:0}
-  body[data-mm-workspace] .mm-mobile-dock>:is(a,button){font-size:10px}
 }
 
 @media screen and (min-width:600px) and (max-width:860px),screen and (min-width:600px) and (max-width:1024px) and (hover:none) and (pointer:coarse){

@@ -22,6 +22,7 @@ if($view==='contact'){
     $id=7;$tab='overview';$events=$notes=$activityYears=[];$eventTotal=$activityYear=0;$eventSize=25;$eventPage=1;$eventFilter='';$days=30;
     $contact=['id'=>$id,'version'=>1,'email'=>'subscribed@example.test','first_name'=>'Example','last_name'=>'Subscriber','email_status'=>'subscribed','is_archived'=>0,'deleted_at'=>null,'custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'en','timezone'=>'America/Chicago','source'=>'Signup form','notes'=>'','consent_note'=>'','created_at'=>'2026-10-25 12:00:00','updated_at'=>'2026-10-25 12:01:00'];
     $marketingDetails=audienceMarketingDetails($contact,null,null);
+    $activeTags=$tags;
 }
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 

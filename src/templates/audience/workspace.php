@@ -143,7 +143,7 @@ if(in_array($view,['home','analytics'],true)){
 <?php endif; ?>
 <script type="application/json" id="audience-config"><?= json_encode(['recovery'=>$editorRecovery??null,'canDelete'=>$canDelete,'audience'=>$audienceId,'url'=>$url(),'catalog'=>$catalog,'operators'=>array_combine(['text','number','date','choice','membership','set','event','engagement'],array_map('audienceRuleOperators',['text','number','date','choice','membership','set','event','engagement'])),'rules'=>$rules,'currentRules'=>audienceActiveRules($filters,$rules),'listContext'=>$view==='contacts'?['archived'=>$filters['archived'],'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize]:[],'segment'=>$segment,'csrf'=>generateCsrfToken(),'job'=>$job?array_intersect_key($job,array_flip(['id','state','total','processed','job_type'])):null],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>
 <?php include __DIR__.'/../admin-unlock-dialog.php'; ?>
-<?php include __DIR__.'/mobile-navigation.php'; ?></body>
+</body>
 <?php
 /** Sidebar icons use the reference normal/active pairs; action icons stay independent. */
 function audienceSidebarIcon(string $name): void

@@ -258,7 +258,12 @@
         link.addEventListener('click', function () { setActiveToc(link.getAttribute('href').slice(1)); });
     });
     document.querySelectorAll('.manual-page-nav a').forEach(function (link) {
-        link.addEventListener('click', function () {
+        link.addEventListener('click', function (event) {
+            if (link.getAttribute('href') === '#manual-top' && document.body.classList.contains('audience-manual-mode')) {
+                event.preventDefault();
+                history.replaceState(null, '', location.pathname + location.search);
+                window.scrollTo(0, 0);
+            }
             const visible = sections.filter(function (section) { return !section.hidden; });
             const section = link.getAttribute('href') === '#manual-top' ? visible[0] : visible[visible.length - 1];
             if (section) setActiveToc(section.id);
