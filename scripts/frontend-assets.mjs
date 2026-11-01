@@ -3,7 +3,7 @@
 export const javascriptAssets = [
     {name: 'user-time'},
     {name: 'audience-ai', bundle: true},
-    {name: 'audience-analytics'},
+    {name: 'audience-analytics', bundle: true},
     {name: 'audience-inbox'},
     {name: 'audience-designer', bundle: true},
     {name: 'audience', bundle: true},
