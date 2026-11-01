@@ -31,8 +31,11 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 @media(max-width:700px){.analytics-report-prompts .analytics-ai-questions{grid-template-columns:minmax(0,1fr)}}
 
 /* Keep the Home title, date range and actions together below the app bar. */
-.analytics-home-heading{position:sticky;top:calc(var(--audience-shell-offset) + var(--analytics-topbar-height,68px));z-index:3;background:var(--audience-surface);display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:start}
+.analytics-home-heading{position:sticky;top:calc(var(--audience-shell-offset) + var(--analytics-topbar-height,68px));z-index:3;background:var(--audience-surface);display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:start;row-gap:8px}
 .analytics-home-heading>:first-child,.analytics-home-heading>.audience-actions{display:flex;align-items:center;min-height:42px}
+.analytics-home-heading>.analytics-home-date-tools{grid-column:2;grid-row:1}
+.analytics-home-heading>.analytics-home-range-summary{grid-column:1/-1;grid-row:2;width:min(100%,1600px);justify-self:center}
+.analytics-home-heading>.audience-actions{grid-column:3;grid-row:1}
 
 
 .analytics-home-heading+.audience-page-body{padding-top:24px}
@@ -43,6 +46,7 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 @media(min-width:2200px){
 .analytics-home-heading{grid-template-columns:minmax(160px,1fr) minmax(0,1600px) minmax(160px,1fr);column-gap:0}
 .analytics-home-heading>.analytics-home-date-tools{grid-column:2;grid-row:1}
+.analytics-home-heading>.analytics-home-range-summary{grid-column:2;grid-row:2}
 .analytics-home-heading>.audience-actions{grid-column:2/-1;grid-row:1;justify-self:end}
 .analytics-home-layout{display:grid;grid-template-columns:minmax(160px,1fr) minmax(0,1600px) minmax(160px,1fr);align-items:start}
 .analytics-home-layout>.analytics-workspace{grid-column:2;grid-row:1;margin:0;width:100%}
@@ -50,12 +54,14 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 @media(max-width:1000px){
 .analytics-home-heading{grid-template-columns:minmax(0,1fr) auto}
 .analytics-home-heading>.analytics-home-date-tools{grid-column:1/-1;grid-row:2}
+.analytics-home-heading>.analytics-home-range-summary{grid-column:1/-1;grid-row:3}
 .analytics-home-heading>.audience-actions{grid-column:2;grid-row:1}
 }
 @media(max-width:600px){
 .analytics-home-heading{grid-template-columns:minmax(0,1fr)}
-.analytics-home-heading>.audience-actions{grid-column:1;grid-row:3;justify-content:flex-start}
+.analytics-home-heading>.audience-actions{grid-column:1;grid-row:4;justify-content:flex-start}
 }
+@media(max-width:680px){.analytics-home-heading>.analytics-home-range-summary{width:calc(100% + 8px)}}
 
 .analytics-recent-campaigns{grid-column:1/-1}
 
@@ -69,7 +75,34 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 /* Keep the preset select at its normal height beside the date inputs. */
 .analytics-date-fields>label{align-self:start}
 .analytics-reference-filters{row-gap:8px}
-.analytics-range-summary{flex:0 0 100%;margin:0;color:var(--audience-primary-hover);font-size:inherit;font-weight:700;line-height:1.4;text-align:right}
+.analytics-range-summary{flex:0 0 100%;margin:0;color:var(--audience-primary-hover);font-size:inherit;font-weight:700;line-height:1.4;text-align:right;white-space:nowrap}
+@media(max-width:600px){.analytics-range-summary{font-size:clamp(11px,3.4vw,16px)}}
 .analytics-dashboard .analytics-range-summary{padding-right:22px}
 @media(max-width:540px){.analytics-dashboard .analytics-range-summary{padding-right:16px}}
 .analytics-dashboard .analytics-reference-filters{padding-bottom:0;margin-bottom:-14px}
+
+/* The report date picker uses the same light and dark tokens as MessageMonkey. */
+.analytics-date-input:focus-within{outline:2px solid var(--audience-primary);outline-offset:2px}
+.analytics-date-input input[type=text]{flex:1;min-width:0;width:100%;min-height:0;padding:8px;border:0!important;outline:0;background:transparent!important;color:var(--audience-text);font-size:14px}
+.analytics-date-input>.analytics-calendar-trigger{flex:none;min-width:38px;min-height:38px;padding:7px;border:0;background:transparent;color:var(--audience-primary)}
+.analytics-date-input>.analytics-calendar-trigger:hover{background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color)}
+.analytics-calendar-trigger svg{display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8}
+.analytics-calendar{position:fixed;inset:auto;box-sizing:border-box;width:310px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;margin:0;padding:14px;border:1px solid var(--audience-control-border);border-radius:10px;background:var(--audience-surface);color:var(--audience-text);box-shadow:0 10px 28px var(--audience-dialog-shadow)}
+.analytics-calendar-header{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.analytics-calendar-header select{min-width:0;min-height:34px;padding:5px 7px;font-size:13px}
+.analytics-calendar-header select[aria-label=Month]{flex:1}
+.analytics-calendar-header select[aria-label=Year]{width:76px}
+.analytics-calendar-header>.analytics-calendar-nav{flex:none;min-width:30px;min-height:34px;padding:0 5px;border:0;background:transparent;color:var(--audience-text);font-size:24px}
+.analytics-calendar-header>.analytics-calendar-nav:hover:not(:disabled){background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color)}
+.analytics-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;width:100%}
+.analytics-calendar-grid>span{display:grid;place-items:center;min-width:0;min-height:28px;color:var(--audience-muted);font-size:11px;font-weight:600}
+.analytics-calendar-grid>button{box-sizing:border-box;min-width:0;min-height:0;width:100%;aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--audience-text);font-size:13px;line-height:1}
+.analytics-calendar-grid>button.outside-month{color:var(--audience-muted)}
+.analytics-calendar-grid>button.today:not(.selected){border-color:var(--audience-primary)}
+.analytics-calendar-grid>button.selected{background:var(--audience-primary);color:var(--audience-primary-text);font-weight:700}
+.analytics-calendar-grid>button:hover:not(:disabled):not(.selected){background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color)}
+.analytics-calendar-grid>button:disabled{opacity:.35;cursor:not-allowed}
+.analytics-calendar-grid>button:focus-visible,.analytics-calendar-header :is(button,select):focus-visible{outline:2px solid var(--audience-primary);outline-offset:2px}
+.analytics-range-actions>button.analytics-range-pending{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
+.analytics-range-actions>button.analytics-range-pending:focus-visible{animation:none;outline:3px solid var(--audience-primary)}
+@media(prefers-reduced-motion:reduce){.analytics-range-actions>button.analytics-range-pending{animation:none;outline:3px solid var(--audience-primary)}}
