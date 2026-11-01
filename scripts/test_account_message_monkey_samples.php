@@ -11,7 +11,7 @@ $month = static function(int $offset) use ($today): string {
     $first = $today->modify('first day of this month')->modify(($offset >= 0 ? '+' : '').$offset.' months');
     return $first->setDate((int)$first->format('Y'), (int)$first->format('m'), min((int)$today->format('d'), (int)$first->format('t')))->format('Y-m-d');
 };
-$plan = ['account'=>'test-account','anchor'=>$anchor,'window'=>[$month(-3),$month(9)],'contacts'=>24,'campaigns'=>9,'collection_resources'=>6,'flows'=>3,'inbox_threads'=>6,'content_images'=>6,'brand_logos'=>2,'interaction_locations'=>32,'outgoing_jobs'=>0];
+$plan = ['account'=>'test-account','anchor'=>$anchor,'window'=>[$month(-3),$month(9)],'contacts'=>24,'campaigns'=>9,'collection_resources'=>6,'flows'=>3,'inbox_threads'=>6,'content_images'=>6,'brand_logos'=>2,'interaction_locations'=>41,'outgoing_jobs'=>0];
 if (!isset($options['apply'])) { echo json_encode($plan, JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),"\n"; exit; }
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/audience_store.php';
@@ -94,6 +94,15 @@ $sampleLocations = static function() use ($s,$insert,$j,$at): array {
     $jerusalem=$place('198.51.100.88','IL','Jerusalem District','Jerusalem');
     $haifa=$place('203.0.113.55','IL','Haifa District','Haifa');
     $madison=$place('192.0.2.90','US','Wisconsin','Madison');
+    $telAviv=$place('192.0.2.201','IL','Tel Aviv','Tel Aviv');
+    $nazareth=$place('198.51.100.202','IL','Northern District','Nazareth');
+    $paris=$place('203.0.113.203','FR','Île-de-France','Paris');
+    $berlin=$place('192.0.2.204','DE','Berlin','Berlin');
+    $rome=$place('198.51.100.205','IT','Lazio','Rome');
+    $sydney=$place('203.0.113.206','AU','New South Wales','Sydney');
+    $melbourne=$place('192.0.2.207','AU','Victoria','Melbourne');
+    $tokyo=$place('198.51.100.208','JP','Tokyo','Tokyo');
+    $osaka=$place('203.0.113.209','JP','Osaka','Osaka');
     $names=['Avery','Jordan','Morgan','Riley','Casey','Taylor','Jamie','Quinn','Parker','Reese','Rowan','Skyler','Alex','Cameron','Drew','Emerson','Finley','Hayden','Kendall','Logan','Marley','Noel','Payton','Sage'];
     $places=[$chicago,$toronto,$london,$jerusalem,$haifa,$madison];
     $signupPlaces=['Avery'=>$chicago,'Jordan'=>$london,'Morgan'=>$jerusalem,'Riley'=>$madison,'Kendall'=>$madison,'Payton'=>$haifa];
@@ -107,7 +116,12 @@ $sampleLocations = static function() use ($s,$insert,$j,$at): array {
         ['Avery','subscription-confirmed',-79,$chicago],['Avery','preferences',-4,$toronto],
         ['Jordan','subscription-confirmed',-76,$london],['Morgan','preferences',-7,$haifa],
         ['Kendall','subscription-confirmed',-25,$madison],['Kendall','status',-2,$toronto],
-        ['Payton','subscription-confirmed',-13,$haifa],['Payton','status',-1,$chicago]
+        ['Payton','subscription-confirmed',-13,$haifa],['Payton','status',-1,$chicago],
+        ['Jordan','preferences',-6,$telAviv],['Riley','preferences',-5,$nazareth],
+        ['Casey','preferences',-4,$paris],['Taylor','preferences',-3,$berlin],
+        ['Jamie','preferences',-2,$rome],['Quinn','preferences',-1,$sydney],
+        ['Parker','preferences',-6,$melbourne],['Reese','preferences',-5,$tokyo],
+        ['Rowan','preferences',-4,$osaka]
     );
     $ids=[];
     foreach ($examples as [$name,$type,$day,$location]) {

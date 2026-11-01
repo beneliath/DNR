@@ -88,7 +88,7 @@ class BaselineRefreshTest(unittest.TestCase):
             result=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of='+date],capture_output=True,text=True,check=True)
             plan=json.loads(result.stdout)
             self.assertEqual(plan['window'],[start,end])
-            self.assertEqual((plan['content_images'],plan['brand_logos'],plan['interaction_locations']),(6,2,32))
+            self.assertEqual((plan['content_images'],plan['brand_logos'],plan['interaction_locations']),(6,2,41))
             self.assertEqual(plan['outgoing_jobs'],0)
         invalid=subprocess.run(['php',str(ROOT/'scripts/test_account_message_monkey_samples.php'),'--as-of=2028-02-30'],capture_output=True)
         self.assertNotEqual(invalid.returncode,0)

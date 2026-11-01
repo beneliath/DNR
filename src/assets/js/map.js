@@ -133,6 +133,10 @@ import {
 
     fitButton.addEventListener('click', function () {
         selectedEventId = null;
+        markers.forEach(function (marker) {
+            const popup = marker.getPopup();
+            if (popup?.isOpen()) popup.remove();
+        });
         fitMapToPins();
     });
 

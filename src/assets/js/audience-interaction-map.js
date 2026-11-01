@@ -110,6 +110,10 @@ if (element && dataElement && feedback && fitButton) {
         fitButton.disabled = visible === 0;
         fitButton.addEventListener('click', () => {
             selectedIndex = null;
+            for (const marker of markers) {
+                const popup = marker?.getPopup();
+                if (popup?.isOpen()) popup.remove();
+            }
             fitPins();
         });
         map.once('load', () => {
