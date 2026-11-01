@@ -135,7 +135,7 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($map_page, 'assets/css/modern.min.css?rev=consistent-control-geometry-1')
-        && str_contains($map_page, 'assets/css/map.min.css?rev=maplibre-theme-surfaces-3'),
+        && str_contains($map_page, 'assets/css/map.min.css?rev=maplibre-theme-surfaces-4'),
     'the Map page should invalidate previously immutable shared and map styles for control geometry fixes.'
 );
 expectMapFeature(

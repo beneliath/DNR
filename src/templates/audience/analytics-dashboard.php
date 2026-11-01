@@ -44,6 +44,7 @@ $renderChart=static function(string $chosen,string $chartGroup,bool $delivery=fa
 <div data-analytics-results>
 <?php if($window['segment']): ?><p class="analytics-explanation">Email results use the saved segment’s current active connection membership, rather than its membership at send time.</p><?php endif; ?>
 <?php if(in_array($section,['reports','custom','activity','links','devices','insights'],true))include __DIR__.'/analytics-reports.php'; ?>
+<?php if($section==='locations')include __DIR__.'/analytics-interaction-locations.php'; ?>
 <?php if($section==='email'): ?>
 <section class="analytics-card analytics-engagement" aria-labelledby="engagement-title"><header><h2 id="engagement-title">Email engagement</h2><a href="<?= $h($reportLink(['section'=>'activity'])) ?>">View recipient activity →</a></header>
     <nav class="analytics-tabs" aria-label="Email type"><?php foreach(['all'=>'All','regular'=>'Regular','automation'=>'Automation']as$key=>$label): ?><a class="<?= $window['channel']===$key?'active':'' ?>" href="<?= $h($reportLink(['channel'=>$key])) ?>"<?= $window['channel']===$key?' aria-current="true"':'' ?>><?= $label ?></a><?php endforeach; ?></nav>

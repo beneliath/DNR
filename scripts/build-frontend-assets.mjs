@@ -30,7 +30,7 @@ if (kind === 'css') {
     await import('./build-map-assets.mjs');
     // Keep the generated map files free of trailing whitespace, including
     // whitespace inherited from bundled dependency string literals.
-    for (const name of ['map', 'map-pin']) {
+    for (const name of ['map', 'map-pin', 'audience-interaction-map']) {
         const path = `src/assets/js/${name}.min.js`;
         const content = await readFile(path, 'utf8');
         const normalized = content.replace(/[\t ]+$/gm, '');

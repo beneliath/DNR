@@ -206,6 +206,10 @@ html body .map-apply-reminder {
   background: #eef3f7;
 }
 
+html.dark-mode .engagement-map {
+  background: var(--surface-hover);
+}
+
 .engagement-map[data-map-provider="openstreetmap"] .maplibregl-canvas {
   filter: saturate(0.62) brightness(1.08) contrast(0.88);
   opacity: 0.82;
@@ -599,6 +603,8 @@ html body .map-list-filters button:focus-visible { outline: 2px solid var(--prim
 .map-location-rows li > div > a:first-child { font-weight: 650; }
 .map-location-rows span { color: var(--text-muted); overflow-wrap: anywhere; }
 .map-location-rows strong { font-size: .85rem; }
+.map-location-focus { color: var(--primary); font-size: .85rem; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.map-location-focus:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .map-pagination { display: flex; gap: 12px; margin-top: 16px; }
 .map-empty-state { padding: 36px 24px; text-align: center; background: var(--surface); }
 .map-empty-state h3 { margin: 0 0 12px; }

@@ -211,7 +211,7 @@ $map_payload = [
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css?rev=consistent-control-geometry-1',
-    2 => 'assets/css/map.min.css?rev=maplibre-theme-surfaces-3',
+    2 => 'assets/css/map.min.css?rev=maplibre-theme-surfaces-4',
   ),
 )); ?>
 <body class="map-body">
@@ -312,7 +312,8 @@ $map_payload = [
             <?php foreach ($map_events as $event): ?>
             <li data-location-id="<?php echo $event['id']; ?>" data-location-state="<?php echo $event['locationState']; ?>">
                 <div><a href="<?php echo htmlspecialchars($event['viewUrl'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['title'], ENT_QUOTES, 'UTF-8'); ?></a><span><?php echo htmlspecialchars($event['dateLabel'] . ' · ' . $event['lifecycleLabel'] . ' · ' . $event['statusLabel'], ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo htmlspecialchars($event['address'] ?: 'No event address recorded', ENT_QUOTES, 'UTF-8'); ?></span></div>
-                <div><strong data-location-label><?php echo ['found' => 'On Map', 'needs_address' => 'Needs Address', 'pending' => 'Awaiting Lookup', 'not_found' => 'No Matching Location', 'failed' => 'Lookup Unavailable'][$event['locationState']]; ?></strong>
+                <div><strong data-location-label<?php echo $event['locationState'] === 'found' ? ' hidden' : ''; ?>><?php echo ['found' => 'On Map', 'needs_address' => 'Needs Address', 'pending' => 'Awaiting Lookup', 'not_found' => 'No Matching Location', 'failed' => 'Lookup Unavailable'][$event['locationState']]; ?></strong>
+                <a class="map-location-focus" href="#engagement-map" data-map-location="<?php echo $event['id']; ?>"<?php echo $event['locationState'] === 'found' ? '' : ' hidden'; ?>>On Map</a>
                 <span class="map-location-help" data-location-help><?php echo htmlspecialchars(['found' => $event['locationNote'], 'needs_address' => 'Enter an event address to add a pin.', 'pending' => 'The location lookup is queued or in progress.', 'not_found' => 'The mapping service could not confidently match this address. Retry or set the pin yourself.', 'failed' => 'The location service could not complete this lookup. Try again.'][$event['locationState']], ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php if ($can_edit_map): ?><button type="button" class="button-secondary" data-retry-location="<?php echo $event['id']; ?>"<?php echo in_array($event['locationState'], ['not_found', 'failed'], true) ? '' : ' hidden'; ?>>Retry Lookup</button><?php endif; ?>
                 <?php if ($can_edit_map && $event['address'] !== ''): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map_pin.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $event['provider'] === 'manual' ? 'Adjust confirmed pin' : 'Set map pin'; ?></a><?php endif; ?>
