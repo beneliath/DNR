@@ -137,11 +137,14 @@ def main():
                               'audience_data_management_integration_test.php',
                               'audience_flow_queue_integration_test.php',
                               'audience_flow_export_integration_test.php',
-                              'restore_session_http_integration_test.php'):
+                              'restore_session_http_integration_test.php',
+                              'review_regressions_http_integration_test.php',
+                              'short_links_http_integration_test.php'):
                     print('Running ' + suite, flush=True)
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/' + suite],
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
+                        'web', 'php', '/opt/dnr/tests/' + suite],
                         cwd=ROOT, env=env, check=True)
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
