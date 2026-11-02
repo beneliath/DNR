@@ -130,6 +130,7 @@ run_integration_suite() {
         return
     fi
     if [ "$test_name" = 'ai_coach_http_integration_test.php' ] \
+        || [ "$test_name" = 'restore_session_http_integration_test.php' ] \
         || [ "$test_name" = 'audience_ai_terminal_http_integration_test.php' ] \
         || [ "$test_name" = 'audience_workspace_performance_http_integration_test.php' ] \
         || [ "$test_name" = 'audience_public_security_http_integration_test.php' ] \
