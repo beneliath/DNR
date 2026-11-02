@@ -36,6 +36,7 @@ function processAudienceLifecycle(mysqli $db):void
 }
 function processAudienceServiceMail(mysqli $db,int $limit=5,?callable $deliver=null):int
 {
+    if(accountOutboundMailHeld())return 0;
     if(function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())return 0;
     if(!audienceMailPolicyAvailable($db))return 0;
     require_once __DIR__.'/audience_ses_worker.php';

@@ -6,20 +6,27 @@ document.querySelectorAll('[data-mileage-calculation]').forEach(function (summar
   const total = summary.querySelector('[data-mileage-total]');
   const mills = Math.round(Number(summary.dataset.mileageRate) * 1000);
   function update() {
-    const pattern = /^\d{1,7}(?:\.\d{1,2})?$/;
-    const valid = pattern.test(start.value) && pattern.test(end.value);
-    const distance = Math.round(Number(end.value) * 100) - Math.round(Number(start.value) * 100);
+    const pattern = /^\d{1,7}$/;
+    const validStart = pattern.test(start.value), validEnd = pattern.test(end.value);
+    const valid = validStart && validEnd;
+    const distance = Number(end.value) - Number(start.value);
+    start.setCustomValidity(start.value !== '' && !validStart ? 'Enter the starting odometer reading as a whole number with no decimals.' : '');
     end.setCustomValidity(valid && distance <= 0 ? 'Ending odometer reading must be greater than the starting reading.' : '');
+    if (end.value !== '' && !validEnd) end.setCustomValidity('Enter the ending odometer reading as a whole number with no decimals.');
     if (end.value === '') {
       total.textContent = 'Incomplete · Add an Ending Odometer Reading to make this entry available for reimbursement.';
       return;
     }
-    if (!valid || distance <= 0) {
+    if (!valid) {
+      total.textContent = 'Enter whole-number odometer readings with no decimals.';
+      return;
+    }
+    if (distance <= 0) {
       total.textContent = 'Enter an ending odometer reading greater than the starting reading.';
       return;
     }
-    const cents = Math.floor((distance * mills + 500) / 1000);
-    total.textContent = (distance / 100).toFixed(2) + ' miles · Reimbursement: $' + (cents / 100).toFixed(2);
+    const cents = Math.floor((distance * mills + 5) / 10);
+    total.textContent = distance + ' miles · Reimbursement: $' + (cents / 100).toFixed(2);
   }
   start.addEventListener('input', update);
   end.addEventListener('input', update);

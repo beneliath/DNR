@@ -50,6 +50,7 @@ export const javascriptAssets = [
     {name: 'record-workspace'},
     {name: 'map-list'},
     {name: 'financial-draft'},
+    {name: 'reimbursements'},
     {name: 'short-link-stats', bundle: true},
     {name: 'bulk-delete'},
     {name: 'calendar-scroll'},

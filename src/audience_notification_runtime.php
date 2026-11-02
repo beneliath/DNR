@@ -38,7 +38,7 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
         foreach($events as$e){
             $state['event_cursor']=(int)$e['id'];$kind=audienceSubscriptionChange($e['event_type'],audienceJson($e['details_json']));
             if(!$kind||$e['deleted_at']!==null||strtotime($e['created_at'].' UTC')<$now-86400)continue;
-            $url=rtrim(accountPrimaryPublicUrl(),'/').'/audience.php?view=contact&id='.$e['contact_id'];
+            $url=rtrim(currentAccountPublicUrl(),'/').'/audience.php?view=contact&id='.$e['contact_id'];
             $queue($kind,'event:'.$e['id'],$audience['name']."\n".($kind==='signup'?'A connection subscribed.':'A connection unsubscribed.')."\nReview this change: ".$url,(int)$e['contact_id']);
         }
         if($state['digest_day']<$today){
@@ -47,7 +47,7 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
                 $counts=audienceNotificationDigest($store->db,1,$prefs,$due);
                 $text=$audience['name']."\nAudience changes for ".gmdate('Y-m-d',$due-86400).' (UTC): '.$counts['signup'].' subscriptions, '.$counts['unsubscribe']." unsubscribes.\n";
                 if(!array_sum($counts))$text.="No subscriptions or unsubscribes were recorded.\n";
-                $text.=rtrim(accountPrimaryPublicUrl(),'/').'/audience.php?view=analytics&section=audience';
+                $text.=rtrim(currentAccountPublicUrl(),'/').'/audience.php?view=analytics&section=audience';
                 // Keep the day due while SES is disabled or no configured staff
                 // recipient is eligible, so a later worker pass can try again.
                 if($queue('digest','digest:'.$today,$text))$state['digest_day']=$today;

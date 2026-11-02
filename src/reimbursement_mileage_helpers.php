@@ -20,11 +20,21 @@ function requireCompleteReimbursementExpense(array $expense): void
 /** Parse decimal input as integer units so mileage amounts round once, to cents. */
 function reimbursementMileageUnits(mixed $value, int $places, int $wholeDigits, string $label): int
 {
-    if (!is_string($value) || !preg_match('/\A[0-9]{1,' . $wholeDigits . '}(?:\.[0-9]{1,' . $places . '})?\z/D', trim($value))) {
-        throw new InvalidArgumentException("Enter a valid {$label} with no more than {$places} decimal places.");
+    $fractionPattern = $places === 0 ? '' : '(?:\.[0-9]{1,' . $places . '})?';
+    if (!is_string($value) || !preg_match('/\A[0-9]{1,' . $wholeDigits . '}' . $fractionPattern . '\z/D', trim($value))) {
+        throw new InvalidArgumentException($places === 0
+            ? "Enter a valid {$label} as a whole number with no decimals."
+            : "Enter a valid {$label} with no more than {$places} decimal places.");
     }
     [$whole, $fraction] = array_pad(explode('.', trim($value), 2), 2, '');
     return (int) $whole * (10 ** $places) + (int) str_pad($fraction, $places, '0');
+}
+
+/** Remove storage precision without rounding historical mileage evidence. */
+function reimbursementMileageDisplay(?string $value): string
+{
+    $value ??= '';
+    return str_contains($value, '.') ? rtrim(rtrim($value, '0'), '.') : $value;
 }
 
 function reimbursementMileageRate(mixed $value): string
@@ -46,17 +56,17 @@ function reimbursementMileageDetails(array $input, string $rate): array
         }
         $details[$field] = trim($value);
     }
-    $start = reimbursementMileageUnits($input['odometer_start'] ?? null, 2, 7, 'starting odometer reading');
+    $start = reimbursementMileageUnits($input['odometer_start'] ?? null, 0, 7, 'starting odometer reading');
     $endValue = $input['odometer_end'] ?? '';
-    $end = is_string($endValue) && trim($endValue) === '' ? null : reimbursementMileageUnits($endValue, 2, 7, 'ending odometer reading');
+    $end = is_string($endValue) && trim($endValue) === '' ? null : reimbursementMileageUnits($endValue, 0, 7, 'ending odometer reading');
     if ($end !== null && $end <= $start) throw new InvalidArgumentException('Ending odometer reading must be greater than the starting reading.');
     $rate = reimbursementMileageRate($rate);
     $mills = reimbursementMileageUnits($rate, 3, 2, 'reimbursement per mile');
-    $amount = $end === null ? 0 : intdiv(($end - $start) * $mills + 500, 1000);
+    $amount = $end === null ? 0 : intdiv(($end - $start) * $mills + 5, 10);
     if ($end !== null && ($amount < 1 || $amount > 2147483647)) throw new InvalidArgumentException('Calculated mileage reimbursement is outside the supported amount range.');
     return $details + [
-        'odometer_start' => sprintf('%d.%02d', intdiv($start, 100), $start % 100),
-        'odometer_end' => $end === null ? null : sprintf('%d.%02d', intdiv($end, 100), $end % 100),
+        'odometer_start' => (string) $start,
+        'odometer_end' => $end === null ? null : (string) $end,
         'mileage_rate' => $rate,
         'amount_cents' => $amount,
         'merchant' => mb_substr('Mileage: ' . $details['origin_location'] . ' to ' . $details['destination_location'], 0, 160),
@@ -71,8 +81,8 @@ function reimbursementExpenseDescription(array $expense): string
     if (reimbursementMileageIncomplete($expense)) return $description . "\nIncomplete mileage: Ending Odometer Reading required.";
     $miles = (float) $expense['odometer_end'] - (float) $expense['odometer_start'];
     return $description . "\nMileage: " . $expense['origin_location'] . ' to ' . $expense['destination_location']
-        . '. Odometer: ' . $expense['odometer_start'] . ' to ' . $expense['odometer_end']
-        . '. ' . number_format($miles, 2, '.', '') . ' miles at $' . $expense['mileage_rate'] . ' per mile.';
+        . '. Odometer: ' . reimbursementMileageDisplay($expense['odometer_start']) . ' to ' . reimbursementMileageDisplay($expense['odometer_end'])
+        . '. ' . reimbursementMileageDisplay(number_format($miles, 2, '.', '')) . ' miles at $' . $expense['mileage_rate'] . ' per mile.';
 }
 
 function reimbursementMileageReminder(): string

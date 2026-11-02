@@ -2,6 +2,9 @@ parameters:
     level: 5
     paths:
         - src/shared
+        - src/restore_security_helpers.php
+        - src/audience_xlsx.php
+        - src/audience_import.php
         - src/moed
         - src/workflow_task_helpers.php
         - src/test_account_demo_helpers.php

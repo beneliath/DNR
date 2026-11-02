@@ -55,7 +55,7 @@ trait AudienceFlows
                 if($n['field']==='language'&&$n['value']!==''&&!preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/D',$n['value']))$errors[]='Choose a valid updated language code.';
             }
             if($n['type']==='email'){
-                try{$campaign=$this->campaign($n['campaign_id']);if(!in_array($campaign['campaign_type'],['regular','plain-text'],true)||!empty($campaign['draft']['experiment']))throw new InvalidArgumentException('Choose a regular or plain-text email.');$draft=$campaign['draft'];if(empty($draft['subject'])||empty($draft['from_name'])||empty($draft['from_email'])||empty($draft[$campaign['campaign_type']==='regular'?'design':'text']))throw new InvalidArgumentException('Complete the sender, subject and email content.');if($activate){$audience=$this->one('SELECT * FROM marketing_audiences WHERE id=?',[$this->audienceId]);$ready=$this->sendingReadiness($draft['from_email'],audienceJson($audience['settings_json']));if(!$ready['ready'])throw new InvalidArgumentException(implode(' ',$ready['reasons']));audienceDispatchBase(accountPrimaryPublicUrl());}}
+                try{$campaign=$this->campaign($n['campaign_id']);if(!in_array($campaign['campaign_type'],['regular','plain-text'],true)||!empty($campaign['draft']['experiment']))throw new InvalidArgumentException('Choose a regular or plain-text email.');$draft=$campaign['draft'];if(empty($draft['subject'])||empty($draft['from_name'])||empty($draft['from_email'])||empty($draft[$campaign['campaign_type']==='regular'?'design':'text']))throw new InvalidArgumentException('Complete the sender, subject and email content.');if($activate){$audience=$this->one('SELECT * FROM marketing_audiences WHERE id=?',[$this->audienceId]);$ready=$this->sendingReadiness($draft['from_email'],audienceJson($audience['settings_json']));if(!$ready['ready'])throw new InvalidArgumentException(implode(' ',$ready['reasons']));audienceDispatchBase(currentAccountPublicUrl());}}
                 catch(InvalidArgumentException $e){$errors[]=$n['label'].': '.$e->getMessage();}
             }
         }
@@ -85,7 +85,7 @@ trait AudienceFlows
                 foreach($d['nodes']as$n)if($n['type']==='email'){
                     $campaign=$this->campaign($n['campaign_id']);$draft=$campaign['draft'];$draft['send_time']=['mode'=>'now'];$draft['resend']=['enabled'=>false];unset($draft['experiment']);
                     $links=[];foreach($this->all("SELECT public_key,kind FROM marketing_collection_resources WHERE audience_id=? AND state='published' AND deleted_at IS NULL AND kind IN ('survey','preferences')",[$this->audienceId])as$r)$links[$r['public_key']]=$r['kind'];
-                    $d['email_snapshots'][$n['id']]=['reply_to'=>$this->inboxCampaignReplyTo($draft),'draft'=>$draft,'type'=>$campaign['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'ses'=>audienceSesBinding($this->sesSettings()),'base'=>audienceDispatchBase(accountPrimaryPublicUrl()),'collection_links'=>$links,'campaign_id'=>$n['campaign_id'],'campaign_version'=>(int)$campaign['version']];
+                    $d['email_snapshots'][$n['id']]=['reply_to'=>$this->inboxCampaignReplyTo($draft),'draft'=>$draft,'type'=>$campaign['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'ses'=>audienceSesBinding($this->sesSettings()),'base'=>audienceDispatchBase(currentAccountPublicUrl()),'collection_links'=>$links,'campaign_id'=>$n['campaign_id'],'campaign_version'=>(int)$campaign['version']];
                 }
                 $encoded=json_encode($d,JSON_THROW_ON_ERROR);$old=$row['published_revision']?$this->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=? AND flow_id=? AND id=?',[$this->audienceId,$id,$row['published_revision']]):null;
                 if(!$old||audienceJson($old['document_json'])!=$d){$this->write('INSERT INTO marketing_flow_revisions(audience_id,flow_id,document_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,$id,$encoded,$this->actorLabel]);$revision=(int)$this->db->insert_id;}else $revision=(int)$row['published_revision'];
@@ -125,6 +125,29 @@ trait AudienceFlows
         [$where,$params]=$this->where(audienceListFilters(['archived'=>'all']),$rules);
         return (bool)$this->one('SELECT c.id FROM marketing_contacts c WHERE '.$where.' AND c.id=?',[...$params,$person]);
     }
+    /** One consistent export, independent of screen pagination and concurrent enrolment. */
+    public function flowExportRuns(int $id,array $input=[]): Generator
+    {
+        $node=audienceText($input,'node',40);$state=audienceText($input,'state',20);
+        $where='r.audience_id=? AND r.flow_id=?';$params=[$this->audienceId,$id];
+        if(in_array($state,['active','completed','exited','failed'],true)){$where.=' AND r.state=?';$params[]=$state;}
+        if($node!==''){$where.=' AND EXISTS(SELECT 1 FROM marketing_flow_steps s WHERE s.run_id=r.id AND s.audience_id=r.audience_id AND s.node_key=?)';$params[]=$node;}
+        $this->db->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        $this->db->begin_transaction(MYSQLI_TRANS_START_READ_ONLY | MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT);
+        try{
+            $this->flow($id,false,true);
+            $last=(string)($this->one('SELECT MAX(r.id) last_id FROM marketing_flow_runs r WHERE '.$where,$params)['last_id']??'0');
+            $first=true;
+            do{
+                $comparison=$first?'<=':'<';$first=false;
+                $batch=$this->all('SELECT r.id,r.state,r.node_key,r.started_at,r.ended_at,c.email,c.deleted_at
+                    FROM marketing_flow_runs r JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id
+                    WHERE '.$where.' AND r.id'.$comparison.'? ORDER BY r.id DESC LIMIT 200',[...$params,$last]);
+                foreach($batch as$row){$last=(string)$row['id'];yield $row;}
+            }while(count($batch)===200);
+        }finally{$this->db->rollback();}
+    }
+
     public function flowReport(int $id,array $input=[]): array
     {
         $size=audiencePageSize($input);$this->flow($id,false,true);$node=audienceText($input,'node',40);$state=audienceText($input,'state',20);$page=max(1,(int)($input['page']??1));

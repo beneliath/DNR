@@ -28,11 +28,12 @@ function audienceDispatchWorkerReady(mysqli $db,int $audience,array $snapshot,?c
 /** Bounded, resumable pass. An ambiguous SMTP acceptance is never automatically replayed. */
 function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $deliver=null,?callable $resolver=null):int
 {
+    if(accountOutboundMailHeld())return 0;
     if(function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())return 0;
     $exists=$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_campaign_deliveries'")->fetch_assoc();if((int)$exists['n']!==1)return 0;
     $deliver??=static fn($m)=>audienceDeliverCampaignMessage($m,$db);$processed=0;$runtime=audienceMailPolicyAvailable($db);if(!$runtime)return 0;processAudienceLifecycle($db);
     $db->query("UPDATE marketing_campaign_recipients SET state=IF(delivery_started_at IS NULL,IF(attempts<3,'queued','failed'),'uncertain'),error_message='The worker stopped before recording a final receipt.',claim_token=NULL WHERE audience_id=1 AND state='processing' AND started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 10 MINUTE)");
-    $flowClause=audienceFlowsInstalled($db)?" AND (flow_run_id=0 OR EXISTS(SELECT 1 FROM marketing_flow_runs fr JOIN marketing_flows f ON f.id=fr.flow_id AND f.audience_id=fr.audience_id WHERE fr.id=flow_run_id AND fr.audience_id=1 AND fr.state='active' AND f.state='running' AND f.deleted_at IS NULL AND NOT JSON_CONTAINS(f.paused_nodes_json,JSON_QUOTE(flow_node))))":'';
+    $flowClause=audienceFlowsInstalled($db)?" AND (flow_run_id=0 OR EXISTS(SELECT 1 FROM marketing_flow_runs fr JOIN marketing_flows f ON f.id=fr.flow_id AND f.audience_id=fr.audience_id WHERE fr.id=flow_run_id AND fr.audience_id=1 AND fr.state='active' AND fr.node_key=flow_node AND f.state='running' AND f.deleted_at IS NULL AND NOT JSON_CONTAINS(f.paused_nodes_json,JSON_QUOTE(flow_node))))":'';
     for($i=0;$i<max(1,min(100,$limit));$i++){
         $job=$db->query("SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND state IN ('scheduled','sending') AND due_at<=UTC_TIMESTAMP() AND (EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state='queued' AND r.phase<>'hold' AND r.next_attempt_at<=UTC_TIMESTAMP()) OR NOT EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state IN ('queued','processing'))) ".$flowClause." ORDER BY due_at,id LIMIT 1")->fetch_assoc();if(!$job)break;
         $flowLock=null;$lock=audienceDispatchLock($db,1,(int)$job['campaign_id']);

@@ -38,7 +38,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 catch (JsonException) { throw new InvalidArgumentException('The preview document is invalid.'); }
                 if (!is_array($doc)) throw new InvalidArgumentException('The preview document is invalid.');
                 $r['document']=audienceCollectionDocument($doc,$r['kind'],$store->fields(),$store->groups(),$store->tags());
-                $r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$r['public_key'];
+                $r['archive_url']=currentAccountPublicUrl().'/audience_campaign_public.php?form='.$r['public_key'];
                 $screen=\Dnr\Http\RequestInput::enum($_POST,'screen',['signup','thanks','confirm','unsubscribe'],'signup');$previewSuccess='';
                 if($r['kind']==='hosted'&&in_array($screen,['confirm','unsubscribe'],true)){
                     $system=$r['document']['system'];$r['kind']=$screen;
@@ -182,7 +182,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
             $y=65;foreach($answers as$answer=>$n){echo '<text x="24" y="'.$y.'" font-family="Arial" font-size="14">'.$h(mb_substr((string)$answer,0,35)).'</text><rect x="310" y="'.($y-16).'" width="'.round(500*$n/$max).'" height="24" fill="#007c89"/><text x="830" y="'.$y.'" font-family="Arial" font-size="14">'.(int)$n.'</text>';$y+=48;}echo '</svg>';return;
         }
     }
-    try { $publicBase=accountPrimaryPublicUrl(); } catch (InvalidArgumentException) { $publicBase=''; }
+    try { $publicBase=currentAccountPublicUrl(); } catch (InvalidArgumentException) { $publicBase=''; }
     $publicUrl=$resource?$publicBase.'/audience_collect_public.php?key='.$resource['public_key']:'';
     $publishedResource=$resource&&$resource['state']==='published'?$store->collectionPublished($resource['public_key']):null;
     $collectionPublishPending=$resource&&(!$publishedResource||$savedCollectionDraft!=$publishedResource['document']);

@@ -65,6 +65,21 @@ do {
     $pass_succeeded = true;
     $processed = 0;
     $smtpSession = null;
+    try {
+        if (accountOutboundMailHeld()) {
+            // Leave leases, schedules and payloads alone until the operator reconciles recovery.
+            recordWorkerHeartbeat('mail-dispatch', true);
+            if (!$loop) break;
+            sleep($idleSeconds);
+            continue;
+        }
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to verify account recovery mail controls');
+        recordWorkerHeartbeat('mail-dispatch', false);
+        if (!$loop) exit(1);
+        sleep($idleSeconds);
+        continue;
+    }
     if (!$limitedQueues && (!$loop || time() - $lastScheduleCheck >= $scheduleInterval)) {
         try {
             $processed += queueDueDailyTaskDigests($conn);

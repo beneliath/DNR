@@ -450,6 +450,10 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     if (($user['account_status'] ?? 'active') !== 'active') {
         throw new RuntimeException('Inactive accounts cannot complete authentication.');
     }
+    $restoreGeneration = accountRestoreGeneration();
+    if (!hash_equals($restoreGeneration, (string) ($_SESSION['_restore_generation'] ?? ''))) {
+        throw new RuntimeException('Account recovery changed during sign-in. Please sign in again.');
+    }
     $demo_password_only = demoPasswordOnlyAuthenticationAllowed($user);
     $pending = $_SESSION['_pending_auth'] ?? [];
     if ($demo_password_only && ((int) ($pending['user_id'] ?? 0) !== (int) $user['id']
@@ -506,6 +510,7 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     $_SESSION['authenticated_role'] = (string) $user['role'];
     $_SESSION['auth_version'] = (int) $user['auth_version'];
     $_SESSION['auth_complete'] = true;
+    $_SESSION['_restore_generation'] = $restoreGeneration;
     if (accountsEnabled()) {
         $_SESSION['_account_key'] = currentAccountKey();
         $_SESSION['is_superadmin'] = accountIsPrimary() && !empty($user['is_superadmin']);

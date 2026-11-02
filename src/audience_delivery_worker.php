@@ -25,6 +25,7 @@ function audienceDeliverSetupMessage(string $kind,?array $message,?mysqli $budge
 /** One bounded pass, also called by the existing mail worker. No automatic replay after DATA. */
 function processAudienceDeliverySetup(mysqli $db,int $limit=5,?callable $deliver=null):int
 {
+    if(accountOutboundMailHeld())return 0;
     if(function_exists('audienceSesInstalled')&&audienceSesInstalled($db))return 0;
     $exists=$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_delivery_setup_jobs'")->fetch_assoc();if((int)$exists['n']!==1)return 0;
     $deliver??=static fn($kind,$message)=>audienceDeliverSetupMessage($kind,$message,$db);$count=0;$readyClause=audienceMailPolicyAvailable($db)?' AND next_attempt_at<=UTC_TIMESTAMP()':'';

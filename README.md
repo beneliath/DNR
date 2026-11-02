@@ -1334,16 +1334,17 @@ variables.
    chmod 600 backups/pre-restore-safety.sql
    ```
 
-5. Stop every service that can mutate application data. Leave `db` running. If inbound or
-   outbound mail overlays are enabled, stop `mail-ingest` and `mail-dispatch` through the same
-   overlay set as well:
+5. Stop every application pool and worker. Leave `db` running. If inbound/outbound mail or
+   cache overlays are enabled, stop `mail-ingest`, `mail-dispatch` and `notes-cache` through
+   that same overlay set as well:
 
    ```sh
-   docker compose stop ingress web backup geocoder
+   docker compose stop ingress web downloads backup geocoder file-monitor data-maintenance ai-coach-worker receipt-previews document-scans
    docker compose ps
    ```
 
-   Verify that `ingress`, `web`, `backup`, and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
+   Verify that every previously enabled application pool/worker shows `Exited` and `db` shows
+   `Up (healthy)` before continuing. Keep the account isolated throughout recovery.
 
 6. Run the one-shot restore with the literal confirmation word `RESTORE`:
 
@@ -1358,9 +1359,15 @@ variables.
    complete archive, checks its size, format, schema fingerprint, declared row counts, content hash,
    and trailing data, verifies every file size/checksum, installs the files, replaces all tables in
    one transaction, verifies every restored table count,
-   records `database_restored`, and invalidates sessions. A wrong password, damaged archive,
+   records `database_restored`, rotates an account-local session generation outside the backup,
+   revokes private-calendar links and outstanding sign-in handoffs, quarantines pending outbound
+   mail, and pauses campaigns/flows. Outbound email stays held until operator reconciliation.
+   The private `.restore-security.json` in the account's uploaded-files volume is recovery control
+   state: never delete it or replace it from an older filesystem snapshot. Registered-file backups
+   deliberately exclude it. A wrong password, damaged archive,
    schema mismatch, missing/corrupted file, storage write failure, insertion error, or count mismatch
-   leaves the original database unchanged (or rolls its transaction back).
+   leaves the original database unchanged (or rolls its transaction back). Once a validated restore
+   starts, its session revocation and mail hold remain active even if the database transaction fails.
 
 7. If step 6 failed, do not run the remaining success steps. Because the restore transaction was
    rolled back, restart the stopped services. If you will not immediately correct the problem and
@@ -1368,7 +1375,7 @@ variables.
    error:
 
    ```sh
-   docker compose up -d web backup geocoder ingress
+   docker compose up -d web downloads backup geocoder file-monitor data-maintenance ingress
    install -m 600 /dev/null secrets/backup_password
    rm -f backups/restore.dnrbackup
    ```
@@ -1379,7 +1386,7 @@ variables.
    ```sh
    docker compose run --rm migrator
    docker compose run --rm --no-deps file-migrator
-   docker compose up -d web backup geocoder ingress
+   docker compose up -d web downloads backup geocoder file-monitor data-maintenance ingress
    ```
 
 9. Wait for the health check, inspect service status, and run the schema health check directly:
@@ -1396,7 +1403,31 @@ variables.
     known engagement, organization, contact, and user; open **Users → Audit Log** and verify the
     `database_restored` event. Open an uploaded PDF and full-size/thumbnail portraits to verify
     persistent file recovery. Also verify 2FA decryption by completing a fresh authenticator check.
-    All pre-restore browser sessions should require sign-in again.
+    All pre-restore browser sessions must require sign-in again. Calendar subscriptions must be
+    replaced after recovery; restored URLs remain revoked. Restart only the optional workers that
+    were enabled before recovery, using their original overlays. Mail workers may run while held,
+    but they will not claim or deliver pending work.
+
+    Before allowing any new outbound email, reconcile the post-snapshot provider receipts,
+    unsubscribes, complaints and deleted-address suppression state using the safety dump and
+    independent provider/recovery evidence. The restore cannot reconstruct missing external
+    events from the old snapshot. Inspect the current hold and its generation:
+
+    ```sh
+    docker compose --profile maintenance run --rm --no-deps --entrypoint php maintenance /opt/dnr/bin/restore_security.php status
+    ```
+
+    Only after verification and reconciliation, release that exact generation (replace `GENERATION`
+    with the value printed by `status`):
+
+    ```sh
+    docker compose --profile maintenance run --rm --no-deps --entrypoint php maintenance /opt/dnr/bin/restore_security.php resume GENERATION RECONCILED
+    ```
+
+    Release is serialized with database restore and records an audit event. It also quarantines
+    pending mail created while held and pauses campaigns/flows again; it never implicitly resends
+    a restored selection. Create fresh invitations/verification messages and reviewed deliveries
+    afterward. Recreate private-calendar subscriptions after this step.
 
 11. Empty the temporary restore password and remove the extra working copy only after verification. Keep
     the original encrypted backup and password in their approved long-term locations. Retain the SQL
@@ -1408,21 +1439,30 @@ variables.
     rm -f backups/restore.dnrbackup
     ```
 
-If step 6 succeeded but later verification reveals incorrect data, stop `ingress`, `web`, and
-`geocoder` (plus enabled mail workers), import the safety dump, rerun migrations and privilege
+If step 6 succeeded but later verification reveals incorrect data, stop every pool and worker
+as in step 5, prepare a fresh recovery generation, import the safety dump, rerun migrations and privilege
 configuration, and restart the services:
 
 ```sh
-docker compose stop ingress web geocoder
+docker compose stop ingress web downloads backup geocoder file-monitor data-maintenance ai-coach-worker receipt-previews document-scans
+docker compose --profile maintenance run --rm --no-deps --entrypoint php maintenance /opt/dnr/bin/restore_security.php prepare
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr' < backups/pre-restore-safety.sql
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr -e "UPDATE users SET auth_version = auth_version + 1"'
 docker compose run --rm migrator
-docker compose up -d web backup geocoder ingress
+docker compose up -d web downloads backup geocoder file-monitor data-maintenance ingress
 docker compose exec web php /opt/dnr/bin/check_schema.php
 ```
 
-The explicit `auth_version` update after the safety-dump import prevents browser sessions that
-existed before either restore from becoming valid again. Repeat steps 9 through 11 after the
+For any direct SQL/native recovery instead of the authenticated `.dnrbackup` restore command,
+run `restore_security.php prepare` through the maintenance service **before** importing SQL.
+Keep its control file and account storage volume in place, then follow the same verified recovery
+and `resume GENERATION RECONCILED` procedure above. The generation revokes sessions independently
+of authentication-version values restored by SQL; the release revokes restored calendar/handoff
+credentials and quarantines pending mail. Replacing a complete volume requires preparing the new
+volume before serving the restored database.
+
+The external recovery generation prevents sessions from either restore from becoming valid again;
+the additional `auth_version` increment also invalidates restored user email tokens. Repeat steps 9 through 11 after the
 rollback, using the safety-dump data for the representative-record checks. Once the approved
 retention period ends, remove the plaintext rollback dump with
 `rm -f backups/pre-restore-safety.sql`; filesystem-level secure erasure must follow the host's

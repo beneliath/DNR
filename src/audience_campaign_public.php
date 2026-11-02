@@ -30,7 +30,7 @@ if($archive){
 <?php
 ob_start();renderPageHead($archive?'Email Archive':$publication['title'],['styles'=>['assets/css/pages/audience.min.css']]);$head=(string)ob_get_clean();
 $meta='<meta property="og:type" content="article"><meta property="og:title" content="'.$h($publication['title']).'"><meta property="og:description" content="'.$h($publication['description']).'"><meta name="description" content="'.$h($publication['description']).'">';
-try{$publicBase=accountPrimaryPublicUrl();}catch(InvalidArgumentException){$publicBase='';}
+try{$publicBase=currentAccountPublicUrl();}catch(InvalidArgumentException){$publicBase='';}
 if($publicBase!==''&&!$archive){$meta.='<meta property="og:url" content="'.$h($publicBase.'/audience_campaign_public.php?key='.$key).'">';if($publication['image_data']!=='')$meta.='<meta property="og:image" content="'.$h($publicBase.'/audience_campaign_public.php?key='.$key.'&image=1').'">';}
 echo str_replace('</head>',$meta.'</head>',$head);
 ?>

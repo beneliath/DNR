@@ -10,7 +10,7 @@ if (!$store->collectionAvailable()) { http_response_code(404); exit('This form i
 $key=is_string($_GET['key']??null)?$_GET['key']:''; $r=$store->collectionPublished($key);
 if (!$r) { http_response_code(404); exit('This form is unavailable or paused.'); }
 if (!in_array($_SERVER['REQUEST_METHOD'],['GET','POST'],true)) { http_response_code(405); header('Allow: GET, POST'); exit; }
-$d=$r['document']; $publicUrl=accountPrimaryPublicUrl().'/audience_collect_public.php?key='.$key;
+$d=$r['document']; $publicUrl=currentAccountPublicUrl().'/audience_collect_public.php?key='.$key;
 if (isset($_GET['embed'])) {
     header('Content-Type: application/javascript; charset=UTF-8');
     if($r['kind']==='popup'&&!empty($d['popup']['countries'])&&!in_array(audienceCollectionCountry($_SERVER),$d['popup']['countries'],true)){echo '/* This popup is not eligible for this location. */';exit;}
@@ -24,12 +24,12 @@ if (in_array($r['kind'],['embedded','popup'],true)) { $ancestors="'self' ".implo
 $resize=$r['kind']==='embedded'&&empty($d['embedded']['disable_javascript']);
 $scriptPolicy="; script-src 'nonce-{$nonce}'";
 header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'self'; frame-ancestors {$ancestors}; base-uri 'none'; object-src 'none'{$scriptPolicy}");
-$r['archive_url']=accountPrimaryPublicUrl().'/audience_campaign_public.php?form='.$key;
-if($resize)$r['resize_script']=accountPrimaryPublicUrl().'/assets/js/audience-collection-resize.js';
+$r['archive_url']=currentAccountPublicUrl().'/audience_campaign_public.php?form='.$key;
+if($resize)$r['resize_script']=currentAccountPublicUrl().'/assets/js/audience-collection-resize.js';
 $visitorCookie='dnr_collection_'.substr($key,0,12);
 $visitor=is_string($_GET['visitor']??null)?$_GET['visitor']:(is_string($_COOKIE[$visitorCookie]??null)?$_COOKIE[$visitorCookie]:'');
 if (!preg_match('/^[a-f0-9]{64}$/D',$visitor)) $visitor=bin2hex(random_bytes(32));
-setcookie($visitorCookie,$visitor,['expires'=>time()+86400*365,'path'=>rtrim(parse_url(accountPrimaryPublicUrl(),PHP_URL_PATH)?:'/','/').'/','secure'=>requestUsesHttps(),'httponly'=>true,'samesite'=>'Lax']);
+setcookie($visitorCookie,$visitor,['expires'=>time()+86400*365,'path'=>rtrim(parse_url(currentAccountPublicUrl(),PHP_URL_PATH)?:'/','/').'/','secure'=>requestUsesHttps(),'httponly'=>true,'samesite'=>'Lax']);
 $variant='A'; $r['variant']='A';
 $recipient=is_string($_GET['recipient']??null)?$_GET['recipient']:'';if(!preg_match('/^[a-f0-9]{64}$/D',$recipient))$recipient=''; $person=$r['kind']==='preferences'?$store->collectionRecipient($recipient):null;
 if ($r['kind']==='preferences') {
@@ -45,7 +45,7 @@ if(isset($_GET['preview_poll'])){
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     $values=$_POST;
     try {
-        $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',accountPrimaryPublicUrl(),audienceInteractionLocation($_SERVER));
+        $result=$store->submitCollection($r,$_POST,requestIpAddress()??'unknown',currentAccountPublicUrl(),audienceInteractionLocation($_SERVER));
         $success=$result['confirmed']?$d['confirmation']:$d['thanks'];
         if ($d['quiz']) foreach($d['quiz']as$q)if($q['label']===audienceText($_POST,'quiz',200))$success.="\n\n".$q['outcome'];
     } catch (InvalidArgumentException $e) { http_response_code(422); $error=$e; }

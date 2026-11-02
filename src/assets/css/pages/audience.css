@@ -648,6 +648,15 @@ html.dark-mode .danger-text{color:#ffaaa0}
 .audience-brand>.audience-logo-wrap{display:flex;align-items:center;color:#fff;background:transparent;padding:4px;text-decoration:none}
 .audience-brand .audience-logo{width:43px;height:43px;display:block}
 html.dark-mode .audience-brand>.audience-logo-wrap{background:transparent}
+html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo{
+  box-sizing:content-box;
+  padding:4px;
+  margin:-4px;
+  border-radius:50%;
+  background:#171d27;
+}
+html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo>.audience-logo-outline{display:none}
+html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo>g:not(.audience-logo-outline)>path{fill:#f3f6fb}
 .audience-create{border-radius:7px;border-color:var(--audience-control-border);padding:5px 12px;min-height:36px;gap:12px;font-size:calc(17px * var(--audience-font-scale, 1));font-weight:400}
 .audience-create svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .audience-create:is(:hover,:focus){text-decoration:none;background:var(--audience-hover);color:var(--audience-text);border-color:var(--audience-control-border)}
@@ -778,7 +787,7 @@ button.marketing-info>span{display:inline-flex;align-items:center;justify-conten
 .audience-sidebar{overflow:visible;padding-bottom:12px}
 .audience-sidebar>nav{overflow-y:auto;min-height:0;flex:1}
 .audience-sidebar-footer{margin-top:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap;flex-shrink:0}
-.audience-sidebar-footer .audience-return{margin:0;padding:12px 4px;display:flex;gap:5px;align-items:center;flex:1;font-size:calc(12px * var(--audience-font-scale, 1))}
+.audience-sidebar-footer .audience-return{margin:0;padding:12px 4px;display:flex;gap:5px;align-items:center;flex:1;font-size:calc(16px * var(--audience-font-scale, 1))}
 .audience-sidebar-toggle{margin-left:auto;padding:4px!important;width:28px;min-height:28px!important;border:0!important;background:transparent!important;color:var(--audience-text);border-radius:3px!important;display:flex;align-items:center;justify-content:center}
 .audience-sidebar-toggle svg{width:20px;height:20px}
 .audience-sidebar-toggle:is(:hover,:focus-visible){background:var(--audience-action-hover-bg)!important;color:var(--audience-action-hover-color)}

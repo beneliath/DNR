@@ -20,7 +20,7 @@ try {
             $platformId, $identity['first_name'], $identity['last_name']]);
     $proxy = $conn->execute_query('SELECT * FROM users WHERE platform_identity_id = ?', [$platformId])->fetch_assoc();
     if (!$proxy || $proxy['account_status'] !== 'active') throw new RuntimeException('Account access unavailable.');
-    $_SESSION = [];
+    $_SESSION = ['_restore_generation' => (string) ($_SESSION['_restore_generation'] ?? '')];
     completeAuthentication($conn, $proxy, true);
     $_SESSION['_platform_identity'] = ['id' => $platformId, 'auth_version' => (int) $identity['auth_version'],
         'grant' => $identity['grant']];

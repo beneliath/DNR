@@ -268,10 +268,10 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<nav class="utility-navigation"[^>]*>\s*<a[^>]*>.*<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        '/<nav class="utility-navigation"[^>]*>\s*<a href="audience\.php\?view=home"[^>]*>.*?<span>MessageMonkey<\/span>\s*<\/a>\s*<a href="mattermost\.php"[^>]*>.*?<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
         $header_markup
     ) === 1,
-    'Utility navigation should retain integrations, account security, help, and appearance.'
+    'Utility navigation should open MessageMonkey Home immediately above Mattermost, followed by account security, help, and appearance.'
 );
 
 foreach (['recover_password.php'] as $authentication_page) {

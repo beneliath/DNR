@@ -37,6 +37,7 @@ function audienceSesDeferred(string $reason,int $seconds=60):never{throw new Mai
 /** Serialize quota reservations and API sends for all marketing lanes in this account. */
 function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callable $factory=null):string
 {
+    requireAccountOutboundMailAllowed();
     $lock='mm-ses-1';if((int)$db->execute_query('SELECT GET_LOCK(?,0) acquired',[$lock])->fetch_assoc()['acquired']!==1)audienceSesDeferred('SES delivery is busy.',2);
     try{
         $s=audienceSesWorkerReady($db,1,$m['from_email'],$m['ses_binding']??null,$factory);$factory??='audienceSesClient';try{$credentials=audienceSesCredentials($db,1);}catch(Throwable){$db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='The saved SES credentials are unavailable. Save the account credentials again.' WHERE audience_id=1");audienceSesDeferred('SES credentials need attention.',300);}$client=$factory('ses',$s,$credentials);
@@ -66,6 +67,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
         $current=$db->query('SELECT enabled,generation FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();if(!$current['enabled']||$current['generation']!==$s['generation'])audienceSesDeferred('The SES connection changed. Review delivery setup.',300);
         $db->execute_query('INSERT INTO marketing_ses_usage(audience_id,aws_account_id,region,lane) VALUES (1,?,?,?)',[$s['aws_account_id'],$s['region'],$lane]);
         $db->query('UPDATE marketing_ses_settings SET last_permit_at=UTC_TIMESTAMP(6) WHERE audience_id=1');
+        requireAccountOutboundMailAllowed();
         try{$r=$client->sendEmail([
             'FromEmailAddress'=>$m['from_email'],'Destination'=>['ToAddresses'=>[$m['email']]],'ConfigurationSetName'=>$s['configuration_set'],'Content'=>['Raw'=>['Data'=>$raw]],
             'EmailTags'=>[['Name'=>'moed-receipt','Value'=>$correlation],['Name'=>'moed-account','Value'=>hash('sha256',currentAccountKey())]],

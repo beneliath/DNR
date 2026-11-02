@@ -302,6 +302,9 @@ if (!empty($_SESSION['user_id'])) {
             <?php endif; ?>
 
             <nav class="utility-navigation" aria-label="Account and Application">
+                <a href="audience.php?view=home" class="nav-link">
+                    <?php readfile(__DIR__ . '/../assets/icons/message-monkey.svg'); ?><span>MessageMonkey</span>
+                </a>
                 <?php if (accountMattermostAccessAllowed()): ?>
                 <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-4.5A2 2 0 0 1 3 15V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 14h5"/></svg><span>Mattermost</span>
