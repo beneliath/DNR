@@ -125,11 +125,16 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
         case 'email':
             $optout=$store->one('SELECT email_hash FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$store->audienceId,audienceDispatchEmailHash($p['email'])])
                 || audienceDeletedEmailSuppressed($store->db,$store->audienceId,(int)$p['id'],audienceDispatchEmailHash($p['email']));
-            if($p['email_status']!=='subscribed'||$optout){$state='skipped';$result=['reason'=>'No longer subscribed'];break;}
+            $eligible=$p['email_status']==='subscribed'&&!$optout;
+            if(!$step&&!$eligible){$state='skipped';$result=['reason'=>'No longer subscribed'];break;}
             if(!$step){$due=audienceFlowWindow($d['settings'],$person['timezone'],$now);if($due>$now){$store->write('UPDATE marketing_flow_runs SET due_at=? WHERE id=?',[gmdate('Y-m-d H:i:s',$due),$run['id']]);return;}$result=['delivery_id'=>audienceFlowQueueEmail($store,$run,$node,$d,$person,$now),'event_cursor'=>$store->flowCursor()];$waiting=true;}
             else{
-                $receipt=$store->one('SELECT state,error_message FROM marketing_campaign_recipients WHERE audience_id=? AND delivery_id=?',[$store->audienceId,$result['delivery_id']]);
+                $receipt=$store->one('SELECT state,error_message FROM marketing_campaign_recipients WHERE audience_id=? AND delivery_id=? FOR UPDATE',[$store->audienceId,$result['delivery_id']]);
                 if(!$receipt)throw new RuntimeException('The email receipt is unavailable.');
+                if(!$eligible&&$receipt['state']==='queued'){
+                    $store->write("UPDATE marketing_campaign_recipients SET state='suppressed',error_message='No longer an eligible subscribed connection.' WHERE audience_id=? AND delivery_id=? AND state='queued'",[$store->audienceId,$result['delivery_id']]);
+                    $receipt['state']='suppressed';
+                }
                 if(in_array($receipt['state'],['queued','processing'],true))$waiting=true;
                 elseif($receipt['state']==='accepted'){$result['receipt']='accepted';$store->write("UPDATE marketing_campaign_deliveries SET state='completed',completed_at=UTC_TIMESTAMP(),version=version+1 WHERE audience_id=? AND id=? AND flow_run_id=?",[$store->audienceId,$result['delivery_id'],$run['id']]);}
                 elseif(in_array($receipt['state'],['suppressed','cancelled'],true)){$state='skipped';$result['receipt']=$receipt['state'];$store->write("UPDATE marketing_campaign_deliveries SET state='completed',completed_at=UTC_TIMESTAMP() WHERE audience_id=? AND id=?",[$store->audienceId,$result['delivery_id']]);}
@@ -144,41 +149,48 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
     $store->write('UPDATE marketing_flow_runs SET node_key=?,due_at=?,error_message=\'\' WHERE id=?',[$next,gmdate('Y-m-d H:i:s',$now),$run['id']]);if($next==='')audienceFlowFinish($store,$run,'completed','',$now);
 }
 
-/** One bounded pass; real sending remains exclusively in the SES dispatch worker. */
+/** Page through the starting flow set; each flow has a bounded execution pass. */
 function processAudienceFlows(mysqli $db,int $limit=25,?int $now=null): int
 {
+    if(accountOutboundMailHeld())return 0;
     if(!audienceFlowsInstalled($db)||function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())return 0;
     $now??=time();$store=new AudienceStore($db,1,0,'Automation flow');$count=0;
-    $flows=$store->all("SELECT id FROM marketing_flows WHERE audience_id=1 AND state='running' AND deleted_at IS NULL ORDER BY id LIMIT 100");
-    foreach($flows as$record)$store->flowLock((int)$record['id'],function()use($store,$record,$now,$limit,&$count):void{
-        $flow=$store->flow((int)$record['id']);if($flow['state']!=='running')return;
-        $row=$store->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=1 AND flow_id=? AND id=?',[$flow['id'],$flow['published_revision']]);if(!$row)return;$d=audienceJson($row['document_json']);
-        $store->transaction(function()use($store,$flow,$d,$now):void{
-            $cursor=audienceJson($flow['cursor_json']);
-            $triggers=[$d['trigger'],...($d['additional_triggers']??[])];
-            foreach($triggers as$index=>$trigger)if(in_array($trigger['type'],['date','birthday','anniversary'],true)){
-                $dateKey=$index?'date_'.$index:'date';$dateCursor=['date'=>$cursor[$dateKey]??0];
-                audienceFlowDateEntries($store,$flow,array_replace($d,['trigger'=>$trigger]),$dateCursor,$now);$cursor[$dateKey]=$dateCursor['date'];
+    $lastFlow=0;$lastStartingFlow=(int)$store->one("SELECT COALESCE(MAX(id),0) id FROM marketing_flows WHERE audience_id=1 AND state='running' AND deleted_at IS NULL")['id'];
+    while($lastFlow<$lastStartingFlow){
+        $flows=$store->all("SELECT id FROM marketing_flows WHERE audience_id=1 AND state='running' AND deleted_at IS NULL AND id>? AND id<=? ORDER BY id LIMIT 100",[$lastFlow,$lastStartingFlow]);
+        if(!$flows)break;
+        $lastFlow=(int)$flows[count($flows)-1]['id'];
+        foreach($flows as$record)$store->flowLock((int)$record['id'],function()use($store,$record,$now,$limit,&$count):void{
+            $flow=$store->flow((int)$record['id']);if($flow['state']!=='running')return;
+            $row=$store->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=1 AND flow_id=? AND id=?',[$flow['id'],$flow['published_revision']]);if(!$row)return;$d=audienceJson($row['document_json']);
+            $store->transaction(function()use($store,$flow,$d,$now):void{
+                $cursor=audienceJson($flow['cursor_json']);
+                $triggers=[$d['trigger'],...($d['additional_triggers']??[])];
+                foreach($triggers as$index=>$trigger)if(in_array($trigger['type'],['date','birthday','anniversary'],true)){
+                    $dateKey=$index?'date_'.$index:'date';$dateCursor=['date'=>$cursor[$dateKey]??0];
+                    audienceFlowDateEntries($store,$flow,array_replace($d,['trigger'=>$trigger]),$dateCursor,$now);$cursor[$dateKey]=$dateCursor['date'];
+                }
+                foreach(audienceFlowEvents($store,$cursor)as$event){
+                    foreach($triggers as$trigger)if(audienceFlowEventMatches($trigger,$event)){audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);break;}
+                    $cursor[$event['source']]=$event['id'];
+                }
+                $store->write('UPDATE marketing_flows SET cursor_json=? WHERE audience_id=1 AND id=?',[json_encode($cursor,JSON_THROW_ON_ERROR),$flow['id']]);
+            });
+            for($i=0;$i<max(1,min(100,$limit));$i++){
+                $run=$store->one("SELECT * FROM marketing_flow_runs WHERE audience_id=1 AND flow_id=? AND state='active' AND due_at<=? AND (node_key='' OR NOT JSON_CONTAINS(?,JSON_QUOTE(node_key))) ORDER BY due_at,id LIMIT 1",[$flow['id'],gmdate('Y-m-d H:i:s',$now),json_encode($flow['paused_nodes'],JSON_THROW_ON_ERROR)]);if(!$run)break;
+                try{$store->transaction(function()use($store,$flow,$run,$now):void{$current=$store->one('SELECT * FROM marketing_flow_runs WHERE audience_id=1 AND id=? FOR UPDATE',[$run['id']]);if($current['state']!=='active')return;$revision=$store->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=1 AND flow_id=? AND id=?',[$flow['id'],$current['revision_id']]);if(!$revision)throw new RuntimeException('The execution revision is unavailable.');audienceFlowAdvance($store,$flow,$current,audienceJson($revision['document_json']),$now);});}
+                catch(Throwable){
+                    $store->transaction(function()use($store,$run,$now):void{
+                        $store->write("UPDATE marketing_flow_runs SET state='failed',error_message='This step could not complete. Review its configuration before retrying.' WHERE audience_id=1 AND id=?",[$run['id']]);
+                        $prior=$store->one('SELECT result_json FROM marketing_flow_steps WHERE audience_id=1 AND run_id=? AND node_key=?',[$run['id'],$run['node_key']]);$result=$prior?audienceJson($prior['result_json']):[];$result['history'][]=['state'=>'failed','at'=>gmdate(DATE_ATOM,$now)];$result['reason']='Step could not complete';
+                        $store->write("INSERT INTO marketing_flow_steps(audience_id,run_id,node_key,state,result_json,completed_at) VALUES (1,?,?,'failed',?,?) ON DUPLICATE KEY UPDATE state='failed',result_json=VALUES(result_json),completed_at=VALUES(completed_at)",[$run['id'],$run['node_key'],json_encode($result,JSON_THROW_ON_ERROR),gmdate('Y-m-d H:i:s',$now)]);
+                    });
+                }
+                $count++;
             }
-            foreach(audienceFlowEvents($store,$cursor)as$event){
-                foreach($triggers as$trigger)if(audienceFlowEventMatches($trigger,$event)){audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);break;}
-                $cursor[$event['source']]=$event['id'];
-            }
-            $store->write('UPDATE marketing_flows SET cursor_json=? WHERE audience_id=1 AND id=?',[json_encode($cursor,JSON_THROW_ON_ERROR),$flow['id']]);
         });
-        for($i=0;$i<max(1,min(100,$limit));$i++){
-            $run=$store->one("SELECT * FROM marketing_flow_runs WHERE audience_id=1 AND flow_id=? AND state='active' AND due_at<=? AND (node_key='' OR NOT JSON_CONTAINS(?,JSON_QUOTE(node_key))) ORDER BY due_at,id LIMIT 1",[$flow['id'],gmdate('Y-m-d H:i:s',$now),json_encode($flow['paused_nodes'],JSON_THROW_ON_ERROR)]);if(!$run)break;
-            try{$store->transaction(function()use($store,$flow,$run,$now):void{$current=$store->one('SELECT * FROM marketing_flow_runs WHERE audience_id=1 AND id=? FOR UPDATE',[$run['id']]);if($current['state']!=='active')return;$revision=$store->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=1 AND flow_id=? AND id=?',[$flow['id'],$current['revision_id']]);if(!$revision)throw new RuntimeException('The execution revision is unavailable.');audienceFlowAdvance($store,$flow,$current,audienceJson($revision['document_json']),$now);});}
-            catch(Throwable){
-                $store->transaction(function()use($store,$run,$now):void{
-                    $store->write("UPDATE marketing_flow_runs SET state='failed',error_message='This step could not complete. Review its configuration before retrying.' WHERE audience_id=1 AND id=?",[$run['id']]);
-                    $prior=$store->one('SELECT result_json FROM marketing_flow_steps WHERE audience_id=1 AND run_id=? AND node_key=?',[$run['id'],$run['node_key']]);$result=$prior?audienceJson($prior['result_json']):[];$result['history'][]=['state'=>'failed','at'=>gmdate(DATE_ATOM,$now)];$result['reason']='Step could not complete';
-                    $store->write("INSERT INTO marketing_flow_steps(audience_id,run_id,node_key,state,result_json,completed_at) VALUES (1,?,?,'failed',?,?) ON DUPLICATE KEY UPDATE state='failed',result_json=VALUES(result_json),completed_at=VALUES(completed_at)",[$run['id'],$run['node_key'],json_encode($result,JSON_THROW_ON_ERROR),gmdate('Y-m-d H:i:s',$now)]);
-                });
-            }
-            $count++;
-        }
-    });return $count;
+    }
+    return $count;
 }
 
 /** Called while the same flow lock used by pause/remove is held, immediately before dispatch. */

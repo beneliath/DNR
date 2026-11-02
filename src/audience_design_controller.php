@@ -34,7 +34,7 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
             if($action==='design_test'){
                 if(isRestrictedDemoSession()||!accountSecurityAccessAllowed())$respond(['error'=>'Sending requires an unrestricted editor or administrator.'],403);
                 if(!$store->deliveryRuntimeAvailable())throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
-                $n=$store->queueCampaignTest($id,$version,$_POST,$audience,accountPrimaryPublicUrl(),$kind,$variant);$respond(['queued'=>$n]);
+                $n=$store->queueCampaignTest($id,$version,$_POST,$audience,currentAccountPublicUrl(),$kind,$variant);$respond(['queued'=>$n]);
             }elseif($action==='design_save'){
                 $design=audienceDesign(audienceJson(audienceDesignPayload($_POST['design']??'')));
                 $version=$store->saveEmailDesign($kind,$id,$version,$design,$variant);

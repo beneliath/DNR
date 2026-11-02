@@ -623,7 +623,7 @@
       ]
     },
     "audience_campaign_public.php": {
-      "sha256": "6c9d2c3c26e19baf4579137ee51fb24a7f39ef19da054bdddb55e3e054898138",
+      "sha256": "94de5716249fdf139841cf9f7c2ad4d236198594c8c4393b3e9872f5c3073cc9",
       "controls": [
         {
           "kind": "h1",
@@ -682,7 +682,7 @@
       ]
     },
     "audience_subscription.php": {
-      "sha256": "d43f7a7ecde31435b781d48175df55440d155f247601e4f0bbe6bc4b330cf9af",
+      "sha256": "ad7f63f16290b4a93760367320e7e4064c53a1055e9674f560a54b04409710fb",
       "controls": [
         {
           "kind": "h1",
@@ -698,7 +698,7 @@
         },
         {
           "kind": "h1",
-          "label": "You\u2019re unsubscribed"
+          "label": "You’re unsubscribed"
         },
         {
           "kind": "h1",
@@ -1139,11 +1139,11 @@
         },
         {
           "kind": "a",
-          "label": "\u2039 Back to Inquiry"
+          "label": "‹ Back to Inquiry"
         },
         {
           "kind": "button",
-          "label": "Book Engagement \u00b7 Move Tasks",
+          "label": "Book Engagement · Move Tasks",
           "name": "convert_inquiry"
         }
       ]
@@ -1171,11 +1171,11 @@
         },
         {
           "kind": "a",
-          "label": "\u2261 All Active Tasks"
+          "label": "≡ All Active Tasks"
         },
         {
           "kind": "a",
-          "label": "\u2713 My Active Tasks"
+          "label": "✓ My Active Tasks"
         },
         {
           "kind": "a",
@@ -1183,7 +1183,7 @@
         },
         {
           "kind": "a",
-          "label": "\u2197 Booking Inquiries"
+          "label": "↗ Booking Inquiries"
         },
         {
           "kind": "a",
@@ -1263,7 +1263,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "ca35338358b00e026f854e34aa63e453160bbf69d31385d5f27449f62a30a70e",
+      "sha256": "5a2cae91fd28f2d2c29f13af828ef4e22a86ab8c9e11b7f7496ef855c81b6d31",
       "controls": [
         {
           "kind": "h1",
@@ -2004,22 +2004,22 @@
         },
         {
           "kind": "a",
-          "label": "\u25c6Active",
+          "label": "◆Active",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u2161Postponed",
+          "label": "ⅡPostponed",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u00d7Canceled",
+          "label": "×Canceled",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u2713Completed",
+          "label": "✓Completed",
           "href": ""
         },
         {
@@ -2121,7 +2121,7 @@
         },
         {
           "kind": "a",
-          "label": "\u2190 Back to Messages",
+          "label": "← Back to Messages",
           "href": ""
         },
         {
@@ -2473,7 +2473,7 @@
         },
         {
           "kind": "button",
-          "label": "Route to Account \u2192",
+          "label": "Route to Account →",
           "id": "mail-route-submit",
           "name": "action"
         },
@@ -2708,7 +2708,7 @@
         },
         {
           "kind": "h2",
-          "label": "Loading Remote Measurements\u2026",
+          "label": "Loading Remote Measurements…",
           "id": "network-result-heading"
         },
         {
@@ -2811,7 +2811,7 @@
         },
         {
           "kind": "a",
-          "label": "the record\u2019s correspondence",
+          "label": "the record’s correspondence",
           "href": ""
         },
         {
@@ -3254,7 +3254,7 @@
         },
         {
           "kind": "button",
-          "label": "Drop Receipts Here or click to choose \u00b7 JPEG, PNG, WebP, PDF \u00b7 up to 15 MB each Select Save expense to upload."
+          "label": "Drop Receipts Here or click to choose · JPEG, PNG, WebP, PDF · up to 15 MB each Select Save expense to upload."
         },
         {
           "kind": "h2",
@@ -3436,7 +3436,7 @@
         },
         {
           "kind": "label",
-          "label": "DirectionDescending \u2193Ascending \u2191"
+          "label": "DirectionDescending ↓Ascending ↑"
         },
         {
           "kind": "button",

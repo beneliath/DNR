@@ -57,7 +57,7 @@ try {
         $maximum_bytes
     );
     fwrite(STDOUT, sprintf(
-        "Database and file restore completed: %d rows across %d tables; %d persistent files. All existing sessions were invalidated.\n",
+        "Database and file restore completed: %d rows across %d tables; %d persistent files. Sessions and calendar feeds revoked; pending mail quarantined. Outbound email remains HELD until operator reconciliation.\n",
         $inspection['row_count'],
         $inspection['table_count'],
         $inspection['file_count']

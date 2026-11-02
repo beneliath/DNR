@@ -1,7 +1,7 @@
 <?php
 $ses=$sesSettings;$result=audienceJson($ses['result_json']??'{}');$deliveryTab=in_array($_GET['tab']??'', ['domains','limits','activity','events'],true)?$_GET['tab']:'relay';
 $sesForm=static function(string $action,array $values=[])use($csrf,$ses):void{echo $csrf;audienceInputs(['action'=>$action,'version'=>$ses['version']]+$values);};
-$receiver='';try{$receiver=audienceDispatchBase(accountPrimaryPublicUrl()).'/audience_ses_events.php';}catch(Throwable){}
+$receiver='';try{$receiver=audienceDispatchBase(currentAccountPublicUrl()).'/audience_ses_events.php';}catch(Throwable){}
 $status=match($ses['check_state']){'ready'=>!empty($ses['subscription_arn'])?'Connected':'Connect delivery events','queued','checking'=>'Check in progress','attention'=>'Needs attention',default=>'Setup required'};
 ?>
 <div class="delivery-page">

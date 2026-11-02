@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/restore_security_helpers.php';
+
 function persistApplicationSession(): void {
     if (!session_write_close()) throw new RuntimeException('Unable to persist the application session.');
 }
@@ -98,6 +100,12 @@ function startSecureSession() {
     if (accountsEnabled()) session_name('MOED_' . substr(hash('sha256', currentAccountKey()), 0, 16));
     session_start();
     resumeApplicationSessionTransition();
+    $restoreGeneration = accountRestoreGeneration();
+    if (!hash_equals($restoreGeneration, (string) ($_SESSION['_restore_generation'] ?? ''))) {
+        session_unset();
+        session_regenerate_id(true);
+    }
+    $_SESSION['_restore_generation'] = $restoreGeneration;
     if (accountsEnabled() && isset($_SESSION['_account_key']) && $_SESSION['_account_key'] !== currentAccountKey()) {
         session_unset(); session_regenerate_id(true);
     }

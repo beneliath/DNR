@@ -52,6 +52,9 @@ function audienceDispatchDue(array $send,?int $now=null):string
 /** Every recipient gets an identity/address/footer, including custom plain text. */
 function audienceDispatchMessage(array $snapshot,array $context,string $token,string $messageId,string $variantKey='0'):array
 {
+    // Older snapshots may contain the primary Account URL. Recipient tokens and
+    // hosted assets must always resolve against the Account owning this database.
+    if(accountsEnabled())$snapshot['base']=currentAccountPublicUrl();
     $draft=$snapshot['draft'];if(isset($snapshot['variants'][(int)$variantKey])){$v=$snapshot['variants'][(int)$variantKey];$draft['subject']=$v['subject'];$draft['from_name']=$v['from_name'];if($v['design']!==null)$draft['design']=$v['design'];}if(!empty($snapshot['is_resend'])&&!empty($draft['resend']['subject']))$draft['subject']=$draft['resend']['subject'];$base=audienceDispatchBase($snapshot['base']);
     $link=!empty($snapshot['test'])?$base.'/audience_subscription.php?test=1':$base.'/audience_subscription.php?token='.$token;
     $context=array_replace($snapshot['identity'],$context,['UNSUB'=>$link,'UPDATE_PROFILE'=>$link.'&preferences=1','ARCHIVE'=>$link.'&email=1']);

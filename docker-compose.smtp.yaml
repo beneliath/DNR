@@ -46,6 +46,7 @@ services:
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmaildispatch
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+      DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
       DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
       DNR_MAIL_TRANSPORT: smtp
       DNR_EMAIL_LOGO_URL: ${DNR_EMAIL_LOGO_URL:-}

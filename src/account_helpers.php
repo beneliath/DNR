@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/restore_security_helpers.php';
 
 function accountsEnabled(): bool {
     return getenv('DNR_ACCOUNTS_ENABLED') === '1';
@@ -125,6 +126,11 @@ function accountPublicUrl(string $url): string {
     return $url;
 }
 
+/** Public business links stay with the database serving the current Account. */
+function currentAccountPublicUrl(): string {
+    return accountPublicUrl((string) getenv('DNR_PUBLIC_BASE_URL'));
+}
+
 function accountPrimaryPublicUrl(): string {
     return accountPublicUrl((string) (getenv('DNR_PRIMARY_PUBLIC_URL') ?: getenv('DNR_PUBLIC_BASE_URL')));
 }
@@ -217,6 +223,7 @@ function platformIdentityPayload(): array {
 function platformIssueIdentityGrant(string $accountKey, array $identity, ?int $now = null): string {
     return \Dnr\Security\ApplicationKey::seal(json_encode([
         'purpose' => 'platform-member-session', 'account_key' => $accountKey,
+        'restore_generation' => accountRestoreGeneration(),
         'id' => (int) $identity['id'], 'auth_version' => (int) $identity['auth_version'],
         'expires_at' => ($now ?? time()) + 900,
     ], JSON_THROW_ON_ERROR));
@@ -225,6 +232,7 @@ function platformIssueIdentityGrant(string $accountKey, array $identity, ?int $n
 function platformVerifyIdentityGrant(string $token, string $accountKey, array $identity, ?int $now = null): void {
     $grant = json_decode(\Dnr\Security\ApplicationKey::open($token), true, 8, JSON_THROW_ON_ERROR);
     if (!is_array($grant) || ($grant['purpose'] ?? '') !== 'platform-member-session'
+        || ($grant['restore_generation'] ?? '') !== accountRestoreGeneration()
         || ($grant['account_key'] ?? '') !== $accountKey
         || ($grant['id'] ?? null) !== (int) $identity['id']
         || ($grant['auth_version'] ?? null) !== (int) $identity['auth_version']
@@ -237,6 +245,7 @@ function platformVerifyIdentityGrant(string $token, string $accountKey, array $i
 function platformIssueSwitchIntent(array $identity, string $target, ?int $now = null): string {
     return \Dnr\Security\ApplicationKey::seal(json_encode([
         'purpose' => 'platform-browser-switch', 'account_key' => $target,
+        'restore_generation' => accountRestoreGeneration(),
         'id' => (int) $identity['id'], 'auth_version' => (int) $identity['auth_version'],
         'expires_at' => ($now ?? time()) + 900,
     ], JSON_THROW_ON_ERROR));
@@ -245,6 +254,7 @@ function platformIssueSwitchIntent(array $identity, string $target, ?int $now = 
 function platformVerifySwitchIntent(string $token, array $identity, string $target, ?int $now = null): void {
     $intent = json_decode(\Dnr\Security\ApplicationKey::open($token), true, 8, JSON_THROW_ON_ERROR);
     if (!is_array($intent) || ($intent['purpose'] ?? '') !== 'platform-browser-switch'
+        || ($intent['restore_generation'] ?? '') !== accountRestoreGeneration()
         || ($intent['account_key'] ?? '') !== $target
         || ($intent['id'] ?? null) !== (int) $identity['id']
         || ($intent['auth_version'] ?? null) !== (int) $identity['auth_version']
@@ -275,6 +285,7 @@ function platformAccountDirectory(mysqli $conn): array {
 function platformIssueElevationGrant(string $accountKey, array $identity, int $expiresAt): array {
     return ['expires_at' => $expiresAt, 'token' => \Dnr\Security\ApplicationKey::seal(json_encode([
         'purpose' => 'platform-admin-elevation', 'account_key' => $accountKey,
+        'restore_generation' => accountRestoreGeneration(),
         'id' => (int) $identity['id'], 'auth_version' => (int) $identity['auth_version'],
         'expires_at' => $expiresAt,
     ], JSON_THROW_ON_ERROR))];
@@ -283,6 +294,7 @@ function platformIssueElevationGrant(string $accountKey, array $identity, int $e
 function platformVerifyElevationGrant(string $token, string $accountKey, array $identity, ?int $now = null): int {
     $grant = json_decode(\Dnr\Security\ApplicationKey::open($token), true, 8, JSON_THROW_ON_ERROR);
     if (!is_array($grant) || ($grant['purpose'] ?? '') !== 'platform-admin-elevation'
+        || ($grant['restore_generation'] ?? '') !== accountRestoreGeneration()
         || ($grant['account_key'] ?? '') !== $accountKey
         || ($grant['id'] ?? null) !== (int) $identity['id']
         || ($grant['auth_version'] ?? null) !== (int) $identity['auth_version']

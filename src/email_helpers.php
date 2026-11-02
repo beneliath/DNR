@@ -6,6 +6,7 @@ require_once __DIR__ . '/audience_mail_budget.php';
 require_once __DIR__ . '/email_inline_image_helpers.php';
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/restore_security_helpers.php';
 
 // Proton limits the complete outgoing message, measured in decimal bytes.
 const SMTP_MAX_MESSAGE_BYTES = 25_000_000;
@@ -816,6 +817,7 @@ final class SmtpSession
 
     public function __construct(private readonly ?mysqli $budgetDb = null, private readonly string $budgetLane = 'operational')
     {
+        requireAccountOutboundMailAllowed();
         $this->from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
         $this->fromName = deploymentConfig()->string('brand.mail_name');
         $host = trim((string) (getenv('DNR_SMTP_HOST') ?: ''));
@@ -884,6 +886,7 @@ final class SmtpSession
 
     public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [], array $listHeaders = [], ?string $fromName = null, ?string $recipientName = null): bool
     {
+        requireAccountOutboundMailAllowed();
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
         }
@@ -1008,6 +1011,7 @@ function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody =
 
 function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [])
 {
+    requireAccountOutboundMailAllowed();
     $visibleRecipients = smtpNormalizeVisibleRecipients($visibleRecipients);
     $transport = accountMailTransport();
     if ($transport === 'log') {

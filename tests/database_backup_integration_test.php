@@ -121,6 +121,30 @@ expectDatabaseBackupIntegration(
     'the backup identity should not be able to mutate database data.'
 );
 
+// Recovery must retire independent bearer credentials and never replay an older mail queue.
+require_once $source_directory . '/calendar_helpers.php';
+$calendar_token = bin2hex(random_bytes(32));
+$conn->execute_query("INSERT INTO calendar_subscriptions(user_id,label,token_hash) VALUES (?,'Recovery regression',?)",
+    [$user_id, calendarTokenHash($calendar_token)]);
+$calendar_id = (int) $conn->insert_id;
+$conn->execute_query("INSERT INTO marketing_contacts(audience_id,email,email_status,notes,custom_json)
+    VALUES (1,?,'subscribed','',JSON_OBJECT())", ['restore-' . $suffix . '@example.test']);
+$mail_contact = (int) $conn->insert_id;
+$conn->query("INSERT INTO marketing_campaigns(audience_id,name,status,draft_json,actor_label)
+    VALUES (1,'Recovery regression','scheduled',JSON_OBJECT(),'Recovery fixture')");
+$mail_campaign = (int) $conn->insert_id;
+$conn->execute_query("INSERT INTO marketing_campaign_deliveries
+    (audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label)
+    VALUES (1,?,1,'scheduled',UTC_TIMESTAMP(),'UTC','non-sendable fixture',?,1,?,'Recovery fixture')",
+    [$mail_campaign,bin2hex(random_bytes(32)),$user_id]);
+$mail_delivery = (int) $conn->insert_id;
+$conn->execute_query("INSERT INTO marketing_campaign_recipients
+    (audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,next_attempt_at)
+    VALUES (1,?,?,?,'non-sendable fixture',?,?,UTC_TIMESTAMP())",
+    [$mail_delivery,$mail_contact,hash('sha256','restore-'.$suffix.'@example.test'),bin2hex(random_bytes(32)),'<recovery-'.$suffix.'@example.test>']);
+$mail_recipient = (int) $conn->insert_id;
+$generation_before = accountRestoreGeneration();
+
 $backup = createDatabaseBackup($backup_conn, 'integration-test', 16777216);
 $backup_conn->close();
 $backup_password = 'integration backup password';
@@ -141,6 +165,9 @@ $conn->execute_query('DELETE FROM inbound_email_messages WHERE id = ?', [$backup
 $extra_mail = parseInboundEmail(str_replace('backup-' . $suffix, 'extra-' . $suffix, $backup_mail_raw));
 storeInboundEmailMessage($conn, 'file', 'extra-backup-' . $suffix, $extra_mail, 'gateway@example.test');
 $conn->execute_query('UPDATE inbound_mailbox_state SET scanned_uid = 99 WHERE mailbox_key = ?', [$mailbox_key]);
+$conn->execute_query('UPDATE users SET auth_version=5 WHERE id=?',[$user_id]);
+$conn->execute_query('UPDATE calendar_subscriptions SET revoked_at=UTC_TIMESTAMP() WHERE id=?',[$calendar_id]);
+$conn->execute_query("UPDATE marketing_campaign_recipients SET state='accepted',delivery_started_at=UTC_TIMESTAMP(),accepted_at=UTC_TIMESTAMP() WHERE id=?",[$mail_recipient]);
 
 $restored = restoreDatabaseBackup(
     $conn,
@@ -192,8 +219,18 @@ $restored_user = $conn->query(
 )->fetch_assoc();
 expectDatabaseBackupIntegration(
     (int) $restored_user['auth_version'] === 5,
-    'restore should advance auth_version to invalidate pre-restore sessions.'
+    'restore should preserve its authentication-version update independently of the external generation.'
 );
+expectDatabaseBackupIntegration(accountRestoreGeneration() !== $generation_before && accountOutboundMailHeld(),
+    'Restore must rotate a generation outside the snapshot and retain the outbound hold even when auth_version collides.');
+expectDatabaseBackupIntegration($conn->execute_query('SELECT state FROM marketing_campaign_recipients WHERE id=?',[$mail_recipient])->fetch_row()[0] === 'cancelled',
+    'A snapshot recipient must be quarantined rather than replayed.');
+expectDatabaseBackupIntegration($conn->execute_query('SELECT state FROM marketing_campaign_deliveries WHERE id=?',[$mail_delivery])->fetch_row()[0] === 'paused',
+    'Restored scheduled delivery must require explicit new review.');
+$generation_after = accountRestoreGeneration();
+releaseAccountRestoreMailHold($generation_after, 'RECONCILED');
+expectDatabaseBackupIntegration(calendarSubscriptionForToken($conn,$calendar_token) === null,
+    'A restored, previously revoked calendar token must remain invalid after the recovery hold is released.');
 $restore_audit_count = (int) $conn->query(
     "SELECT COUNT(*) AS row_count FROM security_audit_log
      WHERE event_type = 'database_restored' AND actor_username = '"
@@ -238,6 +275,8 @@ expectDatabaseBackupIntegration(
 );
 $foreign_key_checks = (int) $conn->query('SELECT @@SESSION.foreign_key_checks AS enabled')->fetch_assoc()['enabled'];
 expectDatabaseBackupIntegration($foreign_key_checks === 1, 'foreign-key checks should be restored after failure.');
+expectDatabaseBackupIntegration(accountRestoreGeneration() === $generation_after && !accountOutboundMailHeld(),
+    'An invalid archive must not rotate or change recovery controls before validation.');
 
 unlink($backup['path']);
 unlink($encrypted_backup['path']);

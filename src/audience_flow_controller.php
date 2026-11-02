@@ -88,8 +88,22 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
     $report=$flow?$store->flowReport($id,$_GET):null;$validation=$flow?$store->flowValidate($flow['document']):[];
     if($view==='flow-report'&&($_GET['download']??'')==='csv'){
         if(!$canManage){http_response_code(403);exit('Export requires an editor or administrator.');}
-        releaseApplicationSessionLock();header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="flow-execution.csv"');header('Cache-Control: no-store');$out=fopen('php://output','w');fputcsv($out,['Execution','Connection','State','Step','Started','Finished'],',','"','');
-        for($page=1;$page<=$report['pages']&&$page<=400;$page++)foreach($store->flowReport($id,array_replace($_GET,['page'=>$page]))['runs']as$r)fputcsv($out,array_map('audienceCsvCell',[(string)$r['id'],$r['deleted_at']?'Removed connection':$r['email'],$r['state'],$r['node_key'],$r['started_at'],$r['ended_at']??'']),',','"','');fclose($out);return;
+        releaseApplicationSessionLock();
+        // Finish staging before emitting CSV headers, so a query/disk failure cannot masquerade as a complete export.
+        $out=tmpfile();if($out===false)throw new RuntimeException('Unable to stage the flow export.');
+        try{
+            if(fputcsv($out,['Execution','Connection','State','Step','Started','Finished'],',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
+            $exported=0;
+            foreach($store->flowExportRuns($id,$_GET)as$r){
+                if(fputcsv($out,array_map('audienceCsvCell',[(string)$r['id'],$r['deleted_at']?'Removed connection':$r['email'],$r['state'],$r['node_key'],$r['started_at'],$r['ended_at']??'']),',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
+                $exported++;
+            }
+            $bytes=ftell($out);if($bytes===false||!rewind($out))throw new RuntimeException('Unable to read the flow export.');
+            header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="flow-execution.csv"');header('Cache-Control: no-store');
+            header('Content-Length: '.$bytes);header('X-Export-Row-Count: '.$exported);
+            if(fpassthru($out)===false)throw new RuntimeException('Unable to stream the flow export.');
+        }finally{fclose($out);}
+        return;
     }
     $flowPreview=$view==='flow-templates'&&isset(audienceFlowTemplates()[$_GET['preview']??''])?audienceText($_GET,'preview',30):null;
     $pageTitle=$flow?$flow['name']:($view==='flow-templates'?($flowPreview?'Flow template':'Flow templates'):'Automations');$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;

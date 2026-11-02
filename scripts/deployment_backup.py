@@ -145,7 +145,7 @@ def backup_persistent_files(db_container, app_image, archive, password_file):
                 backup_sha256=sha(archive), format='tar-gzip-secretstream-v2')
 
 
-def create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory):
+def create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory, *, restore_verifier=None):
     """Writers are paused; lock also coordinates interrupted-run recovery cleanup."""
     import fcntl
     directory = Path(directory).resolve()
@@ -161,10 +161,10 @@ def create_verified_backup(db_container, database_image, app_image, previous_com
                 for name in ('database.sql.gz', 'verified.sql.gz', 'uploaded-files.tar.gz', 'verified-files.tar.gz', 'restore-root-password'):
                     (run / name).unlink(missing_ok=True)
         return _create_verified_backup(db_container, database_image, app_image, previous_commit,
-                                       previous_version, password_file, directory, owner)
+                                       previous_version, password_file, directory, owner, restore_verifier)
 
 
-def _create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory, owner):
+def _create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory, owner, restore_verifier=None):
     password_file = Path(password_file).resolve()
     if not password_file.is_file() or len(password_file.read_bytes().rstrip(b'\r\n')) < 16:
         raise ValueError('Configure a private backup password file with at least 16 characters')
@@ -206,6 +206,9 @@ def _create_verified_backup(db_container, database_image, app_image, previous_co
             restore_verified=True, previous_commit=previous_commit, previous_version=previous_version,
             database_image=database_image, database_version=query(db_container, 'SELECT VERSION()'), database_state=before)
         (working / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        if restore_verifier is not None:
+            receipt['restore_qualification'] = restore_verifier(restore_container)
+            (working / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         return receipt
     finally:
         subprocess.run(['docker', 'rm', '-fv', restore_container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

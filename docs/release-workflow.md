@@ -18,6 +18,10 @@ Use the running development app's source bind mounts. For PHP source changes, re
 
 Run focused checks, confirm that the local server serves the updated asset fingerprints, and verify the requested behavior on the actual page before reporting it ready. A sample demo is not evidence that the local application has been updated. See the persistent [local development deployment rule](../.cursor/rules/local-development-deployment.mdc).
 
+After pulling code, switching branches, or updating the source served by existing local Accounts, run `python3 scripts/update_local_development.py --check`. Source bind mounts update PHP and migration files immediately; Docker does not automatically rerun a completed migrator or refresh database grants. The check covers the primary and all ready local member Accounts and fails on missing or inconsistent migrations, changed grants, or unhealthy running services.
+
+For a reported schema or grant update, run `python3 scripts/update_local_development.py --apply`. The command accepts only loopback HTTP deployments bound to this checkout, retains their containers and networks, and pauses their writers. Before live DDL it creates encrypted, restore-verified backups and applies the canonical migration runner to each backup copy. It then runs that same migrator and grant setup on the affected live databases and verifies service health. Backups remain in `var/backups/local-development-updates/`; receipts and grant fingerprints remain in `var/deployment/local-development-state/`. A second `--check` must pass before calling the update complete. A source-only update with current schemas and grants does not take a database backup or restart services.
+
 ## SemVer deployment shorthands
 
 As of October 23, 2026, release instructions use **Major.Minor.Patch** (`x.y.z`):

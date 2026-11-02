@@ -226,10 +226,10 @@ try {
                 <li>Place the backup in <code>backups/</code>, create <code>secrets/backup_password</code> with the exact password and no trailing newline, then set both files to mode <code>600</code>.</li>
                 <li>Create a separate root-level SQL safety dump of the current database.</li>
                 <li>Stop <code>ingress</code>, <code>web</code>, <code>backup</code>, <code>geocoder</code>, and any enabled mail/cache workers before restoring.</li>
-                <li>The restore command validates checksums and restores uploaded files to the persistent volume before replacing the database. Keep the existing volume for rollback.</li>
+                <li>The restore command validates checksums and restores uploaded files to the persistent volume before replacing the database. Keep the existing volume and its recovery control file for rollback.</li>
                 <li>Run <code>docker compose --profile maintenance run --rm --no-deps maintenance /backups/FILE.dnrbackup RESTORE</code>.</li>
                 <li>Run <code>migrator</code> and <code>file-migrator</code>, restart the stopped services, and wait for their health checks to pass.</li>
-                <li>Sign in with an account contained in the restored backup, verify a representative record, a PDF download, a portrait, and the <code>database_restored</code> audit event, then securely remove the temporary backup-password file.</li>
+                <li>Sign in with an account contained in the restored backup and verify records, uploaded files and the <code>database_restored</code> audit event. Existing sessions and calendar links are revoked. Pending mail is quarantined and email stays held until an operator reconciles provider receipts and later opt-outs using the documented recovery procedure.</li>
             </ol>
             <p class="maintenance-note">The authoritative copy-and-paste procedure—including prerequisites, a clean disaster-recovery database, verification, failure cleanup, and SQL safety-dump rollback—is in README.md under “Exact database restore runbook.” Follow every numbered step; do not skip the safety dump, service stop, or session invalidation.</p>
         </section>

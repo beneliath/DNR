@@ -55,6 +55,7 @@ services:
   maintenance:
     volumes:
       - ./tests:/opt/dnr/tests:ro
+      - ./scripts/restore_security.php:/opt/dnr/bin/restore_security.php:ro
   backup:
     volumes:
       - ./src:/var/www/html:ro

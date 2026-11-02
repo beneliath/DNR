@@ -55,8 +55,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-minor-fixes|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-minor-fixes|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -75,7 +75,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='dnr-test-') as temporary:
         folder = Path(temporary)
         # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
-        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'http://localhost',
+        values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'https://message-monkey.example.test',
                   'DNR_PRIMARY_PUBLIC_URL': 'https://message-monkey.example.test', 'DNR_REQUIRE_HTTPS': '0',
                   'DNR_INBOUND_ADDRESS': 'inbox@receiving.example.test'}
         for name in ('ROOT', 'APP', 'BACKUP', 'MAINTENANCE', 'GEOCODER', 'MAIL_INGEST', 'MAIL_DISPATCH'):
@@ -118,7 +118,7 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
-        if sys.argv[1:] in (['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+        if sys.argv[1:] in (['audience'], ['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
@@ -132,7 +132,47 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
-            if sys.argv[1:] in (['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data']):
+            if sys.argv[1:] == ['defensive-data']:
+                for suite in ('audience_public_security_http_integration_test.php',
+                              'audience_data_management_integration_test.php',
+                              'audience_flow_queue_integration_test.php',
+                              'audience_flow_export_integration_test.php',
+                              'restore_session_http_integration_test.php',
+                              'review_regressions_http_integration_test.php',
+                              'short_links_http_integration_test.php'):
+                    print('Running ' + suite, flush=True)
+                    subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
+                        'web', 'php', '/opt/dnr/tests/' + suite],
+                        cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore',
+                    '-e', 'DNR_ACCOUNTS_ENABLED=0', '-e', 'DNR_ACCOUNT_GATEWAY_ENABLED=0',
+                    '-e', 'DNR_ACCOUNT_MAIL_ENABLED=0',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+                    '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    'key-rotation', '/opt/dnr/tests/database_backup_integration_test.php'],
+                    cwd=ROOT, env=env, check=True)
+                operator = compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_ACCOUNTS_ENABLED=0', '-e', 'DNR_ACCOUNT_GATEWAY_ENABLED=0',
+                    '-e', 'DNR_ACCOUNT_MAIL_ENABLED=0',
+                    '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    'maintenance', '/opt/dnr/bin/restore_security.php']
+                prepared = json.loads(subprocess.run(operator + ['prepare'], cwd=ROOT, env=env,
+                    check=True, capture_output=True, text=True).stdout)
+                rejected = subprocess.run(operator + ['resume', '0'*64, 'RECONCILED'], cwd=ROOT,
+                    env=env, capture_output=True, text=True)
+                if not prepared['mail_hold'] or rejected.returncode == 0:
+                    raise ValueError('Recovery operator accepted a stale reconciliation generation')
+                resumed = json.loads(subprocess.run(operator + ['resume', prepared['generation'], 'RECONCILED'],
+                    cwd=ROOT, env=env, check=True, capture_output=True, text=True).stdout)
+                if resumed['mail_hold'] or resumed['generation'] != prepared['generation']:
+                    raise ValueError('Recovery operator did not release exactly the reviewed generation')
+                print('Recovery operator prepare, stale-generation rejection and audited release passed.', flush=True)
+                return
+            if sys.argv[1:] in (['audience-minor-fixes'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
                 suites = {'audience-minor-fixes': ('audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
                           'user-timezone': ('user_timezone_http_integration_test.php', 'admin_user_profile_http_integration_test.php'),
                           'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),

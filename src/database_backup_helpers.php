@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/persistent_file_backup_helpers.php';
+require_once __DIR__ . '/restore_security_helpers.php';
 
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
@@ -988,6 +989,9 @@ function restoreDatabaseBackup(
     // a failed restore leaves the original database and its files usable.
     inspectDatabaseBackup($path, $current_schema, $maximum_bytes);
     inspectDatabaseBackup($path, $current_schema, $maximum_bytes, null, true);
+    // This generation cannot be rewound by restoring database rows or registered files.
+    // Publish it before mutation; even a rolled-back restore keeps sessions revoked and mail held.
+    prepareAccountRestoreSecurity();
     $prepared_inserts = [];
     $foreign_keys_disabled = false;
     $transaction_started = false;
@@ -1085,6 +1089,10 @@ function restoreDatabaseBackup(
             }
         }
 
+        $tableNames = array_column($current_schema, 'name');
+        revokeRestoredAccountCredentials($conn, $tableNames);
+        quarantineRestoredOutboundMail($conn, $tableNames);
+
         $actor_id = (int) ($actor['id'] ?? 0);
         $actor_username = substr((string) ($actor['username'] ?? ''), 0, 50);
         $restored_actor_id = null;
@@ -1106,7 +1114,7 @@ function restoreDatabaseBackup(
             'entity_type' => 'database',
             'entity_label' => 'DNR database',
             'details' => sprintf(
-                'Restored %d rows across %d tables; all sessions invalidated',
+                'Restored %d rows across %d tables; sessions/feeds revoked, pending mail quarantined and held',
                 $inspection['row_count'],
                 $inspection['table_count']
             ),

@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7f1ba88a7867ba359ab0b7a9ff9ea7740ba9368bc1f1839b5c5a27b1b83e2ed0",
-        "templates/header.php": "13cd7e78c4f99cfe6c3f87400188f6d4ef24b5041b8bc89f6fc1a2fe8a69a208",
+        "templates/header.php": "4824611b8659617dfae2f17987b4767a6f20d8f45dbbd3a52be9462db2e2252a",
         "templates/deployment-notice.php": "985aee2d55a646d05733893b93cc3e6e4d4782955568730128191e8ac9b0e6cc"
       },
       "subjects": [
@@ -1070,7 +1070,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_expense.php": "4d1b664fd84b302910668e885491b7e7752397188afa2ab3be29bd839e60bad1",
-        "assets/js/reimbursements.js": "ca89248af1a40c73473b1a699d9d52dd1ca65e75a12a25184fab05bb7260090e"
+        "assets/js/reimbursements.js": "82dd7ad5513e74358e7c14eb0f95c1499d987faa6e302bb8ef078b130f5520b5"
       },
       "subjects": [
         "reimbursement",
@@ -1135,9 +1135,10 @@
         "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
         "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
         "reimbursement_email_helpers.php": "04515a01f172e3f10d6c302a5d2ee71d50ca75b9d58335922a1b0aae3439520e",
-        "email_helpers.php": "de0b3d0438ed69817af7c36bc05b0e7bda9f724c3f81d51d48e10172cfdc0e49",
+        "email_helpers.php": "5c317c86b63b97607e619500dfc9437984f28d6cd9ed7f30e495840ff879ce3f",
         "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
-        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
+        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f",
+        "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
       },
       "subjects": [
         "reimbursement",
@@ -1333,15 +1334,16 @@
         "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
         "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
         "shared/authentication-limits.php": "d2893060688e2f31d6928ac4f2aefa9f0fae427b4770d7732a9f82796c072222",
-        "shared/authentication.php": "301de4e63d24bc1b685d502ae2c53690ef73fbd2c73211d40f72881c3e729285",
+        "shared/authentication.php": "3a5ad55f9df98d2dfd193eed8690122a8f678511b649f7bb441a6f66b906d6b4",
         "shared/authorization.php": "15f71dc6b5a403196e9d4b092ea8fffc24c1c331a39e7b8091d62ef9fc85e62c",
         "shared/csrf.php": "5b4092f1bf66d1f12a7ff80a35bc6fd36bc037bc6387e5a78377003b656d9ca6",
         "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
         "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
         "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
         "shared/rendering.php": "88d5ae15b232bb01a9666170b25c887158f33df4066ef9f94eaa7dd3433d0b96",
-        "shared/sessions.php": "f7d1fe8249388df81d854b57be13bb2e5fd28f03c9db9d3409000cdb23afd393",
-        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa"
+        "shared/sessions.php": "b4a0ba7db450b19afa16eab2a89693752da0ac37afc77a022fbf71a5e332aaa9",
+        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa",
+        "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
       }
     },
     {
@@ -1377,15 +1379,16 @@
         "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
         "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
         "shared/authentication-limits.php": "d2893060688e2f31d6928ac4f2aefa9f0fae427b4770d7732a9f82796c072222",
-        "shared/authentication.php": "301de4e63d24bc1b685d502ae2c53690ef73fbd2c73211d40f72881c3e729285",
+        "shared/authentication.php": "3a5ad55f9df98d2dfd193eed8690122a8f678511b649f7bb441a6f66b906d6b4",
         "shared/authorization.php": "15f71dc6b5a403196e9d4b092ea8fffc24c1c331a39e7b8091d62ef9fc85e62c",
         "shared/csrf.php": "5b4092f1bf66d1f12a7ff80a35bc6fd36bc037bc6387e5a78377003b656d9ca6",
         "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
         "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
         "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
         "shared/rendering.php": "88d5ae15b232bb01a9666170b25c887158f33df4066ef9f94eaa7dd3433d0b96",
-        "shared/sessions.php": "f7d1fe8249388df81d854b57be13bb2e5fd28f03c9db9d3409000cdb23afd393",
-        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa"
+        "shared/sessions.php": "b4a0ba7db450b19afa16eab2a89693752da0ac37afc77a022fbf71a5e332aaa9",
+        "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa",
+        "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
       },
       "subjects": [
         "presentation",

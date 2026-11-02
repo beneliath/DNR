@@ -4,26 +4,46 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
-test('mileage preview matches cent rounding and rejects reversed readings', () => {
+test('mileage preview uses whole readings, matches cent rounding, and rejects fractional or reversed readings', () => {
   const input = value => ({value, events: {}, addEventListener(name, fn) { this.events[name] = fn; }, setCustomValidity(message) { this.error = message; }});
-  const start = input('12000.10'), end = input('12250.60'), total = {};
+  const start = input('12000'), end = input('12250'), total = {};
   const form = {querySelector: selector => selector === '[data-mileage-start]' ? start : end};
   const summary = {dataset: {mileageRate: '0.760'}, closest: () => form, querySelector: () => total};
   let opened = 0;
   vm.runInNewContext(source, {document: {querySelectorAll: selector => selector === '[data-mileage-calculation]' ? [summary] : selector === '[data-mileage-saved]' ? [{showModal() { opened++; }}] : []}, window: {}});
-  assert.equal(total.textContent, '250.50 miles · Reimbursement: $190.38');
+  assert.equal(total.textContent, '250 miles · Reimbursement: $190.00');
   assert.equal(opened, 1);
   end.value = '12000'; end.events.input();
   assert.match(end.error, /greater/);
   start.value = '0'; end.value = '1'; end.events.input();
   assert.equal(end.error, '');
-  assert.equal(total.textContent, '1.00 miles · Reimbursement: $0.76');
+  assert.equal(total.textContent, '1 miles · Reimbursement: $0.76');
+  start.value = '0.5'; start.events.input();
+  assert.match(start.error, /whole number/);
+  assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
+  start.value = '0'; start.events.input();
+  assert.equal(start.error, '');
+  for (const value of ['1.5', '1.00', '1e2', '10000000']) {
+    end.value = value; end.events.input();
+    assert.match(end.error, /whole number/);
+    assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
+  }
+  start.value = '9999998'; end.value = '9999999'; end.events.input();
+  assert.equal(total.textContent, '1 miles · Reimbursement: $0.76');
   end.value = ''; end.events.input();
   assert.equal(end.error, '');
   assert.match(total.textContent, /Incomplete/);
   assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
   start.value = ''; start.events.input();
   assert.doesNotMatch(total.textContent, /Reimbursement: \$/);
+});
+
+test('whole-mile preview rounds a half cent up once', () => {
+  const input = value => ({value, addEventListener() {}, setCustomValidity() {}});
+  const start = input('0'), end = input('1'), total = {};
+  const summary = {dataset: {mileageRate: '0.725'}, closest: () => ({querySelector: selector => selector === '[data-mileage-start]' ? start : end}), querySelector: () => total};
+  vm.runInNewContext(source, {document: {querySelectorAll: selector => selector === '[data-mileage-calculation]' ? [summary] : []}, window: {}});
+  assert.equal(total.textContent, '1 miles · Reimbursement: $0.73');
 });
 
 test('pipeline emphasis follows sticky position, responsive offsets, and history restoration', () => {

@@ -13,6 +13,7 @@ function completeIntegrationTestMfaSession(): void {
         enableTwoFactorForUser($conn, (int) $user['id'], generateTotpSecret(), 0, (int) $user['auth_version']);
         $user = fetchAuthenticationUserById($conn, (int) $user['id']);
     }
+    $_SESSION['_restore_generation'] = accountRestoreGeneration();
     $_SESSION['auth_version'] = (int) $user['auth_version'];
     $_SESSION['two_factor_verified_at'] = time();
 }

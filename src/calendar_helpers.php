@@ -950,6 +950,7 @@ function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar s
 }
 
 function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
+    if (accountOutboundMailHeld()) return null; // Recovery has not yet reconciled independent bearer credentials.
     $token_hash = calendarTokenHash($submitted_token);
     if ($token_hash === null) {
         return null;
