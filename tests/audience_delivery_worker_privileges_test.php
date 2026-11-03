@@ -20,7 +20,23 @@ if($retry['state']!=='queued'||!$retry['payload_ciphertext']||str_contains($retr
 $counts=$db->query('SELECT state,COUNT(*) n FROM marketing_ses_inbox GROUP BY state')->fetch_all(MYSQLI_ASSOC);$counts=array_column($counts,'n','state');
 if((int)($counts['done']??0)!==3||(int)($counts['rejected']??0)!==1)throw new RuntimeException('Signed receipts and forged envelope were not separated.');
 if((int)$db->query("SELECT COUNT(*) n FROM marketing_inbox_delivery_events e JOIN marketing_service_mail m ON m.id=e.service_mail_id AND m.audience_id=e.audience_id WHERE m.kind='test' AND m.recipient_hash=SHA2('delivery-one@example.test',256) AND e.event_type='send'")->fetch_assoc()['n']!==2)throw new RuntimeException('The restricted worker lost a test callback while retiring its raw envelope.');
-foreach(array_slice($queued,1,2)as$notification){$payload=json_decode(\Dnr\Security\ApplicationKey::open($notification['payload_ciphertext']),true)['envelope'];$event=json_decode($payload['Message'],true);$email=$event['mail']['destination'][0];$actual=$db->execute_query('SELECT email_status FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc()['email_status'];if($actual!==($event['eventType']==='Bounce'?'cleaned':'unsubscribed'))throw new RuntimeException('Queued bounce or complaint did not suppress marketing.');}
+$store = new AudienceStore($db, 1, 0, 'Mail worker flow entry test');
+$cleanedEntry = ['match'=>'all','rules'=>[['field'=>'email_status','operator'=>'is','value'=>'cleaned']]];
+foreach (array_slice($queued, 1, 2) as $notification) {
+    $payload = json_decode(\Dnr\Security\ApplicationKey::open($notification['payload_ciphertext']), true)['envelope'];
+    $event = json_decode($payload['Message'], true);
+    $isBounce = $event['eventType'] === 'Bounce';
+    $contact = $db->execute_query('SELECT id,email_status FROM marketing_contacts WHERE audience_id=1 AND email=?', [$event['mail']['destination'][0]])->fetch_assoc();
+    if ($contact['email_status'] !== ($isBounce ? 'cleaned' : 'unsubscribed')) throw new RuntimeException('Queued bounce or complaint did not suppress marketing.');
+    // The dispatch worker checks automation entry rules before it can claim the next campaign batch.
+    if ($store->flowMatches((int)$contact['id'], $cleanedEntry) !== $isBounce) throw new RuntimeException('Worker could not match the cleaned contact after a hard bounce.');
+}
+try {
+    $db->query('SELECT draft_json FROM marketing_campaigns LIMIT 0');
+    throw new RuntimeException('The mail worker can read campaign drafts.');
+} catch (mysqli_sql_exception $e) {
+    if (!in_array($e->getCode(), [1142,1143], true)) throw $e;
+}
 $db->execute_query('UPDATE marketing_ses_inbox SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$queued[0]['id']]);
 if(processAudienceSnsInbox($db,1,$fetchCertificate,$confirmSubscription)!==1||$confirmations!==1)throw new RuntimeException('Durable confirmation retry failed.');
 if((int)$db->query("SELECT COUNT(*) n FROM marketing_ses_inbox WHERE payload_ciphertext<>''")->fetch_assoc()['n']!==0)throw new RuntimeException('Completed SNS tokens were retained.');

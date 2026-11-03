@@ -370,7 +370,7 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_consent_challenges TO '${mail_di
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_message_events TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_deliveries TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_recipients TO '${mail_dispatch_user}'@'%';
-GRANT SELECT (id,audience_id,status,deleted_at,version), UPDATE (status,sent_at,version) ON \`${MYSQL_DATABASE}\`.marketing_campaigns TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id,audience_id,name,status,deleted_at,version), UPDATE (status,sent_at,version) ON \`${MYSQL_DATABASE}\`.marketing_campaigns TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE (first_name,last_name,custom_json,language,timezone,email_status,is_archived,version) ON \`${MYSQL_DATABASE}\`.marketing_contacts TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id,contact_id,event_type,details_json,created_at), INSERT ON \`${MYSQL_DATABASE}\`.marketing_contact_events TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_email_optouts TO '${mail_dispatch_user}'@'%';
