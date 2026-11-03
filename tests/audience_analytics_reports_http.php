@@ -30,6 +30,32 @@ audienceHttpExpect(count($funnels['flows'])===2&&array_sum(array_column($funnels
 $flowRows=$as->analyticsReportRows($window,['dataset'=>'flows']);audienceHttpExpect(array_sum(array_column(array_column($flowRows,'previous'),'runs'))===12,'Cross-flow comparisons use the previous start-date cohort');
 $timing=$as->analyticsTimingEvidence();audienceHttpExpect(!$timing['ready']&&$timing['contacts']<100,'Small native history exposes the selected-time fallback');
 $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($window));audienceHttpExpect(array_sum(array_column($patternRows,'accepted'))===36,'Content patterns reconcile with the same accepted cohort');
+// A large delivery must not multiply the saved newsletter by its recipient count to find its subject.
+(static function (AudienceStore $store, array $window, int $campaign): void {
+    $db = $store->db;
+    $originalLimit = (int)$store->one('SELECT @@SESSION.max_execution_time AS n')['n'];
+    $db->begin_transaction();
+    try {
+        $delivery = $store->one('SELECT id FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=?', [$store->audienceId, $campaign]);
+        $snapshot = ['draft'=>['subject'=>'2026','text'=>str_repeat('Newsletter content. ', 50000)]];
+        $store->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?', [Dnr\Security\ApplicationKey::seal(json_encode($snapshot, JSON_THROW_ON_ERROR)), $delivery['id']]);
+        $store->write("INSERT INTO marketing_contacts(audience_id,email,email_status,source,notes)
+            WITH RECURSIVE numbers(n) AS (SELECT 0 UNION ALL SELECT n+1 FROM numbers WHERE n<89)
+            SELECT ?,CONCAT('benchmark-',a.n*90+b.n,'@example.test'),'non-subscribed','Benchmark volume fixture',''
+            FROM numbers a CROSS JOIN numbers b WHERE a.n<80", [$store->audienceId]);
+        $store->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at)
+            SELECT audience_id,?,id,SHA2(email,256),'fixture',SHA2(CONCAT('benchmark-',id),256),CONCAT('benchmark-',id),'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP()
+            FROM marketing_contacts WHERE audience_id=? AND source='Benchmark volume fixture'", [$delivery['id'], $store->audienceId]);
+        $scope = array_replace($window, ['messages_mode'=>'selected','messages'=>[$campaign]]);
+        $overview = $store->analyticsOverview($scope);
+        $db->query('SET SESSION max_execution_time=5000');
+        $rows = $store->analyticsContentPatterns($scope, $overview);
+        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 characters' && $rows[0]['accepted']===7212, 'A 7,200-recipient newsletter renders within the query budget and preserves its exact cohort');
+    } finally {
+        $db->rollback();
+        $db->query('SET SESSION max_execution_time='.$originalLimit);
+    }
+})($as, $window, (int)$samples['campaigns'][0]);
 $mapDelivery=$as->one('SELECT id,snapshot_ciphertext FROM marketing_campaign_deliveries WHERE audience_id=? ORDER BY id LIMIT 1',[$analyticsAid]);$mapSnapshot=audienceJson(Dnr\Security\ApplicationKey::open($mapDelivery['snapshot_ciphertext']));$mapSnapshot['draft']['design']=audienceDesignStarters()['newsletter']['design'];$as->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE audience_id=? AND id=?',[Dnr\Security\ApplicationKey::seal(json_encode($mapSnapshot)),$analyticsAid,$mapDelivery['id']]);
 $map=$as->analyticsClickMap($window,(int)$mapDelivery['id']);
 audienceHttpExpect(str_contains($map['html'],'observed clicks')&&!preg_match('/<a[^>]+href=|<img[ >]|<script[ >]|<form[ >]/i',$map['html']),'Click maps annotate immutable content while disabling links, images and executable content');
@@ -54,7 +80,15 @@ audienceHttpExpect(!in_array($reportId,array_column($as->analyticsSavedReports()
 $denied=false;try{$otherActor->analyticsSaveReport(['report'=>$reportId,'report_version'=>4,'report_action'=>'copy']);}catch(InvalidArgumentException $e){$denied=$e->getCode()===403;}audienceHttpExpect($denied,'Removing a shared report revokes direct copy access until its owner restores it');
 $as->analyticsSaveReport(['report'=>$reportId,'report_version'=>4,'report_action'=>'restore']);
 audienceHttpExpect($as->analyticsSavedReport($reportId)['version']===5,'Report restore preserves its original identity');
-foreach(['reports','custom','activity','links','devices','insights','audience','conversions']as$section){$response=$editor('audience.php?view=analytics&section='.$section);audienceHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body'])&&str_ends_with(trim($response['body']),'</html>'),'Extended report route renders a complete shell: '.$section);}
+foreach(['reports','custom','activity','links','devices','insights','audience','conversions']as$section){
+    $response=$editor('audience.php?view=analytics&section='.$section);
+    audienceHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body'])&&str_ends_with(trim($response['body']),'</html>'),'Extended report route renders a complete shell: '.$section);
+    if ($section==='insights') {
+        foreach (['Native historical benchmarks','Content performance patterns','Send-time insights'] as $heading) {
+            audienceHttpExpect(str_contains($response['body'],'<h2>'.$heading.'</h2>'), 'Benchmarks and timing renders '.$heading);
+        }
+    }
+}
 foreach(['recipients','links','custom','audience','forms','flows']as$export){$section=$export==='custom'?'custom':($export==='links'?'links':'email');$response=$editor('audience.php?view=analytics&section='.$section.'&download='.$export);audienceHttpExpect($response['status']===200&&str_contains($response['headers'],'text/csv'),'Detailed CSV export is available: '.$export);audienceHttpExpect($reviewer('audience.php?view=analytics&section='.$section.'&download='.$export)['status']===403,'Detailed CSV enforces export permissions: '.$export);}
 $analyticsToken=audienceHttpCsrf($editor('audience.php?view=analytics&section=custom'));$analyticsReviewToken=audienceHttpCsrf($reviewer('audience.php?view=analytics'));
 $httpCreate=$editor('audience.php?view=analytics&section=custom',['csrf_token'=>$analyticsToken,'action'=>'analytics_report','name'=>'HTTP private report','dataset'=>'email','columns'=>['accepted','click_rate']]);

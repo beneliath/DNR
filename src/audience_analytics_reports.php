@@ -292,12 +292,24 @@ trait AudienceAnalyticsReports
     {
         $scopeWindow=array_replace($w,['from'=>min($w['from'],$w['previous_from']),'until'=>max($w['until'],$w['previous_until'])]);
         [$scope,$params]=$this->analyticsRecipientScope($scopeWindow);$subjects=[];
-        foreach($this->all("SELECT DISTINCT d.id,d.campaign_id,d.snapshot_ciphertext FROM marketing_campaign_deliveries d JOIN marketing_campaign_recipients r ON r.delivery_id=d.id AND r.audience_id=d.audience_id WHERE $scope",$params)as$delivery){
-            try{$snapshot=audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']));$subject=$snapshot['draft']['subject']??null;if(is_string($subject))$subjects[$delivery['campaign_id']][$subject]=true;}catch(Throwable){/* Missing immutable content stays unknown. */}
+        // Each delivery has one saved subject, regardless of how many recipients match the report.
+        $deliveries = $this->db->prepare("SELECT d.campaign_id,d.snapshot_ciphertext
+            FROM marketing_campaign_deliveries d
+            WHERE d.audience_id=? AND EXISTS (
+                SELECT 1 FROM marketing_campaign_recipients r
+                WHERE r.audience_id=d.audience_id AND r.delivery_id=d.id AND $scope
+            )");
+        $deliveries->execute([$this->audienceId, ...$params]);
+        foreach (\Dnr\Infrastructure\StatementRows::stream($deliveries) as $delivery) {
+            try {
+                $subject = audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']))['draft']['subject'] ?? null;
+                if (is_string($subject)) $subjects[$delivery['campaign_id']][$subject] = $subject;
+            } catch (Throwable) { /* Missing immutable content stays unknown. */ }
         }
+        $deliveries->close();
         $buckets=[];$prior=[];
         foreach(['cohorts','previous_cohorts']as$period){$grouped=[];
-            foreach($overview[$period]as$row){$choices=array_keys($subjects[$row['campaign_id']]??[]);$length=count($choices)===1?mb_strlen($choices[0]):null;
+            foreach($overview[$period]as$row){$choices=array_values($subjects[$row['campaign_id']]??[]);$length=count($choices)===1?mb_strlen($choices[0]):null;
                 $label=count($choices)>1?'Multiple subjects':($length===null?'Subject unavailable':($length<=40?'Up to 40 characters':($length<=70?'41–70 characters':'Over 70 characters')));$grouped[$label][]=$row;
             }
             $out=[];foreach($grouped as$label=>$rows)$out[$label]=['label'=>$label]+$this->analyticsTotals($rows);

@@ -3,13 +3,15 @@ declare(strict_types=1);
 require_once __DIR__.'/../src/audience_helpers.php';require_once __DIR__.'/../src/audience_analytics.php';
 $checks=0;$expect=static function(bool $condition,string $message)use(&$checks):void{if(!$condition)throw new RuntimeException($message);$checks++;};
 $now=new DateTimeImmutable('2026-10-17T22:00:00Z');
-$home=audienceAnalyticsPresets(true,$now);$analytics=audienceAnalyticsPresets(false,$now);
-$expect($home[30]['start']==='2026-09-17'&&$home[30]['end']==='2026-10-16','Home rolling periods exclude today, matching the observed reference');
-$expect($analytics[90]['start']==='2026-07-20'&&$analytics[90]['end']==='2026-10-17','Analytics rolling periods include today');
-$expect($home['week']['start']==='2026-10-04'&&$home['week']['end']==='2026-10-10','Calendar week is Sunday through Saturday');
-$expect($home['month']['start']==='2026-09-01'&&$home['month']['end']==='2026-09-30','Previous calendar month is exact');
-$expect($home['quarter']['start']==='2026-07-01'&&$home['quarter']['end']==='2026-09-30','Previous quarter is exact');
-$expect($home['qtd']['end']==='2026-10-16'&&$home['ytd']['start']==='2026-01-01','Partial calendar presets stop yesterday');
+$presets=audienceAnalyticsPresets($now);
+foreach ([7,30,90,365] as $days) {
+    $window=audienceAnalyticsWindow($presets[$days],$now);
+    $expect($window['end']==='2026-10-17' && $window['days']===$days,"Last $days days includes today and spans exactly $days calendar dates");
+}
+$expect($presets['week']['start']==='2026-10-04'&&$presets['week']['end']==='2026-10-10','Calendar week is Sunday through Saturday');
+$expect($presets['month']['start']==='2026-09-01'&&$presets['month']['end']==='2026-09-30','Previous calendar month is exact');
+$expect($presets['quarter']['start']==='2026-07-01'&&$presets['quarter']['end']==='2026-09-30','Previous quarter is exact');
+$expect($presets['qtd']['end']==='2026-10-16'&&$presets['ytd']['start']==='2026-01-01','Partial calendar presets stop yesterday');
 $window=audienceAnalyticsWindow(['start'=>'2026-09-17','end'=>'2026-10-16'],$now);
 $expect($window['days']===30&&$window['previous_from']==='2026-08-18 00:00:00'&&$window['previous_until']==='2026-09-17 00:00:00','Comparison interval is adjacent, equal and half open');
 $long=audienceAnalyticsWindow(['start'=>'2020-01-01','end'=>'2026-10-17'],$now);
