@@ -185,6 +185,20 @@
     const campaignChoices = () => Object.fromEntries([['0','Choose an email'], ...config.campaigns.map(c => [c.id,c.name])]);
     const tagChoices = () => Object.fromEntries([['0','Choose a tag'], ...config.tags.map(t => [t.id,t.name])]);
     const groupChoices = () => Object.fromEntries([['0','Choose a group'], ...config.groups.flatMap(g => g.options.map(o => [o.id,`${g.name}: ${o.name}`]))]);
+    const membershipDetail = (type, id) => type === 'tag'
+        ? tagChoices()[id || 0] || 'Unavailable tag'
+        : groupChoices()[id || 0] || 'Unavailable group';
+    const triggerDetail = trigger => ['tag','untag','group','ungroup'].includes(trigger.type)
+        ? membershipDetail(['tag','untag'].includes(trigger.type) ? 'tag' : 'group', trigger.id)
+        : '';
+    const nodeDetail = node => {
+        if (['tag','group'].includes(node.type)) return `${node.remove ? 'Remove' : 'Add'}: ${membershipDetail(node.type, node.type === 'tag' ? node.tag_id : node.option_id)}`;
+        if (node.type === 'wait') return triggerDetail(node.trigger || {}) || config.types[node.type];
+        if (node.type === 'email') return config.campaigns.find(c => Number(c.id) === Number(node.campaign_id))?.name || 'Choose an email';
+        if (node.type === 'delay') return `${Math.round(node.seconds/60)} ${Math.round(node.seconds/60) === 1 ? 'minute' : 'minutes'}`;
+        if (node.type === 'split') return `${node.percent}% / ${100-node.percent}%`;
+        return node.type === 'until' ? node.time : config.types[node.type];
+    };
     function triggerFields(parent, trigger, wait = false) {
         field(parent, 'Trigger', options(wait?Object.fromEntries(Object.entries(config.triggers).filter(([key])=>!['date','birthday','anniversary','manual','status'].includes(key))):config.triggers, trigger.type, value => { edit(trigger,'type',value); renderInspector(); renderSettings(); }));
         let choices;
@@ -372,8 +386,8 @@
             if(config.pausedNodes.includes(id))item.append(el('span',{class:'flow-node-paused'},'Paused'));
             const counts=config.counts.filter(c=>c.node_key===id);if(counts.length)item.append(el('small',{},counts.map(c=>`${c.n} ${c.state}`).join(' · ')));map.append(item);
         };
-        triggers.forEach((t,i)=>card(`__trigger-${i}`,t.type==='status'&&t.value?`Changes to ${t.value}`:config.triggers[t.type] || 'Choose a trigger','Entry filters and repeat rules apply','Starting point','trigger'));
-        nodes.forEach(n=>{const detail=n.type==='email'?config.campaigns.find(c=>Number(c.id)===Number(n.campaign_id))?.name||'Choose an email':n.type==='delay'?`${Math.round(n.seconds/60)} ${Math.round(n.seconds/60)===1?'minute':'minutes'}`:n.type==='split'?`${n.percent}% / ${100-n.percent}%`:n.type==='until'?n.time:config.types[n.type];card(n.id,n.label,detail,config.types[n.type],n.type);});
+        triggers.forEach((t,i)=>card(`__trigger-${i}`,t.type==='status'&&t.value?`Changes to ${t.value}`:config.triggers[t.type] || 'Choose a trigger',triggerDetail(t) || 'Entry filters and repeat rules apply','Starting point','trigger'));
+        nodes.forEach(n=>card(n.id,n.label,nodeDetail(n),config.types[n.type],n.type));
         $('[data-flow-zoom-label]').textContent=`${Math.round(zoom*100)}%`;
     }
     $$('[data-flow-add]').forEach(b=>{b.addEventListener('click',()=>add(b.dataset.flowAdd));b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',b.dataset.flowAdd);});});
