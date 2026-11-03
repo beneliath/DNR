@@ -287,10 +287,16 @@ function audienceDesignPlainText(array $design,?array $context=null,array $ident
     return audienceDesignPlainTextFromHtml(audienceDesignRender($design,$context),$context??$identity);
 }
 /** Derive the text alternative from the same personalized HTML, including its visible conditional content. */
-function audienceDesignPlainTextFromHtml(string $html,array $identity=[]):string
+function audienceDesignPlainTextFromHtml(string $html,array $identity=[],?Closure $link=null):string
 {
     $html=audiencePermissionReminderHtml($html,$identity);$html=preg_replace('~<(head|style)[^>]*>.*?</\1>~si','',$html);
-    $html=preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~si',static fn($m)=>strip_tags($m[2]).' ('.html_entity_decode($m[1],ENT_QUOTES,'UTF-8').')',$html);
+    $html = preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~si', static function (array $match) use ($link): string {
+        // Sign the exact href before adding the plain-text parentheses. Keep it
+        // HTML-escaped until the final strip/decode pass below.
+        $href = $match[1];
+        if ($link !== null) $href = htmlspecialchars($link(html_entity_decode($href, ENT_QUOTES, 'UTF-8')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return strip_tags($match[2]).' ('.$href.')';
+    }, $html);
     $html=preg_replace('~<(?:br|hr)\b[^>]*>|</(?:p|div|h[1-6]|tr|li)>~i',"\n",$html);$text=html_entity_decode(strip_tags($html),ENT_QUOTES|ENT_HTML5,'UTF-8');return trim(preg_replace('/[ \t]+\n/',"\n",preg_replace('/\n{3,}/',"\n\n",$text)));
 }
 function audienceDesignLinkReport(array $design,?array $context=null):array
