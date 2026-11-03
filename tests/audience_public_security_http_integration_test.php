@@ -100,6 +100,37 @@ try{
     $reviewerClient=$makeClient($reviewerUsername,$reviewerPassword);
     $reviewerProfile=$reviewerClient('audience.php?view=contact&id='.$contact['id']);
     $expect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers do not see raw IP addresses');
+    $preferencesDraft=$preferencesResource['draft'];$preferencesDraft['title']='Unpublished preferences draft';
+    $store->saveCollection(['name'=>$preferencesResource['name'],'document'=>$preferencesDraft],$preferences,(int)$preferencesResource['version']);
+    $previewPath='audience.php?view=form&id='.$preferences.'&preview=published';
+    $preferencesEditor=$adminClient('audience.php?view=form&id='.$preferences);
+    $expect($preferencesEditor['status']===200&&str_contains($preferencesEditor['body'],'href="'.htmlspecialchars($previewPath,ENT_QUOTES,'UTF-8').'"')&&str_contains($preferencesEditor['body'],'Open published preview'),'Preferences editor opens an authenticated published preview');
+    $expect(str_contains($preferencesEditor['body'],'Private subscriber links')&&str_contains($preferencesEditor['body'],'*|UPDATE_PROFILE|*')&&!str_contains($preferencesEditor['body'],'id="collection-public-url"')&&!str_contains($preferencesEditor['body'],'data-copy-collection-link'),'Preferences sharing explains private email links instead of offering a public page URL');
+    $beforePreviewPerson=$store->person((int)$contact['id']);
+    $beforePreviewVisits=(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_visits WHERE resource_id=?',[$preferences])->fetch_assoc()['n'];
+    $beforePreviewResponses=(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_responses WHERE resource_id=?',[$preferences])->fetch_assoc()['n'];
+    foreach([$adminClient,$reviewerClient]as$previewClient){
+        $preview=$previewClient($previewPath.'&recipient='.$recipientToken);
+        $expect($preview['status']===200&&str_contains($preview['body'],$preferencesActive['document']['title'])&&!str_contains($preview['body'],'Unpublished preferences draft'),'Published preview renders the live revision for permitted workspace readers');
+        $expect(str_contains($preview['body'],'Preview — submissions are disabled.')&&str_contains($preview['body'],'<button disabled>')&&str_contains($preview['body'],'name="proof" value=""'),'Published preview cannot submit and does not issue a submission proof');
+        $expect(!str_contains($preview['body'],$email)&&!str_contains($preview['body'],$recipientToken)&&!str_contains($preview['body'],'Location updated'),'Published preview ignores recipient tokens and does not expose subscriber data');
+        $expect(str_contains($preview['headers'],"form-action 'none'")&&str_contains($preview['headers'],'sandbox allow-same-origin')&&str_contains(strtolower($preview['headers']),'cache-control: no-store'),'Published preview prevents form actions and scripts and disables caching');
+    }
+    $expect($request($previewPath)['status']===302,'Published preview requires a signed-in workspace session');
+    $expect($request('audience_collect_public.php?key='.$preferencesResource['public_key'].'&preview=published')['status']===404,'Published preview does not bypass the private recipient requirement on the public endpoint');
+    preg_match('/name="csrf_token"[^>]*value="([^"]+)"/',$preferencesEditor['body'],$previewCsrf);
+    $beforePreviewResource=$store->collectionResource($preferences);
+    $previewPost=$adminClient($previewPath,['csrf_token'=>html_entity_decode($previewCsrf[1]??'',ENT_QUOTES),'action'=>'collection_operation','operation'=>'pause','id'=>$preferences,'version'=>$beforePreviewResource['version']]);
+    $expect($previewPost['status']===405&&str_contains($previewPost['headers'],'Allow: GET')&&$store->collectionResource($preferences)===$beforePreviewResource,'Published preview rejects POST before any collection operation runs');
+    $expect($store->person((int)$contact['id'])===$beforePreviewPerson&&(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_visits WHERE resource_id=?',[$preferences])->fetch_assoc()['n']===$beforePreviewVisits&&(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_responses WHERE resource_id=?',[$preferences])->fetch_assoc()['n']===$beforePreviewResponses,'Published preview leaves subscriber data, visits, and responses unchanged');
+    $expect($adminClient('audience.php?view=form&id=2147483647&preview=published')['status']===404,'Unknown published previews are unavailable');
+    $unpublished=$store->saveCollection(['kind'=>'preferences','name'=>'Unpublished preview fixture']);
+    $unpublishedPreview='audience.php?view=form&id='.$unpublished.'&preview=published';
+    $expect($adminClient($unpublishedPreview)['status']===404,'Draft preferences cannot be previewed as published');
+    $store->collectionOperation($unpublished,1,'publish');$store->collectionOperation($unpublished,2,'pause');
+    $expect($adminClient($unpublishedPreview)['status']===404,'Paused preferences cannot be previewed as published');
+    $hostedEditor=$adminClient('audience.php?view=form&id='.$id);
+    $expect(str_contains($hostedEditor['body'],'id="collection-public-url"')&&str_contains($hostedEditor['body'],'Open published page'),'Hosted signup forms keep their working public sharing links');
     $person=$store->person((int)$contact['id']);
     $store->mutatePerson((int)$contact['id'],(int)$person['version'],'delete');
     $redacted=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission' LIMIT 1",[$contact['id']])->fetch_assoc();

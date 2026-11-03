@@ -96,7 +96,7 @@ class DeploymentGuard:
             for origin in self.origins:
                 try:
                     request = urllib.request.Request(origin + '/deployment_status.php?guard_check=' + secrets.token_hex(6),
-                                                     headers={'Cache-Control': 'no-cache'})
+                                                     headers={'Cache-Control': 'no-cache', 'User-Agent': 'MOED-Deployment/1.0'})
                     with urllib.request.urlopen(request, timeout=5) as response:
                         marker = response.headers.get('X-DNR-Maintenance-Guard')
                         status = json.load(response)

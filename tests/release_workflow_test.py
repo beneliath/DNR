@@ -58,9 +58,20 @@ class BoundedReleaseRunner(unittest.TestCase):
         self.assertEqual(execute.call_count, 3)
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [5, 10])
 
+    def test_transient_github_http_status_failures_retry_reads(self):
+        command = ['gh', 'run', 'view', '123', '--json', 'status']
+        success = subprocess.CompletedProcess(command, 0, stdout='completed', stderr='')
+        for status in (502, 503, 504):
+            failure = subprocess.CalledProcessError(1, command, stderr=f'HTTP {status}: temporary upstream failure')
+            with self.subTest(status=status), patch.object(release_s1.subprocess, 'run', side_effect=[failure, success]) as execute, \
+                    patch.object(release_s1.time, 'sleep'), patch.object(release_s1, 'milestone'):
+                self.assertEqual(release_s1.run(command, capture=True), 'completed')
+                self.assertEqual(execute.call_count, 2)
+
     def test_mutations_and_nontransient_errors_are_not_retried(self):
         for command, message in (
             (['gh', 'pr', 'merge', '123'], 'TLS handshake timeout'),
+            (['gh', 'pr', 'merge', '123'], 'HTTP 502: Bad Gateway'),
             (['gh', 'run', 'rerun', '123'], 'TLS handshake timeout'),
             (['git', 'push', 'origin', 'main'], 'TLS handshake timeout'),
             (['gh', 'run', 'view', '123'], 'HTTP 403: Resource not accessible'),

@@ -34,6 +34,14 @@ export function moveEmailBlock(design, from, target) {
 }
 export function blockDropIndex(index,y,top,height){return index+(y>top+height/2?1:0);}
 
+export function removeEmptyEmailColumn(design,rowIndex,columnIndex) {
+  const row=design.rows[rowIndex],column=row?.columns[columnIndex];
+  if(!Array.isArray(column)||column.length)return false;
+  if(row.columns.length===1)design.rows.splice(rowIndex,1);
+  else row.columns.splice(columnIndex,1);
+  return true;
+}
+
 export function setDesignColor(design,target,key,value) {
   target[key]=value;
   if(target===design.styles&&['link','button','buttonText'].includes(key)){

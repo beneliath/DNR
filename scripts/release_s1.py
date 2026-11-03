@@ -41,7 +41,7 @@ def run(args, *, capture=False, check=True, _read_attempt=0):
             ['gh', 'pr', 'view'], ['gh', 'pr', 'list'],
         )
         temporary = re.search(
-            r'TLS handshake timeout|i/o timeout|connection reset by peer|temporary failure in name resolution',
+            r'TLS handshake timeout|i/o timeout|connection reset by peer|temporary failure in name resolution|HTTP (?:502|503|504)',
             error.stderr or '', re.IGNORECASE,
         )
         if capture and read_only and temporary and _read_attempt < 2:
