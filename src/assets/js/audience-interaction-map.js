@@ -4,6 +4,9 @@ const element = document.getElementById('interaction-location-map');
 const dataElement = document.getElementById('interaction-location-map-data');
 const feedback = document.getElementById('interaction-map-feedback');
 const fitButton = document.getElementById('fit-interaction-pins');
+const typeFilter = document.getElementById('interaction-map-type');
+const emptyState = document.getElementById('interaction-map-empty');
+const emptyRow = document.getElementById('interaction-location-table-empty');
 
 if (element && dataElement && feedback && fitButton) {
     setWorkerUrl(new URL(DNR_MAPLIBRE_WORKER_URL, import.meta.url).href);
@@ -28,7 +31,8 @@ if (element && dataElement && feedback && fitButton) {
             maxZoom: maximumZoom, attributionControl: {compact: true}, validateStyle: false
         });
         map.addControl(new NavigationControl({showCompass: false}), 'top-left');
-        const bounds = new LngLatBounds();
+        let bounds = new LngLatBounds();
+        let visiblePins = [];
         const markers = new Array(pins.length);
         const table = document.querySelector('.analytics-interaction-table');
         const rows = new Map(Array.from(table?.querySelectorAll('tbody tr[data-interaction-pin]') || [], (row) => [Number(row.dataset.interactionPin), row]));
@@ -38,17 +42,15 @@ if (element && dataElement && feedback && fitButton) {
             selectedIndex = index;
             if (index !== null) rows.get(index)?.classList.add('is-popup-open');
         };
-        let visible = 0;
-        for (const [index, pin] of pins.entries()) {
+        const addPin = (index, pin) => {
             const longitude = Number(pin.longitude);
             const latitude = Number(pin.latitude);
-            if (!Number.isFinite(longitude) || !Number.isFinite(latitude)
-                || Math.abs(longitude) > 180 || Math.abs(latitude) > 90) continue;
             const marker = document.createElement('button');
             marker.type = 'button';
             marker.className = 'analytics-interaction-pin';
             marker.textContent = Number(pin.observations).toLocaleString();
-            marker.setAttribute('aria-label', `${pin.label}: ${pin.observations} interactions`);
+            const countLabel = `${Number(pin.observations).toLocaleString()} ${pin.observations === 1 ? 'interaction' : 'interactions'}`;
+            marker.setAttribute('aria-label', `${pin.label}: ${countLabel}`);
 
             const popupContent = document.createElement('div');
             popupContent.className = 'analytics-interaction-popup';
@@ -56,7 +58,7 @@ if (element && dataElement && feedback && fitButton) {
             title.textContent = String(pin.label || pin.country || 'Location');
             popupContent.append(title);
             const count = document.createElement('p');
-            count.textContent = `${Number(pin.observations).toLocaleString()} interactions`;
+            count.textContent = countLabel;
             popupContent.append(count);
             for (const [kind, n] of Object.entries(pin.types || {})) {
                 const detail = document.createElement('span');
@@ -88,12 +90,53 @@ if (element && dataElement && feedback && fitButton) {
                 .setPopup(popup)
                 .addTo(map);
             bounds.extend([longitude, latitude]);
-            visible++;
-        }
+            visiblePins.push(pin);
+        };
+        const renderPins = () => {
+            for (const marker of markers) marker?.remove();
+            markers.fill(null);
+            setSelectedIndex(null);
+            bounds = new LngLatBounds();
+            visiblePins = [];
+            const selectedType = typeFilter?.value || '';
+            let observations = 0;
+            for (const [index, pin] of pins.entries()) {
+                const count = selectedType ? Number(pin.types?.[selectedType]) || 0 : Number(pin.observations);
+                const types = selectedType ? {[selectedType]: count} : pin.types || {};
+                const longitude = Number(pin.longitude);
+                const latitude = Number(pin.latitude);
+                const visible = count > 0 && Number.isFinite(longitude) && Number.isFinite(latitude)
+                    && Math.abs(longitude) <= 180 && Math.abs(latitude) <= 90;
+                const row = rows.get(index);
+                if (row) {
+                    row.hidden = !visible;
+                    row.querySelector('[data-interaction-observations]').textContent = count.toLocaleString();
+                    row.querySelector('[data-interaction-types]').textContent = Object.entries(types)
+                        .map(([kind, n]) => `${kind} ${Number(n).toLocaleString()}`).join(' · ');
+                }
+                if (!visible) continue;
+                observations += count;
+                addPin(index, {...pin, observations: count, types});
+            }
+            const visible = visiblePins.length;
+            const unmapped = Number(selectedType ? payload.unmappedTypes?.[selectedType] : payload.unmapped) || 0;
+            feedback.textContent = `${visible.toLocaleString()} ${visible === 1 ? 'location' : 'locations'} · ${observations.toLocaleString()} ${observations === 1 ? 'interaction' : 'interactions'} with a mapped location`
+                + (unmapped ? ` · ${unmapped.toLocaleString()} without a mappable country` : '')
+                + (selectedType ? ` · ${selectedType}` : '');
+            if (emptyState) {
+                emptyState.hidden = visible > 0;
+                emptyState.textContent = selectedType
+                    ? `No ${selectedType.toLowerCase()} with a mappable location were found in this date range.`
+                    : 'No interactions with a mappable location were found in this date range.';
+            }
+            if (emptyRow) emptyRow.hidden = visible > 0;
+            fitButton.disabled = visible === 0;
+        };
         const fitPins = () => {
+            const visible = visiblePins.length;
             if (!visible) return;
             if (visible === 1) {
-                map.easeTo({center: bounds.getCenter(), zoom: pins[0].precision === 'city' ? 7 : 3});
+                map.easeTo({center: bounds.getCenter(), zoom: visiblePins[0].precision === 'city' ? 7 : 3});
             } else {
                 map.fitBounds(bounds, {padding: 64, maxZoom: 7});
             }
@@ -121,7 +164,14 @@ if (element && dataElement && feedback && fitButton) {
             event.preventDefault();
             selectPin(index);
         });
-        fitButton.disabled = visible === 0;
+        renderPins();
+        if (typeFilter) {
+            typeFilter.disabled = false;
+            typeFilter.addEventListener('change', () => {
+                renderPins();
+                fitPins();
+            });
+        }
         fitButton.addEventListener('click', () => {
             for (const marker of markers) {
                 const popup = marker?.getPopup();

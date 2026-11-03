@@ -4,30 +4,32 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-test('a location row opens its globe-hidden pin on the first click', () => {
+function mapHarness(pins = [
+    {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 2, precision: 'city', types: {Signups: 2}},
+    {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 1, precision: 'city', types: {'Email clicks': 1}}
+], extraPayload = {}) {
     class Element {
         constructor() {
-            this.listeners = {}; this.dataset = {}; this.children = []; this.textContent = '';
+            this.listeners = {}; this.dataset = {}; this.children = []; this.textContent = ''; this.hidden = false;
             const classes = new Set();
             this.classList = {add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name)};
         }
         addEventListener(type, callback) { this.listeners[type] = callback; }
         append(child) { this.children.push(child); }
         setAttribute(name, value) { this[name] = value; }
-        querySelector() { return null; }
+        querySelector(selector) { return this.cells?.[selector] || null; }
         querySelectorAll() { return this.rows || []; }
         scrollIntoView(options) { this.scrolled = options; }
         focus() { this.focused = true; }
     }
-    const elements = Object.fromEntries(['interaction-location-map', 'interaction-location-map-data', 'interaction-map-feedback', 'fit-interaction-pins'].map(id => [id, new Element()]));
+    const elements = Object.fromEntries(['interaction-location-map', 'interaction-location-map-data', 'interaction-map-feedback', 'fit-interaction-pins', 'interaction-map-type', 'interaction-map-empty', 'interaction-location-table-empty'].map(id => [id, new Element()]));
     const table = new Element();
-    const pins = [
-        {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 2, precision: 'city', types: {Signups: 2}},
-        {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 1, precision: 'city', types: {Clicks: 1}}
-    ];
-    table.rows = pins.map((_, index) => Object.assign(new Element(), {dataset: {interactionPin: String(index)}}));
-    elements['interaction-location-map-data'].textContent = JSON.stringify({pins, mapProvider: {rasterTileUrl: 'https://example.test/{z}/{x}/{y}.png'}});
-    const markers = [], popups = [], flights = [];
+    table.rows = pins.map((_, index) => Object.assign(new Element(), {
+        dataset: {interactionPin: String(index)},
+        cells: {'[data-interaction-observations]': new Element(), '[data-interaction-types]': new Element()}
+    }));
+    elements['interaction-location-map-data'].textContent = JSON.stringify({pins, mapProvider: {rasterTileUrl: 'https://example.test/{z}/{x}/{y}.png'}, ...extraPayload});
+    const markers = [], popups = [], flights = [], fits = [];
     let onLoad;
     let fitCount = 0;
     class FakeMap {
@@ -35,14 +37,15 @@ test('a location row opens its globe-hidden pin on the first click', () => {
         once(type, callback) { if (type === 'load') onLoad = callback; }
         flyTo(options) { flights.push(options); }
         jumpTo(options) { flights.push(options); }
-        fitBounds() { fitCount++; }
-        easeTo() { fitCount++; }
+        fitBounds(bounds, options) { fits.push({points: bounds.points, ...options}); fitCount++; }
+        easeTo(options) { fits.push(options); fitCount++; }
     }
     class Marker {
         constructor({element}) { this.element = element; markers.push(this); }
         setLngLat(point) { this.point = point; return this; }
         setPopup(popup) { this.popup = popup; return this; }
-        addTo() { return this; }
+        addTo() { this.onMap = true; return this; }
+        remove() { this.onMap = false; this.popup.remove(); return this; }
         getLngLat() { return this.point; }
         getPopup() { return this.popup; }
         getElement() { return this.element; }
@@ -57,7 +60,11 @@ test('a location row opens its globe-hidden pin on the first click', () => {
         isOpen() { return this.open; }
         remove() { if (this.open) { this.open = false; this.listeners.close?.(); } }
     }
-    class Bounds { extend() {} getCenter() { return [0, 0]; } }
+    class Bounds {
+        constructor() { this.points = []; }
+        extend(point) { this.points.push(point); }
+        getCenter() { return this.points[0]; }
+    }
     const context = {
         document: {
             getElementById: id => elements[id],
@@ -73,6 +80,18 @@ test('a location row opens its globe-hidden pin on the first click', () => {
     vm.runInContext(fs.readFileSync('src/assets/js/audience-interaction-map.js', 'utf8')
         .replace(/^import .*?from 'maplibre-gl';/, '')
         .replaceAll('import.meta.url', 'moduleUrl'), context);
+    return {
+        elements, table, markers, popups, flights, fits,
+        onLoad: () => onLoad(),
+        get fitCount() { return fitCount; },
+        filter(value) { elements['interaction-map-type'].value = value; elements['interaction-map-type'].listeners.change(); },
+        visibleMarkers: () => markers.filter(marker => marker.onMap)
+    };
+}
+
+test('a location row opens its globe-hidden pin on the first click', () => {
+    const harness = mapHarness();
+    const {elements, table, markers, popups, flights, onLoad} = harness;
 
     popups[0].addTo();
     assert.equal(table.rows[0].classList.contains('is-popup-open'), true, 'Opening a pin highlights its row');
@@ -94,7 +113,7 @@ test('a location row opens its globe-hidden pin on the first click', () => {
     assert.equal(markers[1].element.focused, true);
     assert.equal(elements['interaction-location-map'].scrolled.block, 'center');
     onLoad();
-    assert.equal(fitCount, 0, 'Initial map fitting preserves the selected location');
+    assert.equal(harness.fitCount, 0, 'Initial map fitting preserves the selected location');
 
     table.listeners.click({target: {closest: () => ({dataset: {interactionPin: '0'}})}, preventDefault() {}});
     assert.equal(popups[0].isOpen(), true);
@@ -107,5 +126,88 @@ test('a location row opens its globe-hidden pin on the first click', () => {
     assert.equal(popups[0].isOpen(), false, 'Fit pins closes the selected card');
     assert.equal(popups[1].isOpen(), false, 'Fit pins closes any other open card');
     assert.equal(table.rows.some(row => row.classList.contains('is-popup-open')), false, 'Fit pins clears the row highlight');
-    assert.equal(fitCount, 1, 'Fit pins still fits the visible locations');
+    assert.equal(harness.fitCount, 1, 'Fit pins still fits the visible locations');
+});
+
+const mixedPins = [
+    {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 5, precision: 'city', types: {'Email opens': 3, 'Email clicks': 1, Signups: 1}},
+    {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 2, precision: 'city', types: {Signups: 2}},
+    {label: 'Canada', latitude: 60.5, longitude: -101.9, observations: 4, precision: 'country', types: {Unsubscribes: 4}}
+];
+
+test('filtering recounts mixed pins, popup details, rows, and unmapped interactions, and resets fully', () => {
+    const harness = mapHarness(mixedPins, {unmapped: 3, unmappedTypes: {'Email opens': 2, 'Preference updates': 1}});
+    const {elements, table, markers, popups} = harness;
+    assert.equal(elements['interaction-map-type'].disabled, false);
+    popups[1].addTo();
+    harness.filter('Email opens');
+    assert.equal(popups[1].isOpen(), false, 'Changing type closes the old popup');
+    assert.equal(table.rows.some(row => row.classList.contains('is-popup-open')), false);
+    assert.equal(markers.slice(0, 3).some(marker => marker.onMap), false, 'Previous markers are removed');
+    const [marker] = harness.visibleMarkers();
+    assert.equal(harness.visibleMarkers().length, 1);
+    assert.equal(marker.element.textContent, '3');
+    assert.equal(marker.element['aria-label'], 'Chicago: 3 interactions');
+    assert.deepEqual(marker.popup.content.children.map(child => child.textContent), ['Chicago', '3 interactions', 'Email opens: 3', 'Approximate city position']);
+    assert.deepEqual(table.rows.map(row => row.hidden), [false, true, true]);
+    assert.equal(table.rows[0].cells['[data-interaction-observations]'].textContent, '3');
+    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email opens 3');
+    assert.equal(elements['interaction-map-feedback'].textContent, '1 location · 3 interactions with a mapped location · 2 without a mappable country · Email opens');
+    assert.equal(elements['interaction-map-empty'].hidden, true);
+    assert.equal(elements['interaction-location-table-empty'].hidden, true);
+    assert.equal(elements['fit-interaction-pins'].disabled, false);
+
+    harness.filter('');
+    assert.equal(harness.visibleMarkers().length, 3);
+    assert.deepEqual(harness.visibleMarkers().map(pin => pin.element.textContent), ['5', '2', '4']);
+    assert.equal(table.rows.every(row => !row.hidden), true);
+    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email opens 3 · Email clicks 1 · Signups 1');
+    assert.equal(elements['interaction-map-feedback'].textContent, '3 locations · 11 interactions with a mapped location · 3 without a mappable country');
+});
+
+test('Fit pins and table selection use only matching locations and their correct precision', () => {
+    const harness = mapHarness(mixedPins);
+    harness.filter('Signups');
+    assert.deepEqual(Array.from(harness.fits.at(-1).points, point => Array.from(point)), [[-87.6, 41.9], [151.2, -33.9]]);
+    assert.equal(harness.elements['interaction-map-feedback'].textContent, '2 locations · 3 interactions with a mapped location · Signups');
+    harness.filter('Unsubscribes');
+    assert.deepEqual(Array.from(harness.fits.at(-1).center), [-101.9, 60.5]);
+    assert.equal(harness.fits.at(-1).zoom, 3, 'A country pin uses country zoom even when the first unfiltered pin is a city');
+    harness.elements['fit-interaction-pins'].listeners.click();
+    assert.equal(harness.fits.at(-1).zoom, 3);
+    harness.table.listeners.click({target: {closest: () => harness.table.rows[2]}, preventDefault() {}});
+    assert.equal(harness.visibleMarkers()[0].popup.isOpen(), true, 'A filtered row keeps its original pin index');
+    assert.equal(harness.table.rows[2].classList.contains('is-popup-open'), true);
+});
+
+test('a type with no mapped results shows an empty state and recovers when reset', () => {
+    const harness = mapHarness(mixedPins, {unmapped: 1, unmappedTypes: {'Preference updates': 1}});
+    harness.filter('Preference updates');
+    assert.equal(harness.visibleMarkers().length, 0);
+    assert.equal(harness.elements['interaction-map-empty'].hidden, false);
+    assert.match(harness.elements['interaction-map-empty'].textContent, /No preference updates/);
+    assert.equal(harness.elements['interaction-location-table-empty'].hidden, false);
+    assert.equal(harness.table.rows.every(row => row.hidden), true);
+    assert.equal(harness.elements['fit-interaction-pins'].disabled, true);
+    assert.equal(harness.fitCount, 0, 'Empty results never fit empty bounds');
+    assert.equal(harness.elements['interaction-map-feedback'].textContent, '0 locations · 0 interactions with a mapped location · 1 without a mappable country · Preference updates');
+    harness.onLoad();
+    assert.equal(harness.fitCount, 0);
+    harness.filter('');
+    assert.equal(harness.visibleMarkers().length, 3);
+    assert.equal(harness.elements['interaction-map-empty'].hidden, true);
+    assert.equal(harness.elements['interaction-location-table-empty'].hidden, true);
+    assert.equal(harness.elements['fit-interaction-pins'].disabled, false);
+});
+
+test('empty reports and invalid coordinates never create pins or fit empty bounds', () => {
+    for (const pins of [[], [{...mixedPins[0], latitude: 91}]]) {
+        const harness = mapHarness(pins);
+        harness.filter('Email clicks');
+        harness.onLoad();
+        assert.equal(harness.visibleMarkers().length, 0);
+        assert.equal(harness.fitCount, 0);
+        assert.equal(harness.elements['fit-interaction-pins'].disabled, true);
+        assert.equal(harness.elements['interaction-map-empty'].hidden, false);
+    }
 });

@@ -26,27 +26,35 @@ function audienceInteractionMapCoordinate(string $country, string $region, strin
     return ['longitude'=>$countryPoint[0], 'latitude'=>$countryPoint[1], 'precision'=>'country'];
 }
 
-/** Collapse coarse observations into map pins without exposing IPs or contacts. */
-function audienceInteractionMapSummarize(array $rows): array
+function audienceInteractionMapTypes(): array
 {
-    $pins = [];
-    $unmapped = 0;
-    $total = 0;
-    $types = [
+    return [
         'message:open'=>'Email opens', 'message:click'=>'Email clicks',
         'contact:signup-permission'=>'Signups', 'contact:subscription-confirmed'=>'Confirmed subscriptions',
         'contact:preferences'=>'Preference updates', 'contact:status'=>'Unsubscribes',
         'contact:survey-response'=>'Survey responses',
     ];
+}
+
+/** Collapse coarse observations into map pins without exposing IPs or contacts. */
+function audienceInteractionMapSummarize(array $rows): array
+{
+    $pins = [];
+    $unmapped = 0;
+    $unmappedTypes = [];
+    $total = 0;
+    $types = audienceInteractionMapTypes();
     foreach ($rows as $row) {
         $count = max(0, (int)($row['observations'] ?? 0));
         if ($count === 0) continue;
         $total += $count;
+        $type = $types[($row['source'] ?? '').':'.($row['event_type'] ?? '')] ?? null;
         $country = strtoupper(trim((string)($row['country_code'] ?? '')));
         $region = trim((string)($row['region'] ?? ''));
         $city = trim((string)($row['city'] ?? ''));
         if (!preg_match('/^[A-Z]{2}$/D', $country) || !($point = audienceInteractionMapCoordinate($country, $region, $city))) {
             $unmapped += $count;
+            if ($type !== null) $unmappedTypes[$type] = ($unmappedTypes[$type] ?? 0) + $count;
             continue;
         }
         $key = $point['precision'] === 'city'
@@ -61,7 +69,6 @@ function audienceInteractionMapSummarize(array $rows): array
             'precision'=>$point['precision'], 'observations'=>0, 'types'=>[], 'reported_places'=>[],
         ];
         $pins[$key]['observations'] += $count;
-        $type = $types[($row['source'] ?? '').':'.($row['event_type'] ?? '')] ?? null;
         if ($type !== null) $pins[$key]['types'][$type] = ($pins[$key]['types'][$type] ?? 0) + $count;
         if ($point['precision'] === 'country' && $place !== $countryName && $place !== '') {
             $pins[$key]['reported_places'][$place] = true;
@@ -74,5 +81,5 @@ function audienceInteractionMapSummarize(array $rows): array
     unset($pin);
     $pins = array_values($pins);
     usort($pins, static fn(array $a, array $b): int => $b['observations'] <=> $a['observations'] ?: strcmp($a['label'], $b['label']));
-    return ['pins'=>$pins, 'observations'=>$total, 'unmapped'=>$unmapped];
+    return ['pins'=>$pins, 'observations'=>$total, 'unmapped'=>$unmapped, 'unmapped_types'=>$unmappedTypes];
 }
