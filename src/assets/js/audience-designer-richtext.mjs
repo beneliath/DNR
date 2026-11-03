@@ -1,4 +1,5 @@
 import { mountTextColor } from './audience-richtext-colors.mjs';
+import { colorSampleSources } from './audience-color-sampler.mjs';
 import { mountRichImageTools, normalizeRichImage } from './audience-richtext-images.mjs';
 import { firstFontFamily, matchingFontChoice } from './audience-designer-fonts.mjs';
 
@@ -56,6 +57,7 @@ const iconPaths = {
   bulleted:'M10 5h12M10 12h12M10 19h12M3 4h2v2H3zM3 11h2v2H3zM3 18h2v2H3z',
   paste:'M7 4H3v18h15V4h-4M7 2h7v4H7zM7 10h8M11 10v8',
   richPaste:'M7 4H3v18h18V4h-7M7 2h7v4H7zM7 10l2 8 3-6 3 6 2-8',
+  clear:'m14 3 7 7-11 11H6l-5-5L14 3zM7 10l7 7M10 21h12',
   line:'M3 3h18v18H3zM6 7h12M6 10h12M6 14h12M6 18h12',
   anchor:'M12 7v15M8 11h8M3 15a9 9 0 0 0 18 0M3 15l-2 3m20-3 2 3M15 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
   left:'M3 4h18M3 9h11M3 14h18M3 19h11',
@@ -100,7 +102,7 @@ export function colorTextRange(root,range,property,value) {
   const next=document.createRange();next.setStart(selected[0],0);next.setEnd(selected.at(-1),selected.at(-1).length);return next;
 }
 
-export function mountRichText({host,block,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection,openLink,mergeTags,openImage,fonts,onFont=()=>{},formatStyle=tag=>({size:({h1:32,h2:28,h3:24,h4:20})[tag]||16,weight:/^h[1-4]$/.test(tag)?'bold':'normal'})}) {
+export function mountRichText({host,block,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection,openLink,mergeTags,openImage,fonts,palette=[],sampleSources,onFont=()=>{},formatStyle=tag=>({size:({h1:32,h2:28,h3:24,h4:20})[tag]||16,weight:/^h[1-4]$/.test(tag)?'bold':'normal'})}) {
   const lifecycle=new AbortController(), {signal}=lifecycle;
   const rich=el('div',undefined,'designer-rich-text');rich.contentEditable='true';rich.setAttribute('role','textbox');rich.setAttribute('aria-label','Text');rich.setAttribute('aria-multiline','true');
   if(block.html)setRichContent(rich,block.html);else (block.text||'').split(/\r?\n/).forEach((line,index)=>{if(index)rich.append(el('br'));rich.append(document.createTextNode(line));});
@@ -243,7 +245,8 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     const dialog=inputDialog(formatted?'Paste from Rich Text Editor':'Paste as plain text',input,formatted?'Paste your text here. Formatting is kept; unsupported content is removed.':'Paste your text here to insert it without formatting.',()=>{edit(()=>{document.execCommand(formatted?'insertHTML':'insertText',false,formatted?cleanRichHtml(input.innerHTML):input.value);applyStyles();});});dialog.showModal();input.focus();
   };
   tool('Paste as plain text','',()=>paste(false),'paste');tool('Paste from Rich Text Editor','',()=>paste(true),'richPaste');
-  tool('Clear Styles','Clear Styles',()=>command('removeFormat')).classList.add('designer-rich-label-tool');
+  const clearStyles=tool('Clear styles','',()=>command('removeFormat'),'clear');
+  clearStyles.classList.add('designer-rich-label-tool');clearStyles.append(el('span','Clear'));
   const sourceToggle=tool('Edit text HTML source','<>',()=>{
     const show=source.hidden;if(show){source.value=rich.innerHTML;remember();}else{history();setRichContent(rich,source.value);range=null;sync();}
     source.hidden=!show;rich.hidden=show;sourceToggle.setAttribute('aria-pressed',String(show));toolbar.querySelectorAll('button,select').forEach(n=>{if(n!==sourceToggle&&n!==collapse)n.disabled=show;});if(!show){undo.disabled=!past.length;redo.disabled=!future.length;}
@@ -271,7 +274,8 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     }finally{applying=false;}
     sync();
   };
-  for(const [label,property,highlight]of [['Selected text color','color',false],['Selected text highlight','backgroundColor',true]])mountTextColor({host:row,label,highlight,makeElement:el,makeButton:button,remember,apply:(value,options)=>applyColor(property,value,options),signal});
+  const selectedTextStyle=()=>{const node=range?.startContainer;return getComputedStyle(node?(node.nodeType===Node.ELEMENT_NODE?node:node.parentElement):rich);};
+  for(const [label,property,highlight]of [['Selected text color','color',false],['Selected text highlight','backgroundColor',true]])mountTextColor({host:row,label,highlight,makeElement:el,makeButton:button,remember,palette,sampleSources:sampleSources||(()=>colorSampleSources(rich)),getTextStyle:selectedTextStyle,getValue:()=>selectedTextStyle()[property],apply:(value,options)=>applyColor(property,value,options),signal});
   row=first;
   tool('Insert horizontal line','',()=>command('insertHorizontalRule'),'line');
   tool('Insert anchor','',()=>{
@@ -294,6 +298,7 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   row=first;
   const undo=tool('Undo text change','',()=>travel(past,future),'undo'),redo=tool('Redo text change','',()=>travel(future,past),'redo');undo.disabled=redo.disabled=true;
   undo.classList.add('audience-history-action');redo.classList.add('audience-history-action');
+  const historyGroup=el('span',undefined,'designer-rich-history');historyGroup.setAttribute('role','group');historyGroup.setAttribute('aria-label','Text undo and redo');undo.before(historyGroup);historyGroup.append(undo,redo);
   undo.title='Undo';redo.title='Redo';
   tool('Strikethrough','S̶',()=>command('strikeThrough'));
   const collapse=button('▴',()=>{second.hidden=!second.hidden;collapse.textContent=second.hidden?'▾':'▴';collapse.setAttribute('aria-expanded',String(!second.hidden));collapse.setAttribute('aria-label',second.hidden?'Expand text toolbar':'Collapse text toolbar');});collapse.className='designer-rich-collapse';collapse.setAttribute('aria-label','Collapse text toolbar');collapse.setAttribute('aria-expanded','true');first.append(collapse);

@@ -9,10 +9,12 @@ const root = path.resolve(__dirname, '../..');
 const fixtures = ['richtext', 'colors', 'designer-drop', 'image-upload'];
 (async () => {
     for (const engine of (process.env.DNR_BROWSER_ENGINES || 'chromium,webkit').split(',')) {
-        const browser = await engines[engine].launch({headless: true});
+        const executablePath=engine==='chromium'?process.env.DNR_BROWSER_EXECUTABLE:process.env.DNR_WEBKIT_EXECUTABLE;
+        const browser = await engines[engine].launch({headless: true,...(executablePath?{executablePath}:{})});
         try {
             for (const fixture of fixtures) {
                 const page = await browser.newPage({viewport: {width: 1280, height: 1000}});
+                await page.addInitScript(()=>{window.EyeDropper=undefined;});
                 const errors = [];
                 page.on('pageerror', error => errors.push(error.message));
                 await page.route('**/*', route => {

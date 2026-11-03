@@ -21,7 +21,9 @@ if (kind === 'css') {
     }
     const directory = 'src/assets/css/pages';
     const pages = (await readdir(directory)).filter(file => file.endsWith('.css') && !file.endsWith('.min.css')).sort();
-    await Promise.all(pages.map(file => build(options(directory, 'css', {name: file.slice(0, -4)}))));
+    // Audience's shared picker styles must share the versioned CSS URL. An
+    // unversioned @import can remain immutable in an already-open browser.
+    await Promise.all(pages.map(file => build(options(directory, 'css', {name: file.slice(0, -4), ...(file === 'audience.css' ? {bundle: true, external: ['*.svg']} : {})}))));
     console.log(`Built ${stylesheetAssets.length + pages.length} stylesheets.`);
 } else {
     for (const asset of javascriptAssets) {

@@ -1,23 +1,43 @@
 import {enhanceColorInput} from '../../src/assets/js/audience-color-picker.mjs';
+import {colorSampleSources} from '../../src/assets/js/audience-color-sampler.mjs';
 const form=document.querySelector('#brand'),result=document.querySelector('#result');
-form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true,palette:[{label:'Link',value:'#3261b5'},{label:'Button',value:'#c00000'}]}));
+const imageCanvas=document.createElement('canvas');imageCanvas.width=4;imageCanvas.height=2;const context=imageCanvas.getContext('2d');context.fillStyle='#c10304';context.fillRect(0,0,2,2);context.fillStyle='#3261b5';context.fillRect(2,0,2,2);
+const image={label:'Fixture image',src:imageCanvas.toDataURL('image/png')};
+const preview=document.createElement('div');preview.style.width='120px';preview.style.height='60px';preview.style.backgroundColor='#c10304';form.append(preview);
+form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true,palette:[{label:'Link',value:'#3261b5'},{label:'Button',value:'#c10304'},{label:'Content',value:'#ffffff'},{label:'Button text',value:'#ffffff'}],sampleSources:()=>colorSampleSources(preview,[image])}));
+const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+const wait=async test=>{for(let i=0;i<120;i++){if(test())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error('Timed out preparing sampler');};
 document.querySelector('#run').onclick=async()=>{
-  let count=0;const expect=(ok,message)=>{if(!ok)throw Error(message);count++;};
-  const input=form.elements.link,wrap=input.parentElement,trigger=wrap.querySelector('button'),panel=wrap.querySelector('[popover]'),hex=panel.querySelector('input[type=text]'),hue=panel.querySelector('input[type=range]'),plane=panel.querySelector('[role=slider]');
-  try{
-    trigger.click();expect(panel.matches(':popover-open'),'Click opens the in-page panel');expect(hex.value==='3261B5','Existing Brand Kit color initializes hex');expect(!panel.querySelector('input[type=color]'),'No native picker in the panel');
-    expect(!!panel.querySelector('.audience-color-dropper')===(typeof window.EyeDropper==='function'),'Eyedropper uses direct browser support only');
-    hex.value='123456';hex.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));expect(input.value==='#123456','Hex edits reach the saved form input');expect(new FormData(form).get('link')==='#123456','Submission retains the existing field name');expect(!panel.matches(':popover-open'),'Hex selection closes the panel');
-    trigger.click();hex.value='bad!';hex.dispatchEvent(new Event('change'));expect(input.value==='#123456'&&panel.matches(':popover-open'),'Invalid hex cannot change saved value');panel.hidePopover();
-    trigger.click();expect(hex.value==='123456','Reopening discards unfinished invalid input');
-    const before=input.value;plane.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));expect(input.value===before,'Keyboard movement previews without committing');plane.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));expect(input.value!==before&&!panel.matches(':popover-open'),'Enter selects a keyboard-adjusted color');
-    trigger.click();hue.value='120';hue.dispatchEvent(new Event('input'));hue.dispatchEvent(new Event('change'));expect(input.value!==before&&!panel.matches(':popover-open'),'Hue selection commits and closes');
-
-    trigger.click();panel.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));expect(!panel.matches(':popover-open'),'Escape closes the panel');
-    trigger.click();const box=panel.getBoundingClientRect();expect(box.left>=0&&box.right<=innerWidth&&box.top>=0&&box.bottom<=innerHeight,'Panel fits viewport');panel.hidePopover();
-    form.reset();await Promise.resolve();expect(input.value==='#3261b5'&&trigger.textContent==='#3261B5','Form reset restores chip and submitted color');
-    trigger.click();const swatches=panel.querySelectorAll('.audience-color-brand-swatch');expect(swatches.length===2&&swatches[1].getAttribute('aria-label')==='Brand Kit Button: #C00000','Brand Kit swatches retain role labels and exact saved hex values');swatches[1].click();expect(input.value==='#c00000'&&trigger.textContent==='#C00000'&&!panel.matches(':popover-open'),'Choosing a Brand Kit swatch updates the input and closes the picker');
-    form.querySelector('fieldset').disabled=true;trigger.click();expect(!panel.matches(':popover-open'),'Disabled Brand Kit cannot open color picker');form.querySelector('fieldset').disabled=false;
-    result.textContent=`PASS: ${count} color checks`;result.dataset.status='passed';
-  }catch(e){result.textContent=`FAIL after ${count} checks: ${e.message}`;result.dataset.status='failed';throw e;}
+ let count=0;const expect=(ok,message)=>{if(!ok)throw Error(message);count++;};
+ const input=form.elements.link,trigger=input.parentElement.querySelector('button');
+ const open=()=>{trigger.click();return document.querySelector('.audience-color-studio[open]');};
+ try{
+  let dialog=open(),hex=dialog.querySelector('.color-studio-hex'),apply=dialog.querySelector('.color-studio-apply');
+  expect(!!dialog&&hex.value==='#3261B5','Click opens Color studio with the saved value');
+  expect(!dialog.querySelector('input[type=color]'),'Studio never opens a native color picker');
+  expect(dialog.querySelectorAll('.color-studio-brand').length===3,'Duplicate brand colors share a named swatch');
+  expect(!!dialog.querySelector('.color-studio-dropper'),'Custom dropper is always available');
+  expect(!apply.classList.contains('color-studio-unsaved'),'Opening the picker does not mark a color as unsaved');
+  hex.value='#123456';hex.dispatchEvent(new Event('input'));
+  expect(input.value==='#3261b5'&&apply.classList.contains('color-studio-unsaved'),'New color previews without changing the saved input and blinks Apply');
+  expect(getComputedStyle(apply).animationName==='color-studio-apply-blink'||matchMedia('(prefers-reduced-motion:reduce)').matches,'Unsaved Apply has the requested outline animation');
+  dialog.querySelector('[aria-label="Brand Kit Link: #3261B5"]').click();expect(!apply.classList.contains('color-studio-unsaved'),'Returning to the original color clears the blinking outline');
+  hex.value='#123456';hex.dispatchEvent(new Event('input'));apply.click();await tick();
+  expect(input.value==='#123456'&&new FormData(form).get('link')==='#123456','Apply updates the existing form field');
+  dialog=open();hex=dialog.querySelector('.color-studio-hex');hex.value='bad!';hex.dispatchEvent(new Event('input'));dialog.querySelector('.color-studio-apply').click();
+  expect(input.value==='#123456'&&dialog.open,'Invalid hex cannot change the saved color');
+  dialog.querySelector('.color-studio-close').click();await tick();dialog=open();expect(dialog.querySelector('.color-studio-hex').value==='#123456','Cancel discards unfinished edits');
+  const before=input.value,plane=dialog.querySelector('.color-studio-plane');plane.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));expect(input.value===before,'Keyboard changes are staged');
+  dialog.querySelector('.color-studio-apply').click();await tick();expect(input.value!==before,'Apply commits a keyboard-adjusted color');
+  dialog=open();dialog.querySelector('.color-studio-dropper').click();await wait(()=>!dialog.querySelector('.color-studio-sample-canvas').hidden||dialog.querySelector('.color-studio-sampler [role=alert]'));
+  const select=dialog.querySelector('[aria-label="Color sample source"]');select.value='1';select.dispatchEvent(new Event('change'));await wait(()=>!dialog.querySelector('.color-studio-sample-canvas').hidden);
+  expect(dialog.querySelector('.color-studio-sampled code').textContent==='#3261B5','Custom sampler reads actual image pixels');
+  dialog.querySelector('.color-studio-sampled button').click();expect(dialog.querySelector('.color-studio-hex').value==='#3261B5'&&input.value!=='#3261b5','Sampled color remains staged until Apply');
+  dialog.querySelector('.color-studio-apply').click();await tick();expect(input.value==='#3261b5','Apply commits the sampled color');
+  dialog=open();const box=dialog.getBoundingClientRect();expect(box.left>=0&&box.right<=innerWidth+1&&box.top>=0&&box.bottom<=innerHeight+1,'Dialog fits the viewport');
+  expect(dialog.scrollWidth<=dialog.clientWidth+1,'Studio has no horizontal overflow');dialog.querySelector('.color-studio-close').click();await tick();
+  form.reset();await tick();expect(input.value==='#3261b5'&&trigger.textContent==='#3261B5','Form reset restores the saved color chip');
+  form.querySelector('fieldset').disabled=true;trigger.click();expect(!document.querySelector('.audience-color-studio[open]'),'Disabled fields cannot open a color dialog');form.querySelector('fieldset').disabled=false;
+  result.textContent=`PASS: ${count} Color studio checks`;result.dataset.status='passed';
+ }catch(error){result.textContent=`FAIL after ${count} checks: ${error.message}`;result.dataset.status='failed';throw error;}
 };

@@ -4,7 +4,7 @@ import { setDesignColor } from './audience-design-model.mjs';
 export function stylePanelSignature(design) {
   return JSON.stringify([design.styles,design.regions,design.typography,design.badge,design.preheader,design.footer,design.mobile]);
 }
-export function renderDesignStylePanel({tools,design,originalDesign,area,setArea,button,el,onPreview,onSave,brandFont}) {
+export function renderDesignStylePanel({tools,design,originalDesign,area,setArea,button,el,onPreview,onSave,brandFont,palette=[],sampleSources}) {
   const labels={page:'Page',preheader:'Preheader',header:'Header',body:'Body',footer:'Footer',mobile:'Mobile Styles',badge:'Referral Badge'};
   if(!area){
     for(const [key,label]of Object.entries(labels)){
@@ -23,7 +23,7 @@ export function renderDesignStylePanel({tools,design,originalDesign,area,setArea
   const label=(text,control)=>{const wrap=el(control.querySelector('.audience-color-control')?'div':'label',undefined,'designer-style-control');wrap.append(el('span',text),control);return wrap;};
   const select=(target,key,choices,value,changed=()=>{})=>{const input=el('select');for(const [v,text]of Object.entries(choices)){const option=el('option',text);option.value=v;input.append(option);}const current=String(target[key]??value);if(![...input.options].some(option=>option.value===current)){const option=el('option',current);option.value=current;input.append(option);}input.value=current;input.onchange=()=>{target[key]=typeof value==='number'?Number(input.value):input.value;changed();preview();};return input;};
   const number=(target,key,value,min,max,suffix='')=>{const wrap=el('span',undefined,'designer-style-number'),input=el('input');input.type='number';input.min=min;input.max=max;input.value=target[key]??value;input.oninput=()=>{if(!input.checkValidity())return;target[key]=Number(input.value);preview();};wrap.append(input);if(suffix)wrap.append(el('span',suffix));return wrap;};
-  const color=(target,key,value)=>{const group=el('span',undefined,'designer-style-color'),picker=el('input');picker.type='color';picker.value=target[key]??value;picker.oninput=()=>{setDesignColor(design,target,key,picker.value);preview();};group.append(picker);enhanceColorInput(picker,{label:'Choose '+key+' color'});return group;};
+  const color=(target,key,value)=>{const group=el('span',undefined,'designer-style-color'),picker=el('input');picker.type='color';picker.value=target[key]??value;picker.oninput=()=>{setDesignColor(design,target,key,picker.value);preview();};group.append(picker);enhanceColorInput(picker,{label:'Choose '+key+' color',palette,sampleSources,previewStyle:()=>({fontFamily:defaultDesignFont(design)})});return group;};
   const section=title=>{const box=el('section',undefined,'designer-style-section'),heading=el('h3',title),content=el('div',undefined,'designer-style-section-body');box.append(heading,content);body.append(box);return content;};
   const row=(...nodes)=>{const node=el('div',undefined,'designer-style-control-row');node.append(...nodes);return node;};
   const border=(host,target,title,prefix='')=>{

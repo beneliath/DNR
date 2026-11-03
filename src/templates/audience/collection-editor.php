@@ -4,7 +4,7 @@ $isEmbedded=$resource['kind']==='embedded';$d['embedded']=array_replace(audience
 $collectionBrand=$collectionBrand??[];$brandStyles=$collectionBrand['styles']??[];
 $collectionBrandFont=audienceBrandFont($collectionBrand);$collectionBrandFont['font']=in_array($brandStyles['font']??'',['Arial','Georgia','Verdana','Tahoma','Times New Roman'],true)?$brandStyles['font']:'Arial';
 $collectionBrandFont['available']=isset($brandStyles['font'])||$collectionBrandFont['data']!=='';
-$collectionBrandColors=[];foreach(['background'=>'Page background','body'=>'Content background','text'=>'Text','link'=>'Link','button'=>'Button','buttonText'=>'Button text']as$key=>$label)if(isset($brandStyles[$key]))$collectionBrandColors[]=['label'=>$label,'value'=>audienceDesignColor($brandStyles[$key])];
+$collectionBrandColors=audienceBrandColorPalette($collectionBrand);
 $collectionBrandLogos=[];foreach(['logo'=>'Primary logo','secondary_logo'=>'Secondary logo']as$key=>$label)if(!empty($collectionBrand[$key]))$collectionBrandLogos[$key]=['label'=>$label,'image'=>audienceDesignImage($collectionBrand[$key],2000000,true)];
 $savedBrandFont=$d['web_font']!=='';$usesCurrentBrandFont=$savedBrandFont&&$d['web_font']===$collectionBrandFont['data'];
 ?>

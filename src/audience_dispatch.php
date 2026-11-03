@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// Leave a little room below Gmail's roughly 102 KB clipping threshold.
+const AUDIENCE_DISPATCH_HTML_WARNING_BYTES=100000;
+
+function audienceDispatchMessageSize(array $message):array
+{
+    $htmlBytes=strlen($message['html']??'');
+    return ['html_bytes'=>$htmlBytes,'text_bytes'=>strlen($message['text']??''),'warning'=>$htmlBytes>=AUDIENCE_DISPATCH_HTML_WARNING_BYTES];
+}
+
 function audienceDispatchEmailHash(string $email):string { return hash('sha256',strtolower(trim($email))); }
 
 /** Deletion remains an import block; only fresh form-confirmed consent permits delivery. */
@@ -49,19 +58,58 @@ function audienceDispatchDue(array $send,?int $now=null):string
     return $date->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 }
 
+function audienceDispatchHostAssets(string $html,array $snapshot):string
+{
+    if(empty($snapshot['asset_key']))return $html;
+    return preg_replace_callback('~data:(image/(?:png|jpeg|webp|gif|svg\+xml)|font/(?:woff2?|ttf));base64,[A-Za-z0-9+/=]+~',static function(array $match)use($snapshot):string{
+        // Font URLs live inside CSS, where HTML entities are not decoded.
+        $parameter=str_starts_with($match[1],'font/')?'&font=':'&amp;image=';
+        return $snapshot['base'].'/audience_email_asset.php?key='.$snapshot['asset_key'].$parameter.hash('sha256',$match[0]);
+    },$html);
+}
+
+/** A confirmation-scoped renderer: prepare immutable assets once, but personalize and validate every message. */
+function audienceDispatchRenderer(array $snapshot):Closure
+{
+    if(accountsEnabled())$snapshot['base']=currentAccountPublicUrl();
+    $snapshot['base']=audienceDispatchBase($snapshot['base']);$designs=[];
+    $render=static function(array $design,array $context,string $variantKey)use(&$designs,$snapshot):string{
+        if(!isset($designs[$variantKey])){
+            $document=audienceDesign($design);
+            // Fonts in <head> and image src values do not contribute to plain
+            // text. Host them before rendering to avoid scanning large base64
+            // payloads per recipient. The saved design stays untouched.
+            $document['styles']['webFont']=audienceDispatchHostAssets($document['styles']['webFont'],$snapshot);
+            $image=static fn(string $value):string=>str_starts_with($value,'data:image/')?html_entity_decode(audienceDispatchHostAssets($value,$snapshot),ENT_QUOTES,'UTF-8'):$value;
+            foreach($document['rows']as&$row)foreach($row['columns']as&$column)foreach($column as&$block){
+                $block['image']=$image($block['image']);
+                foreach($block['images']as&$item)$item['image']=$image($item['image']);
+                unset($item);
+            }
+            unset($row,$column,$block);
+            $designs[$variantKey]=$document;
+        }
+        return audienceDesignRenderDocument($designs[$variantKey],$context);
+    };
+    return static fn(array $context,string $token,string $messageId,string $variantKey='0'):array=>audienceDispatchMessage($snapshot,$context,$token,$messageId,$variantKey,$render);
+}
+
 /** Every recipient gets an identity/address/footer, including custom plain text. */
-function audienceDispatchMessage(array $snapshot,array $context,string $token,string $messageId,string $variantKey='0'):array
+function audienceDispatchMessage(array $snapshot,array $context,string $token,string $messageId,string $variantKey='0',?Closure $renderDesign=null):array
 {
     // Older snapshots may contain the primary Account URL. Recipient tokens and
     // hosted assets must always resolve against the Account owning this database.
     if(accountsEnabled())$snapshot['base']=currentAccountPublicUrl();
-    $draft=$snapshot['draft'];if(isset($snapshot['variants'][(int)$variantKey])){$v=$snapshot['variants'][(int)$variantKey];$draft['subject']=$v['subject'];$draft['from_name']=$v['from_name'];if($v['design']!==null)$draft['design']=$v['design'];}if(!empty($snapshot['is_resend'])&&!empty($draft['resend']['subject']))$draft['subject']=$draft['resend']['subject'];$base=audienceDispatchBase($snapshot['base']);
+    $draft=$snapshot['draft'];if(isset($snapshot['variants'][(int)$variantKey])){$v=$snapshot['variants'][(int)$variantKey];$draft['subject']=$v['subject'];$draft['from_name']=$v['from_name'];if($v['design']!==null)$draft['design']=$v['design'];}if(!empty($snapshot['is_resend'])&&!empty($draft['resend']['subject']))$draft['subject']=$draft['resend']['subject'];$base=$snapshot['base']=audienceDispatchBase($snapshot['base']);
     $link=!empty($snapshot['test'])?$base.'/audience_subscription.php?test=1':$base.'/audience_subscription.php?token='.$token;
     $context=array_replace($snapshot['identity'],$context,['UNSUB'=>$link,'UPDATE_PROFILE'=>$link.'&preferences=1','ARCHIVE'=>$link.'&email=1']);
     $subject=audienceDesignMerge((string)$draft['subject'],$context,false);
     $html=null;
     if($snapshot['type']==='plain-text')$text=audienceDesignMerge((string)$draft['text'],$context,false);
-    else{$html=audienceDesignHtml($draft['design'],$context);$text=audienceDesignPlainText($draft['design'],$context);}
+    else{
+        $html=$renderDesign?$renderDesign($draft['design'],$context,$variantKey):audienceDesignHtml($draft['design'],$context);
+        $text=isset($draft['design']['plainText'])?audienceDesignPlainText($draft['design'],$context):audienceDesignPlainTextFromHtml($html,$context);
+    }
     if(function_exists('audienceCollectionMerge')){
         $text=audienceCollectionMerge($text,$snapshot,$token,false);
         if($html!==null)$html=audienceCollectionMerge($html,$snapshot,$token,true);
@@ -72,7 +120,7 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if($html!==null&&(!str_contains($html,htmlspecialchars($link,ENT_QUOTES,'UTF-8'))||!str_contains($html,htmlspecialchars($context['LIST:ADDRESS'],ENT_QUOTES,'UTF-8'))))$html.='<div style="padding:24px;font-size:12px;text-align:center">'.nl2br(htmlspecialchars($footer,ENT_QUOTES,'UTF-8')).'</div>';
     if(preg_match('/\*\|[^|\r\n]{1,300}\|\*/',$subject.$text.($html??'')))throw new InvalidArgumentException('Resolve all merge tags before sending this email.');
     if(trim($subject)===''||preg_match('/[\r\n]/',$subject.$draft['from_name'].$draft['from_email']))throw new InvalidArgumentException('The email subject or sender contains invalid characters.');
-    if($html!==null&&!empty($snapshot['asset_key']))$html=preg_replace_callback('~data:image/(?:png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+~',static fn($m)=>$base.'/audience_email_asset.php?key='.$snapshot['asset_key'].'&amp;image='.hash('sha256',$m[0]),$html);
+    if($html!==null)$html=audienceDispatchHostAssets($html,$snapshot);
     if(($context['__email_format']??'html')==='text')$html=null;
     if(function_exists('audienceTrackMessage')){[$tracked,$text]=audienceTrackMessage($snapshot,$html??'',$text,$token);if($html!==null)$html=$tracked;}
     // Measure the delivered bodies, after image hosting and tracking expansion.
@@ -100,7 +148,7 @@ trait AudienceDispatch
         if(empty($draft['recipients_saved']))throw new InvalidArgumentException('Save your recipients before sending.');
         [$where,$params]=$this->campaignTarget($draft);
         $deletedEmailPolicy=audienceDeletedEmailSuppressionSql();
-        return $this->all("SELECT c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.custom_json,c.timezone FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT 100001",$params);
+        return $this->all("SELECT c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.email_status,c.custom_json,c.timezone FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT 100001",$params);
     }
     private function dispatchSnapshot(array $row,array $audience,string $base):array
     {
@@ -133,11 +181,13 @@ trait AudienceDispatch
         if(!$candidates||count($candidates)>100000)throw new InvalidArgumentException('Choose between 1 and 100,000 eligible subscribers.');
         // Render before confirmation to surface unresolved tags and malformed headers.
         $first=$this->designRecipientContext((int)$candidates[0]['id'],$audience);
-        audienceDispatchMessage($snapshot+['asset_key'=>str_repeat('0',64)],$first,str_repeat('0',64),'<review@message-monkey.invalid>');
+        // Measure the delivered HTML even when this sample connection prefers text.
+        // Fixed-length keys include the same hosting and tracking overhead as dispatch.
+        $message=audienceDispatchMessage($snapshot+['asset_key'=>str_repeat('0',64),'tracking_key'=>str_repeat('0',64)],array_replace($first,['__email_format'=>'html']),str_repeat('0',64),'<review@message-monkey.invalid>');
         $fingerprint=hash('sha256',json_encode([$snapshot,$candidates,$this->fields(),$this->tags(true),$this->groups(true)],JSON_THROW_ON_ERROR));
         $proof=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'campaign'=>$id,'version'=>(int)$row['version'],'actor'=>$this->actorId,'expires'=>time()+900,'fingerprint'=>$fingerprint],JSON_THROW_ON_ERROR));
         $preview=array_map(static fn(array $person):array=>['id'=>(int)$person['id'],'email'=>$person['email'],'first_name'=>$person['first_name'],'last_name'=>$person['last_name']],array_slice($candidates,0,100));
-        return ['proof'=>$proof,'count'=>count($candidates),'recipients'=>$preview,'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint];
+        return ['proof'=>$proof,'count'=>count($candidates),'recipients'=>$preview,'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint,'message_size'=>audienceDispatchMessageSize($message)];
     }
     public function confirmCampaignDispatch(int $id,int $version,string $proof,array $audience,string $base):int
     {
@@ -160,18 +210,37 @@ trait AudienceDispatch
             $fields=$this->fields();$tagIds=array_column($this->tags(true),'id');$groupIds=[];foreach($this->groups(true)as$g)foreach($g['options']as$o)$groupIds[]=$o['id'];
             $memberships=[];foreach($this->all('SELECT ct.contact_id,ct.tag_id FROM marketing_contact_tags ct JOIN marketing_tags t ON t.id=ct.tag_id WHERE t.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['tag:'.$m['tag_id']]='1';
             foreach($this->all('SELECT cg.contact_id,cg.option_id FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['group:'.$m['option_id']]='1';
-            foreach($candidates as$candidate){
-                $person=$this->one('SELECT id,email,first_name,last_name,source,email_status,custom_json,timezone FROM marketing_contacts WHERE audience_id=? AND id=?',[$this->audienceId,$candidate['id']]);$custom=audienceJson($person['custom_json']);
+            // Match collectionEmailFormat's latest valid recipient preference in
+            // one query, instead of fetching the contact and preference per row.
+            $formats=[];
+            foreach($this->all("SELECT e.contact_id,JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.email_format')) format FROM marketing_contact_events e JOIN (
+                SELECT events.contact_id,MAX(events.id) id FROM marketing_contact_events events JOIN marketing_contacts c ON c.id=events.contact_id
+                WHERE c.audience_id=? AND events.actor_type='recipient' AND events.event_type='signup-permission'
+                AND JSON_UNQUOTE(JSON_EXTRACT(events.details_json,'$.email_format')) IN ('html','text') GROUP BY events.contact_id
+            ) latest ON latest.id=e.id",[$this->audienceId])as$preference)$formats[$preference['contact_id']]=$preference['format'];
+            $render=audienceDispatchRenderer($snapshot);$pending=[];$pendingBytes=0;
+            $flush=function()use(&$pending,&$pendingBytes):void{
+                if(!$pending)return;
+                $values=implode(',',array_fill(0,(int)(count($pending)/10),'(?,?,?,?,?,?,?,?,?,?)'));
+                $this->write('INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,next_attempt_at,variant_key,phase) VALUES '.$values,$pending);
+                $pending=[];$pendingBytes=0;
+            };
+            foreach($candidates as$person){
+                $custom=audienceJson($person['custom_json']);
                 $context=['EMAIL'=>$person['email'],'FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
                 foreach($fields as$f){$value=$custom[$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
                 foreach($tagIds as$t)$context['tag:'.$t]=$memberships[$person['id']]['tag:'.$t]??'';foreach($groupIds as$g)$context['group:'.$g]=$memberships[$person['id']]['group:'.$g]??'';
-                $context['__email_format']=$this->collectionEmailFormat((int)$person['id']);
+                $context['__email_format']=$formats[$person['id']]??'html';
                 $token=bin2hex(random_bytes(32));$mid='<mm-'.bin2hex(random_bytes(24)).'@'.parse_url($base,PHP_URL_HOST).'>';
                 [$variantKey,$phase]=$assignments[$person['id']]??['0','main'];$send=$draft['send_time'];$variant=$snapshot['variants'][(int)$variantKey]??[];if(!empty($variant['local'])){$send['local']=str_replace('T',' ',$variant['local']);$send['mode']='schedule';$send['delivery']='specific';}
                 $recipientDue=audienceRecipientDue($send,$person['timezone']);if($phase==='hold')$recipientDue=$decision;
-                audienceDispatchMessage($snapshot,$context,$token,$mid,$variantKey);
-                $this->write('INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,next_attempt_at,variant_key,phase) VALUES (?,?,?,?,?,?,?,?,?,?)',[$this->audienceId,$delivery,$person['id'],audienceDispatchEmailHash($person['email']),\Dnr\Security\ApplicationKey::seal(json_encode(['context'=>$context,'token'=>$token],JSON_THROW_ON_ERROR)),hash('sha256',$token),$mid,$recipientDue,$variantKey,$phase]);
+                $render($context,$token,$mid,$variantKey);
+                $ciphertext=\Dnr\Security\ApplicationKey::seal(json_encode(['context'=>$context,'token'=>$token],JSON_THROW_ON_ERROR));
+                array_push($pending,$this->audienceId,$delivery,$person['id'],audienceDispatchEmailHash($person['email']),$ciphertext,hash('sha256',$token),$mid,$recipientDue,$variantKey,$phase);
+                $pendingBytes+=strlen($ciphertext)+512;
+                if(count($pending)>=1000||$pendingBytes>=524288)$flush();
             }
+            $flush();
             $this->write('UPDATE marketing_campaign_deliveries SET due_at=(SELECT MIN(next_attempt_at) FROM marketing_campaign_recipients WHERE delivery_id=?) WHERE id=?',[$delivery,$delivery]);
             if(!empty($draft['experiment']))$this->write("UPDATE marketing_campaign_deliveries SET experiment_due_at=DATE_ADD((SELECT MAX(next_attempt_at) FROM marketing_campaign_recipients WHERE delivery_id=? AND phase='test'),INTERVAL ? HOUR) WHERE id=?",[$delivery,(int)$draft['experiment']['hours'],$delivery]);
             $this->write('UPDATE marketing_campaigns SET status=?,version=version+1,actor_label=? WHERE audience_id=? AND id=?',[$state,$this->actorLabel,$this->audienceId,$id]);

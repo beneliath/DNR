@@ -1,3 +1,4 @@
+import { colorSampleSources } from './audience-color-sampler.mjs';
 import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
 import { initializeAddressInputs } from './address-inputs.mjs';
 import { initializeInputModality } from './input-modality.mjs';
@@ -59,7 +60,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const configNode = document.getElementById('collection-config');
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
-    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[]}));
+    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[],sampleSources:()=>colorSampleSources(null,[{label:'Form logo',image:form.querySelector('[data-doc=logo]')?.value},...Object.values(config.brandLogos||{})])}));
     let model = structuredClone(config.document);
     model.variants = [];
     const brandLogo = form.querySelector('[data-collection-brand-logo]');

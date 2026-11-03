@@ -56,8 +56,7 @@ async function pointerMove(page,handle,target,{touch=false,cancel=false}={}){
  await page.locator('#design-undo').evaluate(n=>n.click());assert.deepEqual(await order(),['section-0','section-1','section-2']);checks++;
  await pointerMove(page,sections.locator('.mm-reorder-handle').first(),sections.locator('.designer-section-row').last(),{touch:true});assert.deepEqual(await order(),['section-1','section-2','section-0']);checks++;
  await page.locator('#design-undo').evaluate(n=>n.click());assert.deepEqual(await order(),['section-0','section-1','section-2']);checks++;
- await rows.first().hover();await rows.first().locator('.designer-layout-tools .mm-reorder-handle').press('ArrowDown');assert.deepEqual(await order(),['section-1','section-0','section-2']);checks++;
- await page.locator('#design-undo').evaluate(n=>n.click());
+ assert.equal(await page.locator('#email-canvas .designer-layout-tools').count(),0);checks++;
  const initial=await blockOrder(),block=page.locator('[data-block-id="block-0-0"]');await block.hover();await block.locator('.designer-block-move').press('ArrowDown');assert.deepEqual((await blockOrder()).slice(0,2),['block-0-1','block-0-0']);checks++;
  await page.locator('#design-undo').evaluate(n=>n.click());assert.deepEqual(await blockOrder(),initial);checks++;
  await block.click();const inspector=page.locator('.designer-block-actions .mm-reorder-handle');assert.equal(await inspector.count(),1);assert.equal(await page.getByRole('button',{name:/^Move (up|down)$/}).count(),0);checks+=2;
