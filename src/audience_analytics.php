@@ -4,11 +4,13 @@ require_once __DIR__.'/audience_analytics_reports.php';
 require_once __DIR__.'/audience_engagement.php';
 require_once __DIR__.'/audience_profile_engagement.php';
 
-function audienceAnalyticsPresets(bool $home,?DateTimeImmutable $now=null):array
+function audienceAnalyticsPresets(?DateTimeImmutable $now=null):array
 {
     $today=($now??new DateTimeImmutable('now',new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('UTC'))->setTime(0,0);
-    $end=$home?$today->modify('-1 day'):$today;$presets=[];
-    foreach([7,30,90,365]as$n)$presets[(string)$n]=['label'=>'Last '.$n.' days','start'=>$end->modify('-'.($n-1).' days')->format('Y-m-d'),'end'=>$end->format('Y-m-d')];
+    $presets=[];
+    foreach ([7,30,90,365] as $days) {
+        $presets[$days]=['label'=>"Last $days days",'start'=>$today->modify('-'.($days-1).' days')->format('Y-m-d'),'end'=>$today->format('Y-m-d')];
+    }
     $sunday=$today->modify('-'.$today->format('w').' days');$month=$today->modify('first day of this month');
     $quarter=$today->setDate((int)$today->format('Y'),1+3*intdiv((int)$today->format('n')-1,3),1);
     foreach(['week'=>['Last week',$sunday->modify('-7 days'),$sunday->modify('-1 day')],

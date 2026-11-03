@@ -14,7 +14,7 @@ $reports=[];
 foreach(['email'=>'Sample · Email performance','audience'=>'Sample · Audience growth']as$dataset=>$name){
     $existing=null;foreach($store->analyticsSavedReports(true)as$r)if($r['name']===$name){$existing=$r;break;}
     if($existing){$reports[]=$existing['key'];continue;}
-    $presets=audienceAnalyticsPresets(false);$definition=['name'=>$name,'description'=>'Fictional local sample report for testing; no messages were sent.','dataset'=>$dataset,'start'=>$presets[90]['start'],'end'=>$presets[90]['end'],'shared'=>'1'];
+    $presets=audienceAnalyticsPresets();$definition=['name'=>$name,'description'=>'Fictional local sample report for testing; no messages were sent.','dataset'=>$dataset,'start'=>$presets[90]['start'],'end'=>$presets[90]['end'],'shared'=>'1'];
     if($dataset==='email')$definition+=['messages_mode'=>'selected','messages'=>$result['campaigns'],'columns'=>['accepted','open_rate','click_rate','bounced'],'plots'=>['accepted','click_rate']];
     else$definition+=['source'=>'Local sample data'];
     $reports[]=$store->analyticsSaveReport($definition,true);

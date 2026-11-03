@@ -25,7 +25,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         }
         catch(InvalidArgumentException $e){http_response_code(403);exit($h($e->getMessage()));}
     }
-    $presets=audienceAnalyticsPresets($view==='home');
+    $presets=audienceAnalyticsPresets();
     $rangeKey=audienceText($reportInput,'range',20)?:((isset($reportInput['start'])||isset($reportInput['end']))?'custom':($view==='home'?'30':($section==='locations'?'7':'90')));
     if(!isset($reportInput['range'])&&isset($reportInput['start'],$reportInput['end']))foreach($presets as$key=>$preset)if($reportInput['start']===$preset['start']&&$reportInput['end']===$preset['end']){$rangeKey=(string)$key;break;}
     try{
@@ -47,7 +47,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
         if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);
-        if(in_array($section,['links','devices','insights'],true))$evidence=$store->analyticsEvidence($window);
+        if(in_array($section,['links','devices'],true))$evidence=$store->analyticsEvidence($window);
         if($section==='links'&&($reportInput['map']??'')==='1')$clickMap=$store->analyticsClickMap($window,max(0,(int)($reportInput['delivery']??0)));
         if($section==='locations'){
             require_once __DIR__.'/map_helpers.php';
