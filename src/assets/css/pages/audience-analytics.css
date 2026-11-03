@@ -187,7 +187,8 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 .analytics-workspace .analytics-metric-choice strong{font-size:var(--analytics-metric-size)}
 .analytics-workspace .analytics-card :is(.analytics-metrics,.analytics-audience) dt,
 .analytics-workspace :is(.analytics-metric-choice>span:first-child,.analytics-trend,.analytics-horizontal-bars,.analytics-funnel-step,.analytics-resource-list span,.analytics-insight-grid article),
-.analytics-workspace :is(.data-table,th,.analytics-interaction-popup strong),
+.analytics-workspace :is(.data-table,.analytics-interaction-popup strong),
+.analytics-workspace .data-table th,
 .analytics-workspace .data-table [data-mm-card-row]>[data-mm-cell]{font-size:var(--analytics-text-size)}
 .analytics-workspace .data-table thead th{white-space:normal;hyphens:auto;overflow-wrap:anywhere}
 .analytics-builder-results .analytics-report-table{min-width:0}
