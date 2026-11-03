@@ -57,6 +57,13 @@ advancedExpect(!str_contains($dark,'filter:')&&str_contains($dark,'background:#1
 advancedExpect(str_contains($dark,'nonce="fixtureNonce1234"')&&!preg_match('/ style="/',$dark),'Dark preview keeps nonce CSS protection');
 advancedExpect(audienceDesignHtml($builder)===$source,'Dark preview never changes exported email content');
 $rich=audienceDesignRichText('<h2 id="headline">Heading</h2><p style="direction:rtl;text-align:justify">Copy<img src="'.$image.'" alt="Inline photo" onerror="bad()"></p><img src="https://tracker.test/pixel">');
+foreach([1=>32,2=>28,3=>24,4=>20]as$level=>$size){
+    $headingDoc=audienceDesignStarters()['blank']['design'];$headingBlock=&$headingDoc['rows'][0]['columns'][0][0];
+    $headingBlock['type']='heading';$headingBlock['headingLevel']=$level;$headingBlock['html']='<h'.$level.' style="font-size:'.$size.'px;font-weight:bold"><span style="color:#3261b5">Saved headline</span></h'.$level.'>';unset($headingBlock);
+    $savedHeading=audienceDesign(json_decode(json_encode(audienceDesign($headingDoc),JSON_THROW_ON_ERROR),true));
+    advancedExpect($savedHeading['rows'][0]['columns'][0][0]['headingLevel']===$level&&str_contains($savedHeading['rows'][0]['columns'][0][0]['html'],'font-size:'.$size.'px;font-weight:bold'),'Heading '.$level.' size, weight and level survive the save round trip');
+    advancedExpect(str_contains(audienceDesignHtml($savedHeading),'<h'.$level.' style="font-size:'.$size.'px;font-weight:bold">'),'Heading '.$level.' styling reaches the rendered email');
+}
 advancedExpect(str_contains($rich,'direction:rtl')&&str_contains($rich,'text-align:justify')&&str_contains($rich,'Inline photo')&&!str_contains($rich,'onerror')&&!str_contains($rich,'tracker.test'),'Rich text retains headings direction alignment and safe inline images only');
 foreach(['left','right']as$side){
     $wrapped=audienceDesignRichText('<p><img src="'.$image.'" width="180" align="'.$side.'" style="width:180px;float:'.$side.';position:fixed;top:0" onload="bad()">Text wrapping around the image.</p>');

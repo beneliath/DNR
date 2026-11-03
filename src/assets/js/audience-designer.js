@@ -4,7 +4,7 @@ import { mountRichText, setRichContent, normalizeRichLink } from './audience-des
 import { mountBlockDropSpace } from './audience-designer-drop.mjs';
 import { renderDesignStylePanel } from './audience-designer-styles.mjs';
 import { defaultDesignFont, designFontChoices, selectDesignFont } from './audience-designer-fonts.mjs';
-import { normalizeEmailDesignMaps, moveEmailBlock } from './audience-design-model.mjs';
+import { normalizeEmailDesignMaps, moveEmailBlock, removeEmptyEmailColumn } from './audience-design-model.mjs';
 import { templatePreviewBoundary } from './audience-template-preview.mjs';
 import { imageCropLayout, imageCropZoom } from './audience-image-crop.mjs';
 import { enhanceAudienceFileInput, setFileDropStatus } from './audience-file-drop.mjs';
@@ -354,7 +354,7 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
     document.body.style.setProperty('--designer-toolbar-width',Math.ceil(Math.max(...widths)+chrome+2)+'px');
   }
   window.addEventListener('resize',syncRichToolbarWidth);
-  function richText(b){disposeRichText=mountRichText({fonts:designFontChoices(design,config.brandFont),onFont:value=>selectDesignFont(design,config.brandFont,value),host:tools,block:b,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection:range=>richRange=range,openLink:()=>{$('#design-link-dialog input').value='';$('#design-link-dialog').showModal();},mergeTags:config.mergeTags,openImage:choose=>openLibrary('image',choose)});queueMicrotask(()=>{syncRichAppearance();syncRichToolbarWidth();});}
+  function richText(b){disposeRichText=mountRichText({fonts:designFontChoices(design,config.brandFont),onFont:value=>selectDesignFont(design,config.brandFont,value),formatStyle:tag=>{const heading=/^h[1-4]$/.test(tag),key=heading?'heading'+tag[1]:'paragraph';return {size:heading?design.styles[key]:design.styles.fontSize,weight:heading?'bold':'normal',...design.typography[key]};},host:tools,block:b,makeButton:button,makeElement:el,history,changed,renderCanvas,onSelection:range=>richRange=range,openLink:()=>{$('#design-link-dialog input').value='';$('#design-link-dialog').showModal();},mergeTags:config.mergeTags,openImage:choose=>openLibrary('image',choose)});queueMicrotask(()=>{syncRichAppearance();syncRichToolbarWidth();});}
   function renderTools(){
     disposeRichText?.();disposeRichText=null;richRange=null;
     if(panel!=='styles'){styleDraft=null;styleArea='';}tools.classList.toggle('designer-style-detail',panel==='styles'&&!!styleArea);tools.classList.toggle('designer-style-index',panel==='styles'&&!styleArea);tools.classList.toggle('designer-block-style',panel==='block'&&blockTab==='style');tools.replaceChildren();$$('.designer-rail button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.panel===panel)));
@@ -542,7 +542,11 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
           if(b.condition.rules.length)bn.append(el('span','Dynamic content','designer-dynamic-badge'));bn.append(content);
           const bar=el('div',undefined,'designer-block-hover-tools'),handle=blockReorderHandle([r,c,i],'Reorder '+b.type+' block');handle.classList.add('designer-block-move');handle.title='Drag to reorder';bar.append(handle);
           const actions=el('div',undefined,'designer-block-hover-actions');for(const [icon,label,fn]of [['edit','Edit Block',()=>{selected=[r,c,i];selectedRow=null;panel='block';render();}],['duplicate','Duplicate Block',()=>{selected=[r,c,i];duplicate();}],['delete','Delete Block',()=>{selected=[r,c,i];remove();}]]){const control=button('',event=>{event.stopPropagation();fn();});control.setAttribute('aria-label',label);const image=el('img');image.src='assets/editor-icons/block-'+icon+'.svg';image.alt='';const tip=el('span',label,'designer-block-tooltip');tip.setAttribute('role','tooltip');control.append(image,tip);actions.append(control);}bar.append(actions);bn.append(bar);cn.append(bn);
-        });if(!col.length)cn.append(el('div','Drop content here','designer-drop-empty'));rn.append(cn);
+        });if(!col.length){
+          const empty=el('div',undefined,'designer-drop-empty'),label=row.columns.length===1?'empty section':'empty column';
+          empty.append(el('span','Drop content here'),button('Delete '+label,()=>confirmDesignAction('Delete '+label+'?','This removes only this '+label+'. Other content is kept. You can undo the change.',()=>mutate(()=>{removeEmptyEmailColumn(design,r,c);selected=null;selectedRow=null;panel='add';})),'designer-empty-delete'));
+          cn.append(empty);
+        }rn.append(cn);
       });canvas.append(rn);
     });
     const footer=el('div',undefined,'designer-email-footer');footer.tabIndex=0;footer.setAttribute('role','button');footer.setAttribute('aria-label','Edit footer');const reminder=(config.permissionReminder||'').trim(),normalizeReminder=value=>String(value).replace(/\s+/g,' ').trim();if(reminder&&!normalizeReminder(canvas.textContent+' '+design.footer.text).includes(normalizeReminder(reminder)))footer.append(el('p',reminder,'email-permission-reminder'));footer.append(el('p',design.footer.text),el('p','*|LIST:COMPANY|*\n*|LIST:ADDRESS|*'),el('p','Update your preferences or unsubscribe.'));applyStyle(footer,{background:s.body,color:'#60676b',size:12,padding:32,align:'center',lineHeight:160,...design.regions.footer,...design.footer.styles});footer.onclick=()=>{panel='footer';renderTools();};footer.onkeydown=e=>{if(e.key==='Enter')footer.click();};canvas.append(footer);if(design.badge.enabled){const badge=el('div','Made with MessageMonkey','designer-email-badge');badge.style.textAlign=design.badge.align;canvas.append(badge);}

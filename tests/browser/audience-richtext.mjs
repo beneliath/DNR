@@ -94,6 +94,44 @@ document.querySelector('#run').onclick=async()=>{
     const plain={text:'First line\nSecond line\n\nFourth line',html:''};
     dispose=mountRichText({host,block:plain,makeButton:button,makeElement:el,history:()=>{},changed:()=>{},renderCanvas:()=>{},onSelection:()=>{},openLink:()=>{},mergeTags:{},openImage:()=>{}});
     const plainEditor=host.querySelector('.designer-rich-text');expect(plainEditor.querySelectorAll('br').length===3,'Plain-text line breaks survive entry into rich editing');expect(plain.html==='','Opening text does not change the saved design');
+    const mountFormat=block=>{
+      dispose();host.replaceChildren();
+      dispose=mountRichText({host,block,makeButton:button,makeElement:el,history:()=>{},changed:()=>{},renderCanvas:()=>{},onSelection:()=>{},openLink:()=>{},mergeTags:{},openImage:()=>{}});
+      const editor=host.querySelector('.designer-rich-text');editor.style.fontSize='30px';editor.style.fontWeight='normal';return editor;
+    };
+    const selectText=(editor,word)=>{
+      editor.focus();const walker=document.createTreeWalker(editor,NodeFilter.SHOW_TEXT);let node;
+      while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start<0)continue;const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));return node;}
+      throw Error('Formatting text missing: '+word);
+    };
+    for(const [tag,size]of [['h1',32],['h2',28],['h3',24],['h4',20]]){
+      const heading={type:'heading',headingLevel:1,text:'Saved heading',html:'<p><span style="font-size:30px;font-weight:normal">Saved heading</span></p>'};
+      let editor=mountFormat(heading);selectText(editor,'Saved heading');find('Formatting style').value=tag;find('Formatting style').dispatchEvent(new Event('change'));
+      let text=selectText(editor,'Saved heading'),style=getComputedStyle(text.parentElement);
+      expect(style.fontSize===size+'px'&&parseFloat(style.fontWeight)>=600&&find('Selected text size').value===String(size),tag+' changes size and weight despite earlier inline formatting');
+      expect(find('Formatting style').value===tag&&heading.headingLevel===Number(tag[1]),tag+' keeps its toolbar choice and heading metadata');
+      const saved=JSON.parse(JSON.stringify(heading));editor=mountFormat(saved);
+      expect(find('Formatting style').value===tag,tag+' is restored before focusing the reopened editor');
+      text=selectText(editor,'Saved heading');style=getComputedStyle(text.parentElement);
+      expect(style.fontSize===size+'px'&&parseFloat(style.fontWeight)>=600&&find('Selected text size').value===String(size),tag+' appearance survives save and reopen');
+    }
+    const heading={type:'heading',headingLevel:1,text:'Headline',html:''};let editor=mountFormat(heading);
+    expect(find('Formatting style').value==='h1'&&heading.html==='','A plain heading block opens as Heading 1 without modifying its content');
+    selectText(editor,'Headline');find('Formatting style').value='h4';find('Formatting style').dispatchEvent(new Event('change'));
+    find('Undo text change').click();expect(find('Formatting style').value==='h1'&&heading.headingLevel===1,'Undo restores heading level and toolbar together');
+    find('Redo text change').click();expect(find('Formatting style').value==='h4'&&heading.headingLevel===4,'Redo restores heading level and toolbar together');
+    const weight={type:'text',text:'Alpha Beta',html:'<p><span style="font-weight:normal">Alpha</span> Beta</p>'};editor=mountFormat(weight);
+    selectText(editor,'Alpha');find('Bold selection').click();
+    expect(parseFloat(getComputedStyle(selectText(editor,'Alpha').parentElement).fontWeight)>=600,'Bold applies to selected text with an explicit normal weight');
+    expect(parseFloat(getComputedStyle(selectText(editor,'Beta').parentElement).fontWeight)<600,'Bold leaves unselected neighboring text unchanged');
+    selectText(editor,'Alpha');find('Bold selection').click();expect(parseFloat(getComputedStyle(selectText(editor,'Alpha').parentElement).fontWeight)<600,'Bold toggles the same selection back to normal');
+    find('Undo text change').click();expect(parseFloat(getComputedStyle(selectText(editor,'Alpha').parentElement).fontWeight)>=600,'Text undo restores bold');
+    editor=mountFormat(JSON.parse(JSON.stringify(weight)));expect(parseFloat(getComputedStyle(selectText(editor,'Alpha').parentElement).fontWeight)>=600,'Bold survives save and reopen');
+    for(const width of [900,700,430,320]){
+      host.style.width=width+'px';const controls=[...host.querySelectorAll('.designer-rich-alignment button')],top=controls[0].getBoundingClientRect().top;
+      expect(controls.length===4&&controls.every(node=>Math.abs(node.getBoundingClientRect().top-top)<1),'All alignment controls share one line at '+width+'px');
+    }
+    host.style.width='';
     result.textContent=`PASS: ${checks} browser checks`;result.dataset.status='passed';
   }catch(error){result.textContent=`FAIL after ${checks} checks: ${error.message}`;result.dataset.status='failed';throw error;}
 };

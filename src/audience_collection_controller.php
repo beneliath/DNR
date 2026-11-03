@@ -7,6 +7,10 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
     $audienceId=$store->audienceId; $isPost=$_SERVER['REQUEST_METHOD']==='POST';
     $available=$store->collectionAvailable(); $resource=null; $recover=null; $operationRedirect=null; $collectionEditorError=null;
+    $publishedPreview=$view==='form'&&($_GET['preview']??null)==='published';
+    if($publishedPreview&&$_SERVER['REQUEST_METHOD']!=='GET'){
+        http_response_code(405);header('Allow: GET');exit('Published previews are read-only.');
+    }
     if ($isPost) {
         requireValidCsrfToken();
         $action=audienceText($_POST,'action',40);
@@ -108,6 +112,18 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         catch (InvalidArgumentException $e) { http_response_code(404); exit($h($e->getMessage())); }
     }
     if (in_array($view,['form','collection-report'],true) && !$resource) { http_response_code(404); exit('This form is unavailable.'); }
+    if($publishedPreview){
+        $published=$store->collectionPublished($resource['public_key']);
+        if(!$published){http_response_code(404);exit('This form is unavailable or paused.');}
+        require_once __DIR__.'/audience_collection_render.php';
+        $nonce=contentSecurityPolicyNonce();
+        header('Content-Type: text/html; charset=UTF-8');header('Cache-Control: no-store');
+        header('Referrer-Policy: no-referrer');header('X-Robots-Tag: noindex, nofollow');
+        header("Content-Security-Policy: default-src 'none'; style-src 'nonce-{$nonce}'; font-src data:; img-src 'self' data: https:; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; sandbox allow-same-origin");
+        releaseApplicationSessionLock();
+        echo audienceCollectionHtml($published,$store->fields(),$store->groups(),'','',[],'','',null,true);
+        return;
+    }
     $savedCollectionDraft=$resource['draft']??null;
     if ($resource && $recover && isset($recover['document_json'])) {
         try { $draft=json_decode(audienceText($recover,'document_json',3000000),true,32,JSON_THROW_ON_ERROR); if (is_array($draft)) $resource['draft']=audienceCollectionDocument($draft,$resource['kind'],$store->fields(),$store->groups(),$store->tags()); } catch (Throwable) {}

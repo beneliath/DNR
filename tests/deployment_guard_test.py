@@ -63,6 +63,8 @@ class GuardTests(unittest.TestCase):
                 def __exit__(self, *_): pass
                 def read(self): return json.dumps({'server_now': 123, 'notice': {'id': guard.identifier}}).encode()
             def response(request, **_):
+                self.assertEqual(request.get_header('User-agent'), 'MOED-Deployment/1.0')
+                self.assertEqual(request.get_header('Cache-control'), 'no-cache')
                 urls.append(request.full_url.split('?')[0]); return Response()
             with patch('deployment_guard.urllib.request.urlopen', side_effect=response), patch('deployment_guard.time.sleep'):
                 guard.wait_for_route(protected=True)

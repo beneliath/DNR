@@ -1,6 +1,20 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+test('empty canvas columns and sections can be removed without deleting neighboring content',async()=>{
+  const {removeEmptyEmailColumn}=await import('../../src/assets/js/audience-design-model.mjs');
+  const design={rows:[{id:'header',columns:[[{id:'logo'}]]},{id:'body',columns:[[{id:'copy'}],[],[{id:'photo'}]]},{id:'empty',columns:[[]]},{id:'footer',columns:[[{id:'links'}]]}]};
+  const original=JSON.stringify(design);
+  for(const indices of [[0,0],[1,0],[1,2],[9,0],[1,9]])assert.equal(removeEmptyEmailColumn(design,...indices),false);
+  assert.equal(JSON.stringify(design),original);
+  assert.equal(removeEmptyEmailColumn(design,1,1),true);
+  assert.deepEqual(design.rows[1].columns,[[{id:'copy'}],[{id:'photo'}]]);
+  assert.equal(removeEmptyEmailColumn(design,2,0),true);
+  assert.deepEqual(JSON.parse(JSON.stringify(design)).rows.map(row=>row.id),['header','body','footer']);
+  assert.deepEqual(design.rows.flatMap(row=>row.columns.flat()).map(block=>block.id),['logo','copy','photo','links']);
+  const empty={rows:[{columns:[[]]}]};assert.equal(removeEmptyEmailColumn(empty,0,0),true);assert.deepEqual(empty.rows,[]);
+});
+
 test('font selection matches computed font stacks to system and Brand Kit choices',async()=>{
   const {matchingFontChoice}=await import('../../src/assets/js/audience-designer-fonts.mjs');
   const choices={Arial:'Arial','Times New Roman':'Times New Roman','MOEDBrandFont,Tahoma':'Ubuntu Light (Brand Kit)'};

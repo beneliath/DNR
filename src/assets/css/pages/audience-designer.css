@@ -146,6 +146,9 @@ html.dark-mode .designer-rail img{filter:invert(1)}
 .designer-rich-text :is(h1,h2,h3,h4){color:inherit}
 .designer-rich-toolbar{display:block;position:relative;padding:6px;background:var(--audience-surface);color:var(--audience-text)}
 .designer-rich-toolbar-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;position:relative}
+.designer-rich-alignment{display:inline-flex;align-items:center;flex:0 0 auto;flex-wrap:nowrap;gap:6px}
+.designer-drop-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.designer-drop-empty .designer-empty-delete{width:auto;min-height:32px;padding:6px 10px;font-size:13px}
 .designer-rich-toolbar-row+.designer-rich-toolbar-row{margin-top:6px}
 .designer-rich-toolbar-row[hidden]{display:none}
 .designer-rich-toolbar :is(button,select){margin:0!important;min-height:32px;height:32px;line-height:1.2;border-radius:3px}
