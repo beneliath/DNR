@@ -108,12 +108,15 @@ function audienceDispatchMessage(array $snapshot,array $context,string $token,st
     if($snapshot['type']==='plain-text')$text=audienceDesignMerge((string)$draft['text'],$context,false);
     else{
         $html=$renderDesign?$renderDesign($draft['design'],$context,$variantKey):audienceDesignHtml($draft['design'],$context);
-        $text=isset($draft['design']['plainText'])?audienceDesignPlainText($draft['design'],$context):audienceDesignPlainTextFromHtml($html,$context);
+        if(function_exists('audienceCollectionMerge'))$html=audienceCollectionMerge($html,$snapshot,$token,true);
+        if (isset($draft['design']['plainText'])) {
+            $text = audienceDesignPlainText($draft['design'], $context);
+        } else {
+            $trackHref = !empty($draft['tracking']['plain_clicks']) && function_exists('audienceClickTracker') ? audienceClickTracker($snapshot, $token) : null;
+            $text = audienceDesignPlainTextFromHtml($html, $context, $trackHref);
+        }
     }
-    if(function_exists('audienceCollectionMerge')){
-        $text=audienceCollectionMerge($text,$snapshot,$token,false);
-        if($html!==null)$html=audienceCollectionMerge($html,$snapshot,$token,true);
-    }
+    if(function_exists('audienceCollectionMerge'))$text=audienceCollectionMerge($text,$snapshot,$token,false);
     $reminder=audiencePermissionReminder($context);
     $footer="\n\n".($reminder!==''&&!audienceHasPermissionReminder($text,$reminder,false)?$reminder."\n\n":'').$context['LIST:COMPANY']."\n".$context['LIST:ADDRESS']."\nUpdate your preferences: ".$context['UPDATE_PROFILE']."\nUnsubscribe: ".$context['UNSUB'];
     $text.=$footer;
