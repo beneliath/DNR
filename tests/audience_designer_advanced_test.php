@@ -34,6 +34,27 @@ advancedExpect(count(array_filter($linkReport['links'],static fn($link)=>$link['
 advancedExpect(in_array('HTTP link — review destination',array_column($linkReport['links'],'status'),true),'HTTP destination is reported without enabling an insecure server-side probe');
 $image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=';
 foreach(['image-card','image-group','video','social','code']as$type){$doc=audienceDesignStarters()['blank']['design'];$item=$doc['rows'][0]['columns'][0][0];$item['type']=$type;$item['id']='test-'.$type;$item['image']=$image;$item['alt']='Example';$item['url']='https://example.test/watch';$item['images']=[['image'=>$image,'alt'=>'One','url'=>'https://example.test/one']];$item['social']=[['label'=>'Website','url'=>'https://example.test/']];$item['code']='<p>Safe code</p>';$doc['rows'][0]['columns'][0]=[$item];$render=audienceDesignHtml($doc);advancedExpect(!str_contains($render,'<script')&&str_contains($render,'*|UNSUB|*'),'New block safe render '.$type);}
+$video = ['type'=>'video', 'url'=>'https://example.test/video', 'image'=>$image];
+foreach ([
+    [null, null, ''], ['', null, ''], ['Watch video', null, 'Watch video'],
+    ['Saved caption', false, ''], ['', true, ''], [" \t\u{00A0}", true, ''],
+    ['0', true, '0'], ['Q&A <Part 1>', true, 'Q&A <Part 1>'],
+] as [$caption, $enabled, $expected]) {
+    $block = $video;
+    if ($caption !== null) $block['caption'] = $caption;
+    if ($enabled !== null) $block['showCaption'] = $enabled;
+    $design = audienceDesign(['schema'=>1, 'rows'=>[['columns'=>[[$block]]]]]);
+    $savedBlock = $design['rows'][0]['columns'][0][0];
+    advancedExpect($savedBlock['caption'] === ($caption ?? '') && $savedBlock['showCaption'] === ($enabled ?? ($expected !== '')), 'Save preserves caption text and its independent visibility setting');
+    $document = new DOMDocument();
+    $document->loadHTML(audienceDesignHtml($design), LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
+    $link = (new DOMXPath($document))->query('//a[@href="https://example.test/video"]')->item(0);
+    advancedExpect($link instanceof DOMElement && $link->getElementsByTagName('img')->item(0)?->getAttribute('src') === $image, 'Video thumbnail retains its link');
+    advancedExpect($link->textContent === $expected && $link->getElementsByTagName('span')->length === ($expected === '' ? 0 : 1), 'Only an enabled, nonblank caption adds a line using the exact field text');
+    if ($expected === '') advancedExpect($link->getAttribute('aria-label') === 'Open video', 'An unlabeled thumbnail link has an accessible name');
+    $lines = array_map('trim', explode("\n", audienceDesignPlainText($design)));
+    advancedExpect(in_array(trim($expected.' ('.$video['url'].')'), $lines, true), 'Plain-text video retains its URL and authored caption');
+}
 foreach(['100.64.0.1','192.0.2.1','198.18.0.1','203.0.113.2','224.0.0.1','169.254.169.254']as$address)advancedExpect(!audienceDesignPublicAddress($address),'Public link checks reject special-use address '.$address);
 advancedExpect(audienceDesignPublicAddress('8.8.8.8'),'Public IPv4 accepted without connecting');
 $mobile=audienceDesignStarters()['blank']['design'];$mobile['mobile']=['size'=>14];$mobile['rows'][0]['columns'][0][0]['inherit']=['size'];$mobileHtml=audienceDesignHtml($mobile);advancedExpect(str_contains($mobileHtml,'font-size:14px!important'),'Responsive rules override email inline styles');

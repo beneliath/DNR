@@ -120,6 +120,11 @@ function audienceDesignDocument(array $input):array
                 if(++$count>150||!is_array($block)||!in_array($block['type']??'', ['heading','text','image','button','divider','spacer','image-card','image-group','video','social','code','toc','boxed-text','image-text','share'],true))throw new InvalidArgumentException('Invalid content block or too many blocks.');
                 $type=$block['type'];$b=['type'=>$type,'id'=>audienceDesignKey($block['id']??'block-'.$ri.'-'.$ci.'-'.$bi,$ids)];
                 foreach(['text'=>30000,'alt'=>300,'url'=>2048,'anchor'=>80,'caption'=>2000,'code'=>50000]as$key=>$limit)$b[$key]=audienceDesignString($block[$key]??'',$limit);
+                if ($type === 'video') {
+                    // Older designs stored only the caption text.
+                    $b['showCaption'] = $block['showCaption'] ?? (mb_trim($b['caption']) !== '');
+                    if (!is_bool($b['showCaption'])) throw new InvalidArgumentException('Invalid video caption setting.');
+                }
                 $b['url']=audienceDesignNormalizeLink($b['url']);if(!audienceDesignUrl($b['url']))throw new InvalidArgumentException('Use an HTTP, HTTPS, email, telephone, or anchor link.');
                 if($b['anchor']!==''){if(!preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,79}$/D',$b['anchor'])||isset($anchors[$b['anchor']]))throw new InvalidArgumentException('Use a unique anchor name without spaces.');$anchors[$b['anchor']]=true;}
                 $b['html']=in_array($type,['heading','text','image-card','boxed-text','image-text'],true)?audienceDesignRichText(audienceDesignPayload($block['html']??'')):'';
@@ -247,7 +252,16 @@ function audienceDesignRenderDocument(array $d,?array $context=null):string
                 elseif($type==='image-text'){$iw=$b['imageWidth'];$media='<td class="email-media" width="'.$iw.'%" valign="top">'.$image($b,max(1,(int)($width*$iw/100))).'</td>';$copy='<td class="email-media" width="'.(100-$iw).'%" valign="top" style="padding:12px">'.$text.'</td>';$content='<table role="presentation" width="100%"><tr>'.($b['imagePosition']==='left'?$media.$copy:$copy.$media).'</tr></table>';}
                 elseif($type==='share')$content=audienceDesignShare($b['sharePlatforms'],$context);
                 elseif($type==='image-group'){$content='<table role="presentation" width="100%"><tr>';foreach($b['images']as$item)$content.='<td width="'.(100/max(1,count($b['images']))).'%" valign="top">'.$image($item,max(1,(int)($width/max(1,count($b['images']))))).'</td>';$content.='</tr></table>';}
-                elseif($type==='video')$content='<a href="'.$e($b['url']?:'https://example.com').'">'.$image(array_replace($b,['url'=>'']),$width).'<span style="display:block;text-align:center">▶ '.$e($b['caption']?:'Watch video').'</span></a>';
+                elseif($type==='video'){
+                    $hasCaption = $b['showCaption'] && mb_trim($b['caption']) !== '';
+                    $linkLabel = !$hasCaption && mb_trim($b['alt']) === '' ? ' aria-label="Open video"' : '';
+                    $content = '<a href="'.$e($b['url'] ?: 'https://example.com').'"'.$linkLabel.'>';
+                    $content .= $image(array_replace($b, ['url' => '']), $width);
+                    if ($hasCaption) {
+                        $content .= '<span style="display:block;text-align:center">'.$e($b['caption']).'</span>';
+                    }
+                    $content .= '</a>';
+                }
                 elseif($type==='social'){foreach($b['social']as$link)$content.='<a href="'.$e($link['url']).'" style="display:inline-block;margin:8px;color:'.$s['link'].'">'.$e($link['label']).'</a>';}
                 elseif($type==='code'){$safe=audienceDesignSafeCode('<html><body>'.$b['code'].'</body></html>');$content=preg_replace('~^.*?<body[^>]*>|</body>.*$~s','',$safe['html']);}
                 elseif($type==='toc')$content=$tocHtml;
