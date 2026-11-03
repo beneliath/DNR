@@ -18,7 +18,7 @@ require_once $source.'/audience_delivery_lifecycle.php';
     $ids=[];$addresses=[];
     foreach(['editor','reviewer','unverified'] as $kind){
         $addresses[]=$address="forward-$kind-$suffix@example.test";
-        $ib->write('INSERT INTO users(username,password,role,email,email_verified_at) VALUES (?,?,?,?,?)',
+        $ib->write('INSERT INTO users(username,password,role,email,email_verified_at,task_digest_enabled) VALUES (?,?,?,?,?,0)',
             ["forward-$kind-$suffix",'!', $kind==='reviewer'?'reviewer':'editor',$address,$kind==='unverified'?null:gmdate('Y-m-d H:i:s')]);
         $ids[]=(int)$ib->db->insert_id;
     }
