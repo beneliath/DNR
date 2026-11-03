@@ -127,6 +127,8 @@ audienceHttpExpect(substr_count($scrollPage['body'],'class="inbox-thread-item')=
 $conn->query("INSERT INTO marketing_contacts(audience_id,email,first_name,email_status,notes) VALUES (1,'inbox-worker-ready@example.test','Worker','subscribed','')");$workerPerson=(int)$conn->insert_id;
 $workerThread=$ib->inboxReceive('direct',0,'inbox-worker-ready@example.test','Worker','Restricted worker fixture','Synthetic inbound',hash('sha256','restricted-worker-ready'),true);
 $workerThreadRow=$ib->inboxThread($workerThread);$ib->inboxThreadOperation($workerThread,(int)$workerThreadRow['version'],'labels',['labels'=>[$label]]);
+// Forwarding has no SES production access or ready-sender requirement.
+require __DIR__.'/audience_inbox_forward_http.php';
 $workerDraft=$ib->saveInboxDraft(['thread_id'=>$workerThread,'subject'=>'Restricted worker reply','body_html'=>'<p>Disposable delivery fixture</p>']);
 $conn->query("UPDATE marketing_ses_settings SET production_access=1,check_state='ready',checked_at=UTC_TIMESTAMP() WHERE audience_id=1");
 $workerQueued=$ib->queueInboxDraft($workerDraft,1,$inboxAudience,'https://inbox.example.test');

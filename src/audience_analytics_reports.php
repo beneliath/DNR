@@ -249,18 +249,31 @@ trait AudienceAnalyticsReports
     public function analyticsSaveReport(array $input,bool $administrator=false):string
     {
         $key=audienceText($input,'report',32);$operation=audienceText($input,'report_action',20)?:'save';
-        if(!in_array($operation,['save','favorite','delete','restore','copy'],true))throw new InvalidArgumentException('Choose a supported report action.');
+        // Previously opened “Remove report” forms must remain reversible.
+        if($operation==='delete')$operation='archive';
+        if(!in_array($operation,['save','favorite','archive','restore','purge','copy'],true))throw new InvalidArgumentException('Choose a supported report action.');
+        if($operation==='purge'&&!$administrator)throw new InvalidArgumentException('Only an administrator can permanently delete an archived report.',403);
+        if($key===''&&$operation!=='save')throw new InvalidArgumentException('Choose an existing report.');
         return $this->transaction(function()use($input,$administrator,$key,$operation){
             $row=$this->one('SELECT settings_json FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);$settings=audienceJson($row['settings_json']);$reports=$settings['analytics_reports']??[];$old=null;$index=null;
             foreach($reports as$i=>$r)if($r['key']===$key){$old=$r;$index=$i;break;}
-            if($key!==''&&(!$old||(!$administrator&&$old['owner']!==$this->actorId&&empty($old['shared']))))throw new InvalidArgumentException('This report is unavailable.',403);
-            if(!empty($old['deleted'])&&$operation!=='restore')throw new InvalidArgumentException('Restore this removed report before using it.',403);
+            if($key!==''&&(!$old||(!$administrator&&$old['owner']!==$this->actorId&&(empty($old['shared'])||!empty($old['deleted'])))))throw new InvalidArgumentException('This report is unavailable.',403);
             if($old&&!in_array($operation,['favorite','copy'],true)&&!$administrator&&$old['owner']!==$this->actorId)throw new InvalidArgumentException('Only the report owner or an administrator can change this report.',403);
             if($old&&(int)($input['report_version']??0)!==$old['version'])throw new InvalidArgumentException('This report changed. Reload before saving.');
+            $archived=!empty($old['deleted']);
+            if($archived&&!in_array($operation,['restore','purge'],true))throw new InvalidArgumentException('Restore this archived report before using it.',403);
+            if($operation==='purge'){
+                require_once __DIR__.'/two_factor_helpers.php';
+                if(!hasRecentAdminElevation())throw new InvalidArgumentException('Permanent deletion requires Admin Unlock.',403);
+                if(!$archived)throw new InvalidArgumentException('Archive this report before permanently deleting it.');
+                $this->write('UPDATE marketing_audiences SET settings_json=JSON_REMOVE(settings_json,?),version=version+1 WHERE id=?',
+                    ['$.analytics_reports['.$index.']',$this->audienceId]);
+                return $key;
+            }
+            if(!$archived&&$operation==='restore')throw new InvalidArgumentException('Only archived reports can be restored.');
             if($operation==='copy'){$input=array_replace($old['definition'],$input);$input['name']=$old['name'].' (copy)';$old=null;$index=null;$key='';}
             if($key===''){
-                if($operation!=='save'&&$operation!=='copy')throw new InvalidArgumentException('Save the report first.');
-                if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('This audience can retain up to fifty active reports. Remove a report to free a place.');
+                if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('This audience can retain up to fifty active reports. Archive a report to free a place.');
                 $key=bin2hex(random_bytes(12));$old=['key'=>$key,'owner'=>$this->actorId,'version'=>0,'favorites'=>[],'shared'=>false,'created_at'=>gmdate(DATE_ATOM)];$index=count($reports);
             }
             if($operation==='save'||$operation==='copy'){
@@ -270,8 +283,8 @@ trait AudienceAnalyticsReports
                 $this->analyticsRecipientScope($window);
                 $old['name']=$name;$old['description']=audienceText($input,'description',500);$old['definition']=$definition+array_intersect_key($window,array_flip(['start','end','bots','compare','channel','messages','messages_mode','segment']));$old['shared']=($input['shared']??'')==='1';
             }elseif($operation==='favorite'){$favorites=$old['favorites'];$actor=(string)$this->actorId;if(in_array($actor,$favorites,true))$favorites=array_values(array_diff($favorites,[$actor]));else$favorites[]=$actor;$old['favorites']=$favorites;}
-            elseif($operation==='delete')$old['deleted']=true;
-            elseif($operation==='restore'){if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('Remove an active report before restoring this one.');$old['deleted']=false;}
+            elseif($operation==='archive')$old['deleted']=true;
+            elseif($operation==='restore'){if(count(array_filter($reports,static fn($r)=>empty($r['deleted'])))>=50)throw new InvalidArgumentException('Archive an active report before restoring this one.');$old['deleted']=false;}
             $old['version']++;$old['updated_at']=gmdate(DATE_ATOM);$reports[$index]=$old;$settings['analytics_reports']=$reports;
             $this->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($settings,JSON_THROW_ON_ERROR),$this->audienceId]);return $key;
         });

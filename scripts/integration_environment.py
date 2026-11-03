@@ -13,6 +13,23 @@ ROOT = Path(__file__).resolve().parent.parent
 LABEL = 'org.dnr.disposable-test'
 
 
+def verify_inbox_forward_smtp(compose, env, values):
+    # The synthetic receiver and the dispatch-role process share only loopback.
+    subprocess.run(compose + ['exec','-T','web','php','-r',
+        """require '/var/www/html/bootstrap.php'; applicationDatabaseConnection()->query("UPDATE marketing_delivery_policy SET hourly_budget=1000,daily_budget=1000,blocked_until=NULL WHERE audience_id=1");"""],
+        cwd=ROOT, env=env, check=True)
+    subprocess.run(compose + ['run','--rm','--no-deps','--entrypoint','sh',
+        '-e','DNR_INTEGRATION_TARGET=disposable','-e','MYSQL_USER=dnrmaildispatch',
+        '-e','MYSQL_PASSWORD_FILE=/run/secrets/test_dispatch_password',
+        '-v',values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/test_dispatch_password:ro',
+        'web','-ec','''mkfifo /tmp/forward-receipts
+php /opt/dnr/tests/fixtures/inbox_forward_smtp_capture.php accept disconnect > /tmp/forward-receipts &
+relay=$!
+trap 'kill "$relay" 2>/dev/null || true' EXIT
+php /opt/dnr/tests/audience_inbox_forward_worker.php < /tmp/forward-receipts
+wait "$relay"'''],cwd=ROOT,env=env,check=True)
+
+
 def allocate_test_networks(existing):
     """Pin every test bridge; Docker's automatic pools can overlap the real LAN."""
     used = [ipaddress.ip_network(config['Subnet'])
@@ -113,6 +130,9 @@ def main():
         # MySQL images declare volumes even when used only as a migration CLI.
         override['services']['migrator']['tmpfs'] = ['/var/lib/mysql', '/var/lib/mysql-keyring']
         override['services']['web']['environment'] = {'DNR_AI_COACH_ENABLED': '1', 'DNR_AI_COACH_URL': 'http://127.0.0.1:9', 'DNR_AI_COACH_ASYNC': '1'}
+        if sys.argv[1:] == ['audience-presend']:
+            # Exercise the HTTP enqueue path; the only SMTP receiver is the worker's loopback fixture.
+            override['services']['web']['environment']['DNR_MAIL_TRANSPORT'] = 'smtp'
         override['services']['ai-coach-worker']['environment'] = {'DNR_AI_COACH_URL': 'http://127.0.0.1:9'}
         # Keep maintenance notice files and any test output away from the live bind mount.
         notice = folder / 'notice'; notice.mkdir()
@@ -190,6 +210,8 @@ def main():
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
                         '/opt/dnr/tests/'+suite],
                         cwd=ROOT, env=env, check=True)
+                if sys.argv[1:] == ['audience-presend']:
+                    verify_inbox_forward_smtp(compose,env,values)
                 if sys.argv[1:] == ['audience-minor-fixes']:
                     subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
@@ -233,6 +255,7 @@ def main():
                     '-e', 'MYSQL_USER=dnrmaintenance', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_maintenance_password',
                     '-v', values['DNR_MYSQL_MAINTENANCE_PASSWORD_FILE']+':/run/secrets/setup_test_maintenance_password:ro',
                     'web', '/opt/dnr/tests/audience_ses_key_rotation_test.php'], cwd=ROOT, env=env, check=True)
+                verify_inbox_forward_smtp(compose,env,values)
                 return
             if sys.argv[1:] == ['test-account-closeout']:
 

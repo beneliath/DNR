@@ -55,7 +55,12 @@
                 <div class="inbox-thread-meta"><strong><?= $h($item['sender_name']?:$item['sender_email']) ?></strong><?php $time($item['last_activity_at'],true); ?></div>
                 <div class="inbox-thread-subject"><?= $h($item['subject']) ?></div>
                 <p><?= $item['direction']==='comment'?'Team note: ':($item['direction']==='outbound'?'You: ':'') ?><?= $h(mb_substr($item['preview']??'',0,140)) ?></p>
-                <div class="inbox-thread-tags"><span class="inbox-source-tag"><?php $icon($item['source']); ?><?= $h($sourceNames[$item['source']]) ?></span><?php foreach(array_slice($item['labels'],0,1)as$name): ?><span class="inbox-label-tag"><?= $h($name) ?></span><?php endforeach; ?><?php if(count($item['labels'])>1): ?><span class="inbox-more-labels">+<?= count($item['labels'])-1 ?></span><?php endif; ?></div>
+                <div class="inbox-thread-tags"><span class="inbox-source-tag"><?php $icon($item['source']); ?><?= $h($sourceNames[$item['source']]) ?></span>
+                    <?php if(!empty($item['forward_state'])): $forwardLabel=$item['forward_state']==='forwarded'?'Contains a forwarded email':'Email forward queued'; ?>
+                        <span class="inbox-forward-marker" role="img" aria-label="<?= $forwardLabel ?>" title="<?= $forwardLabel ?>" data-forward-state="<?= $h($item['forward_state']) ?>" data-forward-thread="<?= (int)$item['id'] ?>"><?php $icon('forward'); $icon('clock'); ?></span>
+                    <?php endif; ?>
+                    <?php foreach(array_slice($item['labels'],0,1)as$name): ?><span class="inbox-label-tag"><?= $h($name) ?></span><?php endforeach; ?><?php if(count($item['labels'])>1): ?><span class="inbox-more-labels">+<?= count($item['labels'])-1 ?></span><?php endif; ?>
+                </div>
             </div>
             <?php if($item['unread']): ?><span class="inbox-unread-dot" role="img" aria-label="Unread"></span><?php endif; ?>
         </a>

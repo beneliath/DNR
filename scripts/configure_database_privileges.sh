@@ -292,6 +292,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_th
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_routes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_route_receipts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_inbox_forwards TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.marketing_inbox_attachments TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_inbox_labels TO '${MYSQL_USER}'@'%';
@@ -433,6 +434,7 @@ GRANT SELECT (status)
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_settings TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_threads TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_messages TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_forwards TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_preferences TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_inbox_user_settings TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE (email_checked_at,email_mail_id) ON \`${MYSQL_DATABASE}\`.marketing_inbox_notifications TO '${mail_dispatch_user}'@'%';

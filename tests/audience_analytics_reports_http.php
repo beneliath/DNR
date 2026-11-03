@@ -100,6 +100,64 @@ audienceHttpExpect($reviewer('audience.php?view=analytics&section=custom',['csrf
 audienceHttpExpect($editor('audience.php?view=analytics&section=custom&columns[]=password')['status']===400,'Direct custom metric injection is rejected');
 audienceHttpExpect($editor('audience.php?view=analytics&section=activity&activity=password')['status']===400,'Direct recipient activity injection is rejected');
 
+(static function()use($admin,$editor,$reviewer,$clients,$campaignStore,$httpId,$adminSessionId,$adminSessionName){
+    $list='audience.php?view=analytics&section=reports';
+    $archive=$list.'&removed=1';
+    $name='HTTP private report';
+    $send=static fn($client,string $op,int $version)=>$client($op==='archive'?$list:$archive,[
+        'csrf_token'=>audienceHttpCsrf($client($list)),'action'=>'analytics_report',
+        'report_action'=>$op,'report'=>$httpId,'report_version'=>$version]);
+    $unlock=static function(?int $at)use($adminSessionName,$adminSessionId){
+        session_name($adminSessionName);session_id($adminSessionId);startSecureSession();
+        unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);
+        if($at!==null)$_SESSION['_admin_elevated_at']=$at;
+        session_write_close();
+    };
+    $before=$campaignStore->analyticsSavedReport($httpId,true);
+    $activePage=$editor($list)['body'];
+    audienceHttpExpect(str_contains($activePage,'aria-label="Custom report lists"')&&str_contains($activePage,'Archive report '.$name)
+        &&!str_contains($activePage,'name="report_action" value="purge"'),'Active list offers archiving to the owner and never permanent deletion');
+    $unlock(time());
+    try{
+        audienceHttpExpect($send($admin,'purge',1)['status']===400,'An unlocked admin cannot purge an active report');
+        audienceHttpExpect($send($clients['queue-editor'],'archive',1)['status']===403&&$send($reviewer,'archive',1)['status']===403,'Other editors and reviewers cannot archive a private report');
+        audienceHttpExpect($send($editor,'archive',1)['status']===303&&!str_contains($editor($list)['body'],'Archive report '.$name),'Archiving removes the report from Active');
+        $editorArchive=$editor($archive)['body'];$adminArchive=$admin($archive)['body'];
+        audienceHttpExpect(str_contains($editorArchive,'Restore report '.$name)&&!str_contains($editorArchive,'Permanently delete report '.$name)
+            &&str_contains($adminArchive,'data-audience-protected-form data-admin-unlock-required')&&str_contains($adminArchive,'Permanently delete report '.$name),'Archive offers restore to owners and confirmed Admin Unlock deletion only to administrators');
+        audienceHttpExpect($send($editor,'restore',2)['status']===303&&$campaignStore->analyticsSavedReport($httpId,true)['definition']===$before['definition'],'Restore returns the same report and definition to Active');
+        $send($editor,'archive',3);
+        audienceHttpExpect($send($editor,'purge',4)['status']===403&&$send($reviewer,'purge',4)['status']===403,'Direct permanent deletion is administrator-only');
+        foreach([null,time()-600]as$at){
+            $unlock($at);$blocked=$send($admin,'purge',4);
+            audienceHttpExpect($blocked['status']===302&&str_contains($blocked['headers'],'admin_elevation.php')
+                &&in_array($httpId,array_column($campaignStore->analyticsSavedReports(true,true),'key'),true),'A locked or expired administrator cannot delete through direct POST');
+        }
+        $denied=false;
+        try{$campaignStore->analyticsSaveReport(['report'=>$httpId,'report_version'=>4,'report_action'=>'purge'],true);}
+        catch(InvalidArgumentException $e){$denied=$e->getCode()===403;}
+        audienceHttpExpect($denied,'The locked report mutation also rejects an expired unlock');
+        $unlock(time());
+        audienceHttpExpect($send($admin,'purge',2)['status']===400,'A stale archive form cannot delete a restored and re-archived report');
+        $beforePurge=audienceJson($campaignStore->one('SELECT settings_json FROM marketing_audiences WHERE id=1')['settings_json']);
+        $beforePurge['analytics_reports']=array_values(array_filter($beforePurge['analytics_reports'],static fn($r)=>$r['key']!==$httpId));
+        $deleted=$send($admin,'purge',4);
+        audienceHttpExpect($deleted['status']===303&&str_contains($deleted['headers'],'removed=1')
+            &&audienceJson($campaignStore->one('SELECT settings_json FROM marketing_audiences WHERE id=1')['settings_json'])===$beforePurge,
+            'Unlocked deletion removes exactly the archived definition and returns to Archive');
+        audienceHttpExpect($send($admin,'restore',4)['status']===403,'Permanently deleted reports cannot be restored');
+    }finally{$unlock(null);}
+    for($i=1;$i<=11;$i++){
+        $key=$campaignStore->analyticsSaveReport(['name'=>'Archive page fixture '.$i]);
+        $campaignStore->analyticsSaveReport(['report'=>$key,'report_version'=>1,'report_action'=>'delete'],true);
+    }
+    $page=$admin($archive.'&report_search=Archive+page+fixture&list_size=10&list_page=99')['body'];
+    audienceHttpExpect(str_contains($page,'11–11 of 11')&&str_contains($page,'Restore report Archive page fixture 11')
+        &&!str_contains($page,'Restore report Archive page fixture 10'),'Legacy removed reports open in Archive and filtered pagination clamps to its last page');
+    $empty=$admin($archive.'&report_search=Archive+page+fixture&favorites=1')['body'];
+    audienceHttpExpect(str_contains($empty,'No reports match these filters.')&&str_contains($empty,'0 of 0'),'Favorites filter and empty state apply within the selected report list');
+})();
+
 $baseline=$as->analyticsTimingEvidence()['contacts'];$timingDelivery=(int)$mapDelivery['id'];$lastTimingRecipient=0;
 for($i=0;$i<100-$baseline;$i++){
     $email='timing-'.$i.'@example.test';$as->write("INSERT INTO marketing_contacts(audience_id,email,email_status,is_archived,source,notes) VALUES (?,?,'non-subscribed',1,'Disposable timing fixture','Fictional; never sent')",[$analyticsAid,$email]);$contact=(int)$conn->insert_id;

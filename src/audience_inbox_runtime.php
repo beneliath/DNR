@@ -48,14 +48,51 @@ function audienceInboxServiceReady(mysqli $db,array $job,array $message):void
     }
     $actor=$db->execute_query("SELECT id FROM users WHERE id=? AND role IN ('admin','editor') AND account_status='active'",[$job['actor_id']])->fetch_assoc();if(!$actor)throw new DomainException('The sender no longer has Inbox access.');
     $store=new AudienceStore($db,1,(int)$job['actor_id'],'Inbox worker');
+    if ($job['kind'] === 'inbox-forward') {
+        if (!$store->inboxForwardDeliveryAllowed((int)$job['id'], (int)$message['inbox_thread_id'], $message['email'])) {
+            throw new DomainException('This forwarded email or its MOED recipient is no longer available.');
+        }
+        return;
+    }
     $eligible=$store->inboxRecipientEligibility(['contact_id'=>$job['contact_id'],'thread_id'=>$message['inbox_thread_id']??0]);
     if($eligible['reasons']||!$eligible['person']||strtolower($eligible['person']['email'])!==strtolower($message['email'])||empty($store->inboxSettings()['gateway_confirmed']))throw new DomainException('Inbox recipient, source, or permissions changed.');
 }
 function audienceInboxDeliveryMessage(array $message):array
 {
     $files=[];$total=0;
-    foreach($message['attachments']??[]as$file){$bytes=base64_decode($file['data_base64']??'',true);if($bytes===false)throw new DomainException('Invalid frozen attachment.');$attachment=audienceInboxAttachment($file['filename']??'',$bytes,false);$total+=$attachment['size'];if($total>AUDIENCE_INBOX_ATTACHMENTS_BYTES||count($files)>=10)throw new DomainException('Inbox attachments exceed the delivery limit.');$files[]=$attachment;}
+    foreach($message['attachments']??[]as$file){
+        $bytes=base64_decode($file['data_base64']??'',true);
+        if($bytes===false)throw new DomainException('Invalid frozen attachment.');
+        $attachment=audienceInboxAttachment($file['filename']??'',$bytes,false);
+        $total+=$attachment['size'];
+        if($total>AUDIENCE_INBOX_ATTACHMENTS_BYTES||count($files)>=10)throw new DomainException('Inbox attachments exceed the delivery limit.');
+        // The MIME writer requires an ASCII filename even when the Inbox kept a display name.
+        $attachment['filename']=preg_replace('/[^A-Za-z0-9._-]+/', '_', $attachment['filename']);
+        $files[]=$attachment;
+    }
     $message['attachments']=[...$files,...audienceInboxAlertInlineImages($message['inline_images']??[])];return $message;
+}
+
+/** Forward one immutable copy through the same configured relay and budget as MOED operational mail. */
+function audienceInboxForwardViaSmtp(mysqli $db, array $message): string
+{
+    $requirement = audienceInboxForwardSmtpRequirement();
+    if ($requirement !== null) throw new DomainException($requirement);
+    try {
+        $smtp = new SmtpSession($db);
+    } catch (MailBudgetDeferredException|SmtpResponseException $e) {
+        throw $e;
+    } catch (RuntimeException $e) {
+        // No envelope or message bytes were sent while opening the connection.
+        throw new SmtpPreDataException('Unable to connect to the MOED SMTP relay.', 0, $e);
+    }
+    try {
+        $smtp->send($message['email'], $message['subject'], $message['text'],
+            messageId: $message['message_id'], attachments: $message['attachments']);
+        return 'accepted';
+    } finally {
+        $smtp->close();
+    }
 }
 
 /** Retain signed service receipts without replaying mail or changing test-recipient consent. */

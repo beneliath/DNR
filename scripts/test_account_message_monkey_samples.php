@@ -218,9 +218,10 @@ $result = $s->transaction(function() use ($s,$insert,$j,$at,$month,$anchor,$plan
     $labels=[];foreach(['Needs follow-up','Event question','Feedback'] as $name)$labels[]=$insert('marketing_inbox_labels',$aid+['name'=>'Demo · '.$name]);
     foreach(['Gathering accessibility question','Thank you for the newsletter','Volunteer availability','Resource request','Survey feedback','Archived duplicate question'] as $i=>$subject) {
         $person=$people[$i];$date=$at(-1-$i);
-        $thread=$insert('marketing_inbox_threads',$aid+['contact_id'=>$person['id'],'sender_email'=>$person['email'],'sender_name'=>$person['name'].' Sample','subject'=>'Demo · '.$subject,'source'=>['email','direct','contact','email','survey','direct'][$i],'source_ref'=>$i===4?$resources[4]:0,'status'=>$i===5?'trash':($i===1?'done':'todo'),'sender_verified'=>0,'last_activity_at'=>$date,'created_at'=>$date]);
+        $source=['email','direct','contact','email','survey','direct'][$i];
+        $thread=$insert('marketing_inbox_threads',$aid+['contact_id'=>$person['id'],'sender_email'=>$person['email'],'sender_name'=>$person['name'].' Sample','subject'=>'Demo · '.$subject,'source'=>$source,'source_ref'=>$i===4?$resources[4]:0,'status'=>$i===5?'trash':($i===1?'done':'todo'),'sender_verified'=>0,'last_activity_at'=>$date,'created_at'=>$date]);
         $body='Fictional message for testing: '.$subject.'. Could you share the next steps? No external email was received or sent.';
-        $mid=$insert('marketing_inbox_messages',$aid+['thread_id'=>$thread,'direction'=>'inbound','source_key'=>bin2hex(random_bytes(32)),'references_json'=>'[]','sender_email'=>$person['email'],'sender_name'=>$person['name'].' Sample','body_text'=>$body,'body_html'=>'<p>'.$body.'</p>','occurred_at'=>$date,'created_at'=>$date]);
+        $mid=$insert('marketing_inbox_messages',$aid+['thread_id'=>$thread,'direction'=>'inbound','email_subject'=>in_array($source,['email','direct'],true)?'Demo · '.$subject:null,'source_key'=>bin2hex(random_bytes(32)),'references_json'=>'[]','sender_email'=>$person['email'],'sender_name'=>$person['name'].' Sample','body_text'=>$body,'body_html'=>'<p>'.$body.'</p>','occurred_at'=>$date,'created_at'=>$date]);
         $s->write('UPDATE marketing_inbox_threads SET last_message_id=?,last_inbound_id=? WHERE id=?',[$mid,$mid,$thread]);
         $insert('marketing_inbox_thread_labels',$aid+['thread_id'=>$thread,'label_id'=>$labels[$i%3]]);
         if($i===0) {

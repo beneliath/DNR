@@ -27,12 +27,23 @@ $renderChart=static function(string $chosen,string $chartGroup,bool $delivery=fa
     $average=$averages?array_sum($averages)/count($averages):null;
     $highest=max([1,...array_map(static fn($p)=>(float)($p['value']??0),$points),$window['compare']!=='none'?($average??0):0]);$highest=ceil($highest/5)*5;
     $count=max(1,count($points));$step=860/$count;$isRate=str_contains($chosen,'rate')||$chosen==='clicks_per_open';
+    $labelStride=(int)ceil($count/8);
     ?>
     <div class="analytics-chart-controls" aria-label="Chart interval"><?php foreach(['campaign'=>'Campaign','day'=>'Day','week'=>'Week','month'=>'Month']as$key=>$label): ?><a class="<?= $chartGroup===$key?'active':'' ?>" href="<?= $h($reportLink([$delivery?'delivery_group':'group'=>$key])) ?>"<?= $chartGroup===$key?' aria-current="true"':'' ?>><?= $label ?></a><?php endforeach; ?></div>
     <?php if(!$points): ?><p class="analytics-empty">No email activity matches these filters.</p><?php endif; ?>
     <div class="analytics-plot"><svg viewBox="0 0 1000 320" role="img" aria-label="<?= $h($metricLabels[$chosen].' by '.$chartGroup) ?>">
     <?php for($i=0;$i<=4;$i++):$y=235-50*$i;$tick=$highest*$i/4; ?><line x1="70" x2="960" y1="<?= $y ?>" y2="<?= $y ?>" class="analytics-grid-line"/><text x="57" y="<?= $y+4 ?>" text-anchor="end"><?= $h($isRate?$rate($tick):number_format($tick)) ?></text><?php endfor; ?>
-    <?php foreach($points as$i=>$point):$height=200*(float)($point['value']??0)/$highest;$x=85+$i*$step; ?><rect x="<?= $x+max(0,($step-min(55,$step*.65))/2) ?>" y="<?= 235-$height ?>" width="<?= min(55,$step*.65) ?>" height="<?= $height ?>" rx="2"><title><?= $h($point['label'].': '.($isRate?$rate($point['value']):number_format($point['value']??0))) ?></title></rect><text x="<?= $x+$step/2 ?>" y="260" text-anchor="middle"><?= $h(mb_strimwidth($point['label'],0,19,'…')) ?></text><?php endforeach; ?>
+    <?php foreach($points as$i=>$point):$height=200*(float)($point['value']??0)/$highest;$x=85+$i*$step; ?>
+        <rect x="<?= $x+max(0,($step-min(55,$step*.65))/2) ?>" y="<?= 235-$height ?>" width="<?= min(55,$step*.65) ?>" height="<?= $height ?>" rx="2"><title><?= $h($point['label'].': '.($isRate?$rate($point['value']):number_format($point['value']??0))) ?></title></rect>
+        <?php if($i%$labelStride===0):
+            $center=$x+$step/2;
+            // Keep the label centered on its bar, including at the edges of the plot.
+            $labelWidth=min($step*$labelStride,2*$center,2*(1000-$center))-8; ?>
+            <foreignObject x="<?= $center-$labelWidth/2 ?>" y="244" width="<?= $labelWidth ?>" height="30">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="analytics-axis-label" title="<?= $h($point['label']) ?>"><?= $h($point['label']) ?></div>
+            </foreignObject>
+        <?php endif; ?>
+    <?php endforeach; ?>
     <?php if($average!==null&&$window['compare']!=='none'): $y=235-200*$average/$highest; ?><line x1="70" x2="960" y1="<?= $y ?>" y2="<?= $y ?>" class="analytics-average-line"/><?php endif; ?>
     </svg></div><div class="analytics-chart-legend"><span>■ <?= $h($metricLabels[$chosen]) ?></span><?php if($window['compare']!=='none'): ?><span>┄ Previous period average</span><?php endif; ?></div>
     <details class="analytics-chart-data"><summary>View chart data</summary><div class="analytics-table-scroll"><table class="data-table"><thead><tr><th><?= $h(ucfirst($chartGroup)) ?></th><th><?= $h($metricLabels[$chosen]) ?></th></tr></thead><tbody><?php foreach($points as$p): ?><tr><td><?= $h($p['label']) ?></td><td><?= $h($isRate?$rate($p['value']):number_format($p['value']??0)) ?></td></tr><?php endforeach; ?></tbody></table></div></details>
@@ -41,7 +52,7 @@ $renderChart=static function(string $chosen,string $chartGroup,bool $delivery=fa
 <div class="analytics-workspace analytics-dashboard">
 <?php if($overview['includes_samples']): ?><p class="analytics-sample-note" role="note">Local sample data included · Campaigns named “Sample” are fictional and did not send email.</p><?php endif; ?>
 <?php include __DIR__.'/analytics-filters.php'; ?>
-<div data-analytics-results>
+<div data-analytics-results="<?= $h($section) ?>">
 <?php if($window['segment']): ?><p class="analytics-explanation">Email results use the saved segment’s current active connection membership, rather than its membership at send time.</p><?php endif; ?>
 <?php if(in_array($section,['reports','custom','activity','links','devices','insights'],true))include __DIR__.'/analytics-reports.php'; ?>
 <?php if($section==='locations')include __DIR__.'/analytics-interaction-locations.php'; ?>
