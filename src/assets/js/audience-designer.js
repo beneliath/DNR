@@ -236,7 +236,9 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
   function normalize(){
     normalizeEmailDesignMaps(design);
     design.mode ||= 'visual';design.mobile ||= {};design.footer ||= {text:'',styles:{}};design.areas ||= {};design.rows ||= [];
-    const ids=new Set();design.rows.forEach((row,r)=>{if(!row.id||ids.has(row.id))row.id=uid('section');ids.add(row.id);row.name ||= 'Section '+(r+1);row.region ||= 'body';row.styles ||= {};row.mobile ||= {};row.condition ||= {match:'all',rules:[]};row.columns.forEach(col=>col.forEach(b=>{if(!b.id||ids.has(b.id))b.id=uid('block');ids.add(b.id);b.styles ||= {};b.mobile ||= {};b.inherit ||= [];b.condition ||= {match:'all',rules:[]};b.linkDevices ??= true;b.images ||= [];b.social ||= [];b.anchor ||= '';b.caption ||= '';b.code ||= '';b.headingLevel ||= 1;b.dividerWidth ||= 100;b.dividerHeight ||= 1;b.margin ||= 0;b.imagePosition ||= 'left';b.imageWidth ||= 40;b.sharePlatforms ||= ['facebook','x','linkedin','email'];}));});
+    const ids=new Set();design.rows.forEach((row,r)=>{if(!row.id||ids.has(row.id))row.id=uid('section');ids.add(row.id);row.name ||= 'Section '+(r+1);row.region ||= 'body';row.styles ||= {};row.mobile ||= {};row.condition ||= {match:'all',rules:[]};row.columns.forEach(col=>col.forEach(b=>{if(!b.id||ids.has(b.id))b.id=uid('block');ids.add(b.id);b.styles ||= {};b.mobile ||= {};b.inherit ||= [];b.condition ||= {match:'all',rules:[]};b.linkDevices ??= true;b.images ||= [];b.social ||= [];b.anchor ||= '';b.caption ||= '';
+      if(b.type==='video') b.showCaption ??= b.caption.trim() !== '';
+      b.code ||= '';b.headingLevel ||= 1;b.dividerWidth ||= 100;b.dividerHeight ||= 1;b.margin ||= 0;b.imagePosition ||= 'left';b.imageWidth ||= 40;b.sharePlatforms ||= ['facebook','x','linkedin','email'];}));});
   }
   normalize();
   const request=async(action,extra={})=>{
@@ -270,7 +272,7 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
     if(!(await save(false)))throw new Error('Save your design before renaming. Your edits remain here.');
     const result=await request('design_rename',{name});version=result.version;$('[data-design-name]').textContent=result.name;status.textContent='Saved';error('');
   }));
-  const defaultBlock=type=>({id:uid('block'),type,text:{heading:'Write a compelling headline',text:'Add your text here.','boxed-text':'Highlight an important message.','image-text':'Add text to accompany your image.',button:'Learn more','image-card':'Add a caption for your image.'}[type]||'',html:'',image:'',alt:'',url:['button','video'].includes(type)?'https://example.com':'',align:type==='button'?'center':'left',padding:24,margin:0,size:type==='heading'?(design.styles.heading1||32):design.styles.fontSize,height:24,bold:false,italic:false,color:design.styles.text,background:design.styles.button,radius:design.styles.buttonRadius||4,imagePosition:'left',imageWidth:40,sharePlatforms:['facebook','x','linkedin','email'],styles:type==='boxed-text'?{background:'#f1f3f4'}:{},mobile:{},inherit:['color','size','font','lineHeight','letterSpacing','paragraphSpacing','background','radius','dividerWidth','dividerHeight'],linkDevices:true,headingLevel:1,includeToc:false,anchor:'',condition:{match:'all',rules:[]},images:type==='image-group'?[{image:'',alt:'',url:''},{image:'',alt:'',url:''}]:[],social:type==='social'?[{label:'Facebook',url:'https://facebook.com/'},{label:'Instagram',url:'https://instagram.com/'}]:[],caption:'Watch video',code:'<p>Add your HTML here.</p>',dividerWidth:design.styles.dividerWidth||100,dividerHeight:design.styles.dividerHeight||1});
+  const defaultBlock=type=>({id:uid('block'),type,text:{heading:'Write a compelling headline',text:'Add your text here.','boxed-text':'Highlight an important message.','image-text':'Add text to accompany your image.',button:'Learn more','image-card':'Add a caption for your image.'}[type]||'',html:'',image:'',alt:'',url:['button','video'].includes(type)?'https://example.com':'',align:type==='button'?'center':'left',padding:24,margin:0,size:type==='heading'?(design.styles.heading1||32):design.styles.fontSize,height:24,bold:false,italic:false,color:design.styles.text,background:design.styles.button,radius:design.styles.buttonRadius||4,imagePosition:'left',imageWidth:40,sharePlatforms:['facebook','x','linkedin','email'],styles:type==='boxed-text'?{background:'#f1f3f4'}:{},mobile:{},inherit:['color','size','font','lineHeight','letterSpacing','paragraphSpacing','background','radius','dividerWidth','dividerHeight'],linkDevices:true,headingLevel:1,includeToc:false,anchor:'',condition:{match:'all',rules:[]},images:type==='image-group'?[{image:'',alt:'',url:''},{image:'',alt:'',url:''}]:[],social:type==='social'?[{label:'Facebook',url:'https://facebook.com/'},{label:'Instagram',url:'https://instagram.com/'}]:[],caption:'',code:'<p>Add your HTML here.</p>',dividerWidth:design.styles.dividerWidth||100,dividerHeight:design.styles.dividerHeight||1});
   const freshRow=(columns=1,name='Section')=>({id:uid('section'),name,styles:{},mobile:{},condition:{match:'all',rules:[]},columns:Array.from({length:columns},()=>[])});
   function freshCopy(value){const copy=structuredClone(value);const walk=x=>{if(x&&typeof x==='object'){if(x.id)x.id=uid(x.columns?'section':'block');if(x.anchor)x.anchor='';Object.values(x).forEach(walk);}};walk(copy);return copy;}
   const blockAt=()=>selected?design.rows[selected[0]]?.columns[selected[1]]?.[selected[2]]:null;
@@ -403,7 +405,20 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
         b.images.forEach((image,i)=>{const group=details('Image '+(i+1));addImageTools(group,image);group.append(button('Remove image',()=>mutate(()=>b.images.splice(i,1))));tools.append(group);});if(b.images.length<4)tools.append(button('Add image',()=>mutate(()=>b.images.push({image:'',alt:'',url:''}))));
       }
       if(contentFields)contentFields.append(field('Link URL',b.url,v=>{b.url=v;}));
-      if(b.type==='video')tools.append(field('Video caption',b.caption,v=>b.caption=v),el('p','Add a thumbnail and link. The video opens from the email.','designer-panel-help'));
+      if(b.type==='video'){
+        const group = fieldGrid();
+        const captionField = field('', b.caption, value => { b.caption = value; });
+        captionField.classList.add('designer-field-wide');
+        captionField.querySelector('input').setAttribute('aria-label', 'Video caption text');
+        const toggle = field('Video caption', b.showCaption, checked => {
+          b.showCaption = checked;
+          if(checked) group.append(captionField);
+          else captionField.remove();
+        }, 'checkbox');
+        group.append(toggle);
+        if(b.showCaption) group.append(captionField);
+        tools.append(group, el('p','Add a thumbnail and link. The video opens from the email.','designer-panel-help'));
+      }
       if(b.type==='social'){
         b.social.forEach((link,i)=>{const group=details('Link '+(i+1));group.append(fieldGrid(field('Label',link.label,v=>link.label=v),field('URL',link.url,v=>link.url=v)),button('Remove link',()=>mutate(()=>b.social.splice(i,1))));tools.append(group);});if(b.social.length<10)tools.append(button('Add social link',()=>mutate(()=>b.social.push({label:'Website',url:'https://example.com'}))));
       }
@@ -533,7 +548,12 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
           else if(b.type==='image-text'){const group=el('div',undefined,'designer-image-text '+b.imagePosition);group.style.setProperty('--image-width',b.imageWidth+'%');const image=imageNode(b),copy=rich();group.append(image,copy);content.append(group);}
           else if(b.type==='share'){const group=el('div',undefined,'designer-social-links');b.sharePlatforms.forEach(platform=>group.append(el('span','Share on '+({x:'X',linkedin:'LinkedIn',facebook:'Facebook',email:'Email'}[platform]))));content.append(group);}
           else if(b.type==='image-group'){const group=el('div',undefined,'designer-image-group');b.images.forEach(item=>group.append(imageNode(item)));content.append(group);}
-          else if(b.type==='video')content.append(imageNode(b),el('div','▶ '+(b.caption||'Watch video'),'designer-video-caption'));
+          else if(b.type==='video'){
+            content.append(imageNode(b));
+            if(b.showCaption && b.caption.trim()!==''){
+              content.append(el('div',b.caption,'designer-video-caption'));
+            }
+          }
           else if(b.type==='social'){const group=el('div',undefined,'designer-social-links');b.social.forEach(link=>group.append(el('span',link.label)));content.append(group);}
           else if(b.type==='code')content.append(el('pre',b.code,'designer-code-placeholder'));
           else if(b.type==='toc'){const list=el('ul');design.rows.forEach(row=>row.columns.forEach(col=>col.forEach(item=>{if(item.type==='heading'&&item.includeToc)list.append(el('li',item.text||'Heading'));})));content.append(list.childNodes.length?list:el('p','Table of contents — mark headings in Settings.'));}
