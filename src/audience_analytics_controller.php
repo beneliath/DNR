@@ -6,15 +6,30 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     $audienceId=$store->audienceId;$id=0;$savedReport=null;
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
+    $reportListParams=['view'=>'analytics','section'=>'reports']+array_intersect_key($_GET,array_flip(['removed','report_search','favorites','list_page','list_size','range','start','end']));
+    $reportListUrl=static fn(array $changes=[]):string=>$url(array_replace($reportListParams,$changes));
     if($_SERVER['REQUEST_METHOD']==='POST'){
         requireValidCsrfToken();if(!$canManage){http_response_code(403);exit('Saving reports requires an editor or administrator.');}
         try{
             if($view!=='analytics'||audienceText($_POST,'action',30)!=='analytics_report')throw new InvalidArgumentException('Reports do not support this action.');
-            $key=$store->analyticsSaveReport($_POST,$canDelete);$_SESSION['audience_message']='Report updated.';
-            header('Location: '.$url(['view'=>'analytics','section'=>in_array($_POST['report_action']??'',['delete','favorite'],true)?'reports':'custom','report'=>$key]),true,303);return;
+            $operation=audienceText($_POST,'report_action',20);
+            if($operation==='purge'){
+                if(!$canDelete){http_response_code(403);exit('Only an administrator can permanently delete an archived report.');}
+                requireRecentAdminElevation($reportListUrl(['removed'=>'1']));
+            }
+            $key=$store->analyticsSaveReport($_POST,$canDelete);
+            $_SESSION['audience_message']=match($operation){
+                'archive','delete'=>'Report archived.', 'restore'=>'Report restored to Active.', 'purge'=>'Report permanently deleted.', default=>'Report updated.'
+            };
+            $redirect=match($operation){
+                'archive','delete','favorite'=>$reportListUrl(['removed'=>'0']),
+                'purge','restore'=>$reportListUrl(['removed'=>'1']),
+                default=>$url(['view'=>'analytics','section'=>'custom','report'=>$key])
+            };
+            header('Location: '.$redirect,true,303);return;
         }catch(InvalidArgumentException $e){http_response_code($e->getCode()===403?403:400);$error=$e->getMessage();}
     }elseif($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET, POST');exit('Unsupported report method.');}
-    $reportInput=$_SERVER['REQUEST_METHOD']==='POST'?$_POST:$_GET;
+    $reportInput=$_SERVER['REQUEST_METHOD']==='POST'?$_POST+$_GET:$_GET;
     $reportKey=audienceText($reportInput,'report',32);$section=audienceText($reportInput,'section',20)?:'email';
     if(!in_array($section,['email','audience','conversions','reports','custom','activity','links','devices','insights','locations'],true)){http_response_code(400);$error='Choose a supported report.';$section='email';}
     if($reportKey!==''&&$section==='custom'){
@@ -44,6 +59,8 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     $definition=null;$customRows=[];$activityReport=null;$activitySize=audiencePageSize($reportInput);$activity=audienceText($reportInput,'activity',20)?:'accepted';$page=max(1,(int)($reportInput['page']??1));
     $linkHash=audienceText($reportInput,'link',64);
     $source=audienceText($reportInput,'source',100);$analyticsSegmentOptions=$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name',[$audienceId]);$sourceOptions=[];$history=null;$nativeFunnels=null;$evidence=null;$savedReports=[];$clickMap=null;$interactionLocations=null;$interactionMapProvider=null;
+    $reportsArchived=($reportInput['removed']??'')==='1';$favoritesOnly=($reportInput['favorites']??'')==='1';
+    $reportSearch='';$reportTotal=0;$reportSize=audiencePageSize($reportInput,'list_size');$reportPage=1;
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
         if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);
@@ -64,7 +81,14 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         if($section==='custom'&&$definition['dataset']==='audience')$sourceOptions=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);
         if($section==='audience'){$history=$store->analyticsAudienceHistory($window,$source);$sourceOptions=$store->all('SELECT DISTINCT source FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL ORDER BY source',[$audienceId]);}
         if($section==='conversions')$nativeFunnels=$store->analyticsNativeFunnels($window);
-        if($section==='reports')$savedReports=$store->analyticsSavedReports($canDelete,($reportInput['removed']??'')==='1');
+        if($section==='reports'){
+            $reportSearch=audienceText($reportInput,'report_search',100);
+            $savedReports=array_values(array_filter($store->analyticsSavedReports($canDelete,$reportsArchived),
+                static fn($r)=>(!$favoritesOnly||in_array((string)$actor,$r['favorites'],true))&&($reportSearch===''||mb_stripos($r['name'],$reportSearch)!==false)));
+            $reportTotal=count($savedReports);
+            $reportPage=min(max(1,(int)ceil($reportTotal/$reportSize)),max(1,(int)($reportInput['list_page']??1)));
+            $savedReports=array_slice($savedReports,($reportPage-1)*$reportSize,$reportSize);
+        }
     }catch(InvalidArgumentException $e){http_response_code($e->getCode()===403?403:400);$error=$e->getMessage();}
     $download=audienceText($_GET,'download',20);
     if($download!==''){

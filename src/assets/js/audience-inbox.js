@@ -110,6 +110,18 @@
     update();
   }
   const csrf = document.querySelector('input[name="csrf_token"]');
+  const forwardSubmit = document.querySelector('[data-forward-submit]');
+  if (forwardSubmit) {
+    const form = forwardSubmit.form;
+    const update = () => {
+      const count = form.querySelectorAll('input[name="recipient_ids[]"]:checked').length;
+      forwardSubmit.disabled = count < 1 || count > 25;
+    };
+    form.addEventListener('change', update);
+    form.closest('dialog').addEventListener('close', () => { form.reset(); update(); });
+    window.addEventListener('pageshow', update);
+    update();
+  }
   const status = document.getElementById('inbox-live-status');
   const announce = message => { status.hidden = false; status.textContent = message; };
   const dialog = document.getElementById('inbox-action-dialog');
@@ -268,7 +280,17 @@
   async function poll() {
     if (document.hidden) return;
     try {
-      const response = await fetch(`${config.endpoint}&inbox_api=notifications&after=${newest}`); if (!response.ok) return; const result = await response.json();
+      const pending = Array.from(document.querySelectorAll('[data-forward-state="pending"]')).slice(0,100);
+      const threads = pending.map(marker => marker.dataset.forwardThread).join(',');
+      const response = await fetch(`${config.endpoint}&inbox_api=notifications&after=${newest}${threads ? '&forward_threads='+threads : ''}`); if (!response.ok) return; const result = await response.json();
+      for (const marker of result.forward_states ? pending : []) {
+        const state = result.forward_states[marker.dataset.forwardThread];
+        if (state === 'forwarded') {
+          marker.dataset.forwardState = state;
+          marker.title = 'Contains a forwarded email';
+          marker.setAttribute('aria-label', marker.title);
+        } else if (!state) marker.remove();
+      }
       for (const item of [...result.items].reverse()) { newest = Math.max(newest,Number(item.id)); if (Number(item.thread_id) === config.thread) announce('New activity in this conversation. Refresh to view it.'); if (result.settings.browser_alerts && 'Notification' in window && Notification.permission === 'granted') { const notification = new Notification('MessageMonkey Inbox',{body:item.kind === 'comment' ? 'A team member added an internal comment.' : 'A new conversation message arrived.',tag:`message-monkey-inbox-${item.id}`}); notification.onclick = () => { window.focus(); location.assign(`${config.endpoint}&thread=${item.thread_id}`); notification.close(); }; } }
       if (config.thread && csrf) { const presence = await post('inbox_presence',{thread_id:config.thread,typing:Date.now() - lastTyped < 25000 ? 1 : 0}); const text = document.querySelector('[data-inbox-presence]'); if (text) text.textContent = presence.presence.map(p => `${p.name} ${p.is_typing ? 'is typing' : 'is viewing'}`).join(' · '); }
     } catch { /* Keep draft editing available during a temporary connection failure. */ }

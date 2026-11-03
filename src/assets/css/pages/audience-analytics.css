@@ -15,6 +15,7 @@
 .analytics-evidence-grid thead th:first-child{width:30%}.analytics-card{min-width:0}.analytics-card header{flex-wrap:wrap;gap:14px}.analytics-card h2{overflow-wrap:anywhere}.analytics-report-settings textarea{min-height:70px}.analytics-table-scroll table{min-width:500px}.analytics-builder-results .analytics-explanation{line-height:1.6}.analytics-builder-layout a,.analytics-report-access input{overflow-wrap:anywhere}
 @media(max-width:1100px){.analytics-builder-layout{grid-template-columns:240px minmax(0,1fr)}.analytics-report-plots{grid-template-columns:1fr}.analytics-builder-controls{padding:18px}}
 @media(max-width:800px){.analytics-builder-layout{grid-template-columns:1fr}.analytics-builder-controls{max-height:none}.analytics-inline-controls>label{flex:1 1 160px}.analytics-inline-controls>button{min-height:40px}.analytics-report-plots{grid-template-columns:1fr}.analytics-report-access{align-items:stretch}.analytics-report-access input{width:100%}.analytics-horizontal-bars>div{grid-template-columns:90px minmax(50px,1fr) 55px}}
+.analytics-link-destination a{overflow-wrap:anywhere}
 .analytics-click-map{display:block;width:100%;height:650px;border:1px solid var(--audience-border);border-radius:4px;background:white;margin:16px 0}
 .analytics-click-map-text{height:240px}
 .analytics-click-map-toggle:is(:hover,:focus-visible){background:var(--audience-action-hover-bg)!important;border-color:var(--audience-action-hover-color)!important;color:var(--audience-action-hover-color)!important}
@@ -68,6 +69,26 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 @media(max-width:680px){.analytics-home-heading>.analytics-home-range-summary{width:calc(100% + 8px)}}
 
 .analytics-recent-campaigns{grid-column:1/-1}
+.analytics-growth .analytics-horizontal-bars>div{grid-template-columns:minmax(10ch,1fr) minmax(0,2fr) 6ch}
+.analytics-growth .analytics-report-table:not([data-mm-card-table]) th:first-child{
+  min-width:14ch;
+  padding-inline-end:1.5em;
+  white-space:nowrap;
+}
+.analytics-growth .analytics-report-table:not([data-mm-card-table]) :is(th,td):not(:first-child){
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.analytics-home-grid{container:home-panels/inline-size}
+.analytics-recent-campaigns .data-table td:first-child{min-width:0;overflow-wrap:anywhere}
+@container home-panels (max-width:64rem){
+  .analytics-home-grid>.analytics-card{grid-column:1/-1}
+}
+@media(min-width:1001px){
+  .analytics-home-grid .analytics-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+  [data-analytics-results="audience"] .analytics-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .analytics-workspace .analytics-metrics dt{min-height:3em}
+}
 
 .analytics-report-search>label.audience-check{min-height:var(--mm-search-control-height,44px);margin:0;padding:0}
 /* Let explanatory menus use the filter row's full width on phones. */
@@ -149,3 +170,35 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 .analytics-interaction-table tbody small{display:block;margin-top:4px;color:var(--audience-muted);font-weight:400}
 .analytics-interaction-table td:nth-child(2){white-space:nowrap}
 @media(max-width:600px){.analytics-interaction-map{height:420px;min-height:300px}.analytics-interaction-map-heading{align-items:flex-start}.analytics-interaction-table th,.analytics-interaction-table td{padding:9px}}
+
+/* Home and every Analytics view share the same hierarchy for figures, labels and supporting copy. */
+.analytics-workspace,.analytics-report-prompts,.analytics-home-heading{
+  --analytics-metric-size:calc(26px * var(--audience-font-scale,1));
+  --analytics-heading-size:calc(18px * var(--audience-font-scale,1));
+  --analytics-subheading-size:calc(17px * var(--audience-font-scale,1));
+  --analytics-text-size:calc(15px * var(--audience-font-scale,1));
+  --analytics-note-size:calc(13px * var(--audience-font-scale,1));
+  font-size:var(--analytics-text-size);
+}
+.analytics-workspace h2{font-size:var(--analytics-heading-size)}
+.analytics-workspace h3{font-size:var(--analytics-subheading-size)}
+.analytics-workspace .analytics-section-title{font-size:calc(22px * var(--audience-font-scale,1))}
+.analytics-workspace .analytics-card :is(.analytics-metrics,.analytics-audience) dd,
+.analytics-workspace .analytics-metric-choice strong{font-size:var(--analytics-metric-size)}
+.analytics-workspace .analytics-card :is(.analytics-metrics,.analytics-audience) dt,
+.analytics-workspace :is(.analytics-metric-choice>span:first-child,.analytics-trend,.analytics-horizontal-bars,.analytics-funnel-step,.analytics-resource-list span,.analytics-insight-grid article),
+.analytics-workspace :is(.data-table,.analytics-interaction-popup strong),
+.analytics-workspace .data-table th,
+.analytics-workspace .data-table [data-mm-card-row]>[data-mm-cell]{font-size:var(--analytics-text-size)}
+.analytics-workspace .data-table thead th{white-space:normal;hyphens:auto;overflow-wrap:anywhere}
+.analytics-builder-results .analytics-report-table{min-width:0}
+.analytics-axis-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:var(--analytics-note-size)}
+.analytics-workspace :is(.analytics-prior,.analytics-explanation,.analytics-sample-note,.analytics-bot-info,.analytics-bot-info p,.analytics-show-drafts,.campaign-status),
+.analytics-workspace :is(.analytics-chart-legend,.analytics-chart-data,.analytics-chart-controls a,.analytics-plot text,.analytics-report-access),
+.analytics-workspace :is(.analytics-interaction-map-heading p,.analytics-interaction-map-note,.analytics-interaction-map-feedback,.analytics-interaction-table small,.analytics-interaction-pin,.analytics-interaction-popup,.analytics-interaction-popup small),
+.analytics-workspace .data-table [data-mm-card-row]>[data-mm-cell]::before,
+.analytics-workspace .analytics-card :is(.mm-mobile-details-toggle,.mm-mobile-explanation-toggle){font-size:var(--analytics-note-size)}
+:is(.analytics-workspace,.analytics-home-heading) .analytics-reference-filters label,
+.analytics-workspace :is(.analytics-inline-controls,.analytics-report-settings,.analytics-builder-controls) label{font-size:var(--analytics-note-size)}
+:is(.analytics-workspace,.analytics-home-heading) .analytics-reference-filters :is(.analytics-range-trigger,.analytics-message-control>button,select),
+.analytics-workspace :is(.analytics-inline-controls,.analytics-report-settings,.analytics-builder-controls) :is(select,input,textarea){font-size:var(--analytics-text-size)}

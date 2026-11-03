@@ -1,5 +1,6 @@
 <?php
 $dateQuery=$view==='analytics'?$reportQuery:['view'=>'home','bots'=>$window['bots'],'drafts'=>$showDrafts?'1':'0'];
+if($view==='analytics'&&$section==='reports')$dateQuery+=array_intersect_key($reportListParams,array_flip(['removed','report_search','favorites','list_size']));
 unset($dateQuery['start'],$dateQuery['end']);
 $rangeLabel=$presets[$rangeKey]['label']??'Custom date range';
 ?>

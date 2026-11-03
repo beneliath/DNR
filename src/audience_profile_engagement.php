@@ -25,6 +25,17 @@ trait AudienceProfileEngagement
             $union.=" UNION ALL SELECT CONCAT('inbox-',m.id),CONCAT('inbox_',m.direction),'Inbox',JSON_OBJECT('subject',t.subject,'thread_id',t.id),m.occurred_at FROM marketing_inbox_messages m JOIN marketing_inbox_threads t ON t.id=m.thread_id AND t.audience_id=m.audience_id WHERE t.audience_id=? AND t.contact_id=? AND t.status<>'trash'";
             array_push($params,$this->audienceId,$person);
         }
+        if($includeInbox&&$this->inboxForwardingInstalled()){
+            $union.=" UNION ALL SELECT CONCAT('forward-',MIN(s.id)),'inbox_forward',s.actor_label,
+                JSON_OBJECT('subject',m.email_subject,'thread_id',t.id,
+                    'recipients',JSON_ARRAYAGG(JSON_OBJECT('email',f.recipient_email,'state',s.state))),MIN(s.created_at)
+                FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.audience_id=t.audience_id AND m.thread_id=t.id
+                JOIN marketing_inbox_forwards f ON f.audience_id=m.audience_id AND f.message_id=m.id
+                JOIN marketing_service_mail s ON s.audience_id=f.audience_id AND s.id=f.service_mail_id
+                WHERE t.audience_id=? AND t.contact_id=? AND t.status<>'trash'
+                GROUP BY f.batch_key,t.id,m.email_subject,s.actor_label";
+            array_push($params,$this->audienceId,$person);
+        }
         $years=array_map('intval',array_column($this->all("SELECT DISTINCT YEAR(created_at) year FROM ($union) activity ORDER BY year DESC",$params),'year'));
         $where='1=1';$filter=[];
         if($type!==''){$where.=' AND event_type=?';$filter[]=$type;}

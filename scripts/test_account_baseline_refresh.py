@@ -45,6 +45,8 @@ CLEAR_TABLES += ['marketing_ses_alert_outbox']
 # These inbox records are scoped to inbound mail that the refresh replaces. They
 # must not retain stale references or make old mail look newly received/routed.
 CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
+# Forward recipients link discarded messages to their operational mail receipts.
+CLEAR_TABLES += ['marketing_inbox_forwards']
 # Dismissals refer to discarded notification identities; never carry them into
 # the refreshed examples, where numeric record IDs may be reused.
 CLEAR_TABLES += ['marketing_notification_dismissals']
@@ -94,8 +96,8 @@ def service_health(services):
   state=inspect(PROJECT+'-'+service+'-1')['State']
   require(state['Running'] and state.get('Health',{}).get('Status','healthy')=='healthy','Unhealthy Test Account service: '+service)
 
-def check_external_references():
- links=query(DB,"SELECT TABLE_NAME,REFERENCED_TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='dnr' AND REFERENCED_TABLE_NAME IS NOT NULL")
+def check_external_references(db=DB):
+ links=query(db,"SELECT TABLE_NAME,REFERENCED_TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='dnr' AND REFERENCED_TABLE_NAME IS NOT NULL")
  reset_tables=set(TABLES+CLEAR_TABLES)
  unexpected=[line for line in links.splitlines() if line.split('\t')[1] in reset_tables and line.split('\t')[0] not in reset_tables]
  require(not unexpected,'Review new business references before refresh: '+str(unexpected))
@@ -262,7 +264,7 @@ def validate_message_monkey(db,anchor):
   'marketing_ses_credentials':"credential_ciphertext<>''",
   'marketing_ses_alert_outbox':'1=1',
   'marketing_service_mail':'1=1','marketing_jobs':"state IN ('queued','processing')",
-  'marketing_inbox_notifications':'1=1'}.items():
+  'marketing_inbox_notifications':'1=1','marketing_inbox_forwards':'1=1'}.items():
   require(query(db,'SELECT COUNT(*) FROM dnr.'+table+' WHERE '+condition)=='0','Unsafe demo data: '+table)
  require(query(db,"SELECT MIN(DATE(start_at)),MAX(DATE(end_at)) FROM dnr.marketing_campaign_touchpoints")=='\t'.join([month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]),'MessageMonkey planner window mismatch')
  require(query(db,"SELECT COUNT(*) FROM dnr.marketing_campaigns WHERE DATE(sent_at)='"+(anchor-datetime.timedelta(days=3)).isoformat()+"'")=='1','MessageMonkey reporting dates were not refreshed')
@@ -323,7 +325,9 @@ def refresh(args):
   require(query(DB,"SELECT COUNT(*) FROM dnr.marketing_ses_credentials WHERE credential_ciphertext<>''")=='0','Test Account SES must be unconfigured')
   primary_before=source_state(); protected_before=table_state(DB,PRESERVE)
   with (BASE/'member-encryption-keys.tar.gz.dnrenc').open('rb') as ciphertext:
-   decrypt=subprocess.Popen(crypto_command(baseline['app_image'],password,'decrypt'),stdin=ciphertext,stdout=subprocess.PIPE)
+   # Use the qualified reader for all three archives. The capture image can be
+   # retired; the archive checksum and the two member-key hashes still must match.
+   decrypt=subprocess.Popen(crypto_command(image,password,'decrypt'),stdin=ciphertext,stdout=subprocess.PIPE)
    with tarfile.open(fileobj=decrypt.stdout,mode='r|gz') as archive:
     names=[]
     for entry in archive:
@@ -338,6 +342,7 @@ def refresh(args):
    (work/'tables.json').write_text(json.dumps(TABLES)); (work/'tables.json').chmod(0o444)
    with restored_database(BASE/'database.sql.gz.dnrenc',database_image,image,password,work,'test-account-baseline-refresh') as staged:
     schema_upgrade=upgrade_staged_schema(staged,current_ledger,current_columns,baseline['database_state']['migrations'])
+    check_external_references(staged)
     print('Isolated baseline schema qualified: '+json.dumps(schema_upgrade),flush=True)
     before_counts={t:int(query(staged,'SELECT COUNT(*) FROM dnr.`'+t+'`')) for t in TABLES}
     relationships=date_relationships(staged)

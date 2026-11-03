@@ -30,6 +30,11 @@ function renderAudienceInbox(AudienceStore $store,array $audience,string $messag
                 case 'inbox_thread':$operation=audienceText($_POST,'operation',20);if($operation==='purge'){if(!$canDelete){http_response_code(403);throw new InvalidArgumentException('Permanently deleting a conversation requires an administrator.');}requireRecentAdminElevation($url(['status'=>'trash','thread'=>$threadId]));}$store->inboxThreadOperation($threadId,$version,$operation,$_POST);if($operation!=='labels')$redirect=$url();$message=$operation==='purge'?'Conversation permanently deleted.':'Conversation updated.';break;
                 case 'inbox_thread_bulk_purge':if(!$canDelete){http_response_code(403);throw new InvalidArgumentException('Permanently deleting conversations requires an administrator.');}requireRecentAdminElevation($url(['status'=>'trash']));$count=$store->inboxPurgeThreads($_POST['threads']??[]);$redirect=$url(['status'=>'trash']);$message=$count.' conversations permanently deleted.';break;
                 case 'inbox_read':$store->inboxMarkRead($threadId,($_POST['read']??'')==='1');if(($_POST['read']??'')!=='1')$redirect=$url(['selection'=>'none']);$message='Read status updated.';break;
+                case 'inbox_forward':
+                    if(!$canSend){http_response_code(403);throw new InvalidArgumentException('Forwarding is unavailable in this access mode.');}
+                    $store->queueInboxForward($threadId, (int)($_POST['message_id']??0), $_POST['recipient_ids']??[], audienceText($_POST,'forward_key',32));
+                    $message='Email queued for forwarding.';
+                    break;
                 case 'inbox_comment':$store->inboxComment($threadId,audienceText($_POST,'body_html',30000),max(0,(int)($_POST['parent_id']??0)));$message='Internal comment added.';break;
                 case 'inbox_link':$t=$store->inboxThread($threadId);$p=$store->one('SELECT id FROM marketing_contacts WHERE audience_id=? AND LOWER(email)=LOWER(?) AND deleted_at IS NULL AND is_archived=0',[$store->audienceId,$t['sender_email']]);if(!$p)throw new InvalidArgumentException('Add this address as a connection with its appropriate consent before replying.');$store->write('UPDATE marketing_inbox_threads SET contact_id=?,version=version+1 WHERE audience_id=? AND id=? AND version=?',[$p['id'],$store->audienceId,$threadId,$version]);if($store->db->affected_rows!==1)throw new InvalidArgumentException('This conversation changed. Reload before linking.');$message='Connection linked. Sending still checks its email consent.';break;
                 case 'inbox_draft_save':$draftId=$store->saveInboxDraft($_POST,$draftId,$version);$redirect=$draftUrl(['draft'=>$draftId]);$payload=['draft'=>$store->inboxDraft($draftId),'redirect'=>$redirect];$message='Draft saved.';break;
@@ -49,6 +54,11 @@ function renderAudienceInbox(AudienceStore $store,array $audience,string $messag
                 'notifications'=>['items'=>$store->inboxNotifications(max(0,(int)($_GET['after']??0))),'settings'=>$store->inboxNotificationSettings()],
                 'thread'=>['thread'=>$store->inboxThread($threadId),'messages'=>$store->inboxMessages($threadId,max(0,(int)($_GET['before']??0)))],
                 default=>throw new InvalidArgumentException('Unknown Inbox request.')};
+            if($_GET['inbox_api']==='notifications'&&isset($_GET['forward_threads'])){
+                $pending=audienceIds(explode(',',audienceText($_GET,'forward_threads',2100)));
+                if(count($pending)>100)throw new InvalidArgumentException('Too many conversations.');
+                $data['forward_states']=$store->inboxForwardStates($pending);
+            }
             releaseApplicationSessionLock();$respond($data);return;
         }
         if(isset($_GET['attachment'])){
@@ -68,6 +78,21 @@ function renderAudienceInbox(AudienceStore $store,array $audience,string $messag
             $messagePage=max(1,min(max(1,(int)ceil($messageTotal/$messageSize)),(int)($_GET['message_page']??1)));
             $messages=$store->inboxMessages($threadId,$before,$messagePage,$messageSize);}if($draftId){$draft=$store->inboxDraft($draftId);$threadId=(int)$draft['thread_id'];if($threadId)$thread=$store->inboxThread($threadId);if($draft['contact_id'])$recipient=$store->person((int)$draft['contact_id']);}elseif($panel==='compose'&&!empty($_GET['contact'])){$recipient=$store->person((int)$_GET['contact']);}elseif($panel==='compose'&&$thread){$recipient=$thread['contact'];}}catch(InvalidArgumentException $e){$error=$e->getMessage();}
     $preferences=$available?$store->inboxNotificationSettings():['version'=>0,'email_alerts'=>0,'browser_alerts'=>0];$readiness=$available?$store->inboxSendReadiness():['ready'=>false,'reasons'=>[]];
+    $forwardMessages=[];
+    if($canSend&&$thread&&$panel===''&&$thread['status']!=='trash'){
+        foreach(array_reverse($messages) as $item){
+            if($item['direction']==='inbound'&&isset($item['email_subject']))$forwardMessages[]=$item;
+        }
+        // A page of replies or notes can still belong to a conversation with received email.
+        if(!$forwardMessages&&$thread['last_inbound_id']&&$store->inboxForwardingInstalled()){
+            $latest=$store->one("SELECT id,email_subject,sender_email,occurred_at FROM marketing_inbox_messages
+                WHERE audience_id=? AND thread_id=? AND direction='inbound' AND email_subject IS NOT NULL ORDER BY id DESC LIMIT 1",
+                [$store->audienceId,$threadId]);
+            if($latest)$forwardMessages[]=$latest;
+        }
+    }
+    $forwardUsers=$forwardMessages?$store->inboxForwardUsers():[];
+    $forwardRequirement=audienceInboxForwardSmtpRequirement();
     $notificationRecipient=$panel==='notifications'?$store->one('SELECT email,email_verified_at FROM users WHERE id=?',[$actor]):null;
     $routing=$available&&$panel==='sources'&&$canSources?$store->inboxRoutingStatus():['configured'=>false,'address'=>'','latest'=>null,'verified_at'=>null];
     $replyReasons=$draft?$store->inboxRecipientEligibility($draft)['reasons']:($thread?$store->inboxRecipientEligibility(['contact_id'=>$thread['contact']['id']??0,'thread_id'=>$threadId])['reasons']:[]);

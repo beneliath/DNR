@@ -253,7 +253,7 @@ HTML],
 HTML],
             ['custom-reports', 'Create and find custom reports', <<<'HTML'
 <ol><li>Open <strong>Analytics → Custom reports</strong> and start a report if your role allows it.</li><li>Choose the available dataset, metrics, grouping, and filters. Preview the resulting table or chart.</li><li>Give the report a useful name and select the available visibility setting. Confirm whether it is private or shared.</li><li>Save it and return to the report list. Use Search reports and Favorites only to find reports you use often.</li></ol>
-<p><strong>Removed reports</strong> changes the list to removed entries; <strong>Clear all</strong> clears the search/filter controls. Check that view when a saved report seems missing. Removing a report definition is different from deleting the underlying campaign or connection records.</p>
+<p>Use <strong>Active</strong> for reports you can open. Owners and administrators can archive a report and restore it from <strong>Archive</strong>. Restoring brings back its saved settings, favorites, and sharing. An administrator can permanently delete an archived report after completing <strong>Admin Unlock</strong> and confirming deletion.</p>
 HTML],
             ['report-sharing', 'Compare, export, and explain results', <<<'HTML'
 <p>Use the same date range and filters when comparing reports. If two totals differ, first check message selection, dataset, bot filtering, and whether one result counts unique recipients while another counts events.</p>
@@ -286,7 +286,7 @@ HTML],
         'links'=>[['Home', ['view'=>'home']]],
         'topics'=>[
             ['missing-items', 'An item or action is missing', <<<'HTML'
-<p>Confirm the account banner, search text, filters, page number, and selected status view. Look in Archived, Removed reports, or Trash as appropriate. If a control is missing, check your role and any role-preview or demo restrictions.</p>
+<p>Confirm the account banner, search text, filters, page number, and selected status view. Check the archive or trash for that section. If a control is missing, check your role and any role-preview or demo restrictions.</p>
 <p>For a visible orange-outlined control, complete Admin Unlock using an administrator account. If access is still denied, report the exact action and error rather than trying a bookmarked administrative URL.</p>
 HTML],
             ['blocked-send', 'An email will not send or a reply is missing', <<<'HTML'

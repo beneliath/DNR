@@ -73,6 +73,15 @@ trait AudienceInboxCompose
         if(empty($this->inboxSettings()['gateway_confirmed']))$reasons[]='An administrator must confirm Inbox reply routing in Sources.';
         return ['ready'=>!$reasons,'reasons'=>$reasons];
     }
+    private function inboxMailAttachments(int $id, bool $fromDraft): array
+    {
+        $owner = $fromDraft ? 'draft_id' : 'message_id';
+        $files = [];
+        foreach ($this->all("SELECT filename,mime_type,content FROM marketing_inbox_attachments WHERE audience_id=? AND $owner=? ORDER BY id", [$this->audienceId,$id]) as $file) {
+            $files[] = ['filename'=>$file['filename'], 'content_type'=>$file['mime_type'], 'data_base64'=>base64_encode($file['content'])];
+        }
+        return $files;
+    }
     /** Freeze a private draft exactly once; all actual sends remain in the SES queue. */
     public function queueInboxDraft(int $id,int $version,array $audience,string $base):array
     {
@@ -90,7 +99,7 @@ trait AudienceInboxCompose
             if($previous){$references=audienceJson($previous['references_json']);$reply=$previous['rfc_message_id'];if($reply!=='')$references[]=$reply;$references=array_slice(array_values(array_unique($references)),-20);while(strlen(implode(' ',$references))>900)array_shift($references);}
             $token='';$optout='';
             if($d['include_optout']){$token=bin2hex(random_bytes(32));$optout=rtrim(audienceDispatchBase($base),'/').'/audience_inbox_optout.php?token='.$token;$this->write('INSERT INTO marketing_inbox_optout_tokens(token_hash,audience_id,email_hash,expires_at) VALUES (?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 YEAR))',[hash('sha256',$token),$this->audienceId,hash('sha256',strtolower($person['email']))]);$text.="\n\nStop receiving one-to-one messages: ".$optout;$html.='<p><small><a href="'.htmlspecialchars($optout,ENT_QUOTES,'UTF-8').'">Stop receiving one-to-one messages</a></small></p>';}
-            $files=[];foreach($this->all('SELECT filename,mime_type,content FROM marketing_inbox_attachments WHERE audience_id=? AND draft_id=? ORDER BY id',[$this->audienceId,$id])as$a)$files[]=['filename'=>$a['filename'],'content_type'=>$a['mime_type'],'data_base64'=>base64_encode($a['content'])];
+            $files=$this->inboxMailAttachments($id, fromDraft: true);
             $fromName=$d['from_name']?:preg_replace('/[\x00-\x1f\x7f]/',' ',$this->actorLabel);
             $message=['email'=>$person['email'],'to_name'=>trim($person['first_name'].' '.$person['last_name']),'from_email'=>$s['from_email'],'from_name'=>$fromName,'subject'=>$subject,'html'=>$html,'text'=>$text,'message_id'=>$messageId,'reply_to'=>$replyTo,'in_reply_to'=>$reply,'references'=>$references,'attachments'=>$files,'ses_binding'=>audienceSesBinding($s),'inbox_thread_id'=>$thread,'inbox_contact_id'=>(int)$person['id'],'inbox_actor_id'=>$this->actorId,'unsubscribe'=>$optout];
             $sealed=\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR));

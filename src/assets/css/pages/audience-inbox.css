@@ -96,6 +96,10 @@
 .inbox-thread-tags { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .inbox-source-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--inbox-muted); font-size: var(--inbox-font-caption); white-space: nowrap; }
 .inbox-source-tag .inbox-icon { width: 13px; height: 13px; }
+.inbox-forward-marker { display: inline-flex; align-items: center; color: var(--inbox-accent); }
+.inbox-forward-marker .inbox-icon { width: 15px; height: 15px; }
+.inbox-forward-marker[data-forward-state="pending"] { color: var(--inbox-muted); }
+.inbox-forward-marker[data-forward-state="pending"] svg:first-child, .inbox-forward-marker[data-forward-state="forwarded"] svg:last-child { display: none; }
 .inbox-label-tag { display: inline-block; max-width: 160px; padding: 1px 6px; border: 1px solid var(--inbox-line); border-radius: 4px; background: var(--inbox-surface); color: var(--inbox-muted); font-size: var(--inbox-font-caption); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: middle; }
 .inbox-more-labels { font-size: var(--inbox-font-caption); color: var(--inbox-muted); }
 .inbox-thread-tags .inbox-label-tag { max-width: 100px; }
@@ -157,10 +161,15 @@ html.dark-mode .inbox-main .inbox-purge-button { color: #fda29b; }
 .inbox-person-email { display: block; font-size: var(--inbox-font-caption); margin-top: 3px; color: var(--inbox-muted); overflow-wrap: anywhere; }
 .inbox-connection-link { display: flex; gap: 4px; align-items: center; flex-shrink: 0; font-size: var(--inbox-font-caption); text-decoration: none; }
 .inbox-connection-link .inbox-icon { width: 14px; height: 14px; }
-.inbox-conversation-toolbar { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--inbox-line); min-height: 48px; }
+.inbox-conversation-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--inbox-line); min-height: 48px; }
 .inbox-conversation-toolbar form { margin: 0; }
-.inbox-main .inbox-mark-unread { font-size: var(--inbox-font-small); padding: 7px 10px; white-space: nowrap; }
-.inbox-mark-unread .inbox-icon { width: 16px; height: 16px; }
+.inbox-main :is(.inbox-mark-unread,.inbox-forward-button) { font-size: var(--inbox-font-small); padding: 7px 10px; white-space: nowrap; }
+:is(.inbox-mark-unread,.inbox-forward-button) .inbox-icon { width: 16px; height: 16px; }
+#inbox-forward-dialog form { margin: 0; }
+#inbox-forward-dialog .form-actions { justify-content: flex-end; margin-top: 18px; }
+.inbox-forward-users { max-height: 35vh; overflow-y: auto; }
+.inbox-forward-users label { overflow-wrap: anywhere; }
+.inbox-forward-users small { display: block; color: var(--inbox-muted); }
 .inbox-labels-picker { position: relative; min-width: 0; }
 .inbox-labels-picker summary { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: var(--inbox-font-caption); padding: 8px 0; flex-wrap: wrap; }
 .inbox-labels-picker summary>.inbox-icon { width: 15px; height: 15px; }
