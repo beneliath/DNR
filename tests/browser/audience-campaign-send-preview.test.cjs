@@ -4,8 +4,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {execFileSync}=require('node:child_process');
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'../..');
-(async()=>{const browser=await chromium.launch({headless:true});try{
- for(const mode of ['send-html','send-text'])for(const width of [390,1518]){
+(async()=>{const browser=await chromium.launch({headless:true,...(process.env.DNR_BROWSER_EXECUTABLE?{executablePath:process.env.DNR_BROWSER_EXECUTABLE}:{})});try{
+ for(const mode of ['send-html','send-text','send-html-large'])for(const width of [390,1518]){
   const html=execFileSync('php',['tests/browser/audience-campaign-checklist-fixture.php',mode],{cwd:root,encoding:'utf8',maxBuffer:8*1024*1024});
   const page=await browser.newPage({viewport:{width,height:1000}}),errors=[],posts=[];
   let releaseSend;
@@ -20,6 +20,11 @@ const root=path.resolve(__dirname,'../..');
    return fs.existsSync(file)?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':'image/svg+xml'}):route.fulfill({status:404,body:''});
   });
   await page.goto('http://send-preview.test/audience.php?view=campaign-send&id=13');
+  const large=mode==='send-html-large';
+  assert.equal(await page.locator('.campaign-send-review [data-campaign-size-warning]').count(),large?1:0);
+  assert.equal(await page.locator('#campaign-send-confirm [data-campaign-size-warning]').count(),large?1:0);
+  if(large)assert.match(await page.locator('.campaign-send-review').innerText(),/120\.0 KB.*102 KB/s);
+  assert(await page.locator('.campaign-send-review').evaluate(node=>node.scrollWidth<=node.clientWidth+1),'Size notice fits the review pane');
   const url=page.url();
   const recipientLink=page.getByRole('link',{name:'Preview your recipients'}),recipientDialog=page.getByRole('dialog',{name:'Preview your recipients'});
   await recipientLink.click();await recipientDialog.waitFor({state:'visible'});assert.equal(page.url(),url);
@@ -31,7 +36,7 @@ const root=path.resolve(__dirname,'../..');
   assert.equal(await recipientLink.evaluate(node=>node===document.activeElement),true);
   const link=page.getByRole('link',{name:'Preview your email'}),dialog=page.getByRole('dialog',{name:'Email preview',exact:true});
   await link.click();await dialog.waitFor({state:'visible'});assert.equal(page.url(),url);
-  if(mode==='send-html'){
+  if(mode.startsWith('send-html')){
    const frame=dialog.locator('iframe');assert.equal(await frame.getAttribute('sandbox'),'');
    await frame.contentFrame().locator('body').waitFor();assert((await frame.contentFrame().locator('body').innerText()).trim().length>20,'HTML content is rendered');
   }else{
@@ -44,6 +49,7 @@ const root=path.resolve(__dirname,'../..');
   assert.equal(page.url(),url);assert.deepEqual(posts,[]);
   await page.locator('.campaign-send-review [data-open-dialog="campaign-send-confirm"]').click();
   const confirmation=page.locator('#campaign-send-confirm'),sendButton=confirmation.locator('[data-campaign-dispatch-submit]');
+  if(large)assert.equal(await confirmation.locator('[data-campaign-size-warning]').isVisible(),true,'Clipping warning stays visible before confirmation');
   await sendButton.evaluate(button=>{button.click();button.closest('form').requestSubmit();});
   await page.waitForFunction(()=>document.querySelector('[data-campaign-dispatch-submit]')?.classList.contains('campaign-dispatch-submitting'));
   assert.equal(await sendButton.innerText(),'Sending…');

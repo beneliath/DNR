@@ -14,7 +14,7 @@ document.querySelector('#run').onclick=async()=>{
   const block={html:'<p>Alpha <strong>Bravo</strong> Charlie Delta</p><p>Echo Foxtrot</p><p><span style="color:rgb(48,97,181)">Saved blue</span></p><p><span style="font-family:Georgia">Serif selection</span> <span style="font-family:Tahoma">Fallback selection</span></p>',text:''};
   dispose=mountRichText({host,block,makeButton:button,makeElement:el,history:()=>{},changed:()=>changes++,renderCanvas:()=>{},onSelection:()=>{},openLink:()=>{},mergeTags:{FNAME:'First name'},openImage:()=>{},fonts:{Arial:'Arial',Georgia:'Georgia',Tahoma:'Tahoma','MOEDBrandFont,Tahoma':'Ubuntu Light (Brand Kit)'}});
   const rich=host.querySelector('.designer-rich-text');
-  const find=(label)=>host.querySelector(`[aria-label="${label}"]`);
+  const find=(label)=>host.querySelector(`[aria-label="${label}"]`)||document.querySelector(`[aria-label="${label}"]`);
   // Selectionchange is dispatched explicitly; background-tab timer throttling
   // must not add a minute to every synthetic selection in Safari.
   const select=async(word)=>{
@@ -23,8 +23,17 @@ document.querySelector('#run').onclick=async()=>{
     throw new Error('Text missing: '+word);
   };
   const style=async(word,key)=>getComputedStyle(await select(word))[key];
-  const pick=(color,highlight=false)=>{find(highlight?'Selected text highlight':'Selected text color').click();const menu=find((highlight?'Selected text highlight':'Selected text color')+' palette');menu.querySelector(`[aria-label="${color}"]`).click();};
+  const pick=(color,highlight=false)=>{find(highlight?'Selected text highlight':'Selected text color').click();const dialog=document.querySelector('.audience-color-studio[open]'),hex=dialog.querySelector('.color-studio-hex');hex.value=color;hex.dispatchEvent(new Event('input'));dialog.querySelector('.color-studio-apply').click();};
   try{
+    const serif=await select('Serif selection'),selectedFont=getComputedStyle(serif).fontFamily;
+    find('Selected text color').click();const fontPreview=document.querySelector('.audience-color-studio[open]');
+    expect(getComputedStyle(fontPreview.querySelector('.color-studio-preview-text')).fontFamily===selectedFont,'Color preview uses the selected text font');fontPreview.querySelector('.color-studio-close').click();
+    host.style.width='320px';
+    const clearStyles=find('Clear styles'),undoBox=find('Undo text change').getBoundingClientRect(),redoBox=find('Redo text change').getBoundingClientRect();
+    expect(clearStyles.scrollWidth<=clearStyles.clientWidth+1,'Clear label fits its button');
+    expect(clearStyles.textContent==='Clear'&&!!clearStyles.querySelector('svg')&&clearStyles.title==='Clear styles','Clear has an eraser icon and Clear styles tooltip');
+    expect(Math.abs(undoBox.top-redoBox.top)<1&&redoBox.left>undoBox.left,'Undo and Redo remain beside one another when the toolbar wraps');host.style.width='790px';
+    const boldBox=find('Bold selection').getBoundingClientRect(),strikeBox=find('Strikethrough').getBoundingClientRect();expect(Math.abs(boldBox.top-strikeBox.top)<4,'Compact toolbar keeps Strikethrough on the first line');host.style.width='';
     const font=find('Selected text font');
     const selectRange=(start,end=start)=>{rich.focus();const range=document.createRange();range.setStart(start,0);range.setEnd(end,end.childNodes.length);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));};
     await select('Alpha');expect(font.value==='Arial','Font field reflects the inherited system font');
@@ -47,22 +56,23 @@ document.querySelector('#run').onclick=async()=>{
     await select('Bravo');pick('#FFFF00',true);expect(await style('Bravo','backgroundColor')==='rgb(255, 255, 0)','Highlight selected text');
     await select('Charlie');pick('#00FFFF',true);expect(await style('Charlie','backgroundColor')==='rgb(0, 255, 255)','Repeated highlight on new text');
     expect(await style('Alpha','color')==='rgb(255, 0, 0)','Later colors leave first selection unchanged');
-    await select('Bravo');find('Selected text color').click();find('Selected text color palette').querySelector('.designer-color-automatic').click();expect(await style('Bravo','color')==='rgb(36, 41, 45)','Automatic restores inherited text color');
+    await select('Bravo');find('Selected text color').click();document.querySelector('.audience-color-studio[open] .color-studio-automatic').click();expect(await style('Bravo','color')==='rgb(36, 41, 45)','Automatic restores inherited text color');
     expect(await style('Bravo','fontWeight')==='700','Automatic keeps bold formatting');
-    await select('Charlie');find('Selected text highlight').click();find('Selected text highlight palette').querySelector('.designer-color-automatic').click();expect(await style('Charlie','backgroundColor')==='rgba(0, 0, 0, 0)','No color removes highlight');
-    const custom=value=>{find('Selected text color').click();find('Selected text color palette').querySelector('.designer-color-more').click();const dialog=host.querySelector('dialog[open]');find('Selected text color hex').value=value;dialog.querySelector('footer .primary').click();return dialog;};
+    await select('Charlie');find('Selected text highlight').click();document.querySelector('.audience-color-studio[open] .color-studio-automatic').click();expect(await style('Charlie','backgroundColor')==='rgba(0, 0, 0, 0)','No color removes highlight');
+    const custom=value=>{find('Selected text color').click();const dialog=document.querySelector('.audience-color-studio[open]');dialog.querySelector('.color-studio-hex').value=value;dialog.querySelector('.color-studio-apply').click();return dialog;};
     await select('Echo');const customDialog=custom('#123456');
     expect(!customDialog.open&&document.activeElement===rich,'Custom choice closes the dialog and returns to text');expect(await style('Echo','color')==='rgb(18, 52, 86)','Custom color applies');
     await select('Foxtrot');custom('654321');expect(await style('Foxtrot','color')==='rgb(101, 67, 33)','Reopened custom picker follows next selection');expect(await style('Echo','color')==='rgb(18, 52, 86)','Next color choice leaves previous selection unchanged');
-    expect(!customDialog.open,'Second custom choice closes the picker');expect(!host.querySelector('input[type=color]'),'Text colors never open a native system picker');
-    find('Selected text color').click();find('Selected text color palette').querySelector('.designer-color-more').click();expect(customDialog.querySelectorAll('.designer-color-option').length===234,'More Colors matches the extended Mailchimp palette');
-    customDialog.querySelector('[aria-label="#FF0000"]').click();expect(await style('Foxtrot','color')==='rgb(101, 67, 33)','Choosing an extended swatch waits for OK');customDialog.querySelector('footer button:last-child').click();expect(await style('Foxtrot','color')==='rgb(101, 67, 33)','Cancel leaves existing color unchanged');
-    expect(!![...customDialog.querySelectorAll('button')].find(b=>b.textContent==='Eyedropper')===(typeof window.EyeDropper==='function'),'Eyedropper appears only when direct screen sampling is available');
+    expect(!host.querySelector('input[type=color]'),'Text colors never open a native system picker');
+    find('Selected text color').click();const staged=document.querySelector('.audience-color-studio[open]');const colorInput=staged.querySelector('.color-studio-hex');colorInput.value='#ff0000';colorInput.dispatchEvent(new Event('input'));
+    expect(await style('Foxtrot','color')==='rgb(101, 67, 33)','Previewing a new color waits for Apply');
+    staged.querySelector('.color-studio-footer button:not(.primary):not(.color-studio-automatic)').click();expect(await style('Foxtrot','color')==='rgb(101, 67, 33)','Cancel preserves existing formatting');
+    expect(!!staged.querySelector('.color-studio-dropper'),'Custom dropper is available without the native browser API');
     await select('Alpha');const size=find('Selected text size');size.value='35';size.dispatchEvent(new Event('change'));expect(await style('Alpha','fontSize')==='35px','Exact pixel font size');
     expect(await style('Alpha','color')==='rgb(255, 0, 0)','Font-size command keeps the selected text color under CSP');
     find('Bold selection').click();expect(await style('Alpha','color')==='rgb(255, 0, 0)','Bold command keeps existing color visible');find('Undo text change').click();
     find('Undo text change').click();expect(await style('Alpha','fontSize')==='16px','Undo restores prior font size');find('Redo text change').click();expect(await style('Alpha','fontSize')==='35px','Redo restores size');
-    for(const label of ['Insert link','Remove link','Insert image from content studio','Numbered list','Bulleted list','Paste as plain text','Paste from Rich Text Editor','Clear Styles','Edit text HTML source','Insert horizontal line','Insert anchor','Insert merge tag','Left to right text','Right to left text','Align left','Align center','Align right','Justify text','Undo text change','Redo text change'])expect(!!find(label),'Toolbar tool exists: '+label);
+    for(const label of ['Insert link','Remove link','Insert image from content studio','Numbered list','Bulleted list','Paste as plain text','Paste from Rich Text Editor','Clear styles','Edit text HTML source','Insert horizontal line','Insert anchor','Insert merge tag','Left to right text','Right to left text','Align left','Align center','Align right','Justify text','Undo text change','Redo text change'])expect(!!find(label),'Toolbar tool exists: '+label);
     await select('Echo');find('Insert anchor').click();find('Anchor name').value='details';host.querySelector('dialog[open] form').requestSubmit();expect(!!rich.querySelector('span#details'),'Anchor inserted');
     await select('Foxtrot');find('Paste as plain text').click();find('Paste plain text').value='<strong>plain text</strong>';host.querySelector('dialog[open] form').requestSubmit();expect(rich.textContent.includes('<strong>plain text</strong>'),'Plain paste inserts literal text');
     await select('Delta');find('Paste from Rich Text Editor').click();find('Paste formatted text').innerHTML='<p><em>Formatted</em><script>bad()</script><span onclick="bad()"> safe</span></p>';host.querySelector('dialog[open] form').requestSubmit();expect(!!rich.querySelector('em')&&!rich.innerHTML.includes('<script')&&!rich.innerHTML.includes('onclick'),'Rich paste keeps formatting and sanitizes content');

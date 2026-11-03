@@ -40,6 +40,67 @@ $imageMessage=audienceDispatchMessage($snapshot,$context,str_repeat('a',64),'<im
 $expect(!str_contains($imageMessage['html'],'data:image/')&&str_contains($imageMessage['html'],hash('sha256',$gif)),'PNG and GIF use immutable hosted images');
 $expect(str_contains($imageMessage['html'],hash('sha256',$svg)),'SVG logos use their vector snapshot in hosted email assets');
 $expect(strlen($imageMessage['html'])<10000,'Hosted images do not consume the message body budget');
+$expect(audienceDispatchRenderer($snapshot)($context,str_repeat('a',64),'<images@example.test>')===$imageMessage,'Prepared image-heavy message matches the worker render byte for byte');
+// A production-sized uploaded font must not inflate delivered HTML or alter the draft.
+$ttfBytes="\x00\x01\x00\x00".str_repeat("\0",415000);
+foreach(['ttf'=>$ttfBytes,'woff'=>'wOFF'.str_repeat("\0",4).pack('N',64).str_repeat("\0",52),'woff2'=>'wOF2'.str_repeat("\0",4).pack('N',64).str_repeat("\0",52)]as$format=>$fontBytes){
+    $font='data:font/'.$format.';base64,'.base64_encode($fontBytes);
+    foreach(['visual','code']as$mode){
+        $fontSnapshot=$snapshot;
+        $fontSnapshot['draft']['design']=audienceDesign(['schema'=>1,'mode'=>$mode,'styles'=>['font'=>'Georgia','webFont'=>$font],'code'=>'<html><head></head><body><p>Keep this newsletter and <a href="https://example.test/news">its link</a>.</p></body></html>','rows'=>[['columns'=>[[['type'=>'text','text'=>'Keep this newsletter and its link.']]]]]]);
+        $saved=$fontSnapshot;
+        $fontMessage=audienceDispatchMessage($fontSnapshot,$context,str_repeat('a',64),'<font@example.test>');
+        $fontUrl='https://public.example/a/community/audience_email_asset.php?key='.str_repeat('b',64).'&font='.hash('sha256',$font);
+        $expect(str_contains($fontMessage['html'],'src:url('.$fontUrl.')')&&!str_contains($fontMessage['html'],'data:font/'),$format.' font is hosted with a CSS-safe URL in '.$mode.' email');
+        $expect(str_contains($fontMessage['html'],'MOEDBrandFont,Georgia')&&str_contains($fontMessage['text'],'Keep this newsletter'),'Custom font, fallback and newsletter content remain in '.$mode.' email');
+        $expect($fontSnapshot===$saved&&str_contains(audienceDesignHtml($fontSnapshot['draft']['design']),$font),'Saved '.$mode.' design and its embedded preview font are preserved');
+        $expect(!audienceDispatchMessageSize($fontMessage)['warning'],'Hosted '.$format.' font does not cause a false clipping warning');
+        $expect(audienceDispatchRenderer($fontSnapshot)($context,str_repeat('a',64),'<font@example.test>')===$fontMessage,'Prepared '.$format.' '.$mode.' message matches the worker render');
+    }
+}
+// Reusing the immutable design must never reuse a recipient's conditional content,
+// share links, tracking, custom text or personalization.
+$personalized=$fontSnapshot;
+$personalized['tracking_key']=str_repeat('d',64);
+$personalized['identity']['__permission_reminder']='You requested these updates.';
+$personalized['draft']['subject']='Hello *|FNAME|*';
+$personalized['draft']['tracking']=['opens'=>true,'clicks'=>true,'plain_clicks'=>true];
+$personalized['draft']['design']=audienceDesign(['schema'=>1,'styles'=>['webFont'=>$font],'rows'=>[
+    ['condition'=>['rules'=>[['field'=>'tag:1','operator'=>'is','value'=>'1']]],'columns'=>[[
+        ['type'=>'heading','text'=>'Members only','includeToc'=>true],
+        ['type'=>'text','html'=>'<p>*|IF:FNAME|*Hello *|FNAME|**|ELSE:|*Hello friend*|END:IF|*</p>']
+    ]]],
+    ['columns'=>[[
+        ['type'=>'toc'],['type'=>'share','sharePlatforms'=>['facebook','email']],
+        ['type'=>'image-group','images'=>[['image'=>$gif,'alt'=>'Animation','url'=>'https://example.test/read']]],
+        ['type'=>'text','text'=>'Special member copy','condition'=>['rules'=>[['field'=>'group:2','operator'=>'not_empty','value'=>'']]]],
+        ['type'=>'text','html'=>'<p>Inline <img src="'.$gif.'"> photograph.</p>'],
+        ['type'=>'code','code'=>'<p><a href="https://example.test/article">Article for *|FNAME|*</a></p>']
+    ]]]
+]]);
+$otherDesign=$personalized['draft']['design'];$otherDesign['plainText']='Custom alternative for *|FNAME|*: *|ARCHIVE|*';
+$personalized['variants']=[
+    ['subject'=>'Hello *|FNAME|*','from_name'=>'Fixture team','design'=>null],
+    ['subject'=>'Alternate *|FNAME|*','from_name'=>'Other team','design'=>$otherDesign]
+];
+$prepared=audienceDispatchRenderer($personalized);$savedPersonalized=$personalized;
+foreach([
+    ['EMAIL'=>'one@example.test','FNAME'=>'A & <B>','tag:1'=>'1','group:2'=>'1'],
+    ['EMAIL'=>'two@example.test','FNAME'=>'','tag:1'=>'','group:2'=>''],
+    ['EMAIL'=>'three@example.test','FNAME'=>'Third','tag:1'=>'1','group:2'=>'','__email_format'=>'text']
+]as$i=>$person)foreach(['0','1','0']as$variant){
+    $token=str_pad((string)$i,64,'a');$mid='<personalized-'.$i.'@example.test>';
+    $actual=$prepared($person,$token,$mid,$variant);
+    $expect($actual===audienceDispatchMessage($personalized,$person,$token,$mid,$variant),'Prepared variants preserve per-recipient content, headers, links, formats and tracking');
+    if($variant==='0')$expect(str_contains($actual['text'],'Members only')===($person['tag:1']==='1'),'Conditional headings and table of contents remain recipient specific');
+}
+$expect($personalized===$savedPersonalized,'Preparation does not rewrite the saved design or variants');
+$reject(fn()=>$prepared(['EMAIL'=>'bad@example.test','FNAME'=>"Bad\nName"],str_repeat('a',64),'<bad@example.test>'));
+$reject(fn()=>$prepared(['EMAIL'=>'bad@example.test','FNAME'=>'*|UNKNOWN|*'],str_repeat('a',64),'<bad@example.test>'));
+$expect(!audienceDispatchMessageSize(['html'=>str_repeat('a',AUDIENCE_DISPATCH_HTML_WARNING_BYTES-1),'text'=>'Body'])['warning'],'HTML below the warning boundary stays clear');
+$atBoundary=audienceDispatchMessageSize(['html'=>str_repeat('a',AUDIENCE_DISPATCH_HTML_WARNING_BYTES),'text'=>'Body']);
+$expect($atBoundary['warning']&&$atBoundary['html_bytes']===100000&&$atBoundary['text_bytes']===4,'Warning starts before the approximate Gmail clipping threshold');
+$expect(!audienceDispatchMessageSize(['html'=>null,'text'=>str_repeat('a',200000)])['warning'],'Long plain-text messages do not get an HTML clipping warning');
 $plainPreference=audienceDispatchMessage($snapshot,$context+['__email_format'=>'text'],str_repeat('a',64),'<plain-preference@example.test>');
 $expect($plainPreference['html']===null&&str_contains($plainPreference['text'],'Unsubscribe:'),'Signup plain-text preference excludes HTML while retaining native subscription links');
 $snapshot['type']='plain-text';$snapshot['draft']['text']=str_repeat('a',6500000);

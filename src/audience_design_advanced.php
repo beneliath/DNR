@@ -212,7 +212,12 @@ function audienceDesignSafeCss(string $css,bool $sheet):string
 }
 function audienceDesignRender(array $input,?array $context=null):string
 {
-    $d=audienceDesign($input);$s=$d['styles'];$s['_typography']=$d['typography'];$e=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$responsive='';$toc=[];
+    return audienceDesignRenderDocument(audienceDesign($input),$context);
+}
+/** @internal Render a document already validated by audienceDesign, without revalidating its assets per recipient. */
+function audienceDesignRenderDocument(array $d,?array $context=null):string
+{
+    $s=$d['styles'];$s['_typography']=$d['typography'];$e=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$responsive='';$toc=[];
     foreach($d['rows']as$row)foreach($row['columns']as$column)foreach($column as$b)if($b['includeToc']&&$b['type']==='heading'&&($context===null||(audienceDesignMatches($row['condition'],$context)&&audienceDesignMatches($b['condition'],$context))))$toc[]=['anchor'=>$b['anchor']?:$b['id'],'label'=>$b['text']?:strip_tags($b['html'])];
     $tocHtml='<ul>';foreach($toc as$item)$tocHtml.='<li><a href="#'.$e($item['anchor']).'">'.$e($item['label']).'</a></li>';$tocHtml.='</ul>';
     $footer='<div class="email-footer" style="padding:32px;text-align:center;font-size:12px;color:#60676b;'.audienceDesignCss(array_replace($d['regions']['footer'],$d['footer']['styles'])).'">'.nl2br($e($d['footer']['text'])).($d['footer']['text']!==''?'<br><br>':'').'*|LIST:COMPANY|*<br><span style="white-space:pre-line">*|LIST:ADDRESS|*</span><br><br><a href="*|UPDATE_PROFILE|*">Update your preferences</a> or <a href="*|UNSUB|*">unsubscribe</a>.</div>';
@@ -265,7 +270,12 @@ function audienceDesignPlainText(array $design,?array $context=null,array $ident
         $text=$context===null?$design['plainText']:audienceDesignMerge($design['plainText'],$context,false);$reminder=audiencePermissionReminder($context??$identity);
         return $reminder!==''&&!audienceHasPermissionReminder($text,$reminder,false)?rtrim($text)."\n\n".$reminder:$text;
     }
-    $html=audiencePermissionReminderHtml(audienceDesignRender($design,$context),$context??$identity);$html=preg_replace('~<(head|style)[^>]*>.*?</\1>~si','',$html);
+    return audienceDesignPlainTextFromHtml(audienceDesignRender($design,$context),$context??$identity);
+}
+/** Derive the text alternative from the same personalized HTML, including its visible conditional content. */
+function audienceDesignPlainTextFromHtml(string $html,array $identity=[]):string
+{
+    $html=audiencePermissionReminderHtml($html,$identity);$html=preg_replace('~<(head|style)[^>]*>.*?</\1>~si','',$html);
     $html=preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~si',static fn($m)=>strip_tags($m[2]).' ('.html_entity_decode($m[1],ENT_QUOTES,'UTF-8').')',$html);
     $html=preg_replace('~<(?:br|hr)\b[^>]*>|</(?:p|div|h[1-6]|tr|li)>~i',"\n",$html);$text=html_entity_decode(strip_tags($html),ENT_QUOTES|ENT_HTML5,'UTF-8');return trim(preg_replace('/[ \t]+\n/',"\n",preg_replace('/\n{3,}/',"\n\n",$text)));
 }

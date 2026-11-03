@@ -39,6 +39,8 @@ export function wireMessageMonkeyUiStandards(){
             }
             // Shell controls and branding have their own layout and icon sizing.
             // A1 applies to explicit content action buttons, never arbitrary SVG links/buttons.
+            // Rich-text tools also own their compact sizing, including labeled tools.
+            if(button.closest('.designer-rich-toolbar')){button.classList.remove('action-icon-button');continue;}
             if(button.matches('[data-audience-logo]')||button.closest('.audience-topbar,.audience-account-tools,.inbox-top,.designer-topbar'))continue;
             if(button.closest('#audience-sidebar,.audience-sidebar,.mm-search-control,.campaign-search,.search-with-icon,.filter-search,.inbox-search,.audience-search-top,.designer-color-grid'))continue;
             const close=button.matches('button')&&button.closest('dialog,[role=dialog],[popover]')&&(button.matches('[data-close-dialog],[data-design-close]')||/^close\b/i.test(button.getAttribute('aria-label')||''))&&(!button.textContent.trim()||/^[×✕✖xX]$/.test(button.textContent.trim())||button.querySelector('svg'));
@@ -50,7 +52,7 @@ export function wireMessageMonkeyUiStandards(){
                 button.removeAttribute('data-tooltip');
                 button.removeAttribute('data-audience-tooltip');
                 button.removeAttribute('title');
-            }else if(button.matches('.designer-rich-toolbar-row>button,[data-template-layout]'))button.classList.add('action-icon-button');
+            }else if(button.matches('[data-template-layout]'))button.classList.add('action-icon-button');
         }
         for(const [group,owners] of archiveGroups){
             const children=Array.from(group.children),desired=[...children.filter(child=>!owners.includes(child)),...owners];

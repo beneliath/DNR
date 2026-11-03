@@ -86,8 +86,12 @@ $htmlId=$makeDispatch('HTML dispatch fixture',false);$htmlRow=$campaignStore->ca
 $gif='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 $svg=audienceSvgImage('data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80"><path d="M0 0h40v80H0z" fill="#3261b5"/></svg>'));
 $htmlDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[['type'=>'image','image'=>$png,'alt'=>'Fixture image'],['type'=>'image','image'=>$gif,'alt'=>'Animated fixture'],['type'=>'image','image'=>$svg,'alt'=>'Vector logo'],['type'=>'text','text'=>'Hello *|FNAME|*']]]]]]);
+$fontBytes="\x00\x01\x00\x00".str_repeat("\0",415000);$font='data:font/ttf;base64,'.base64_encode($fontBytes);$htmlDraft['design']['styles']['webFont']=$font;
 $conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($htmlDraft),$htmlId]);
-$rev=$campaignStore->reviewCampaignDispatch($htmlId,$dispatchAudience,$dispatchBase);$htmlJob=$campaignStore->confirmCampaignDispatch($htmlId,(int)$htmlRow['version'],$rev['proof'],$dispatchAudience,$dispatchBase);
+$beforeReview=$campaignStore->campaign($htmlId)['draft_json'];$rev=$campaignStore->reviewCampaignDispatch($htmlId,$dispatchAudience,$dispatchBase);
+audienceHttpExpect($rev['message_size']['html_bytes']<100000&&!$rev['message_size']['warning'],'Pre-send size measures hosted font and image URLs rather than embedded upload bytes');
+audienceHttpExpect($campaignStore->campaign($htmlId)['draft_json']===$beforeReview,'Size review preserves the saved newsletter and uploaded font');
+$htmlJob=$campaignStore->confirmCampaignDispatch($htmlId,(int)$htmlRow['version'],$rev['proof'],$dispatchAudience,$dispatchBase);
 $hj=$campaignStore->campaignDelivery($htmlId);$hr=$campaignStore->one('SELECT * FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id',[$htmlJob]);$hs=json_decode(\Dnr\Security\ApplicationKey::open($hj['snapshot_ciphertext']),true);$hc=json_decode(\Dnr\Security\ApplicationKey::open($hr['context_ciphertext']),true);$hm=audienceDispatchMessage($hs,$hc['context'],$hc['token'],$hr['message_id']);
 audienceHttpExpect(str_contains($hm['html'],'audience_email_asset.php?key=')&&!str_contains($hm['html'],'data:image/'),'Rendered HTML uses hosted immutable images');
 $public=static function(string $path,?array $post=null):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>10]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));$raw=curl_exec($curl);$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);return ['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'body'=>substr($raw,$size),'headers'=>substr($raw,0,$size)];};
@@ -97,8 +101,22 @@ $gifResponse=$public('audience_email_asset.php?key='.$hj['asset_key'].'&image='.
 audienceHttpExpect($gifResponse['status']===200&&str_contains(strtolower($gifResponse['headers']),'content-type: image/gif')&&$gifResponse['body']===base64_decode(substr($gif,strpos($gif,',')+1)),'Hosted GIF preserves exact animation bytes and content type');
 $svgResponse=$public('audience_email_asset.php?key='.$hj['asset_key'].'&image='.hash('sha256',$svg));
 audienceHttpExpect($svgResponse['status']===200&&str_contains(strtolower($svgResponse['headers']),'content-type: image/svg+xml')&&str_contains($svgResponse['headers'],"sandbox; default-src 'none'")&&$svgResponse['body']===base64_decode(explode(',',$svg)[1]),'Hosted SVG preserves vector snapshot bytes and uses a sandboxed response');
+$fontAsset='audience_email_asset.php?key='.$hj['asset_key'].'&font='.hash('sha256',$font);$fontResponse=$public($fontAsset);
+audienceHttpExpect($fontResponse['status']===200&&str_contains(strtolower($fontResponse['headers']),'content-type: font/ttf')&&str_contains(strtolower($fontResponse['headers']),'access-control-allow-origin: *')&&$fontResponse['body']===$fontBytes,'Hosted font returns the exact immutable bytes anonymously with the correct MIME type and CORS');
+audienceHttpExpect(str_contains($hm['html'],'&font='.hash('sha256',$font))&&!str_contains($hm['html'],'data:font/'),'Delivered font URL resolves through the snapshot asset endpoint');
+audienceHttpExpect($rev['message_size']===audienceDispatchMessageSize($hm),'Pre-send size includes the same personalized hosting and tracking expansion as actual delivery');
+audienceHttpExpect($public($fontAsset.'&image='.hash('sha256',$png))['status']===404,'Ambiguous image and font requests are rejected');
+audienceHttpExpect($public('audience_email_asset.php?key='.$hj['asset_key'].'&font='.hash('sha256',$png))['status']===404,'Font lookup cannot return an image');
+audienceHttpExpect($public('audience_email_asset.php?key='.str_repeat('0',64).'&font='.hash('sha256',$font))['status']===404,'Unrecognized font capability is rejected');
+audienceHttpExpect($public('audience_email_asset.php?key='.$hj['asset_key'].'&font='.str_repeat('0',64))['status']===404,'Unrecognized font hash is rejected');
 audienceHttpExpect($public('audience_email_asset.php?key='.str_repeat('0',64).'&image='.hash('sha256',$png))['status']===404,'Unrecognized asset capability is rejected');
 audienceHttpExpect($public('audience_subscription.php?token='.$hc['token'].'&email=1')['status']===200,'Personal email browser view works with its private capability');
+$largeId=$makeDispatch('Oversized HTML review fixture',false);$largeDraft=$campaignStore->campaign($largeId)['draft'];
+$largeDraft['design']=audienceDesign(['schema'=>1,'rows'=>[['columns'=>[array_fill(0,5,['type'=>'text','text'=>str_repeat('Newsletter content. ',1200)])]]]]);
+$conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($largeDraft),$largeId]);
+$largeReview=$editor($sendPath($largeId));
+audienceHttpExpect($largeReview['status']===200&&substr_count($largeReview['body'],'data-campaign-size-warning')===2&&str_contains($largeReview['body'],'Email may be clipped in Gmail'),'Oversized HTML warns on both send review and final confirmation');
+audienceHttpExpect(str_contains($largeReview['body'],'Estimated HTML size:')&&!$campaignStore->campaignDelivery($largeId),'Size warning estimates delivered HTML without starting a campaign');
 $htmlReceived=[];processAudienceCampaignDelivery($conn,20,static function($m)use(&$htmlReceived){$htmlReceived[]=$m;return 'accepted';});audienceHttpExpect(count($htmlReceived)===4,'HTML campaign dispatches only its exact confirmed snapshot');
 // Recover stale claims conservatively across a worker restart.
 $stale=$campaignStore->all('SELECT id FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id LIMIT 2',[$htmlJob]);
@@ -108,6 +126,7 @@ $conn->execute_query("UPDATE marketing_campaign_deliveries SET state='sending' W
 $recovered=0;processAudienceCampaignDelivery($conn,20,static function($m)use(&$recovered){$recovered++;return 'accepted';});$recoveredCounts=$campaignStore->campaignDeliveryCounts($htmlJob);
 audienceHttpExpect($recovered===1&&($recoveredCounts['uncertain']??0)==1,'Restart retries an unstarted claim and quarantines a possibly transmitted claim');
 require __DIR__.'/audience_delivery_completion_http.php';
+require __DIR__.'/audience_dispatch_scale_http.php';
 // Dedicated worker fixture: exactly one eligible recipient, injected log adapter only.
 $conn->execute_query("UPDATE marketing_contacts SET email_status='unsubscribed' WHERE audience_id=1 AND id<>?",[$dispatchPeople[5]]);
 $workerId=$makeDispatch('Dedicated worker dispatch fixture',false);$v=$campaignStore->campaign($workerId)['version'];$rev=$campaignStore->reviewCampaignDispatch($workerId,$dispatchAudience,$dispatchBase);$campaignStore->confirmCampaignDispatch($workerId,(int)$v,$rev['proof'],$dispatchAudience,$dispatchBase);

@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+/** Account-owned colors shared by all MessageMonkey editor pickers. */
+function audienceBrandColorPalette(array $brand):array
+{
+    $palette=[];
+    foreach(['link'=>'Link color','button'=>'Button background','text'=>'Default text','body'=>'Content background','buttonText'=>'Button text','background'=>'Page background']as$key=>$label)if(isset($brand['styles'][$key]))$palette[]=['label'=>$label,'value'=>audienceDesignColor($brand['styles'][$key])];
+    return $palette;
+}
+
 /** Brand Kit owns new footer identity; older accounts retain their existing settings until saved. */
 function audienceBrandIdentity(array $settings,string $audienceName=''):array
 {

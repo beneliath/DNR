@@ -49,8 +49,8 @@ function measure(){
   }
  }
  if(innerWidth<=1000)for(const block of document.querySelectorAll('.designer-block.selected')){
-  const bar=block.querySelector('.designer-block-hover-tools'),content=block.querySelector('.designer-block-content'),section=block.closest('.designer-row').querySelector('.designer-layout-tools');
-  for(const other of [content,section])if(visible(bar)&&visible(other)){
+  const bar=block.querySelector('.designer-block-hover-tools'),content=block.querySelector('.designer-block-content');
+  for(const other of [content])if(visible(bar)&&visible(other)){
    const a=bar.getBoundingClientRect(),b=other.getBoundingClientRect();
    if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>3&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>3)overlaps.push({parent:label(block),a:label(bar),b:label(other)});
   }

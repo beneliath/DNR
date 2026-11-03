@@ -62,8 +62,14 @@ processAudienceFlows($conn,10,$clock+31);audienceHttpExpect($fs->person($flowPer
 $person=$fs->person($flowPerson);$fs->mutatePerson($flowPerson,(int)$person['version'],'untag',['tag_id'=>$flowTag]);$person=$fs->person($flowPerson);$fs->mutatePerson($flowPerson,(int)$person['version'],'tag',['tag_id'=>$flowTag]);processAudienceFlows($conn,20,$clock+62);
 audienceHttpExpect($fs->person($flowPerson)['first_name']==='Matched','A new tag event takes the matching wait branch');$stop((int)$waiting['id']);
 // Repeat and entry filters are enforced independently of a caller supplying a real ID.
-$repeat=$d;$repeat['settings']['repeat']=true;$repeat['settings']['cooldown']=1;$repeat['entry']=['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'flow-person@example.test']]];$repeated=$newFlow($repeat,'Reentry rules');$enroll($repeated);processAudienceFlows($conn,20,$clock);
-audienceHttpExpect($enroll($repeated,null,$clock+60)===null,'Cooldown prevents rapid reentry');audienceHttpExpect($enroll($repeated,null,$clock+86401)!==null,'Completed connections can reenter after cooldown');
+$repeat=$d;$repeat['settings']['repeat']=true;$repeat['settings']['cooldown']=1;$repeat['entry']=['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'flow-person@example.test']]];$repeated=$newFlow($repeat,'Reentry rules');$repeatRun=$enroll($repeated);processAudienceFlows($conn,20,$clock);
+// The database records the entry time. A slow CI run can create this entry
+// several seconds after the suite clock was captured.
+$repeatEntry=$fs->one('SELECT state,started_at FROM marketing_flow_runs WHERE id=?',[$repeatRun]);
+audienceHttpExpect(($repeatEntry['state']??'')==='completed','Reentry fixture completed its original run');
+$cooldownEnds=strtotime($repeatEntry['started_at'].' UTC')+86400;
+audienceHttpExpect($enroll($repeated,null,$cooldownEnds-1)===null,'Cooldown blocks reentry until the full day elapses');
+audienceHttpExpect($enroll($repeated,null,$cooldownEnds)!==null,'Completed connections can reenter when their cooldown ends');
 audienceHttpExpect($enroll($repeated,$otherPerson)===null,'A foreign-audience connection cannot enroll');$stop((int)$repeated['id']);
 // Legacy percentage documents remain inspectable, but cannot be activated.
 $split=$d;$split['nodes']=[['id'=>'split','type'=>'split','percent'=>50,'yes'=>'yes','no'=>'no'],['id'=>'yes','type'=>'tag','tag_id'=>$flowTag],['id'=>'no','type'=>'tag','tag_id'=>$flowOtherTag]];$split['start']='split';$splitId=$fs->saveFlow('Unsupported legacy percentage',$split);$flowIds[]=$splitId;$splitBlocked=false;

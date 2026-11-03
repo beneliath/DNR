@@ -27,8 +27,9 @@ if($fixtureMode==='enabled'){$campaign['draft']['resend']=['enabled'=>true];$pub
 if($fixtureMode==='archive-only')$publication=['enabled'=>false,'archive_listed'=>true];
 if(str_starts_with($fixtureMode,'send-')){
     $view='campaign-send';$dispatchReview=['count'=>2,'recipients'=>[['id'=>1,'first_name'=>'Ada','last_name'=>'Example','email'=>'ada@example.test'],['id'=>2,'first_name'=>'<script>','last_name'=>'Recipient','email'=>'second@example.test']],'proof'=>'fixture-proof'];$dispatchError='';$audience=['name'=>'Fixture audience'];$campaign['deleted_at']=null;$previewIdentity=[];
-    if($fixtureMode==='send-html')$campaign['draft']['design']=audienceDesignStarters()['newsletter']['design'];
+    if(str_starts_with($fixtureMode,'send-html'))$campaign['draft']['design']=audienceDesignStarters()['newsletter']['design'];
     else{$campaign['campaign_type']='plain-text';$campaign['draft']['text']="Hello recipient,\n\n".str_repeat('Long preview text ',40)."\n<script>literal text</script>";}
+    $dispatchReview['message_size']=audienceDispatchMessageSize(['html'=>$fixtureMode==='send-html-large'?str_repeat('x',120000):($campaign['campaign_type']==='plain-text'?null:'Small HTML'),'text'=>'Sample text']);
 }
 echo '<!doctype html><html lang="en">';
 renderPageHead('Campaign checklist fixture',['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);
