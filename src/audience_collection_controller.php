@@ -6,7 +6,11 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
     $url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
     $audienceId=$store->audienceId; $isPost=$_SERVER['REQUEST_METHOD']==='POST';
-    $available=$store->collectionAvailable(); $resource=null; $recover=null; $operationRedirect=null; $collectionEditorError=null;
+    $available=$store->collectionAvailable(); $resource=null; $recover=null; $renameRecovery=null; $operationRedirect=null; $collectionEditorError=null;
+    $listRedirect=static function(array $entry,bool $trash)use($view):array{
+        $listView=in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true)?$view:match($entry['kind']){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'};
+        return ['view'=>$listView,'trash'=>$trash?'1':'0','q'=>audienceText($_GET,'q',100),'type'=>audienceText($_GET,'type',20),'per_page'=>(int)($_GET['per_page']??100),'direction'=>($_GET['direction']??'desc')==='asc'?'asc':'desc','page'=>max(1,(int)($_GET['page']??1))];
+    };
     $publishedPreview=$view==='form'&&($_GET['preview']??null)==='published';
     if($publishedPreview&&$_SERVER['REQUEST_METHOD']!=='GET'){
         http_response_code(405);header('Allow: GET');exit('Published previews are read-only.');
@@ -65,6 +69,11 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                     if (!is_array($input['document'])) throw new InvalidArgumentException('Invalid form design.');
                 }
                 $id=$store->saveCollection($input,$id,$version); $message='Draft saved. Publish when it’s ready.';
+            } elseif ($action==='collection_rename') {
+                $entry=$store->collectionResource($id);
+                $store->renameCollection($id,$version,audienceText($_POST,'name',100));
+                $operationRedirect=$listRedirect($entry,false);
+                $message='Form renamed.';
             } elseif ($action==='collection_operation') {
                 $op=audienceText($_POST,'operation',30);
                 if($op==='delete'){
@@ -75,8 +84,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 if ($op==='remove' && audienceText($_POST,'confirm',10)!=='REMOVE') throw new InvalidArgumentException('Type REMOVE to remove this form and stop its public link.');
                 if(in_array($op,['archive','remove','restore','delete'],true)){
                     $entry=$store->collectionResource($id,false,true);
-                    $listView=in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true)?$view:match($entry['kind']){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'};
-                    $operationRedirect=['view'=>$listView,'trash'=>in_array($op,['restore','delete'],true)?'1':'0','q'=>audienceText($_GET,'q',100),'type'=>audienceText($_GET,'type',20),'per_page'=>(int)($_GET['per_page']??100),'direction'=>($_GET['direction']??'desc')==='asc'?'asc':'desc','page'=>max(1,(int)($_GET['page']??1))];
+                    $operationRedirect=$listRedirect($entry,in_array($op,['restore','delete'],true));
                 }
                 if($op==='publish'&&isset($_POST['document_json'])){
                     try{$document=json_decode(audienceText($_POST,'document_json',3000000),true,32,JSON_THROW_ON_ERROR);}
@@ -94,7 +102,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
                 $message=match($op){'publish'=>'Published. The public page now uses this revision.','pause'=>'Paused. Public collection has stopped.','archive','remove'=>'Form archived. Public collection has stopped and existing results are kept.','restore'=>'Restored as a draft. Publish when it’s ready.','delete'=>'Form and its results permanently deleted. Connections and consent history are kept.',default=>'Draft copied.'};
                 if(in_array($op,['archive','remove','delete'],true))$id=0;
             } else throw new InvalidArgumentException('Choose a supported form action.');
-            if (str_contains($_SERVER['HTTP_ACCEPT']??'','application/json') && in_array($action,['collection_save','collection_operation'],true)) {
+            if (str_contains($_SERVER['HTTP_ACCEPT']??'','application/json') && in_array($action,['collection_save','collection_rename','collection_operation'],true)) {
                 $saved=$id?$store->collectionResource($id):['version'=>0,'state'=>'removed'];
                 releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
                 echo json_encode(['id'=>$id,'version'=>(int)$saved['version'],'state'=>$saved['state']]+($operationRedirect?['redirect'=>$url($operationRedirect)]:[]),JSON_THROW_ON_ERROR);return;
@@ -104,6 +112,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
             if($e instanceof AudienceCollectionOriginException)$collectionEditorError=['field'=>'origins','message'=>$e->getMessage()];
             if (in_array($action,['collection_preview','collection_image','collection_library','collection_library_image','collection_new_tag'],true) || str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')) { http_response_code(422); header('Content-Type: application/json; charset=UTF-8'); header('Cache-Control: no-store'); echo json_encode(['error'=>$e->getMessage()]+($collectionEditorError?['field'=>$collectionEditorError['field']]:[]),JSON_THROW_ON_ERROR); return; }
             $error=$e->getMessage(); if ($action==='collection_save'||($action==='collection_operation'&&audienceText($_POST,'operation')==='publish'&&isset($_POST['document_json']))) $recover=$_POST;
+            if($action==='collection_rename'){$renameRecovery=$_POST;$id=0;}
             if($action==='collection_operation'&&in_array($view,['forms','form-settings','landing-pages','surveys','preferences'],true))$id=0;
         }
     }

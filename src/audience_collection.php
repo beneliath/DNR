@@ -307,6 +307,18 @@ trait AudienceCollection
         });
     }
 
+    public function renameCollection(int $id, int $version, string $name): int
+    {
+        $name=audienceText(['name'=>$name],'name',100);
+        if($name==='')throw new InvalidArgumentException('Name this form or page.');
+        return $this->transaction(function()use($id,$version,$name):int{
+            $resource=$this->collectionResource($id,true);
+            if((int)$resource['version']!==$version)throw new InvalidArgumentException('This form changed. Reload before renaming.');
+            $this->write('UPDATE marketing_collection_resources SET name=?,version=version+1 WHERE audience_id=? AND id=?',[$name,$this->audienceId,$id]);
+            return $id;
+        });
+    }
+
     public function collectionOperation(int $id, int $version, string $operation): int
     {
         return $this->transaction(function() use($id,$version,$operation) {

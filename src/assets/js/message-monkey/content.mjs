@@ -6,6 +6,7 @@ import {setFileDropStatus, selectedUploadFile} from '../audience-file-drop.mjs';
 export function initializeContentWorkspace(show) {
     const contentStatus = (form, message) => { const status = $('[data-content-status]', form); if (status) status.textContent = message; };
     const brandDirtyStates = new WeakMap();
+    const fileDirtyStates = new WeakMap();
     $$('[data-brand-form]').forEach(form => {
         const controls = Array.from(form.elements).filter(input => input.name && !['csrf_token','action','version'].includes(input.name) && !['file','submit','button'].includes(input.type));
         const value = input => ['checkbox','radio'].includes(input.type) ? input.checked : input.value;
@@ -36,6 +37,7 @@ export function initializeContentWorkspace(show) {
         if (preview) { delete preview.dataset.artworkFitted; preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
         if(!value)brandLogoDimensions(form,key);
         brandDirtyStates.get(form)?.();
+        fileDirtyStates.get(form)?.update();
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
             if (form.elements[key].value !== value) return;
@@ -62,6 +64,7 @@ export function initializeContentWorkspace(show) {
     const finishContentUpload = (form,input,token) => {
         const state=contentUploads.get(form); if(state.pending.get(input)!==token)return;
         state.pending.delete(input); if(!state.pending.size){for(const [button,disabled]of state.buttons)button.disabled=disabled;state.buttons=[];form.removeAttribute('aria-busy');}
+        fileDirtyStates.get(form)?.update();
     };
     $$('[data-content-upload],[data-brand-font]').forEach(input => input.addEventListener('change', async () => {
         const form = input.form; if (!form) return;
@@ -139,6 +142,23 @@ export function initializeContentWorkspace(show) {
     }
     const contentEditor = $('[data-content-editor]');
     if (contentEditor) {
+        const controls = Array.from(contentEditor.elements).filter(input => input.name && !['csrf_token','action','id','version'].includes(input.name) && !['file','submit','button'].includes(input.type));
+        const uploads = $$('input[type=file]', contentEditor);
+        const buttons = $$('[data-content-save]').filter(button => button.form === contentEditor);
+        const status = $('[data-content-unsaved-status]', contentEditor);
+        let saved = new Map(controls.map(input => [input, input.value]));
+        let recovered = contentEditor.dataset.contentRecovery === '1', previous = false;
+        const update = () => {
+            const dirty = recovered || controls.some(input => input.value !== saved.get(input)) || uploads.some(input => input.files.length > 0);
+            buttons.forEach(button => button.classList.toggle('content-save-unsaved', dirty));
+            if (status && dirty !== previous) status.textContent = dirty ? 'Unsaved file changes.' : 'No unsaved file changes.';
+            previous = dirty;
+        };
+        fileDirtyStates.set(contentEditor, {update, reset: () => {
+            saved = new Map(controls.map(input => [input, input.value])); recovered = false; update();
+        }});
+        contentEditor.addEventListener('input', update); contentEditor.addEventListener('change', update);
+        contentEditor.addEventListener('reset', () => queueMicrotask(update)); update();
         if (contentEditor.elements.image.value) setContentImage(contentEditor, 'image', contentEditor.elements.image.value);
         $('[data-content-new]')?.addEventListener('click', () => {
             contentEditor.reset(); for (const key of ['id','version']) contentEditor.elements[key].value = '0'; contentEditor.elements.file_kind.value = 'image';
@@ -149,6 +169,7 @@ export function initializeContentWorkspace(show) {
             if (pdfDownload) pdfDownload.hidden = true;
             const usage = $('[data-content-usage]', contentEditor);
             if (usage) usage.hidden = true;
+            fileDirtyStates.get(contentEditor).reset();
             $('#content-edit-title').textContent = 'Upload file'; contentStatus(contentEditor, ''); show('content-edit');
         });
         const editImage = rotate => {
@@ -220,6 +241,7 @@ export function initializeContentWorkspace(show) {
         }
         $('#content-edit-title').textContent = 'Edit file';
         contentStatus(contentEditor, '');
+        fileDirtyStates.get(contentEditor).reset();
         show('content-edit');
     }));
     const contentFilters = $('.content-filters');

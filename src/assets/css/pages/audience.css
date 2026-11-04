@@ -165,7 +165,8 @@ button:where(:enabled):hover,.button:where(:not(:disabled,[aria-disabled=true]))
 .audience-app :is(button,a,summary).primary{--audience-primary:#007c89;--audience-primary-hover:#006973;--audience-primary-text:#fff;background:var(--audience-primary);color:var(--audience-primary-text);border-color:var(--audience-primary)}
 .primary,button.primary,.button.primary,.audience-button.primary{background:var(--audience-primary);color:var(--audience-primary-text);border-color:var(--audience-primary)}
 .audience-app :is(button,a,summary).primary:is(:hover,:focus-visible),.primary:is(:hover,:focus-visible),button.primary:is(:hover,:focus-visible),.button.primary:is(:hover,:focus-visible),.audience-button.primary:is(:hover,:focus-visible){background:var(--audience-primary-hover);color:var(--audience-primary-text);border-color:var(--audience-primary-hover)}
-.sr-only,html.has-js .audience-file-drop:has(>[data-file-browse]:not([hidden]))>input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sr-only,html.has-js .audience-file-drop>input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+html.has-js .audience-file-drop>input[type=file]{top:0;left:0;grid-area:auto}
 html:not(.has-js) .audience-file-drop>[data-file-browse]{display:none}
 .audience-skip{position:fixed;top:-100px;left:10px;z-index:10;background:var(--audience-surface);padding:10px}
 .audience-skip:focus{top:4px}
@@ -232,6 +233,7 @@ fieldset{padding:0;border:0;margin:0;min-width:0}
 .collection-editor-back:hover{background:var(--audience-hover)}
 .audience-actions{display:flex;align-items:center;gap:16px}
 .audience-page-body{padding:52px 32px 32px}
+body[data-mm-brand-scroll-restoring] #audience-content{visibility:hidden}
 /* Shared MOED footer, kept in the page/tool panel rather than email content. */
 body.audience-app:has(>.audience-content>.app-footer){display:flex;flex-direction:column;min-height:100dvh}
 body.audience-app:has(>.audience-content>.app-footer)>.audience-topbar{flex-shrink:0}
@@ -1062,6 +1064,8 @@ html:has(.content-library){scrollbar-gutter:stable}
 .content-library-list article{display:flex;align-items:center;gap:20px;border-radius:0;border-top:0}
 .content-library-list .content-thumbnail{height:100px;width:120px;flex:none;padding:12px}.content-library-list article>div{flex:1}
 .content-editor{width:760px}.content-editor form{padding:24px}.content-editor fieldset>label,.content-brand-layout label{display:block;margin:20px 0 8px}
+.content-editor .dialog-heading{flex-wrap:wrap}.content-editor-heading-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
+.content-editor .dialog-heading [data-content-save]{border:1px solid var(--audience-primary);font-size:inherit;padding:7px 13px;margin:0;white-space:nowrap}
 .content-section-body{padding:24px}.content-section-body form{padding:0}.content-section-body form label{display:block;margin:20px 0 8px}
 .content-editor input:not([type=checkbox]),.content-editor select,.content-brand-layout input:not([type=checkbox]),.content-brand-layout select{width:100%}
 .content-brand-layout :is(select[name=font],select[name=template_id]){width:max-content;max-width:100%;justify-self:start}
@@ -1090,12 +1094,14 @@ html.has-js [data-brand-color-tile]>input,html:not(.has-js) [data-brand-color-ti
 .content-brand-settings select[name=font],.content-brand-settings select[name=template_id]{width:100%}
 .content-brand-upload{min-width:0}
 .content-brand-upload>label:first-child{display:block;margin:0 0 8px}
-.content-brand-upload .audience-file-drop{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:6px 10px;padding:12px;text-align:left}
-.content-brand-upload .audience-file-drop>svg{grid-column:1;grid-row:1;width:28px;height:28px;align-self:center}
-.content-brand-upload .audience-file-drop>strong{grid-column:2;grid-row:1;font-size:inherit;line-height:inherit;align-self:center}
-.content-brand-upload .audience-file-drop>[data-file-browse]{grid-column:3;grid-row:1;padding:7px 9px;align-self:center;white-space:nowrap;font-size:inherit}
+.content-brand-upload .audience-file-drop{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"icon prompt browse" "help help help" "status status status";grid-template-rows:minmax(34px,auto) auto auto;gap:6px 10px;padding:12px;text-align:left}
+.content-brand-upload .audience-file-drop>svg{grid-area:icon;width:28px;height:28px;align-self:center}
+.content-brand-upload .audience-file-drop>strong{grid-area:prompt;font-size:inherit;line-height:inherit;align-self:center}
+.content-brand-upload .audience-file-drop>[data-file-browse]{grid-area:browse;padding:7px 9px;align-self:center;white-space:nowrap;font-size:inherit}
 .content-brand-upload .audience-file-drop>[data-file-browse]:is(:hover,:focus-visible):not(:disabled),.content-brand-settings [data-content-clear=web_font]:is(:hover,:focus-visible):not(:disabled){background:var(--audience-action-hover-bg);border-color:var(--audience-action-hover-color);color:var(--audience-action-hover-color)}
-.content-brand-upload .audience-file-drop>:is(span,p,input[type=file]:not(.sr-only)){grid-column:1/-1;font-size:inherit;line-height:inherit}
+.content-brand-upload .audience-file-drop>span{grid-area:help;font-size:inherit;line-height:inherit}
+.content-brand-upload .audience-file-drop>p{grid-area:status;font-size:inherit;line-height:inherit}
+html:not(.has-js) .content-brand-upload .audience-file-drop>input[type=file]{grid-column:1/-1;grid-row:4;font-size:inherit;line-height:inherit}
 .content-brand-settings [data-content-clear]{margin-top:8px;padding:6px 10px;font-size:inherit}
 .content-brand-logo-actions{display:flex;flex-direction:column;align-items:center;width:max-content;max-width:100%}
 
@@ -1105,9 +1111,9 @@ html.has-js [data-brand-color-tile]>input,html:not(.has-js) [data-brand-color-ti
 html.has-js .content-brand-logo-stage img:not([data-artwork-fitted]){visibility:hidden}
 .content-brand-settings .content-logo-preview{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;margin:0}
 .content-brand-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}.content-brand-heading h2{margin:0}
-[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved,[data-audience-defaults-save].audience-defaults-save-unsaved,.collection-publish-pending{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
+[data-brand-save].brand-save-unsaved,[data-content-save].content-save-unsaved,:is([data-collection-save],[data-collection-rename-save]).collection-save-unsaved,[data-audience-defaults-save].audience-defaults-save-unsaved,.collection-publish-pending{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
 @keyframes brand-save-blink{0%,100%{outline:3px solid transparent}50%{outline:3px solid var(--audience-primary)}}
-@media(prefers-reduced-motion:reduce){[data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved,[data-audience-defaults-save].audience-defaults-save-unsaved,.collection-publish-pending{animation:none;outline:3px solid var(--audience-primary)}}
+@media(prefers-reduced-motion:reduce){[data-brand-save].brand-save-unsaved,[data-content-save].content-save-unsaved,:is([data-collection-save],[data-collection-rename-save]).collection-save-unsaved,[data-audience-defaults-save].audience-defaults-save-unsaved,.collection-publish-pending{animation:none;outline:3px solid var(--audience-primary)}}
 .content-brand-font-upload{margin-top:14px}
 .content-brand-settings .audience-check{gap:9px;align-items:flex-start;margin:12px 0 0;font-size:inherit}
 .content-brand-settings .content-color-grid{gap:12px 10px;align-items:end;align-self:end}
