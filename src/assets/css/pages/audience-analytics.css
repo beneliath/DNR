@@ -15,6 +15,7 @@
 .analytics-evidence-grid thead th:first-child{width:30%}.analytics-card{min-width:0}.analytics-card header{flex-wrap:wrap;gap:14px}.analytics-card h2{overflow-wrap:anywhere}.analytics-report-settings textarea{min-height:70px}.analytics-table-scroll table{min-width:500px}.analytics-builder-results .analytics-explanation{line-height:1.6}.analytics-builder-layout a,.analytics-report-access input{overflow-wrap:anywhere}
 @media(max-width:1100px){.analytics-builder-layout{grid-template-columns:240px minmax(0,1fr)}.analytics-report-plots{grid-template-columns:1fr}.analytics-builder-controls{padding:18px}}
 @media(max-width:800px){.analytics-builder-layout{grid-template-columns:1fr}.analytics-builder-controls{max-height:none}.analytics-inline-controls>label{flex:1 1 160px}.analytics-inline-controls>button{min-height:40px}.analytics-report-plots{grid-template-columns:1fr}.analytics-report-access{align-items:stretch}.analytics-report-access input{width:100%}.analytics-horizontal-bars>div{grid-template-columns:90px minmax(50px,1fr) 55px}}
+.analytics-workspace .analytics-link-destination{--analytics-text-size:calc(17px * var(--audience-font-scale,1));--analytics-note-size:calc(15px * var(--audience-font-scale,1))}
 .analytics-link-destination a{overflow-wrap:anywhere}
 .analytics-click-map{display:block;width:100%;height:650px;border:1px solid var(--audience-border);border-radius:4px;background:white;margin:16px 0}
 .analytics-click-map-text{height:240px}
@@ -163,6 +164,9 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 .analytics-interaction-table-scroll:focus-visible{outline:2px solid var(--audience-primary);outline-offset:2px}
 .analytics-interaction-table th,.analytics-interaction-table td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--audience-border)}
 .analytics-interaction-table thead th{background:var(--audience-hover)}
+.analytics-interaction-table .analytics-interaction-sort{display:inline-flex;align-items:center;justify-content:flex-start;gap:4px;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--audience-link);font:inherit;font-weight:400;text-align:left}
+.analytics-interaction-table .analytics-interaction-sort:hover{background:transparent;color:var(--audience-link);text-decoration:underline}
+.analytics-interaction-sort [data-sort-arrow]{min-width:1em;text-align:center}
 .analytics-interaction-table tbody :is(th,td){background:var(--audience-surface)}
 .analytics-interaction-table tbody tr:hover :is(th,td){background:var(--audience-hover)}
 .analytics-interaction-table tbody tr.is-popup-open :is(th,td){background:var(--audience-action-hover-bg)}
@@ -182,6 +186,11 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
   --analytics-text-size:calc(15px * var(--audience-font-scale,1));
   --analytics-note-size:calc(13px * var(--audience-font-scale,1));
   font-size:var(--analytics-text-size);
+}
+.analytics-workspace.analytics-insights{
+  --analytics-heading-size:calc(20px * var(--audience-font-scale,1));
+  --analytics-text-size:calc(17px * var(--audience-font-scale,1));
+  --analytics-note-size:calc(15px * var(--audience-font-scale,1));
 }
 .analytics-workspace h2{font-size:var(--analytics-heading-size)}
 .analytics-workspace h3{font-size:var(--analytics-subheading-size)}

@@ -49,7 +49,7 @@ $renderChart=static function(string $chosen,string $chartGroup,bool $delivery=fa
     <details class="analytics-chart-data"><summary>View chart data</summary><div class="analytics-table-scroll"><table class="data-table"><thead><tr><th><?= $h(ucfirst($chartGroup)) ?></th><th><?= $h($metricLabels[$chosen]) ?></th></tr></thead><tbody><?php foreach($points as$p): ?><tr><td><?= $h($p['label']) ?></td><td><?= $h($isRate?$rate($p['value']):number_format($p['value']??0)) ?></td></tr><?php endforeach; ?></tbody></table></div></details>
 <?php };
 ?>
-<div class="analytics-workspace analytics-dashboard">
+<div class="analytics-workspace analytics-dashboard<?= $section==='insights'?' analytics-insights':'' ?>">
 <?php if($overview['includes_samples']): ?><p class="analytics-sample-note" role="note">Local sample data included · Campaigns named “Sample” are fictional and did not send email.</p><?php endif; ?>
 <?php include __DIR__.'/analytics-filters.php'; ?>
 <div data-analytics-results="<?= $h($section) ?>">

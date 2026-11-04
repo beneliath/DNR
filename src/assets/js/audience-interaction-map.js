@@ -110,7 +110,9 @@ if (element && dataElement && feedback && fitButton) {
                 const row = rows.get(index);
                 if (row) {
                     row.hidden = !visible;
-                    row.querySelector('[data-interaction-observations]').textContent = count.toLocaleString();
+                    const observationsCell = row.querySelector('[data-interaction-observations]');
+                    observationsCell.dataset.interactionObservations = String(count);
+                    observationsCell.textContent = count.toLocaleString();
                     row.querySelector('[data-interaction-types]').textContent = Object.entries(types)
                         .map(([kind, n]) => `${kind} ${Number(n).toLocaleString()}`).join(' · ');
                 }

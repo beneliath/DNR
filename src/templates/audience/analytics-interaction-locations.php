@@ -27,14 +27,19 @@ $scrollLocations=count($locationPins)>10;
         <?php renderScript('assets/js/audience-interaction-map.min.js',true,true); ?>
     <?php else: ?><p class="analytics-empty">The map is unavailable right now.</p><?php endif; ?>
     <p class="analytics-interaction-map-note">Pins show an approximate city position when a city matches the offline map reference. Other interactions appear at a country label point. IP location can be inaccurate.</p>
-    <?php if($locationPins): ?><h3 id="interaction-location-table-title" class="analytics-interaction-list-title">Interactions by mapped location</h3><div class="analytics-table-scroll<?= $scrollLocations?' analytics-interaction-table-scroll':'' ?>"<?= $scrollLocations?' role="region" aria-labelledby="interaction-location-table-title" tabindex="0"':'' ?>><table id="interaction-location-table" class="data-table analytics-interaction-table" aria-labelledby="interaction-location-table-title"><thead><tr><th scope="col">Location</th><th scope="col">Interactions</th><th scope="col">Types</th></tr></thead><tbody>
+    <?php if($locationPins): ?><h3 id="interaction-location-table-title" class="analytics-interaction-list-title">Interactions by mapped location</h3><div class="analytics-table-scroll<?= $scrollLocations?' analytics-interaction-table-scroll':'' ?>"<?= $scrollLocations?' role="region" aria-labelledby="interaction-location-table-title" tabindex="0"':'' ?>><table id="interaction-location-table" class="data-table analytics-interaction-table" aria-labelledby="interaction-location-table-title">
+        <thead><tr>
+            <th scope="col" aria-sort="none"><button type="button" class="analytics-interaction-sort" data-interaction-sort="location">Location <span data-sort-arrow aria-hidden="true"></span></button></th>
+            <th scope="col" aria-sort="descending"><button type="button" class="analytics-interaction-sort" data-interaction-sort="interactions">Interactions <span data-sort-arrow aria-hidden="true">↓</span></button></th>
+            <th scope="col">Types</th>
+        </tr></thead><tbody>
         <?php foreach($locationPins as$index=>$pin): ?>
-            <tr<?= $interactionMapProvider!==null?' data-interaction-pin="'.$index.'"':'' ?>>
+            <tr data-interaction-location="<?= $h($pin['label']) ?>"<?= $interactionMapProvider!==null?' data-interaction-pin="'.$index.'"':'' ?>>
                 <th scope="row">
                     <?php if($interactionMapProvider!==null): ?><a class="analytics-interaction-location-action" href="#interaction-location-map" aria-label="Show <?= $h($pin['label']) ?> on map"><?= $h($pin['label']) ?></a><?php else: ?><?= $h($pin['label']) ?><?php endif; ?>
                     <?php if($pin['precision']==='country'&&$pin['reported_places']): ?><small>Reported: <?= $h(implode(', ',array_slice($pin['reported_places'],0,3))) ?><?= count($pin['reported_places'])>3?' and more':'' ?></small><?php endif; ?>
                 </th>
-                <td data-interaction-observations><?= number_format($pin['observations']) ?></td>
+                <td data-interaction-observations="<?= (int)$pin['observations'] ?>"><?= number_format($pin['observations']) ?></td>
                 <td data-interaction-types><?= $h(implode(' · ',array_map(static fn($label,$count):string=>$label.' '.number_format($count),array_keys($pin['types']),array_values($pin['types'])))) ?></td>
             </tr>
         <?php endforeach; ?>
