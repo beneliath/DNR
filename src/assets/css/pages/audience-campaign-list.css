@@ -30,9 +30,16 @@
 .campaign-columns>label{display:flex;align-items:center;gap:12px;min-height:40px;margin:0;cursor:pointer}
 .campaign-columns>label:has(:disabled){color:var(--audience-muted);cursor:default}
 .campaign-columns input[type=checkbox]{width:18px;height:18px;min-height:18px;margin:0;flex:none}
-.campaign-columns>div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--audience-border);padding-top:16px;margin-top:12px}
+.campaign-columns>div{display:flex;justify-content:space-between;gap:12px var(--audience-action-gap);border-top:1px solid var(--audience-border);padding-top:16px;margin-top:12px}
 .campaign-columns>div button{padding:8px 10px;font-size:calc(14px * var(--audience-font-scale,1))}
 .campaign-list-table{min-width:0;border:1px solid var(--audience-border);background:var(--audience-surface)}
+/* Apply locally saved columns while the table is parsed. The live controls then own them. */
+[data-mm-hidden-columns~="date"] .campaign-list-table [data-campaign-column=date],
+[data-mm-hidden-columns~="status"] .campaign-list-table [data-campaign-column=status],
+[data-mm-hidden-columns~="analytics"] .campaign-list-table [data-campaign-column=analytics],
+[data-mm-hidden-columns~="recipients"] .campaign-list-table [data-campaign-column=recipients],
+[data-mm-hidden-columns~="folder"] .campaign-list-table [data-campaign-column=folder],
+[data-mm-hidden-columns~="editor"] .campaign-list-table [data-campaign-column=editor]{display:none}
 .campaign-list-table thead th{padding:12px 14px;background:var(--audience-heading-bg);color:var(--audience-secondary);white-space:nowrap}
 .campaign-list-table td{padding:20px 14px;line-height:1.45}
 .campaign-list-table tbody tr:hover>td{background:var(--audience-row-hover)}

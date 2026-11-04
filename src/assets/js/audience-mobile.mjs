@@ -306,6 +306,6 @@ export function wireAudienceMobile() {
         observer.observe(document.body, {childList:true, subtree:true});
     };
     media.addEventListener('change', sync);
-    // Let the shared controls finish their initial normalization first.
-    requestAnimationFrame(sync);
+    // The workspace has restored its columns. Apply the initial phone layout before paint.
+    sync();
 }

@@ -8,7 +8,7 @@
             <a href="<?= $h($reportListUrl(['removed'=>$value,'list_page'=>null])) ?>"<?= $reportsArchived===(bool)$value?' aria-current="page"':'' ?>><?= $label ?></a>
         <?php endforeach; ?>
     </nav>
-    <form class="analytics-inline-controls analytics-report-search" method="get">
+    <form class="analytics-inline-controls analytics-report-search mm-search-row" method="get">
         <?php audienceInputs(array_diff_key($reportListParams,array_flip(['report_search','favorites','list_page']))); ?>
         <label>Search reports<input id="analytics-report-search" type="search" name="report_search" value="<?= $h($reportSearch) ?>"></label>
         <button type="submit" data-mm-search-text="analytics-report-search">Search</button>

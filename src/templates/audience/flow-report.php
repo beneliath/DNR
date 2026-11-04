@@ -40,7 +40,7 @@ $nodeTotals=[];foreach($report['nodes']as$row)$nodeTotals[$row['node_key']][$row
             </header>
             <form method="get" class="flow-report-filters">
                 <?php audienceInputs(['view'=>'flow-report','id'=>$id]); ?>
-                <label>Status<select name="state"><option value="">All statuses</option><?php foreach($runLabels as$key=>$label): ?><option value="<?= $key ?>"<?= $reportState===$key?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></label>
+                <?php audienceSelectFilter('Status','state',[''=>'All statuses']+$runLabels,$reportState); ?>
                 <label>Step<select name="node"><option value="">All steps</option><?php foreach($flow['document']['nodes']as$n): ?><option value="<?= $h($n['id']) ?>"<?= $reportNode===$n['id']?' selected':'' ?>><?= $h($n['label']) ?></option><?php endforeach; ?></select></label>
                 <button type="submit">Apply</button><?php if($reportFiltered): ?><a href="<?= $h($flowLink(['id'=>$id])) ?>">Clear filters</a><?php endif; ?>
             </form>

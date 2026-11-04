@@ -698,7 +698,7 @@
         },
         {
           "kind": "h1",
-          "label": "You’re unsubscribed"
+          "label": "You\u2019re unsubscribed"
         },
         {
           "kind": "h1",
@@ -1139,11 +1139,11 @@
         },
         {
           "kind": "a",
-          "label": "‹ Back to Inquiry"
+          "label": "\u2039 Back to Inquiry"
         },
         {
           "kind": "button",
-          "label": "Book Engagement · Move Tasks",
+          "label": "Book Engagement \u00b7 Move Tasks",
           "name": "convert_inquiry"
         }
       ]
@@ -1171,11 +1171,11 @@
         },
         {
           "kind": "a",
-          "label": "≡ All Active Tasks"
+          "label": "\u2261 All Active Tasks"
         },
         {
           "kind": "a",
-          "label": "✓ My Active Tasks"
+          "label": "\u2713 My Active Tasks"
         },
         {
           "kind": "a",
@@ -1183,7 +1183,7 @@
         },
         {
           "kind": "a",
-          "label": "↗ Booking Inquiries"
+          "label": "\u2197 Booking Inquiries"
         },
         {
           "kind": "a",
@@ -2004,22 +2004,22 @@
         },
         {
           "kind": "a",
-          "label": "◆Active",
+          "label": "\u25c6Active",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "ⅡPostponed",
+          "label": "\u2161Postponed",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "×Canceled",
+          "label": "\u00d7Canceled",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "✓Completed",
+          "label": "\u2713Completed",
           "href": ""
         },
         {
@@ -2121,7 +2121,7 @@
         },
         {
           "kind": "a",
-          "label": "← Back to Messages",
+          "label": "\u2190 Back to Messages",
           "href": ""
         },
         {
@@ -2473,7 +2473,7 @@
         },
         {
           "kind": "button",
-          "label": "Route to Account →",
+          "label": "Route to Account \u2192",
           "id": "mail-route-submit",
           "name": "action"
         },
@@ -2708,7 +2708,7 @@
         },
         {
           "kind": "h2",
-          "label": "Loading Remote Measurements…",
+          "label": "Loading Remote Measurements\u2026",
           "id": "network-result-heading"
         },
         {
@@ -2811,7 +2811,7 @@
         },
         {
           "kind": "a",
-          "label": "the record’s correspondence",
+          "label": "the record\u2019s correspondence",
           "href": ""
         },
         {
@@ -3254,7 +3254,7 @@
         },
         {
           "kind": "button",
-          "label": "Drop Receipts Here or click to choose · JPEG, PNG, WebP, PDF · up to 15 MB each Select Save expense to upload."
+          "label": "Drop Receipts Here or click to choose \u00b7 JPEG, PNG, WebP, PDF \u00b7 up to 15 MB each Select Save expense to upload."
         },
         {
           "kind": "h2",
@@ -3436,7 +3436,7 @@
         },
         {
           "kind": "label",
-          "label": "DirectionDescending ↓Ascending ↑"
+          "label": "DirectionDescending \u2193Ascending \u2191"
         },
         {
           "kind": "button",

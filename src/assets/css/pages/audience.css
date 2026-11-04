@@ -83,6 +83,11 @@ html.dark-mode {
 *{box-sizing:border-box}
 /* Slightly smaller interface text; email designs retain their own typography. */
 body.audience-app{--audience-font-scale:.925;margin:0;color:var(--audience-text);background:var(--audience-canvas);font:calc(16px * var(--audience-font-scale, 1))/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif}
+body.audience-app{
+  --mm-control-font-size:calc(16px * var(--audience-font-scale,1));
+  --mm-dialog-title-size:calc(22px * var(--audience-font-scale,1));
+  --mm-page-title-size:calc(24px * var(--audience-font-scale,1));
+}
 body.audience-app.campaign-public,#email-canvas{--audience-font-scale:1}
 /* Shared MOED banners sit above MessageMonkey's independent navigation shell. */
 body.audience-app{--audience-account-banner-height:0px;--audience-preview-banner-height:0px;--audience-shell-offset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height) + var(--admin-unlock-banner-height,0px) + var(--audience-preview-banner-height));padding-top:var(--audience-shell-offset)}
@@ -117,8 +122,8 @@ body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68p
 .audience-app [data-admin-lock-error]:not([hidden]){flex-basis:100%;margin-top:4px}
 .audience-admin-unlock-trigger{padding:6px;min-width:38px;min-height:38px}
 .audience-admin-unlock-trigger svg{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.audience-app #admin-unlock-dialog h2{font-size:24px;margin:0 0 16px}
-.audience-app #admin-unlock-dialog .confirmation-dialog-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}
+.audience-app #admin-unlock-dialog h2{font-size:var(--mm-dialog-title-size);margin:0 0 16px}
+.audience-app #admin-unlock-dialog .confirmation-dialog-actions{display:flex;justify-content:flex-end;gap:12px var(--audience-action-gap);margin-top:24px}
 html.dark-mode .audience-app .admin-unlock-banner{background:#fb923c}
 html body.audience-app:not(.admin-unlock-active) :is(button,input,a):is([data-admin-unlock-required],[data-admin-unlock-hint]){outline:2px solid #c75b00!important;outline-offset:2px;box-shadow:0 0 0 5px rgb(234 112 12 / 18%)!important}
 @media(max-width:1100px){.audience-app .admin-unlock-banner{grid-template-columns:minmax(0,1fr) auto;gap:10px}.audience-app .admin-unlock-lock-form{grid-column:1/-1;grid-row:2}}
@@ -154,13 +159,14 @@ a{color:var(--audience-link);text-decoration:none}
 a:hover{text-decoration:underline}
 button,input,select,textarea{font:inherit}
 button,.button,summary.audience-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:34px;border:1px solid var(--audience-control-border);border-radius:4px;padding:7px 13px;background:var(--audience-surface);color:var(--audience-text);cursor:pointer;line-height:1.3}
-button:hover,.button:hover{background:var(--audience-hover);text-decoration:none}
+button:where(:enabled):hover,.button:where(:not(:disabled,[aria-disabled=true])):hover{background:var(--audience-hover);text-decoration:none}
 .audience-app .audience-history-action{min-width:40px;min-height:38px;padding:6px}
 .audience-app .audience-history-action>svg{display:block;flex:none;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .audience-app :is(button,a,summary).primary{--audience-primary:#007c89;--audience-primary-hover:#006973;--audience-primary-text:#fff;background:var(--audience-primary);color:var(--audience-primary-text);border-color:var(--audience-primary)}
 .primary,button.primary,.button.primary,.audience-button.primary{background:var(--audience-primary);color:var(--audience-primary-text);border-color:var(--audience-primary)}
 .audience-app :is(button,a,summary).primary:is(:hover,:focus-visible),.primary:is(:hover,:focus-visible),button.primary:is(:hover,:focus-visible),.button.primary:is(:hover,:focus-visible),.audience-button.primary:is(:hover,:focus-visible){background:var(--audience-primary-hover);color:var(--audience-primary-text);border-color:var(--audience-primary-hover)}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sr-only,html.has-js .audience-file-drop:has(>[data-file-browse]:not([hidden]))>input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+html:not(.has-js) .audience-file-drop>[data-file-browse]{display:none}
 .audience-skip{position:fixed;top:-100px;left:10px;z-index:10;background:var(--audience-surface);padding:10px}
 .audience-skip:focus{top:4px}
 input,select,textarea{border:1px solid var(--audience-input-border);background:var(--audience-surface);border-radius:4px;min-height:34px;padding:7px 10px;color:var(--audience-text)}
@@ -575,7 +581,7 @@ html.dark-mode .danger-text{color:#ffaaa0}
 .audience-action-menu{padding:0;width:300px;max-width:calc(100vw - 16px);font-size:calc(16px * var(--audience-font-scale, 1))}
 .audience-action-menu form{margin:0}
 .audience-action-menu [role=menuitem]{display:flex;align-items:center;gap:9px;width:100%;min-height:46px;padding:12px 13px;border:0;border-radius:0;line-height:1.45;font-weight:400;text-align:left;white-space:normal;background:transparent;color:var(--audience-text);text-decoration:none;box-sizing:border-box}
-.audience-action-menu [role=menuitem]:hover,.audience-action-menu [role=menuitem]:focus-visible{background:var(--audience-heading-bg)}
+.audience-action-menu [role=menuitem]:not(:disabled,[aria-disabled=true]):is(:hover,:focus-visible){background:var(--audience-action-hover-bg);color:var(--audience-action-hover-color)}
 .audience-action-menu [role=menuitem]:focus-visible{outline:2px solid var(--audience-primary);outline-offset:-2px}
 .audience-action-menu [aria-disabled=true]{color:var(--audience-muted);cursor:default}
 .audience-action-menu svg{width:23px;height:23px;flex:0 0 23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
@@ -1062,7 +1068,9 @@ html:has(.content-library){scrollbar-gutter:stable}
 .content-image-preview{display:block;max-width:100%;height:230px;margin:20px auto;object-fit:contain;background:var(--audience-hover);border:1px solid var(--audience-border)}
 .content-crop{padding:16px;background:var(--audience-hover);border:1px solid var(--audience-border);border-radius:4px;margin:20px 0}.content-crop summary{font-weight:600;cursor:pointer}.content-crop .form-grid{gap:0 16px}.content-crop button{margin-top:12px}
 .content-brand-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:24px;align-items:stretch}
-.content-brand-layout>aside{position:static}.content-brand-layout .campaign-email-frame{height:1px;max-height:none;width:100%;border:0}
+.content-brand-layout>aside{position:static;display:flex;flex-direction:column}
+.content-brand-layout .campaign-email-frame{flex:1 1 0;width:100%;height:75vh;min-height:clamp(360px,75vh,900px);border:0}
+html.has-js [data-brand-color-tile]>input,html:not(.has-js) [data-brand-color-tile]>.audience-color-trigger{display:none}
 .content-brand-layout h3{margin-top:32px}.content-brand-layout .audience-check,.content-editor .audience-check{display:flex;margin-top:20px}.content-brand-layout .dialog-actions{margin-top:24px}
 .content-logo-preview{display:block;max-height:120px;max-width:100%;margin:12px 0;object-fit:contain}.content-color-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .content-color-grid input[type=color]{height:42px;padding:4px}.content-library .audience-empty{grid-column:1/-1}
@@ -1093,6 +1101,8 @@ html:has(.content-library){scrollbar-gutter:stable}
 
 .content-brand-logo-actions{width:225px}
 .content-brand-logo-stage{position:relative;width:225px;max-width:100%;height:112.5px;margin:12.5px 0 0;overflow:hidden}
+.content-brand-logo-stage:not([hidden])+[data-brand-logo-dimensions]{min-height:1lh;align-self:stretch;text-align:center}
+html.has-js .content-brand-logo-stage img:not([data-artwork-fitted]){visibility:hidden}
 .content-brand-settings .content-logo-preview{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;margin:0}
 .content-brand-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}.content-brand-heading h2{margin:0}
 [data-brand-save].brand-save-unsaved,[data-collection-save].collection-save-unsaved,[data-audience-defaults-save].audience-defaults-save-unsaved,.collection-publish-pending{animation:brand-save-blink 1.2s ease-in-out infinite;outline-offset:3px}
@@ -1302,6 +1312,8 @@ body.audience-collection-editor-mode .collection-survey-builder.survey-questions
 .collection-answer-option>label{margin:0!important;font-size:calc(12px * var(--audience-font-scale, 1));color:var(--audience-muted)}
 .collection-answer-option button{border:0;padding:8px 0;font-size:calc(20px * var(--audience-font-scale, 1));color:var(--audience-muted)}
 .collection-code{font:calc(13px * var(--audience-font-scale, 1))/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;min-height:240px}
+.collection-preview-label{justify-content:flex-start;align-items:center;flex-wrap:wrap}
+.collection-preview-label [data-collection-preview-status]{margin-inline-start:auto}
 .collection-preview-label select{font:inherit;max-width:220px;padding:6px;margin-left:12px}
 
 /* Keep form preview scrolling inside the workspace, beside the editing tools. */

@@ -74,13 +74,18 @@ function renderPageHead($title, array $options = []) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
     }
+    $layoutScripts = ['assets/js/audience.min.js','assets/js/audience-inbox.min.js','assets/js/audience-collection.min.js','assets/js/audience-ai.min.js'];
+    if (in_array('assets/css/pages/audience-designer.min.css', $styles, true)) {
+        $layoutScripts[] = 'assets/js/audience-designer.min.js';
+    }
     foreach ($scripts as $script) {
         $path = is_array($script) ? ($script['path'] ?? '') : $script;
         if ($path === '' || $path === 'assets/js/theme-init.min.js') {
             continue;
         }
         $defer = !is_array($script) || !array_key_exists('defer', $script) || $script['defer'];
-        renderScript((string) $path, $defer);
+        // The workspace restores saved columns and prepares responsive tables before first paint.
+        renderScript((string) $path, $defer, false, in_array($path, $layoutScripts, true));
     }
     renderScript('assets/js/form-ux.min.js');
     renderScript('assets/js/button-feedback.min.js');
@@ -110,9 +115,10 @@ function formErrorSummary(array|string $errors, array $field_ids = []): string {
     return $html . '</ul></div>';
 }
 
-function renderScript($path, $defer = true, $module = false) {
+function renderScript($path, $defer = true, $module = false, $blockRender = false) {
     echo '<script src="' . htmlspecialchars(assetUrl((string) $path), ENT_QUOTES, 'UTF-8') . '"'
         . ($module ? ' type="module"' : '')
+        . ($blockRender ? ' blocking="render"' : '')
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
 }
 

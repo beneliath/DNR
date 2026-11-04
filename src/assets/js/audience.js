@@ -15,7 +15,6 @@ import {initializeAudienceDefaults} from './message-monkey/settings.mjs';
 
 wireMessageMonkeyUiStandards();
 wireAudiencePagination();
-wireAudienceMobile();
 
 (() => {
     initializeInputModality();
@@ -31,4 +30,5 @@ wireAudienceMobile();
     initializeCampaignWorkspace(show, confirmations);
     initializeContentWorkspace(show);
     initializeAudienceDefaults();
+    wireAudienceMobile();
 })();

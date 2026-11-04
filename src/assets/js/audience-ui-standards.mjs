@@ -108,11 +108,6 @@ export function wireMessageMonkeyUiStandards(){
             for(const option of options){
                 const button=document.createElement('button');button.type='button';button.className='mm-filter-choice';button.textContent=option.textContent;
                 button.dataset.value=option.value;
-                button.addEventListener('click',()=>{
-                    if(select.disabled||option.disabled||select.value===option.value)return;
-                    select.value=option.value;syncGroup(select,entry);select.dispatchEvent(new Event('change',{bubbles:true}));
-                    if(select.form?.method.toLowerCase()==='get'&&!select.matches('[data-auto-submit],[data-analytics-submit]'))select.form.requestSubmit();
-                });
                 entry.group.append(button);
             }
             entry.signature=signature;
@@ -131,28 +126,22 @@ export function wireMessageMonkeyUiStandards(){
             const parent=select.closest('label');
             const text=parent?Array.from(parent.childNodes).filter(node=>node.nodeType===Node.TEXT_NODE).map(node=>node.textContent).join(' ').replace(/:\s*$/,'').trim():'';
             const label=select.getAttribute('aria-label')||text||select.name||'Filter';
-            const group=document.createElement('div');group.className='mm-filter-group';group.setAttribute('role','group');group.setAttribute('aria-label',label);
             const anchor=parent&&parent.querySelectorAll('input,select,textarea').length===1?parent:select;
-            anchor.before(group);anchor.classList.add('mm-filter-source');
-            const next={group,label,signature:null};groups.set(select,next);syncGroup(select,next);
-        }
-        for(const trigger of document.querySelectorAll('.campaign-filter[popovertarget]')){
-            const target=trigger.getAttribute('popovertarget');
-            const name=target?.match(/^campaign-filter-(type|status)$/)?.[1];if(!name)continue;
-            const menu=document.getElementById(target),choices=menu?.querySelectorAll('[data-campaign-filter]');
-            if(!choices?.length)continue;
-            let entry=groups.get(trigger);
-            if(!entry){
-                const group=document.createElement('div');group.className='mm-filter-group mm-campaign-filter-group';group.setAttribute('role','group');group.setAttribute('aria-label',name==='type'?'Type':'Status');
-                const caption=document.createElement('span');caption.className='mm-filter-label';caption.textContent=name==='type'?'Type':'Status';group.append(caption);
-                for(const original of choices){
-                    const button=document.createElement('button');button.type='button';button.className='mm-filter-choice';button.textContent=original.textContent.trim();button.dataset.value=original.dataset.value||'';
-                    button.addEventListener('click',()=>original.click());group.append(button);
-                }
-                trigger.before(group);trigger.classList.add('mm-filter-source');entry={group};groups.set(trigger,entry);
+            const rendered=anchor.previousElementSibling?.matches('[data-mm-select-choices]')?anchor.previousElementSibling:null;
+            const group=rendered||document.createElement('div');
+            if(!rendered){
+                group.className='mm-filter-group';group.setAttribute('role','group');group.setAttribute('aria-label',label);
+                anchor.before(group);
             }
-            const value=trigger.closest('form')?.elements.namedItem(name)?.value||'';
-            for(const button of entry.group.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.value===value));
+            anchor.classList.add('mm-filter-source');
+            const signature=rendered?JSON.stringify(Array.from(select.options,option=>[option.value,option.textContent,option.disabled])):null;
+            const next={group,label,signature};groups.set(select,next);syncGroup(select,next);
+            group.addEventListener('click',event=>{
+                const button=event.target.closest('button[data-value]');
+                if(!button||button.disabled||select.disabled||button.dataset.value===select.value)return;
+                select.value=button.dataset.value;syncGroup(select,next);select.dispatchEvent(new Event('change',{bubbles:true}));
+                if(select.form?.method.toLowerCase()==='get'&&!select.matches('[data-auto-submit],[data-analytics-submit]'))select.form.requestSubmit();
+            });
         }
     }
     function statuses(){

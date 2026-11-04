@@ -25,6 +25,10 @@ function renderAudienceAi(AudienceStore $store,array $audience,bool $canManage,b
         $aiImages=$store->all("SELECT id,name FROM marketing_design_library WHERE audience_id=1 AND item_type='image' AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 60");
     }
     $aiInline=false;$aiConfig=['mode'=>$aiMode,'endpoint'=>'audience_ai_api.php','window'=>$aiWindow,'enabled'=>aiCoachEnabled(),'key'=>hash('sha256',$themeKey.':'.($_SESSION['role']??'').':'.aiCoachStorageKey())];
+    if($aiConfig['enabled']){
+        try{$aiConfig['history']=audienceAiHistory($store,$actor,(string)$_SESSION['role']);}
+        catch(mysqli_sql_exception){/* The history endpoint can retry without interrupting the editor. */}
+    }
     releaseApplicationSessionLock();
     ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
 }

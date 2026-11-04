@@ -1,14 +1,17 @@
 <?php $campaignArchived=($campaignFilters['trash']??'0')==='1'; ?>
 <nav class="campaign-archive-tabs audience-lifecycle-tabs" aria-label="Campaign lists"><?php foreach(['0'=>'Active','1'=>'Archive']as$archiveValue=>$archiveLabel): ?><a href="<?= $h($campaignUrl(['trash'=>$archiveValue,'page'=>1])) ?>"<?= $campaignFilters['trash']===(string)$archiveValue?' aria-current="page"':'' ?>><?= $archiveLabel ?></a><?php endforeach; ?></nav>
 <?php if($campaignArchived): ?><p class="audience-help campaign-archive-help">Archived campaigns keep their content and reports. Restore a campaign to bring it back to Active. Restoring does not resume delivery.</p><?php endif; ?>
-<div class="campaign-list-toolbar">
+<div class="campaign-list-toolbar mm-search-row">
 <form method="get" class="campaign-filters" id="campaign-filters">
 <?php audienceInputs(['view'=>'campaigns','trash'=>$campaignFilters['trash'],'layout'=>$campaignFilters['layout'],'month'=>$campaignFilters['month'],'direction'=>$campaignFilters['direction'],'date_field'=>$campaignFilters['date_field'],'start'=>$campaignFilters['start'],'end'=>$campaignFilters['end'],'date_preset'=>$campaignFilters['date_preset']??'','holidays'=>$campaignFilters['holidays']??'0','sort'=>$campaignFilters['sort']]); ?>
 <label class="campaign-search"><?php audienceNavIcon('search'); ?><span class="sr-only">Search campaigns</span><input id="campaign-list-search" type="search" autocomplete="off" list="campaign-search-options" name="search" value="<?= $h($campaignFilters['search']) ?>" placeholder="Search..."></label><button type="submit" data-mm-search-text="campaign-list-search">Search</button>
 <div class="campaign-filter-row">
 <?php foreach(['type'=>['Type',[''=>'All']+$campaignTypes],'status'=>['Status',[''=>'All','draft'=>'Draft','ongoing'=>'Ongoing','scheduled'=>'Scheduled','completed'=>'Completed']]]as$key=>[$label,$options]): ?>
-<input type="hidden" name="<?= $key ?>" value="<?= $h($campaignFilters[$key]) ?>"><button type="button" class="campaign-filter" popovertarget="campaign-filter-<?= $key ?>"><?= $label ?>: <strong><?= $h($options[$campaignFilters[$key]]) ?></strong><?php audienceNavIcon('chevron'); ?></button>
-<div popover class="audience-action-menu campaign-filter-options" id="campaign-filter-<?= $key ?>" role="menu" aria-label="<?= $label ?>"><?php foreach($options as$value=>$text): ?><button type="button" role="menuitemradio" aria-checked="<?= $campaignFilters[$key]===(string)$value?'true':'false' ?>" data-campaign-filter="<?= $key ?>" data-value="<?= $h($value) ?>"><?= $h($text) ?></button><?php endforeach; ?></div>
+<input type="hidden" name="<?= $key ?>" value="<?= $h($campaignFilters[$key]) ?>">
+<div class="mm-filter-group mm-campaign-filter-group" role="group" aria-label="<?= $h($label) ?>">
+    <span class="mm-filter-label"><?= $h($label) ?></span>
+    <?php foreach($options as$value=>$text): ?><button type="button" class="mm-filter-choice" data-campaign-filter="<?= $key ?>" data-value="<?= $h($value) ?>" aria-pressed="<?= $campaignFilters[$key]===(string)$value?'true':'false' ?>"><?= $h($text) ?></button><?php endforeach; ?>
+</div>
 <?php endforeach; ?>
 <input type="hidden" name="folder" value="<?= $h($campaignFilters['folder']) ?>">
 <button type="button" class="campaign-filter" popovertarget="campaign-folders">Folder: <strong><?= $h($campaignFilters['folder']==='unfiled'?'Unfiled items':(array_column($folders,'name','id')[$campaignFilters['folder']]??'All')) ?></strong><?php audienceNavIcon('chevron'); ?></button>
@@ -24,7 +27,7 @@
 <?php if($canManage): ?><div class="campaign-folder-footer"><button type="button" data-campaign-folder='{"id":0,"version":0,"name":""}'><span aria-hidden="true">+</span>Create folder</button></div><?php endif; ?>
 </div>
 <button type="button" class="campaign-filter" data-open-dialog="campaign-date">Date: <strong><?= $h(($campaignFilters['date_preset']??'')!==''?(audienceCampaignDatePresets()[$campaignFilters['date_preset']]??'Custom'):($campaignFilters['start']||$campaignFilters['end']?'Custom':'All')) ?></strong><?php audienceNavIcon('chevron'); ?></button>
-<a href="<?= $h($url(['view'=>'campaigns','trash'=>$campaignFilters['trash'],'layout'=>$campaignFilters['layout']])) ?>">Clear all</a>
+<a class="mm-clear-all" href="<?= $h($url(['view'=>'campaigns','trash'=>$campaignFilters['trash'],'layout'=>$campaignFilters['layout']])) ?>">Clear all</a>
 
 </div>
 </form>

@@ -7,7 +7,7 @@
   .mm-mobile-only{display:flex!important}
   html:has(body[data-mm-workspace]){height:auto;overflow-x:clip;overflow-y:auto;scroll-padding-bottom:24px}
   html:has(body[data-mm-workspace].audience-navigation-open),html:has(body[data-mm-workspace] dialog[open]){overflow:hidden}
-  body.audience-app[data-mm-workspace]{position:static;inset:auto;width:100%;height:auto;min-height:100dvh;overflow:visible;--audience-action-gap:8px;background:var(--audience-heading-bg);padding-bottom:env(safe-area-inset-bottom,0px);font-size:16px;line-height:1.5}
+  body.audience-app[data-mm-workspace]{position:static;inset:auto;width:100%;height:auto;min-height:100dvh;overflow:visible;--audience-action-gap:8px;--mm-control-font-size:16px;--mm-dialog-title-size:22px;--mm-page-title-size:26px;background:var(--audience-heading-bg);padding-bottom:env(safe-area-inset-bottom,0px);font-size:var(--mm-control-font-size);line-height:1.5}
   body.audience-app[data-mm-workspace].audience-navigation-open{overflow:hidden}
   body[data-mm-workspace] :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea,[contenteditable=true]){font-size:max(16px,1em);max-width:100%;min-width:0}
   body[data-mm-workspace] :is(button,.audience-button,.button,summary){min-height:44px;touch-action:manipulation}
@@ -33,7 +33,7 @@
   body[data-mm-workspace] .audience-account img{width:30px;height:30px}
   body[data-mm-workspace] .audience-content{display:block;margin:0;height:auto;min-height:0;overflow:visible}
   body[data-mm-workspace] .audience-page-heading{position:static;min-height:0;display:flex;align-items:flex-start;flex-direction:column;gap:16px;margin:0;padding:22px 16px 16px;border:0;background:transparent}
-  body[data-mm-workspace] .audience-page-heading h1{font-size:26px;line-height:1.2;letter-spacing:-.5px;margin:0}
+  body[data-mm-workspace] .audience-page-heading h1{font-size:var(--mm-page-title-size);line-height:1.2;letter-spacing:-.5px;margin:0}
   body[data-mm-workspace] .audience-page-heading>.audience-actions{display:flex;flex-wrap:wrap;width:100%;gap:8px}
   body[data-mm-workspace] .audience-page-heading>.audience-actions>:is(a,button,form){flex:1;min-width:0}
   body[data-mm-workspace] .audience-page-heading>.audience-actions>:is(a,button){white-space:normal;text-align:center}
@@ -135,6 +135,10 @@
   .mm-mobile-action-label{color:var(--audience-text);text-align:left;font-weight:500}
   body[data-mm-workspace] .mm-mobile-action-toggle{display:flex;align-items:center;justify-content:center;min-width:0;width:100%;padding:10px;font-size:13px;margin:0}
   body[data-mm-workspace] [data-mm-action-disclosure]:not([data-mm-open])>:not(:first-child):not(.mm-mobile-action-toggle){display:none!important}
+  /* Give group and Inbox label names the full row above their actions. */
+  body[data-mm-workspace] .audience-group-heading{display:grid;grid-template-columns:minmax(0,1fr)}
+  body[data-mm-workspace] .inbox-label-card{display:grid;grid-template-columns:auto minmax(0,1fr)}
+  body[data-mm-workspace] .inbox-label-actions{grid-column:1/-1}
 
   /* A template is a compact preview and its controls, not a full email-length
      column. The original preview link opens the complete design. */
@@ -205,6 +209,7 @@
   body[data-mm-workspace] .flow-builder[data-mm-editor=first]>.flow-map-stage,body[data-mm-workspace] .flow-builder[data-mm-editor=second]>.flow-inspector{display:none}
   body[data-mm-workspace] :is(.collection-question,.campaign-checklist-layout,.campaign-review-layout,.campaign-send-layout,.content-brand-layout,.audience-person-layout){grid-template-columns:minmax(0,1fr);gap:16px}
   body[data-mm-workspace] :is(.audience-person-main,.audience-panel,.collection-question-main,.collection-question-settings,.campaign-send-review){padding:16px;border-radius:16px;min-width:0;background:var(--audience-surface)}
+  body[data-mm-workspace] .person-marketing-details{margin-inline:-16px}
   body[data-mm-workspace] .form-grid{grid-template-columns:minmax(0,1fr)}
   body[data-mm-workspace] .form-grid .span-two{grid-column:auto}
 
@@ -237,11 +242,17 @@
   body[data-mm-workspace] .mm-mobile-history-toggle{align-items:center;justify-content:center;width:calc(100% - 32px);margin:0 16px 12px}
 
   body[data-mm-workspace] dialog:not(.mm-mobile-menu){max-width:calc(100vw - 16px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
-  body[data-mm-workspace] :is(.dialog-actions,.confirmation-dialog-actions){flex-wrap:wrap;gap:10px}
+  body[data-mm-workspace] :is(.dialog-actions,.confirmation-dialog-actions){flex-wrap:wrap;gap:10px var(--audience-action-gap)}
   body[data-mm-workspace] :is(.dialog-actions,.confirmation-dialog-actions)>button{flex:1;min-width:100px}
   body[data-mm-workspace] [popover]{max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow:auto}
   body[data-mm-workspace] :is(.audience-menu,.designer-save-menu)>div{left:0;right:auto;max-width:calc(100vw - 32px)}
   body[data-mm-workspace] :is(.audience-count-pill.is-selected,.audience-matching-count.is-aggregate){animation:none}
+}
+
+@media screen and (max-width:600px){
+  body[data-mm-workspace] .collection-type-list{grid-template-columns:minmax(0,1fr);padding:0}
+  body[data-mm-workspace] .collection-type-list>a{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:12px}
+  body[data-mm-workspace] .collection-type-list .collection-art{width:48px;height:auto;padding:6px;gap:4px}
 }
 
 @media screen and (max-width:360px){

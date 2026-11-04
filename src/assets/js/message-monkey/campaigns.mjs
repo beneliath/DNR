@@ -60,6 +60,7 @@ export function initializeCampaignWorkspace(show, confirmations) {
         }));
         $('[data-campaign-columns-reset]', campaignColumns).addEventListener('click', () => { hiddenColumns.clear(); render(); save(); });
         render();
+        delete document.body.dataset.mmHiddenColumns;
     }
     const campaignFilters = $('#campaign-filters');
     $$('[data-campaign-filter]').forEach(item => item.addEventListener('click', () => {

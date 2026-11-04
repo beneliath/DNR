@@ -1,10 +1,13 @@
-<?php if($aiMode==='analytics'){include __DIR__.'/analytics-ai.php';}else{ ?>
+<?php
+$aiMode ??= 'content';
+$historyRows=array_filter($aiConfig['history']['items']??[],static fn($item)=>$item['manual_topic']==='audience-ai:'.$aiMode);
+if($aiMode==='analytics'){include __DIR__.'/analytics-ai.php';}else{ ?>
 <div class="analytics-ai-mode-switch"><?php include __DIR__.'/ai-mode-tabs.php'; ?></div>
 <section class="ai-assistant analytics-ai-chat writing-ai-workspace" data-ai-root aria-label="Write with AI">
     <aside class="analytics-ai-history writing-ai-history" id="writing-ai-history" data-ai-history-panel aria-label="Request history" aria-describedby="writing-history-help">
         <button class="analytics-ai-new" type="button" data-ai-new><?php audienceNavIcon('rename'); ?>New request</button>
-        <div class="ai-history-heading"><h2>Recent</h2><button type="button" data-ai-history-reset hidden disabled title="Reset this browser’s list; saved requests are retained for review">Reset list</button></div>
-        <p id="writing-history-help" class="sr-only">Visible to you in your current role. Existing MOED AI review and retention policies apply.</p><ul data-ai-history></ul><p data-ai-history-empty>No recent requests</p>
+        <div class="ai-history-heading"><h2>Recent</h2><button type="button" data-ai-history-reset<?= empty($aiConfig['history']['can_remove_history'])?' hidden':'' ?><?= empty($historyRows)?' disabled':'' ?> title="Reset this browser’s list; saved requests are retained for review">Reset list</button></div>
+        <p id="writing-history-help" class="sr-only">Visible to you in your current role. Existing MOED AI review and retention policies apply.</p><?php include __DIR__.'/ai-history-list.php'; ?>
     </aside>
     <div class="analytics-ai-main">
         <div class="analytics-ai-toolbar"><button type="button" data-ai-history-toggle aria-controls="writing-ai-history" aria-expanded="true"><?php audienceNavIcon('text'); ?><span>Hide request history</span></button></div>

@@ -19,7 +19,7 @@ if($segment)$chips[]=['key'=>'segment','value'=>'','label'=>$segment['name']];el
 ?>
 <div class="audience-connections-controls">
 <div class="audience-people-toolbar">
-<form class="audience-filters audience-filter-popovers" method="get"><?php audienceInputs($baseForm+['archived'=>$filters['archived'],'rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize,'segment'=>$segment['id']??0]); ?>
+<form class="audience-filters audience-filter-popovers mm-search-row" method="get"><?php audienceInputs($baseForm+['archived'=>$filters['archived'],'rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize,'segment'=>$segment['id']??0]); ?>
     <label class="audience-people-search"><span class="sr-only">Search connections</span><?php audienceNavIcon('search'); ?><input id="contact-search" list="connection-search-options" type="search" autocomplete="off" name="q" placeholder="Search connections" value="<?= $h($filters['q']) ?>"></label>
     <button type="button" class="audience-filter-trigger" popovertarget="filter-segments" aria-haspopup="dialog" title="Filter by Segments"><?= $segment?$h($segment['name']):'Segments' ?><?php audienceNavIcon('chevron'); ?></button>
     <div id="filter-segments" class="audience-filter-panel" popover="auto" role="dialog" aria-label="Filter by Segments" data-filter-panel>

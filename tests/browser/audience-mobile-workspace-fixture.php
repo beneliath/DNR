@@ -27,6 +27,7 @@ if($view==='assistant'){
  require_once __DIR__.'/../../src/audience_ai.php';
  $aiMode=($_GET['mode']??'')==='analytics'?'analytics':'content';$aiText=$aiSubject=$aiSourceName=$aiPrompt='';$aiImages=[];$aiInline=false;
  $aiWindow=['start'=>'2026-10-01','end'=>'2026-10-28','dataset'=>'email'];$aiConfig=['mode'=>$aiMode,'endpoint'=>'audience_ai_api.php','window'=>$aiWindow,'enabled'=>isset($_GET['ai_enabled']),'key'=>'mobile-ai-fixture'];
+ if(isset($_GET['saved_history']))$aiConfig['history']=['items'=>[['client_request_id'=>'fixture-saved','manual_topic'=>'audience-ai:'.$aiMode,'question'=>'Fictional saved request','created_at'=>'2026-10-25 12:00:00.000000','outcome'=>'complete']],'can_remove_history'=>true];
 }
 renderPageHead('Audience status fixture',['styles'=>['assets/css/pages/audience.min.css',...($view==='assistant'?['assets/css/pages/audience-ai.min.css']:[])],'scripts'=>['assets/js/audience.min.js',...($view==='assistant'?['assets/js/audience-ai.min.js']:[])]]);
 require __DIR__.'/../../src/templates/audience/workspace.php';

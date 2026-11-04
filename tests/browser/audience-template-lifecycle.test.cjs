@@ -56,6 +56,8 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
    assert.equal(await page.locator('[data-open-dialog="template-package-import"]').count(),role==='reviewer'?0:1,'Only editors and administrators can import');
   }
   await page.goto('http://localhost:43201/audience.php?role=editor&tab=saved');
+  // Exercise wrapping below the desktop width that fits all eight actions.
+  await page.locator('#template-gallery').evaluate(gallery=>{gallery.style.maxWidth='340px';});
   const rows=await page.locator('.template-card-actions').first().evaluate(node=>{
    const box=node.getBoundingClientRect(),rows=new Map();
    for(const child of node.children){const rect=child.getBoundingClientRect();if(!rect.width||!rect.height)continue;const key=Math.round(rect.top),row=rows.get(key)||[];row.push({left:rect.left,right:rect.right});rows.set(key,row);}

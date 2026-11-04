@@ -52,7 +52,7 @@ const html=execFileSync('php',['tests/browser/audience-image-editing-fixture.php
    const confirm=page.getByRole('dialog',{name:'Change template?'});
    await confirm.waitFor({state:'visible'});assert.equal(saves.length,0,'Choosing a card waits for confirmation');
    await confirm.getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(await dialog.isVisible(),true);
-   await starter.locator('button').click();await confirm.getByRole('button',{name:'Continue',exact:true}).click();
+   await starter.locator('[data-design-template-key="newsletter"]').click();await confirm.getByRole('button',{name:'Continue',exact:true}).click();
    await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');
    assert.deepEqual(saves.at(-1).rows.map(row=>row.id),config.starters.newsletter.design.rows.map(row=>row.id),'Selected starter is applied');
    await open();const savedCode=dialog.getByRole('button',{name:'Use template: Saved code <design>'});

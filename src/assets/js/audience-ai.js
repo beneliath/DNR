@@ -257,6 +257,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   }
   function renderHistory() {
     const list = document.querySelector('[data-ai-history]'); if (!list) return;
+    list.dataset.aiHistoryReady = '1';
       const items = historyItems.filter(item => item.created_at > historyCutoff && !hiddenRequests.has(item.client_request_id)); list.replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = items.length>0;
       if (resetHistoryButton) { resetHistoryButton.hidden = !canRemoveHistory; resetHistoryButton.disabled = items.length === 0 || historyChangePending; }
       items.forEach(item => { const li=node('li');const button=node('button',undefined,'ai-history-open');button.type='button';button.setAttribute('aria-label',item.question);button.append(node('span',item.question),node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
@@ -329,9 +330,9 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       else if(resetHistoryButton)resetHistoryButton.disabled=!historyItems.some(item=>item.created_at>historyCutoff&&!hiddenRequests.has(item.client_request_id));
     }
   }
-  async function history() {
+  async function history(initial) {
     try {
-      const data = await api(null,'?action=history'); historyItems = data.items.filter(item => item.manual_topic === `audience-ai:${config.mode}`); canRemoveHistory = data.can_remove_history === true; renderHistory();
+      const data = initial ?? await api(null,'?action=history'); historyItems = data.items.filter(item => item.manual_topic === `audience-ai:${config.mode}`); canRemoveHistory = data.can_remove_history === true; renderHistory();
       if(chat&&active){const item=historyItems.find(item=>item.client_request_id===active);if(item)question(item.question,active);}
     } catch { /* History failure never prevents manual editing. */ }
   }
@@ -401,8 +402,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   const historyToggle=find('[data-ai-history-toggle]'),historyPanel=find('[data-ai-history-panel]');
   if(historyToggle&&historyPanel){
     historyToggle.addEventListener('click',event=>{const button=event.currentTarget;historyPanel.hidden=!historyPanel.hidden;root.classList.toggle('history-collapsed',historyPanel.hidden);button.setAttribute('aria-expanded',String(!historyPanel.hidden));button.querySelector('span').textContent=`${historyPanel.hidden?'Show':'Hide'} ${chat?'chat':'request'} history`;});
-    const measure = () => root.style.setProperty('--analytics-ai-offset',`${Math.max(0,root.getBoundingClientRect().top)}px`);
-    window.addEventListener('resize',measure); measure();
+
   }
   find('[data-ai-checks]')?.addEventListener('click',async()=>{try{checks(await api({action:'checks',text:form.elements.text.value,subject:form.elements.subject.value}));announce('Content checks updated without an AI request');}catch(error){announce(error.message);}});
   find('[data-ai-refine]')?.addEventListener('click',()=>{writingActions(true);form.elements.text.value=find('[data-ai-text]').value;form.elements.operation.value='rewrite';form.elements.prompt.focus();announce('Reviewed text is now the source for your next request');});
@@ -418,6 +418,6 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     form.elements.text.value=event.detail.text;form.elements.operation.value='rewrite';form.elements.prompt.value='';announce('Review the source text and choose what to change');root.closest('dialog')?.showModal();
   });
   root.closest('dialog')?.addEventListener('close',()=>{if(busy)stop();});
-  history();
+  history(config.history);
   try{const pending=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(pending&&pending.mode===config.mode&&Date.now()-pending.started<maxWaitMs){active=pending.uuid;setBusy(true);poll(active,++generation,pending.started);}else clearPending();}catch{clearPending();}
 })();
