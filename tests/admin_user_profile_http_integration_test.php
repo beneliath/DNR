@@ -182,6 +182,63 @@ try {
                 'Admins can edit ' . $targetKind . ' profiles, including their own, without changing account status.');
         }
     }
+    if (accountsEnabled() && accountIsPrimary()) {
+        foreach (['superadmin', 'other_superadmin', 'proxy'] as $kind) {
+            $name = 'admin-profile-' . $kind . '-' . bin2hex(random_bytes(4));
+            $conn->execute_query(
+                "INSERT INTO users (username,password,role,account_status,is_superadmin,platform_identity_id)
+                 VALUES (?,?,'admin','active',?,?)",
+                [$name,password_hash('DisposableProfileFixture!123',PASSWORD_DEFAULT),$kind === 'proxy' ? 0 : 1,
+                    $kind === 'proxy' ? $users['superadmin'] : null]
+            );
+            $users[$kind] = (int) $conn->insert_id;
+        }
+        $profileSession = static function (int $id, bool $preview = false) use ($fetch, &$sessions): array {
+            startSecureSession(); session_regenerate_id(true);
+            $identity = $fetch($id);
+            $_SESSION = ['user_id'=>$id,'username'=>$identity['username'],'role'=>'admin',
+                'authenticated_role'=>'admin','is_superadmin'=>(bool)$identity['is_superadmin'],
+                'auth_complete'=>true,'auth_version'=>(int)$identity['auth_version'],
+                '_csrf_token'=>bin2hex(random_bytes(32))];
+            if ($preview) $_SESSION['_role_preview'] = 'admin';
+            completeIntegrationTestMfaSession();
+            $sessions[] = session_id();
+            $result = [session_name().'='.session_id(),$_SESSION['_csrf_token']];
+            session_write_close(); return $result;
+        };
+        $self = $users['superadmin']; $selfPath = 'edit_user.php?id='.$self;
+        [$selfCookie,$selfCsrf] = $profileSession($self);
+        $before = $fetch($self);
+        $redirect = $request($selfPath,null,$selfCookie);
+        expectAdminProfile($redirect['status'] === 302 && str_contains($redirect['headers'],'Location: profile.php'),
+            'The primary SuperAdmin self-editor redirects to My Profile without Admin Unlock.');
+        $profile = $request('profile.php',null,$selfCookie);
+        expectAdminProfile($profile['status'] === 200 && str_contains($profile['body'],'name="first_name"')
+            && str_contains($profile['body'],htmlspecialchars($before['username'],ENT_QUOTES,'UTF-8')),
+            'The redirected profile is the signed-in SuperAdmin identity.');
+        $roster = $request('users.php?per_page=100',null,$selfCookie);
+        expectAdminProfile($roster['status'] === 200 && str_contains($roster['body'],'>Edit My Profile</a>')
+            && !str_contains($roster['body'],'href="'.$selfPath.'"'),
+            'The primary roster links directly to My Profile while administrator actions are locked.');
+        $blockedPost = $request($selfPath,['csrf_token'=>$selfCsrf,'username'=>'forged','role'=>'reviewer'],$selfCookie);
+        expectAdminProfile($blockedPost['status'] === 403 && $fetch($self) === $before,
+            'The shortcut does not permit administrative changes to the protected identity.');
+        foreach ([$users['other_superadmin'],$users['proxy']] as $protected) {
+            expectAdminProfile($request('edit_user.php?id='.$protected,null,$selfCookie)['status'] === 403
+                && !str_contains($roster['body'],'href="edit_user.php?id='.$protected.'"')
+                && !str_contains($roster['body'],'href="reset_user_password.php?id='.$protected.'"'),
+                'Other protected identities and proxies remain outside the account user editor.');
+        }
+        expectAdminProfile($request('edit_user.php?id='.$target,null,$selfCookie)['status'] === 200,
+            'The primary SuperAdmin can still open the ordinary-user editor.');
+        [$adminCookie,$adminCsrf] = $profileSession($users['admin']);
+        expectAdminProfile($request($selfPath,null,$adminCookie)['status'] === 403
+            && $request($selfPath,['csrf_token'=>$adminCsrf,'username'=>'forged','role'=>'reviewer'],$adminCookie)['status'] === 403,
+            'An ordinary Account Admin cannot edit a SuperAdmin through GET or POST.');
+        [$previewCookie] = $profileSession($self,true);
+        expectAdminProfile($request($selfPath,null,$previewCookie)['status'] === 403,
+            'Restricted role preview retains Account Admin protections.');
+    }
     echo "Admin user profile HTTP integration tests passed.\n";
 } finally {
     foreach ($users as $id) $conn->execute_query('DELETE FROM users WHERE id = ?', [$id]);

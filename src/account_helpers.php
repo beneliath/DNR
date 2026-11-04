@@ -89,13 +89,23 @@ function isSuperAdmin(): bool {
         && ($_SESSION['role'] ?? '') === 'admin';
 }
 
+/** The primary identity edits its own details through My Profile. */
+function isOwnPrimarySuperAdminProfile(int $id): bool {
+    return $id > 0 && accountIsPrimary() && isSuperAdmin()
+        && $id === (int) ($_SESSION['user_id'] ?? 0);
+}
+
+function isPlatformAccountUser(array $user): bool {
+    return !empty($user['is_superadmin']) || !empty($user['platform_identity_id']);
+}
+
 function requireSuperAdmin(): void {
     requireLogin();
     if (!isSuperAdmin()) { http_response_code(403); exit('Forbidden.'); }
 }
 
 function accountRoleLabel(array $user): string {
-    return !empty($user['is_superadmin']) || !empty($user['platform_identity_id'])
+    return isPlatformAccountUser($user)
         ? 'SuperAdmin' : (($user['role'] ?? '') === 'admin' ? 'Account Admin' : ucfirst($user['role'] ?? ''));
 }
 
@@ -106,7 +116,7 @@ function requireManageableAccountUser(mysqli $conn, int $id): void {
     }
     if (!accountsEnabled()) return;
     $user = $conn->execute_query('SELECT is_superadmin, platform_identity_id FROM users WHERE id = ?', [$id])->fetch_assoc();
-    if ($user && (!empty($user['is_superadmin']) || !empty($user['platform_identity_id']))) {
+    if ($user && isPlatformAccountUser($user)) {
         throw new InvalidArgumentException('Manage this SuperAdmin identity through its own profile in the primary Account.');
     }
 }

@@ -1855,7 +1855,7 @@
       ]
     },
     "edit_user.php": {
-      "sha256": "6e1da3c359595d24ec61069ca5fd6be02227cdcf11bfe96dc200a46075368db6",
+      "sha256": "69b434a82a04bf514182fe3391f3ad1852d2ac7d875dd0b05ffe310e6e15b5ca",
       "controls": [
         {
           "kind": "a",
@@ -4272,7 +4272,7 @@
       ]
     },
     "users.php": {
-      "sha256": "cc19efa312ef050ef855de6ea66b1b055992267777acc12c0db53985e1b4b911",
+      "sha256": "41293c6f3a7132f12214609fee503317362a4042fdf2788edc20e6c5d5d02ea5",
       "controls": [
         {
           "kind": "h1",
@@ -4296,6 +4296,11 @@
           "kind": "a",
           "label": "+ Invite User",
           "href": "register.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit My Profile",
+          "href": "profile.php"
         },
         {
           "kind": "a",
