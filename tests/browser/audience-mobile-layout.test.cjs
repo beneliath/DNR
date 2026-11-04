@@ -56,6 +56,16 @@ function measure(){
   }
  }
  const badOverlays=[...document.querySelectorAll('dialog[open],[popover]:popover-open')].filter(visible).filter(e=>{const r=e.getBoundingClientRect();return r.top<-2||r.bottom>innerHeight+2||r.left<-2||r.right>innerWidth+2;}).map(label);
+ // A page can fit the phone while a card's actions squeeze its copy to one letter per line.
+ for(const copy of document.querySelectorAll('.audience-group-heading h2,.inbox-label-copy h2,.collection-type-list h3')){
+  if(!visible(copy))continue;
+  const card=copy.closest('.audience-group-heading,.inbox-label-card,.collection-type-list>a');
+  const style=getComputedStyle(copy);
+  if(copy.offsetHeight>2*parseFloat(style.lineHeight)+2&&copy.clientWidth<Math.min(6*parseFloat(style.fontSize),card.clientWidth/2))
+   clipped.push({element:label(copy),text:copy.textContent.trim().slice(0,80)});
+ }
+ const formChooser=document.querySelector('.collection-type-dialog[open]');
+ if(formChooser&&formChooser.scrollWidth>formChooser.clientWidth+2)badOverlays.push(label(formChooser));
  const smallTargets=innerWidth<=860?[...document.querySelectorAll('.audience-account-tools>button,.audience-account-tools>a,[data-audience-nav-toggle],.inbox-mobile-nav')].filter(visible).filter(e=>{const r=e.getBoundingClientRect();return r.width<44||r.height<44;}).map(label):[];
  return {viewport:innerWidth,document:document.scrollingElement.scrollWidth,containers:containers.slice(0,20),escaped:escaped.slice(0,20),offscreen:offscreen.slice(0,35),clipped:clipped.slice(0,20),overlaps:overlaps.slice(0,20),smallFields:smallFields.slice(0,20),badOverlays,smallTargets,dark:document.documentElement.classList.contains('dark-mode'),title:document.title};
 }

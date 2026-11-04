@@ -22,6 +22,14 @@ function audienceAiCanDeleteOwnRequests(string $role):bool
     return in_array($role,['superadmin','admin','editor'],true);
 }
 
+/** Query only the signed-in user's requests in the current role. */
+function audienceAiHistory(AudienceStore $store,int $actor,string $role):array
+{
+    $rows=$store->all("SELECT client_request_id,question,manual_topic,outcome,created_at FROM ai_coach_requests WHERE user_id=? AND user_role=? AND guided_step='audience-ai' AND manual_topic IN ('audience-ai:content','audience-ai:analytics') ORDER BY created_at DESC,id DESC LIMIT 20",[$actor,$role]);
+    $items=array_filter($rows,static fn($row)=>audienceAiCanAccess($role,$row['manual_topic']==='audience-ai:analytics'?'analytics':'content'));
+    return ['items'=>array_values($items),'can_remove_history'=>audienceAiCanDeleteOwnRequests($role)];
+}
+
 /** Old queue cancellations/timeouts predate assistant-specific terminal replies.
  * Adapt only owner-scoped audience status reads; never rewrite saved history. */
 function audienceAiNormalizeStatus(array $status, string $mode): array

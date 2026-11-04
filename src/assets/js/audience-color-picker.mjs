@@ -9,8 +9,16 @@ export function enhanceColorInput(input,{label,tile=false,palette,sampleSources,
   if(input.parentElement.tagName==='LABEL'){
     const original=input.parentElement,field=node('div',original.className||'audience-color-field'),title=node('span');title.textContent=label;field.append(title);original.replaceWith(field);field.append(input);
   }
-  const wrap=node('span','audience-color-control'+(tile?' audience-color-tile':'')),trigger=node('button','audience-color-trigger'),chip=node('span','audience-color-chip'),caption=node('span','audience-color-code');trigger.type='button';trigger.setAttribute('aria-label',label);trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');trigger.append(chip,caption);
-  input.before(wrap);wrap.append(input,trigger);input.hidden=true;input.tabIndex=-1;
+  const rendered=input.closest('[data-brand-color-tile]');
+  const wrap=rendered||node('span','audience-color-control'+(tile?' audience-color-tile':''));
+  const trigger=wrap.querySelector('.audience-color-trigger')||node('button','audience-color-trigger');
+  const chip=trigger.querySelector('.audience-color-chip')||node('span','audience-color-chip');
+  const caption=trigger.querySelector('.audience-color-code')||node('span','audience-color-code');
+  if(!rendered){
+    trigger.type='button';trigger.setAttribute('aria-label',label);trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-expanded','false');trigger.append(chip,caption);
+    input.before(wrap);wrap.append(input,trigger);
+  }
+  input.hidden=true;input.tabIndex=-1;
   const sync=()=>{chip.style.backgroundColor=input.value;caption.textContent=input.value.toUpperCase();};
   const formPalette=()=>input.form?.matches('[data-brand-form]')?[...input.form.querySelectorAll('input[type=color]')].map(n=>({label:n.dataset.colorLabel||n.labels?.[0]?.textContent.trim()||n.name,value:n.value})):[];
   trigger.addEventListener('click',()=>{

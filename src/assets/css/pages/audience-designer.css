@@ -23,6 +23,11 @@
 .template-gallery:not(.template-list) .template-thumbnail{height:auto;min-height:80px}
 .template-thumbnail iframe{display:block;max-width:none;transform-origin:top left}
 .template-gallery:not(.template-list) .template-card{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0}
+/* Reserve the final card height (twice its width) before loading the email artwork. */
+@media(min-width:861px){
+  .template-gallery:not(.template-list){container-type:inline-size;grid-auto-rows:auto auto auto auto minmax(0,1fr)}
+  .template-gallery:not(.template-list) .template-card:has([data-template-preview]){height:min(200cqw,calc(2 * var(--template-card-width)))}
+}
 .template-gallery:not(.template-list) .template-thumbnail{position:relative;background:#fff;border:0;border-radius:0 0 14px 14px}
 .template-gallery:not(.template-list) .template-thumbnail iframe{position:absolute;top:0;left:0}
 .template-gallery:not(.template-list) .template-card-info{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;padding-bottom:24px}
@@ -358,3 +363,6 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
 .designer-layout-tools .mm-reorder-handle{min-width:28px;min-height:32px}
 .designer-layout-tools .mm-reorder-handle svg{width:18px;height:22px}
 .designer-block-actions .mm-reorder-handle{border:1px solid var(--audience-border)}
+
+.designer-stage{scrollbar-gutter:stable}
+#email-canvas:empty{visibility:hidden}

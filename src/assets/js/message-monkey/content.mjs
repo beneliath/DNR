@@ -33,7 +33,7 @@ export function initializeContentWorkspace(show) {
     const setContentImage = (form, key, value) => {
         form.elements[key].value = value;
         const preview = $(`[data-content-preview="${key}"]`, form);
-        if (preview) { preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
+        if (preview) { delete preview.dataset.artworkFitted; preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
         if(!value)brandLogoDimensions(form,key);
         brandDirtyStates.get(form)?.();
         if (key !== 'image' || !value) return;

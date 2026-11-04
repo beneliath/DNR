@@ -37,7 +37,7 @@
 <?php elseif(!$panel): ?>
 <section class="inbox-list" id="inbox-conversations" aria-label="Conversations">
     <header class="inbox-list-heading"><div><span class="inbox-eyebrow">CONVERSATIONS</span><h1><?= $h($statusNames[$list['status']]) ?><span><?= (int)$list['total'] ?></span></h1></div><a class="inbox-icon-button" href="<?= $h($filterUrl()) ?>" aria-label="Refresh messages" title="Refresh"><?php $icon('refresh'); ?></a></header>
-    <form class="inbox-search inbox-search-manual" method="get">
+    <form class="inbox-search inbox-search-manual mm-search-row" method="get">
         <input type="hidden" name="view" value="inbox">
         <?php foreach($baseFilters as$key=>$value)if(!in_array($key,['q','page'],true)): ?><input type="hidden" name="<?= $h($key) ?>" value="<?= $h($value) ?>"><?php endif; ?>
         <label class="sr-only" for="inbox-search">Search messages</label>

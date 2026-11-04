@@ -2,6 +2,19 @@
 function audienceInputs(array $values,string $prefix=''):void{
     foreach($values as$key=>$value){$name=$prefix===''?(string)$key:$prefix.'['.$key.']';if(is_array($value))audienceInputs($value,$name);else echo '<input type="hidden" name="'.htmlspecialchars($name,ENT_QUOTES,'UTF-8').'" value="'.htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8').'">';}
 }
+/** Render the initial filter choices and the native field that submits their value. */
+function audienceSelectFilter(string $label,string $name,array $options,string $selected):void{
+    $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+    $showChoices=count($options)>=2 && count($options)<=12;
+    if($showChoices): ?>
+    <div class="mm-filter-group" role="group" aria-label="<?= $h($label) ?>" data-mm-select-choices>
+        <span class="mm-filter-label"><?= $h($label) ?></span>
+        <?php foreach($options as$value=>$text): ?><button type="button" class="mm-filter-choice" data-value="<?= $h($value) ?>" aria-pressed="<?= (string)$value===$selected?'true':'false' ?>"><?= $h($text) ?></button><?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <label<?= $showChoices?' data-mm-native-filter':'' ?>><?= $h($label) ?><select name="<?= $h($name) ?>"><?php foreach($options as$value=>$text): ?><option value="<?= $h($value) ?>"<?= (string)$value===$selected?' selected':'' ?>><?= $h($text) ?></option><?php endforeach; ?></select></label>
+    <?php
+}
 function audienceFieldControl(array $field,mixed $value):void{
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$name='custom['.$field['id'].']';$fid='person-field-'.$field['id'];$type=$field['field_type'];$options=audienceJson($field['options_json']);
     if($type==='address'){
@@ -57,7 +70,8 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-mm-workspace="workspace" data-audience-key="<?= $h($themeKey) ?>">
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-mm-workspace="workspace" data-audience-key="<?= $h($themeKey) ?>"<?= $view==='campaigns'?' data-mm-campaign-list':'' ?><?php if($view==='assistant' && !empty($aiConfig['history']['items'])): ?> data-mm-history-key="<?= $h('moed-audience-ai-history-reset-'.$aiConfig['key'].'-'.$aiMode) ?>"<?php endif; ?>>
+<?php renderScript('assets/js/audience-layout-init.min.js',false); ?>
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>
 <?php include __DIR__.'/../admin-unlock-banner.php'; ?>

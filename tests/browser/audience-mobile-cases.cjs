@@ -35,6 +35,7 @@ module.exports = fixture => {
  add('collection-report','view=collection-report&id='+f.collections.survey);
  add('inbox','view=inbox');
  add('inbox-thread','view=inbox&thread='+f.threads[0]);
+ add('inbox-review-sender','view=inbox&thread='+f.threads[0],[{selector:'.inbox-sender-details > summary'}]);
  for(const panel of ['compose','drafts','sources','labels','templates','notifications'])add('inbox-'+panel,'view=inbox&panel='+panel+(panel==='compose'?'&contact='+f.contacts[0].id:''));
  for(const section of ['email','audience','conversions','reports','activity','links','devices','insights'])add('analytics-'+section,'view=analytics&section='+section);
  add('analytics-custom','view=analytics&section=custom&report='+f.report);

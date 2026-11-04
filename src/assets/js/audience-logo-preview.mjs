@@ -47,4 +47,5 @@ export function fitBrandLogoPreview(image) {
     }
     const layout = logoPreviewLayout(width, height, bounds, stage.clientWidth, stage.clientHeight);
     Object.entries(layout).forEach(([key, value]) => { image.style[key] = `${value}px`; });
+    image.dataset.artworkFitted = '1';
 }

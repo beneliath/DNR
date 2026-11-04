@@ -49,6 +49,8 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
       const headerObserver=new ResizeObserver(schedule);for(const node of frame.closest('.template-card').children)if(node!==frame.parentElement)headerObserver.observe(node);
       $$('[data-template-layout]').forEach(button=>button.addEventListener('click',schedule));
       frame.setAttribute('scrolling','no');
+      // Reserve the card's final space before the email document and its images arrive.
+      fit();
     }
     if (frame.hasAttribute('data-preview-autosize')) {
       let observer, pending = false;

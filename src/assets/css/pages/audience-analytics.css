@@ -195,6 +195,7 @@ html:has(.analytics-report-layout){scrollbar-gutter:stable}
 .analytics-workspace .data-table [data-mm-card-row]>[data-mm-cell]{font-size:var(--analytics-text-size)}
 .analytics-workspace .data-table thead th{white-space:normal;hyphens:auto;overflow-wrap:anywhere}
 .analytics-builder-results .analytics-report-table{min-width:0}
+.analytics-builder-results .analytics-report-table:not([data-mm-card-table]) thead th{hyphens:manual;overflow-wrap:normal}
 .analytics-axis-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:var(--analytics-note-size)}
 .analytics-workspace :is(.analytics-prior,.analytics-explanation,.analytics-sample-note,.analytics-bot-info,.analytics-bot-info p,.analytics-show-drafts,.campaign-status),
 .analytics-workspace :is(.analytics-chart-legend,.analytics-chart-data,.analytics-chart-controls a,.analytics-plot text,.analytics-report-access),

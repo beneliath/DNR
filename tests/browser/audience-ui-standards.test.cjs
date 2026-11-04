@@ -9,8 +9,15 @@ function nav(file,match,archived,occurrence=0){
  const prelude=`<?php $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$url=static fn($p=[])=>'audience.php?'.http_build_query($p);$campaignUrl=$listUrl=$managerUrl=$url;$campaignFilters=['trash'=>'${archived?'1':'0'}'];$trash=$planArchived=$touchpointArchived=$templateArchived=$classic=${archived?'true':'false'};$listQuery=[];$templates=[1];$archivedTemplates=[1,2];$tab='${archived?'archived':'saved'}';?>`;
  return execFileSync('php',{input:prelude+snippets[occurrence],encoding:'utf8'});
 }
-const styles=['audience','audience-flows','audience-inbox','audience-designer','audience-campaign-list'];
-function html(body,dark){return '<!doctype html><html'+(dark?' class="dark-mode"':'')+'><head>'+styles.map(name=>`<link rel="stylesheet" href="/assets/css/pages/${name}.min.css">`).join('')+'</head><body class="audience-app">'+body+'</body></html>';}
+const styles=['audience','audience-flows','audience-inbox','audience-designer','audience-campaign-list','audience-ui-standards','audience-mobile'];
+function html(body,dark){return '<!doctype html><html'+(dark?' class="dark-mode"':'')+'><head>'+styles.map(name=>`<link rel="stylesheet" href="/assets/css/pages/${name}.min.css">`).join('')+'</head><body class="audience-app" data-mm-workspace="workspace">'+body+'</body></html>';}
+const profile=execFileSync('php',['tests/browser/audience-tag-actions-fixture.php','admin','active','locked','2','','','contact'],{cwd:root,encoding:'utf8'});
+const profileControls=['<dialog id="person-action"','<dialog id="admin-unlock-dialog"','<details class="audience-menu primary"'].map(start=>{
+ const tag=start.startsWith('<dialog')?'dialog':'details';
+ const from=profile.indexOf(start), to=profile.indexOf('</'+tag+'>',from);
+ assert(from>=0&&to>from,'Profile fixture renders '+start);
+ return profile.slice(from,to+tag.length+3);
+}).join('');
 (async()=>{const browser=await chromium.launch({headless:true});let checks=0;
 try{for(const dark of [false,true]){
  const page=await browser.newPage({viewport:{width:1500,height:1000}});let markup='';
@@ -34,5 +41,40 @@ try{for(const dark of [false,true]){
  const php=`<?php require '${root}/src/functions.php';require '${root}/src/audience_store.php';require_once '${root}/src/audience_flow_presentation.php';$templates=audienceFlowTemplates();foreach($templates as$key=>$template)if(str_contains($template['name'],'Archive unsubscribed')){audienceFlowTemplateCard($key,$template,static fn($p)=>'audience.php',true);break;}`;
  markup=execFileSync('php',{input:php,encoding:'utf8'});assert(markup.includes('Recommended'));await page.goto('http://standards.test/');
  await page.locator('.flow-template-card').hover();await page.waitForTimeout(180);assert.equal(await page.locator('.flow-card-badge').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');checks++;
+ markup=profileControls;
+ for(const width of [1440,320]){
+  await page.setViewportSize({width,height:900});
+  await page.goto('http://standards.test/');
+  const dialog=page.locator('#person-action');
+  await dialog.evaluate(el=>el.showModal());
+  const confirm=dialog.locator('[data-person-action-submit]'),cancel=dialog.getByRole('button',{name:'Cancel'});
+  const menuItem=page.locator('.audience-menu>div :is(a,button):not(:disabled)').first();
+  const font=locator=>locator.evaluate(el=>getComputedStyle(el).fontSize);
+  const titleSize=await font(dialog.locator('h2'));
+  const controlSize=await font(confirm);
+  assert.equal(await font(cancel),controlSize);
+  assert.equal(controlSize,width===320?'16px':'14.8px');
+  const left=await confirm.boundingBox(),right=await cancel.boundingBox();
+  assert.equal(right.x-left.x-left.width,width===320?8:16);
+  const hoverColor=dark?'rgb(19, 78, 74)':'rgb(204, 251, 241)';
+  const background=locator=>locator.evaluate(el=>getComputedStyle(el).backgroundColor);
+  await cancel.hover();
+  assert.equal(await background(cancel),hoverColor);
+  await page.mouse.move(0,0);
+  await confirm.focus();
+  await page.keyboard.press('Tab');
+  assert(await cancel.evaluate(el=>el.matches(':focus-visible')));
+  assert.equal(await background(cancel),hoverColor);
+  await dialog.evaluate(el=>el.close());
+  const unlock=page.locator('#admin-unlock-dialog');
+  await unlock.evaluate(el=>el.showModal());
+  assert.equal(await font(unlock.locator('h2')),titleSize);
+  await unlock.evaluate(el=>el.close());
+  await page.locator('.audience-menu>summary').click();
+  assert.equal(await font(menuItem),controlSize);
+  await menuItem.hover();
+  assert.equal(await background(menuItem),hoverColor);
+  checks+=9;
+ }
  await page.close();
-}console.log('Shared MessageMonkey tabs, icon spacing, Automation selection and Recommended hover: '+checks+' checks passed.');}finally{await browser.close();}})().catch(error=>{console.error(error);process.exitCode=1;});
+}console.log('Shared MessageMonkey typography, spacing, tabs and hover/focus states: '+checks+' checks passed.');}finally{await browser.close();}})().catch(error=>{console.error(error);process.exitCode=1;});
