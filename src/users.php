@@ -146,6 +146,8 @@ $task_digest_day_options = [
     <div class="users-list">
         <?php foreach ($users as $user) { ?>
             <?php
+            $protected_identity = accountsEnabled() && isPlatformAccountUser($user);
+            $own_primary_profile = $protected_identity && isOwnPrimarySuperAdminProfile((int) $user['id']);
             $display_name = profileDisplayName($user);
             $has_personal_name = trim((string) ($user['first_name'] ?? '')) !== ''
                 || trim((string) ($user['last_name'] ?? '')) !== '';
@@ -167,7 +169,7 @@ $task_digest_day_options = [
             <div class="user-details">
                 <div class="user-main">
                     <div class="user-profile-summary">
-                        <?php if ($user['account_status'] !== 'active' && (int) $user['id'] !== $current_user_id): ?>
+                        <?php if (!$protected_identity && $user['account_status'] !== 'active' && (int) $user['id'] !== $current_user_id): ?>
                             <?php renderBulkDeleteCheckbox((int) $user['id'], $user['username']); ?>
                         <?php endif; ?>
                         <img class="user-list-avatar" src="<?php echo htmlspecialchars(
@@ -233,12 +235,18 @@ $task_digest_day_options = [
                 </div>
                 <div class="user-actions" aria-label="Actions for <?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="user-actions-primary">
+                        <?php if ($own_primary_profile): ?>
+                            <a href="profile.php" class="action-button edit-button">Edit My Profile</a>
+                        <?php elseif (!$protected_identity): ?>
                             <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button" data-admin-unlock-required data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Edit User</a>
+                        <?php else: ?>
+                            <span>This SuperAdmin manages their profile in the primary account.</span>
+                        <?php endif; ?>
 
-                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
+                        <?php if (!$protected_identity && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
                             <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button" data-admin-unlock-required data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>Reset Password</a>
                         <?php endif; ?>
-                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
+                        <?php if (!$protected_identity && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
                             <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?>>
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
@@ -248,6 +256,7 @@ $task_digest_day_options = [
                         <?php endif; ?>
                     </div>
                     <div class="user-actions-lifecycle">
+                        <?php if (!$protected_identity): ?>
                         <?php if ($user['account_status'] === 'invited'): ?>
                             <form method="post" action="user_lifecycle.php" data-admin-unlocked-only<?php echo !$admin_actions_unlocked ? ' hidden' : ''; ?> data-invitation-form data-admin-unlock-required>
                                 <?php echo csrfInput(); ?>
@@ -281,6 +290,7 @@ $task_digest_day_options = [
                                 <input type="hidden" name="delete_confirmation" value="">
                                 <button type="submit" class="action-button delete-button">Delete User</button>
                             </form>
+                        <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>

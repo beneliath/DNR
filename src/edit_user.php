@@ -10,6 +10,10 @@ $demo_self_only = isRestrictedDemoSession();
 // Fetch the user ID from the URL parameter
 $user_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
 if ($user_id !== null) {
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isOwnPrimarySuperAdminProfile($user_id)) {
+        header('Location: profile.php');
+        exit();
+    }
     try { requireManageableAccountUser($conn, $user_id); }
     catch (InvalidArgumentException $error) { http_response_code(403); exit(htmlspecialchars($error->getMessage())); }
 

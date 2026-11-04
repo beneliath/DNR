@@ -20,13 +20,26 @@ foreach (['http://moed.example.org/a/account-alpha/platform_api.php', 'https://o
     catch (RuntimeException $error) { expectAccount(!$error instanceof LogicException, 'Unsafe relay target accepted.'); }
 }
 putenv('DNR_ACCOUNT_CONTROL_PROXY');
-$_SESSION = ['auth_complete' => true, 'role' => 'admin', 'is_superadmin' => false];
+$_SESSION = ['user_id' => 12, 'auth_complete' => true, 'role' => 'admin', 'is_superadmin' => false];
 expectAccount(!isSuperAdmin(), 'Account Admin must not inherit platform authority.');
+expectAccount(!isOwnPrimarySuperAdminProfile(12), 'An ordinary Account Admin cannot use the platform self-profile route.');
 $_SESSION['is_superadmin'] = true;
 expectAccount(isSuperAdmin(), 'An authenticated platform administrator has platform authority.');
+expectAccount(isOwnPrimarySuperAdminProfile(12) && !isOwnPrimarySuperAdminProfile(13)
+    && !isOwnPrimarySuperAdminProfile(0), 'Only the current primary SuperAdmin identity uses the self-profile route.');
+expectAccount(isPlatformAccountUser(['is_superadmin' => 1])
+    && isPlatformAccountUser(['platform_identity_id' => 12])
+    && !isPlatformAccountUser(['role' => 'admin']), 'Primary identities and member proxies share the protected-user policy.');
+putenv('DNR_ACCOUNT_MODE=member');
+expectAccount(!isOwnPrimarySuperAdminProfile(12), 'A member Account cannot serve the primary identity profile.');
+putenv('DNR_ACCOUNT_MODE=primary');
+putenv('DNR_ACCOUNTS_ENABLED=0');
+expectAccount(!isOwnPrimarySuperAdminProfile(12), 'The legacy user editor is unchanged when Accounts are disabled.');
+putenv('DNR_ACCOUNTS_ENABLED=1');
 $_SESSION['authenticated_role'] = 'admin';
 expectAccount(setRolePreview('admin') && activeRolePreview() === 'admin' && !isSuperAdmin()
     && authenticatedSuperAdmin() && checkRole('admin'), 'Administrator preview retains account administration but removes platform authority.');
+expectAccount(!isOwnPrimarySuperAdminProfile(12), 'A restricted role preview cannot use the platform self-profile shortcut.');
 expectAccount(safeRolePreviewReturnUrl('accounts.php', 'admin') === 'dashboard.php', 'Account Admin preview cannot return to the platform directory.');
 expectAccount(setRolePreview('editor') && activeRolePreview() === 'editor' && !isSuperAdmin(), 'SuperAdmin can preview Editor.');
 expectAccount(setRolePreview('superadmin') && activeRolePreview() === null && isSuperAdmin(), 'SuperAdmin can restore platform authority.');

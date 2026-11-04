@@ -180,6 +180,13 @@ def main():
         assert Client(member_url).request('dashboard.php', headers={'Cookie': copied})[0] == 302
         superuser = left['users']['superadmin']
         admin = Client(primary_url); admin.login(superuser)
+        self_editor = admin.request(f"edit_user.php?id={superuser['id']}")
+        assert self_editor[0] == 302 and self_editor[1].get('Location', '') == 'profile.php', 'Primary SuperAdmin self-editor did not open My Profile'
+        own_profile = admin.request('profile.php')
+        assert own_profile[0] == 200 and superuser['username'] in own_profile[2], 'Self-profile did not preserve the primary identity'
+        own_roster = admin.request('users.php?per_page=100')
+        assert '>Edit My Profile</a>' in own_roster[2] and f'href="edit_user.php?id={superuser["id"]}"' not in own_roster[2], 'Primary roster exposes the blocked self-editor'
+        assert admin.request(f"edit_user.php?id={superuser['id']}", {'csrf_token': csrf(own_roster[2]), 'username': 'forged', 'role': 'reviewer'})[0] == 403, 'Self-profile redirect bypassed platform identity protection'
         directory = admin.request('accounts.php')
         assert directory[0] == 200 and 'Account Isolation Preview' in directory[2]
         review_count = mail_review_badge(directory[2])
