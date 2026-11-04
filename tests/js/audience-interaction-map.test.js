@@ -151,6 +151,7 @@ test('filtering recounts mixed pins, popup details, rows, and unmapped interacti
     assert.deepEqual(marker.popup.content.children.map(child => child.textContent), ['Chicago', '3 interactions', 'Email opens: 3', 'Approximate city position']);
     assert.deepEqual(table.rows.map(row => row.hidden), [false, true, true]);
     assert.equal(table.rows[0].cells['[data-interaction-observations]'].textContent, '3');
+    assert.equal(table.rows[0].cells['[data-interaction-observations]'].dataset.interactionObservations, '3', 'Sorting uses the filtered numeric count');
     assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email opens 3');
     assert.equal(elements['interaction-map-feedback'].textContent, '1 location · 3 interactions with a mapped location · 2 without a mappable country · Email opens');
     assert.equal(elements['interaction-map-empty'].hidden, true);

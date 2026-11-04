@@ -98,7 +98,7 @@ export function wireAudienceMobile() {
                     sync(); tools.append(select);
                 }
                 // Keep sorting available when the desktop table headings are folded away.
-                const sorts = $$('thead a[href],thead button[popovertarget]', table);
+                const sorts = $$('thead a[href],thead button[popovertarget],thead button[data-interaction-sort]', table);
                 if (sorts.length) {
                     const label = document.createElement('label'); label.textContent = 'Sort';
                     const select = document.createElement('select');

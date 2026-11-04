@@ -307,3 +307,33 @@ document.addEventListener('change', event => {
   const plot = document.querySelector(`.analytics-builder-controls input[name="plots[]"][value="${input.value}"]`);
   if (plot) { if (!input.checked) plot.checked = false; plot.disabled = !input.checked; }
 });
+
+const sortInteractionLocations = (table, key = table?.dataset.interactionSortKey || 'interactions', direction = table?.dataset.interactionDirection || 'descending') => {
+  if (!table) return;
+  const body = table.querySelector('tbody');
+  const rows = [...body.querySelectorAll('tr[data-interaction-location]')];
+  const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+  const labelOrder = (a, b) => collator.compare(a.dataset.interactionLocation, b.dataset.interactionLocation);
+  const count = row => Number(row.querySelector('[data-interaction-observations]').dataset.interactionObservations);
+  const multiplier = direction === 'ascending' ? 1 : -1;
+  rows.sort((a, b) => key === 'location' ? multiplier * labelOrder(a, b) : multiplier * (count(a) - count(b)) || labelOrder(a, b));
+  const empty = body.querySelector('#interaction-location-table-empty');
+  rows.forEach(row => body.insertBefore(row, empty));
+  table.dataset.interactionSortKey = key;
+  table.dataset.interactionDirection = direction;
+  table.querySelectorAll('button[data-interaction-sort]').forEach(button => {
+    const active = button.dataset.interactionSort === key;
+    button.closest('th').setAttribute('aria-sort', active ? direction : 'none');
+    button.querySelector('[data-sort-arrow]').textContent = active ? (direction === 'ascending' ? '↑' : '↓') : '';
+  });
+};
+document.addEventListener('click', event => {
+  const button = event.target.closest('button[data-interaction-sort]');
+  if (!button) return;
+  const direction = button.closest('th').getAttribute('aria-sort') === 'ascending' ? 'descending' : 'ascending';
+  sortInteractionLocations(button.closest('table'), button.dataset.interactionSort, direction);
+});
+// The map updates each row's count before the filter change bubbles here.
+document.addEventListener('change', event => {
+  if (event.target.id === 'interaction-map-type') sortInteractionLocations(document.getElementById('interaction-location-table'));
+});
