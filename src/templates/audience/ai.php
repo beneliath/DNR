@@ -1,4 +1,5 @@
 <?php
+$aiMode ??= 'content';
 $historyRows=array_filter($aiConfig['history']['items']??[],static fn($item)=>$item['manual_topic']==='audience-ai:'.$aiMode);
 if($aiMode==='analytics'){include __DIR__.'/analytics-ai.php';}else{ ?>
 <div class="analytics-ai-mode-switch"><?php include __DIR__.'/ai-mode-tabs.php'; ?></div>
