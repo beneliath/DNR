@@ -10,13 +10,32 @@ import { initializeCollectionFieldOrder } from './audience-collection-fields.mjs
 import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
 (() => {
     'use strict';
+    const renameForm = document.querySelector('#collection-rename form');
+    const renameInput = renameForm?.querySelector('[name=name]');
+    const renameSave = renameForm?.querySelector('[data-collection-rename-save]');
+    const renameStatus = renameForm?.querySelector('[data-collection-rename-status]');
+    let savedRename = renameInput?.value || '', recoveredRename = renameForm?.dataset.renameRecovery === '1', renameWasDirty = false;
+    const updateRename = () => {
+        if (!renameInput || !renameSave) return;
+        const dirty = recoveredRename || renameInput.value !== savedRename;
+        renameSave.classList.toggle('collection-save-unsaved', dirty);
+        if (renameStatus && dirty !== renameWasDirty) renameStatus.textContent = dirty ? 'Unsaved form name.' : 'No unsaved form name.';
+        renameWasDirty = dirty;
+    };
+    renameInput?.addEventListener('input', updateRename);
+    renameInput?.addEventListener('change', updateRename);
+    updateRename();
     document.querySelectorAll('[data-collection-lifecycle]').forEach(button => button.addEventListener('click', () => {
         const dialog = document.getElementById(`collection-${button.dataset.collectionLifecycle}`);
         if (!dialog) return;
         const entry = JSON.parse(button.dataset.collectionRecord);
         dialog.querySelector('[name=id]').value = entry.id;
         dialog.querySelector('[name=version]').value = entry.version;
-        dialog.querySelector('[data-collection-lifecycle-name]').textContent = entry.name;
+        const label = dialog.querySelector('[data-collection-lifecycle-name]');
+        if (label) label.textContent = entry.name;
+        const name = dialog.querySelector('[name=name]');
+        if (name) { name.value = entry.name; name.focus(); name.select(); }
+        if (dialog.id === 'collection-rename') { savedRename = entry.name; recoveredRename = false; updateRename(); }
         const confirmation = dialog.querySelector('[name=confirm]');
         if (confirmation) confirmation.value = '';
     }));

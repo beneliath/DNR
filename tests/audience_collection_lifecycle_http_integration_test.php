@@ -29,6 +29,23 @@ try{
         $id=$store->saveCollection(['kind'=>$kind,'name'=>'Lifecycle '.$kind.' '.$suffix]);$draft=$store->collectionResource($id)['draft'];$draft['origins']=['https://example.test'];
         $store->saveCollection(['name'=>'Lifecycle '.$kind.' '.$suffix,'document'=>$draft],$id,1);$store->collectionOperation($id,2,'publish');$row=$store->collectionResource($id);$fixtures[$kind]=$row;
         $path='audience.php?view='.match($kind){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'}.'&q=Lifecycle&type='.$kind.'&per_page=10&direction=asc&page=1';
+        $publicStatusBeforeRename=$public($row['public_key']);
+        $renameName=$row['name'].' renamed';
+        $rename=['action'=>'collection_rename','id'=>$id,'version'=>$row['version'],'name'=>$renameName];
+        $renamePage=$editor($path);$renameToken=audienceHttpCsrf($renamePage);
+        $renamed=$editor($path,['csrf_token'=>$renameToken]+$rename);$renamedRow=$store->collectionResource($id);
+        audienceHttpExpect($renamed['status']===302&&str_contains($renamed['headers'],'view='.match($kind){'survey'=>'surveys','landing'=>'landing-pages','preferences'=>'preferences',default=>'forms'})&&str_contains($renamed['headers'],'q=Lifecycle')&&str_contains($renamed['headers'],'per_page=10'),'Rename returns to the same list and filters for '.$kind);
+        audienceHttpExpect($renamedRow['name']===$renameName&&(int)$renamedRow['version']===(int)$row['version']+1,'Rename updates the name with version protection for '.$kind);
+        audienceHttpExpect($renamedRow['draft_json']===$row['draft_json']&&$renamedRow['public_key']===$row['public_key']&&$renamedRow['published_revision']===$row['published_revision']&&$renamedRow['state']===$row['state']&&$public($row['public_key'])===$publicStatusBeforeRename,'Rename preserves the draft, published revision, status and working public link for '.$kind);
+        $row=$renamedRow;
+        if($kind==='landing'){
+            audienceHttpExpect($reviewer($path,['csrf_token'=>audienceHttpCsrf($reviewer($path))]+array_replace($rename,['version'=>$row['version']]))['status']===403,'Reviewers cannot rename forms by direct POST');
+            audienceHttpExpect($editor($path,['csrf_token'=>'invalid']+array_replace($rename,['version'=>$row['version']]))['status']===400,'Rename requires CSRF');
+            $invalid=$editor($path,['csrf_token'=>$renameToken]+array_replace($rename,['version'=>$row['version'],'name'=>'   ']));
+            audienceHttpExpect(str_contains($invalid['body'],'Name this form or page.')&&str_contains($invalid['body'],'data-rename-recovery="1"')&&$store->collectionResource($id)['name']===$renameName,'Blank names leave the record unchanged and recover the rename dialog');
+            $staleRename=$editor($path,['csrf_token'=>$renameToken]+$rename);
+            audienceHttpExpect(str_contains($staleRename['body'],'Reload before renaming.')&&str_contains($staleRename['body'],'data-rename-recovery="1"')&&$store->collectionResource($id)['name']===$renameName,'Stale rename preserves the latest saved name and entered draft');
+        }
         $archived=$send($editor,$path,['id'=>$id,'version'=>$row['version'],'operation'=>'archive']);
         audienceHttpExpect($archived['status']===302&&str_contains($archived['headers'],'q=Lifecycle')&&str_contains($archived['headers'],'type='.$kind)&&str_contains($archived['headers'],'per_page=10')&&str_contains($archived['headers'],'direction=asc'),'Archiving preserves list context for '.$kind);
         $archivedRow=$store->collectionResource($id,false,true);audienceHttpExpect($archivedRow['deleted_at']!==null&&$archivedRow['state']==='paused'&&$public($row['public_key'])===404,'Archive stops public collection for '.$kind);
@@ -61,6 +78,11 @@ try{
     $active=$store->collectionResource((int)$fixtures['popup']['id']);$activeDelete=$send($admin,$archivedPath,array_replace($delete,['id'=>$active['id'],'version'=>$active['version']]));audienceHttpExpect(str_contains($activeDelete['body'],'Only archived forms')&&$store->collectionResource((int)$active['id']),'Active forms must be archived before deletion');
     $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Lifecycle foreign audience',JSON_OBJECT())");$other=new AudienceStore($conn,(int)$conn->insert_id,1,'Foreign lifecycle');$foreign=$other->saveCollection(['kind'=>'hosted','name'=>'Foreign lifecycle']);$other->collectionOperation($foreign,1,'archive');
     $foreignDelete=$send($admin,$archivedPath,array_replace($delete,['id'=>$foreign,'version'=>2]));audienceHttpExpect(str_contains($foreignDelete['body'],'unavailable')&&$other->collectionResource($foreign,false,true),'Deletion cannot cross audience boundaries');
+    $foreignActive=$other->saveCollection(['kind'=>'landing','name'=>'Foreign rename fixture']);
+    $renamePage=$editor($path);$foreignRename=$editor($path,['csrf_token'=>audienceHttpCsrf($renamePage),'action'=>'collection_rename','id'=>$foreignActive,'version'=>1,'name'=>'Unauthorized rename']);
+    audienceHttpExpect(str_contains($foreignRename['body'],'unavailable')&&$other->collectionResource($foreignActive)['name']==='Foreign rename fixture','Rename cannot cross audience boundaries');
+    $archivedRename=$editor($archivedPath,['csrf_token'=>audienceHttpCsrf($editor($archivedPath)),'action'=>'collection_rename','id'=>$id,'version'=>$archived['version'],'name'=>'Archived rename']);
+    audienceHttpExpect(str_contains($archivedRename['body'],'unavailable')&&$store->collectionResource($id,false,true)['name']===$archived['name'],'Archived forms cannot be renamed by direct POST');
     // A delivered confirmation remains valid after its originating form is permanently deleted.
     $confirmation=bin2hex(random_bytes(32));$operation=hash('sha256',$confirmation);
     $store->write("INSERT INTO marketing_service_mail(audience_id,contact_id,kind,operation_key,payload_ciphertext,message_id,state,next_attempt_at,expires_at) VALUES (1,?,'confirmation',?,'','<lifecycle@example.test>','accepted',UTC_TIMESTAMP(),DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 HOUR))",[$contact,$operation]);$mail=(int)$conn->insert_id;

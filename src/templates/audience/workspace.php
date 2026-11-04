@@ -70,7 +70,7 @@ if(in_array($view,['home','analytics'],true)){
     if($view==='analytics')$analyticsAiQuery+=['dataset'=>$definition['dataset']??($section==='audience'?'audience':($section==='conversions'?'forms':'email')),'source'=>$source];
 }
 ?>
-<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-mm-workspace="workspace" data-audience-key="<?= $h($themeKey) ?>"<?= $view==='campaigns'?' data-mm-campaign-list':'' ?><?php if($view==='assistant' && !empty($aiConfig['history']['items'])): ?> data-mm-history-key="<?= $h('moed-audience-ai-history-reset-'.$aiConfig['key'].'-'.$aiMode) ?>"<?php endif; ?>>
+<body class="audience-app<?= $view==='form'?' audience-collection-editor-mode':'' ?><?= $view==='contacts'?' audience-connections-mode':'' ?><?= $isFlowView?' audience-flow-workspace':'' ?><?= $isAiAnalytics?' audience-analytics-ai-mode':'' ?><?= $isAiWriting?' audience-writing-ai-mode':'' ?><?= $view==='manual'?' audience-manual-mode':'' ?>" data-mm-workspace="workspace" data-audience-key="<?= $h($themeKey) ?>"<?= $view==='brand'?' data-mm-brand-kit':'' ?><?= $view==='campaigns'?' data-mm-campaign-list':'' ?><?php if($view==='assistant' && !empty($aiConfig['history']['items'])): ?> data-mm-history-key="<?= $h('moed-audience-ai-history-reset-'.$aiConfig['key'].'-'.$aiMode) ?>"<?php endif; ?>>
 <?php renderScript('assets/js/audience-layout-init.min.js',false); ?>
 <?php include __DIR__.'/../deployment-notice.php'; ?>
 <?php include __DIR__.'/../account-identity-banner.php'; ?>

@@ -15,3 +15,16 @@ try {
         if (Array.isArray(columns)) body.dataset.mmHiddenColumns = columns.filter(key => typeof key === 'string').join(' ');
     }
 } catch { /* Use the default layout when browser storage is unavailable. */ }
+
+// Native scroll restoration can move several times while the HTML is arriving.
+// Reveal a reloaded Brand Kit only after the full layout and scroll position settle.
+if (document.body.hasAttribute('data-mm-brand-kit')) {
+    const reloading = performance.navigation?.type === 1 || performance.getEntriesByType('navigation')[0]?.type === 'reload';
+    if (reloading) {
+        const body = document.body;
+        body.setAttribute('data-mm-brand-scroll-restoring', '');
+        const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => body.removeAttribute('data-mm-brand-scroll-restoring')));
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', reveal, {once: true});
+        else reveal();
+    }
+}
