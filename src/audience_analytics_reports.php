@@ -160,7 +160,7 @@ trait AudienceAnalyticsReports
         return ['rows'=>$rows,'total'=>$total,'page'=>$page,'size'=>$size];
     }
 
-    public function analyticsEvidence(array $w):array
+    public function analyticsEvidence(array $w, string $report = 'all'):array
     {
         [$scope,$params]=$this->analyticsRecipientScope($w);$bot=$w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'":'';
         $base="FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id
@@ -168,9 +168,29 @@ trait AudienceAnalyticsReports
             WHERE $scope AND e.event_at<? AND e.event_type IN ('open','click') $bot
             AND NOT EXISTS(SELECT 1 FROM marketing_message_events failure WHERE failure.recipient_id=r.id AND failure.audience_id=r.audience_id AND failure.source='provider' AND failure.event_type IN ('hard-bounce','soft-bounce','rejected') AND failure.event_at<?)";
         $p=[...$params,$w['until'],$w['until']];$result=[];
-        foreach(['country','client','os','device']as$key)$result[$key]=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.$key')),''),'Unknown') label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base GROUP BY label ORDER BY messages DESC,label",$p);
+        if ($report !== 'links') {
+            // Read the filtered observations once. A recipient can appear under several
+            // labels, so deduplicate messages separately for each final breakdown.
+            $dimensions = ['country','client','os','device'];
+            $result = array_fill_keys($dimensions, []);
+            $labels = $breakdowns = [];
+            foreach ($dimensions as $dimension) {
+                $labels[] = "COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.$dimension')),''),'Unknown') $dimension";
+                $breakdowns[] = "SELECT '$dimension' dimension,$dimension label,COUNT(DISTINCT recipient) messages,
+                    CAST(SUM(observations) AS UNSIGNED) observations FROM observed GROUP BY $dimension";
+            }
+            $sql = 'WITH observed AS (SELECT r.id recipient,'.implode(',', $labels).",COUNT(*) observations $base
+                GROUP BY r.id,country,client,os,device) ".implode(' UNION ALL ', $breakdowns).' ORDER BY dimension,messages DESC,label';
+            foreach ($this->all($sql, $p) as $row) {
+                $key = $row['dimension'];
+                unset($row['dimension']);
+                $result[$key][] = $row;
+            }
+            if ($report === 'devices') return $result;
+        }
         $result['links']=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')),''),'unknown') link_hash,
             MAX(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_label')),'')) label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base AND e.event_type='click' GROUP BY link_hash ORDER BY messages DESC,link_hash",$p);
+        if ($report === 'links') return $result;
         $result['hours']=$this->all("SELECT HOUR(e.event_at) hour,COUNT(DISTINCT r.contact_id) contacts,COUNT(DISTINCT r.id) messages $base AND e.event_type='click' GROUP BY hour ORDER BY contacts DESC,messages DESC,hour",$p);
         $result['timing_contacts']=(int)$this->one("SELECT COUNT(DISTINCT r.contact_id) n $base AND e.event_type='click'",$p)['n'];
         return $result;
@@ -217,7 +237,7 @@ trait AudienceAnalyticsReports
         return ['forms'=>$forms,'flows'=>$flows];
     }
 
-    public function analyticsReportRows(array $w,array $definition):array
+    public function analyticsReportRows(array $w,array $definition,?array $audienceHistory = null):array
     {
         $d=audienceAnalyticsReportDefinition($definition);$groups=[];$previous=[];
         $groupRows=static function(array $rows,string $dimension,string $dataset,array $names=[])use(&$groups):array{
@@ -231,7 +251,7 @@ trait AudienceAnalyticsReports
                 if($period==='current')$groups=$out;else$previous=$out;
             }
         }elseif($d['dataset']==='audience'){
-            $history=$this->analyticsAudienceHistory($w,$d['source']);
+            $history=$audienceHistory ?? $this->analyticsAudienceHistory($w,$d['source']);
             foreach(['current','previous']as$period){$out=[];foreach($groupRows($history[$period],$d['dimension'],'audience')as$key=>$g){$out[$key]=['label'=>$g['label']];foreach(['added','subscriptions','optouts','net']as$m)$out[$key][$m]=array_sum(array_column($g['rows'],$m));}if($period==='current')$groups=$out;else$previous=$out;}
         }else{
             $prior=array_replace($w,['from'=>$w['previous_from'],'until'=>$w['previous_until'],'start'=>substr($w['previous_from'],0,10),'end'=>(new DateTimeImmutable($w['previous_until']))->modify('-1 day')->format('Y-m-d')]);

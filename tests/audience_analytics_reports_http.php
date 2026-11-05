@@ -32,6 +32,13 @@ try{
     audienceHttpExpect(!in_array('iOS',array_column($campaignStore->analyticsEvidence($scope)['os'],'label'),true),'OS evidence cannot cross audience boundaries');
     $afterOs=array_column($classified['os'],null,'label');
     audienceHttpExpect($afterOs['Unknown']===$beforeOs[0],'Recording new classifications preserves historical counts');
+    $alternate = array_replace($details, ['client'=>'Another browser','country'=>'CA','bot'=>false]);
+    $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',UTC_TIMESTAMP(),?)",
+        [$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),json_encode($alternate)]);
+    $devices = $as->analyticsEvidence($scope, 'devices');
+    $ios = array_column($devices['os'], null, 'label')['iOS'];
+    audienceHttpExpect((int)$ios['messages']===1 && (int)$ios['observations']===3,
+        'One recipient seen on two browsers still counts as one message in its OS row');
 }finally{$conn->rollback();}
 $custom=$as->analyticsReportRows($window,['dataset'=>'email','dimension'=>'day','columns'=>['accepted','open_rate']]);
 audienceHttpExpect(array_sum(array_column($custom,'accepted'))===36,'Custom daily report reconciles with email dashboard');
@@ -102,6 +109,14 @@ audienceHttpExpect(!in_array($reportId,array_column($as->analyticsSavedReports()
 $denied=false;try{$otherActor->analyticsSaveReport(['report'=>$reportId,'report_version'=>4,'report_action'=>'copy']);}catch(InvalidArgumentException $e){$denied=$e->getCode()===403;}audienceHttpExpect($denied,'Removing a shared report revokes direct copy access until its owner restores it');
 $as->analyticsSaveReport(['report'=>$reportId,'report_version'=>4,'report_action'=>'restore']);
 audienceHttpExpect($as->analyticsSavedReport($reportId)['version']===5,'Report restore preserves its original identity');
+foreach (['csv'=>'email','links'=>'links'] as $download=>$section) {
+    $expected = $editor('audience.php?view=analytics&section='.$section.'&download='.$download);
+    $fromDevices = $editor('audience.php?view=analytics&section=devices&download='.$download);
+    audienceHttpExpect($expected['status']===200 && $fromDevices['status']===200 && $fromDevices['body']===$expected['body'],
+        'A direct download from Locations and clients returns the complete '.$download.' export');
+}
+audienceHttpExpect($editor('audience.php?view=analytics&section=reports&segment=2147483647')['status']===400,
+    'Reports without email metrics still reject an unavailable segment');
 foreach(['reports','custom','activity','links','devices','insights','audience','conversions']as$section){
     $response=$editor('audience.php?view=analytics&section='.$section);
     audienceHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body'])&&str_ends_with(trim($response['body']),'</html>'),'Extended report route renders a complete shell: '.$section);

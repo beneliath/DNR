@@ -138,7 +138,7 @@ function renderAudienceCollectionWorkspace(AudienceStore $store,array $audience,
         try { $draft=json_decode(audienceText($recover,'document_json',3000000),true,32,JSON_THROW_ON_ERROR); if (is_array($draft)) $resource['draft']=audienceCollectionDocument($draft,$resource['kind'],$store->fields(),$store->groups(),$store->tags()); } catch (Throwable) {}
         $resource['name']=audienceText($recover,'name',100); $resource['version']=(int)($recover['version']??0);
     }
-    $tags=$store->tags(); $groups=$store->groups(); $fields=$store->fields(); $catalog=$store->catalog();
+    $tags=$store->tags(); $groups=$store->groups(); $fields=$store->fields(); $catalog=[];
     $filters=audienceListFilters([]); $rules=['match'=>'all','rules'=>[]]; $segment=null; $job=null; $editorRecovery=null;
     $q=audienceText($_GET,'q',100); $type=audienceText($_GET,'type',20);$trash=($_GET['trash']??'')==='1';
     $creationKind=\Dnr\Http\RequestInput::enum($_GET,'kind',AUDIENCE_COLLECTION_KINDS,'hosted');

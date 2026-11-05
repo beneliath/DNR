@@ -175,7 +175,7 @@ if(in_array($view,['campaign','campaign-review','campaign-send','campaign-delive
     if(!empty($campaign['draft']['recipients_saved']))try{[$targetWhere,$targetParams]=$store->campaignTarget($campaign['draft']);$recipientCount=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $targetWhere",$targetParams)['n'];}catch(InvalidArgumentException $e){$targetError=$e->getMessage();}
 }
 // Shared shell dependencies, without loading a page of unrelated Connections.
-$tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=$store->catalog();
+$tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=[];
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name,id',[$audienceId]);
 $filters=audienceListFilters([]);$rules=['match'=>'all','rules'=>[]];$segment=null;$job=null;$editorRecovery=null;
 $plan=null;$planRows=[];$planChoices=[];$touchpoints=[];$planTotal=0;$planPage=1;$plannerLayout=in_array($_GET['planner_layout']??'', ['calendar','agenda','list'],true)?$_GET['planner_layout']:'calendar';

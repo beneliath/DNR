@@ -184,7 +184,7 @@ function storePersistentPortrait(mysqli $conn, array $picture, string $name): ar
 }
 
 /** Called only after the portrait endpoint has checked record access. */
-function servePersistentPortrait(mysqli $conn, string $key): void
+function servePersistentPortrait(mysqli $conn, string $key, bool $hasContentVersion = false): void
 {
     try {
         $metadata = persistentFileMetadata($conn, $key);
@@ -199,7 +199,9 @@ function servePersistentPortrait(mysqli $conn, string $key): void
     }
     try {
         $etag = '"portrait-' . $key . '"';
-        header('Cache-Control: private, max-age=300');
+        header($hasContentVersion
+            ? 'Cache-Control: private, max-age=31536000, immutable'
+            : 'Cache-Control: private, max-age=300');
         header('X-Content-Type-Options: nosniff');
         header('ETag: ' . $etag);
         if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {

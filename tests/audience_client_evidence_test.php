@@ -66,12 +66,9 @@ $expect(str_contains($html,'details that were not recorded remain Unknown'),'The
 for($i=1;$i<=27;$i++)$evidence['client'][]=['label'=>'Client '.$i,'messages'=>$i,'observations'=>$i];
 ob_start();include __DIR__.'/../src/templates/audience/analytics-reports.php';$html=ob_get_clean();
 $doc=new DOMDocument();@$doc->loadHTML('<?xml encoding="UTF-8">'.$html);$xpath=new DOMXPath($doc);
-$expect($xpath->query('//section[h2="Email and Browsing"]//tbody/tr')->length===10,'Browser evidence uses the selected page size');
-$expect($xpath->query('//section[h2="Operating Systems"]//tbody/tr')->length===2,'Each evidence table clamps its page independently');
-$expect($xpath->query('//section[h2="Locations"]//button[@disabled]')->length===2,'Empty evidence has disabled previous and next controls');
-foreach($xpath->query('//section[h2="Email and Browsing"]//nav//a')as$link){
-    parse_str((string)parse_url($link->getAttribute('href'),PHP_URL_QUERY),$params);
-    $expect($params['os_size']==='50'&&$params['client_size']==='10'&&$params['bots']==='all'&&$params['messages']===['1','2'],'Evidence pagination preserves filters and other table choices');
-}
-$expect($xpath->query('//input[@name="client_page" and @value="1"]')->length>0,'Changing an evidence page size resets its page');
+$expect($xpath->query('//section[h2="Email and Browsing"]//tbody/tr')->length===28,'All browser evidence is rendered despite old pagination parameters');
+$expect($xpath->query('//section[h2="Operating Systems"]//tbody/tr')->length===2,'Short evidence tables retain all rows');
+$expect($xpath->query('//section[h2="Locations"]//tbody/tr/td[text()="No observations."]')->length===1,'Empty evidence retains its empty state');
+$expect($xpath->query('//div[@role="region" and @tabindex="0" and @aria-label]')->length===4,'Each evidence table has a named keyboard-accessible scroll window');
+$expect($xpath->query('//nav|//select|//table[@data-mm-paginated-table]')->length===0,'Evidence tables no longer render pagination controls or markers');
 echo "Audience client detection passed ($checks checks).\n";

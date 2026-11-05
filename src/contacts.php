@@ -361,7 +361,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                         <td colspan="5" class="empty-state">No contacts match the current view.</td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($contacts as $contact): ?>
+                    <?php foreach ($contacts as $rowIndex => $contact): ?>
                         <tr>
                             <td>
                                 <span class="contact-name-cell">
@@ -372,7 +372,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                                 . '&v=' . (string) ($contact['contact_photo_version'] ?? ''),
                                             ENT_QUOTES,
                                             'UTF-8'
-                                        ); ?>" alt="">
+                                        ); ?>" alt="" width="42" height="42" decoding="async"<?= $rowIndex >= 5 ? ' loading="lazy"' : '' ?>>
                                     <?php else: ?>
                                         <span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(contactInitials($contact), ENT_QUOTES, 'UTF-8'); ?></span>
                                     <?php endif; ?>

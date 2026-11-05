@@ -46,10 +46,16 @@ trait AudienceDefinitions
 
     public function catalog(): array
     {
+        return $this->catalogForDefinitions($this->fields(), $this->tags(true), $this->groups(true));
+    }
+
+    /** Include archived definitions so existing saved rules can still be read. */
+    public function catalogForDefinitions(array $fields, array $tags, array $groups): array
+    {
         $campaigns=array_column($this->all('SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$this->audienceId]),'name','id');
         $links=[];
         if($this->deliveryRuntimeAvailable())foreach($this->all("SELECT JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_hash')) hash,MAX(JSON_UNQUOTE(JSON_EXTRACT(details_json,'$.link_label'))) label FROM marketing_message_events WHERE audience_id=? AND event_type='click' GROUP BY hash",[$this->audienceId])as$link)if(preg_match('/^[a-f0-9]{64}$/D',(string)$link['hash']))$links[$link['hash']]=$link['label']?:'Tracked link '.substr($link['hash'],0,8);
-        return audienceRuleCatalog($this->fields(),$this->tags(true),$this->groups(true),$campaigns,$links);
+        return audienceRuleCatalog($fields,$tags,$groups,$campaigns,$links);
     }
 
     public function ensureTag(string $name): int

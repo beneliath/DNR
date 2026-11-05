@@ -69,13 +69,13 @@ trait AudienceContacts
         return compact('tags', 'groups');
     }
 
-    public function where(array $filters, array $rules = ['match'=>'all','rules'=>[]]): array
+    public function where(array $filters, array $rules = ['match'=>'all','rules'=>[]], ?array $catalog = null): array
     {
         $sql = '1=1'; $params = [];
         if (($filters['archived'] ?? '0') !== 'all') { $sql .= ' AND c.is_archived=?'; $params[] = (int)($filters['archived'] ?? 0); }
         if (($filters['q'] ?? '') !== '') { $sql .= " AND (LOCATE(?,c.email)>0 OR LOCATE(?,CONCAT(c.first_name,' ',c.last_name))>0)"; array_push($params,$filters['q'],$filters['q']); }
         foreach(['status','source']as$key)if(isset($filters[$key])&&!is_array($filters[$key]))$filters[$key]=$filters[$key]===''?[]:[$filters[$key]];
-        [$advanced,$values] = audienceCompileRules(audienceActiveRules($filters,$rules,false),$this->catalog());
+        [$advanced,$values] = audienceCompileRules(audienceActiveRules($filters,$rules,false),$catalog ?? $this->catalog());
         return ['c.audience_id=? AND c.deleted_at IS NULL AND (' . $sql . ') AND (' . $advanced . ')',[$this->audienceId,...$params,...$values]];
     }
 

@@ -28,6 +28,23 @@ import {calendarDates, formatCalendarDate, isoCalendarDate, parseCalendarDate} f
     const observer = new ResizeObserver(measureReportHeader);
     document.querySelectorAll('.audience-topbar,.audience-page-heading').forEach(node => observer.observe(node));
   }
+  document.querySelectorAll('.analytics-evidence-grid .analytics-table-scroll').forEach(viewport => {
+    const table = viewport.querySelector('table');
+    const sizeViewport = () => {
+      const rows = table.tBodies[0].rows;
+      const last = rows[Math.min(rows.length, 10) - 1];
+      if (!last) return;
+      // Include the header and ten complete rows, including wrapped/mobile rows.
+      const height = last.getBoundingClientRect().bottom - viewport.getBoundingClientRect().top + viewport.scrollTop;
+      viewport.style.maxHeight = `${Math.ceil(height)}px`;
+    };
+    sizeViewport();
+    window.addEventListener('resize', sizeViewport);
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(sizeViewport);
+      observer.observe(table);
+    }
+  });
   const dateForm = document.querySelector('[data-analytics-range]');
   const make = (tag, text, className) => {
     const node = document.createElement(tag);
