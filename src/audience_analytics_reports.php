@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_interaction_map.php';
+require_once __DIR__.'/application_runtime.php';
 
 function audienceAnalyticsMetricLabels():array
 {
@@ -38,13 +39,29 @@ function audienceAnalyticsReportDefinition(array $input):array
     return ['dataset'=>$dataset,'dimension'=>$dimension,'columns'=>$columns,'plots'=>array_values(array_unique($plots)),'source'=>audienceText($input,'source',100)];
 }
 
-/** Coarse observations only. No raw IP, raw user-agent or URL query is retained. */
+/** Retain classification names only, never raw IPs, user-agents, versions or URL queries. */
 function audienceAnalyticsClientEvidence(string $agent,?string $country,string $url=''):array
 {
-    $device=$agent===''||preg_match('/proxy|bot|crawler|scanner/i',$agent)?'Unknown':(preg_match('/ipad|tablet/i',$agent)?'Tablet':(preg_match('/mobi|iphone|android/i',$agent)?'Mobile':'Desktop'));
-    $client='Unknown';foreach(['Edge'=>'Edg/','Opera'=>'OPR/','Chrome'=>'Chrome/','Firefox'=>'Firefox/','Safari'=>'Safari/','Outlook'=>'Outlook','Thunderbird'=>'Thunderbird','Image proxy'=>'GoogleImageProxy']as$name=>$needle)if(str_contains($agent,$needle)){$client=$name;break;}
-    if(str_contains($agent,'GoogleImageProxy'))$client='Image proxy';
-    $evidence=['device'=>$device,'client'=>$client,'country'=>$country??'Unknown'];
+    $agent=substr($agent,0,2048);
+    $detector=\Dnr\Analytics\ClientDetector::parse($agent);
+    $name=static fn(string $value):string=>in_array($value,['',\DeviceDetector\DeviceDetector::UNKNOWN],true)?'Unknown':mb_substr($value,0,64);
+    $client=$name((string)$detector->getClient('name'));
+    $os=$name((string)$detector->getOs('name'));
+    $device=match($detector->getDeviceName()){
+        ''=>'Unknown','tv'=>'TV',default=>ucfirst($detector->getDeviceName()),
+    };
+    // A proxy's advertised browser/OS describes its fetcher, not the recipient.
+    $proxy=match(true){
+        stripos($agent,'GoogleImageProxy')!==false=>'Gmail image proxy',
+        stripos($agent,'YahooMailProxy')!==false=>'Yahoo Mail image proxy',
+        preg_match('/proxy/i',$agent)===1=>'Image proxy',
+        default=>'',
+    };
+    if($proxy!=='')$client=$proxy;
+    if($proxy!==''||$detector->isBot()||preg_match('/bot|crawler|spider|scanner|headless|preview|curl|python|wget/i',$agent)){
+        $device='Unknown';$os='Unknown';
+    }
+    $evidence=['device'=>$device,'client'=>$client,'os'=>$os,'country'=>$country??'Unknown'];
     if($url!==''){$parts=parse_url($url);$evidence['link_label']=mb_substr(($parts['host']??'').($parts['path']??'/'),0,250);}
     return $evidence;
 }
@@ -151,7 +168,7 @@ trait AudienceAnalyticsReports
             WHERE $scope AND e.event_at<? AND e.event_type IN ('open','click') $bot
             AND NOT EXISTS(SELECT 1 FROM marketing_message_events failure WHERE failure.recipient_id=r.id AND failure.audience_id=r.audience_id AND failure.source='provider' AND failure.event_type IN ('hard-bounce','soft-bounce','rejected') AND failure.event_at<?)";
         $p=[...$params,$w['until'],$w['until']];$result=[];
-        foreach(['country','client','device']as$key)$result[$key]=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.$key')),''),'Unknown') label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base GROUP BY label ORDER BY messages DESC,label",$p);
+        foreach(['country','client','os','device']as$key)$result[$key]=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.$key')),''),'Unknown') label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base GROUP BY label ORDER BY messages DESC,label",$p);
         $result['links']=$this->all("SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_hash')),''),'unknown') link_hash,
             MAX(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.link_label')),'')) label,COUNT(DISTINCT r.id) messages,COUNT(*) observations $base AND e.event_type='click' GROUP BY link_hash ORDER BY messages DESC,link_hash",$p);
         $result['hours']=$this->all("SELECT HOUR(e.event_at) hour,COUNT(DISTINCT r.contact_id) contacts,COUNT(DISTINCT r.id) messages $base AND e.event_type='click' GROUP BY hour ORDER BY contacts DESC,messages DESC,hour",$p);

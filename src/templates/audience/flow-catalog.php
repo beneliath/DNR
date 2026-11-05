@@ -3,7 +3,23 @@ $templates=audienceFlowTemplates();$topics=array_values(array_unique(array_colum
 $families=['welcome'=>'Find & welcome new connections','nurture'=>'Nurture relationships','reengage'=>'Re-engage connections','manage'=>'Support and manage connections'];
 ?>
 <section class="flow-catalog-hero" data-flow-catalog-hero>
-    <div class="flow-hero-art" aria-hidden="true"><svg viewBox="0 0 360 210"><path d="M180 62v88"/><rect x="85" y="29" width="190" height="42" rx="2"/><rect x="58" y="96" width="244" height="45" rx="2"/><circle cx="180" cy="177" r="19"/><path class="flow-hero-check" d="m173 177 5 5 10-11"/><path d="M100 43h16v13h-16Zm0 1 8 6 8-6M74 110h18v15H74Zm0 1 9 7 9-7"/><path class="flow-hero-placeholder" d="M128 49h121M103 118h169"/></svg></div>
+    <div class="flow-hero-art" aria-hidden="true">
+        <svg viewBox="0 0 360 224" focusable="false">
+            <circle class="flow-hero-halo" cx="180" cy="110" r="99"/>
+            <path class="flow-hero-connector" d="M180 62v28m0 64v26"/>
+            <rect class="flow-hero-card" x="102" y="18" width="156" height="44" rx="10"/>
+            <svg class="flow-hero-icon" x="114" y="28" width="24" height="24" viewBox="0 0 24 24"><path d="<?= audienceFlowIconPaths()['group'] ?>"/></svg>
+            <path class="flow-hero-placeholder" d="M153 34h76"/>
+            <path class="flow-hero-placeholder flow-hero-secondary" d="M153 46h49"/>
+            <rect class="flow-hero-card" x="48" y="90" width="264" height="64" rx="12"/>
+            <rect class="flow-hero-icon-tile" x="62" y="103" width="38" height="38" rx="10"/>
+            <svg class="flow-hero-icon" x="69" y="110" width="24" height="24" viewBox="0 0 24 24"><path d="<?= audienceFlowIconPaths()['email'] ?>"/></svg>
+            <path class="flow-hero-placeholder" d="M116 115h132"/>
+            <path class="flow-hero-placeholder flow-hero-secondary" d="M116 131h92"/>
+            <circle class="flow-hero-complete" cx="180" cy="198" r="18"/>
+            <path class="flow-hero-check" d="m173 198 5 5 10-11"/>
+        </svg>
+    </div>
     <div><h2>Turn audience activity into a personal next step</h2><p>Welcome subscribers, follow up on real engagement, and keep your connections organized with ready-to-build flows.</p><div class="audience-actions"><a class="audience-button primary" href="<?= $h($url(['view'=>'forms'])) ?>">Explore signup forms</a><button type="button" data-flow-dismiss-hero>Dismiss</button></div></div>
 </section>
 <div class="flow-catalog-controls mm-search-row" data-flow-catalog-controls>

@@ -30,7 +30,7 @@ $failed=false;try{audienceAnalyticsWindow(['segment'=>['1']],$now);}catch(Invali
 foreach([['origin'=>'mailchimp'],['source_audience'=>'Original provider audience'],['bots'=>'exported']]as$removed){$failed=false;try{audienceAnalyticsWindow($removed,$now);}catch(InvalidArgumentException){$failed=true;}$expect($failed,'Removed analytics sources cannot be relabelled as native results');}
 $expect(audienceAnalyticsWindow(['origin'=>'native'],$now)===audienceAnalyticsWindow([],$now),'Existing native analytics bookmarks remain supported');
 $client=audienceAnalyticsClientEvidence('Mozilla/5.0 (iPhone) Safari/604.1','IL','https://example.test/news?email=private@example.test#token');
-$expect($client===['device'=>'Mobile','client'=>'Safari','country'=>'IL','link_label'=>'example.test/news'],'Tracking evidence is coarse and strips URL queries/fragments');
+$expect($client===['device'=>'Smartphone','client'=>'Mobile Safari','os'=>'iOS','country'=>'IL','link_label'=>'example.test/news'],'Tracking evidence retains classification names and strips URL queries/fragments');
 $expect(audienceAnalyticsClientEvidence('',null)['country']==='Unknown','Missing location is never inferred');
 $calculator=new class { use AudienceAnalytics; };
 $example=$calculator->analyticsTotals([['accepted'=>100,'delivered'=>90,'failed'=>10,'opens'=>45,'clicks'=>9,'receipt'=>100]]);

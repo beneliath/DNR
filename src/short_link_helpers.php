@@ -285,11 +285,7 @@ function shortLinkVisitDimensions(array $server): ?array
 {
     if (($server['REQUEST_METHOD'] ?? 'GET') !== 'GET') return null;
     if (preg_match('/prefetch|prerender/i', (string) ($server['HTTP_SEC_PURPOSE'] ?? $server['HTTP_PURPOSE'] ?? ''))) return null;
-    $ua = substr((string) ($server['HTTP_USER_AGENT'] ?? ''), 0, 2048);
-    $detector = new \DeviceDetector\DeviceDetector($ua);
-    $detector->setYamlParser(new \Dnr\Analytics\CompiledDeviceDetectorYaml());
-    $detector->discardBotInformation();
-    $detector->parse();
+    $detector = \Dnr\Analytics\ClientDetector::parse((string) ($server['HTTP_USER_AGENT'] ?? ''));
     if ($detector->isBot()) return null;
     $referrer = strtolower((string) parse_url(substr((string) ($server['HTTP_REFERER'] ?? ''), 0, 4096), PHP_URL_HOST));
     if (!preg_match('/\A[a-z0-9.\-]{1,253}\z/', $referrer)) $referrer = '';

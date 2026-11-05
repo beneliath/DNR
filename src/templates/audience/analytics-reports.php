@@ -82,9 +82,27 @@ $builderQuery=array_diff_key($reportQuery,['columns'=>true,'plots'=>true,'dimens
 <td><?= number_format((int)$r['messages']) ?></td><td><?= number_format((int)$r['observations']) ?></td></tr><?php endforeach; ?><?php if(!$evidence['links']): ?><tr><td colspan="3">No tracked clicks in this period.</td></tr><?php endif; ?></tbody></table></div><p class="analytics-explanation">Historical events stored only a destination hash, so their URL cannot be recovered. New observations retain a destination label without query strings. Unique messages deduplicate repeated clicks on the same link. A click map is available below when immutable delivery content is retained.</p></section>
 <?php endif; ?>
 <?php if($section==='links'): ?><section class="analytics-card"><header><h2>Click map</h2><a class="audience-button analytics-click-map-toggle" href="<?= $h($reportLink(['map'=>$clickMap?null:1])) ?>"><?= $clickMap?'Hide click map':'View click map' ?></a></header><?php if($clickMap): ?><form method="get" class="analytics-inline-controls"><?php audienceInputs($reportQuery+['map'=>1]); ?><label>Delivery<select name="delivery" data-analytics-submit><?php foreach($clickMap['options']as$o): ?><option value="<?= (int)$o['id'] ?>"<?= $clickMap['delivery']===(int)$o['id']?' selected':'' ?>><?= $h($o['name'].' · '.formatUserTimestamp($o['due_at'],'Y-m-d H:i:s')) ?></option><?php endforeach; ?></select></label><noscript><button>Apply</button></noscript></form><?php if($clickMap['html']!==''): ?><iframe class="analytics-click-map<?= ($clickMap['preview_kind']??'')==='text'?' analytics-click-map-text':'' ?>" sandbox="" referrerpolicy="no-referrer" title="Immutable email click map" srcdoc="<?= $h($clickMap['html']) ?>"></iframe><?php else: ?><p>No accepted delivery content in this period.</p><?php endif; ?><?php endif; ?><p class="analytics-explanation">Select an accepted delivery to view its immutable content with unique-message click counts. Links are inactive and images are replaced with placeholders. Personalized destinations cannot be matched to the unmerged template; use the link report for their observations. The selector includes the latest 100 matching deliveries.</p></section><?php endif; ?>
-<?php if($section==='devices'&&$evidence): ?>
-<p class="analytics-explanation">Observed tracking clients and trusted-edge country evidence. Email proxies and scanners may hide the recipient’s actual location or device. Older events remain Unknown; no location is inferred from connection addresses.</p>
-<div class="analytics-evidence-grid"><?php foreach(['country'=>'Locations','client'=>'Email and browser clients','device'=>'Devices']as$key=>$label): ?><section class="analytics-card"><h2><?= $label ?></h2><div class="analytics-table-scroll"><table class="data-table"><thead><tr><th><?= $h(ucfirst($key)) ?></th><th>Unique messages</th><th>Observations</th></tr></thead><tbody><?php foreach($evidence[$key]as$r): ?><tr><th scope="row"><?= $h($r['label']) ?></th><td><?= number_format((int)$r['messages']) ?></td><td><?= number_format((int)$r['observations']) ?></td></tr><?php endforeach; ?><?php if(!$evidence[$key]): ?><tr><td colspan="3">No observations.</td></tr><?php endif; ?></tbody></table></div></section><?php endforeach; ?></div>
+<?php if($section==='devices'&&$evidence):
+/** @var Closure(array<string,mixed>):string $reportLink */
+$evidenceParams=array_intersect_key($reportInput,array_flip(['country_page','country_size','client_page','client_size','os_page','os_size','device_page','device_size']));
+$evidenceLink=static fn(array $changes=[]):string=>$reportLink(array_replace($evidenceParams,$changes));
+?>
+<p class="analytics-explanation">Observed browsers, email clients, operating systems, device types and trusted-edge country evidence. Email proxies and scanners may hide the recipient’s actual location, operating system or device. Older events keep their recorded classifications; details that were not recorded remain Unknown. No location is inferred from connection addresses.</p>
+<div class="analytics-evidence-grid">
+<?php foreach(['country'=>['Locations','Country'],'client'=>['Email and Browsing','Client'],'os'=>['Operating Systems','Operating system'],'device'=>['Devices','Device type']]as$key=>[$label,$heading]):
+    $evidenceTotal=count($evidence[$key]);$evidenceSize=audiencePageSize($reportInput,$key.'_size');
+    $evidencePage=max(1,min(max(1,(int)ceil($evidenceTotal/$evidenceSize)),(int)(filter_var($reportInput[$key.'_page']??1,FILTER_VALIDATE_INT)?:1)));
+    $evidenceRows=array_slice($evidence[$key],($evidencePage-1)*$evidenceSize,$evidenceSize);
+?>
+<section class="analytics-card"><h2><?= $label ?></h2>
+    <div class="analytics-table-scroll"><table data-mm-paginated-table class="data-table"><thead><tr><th><span<?= in_array($key,['os','device'],true)?' class="sr-only"':'' ?>><?= $h($heading) ?></span></th><th>Unique messages</th><th>Observations</th></tr></thead><tbody>
+        <?php foreach($evidenceRows as$r): ?><tr><th scope="row"><?= $h($r['label']) ?></th><td><?= number_format((int)$r['messages']) ?></td><td><?= number_format((int)$r['observations']) ?></td></tr><?php endforeach; ?>
+        <?php if(!$evidenceRows): ?><tr><td colspan="3">No observations.</td></tr><?php endif; ?>
+    </tbody></table></div>
+    <?php audiencePagination(['total'=>$evidenceTotal,'page'=>$evidencePage,'size'=>$evidenceSize,'page_key'=>$key.'_page','size_key'=>$key.'_size','label'=>$label.' pages','url'=>$evidenceLink]); ?>
+</section>
+<?php endforeach; ?>
+</div>
 <p class="analytics-explanation">A message can be observed on multiple clients or in multiple locations. These category totals must not be added to calculate audience size. Known bots follow the selected filter; Apple MPP is not separately identified.</p>
 <?php endif; ?>
 <?php if($section==='insights'):$timing=$store->analyticsTimingEvidence(); ?>
