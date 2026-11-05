@@ -1,15 +1,19 @@
 <?php
 $baseFilters=array_intersect_key($_GET,array_flip(['status','source','label','q','unread']));
-$filterUrl=static fn(array $p=[])=>'audience.php?'.http_build_query(['view'=>'inbox']+array_replace($baseFilters,$p));
+$filterUrl=static function(array $p=[])use($baseFilters,$list):string{
+    if ($list['status']==='review' && ($p===[] || isset($p['thread']))) $p+=['page'=>$list['page'],'per_page'=>$list['per_page']];
+    return 'audience.php?'.http_build_query(['view'=>'inbox']+array_replace($baseFilters,$p));
+};
 $form=static function(string $action,array $values=[])use($csrf,$h):void{echo $csrf.'<input type="hidden" name="action" value="'.$h($action).'">';foreach($values as$k=>$v)echo '<input type="hidden" name="'.$h($k).'" value="'.$h($v).'">';};
 $rich=static function(string $value,string $label='Message')use($h):void{?><div class="inbox-rich" data-inbox-rich><label><?= $h($label) ?></label><div class="inbox-format" role="toolbar" aria-label="Text formatting"><button type="button" data-format="bold" aria-label="Bold"><b>B</b></button><button type="button" data-format="italic" aria-label="Italic"><i>I</i></button><button type="button" data-format="underline" aria-label="Underline"><u>U</u></button><button type="button" data-format="insertUnorderedList" aria-label="Bulleted list">☷</button><button type="button" data-format="insertOrderedList" aria-label="Numbered list">1.</button><button type="button" data-format="createLink">Link</button></div><div class="inbox-editor" contenteditable="true" role="textbox" aria-label="<?= $h($label) ?>" aria-multiline="true"><?= audienceDesignRichText($value) ?></div><textarea name="body_html" class="inbox-rich-fallback" aria-label="<?= $h($label) ?> HTML" maxlength="30000"><?= $h($value) ?></textarea></div><?php };
 $sourceNames=['email'=>'Email reply','contact'=>'Contact form','survey'=>'Survey response','direct'=>'Direct message'];
-$statusNames=['todo'=>'To do','done'=>'Done','all'=>'All conversations','trash'=>'Trash'];
+$statusNames=['todo'=>'To do','review'=>'Needs Review','done'=>'Done','all'=>'All conversations','trash'=>'Trash'];
 $initials=static function(string $name):string{$words=preg_split('/\s+/',trim($name))?:[];return mb_strtoupper(mb_substr($words[0]??'?',0,1).(count($words)>1?mb_substr(end($words),0,1):''));};
 $icon=static function(string $name)use($h):void{
     $paths=['sources'=>'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z','todo'=>'M4 5h16v14H4z M4 14h5l2 3h2l2-3h5','done'=>'m5 12 4 4L19 6','all'=>'M4 5h16v14H4z M4 9h16','trash'=>'M4 6h16 M9 6V3h6v3 M6 6l1 15h10l1-15 M10 10v7 M14 10v7','move-to-trash'=>'M4 4h16v4H4z M6 8v12h12V8 M12 10v7 m-3-3 3 3 3-3','email'=>'M3 5h18v14H3z m0 0 9 7 9-7','contact'=>'M5 3h14v18H5z M9 8h6 M9 12h6 M9 16h3','survey'=>'M5 3h14v18H5z m3 5 1 1 2-2 M13 8h3 m-8 5 1 1 2-2 M13 13h3','direct'=>'M4 4h16v12H9l-5 4z','search'=>'M20 20l-5-5 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0','compose'=>'m4 15 11-11 5 5L9 20H4z M13 6l5 5','label'=>'M3 3h8l10 10-8 8L3 11z M7 7h.01','settings'=>'M4 7h16 M4 17h16 M9 4v6 M15 14v6','draft'=>'M5 3h10l4 4v14H5z M14 3v5h5 M9 12h6 M9 16h4','reply'=>'m9 5-7 7 7 7 M2 12h12a7 7 0 0 1 7 7','refresh'=>'M20 7v5h-5 M4 17v-5h5 M6 6a8 8 0 0 1 14 6 M4 12a8 8 0 0 0 14 6','note'=>'M4 4h16v16H4z M8 9h8 M8 13h8 M8 17h4','arrow'=>'m9 5 7 7-7 7'];
     $paths['forward']='m15 5 7 7-7 7 M22 12H12a8 8 0 0 0-8 8';
     $paths['clock']='M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2';
+    $paths['review']='M12 3 2 20h20L12 3z M12 9v5 M12 17h.01';
     ?><svg class="inbox-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="<?= $h($paths[$name]??$paths['email']) ?>"/></svg><?php
 };
 $time=static function(string $value,bool $short=false)use($h):void{$iso=str_replace(' ','T',$value).'Z';?><time datetime="<?= $h($iso) ?>" data-inbox-time="<?= $short?'short':'full' ?>" title="<?= $h(formatUserTimestamp($value,'Y-m-d H:i:s')) ?>"><?= $h(formatUserTimestamp($value,$short?'M j, H:i':'Y-m-d H:i:s')) ?></time><?php };

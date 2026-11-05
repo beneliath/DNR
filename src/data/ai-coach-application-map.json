@@ -2084,7 +2084,7 @@
       ]
     },
     "inbound_mail.php": {
-      "sha256": "71bbef7936981cd6354fa6661bbfb4ac5729a78c134407bea99defb3da0c0d39",
+      "sha256": "773a0aabf4e75c1960933a8f438d3dd6984d259463dc571e3ea07bc973fec9b6",
       "controls": [
         {
           "kind": "h1",
@@ -2172,6 +2172,14 @@
           "kind": "button",
           "label": "Reject Message",
           "name": "action"
+        },
+        {
+          "kind": "h3",
+          "label": "Filed in MessageMonkey"
+        },
+        {
+          "kind": "a",
+          "label": "Open in Audience Inbox"
         },
         {
           "kind": "h3",

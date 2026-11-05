@@ -5,6 +5,7 @@ require_once __DIR__.'/account_mail_helpers.php';
 
 const AUDIENCE_INBOX_ATTACHMENT_BYTES=5*1024*1024;
 const AUDIENCE_INBOX_ATTACHMENTS_BYTES=6*1024*1024;
+const AUDIENCE_INBOX_TEXT_BYTES=1_000_000;
 
 function audienceInboxInstalled(mysqli $db):bool
 {

@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'retry') {
             $result = processInboundEmailMessage($conn, $messageId);
             $_SESSION['inbound_mail_message'] = $result === 'processed'
-                ? 'The email now has a unique route and was added to Chron.'
+                ? 'The email was filed at its destination.'
                 : 'The email still needs review.';
         } elseif ($action === 'reject') {
             rejectInboundEmailMessage($conn, $messageId, (int) $_SESSION['user_id']);
@@ -142,6 +142,7 @@ $requestedId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $selectedId = $requestedId ?: ($messages[0]['id'] ?? null);
 $selectedMessage = null;
 $selectedRouting = null;
+$audienceThreadId = 0;
 if ($selectedId) {
     $selectedStmt = $conn->prepare(
         'SELECT message.*, processor.username AS processed_by_username
@@ -156,7 +157,11 @@ if ($selectedId) {
     $selectedStmt->execute();
     $selectedMessage = $selectedStmt->get_result()->fetch_assoc() ?: null;
     $selectedStmt->close();
-    if ($selectedMessage) {
+    if ($selectedMessage && $selectedMessage['status'] === 'processed') {
+        $filedRoute = json_decode((string)$selectedMessage['routing_details'], true);
+        $audienceThreadId = (int)($filedRoute['message_monkey_inbox'] ?? 0);
+    }
+    if ($selectedMessage && !$audienceThreadId) {
         try {
             $selectedRouting = routeInboundEmailMessage($conn, $selectedMessage);
         } catch (Throwable $exception) {
@@ -398,7 +403,9 @@ $statusLabels = [
                         <?php if (!$canReviewMessage || !$selectedRouting): ?>
                             <div class="inbound-filing-state">
                                 <p class="inbound-eyebrow">Message status</p>
-                                <?php if ($selectedMessage['status'] === 'processed'): ?>
+                                <?php if ($audienceThreadId): ?>
+                                    <h3>Filed in MessageMonkey</h3><a href="audience.php?view=inbox&amp;thread=<?= $audienceThreadId ?>">Open in Audience Inbox</a>
+                                <?php elseif ($selectedMessage['status'] === 'processed'): ?>
                                     <h3>Saved to Chron</h3><p>This message has been processed and added to its Chron destinations.</p>
                                     <?php if ($selectedMessage['processed_at']): ?><p class="field-help"><?php echo htmlspecialchars(chronLogTimestampDetails($selectedMessage['processed_at'])['display'], ENT_QUOTES, 'UTF-8'); ?><?php if ($selectedMessage['processed_by_username']): ?> by <?php echo htmlspecialchars((string) $selectedMessage['processed_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p><?php endif; ?>
                                 <?php elseif ($selectedMessage['status'] === 'rejected'): ?>

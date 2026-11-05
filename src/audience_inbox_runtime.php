@@ -3,35 +3,71 @@ declare(strict_types=1);
 require_once __DIR__.'/audience_store.php';
 require_once __DIR__.'/audience_inbox_email.php';
 
-/** Consume a signed Inbox route before the ordinary Engagement/Inquiry filing path. */
-function processAudienceInboxInbound(mysqli $db,int $id):?string
+/** Return null for ordinary Chron mail, a review reason for an invalid Inbox route, or its connected source. */
+function audienceInboxInboundTarget(mysqli $db, array $m): ?array
 {
     if(!audienceInboxInstalled($db))return null;
-    $m=$db->execute_query('SELECT * FROM inbound_email_messages WHERE id=?',[$id])->fetch_assoc();if(!$m)return null;
     $route=localAccountMailRoute($m);$targets=array_values(array_filter($route['targets'],static fn($t)=>$t['type']==='M'));
     $shaped=str_contains(strtolower((string)$m['to_addresses'].(string)$m['cc_addresses']),'+mm.')||preg_match('/\[MOED@[^\]]{1,100}#M/',$m['subject']."\n".$m['body_text']);
     if(!$targets&&!$shaped)return null;
-    if($m['status']==='processed')return 'processed';
-    $review=static function(string $reason)use($db,$id):string{$db->execute_query("UPDATE inbound_email_messages SET status='review',review_reason=?,processing_started_at=NULL,last_error=NULL WHERE id=? AND status IN ('pending','processing','review')",[$reason,$id]);return 'review';};
-    if($route['account_key']!==currentAccountKey()||count($targets)!==1||count($route['targets'])!==1)return $review('Inbox routing must identify exactly one valid Account and reply source.');
-    $target=$targets[0];$source=$db->execute_query('SELECT * FROM marketing_inbox_routes WHERE audience_id=1 AND id=? AND enabled=1',[$target['id']])->fetch_assoc();
-    $store=new AudienceStore($db,1,0,'Inbox gateway');$settings=$store->inboxSettings();
-    if(!$source)return $review('The Inbox email source is not connected.');
-    if(!in_array($m['status'],['pending','processing','review'],true))return $m['status'];
+    if($route['account_key']!==currentAccountKey()||count($targets)!==1||count($route['targets'])!==1) {
+        return ['reason'=>'Inbox routing must identify exactly one valid Account and reply source.'];
+    }
+    $source = $db->execute_query('SELECT r.*,s.gateway_confirmed FROM marketing_inbox_routes r
+        JOIN marketing_inbox_settings s ON s.audience_id=r.audience_id WHERE r.audience_id=1 AND r.id=? AND r.enabled=1',
+        [$targets[0]['id']])->fetch_assoc();
+    return $source ? ['source'=>$source] : ['reason'=>'The Inbox email source is not connected.'];
+}
+
+function audienceInboxHasCampaignRecipient(array $message, array $source): bool
+{
+    if ($source['source'] !== 'email' || (int)$source['reference_id'] !== 0 || !$source['gateway_confirmed']) return false;
+    $address = audienceInboxAddress($message['gateway_address'], currentAccountKey(), (int)$source['id'], accountMailSigningKey());
+    return in_array($address, inboundEmailDecodeAddressList($message['to_addresses']), true)
+        || in_array($address, inboundEmailDecodeAddressList($message['cc_addresses']), true);
+}
+
+/** Consume a signed Inbox route before the ordinary Engagement/Inquiry filing path. */
+function processAudienceInboxInbound(mysqli $db,int $id):?string
+{
+    $m=$db->execute_query('SELECT * FROM inbound_email_messages WHERE id=?',[$id])->fetch_assoc();
+    $target=$m ? audienceInboxInboundTarget($db,$m) : null;
+    if ($target === null) return null;
+    if (!in_array($m['status'],['pending','processing','review'],true)) return $m['status'];
+    $review=static function(string $reason)use($db,$id):string{
+        $db->execute_query("UPDATE inbound_email_messages SET status='review',review_reason=?,processing_started_at=NULL,last_error=NULL WHERE id=? AND status IN ('pending','processing','review')",[$reason,$id]);
+        return 'review';
+    };
+    if (isset($target['reason'])) return $review($target['reason']);
+    $source = $target['source'];
     $authentication=inboundEmailSenderAuthentication($m,true);
-    if(audienceInboxRouteReceiptsInstalled($db))$db->execute_query('INSERT IGNORE INTO marketing_inbox_route_receipts(audience_id,inbound_id,route_id,sender_verified,authentication_method,received_at) VALUES (1,?,?,?,?,?)',[$id,$source['id'],!empty($authentication['trusted'])?1:0,$authentication['method']??'unverified',$m['received_at']]);
-    if(empty($authentication['trusted']))return $review('Inbox requires a sender authenticated by the trusted receiving gateway.');
-    if(!$settings['gateway_confirmed'])return $review('The receiving test passed. An administrator must connect Inbox email routing in Sources before this message can be filed.');
-    if(audienceInboxAutoReply($m['raw_headers'])){$db->execute_query("UPDATE inbound_email_messages SET status='rejected',review_reason='Automatic reply filtered from MessageMonkey Inbox.',processing_started_at=NULL WHERE id=?",[$id]);return 'rejected';}
+    $verified = !empty($authentication['trusted']);
+    if(audienceInboxRouteReceiptsInstalled($db))$db->execute_query('INSERT IGNORE INTO marketing_inbox_route_receipts(audience_id,inbound_id,route_id,sender_verified,authentication_method,received_at) VALUES (1,?,?,?,?,?)',[$id,$source['id'],(int)$verified,$authentication['method']??'unverified',$m['received_at']]);
+    if (!$verified && !audienceInboxHasCampaignRecipient($m,$source)) return $review('Inbox requires a sender authenticated by the trusted receiving gateway.');
+    if(!$source['gateway_confirmed'])return $review('The receiving test passed. An administrator must connect Inbox email routing in Sources before this message can be filed.');
+    if(audienceInboxAutoReply($m['raw_headers'])){$db->execute_query("UPDATE inbound_email_messages SET status='rejected',review_reason='Automatic reply filtered from MessageMonkey Inbox.',processing_started_at=NULL WHERE id=? AND status IN ('pending','processing','review')",[$id]);return 'rejected';}
     $thread=$source['source']==='thread'?(int)$source['reference_id']:0;
     $attachments=[];$retained=[];
     // Parts have already passed the receiving parser's raw and aggregate size bounds.
     foreach($db->execute_query('SELECT filename,content FROM marketing_inbox_inbound_parts WHERE inbound_id=? ORDER BY part_number',[$id])->fetch_all(MYSQLI_ASSOC)as$a){try{$file=audienceInboxAttachment($a['filename'],$a['content']);$attachments[]=$file;$retained[]=$file['filename'];}catch(InvalidArgumentException){/* Retain the explicit missing-file notice, never an unsafe download. */}}
     $missing=array_diff(inboundEmailDecodeStringList($m['attachment_names']),$retained);$text=$m['body_text'];if($missing)$text.="\n\nAttachments not retained (unsupported type or size): ".implode(', ',$missing);
+    if (!$verified && strlen($text) > AUDIENCE_INBOX_TEXT_BYTES) {
+        $notice = "\n\n[Long reply shortened here. The full text is retained in inbound message #".$id.'.]';
+        $text = mb_strcut($text, 0, AUDIENCE_INBOX_TEXT_BYTES - strlen($notice), 'UTF-8').$notice;
+    }
     $rfc=trim((string)$m['rfc_message_id'],'<>');$rfc=$rfc!==''?'<'.$rfc.'>':'';
-    return $store->transaction(function()use($db,$store,$m,$id,$thread,$source,$attachments,$text,$rfc):string{
-        $locked=$db->execute_query('SELECT status FROM inbound_email_messages WHERE id=? FOR UPDATE',[$id])->fetch_assoc();if(($locked['status']??'')==='processed')return 'processed';
-        $conversation=$store->inboxReceive($source['source']==='thread'?'email':$source['source'],(int)$source['reference_id'],$m['sender_address'],$m['sender_name']??'',$m['subject'],$text,bin2hex($m['deduplication_hash']),true,audienceInboxReferences($m['raw_headers']),$thread,$attachments,true,$rfc);
+    $store=new AudienceStore($db,1,0,'Inbox gateway');
+    return $store->transaction(function()use($db,$store,$m,$id,$thread,$source,$attachments,$text,$rfc,$verified):string{
+        $locked=$db->execute_query('SELECT status FROM inbound_email_messages WHERE id=? FOR UPDATE',[$id])->fetch_assoc();
+        if (!$locked) throw new InvalidArgumentException('This inbound message is no longer available.');
+        if (!in_array($locked['status'], ['pending','processing','review'], true)) return $locked['status'];
+        // Unverified headers must neither select a conversation nor provide references for a future reply.
+        $conversation = $store->inboxReceive(
+            $source['source']==='thread'?'email':$source['source'], (int)$source['reference_id'],
+            $m['sender_address'], $m['sender_name']??'', $m['subject'], $text, bin2hex($m['deduplication_hash']),
+            $verified, $verified ? audienceInboxReferences($m['raw_headers']) : [], $thread, $attachments, true,
+            $verified ? $rfc : '', $verified ? null : $m['received_at']
+        );
         $details=json_encode(['message_monkey_inbox'=>$conversation,'account'=>currentAccountKey()],JSON_THROW_ON_ERROR);
         $db->execute_query("UPDATE inbound_email_messages SET status='processed',routing_details=?,review_reason=NULL,processing_started_at=NULL,last_error=NULL,processed_at=UTC_TIMESTAMP() WHERE id=?",[$details,$id]);return 'processed';
     });
