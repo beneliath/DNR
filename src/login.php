@@ -126,7 +126,7 @@ if (isset($_GET['expired'])) {
       <img class="auth-brand-logo" src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('dark') . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(applicationBrandLabel(), ENT_QUOTES, 'UTF-8'); ?>" width="320" height="55">
     </div>
     <h1>Welcome Back</h1>
-    <p class="auth-intro">Sign-in to manage engagements, contacts, and audience.</p>
+    <p class="auth-intro">Sign in to manage organizations, contacts, audience, engagements, speakers and reimbursement requests.</p>
     <?php if (isset($_GET['database_restored'])): ?>
       <p class="success">The database was restored successfully. All sessions were signed out.</p>
     <?php elseif (isset($_GET['password_recovered'])): ?>
