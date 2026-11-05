@@ -46,5 +46,5 @@
   :is(.audience-writing-ai-mode,.audience-analytics-ai-mode)>.audience-topbar,
   :is(.audience-writing-ai-mode,.audience-analytics-ai-mode) .audience-page-heading{flex:none}
   :is(.audience-writing-ai-mode,.audience-analytics-ai-mode) :is(.audience-content,.audience-page-body){display:flex;flex:1;flex-direction:column;min-height:0}
-  :is(.audience-writing-ai-mode,.audience-analytics-ai-mode) .analytics-ai-chat{height:auto;flex:1 0 780px}
+  :is(.audience-writing-ai-mode,.audience-analytics-ai-mode) .analytics-ai-chat{height:auto;flex:1;min-height:0}
 }

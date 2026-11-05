@@ -4,21 +4,22 @@ const {readFileSync} = require('node:fs');
 const {runInNewContext} = require('node:vm');
 const source = readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-pagination.mjs'),'utf8').replace(/^export /gm,'')+'\n'+readFileSync(require('node:path').join(__dirname,'../../src/assets/js/audience-ai.js'),'utf8').replace(/^import .*$/gm,'');
 class Element {
-  constructor(){this.listeners={};this.children=[];this.hidden=true;this.value='';this.textContent='';this.dataset={};this.style={setProperty(){}};this.scrollHeight=44;this.classList={toggle(){},add(){}};}
+  constructor(){this.listeners={};this.children=[];this.hidden=true;this.value='';this.textContent='';this.dataset={};this.style={setProperty(){}};this.scrollHeight=44;this.scrollTop=0;this.classList={toggle(){},add(){}};}
   addEventListener(type,callback){this.listeners[type]=callback;}
   append(...children){this.children.push(...children);}
   replaceChildren(...children){this.children=children;}
   setAttribute(name,value){(this.attributes??={})[name]=value;}
   querySelectorAll(){return this.children.flatMap(child=>[...(['button','select'].includes(child.tagName)?[child]:[]),...child.querySelectorAll()]);}
   closest(){return null;}
-  focus(){}
+  focus(){this.focused=true;}
+  getBoundingClientRect(){return {top:0};}
   scrollIntoView(options){this.scrolled=options;}
   dispatchEvent(event){this.listeners[event.type]?.(event);}
 }
 function page(fetcher, mode='content', options={}){
   const controls=new Map();const find=selector=>{if(!controls.has(selector))controls.set(selector,new Element());return controls.get(selector);};
   const form=find('[data-ai-form]');form.elements={text:new Element(),prompt:new Element(),subject:new Element(),operation:new Element(),tone:new Element()};form.elements.text.value='Private source';form.elements.prompt.value='Rewrite';form.querySelector=()=>({value:'csrf'});
-  const root={querySelector:find,querySelectorAll:selector=>selector==='[data-ai-starter]'?options.starters||[]:[],setAttribute(name,value){(this.attributes??={})[name]=value;},closest(){return null;},hasAttribute:()=>!!options.chat,style:{setProperty(){}},classList:{toggle(){}},getBoundingClientRect:()=>({top:160})};
+  const root={querySelector:find,querySelectorAll:selector=>selector==='[data-ai-starter]'?options.starters||[]:[],setAttribute(name,value){(this.attributes??={})[name]=value;},closest(){return null;},hasAttribute:name=>name==='data-ai-chat'&&!!options.chat,style:{setProperty(){}},classList:{toggle(){}},getBoundingClientRect:()=>({top:160})};
   const dialog=find('[data-ai-history-confirm]');dialog.showModal=()=>{dialog.open=true;Promise.resolve(options.confirm?options.confirm():true).then(confirmed=>{dialog.returnValue=confirmed?'confirm':'cancel';dialog.open=false;dialog.listeners.close();});};
   let saved=options.pending?JSON.stringify(options.pending):null,sequence=0,unlockRequests=0;const requests=[];const storage=options.storage||new Map();
   const context={document:{getElementById:()=>({textContent:JSON.stringify({mode,key:'account-role-session',endpoint:'audience_ai_api.php',enabled:true,window:options.window||{start:'2026-01-01'}})}),querySelector:selector=>selector==='[data-ai-root]'?root:selector==='[data-ai-history-confirm]'&&options.omitConfirmation?null:options.chat||options.historyItems?find(selector):null,createElement:tag=>Object.assign(new Element(),{tagName:tag}),createTextNode:text=>Object.assign(new Element(),{textContent:text}),createElementNS:(_,tag)=>Object.assign(new Element(),{tagName:tag}),addEventListener(){}},
@@ -79,6 +80,45 @@ const analyticsReply={purpose:'audience-ai',reason:'',mode:'analytics',summary:'
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const textOf=element=>[element.textContent,...element.children.map(textOf)].join(' ');
 const removeAction=entry=>entry.children.find(child=>child.className==='ai-history-remove');
+
+test('opening each saved AI request retains history and never scrolls the page or focuses the composer',async()=>{
+  for(const mode of ['analytics','content']){
+    const historyItems=['first','second','third'].map(id=>({client_request_id:id,question:`Saved ${id}`,manual_topic:`audience-ai:${mode}`,created_at:'2026-11-04 12:00:00',outcome:'complete'}));
+    const p=page(()=>({state:'complete',response:mode==='analytics'?analyticsReply:reply} ),mode,{chat:mode==='analytics',historyItems,window:reportWindow});
+    await tick();
+    for(const index of [2,0,1,2]){
+      await p.find('[data-ai-history]').children[index].children[0].listeners.click();await tick();
+      const history=p.find('[data-ai-history]');
+      assert.equal(history.children.length,3);
+      assert.match(history.children[index].children[0].className,/is-current/);
+      assert.equal(p.find('[data-ai-form]').elements.prompt.focused,undefined);
+      if(mode==='analytics'){
+        const transcript=p.find('[data-ai-chat-transcript]');
+        assert.match(textOf(transcript),/Observed results/);
+        assert.ok(transcript.children.every(child=>!child.scrolled));
+      }else{
+        assert.equal(p.find('[data-ai-text]').value,reply.text);
+        assert.equal(p.find('[data-ai-result]').scrolled,undefined);
+        assert.equal(p.find('[data-ai-check-result]').scrolled,undefined);
+      }
+    }
+    assert.ok(p.requests.every(request=>request.options?.method!=='POST'));
+  }
+});
+
+test('reopening pending or failed history keeps subsequent results inside the workspace',async()=>{
+  for(const state of ['pending','interrupted','error']){
+    let reads=0;
+    const p=page(()=>++reads===1?(state==='error'?{error:'Saved response unavailable'}:{state}):{state:'complete',response:analyticsReply},'analytics',{
+      chat:true,window:reportWindow,historyItems:[{client_request_id:'saved',question:'Saved question',manual_topic:'audience-ai:analytics',created_at:new Date().toISOString().slice(0,19).replace('T',' '),outcome:state}]
+    });
+    await tick();await p.find('[data-ai-history]').children[0].children[0].listeners.click();await tick();
+    assert.equal(p.find('[data-ai-history]').children.length,1);
+    assert.equal(p.find('[data-ai-thinking]').scrolled,undefined);
+    assert.ok(p.find('[data-ai-chat-transcript]').children.every(child=>!child.scrolled));
+    assert.equal(p.find('[data-ai-form]').elements.prompt.focused,undefined);
+  }
+});
 
 test('informational analytics answers do not pretend to be a sourced report',async()=>{
   const p=page(()=>({state:'complete',response:{...analyticsReply,interpretation:'information',summary:'Hello! Ask about your contacts.'}}),'analytics',{chat:true,window:reportWindow});

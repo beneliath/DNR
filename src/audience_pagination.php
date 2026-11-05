@@ -8,7 +8,7 @@ function audienceRememberPageSizes(array $input,string $view,int $userId): array
     if($userId<1)return $input;
     $changed=$input['page_size_change']??null;unset($input['page_size_change']);
     $context=in_array($view,['jobs','job'],true)&&is_string($input['kind']??null)?$input['kind']:'';
-    foreach(['per_page','list_size','segment_size','activity_size','history_size','plan_size','message_size']as$key){
+    foreach(['per_page','list_size','segment_size','activity_size','history_size','plan_size','message_size','country_size','client_size','os_size','device_size']as$key){
         $preference='mm_'.substr(hash('sha256',currentAccountKey().':'.$userId.':'.$view.':'.$context.':'.$key),0,24);
         if(!array_key_exists($key,$input)&&!isset($_COOKIE['dnr_rows_per_page_'.$preference]))continue;
         $requested=$input[$key]??null;

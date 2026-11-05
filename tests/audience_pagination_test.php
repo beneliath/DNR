@@ -32,6 +32,9 @@ paginationExpect(audienceRememberPageSizes(['per_page'=>100,'page_size_change'=>
 paginationExpect(audienceRememberPageSizes(['per_page'=>20,'page_size_change'=>'per_page'],'contacts',31)['per_page']===100,'An invalid explicit selection cannot erase the preference');
 paginationExpect(audienceRememberPageSizes([],'segments',31)['segment_size']===10,'Segments restores a separate choice');
 paginationExpect(audienceRememberPageSizes([],'segments',32)===[],'Users do not share list preferences');
+audienceRememberPageSizes(['client_size'=>10,'os_size'=>50],'analytics',31);
+$remembered=audienceRememberPageSizes([],'analytics',31);
+paginationExpect($remembered['client_size']===10&&$remembered['os_size']===50&&!isset($remembered['device_size']),'Client and OS reports remember independent page sizes');
 audienceRememberPageSizes(['activity_size'=>'50'],'contact',31);
 audienceRememberPageSizes(['per_page'=>'10'],'contact',31);
 $remembered=audienceRememberPageSizes(['id'=>7],'contact',31);paginationExpect($remembered['per_page']===10&&$remembered['activity_size']===50&&$remembered['id']===7,'Independent pagers and request scope are retained');

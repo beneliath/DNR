@@ -45,36 +45,45 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     return copy;
   }
   const clearPending = () => { try { sessionStorage.removeItem(storageKey); } catch { /* Recovery is optional. */ } };
-  function resetChat() {
+  function scrollWithinWorkspace(element) {
+    const pane = find(chat ? '.analytics-ai-conversation' : '.writing-ai-content');
+    if (!pane || !element) return;
+    // Mobile uses a single document flow with a collapsible history section.
+    if (root.hasAttribute('data-mm-assistant')) { element.scrollIntoView({block:'start'}); return; }
+    // scrollIntoView also scrolls ancestor containers and the whole document,
+    // which can move the history out of sight when reopening a saved request.
+    pane.scrollTop += element.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+  }
+  function resetChat(focusPrompt = true) {
     if (!chat) return;
     transcript.replaceChildren(); transcript.hidden = true; shownQuestions.clear(); shownAnswers.clear(); questionTexts.clear();
     displayedRequest='';renderHistory();
     find('[data-ai-welcome]').hidden = false; find('[data-ai-chat-suggestions]').hidden = false;
-    form.elements.prompt.value = ''; form.elements.prompt.focus();
+    form.elements.prompt.value = ''; if (focusPrompt) form.elements.prompt.focus();
   }
-  function question(text, uuid) {
+  function question(text, uuid, reveal = true) {
     if (!chat || shownQuestions.has(uuid)) return;
     displayedRequest=uuid;renderHistory();
     shownQuestions.add(uuid); questionTexts.set(uuid,text); transcript.hidden = false;
     find('[data-ai-welcome]').hidden = true; find('[data-ai-chat-suggestions]').hidden = true;
     const message = node('article', undefined, 'analytics-ai-message analytics-ai-question-message');
     message.append(node('h2', 'You', 'sr-only'), node('p', text), copyPromptButton(text, 'ai-copy-prompt analytics-ai-copy-prompt')); transcript.append(message);
-    message.scrollIntoView({block:'nearest'});
+    if (reveal) message.scrollIntoView({block:'nearest'});
     // Adding the question changes transcript height after setBusy() revealed the
     // indicator. Keep the working dots visible at their new position.
-    if (busy) find('[data-ai-thinking]')?.scrollIntoView({block:'nearest'});
+    if (busy && reveal) find('[data-ai-thinking]')?.scrollIntoView({block:'nearest'});
   }
-  function failure(message, uuid, prompt = '', reason = '') {
+  function failure(message, uuid, prompt = '', reason = '', reveal = true) {
     announce(message);
-    if (!chat) { writingActions(true); status.scrollIntoView({block:'nearest'}); return; }
+    if (!chat) { writingActions(true); if (reveal) status.scrollIntoView({block:'nearest'}); else scrollWithinWorkspace(status); return; }
     if (shownAnswers.has(uuid)) return;
-    question(prompt || questionTexts.get(uuid) || 'Saved request', uuid);
+    question(prompt || questionTexts.get(uuid) || 'Saved request', uuid, reveal);
     shownAnswers.add(uuid);
     const answer=node('article',undefined,'analytics-ai-message analytics-ai-answer analytics-ai-error');
     answer.append(node('h3',reason === 'cancelled' ? 'Request stopped' : 'The request could not be completed'),node('p',message));
     const retry=node('button','Retry');retry.type='button';
     retry.addEventListener('click',()=>{if(busy)return;form.elements.prompt.value=questionTexts.get(uuid)||prompt;form.requestSubmit();});
-    answer.append(retry);transcript.append(answer);answer.scrollIntoView({block:'nearest'});status.classList.add('sr-only');
+    answer.append(retry);transcript.append(answer);if(reveal)answer.scrollIntoView({block:'nearest'});else scrollWithinWorkspace(answer);status.classList.add('sr-only');
   }
   function updateScope(changes) {
     if (!chat) return;
@@ -91,7 +100,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       const button = find(selector); if (button) button.hidden = !visible;
     }
   }
-  const setBusy = value => {
+  const setBusy = (value, reveal = true) => {
     busy = value;
     if (value) writingActions(true);
     find('[data-ai-generate]').disabled = value || !config.enabled;
@@ -99,7 +108,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     const thinking = find('[data-ai-thinking]');
     if (thinking) {
       thinking.hidden = !value;
-      if (value) thinking.scrollIntoView({block:'nearest'});
+      if (value && reveal) thinking.scrollIntoView({block:'nearest'});
+      else if (value) scrollWithinWorkspace(thinking);
     }
     if (chat) status.classList.toggle('sr-only', value);
     root.setAttribute('aria-busy', String(value));
@@ -161,8 +171,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     more.addEventListener('click',load);
     return {panel,open:()=>{panel.hidden=false;panel.scrollIntoView({block:'nearest'});if(!loaded&&!loading)load();}};
   }
-  function render(reply, uuid, prompt = '') {
-    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt,reply?.purpose === 'audience-ai' ? reply.reason : ''); return; }
+  function render(reply, uuid, prompt = '', reveal = true) {
+    if (reply?.purpose !== 'audience-ai' || reply.reason) { output.hidden = true; failure(reply?.purpose === 'audience-ai' ? reply.message : 'The AI service did not return a usable answer. Please try again.',uuid,prompt,reply?.purpose === 'audience-ai' ? reply.reason : '',reveal); return; }
     if (reply.mode !== config.mode) { announce('This request belongs to the other assistant. Open it from the matching tab'); return; }
     if (chat && shownAnswers.has(uuid)) return;
     completed = uuid; previous = uuid; output.hidden = chat;
@@ -170,12 +180,12 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     const recommendations = chat ? node('section') : find('[data-ai-recommendations]'); recommendations.replaceChildren();
     if (reply.recommendations.length) { recommendations.append(node('h3','Suggested next steps')); const list = node('ul'); reply.recommendations.forEach(text => list.append(node('li',text))); recommendations.append(list); }
     if (reply.mode === 'analytics') {
-      question(prompt || form.elements.prompt.value || 'Saved analytics request', uuid);
+      question(prompt || form.elements.prompt.value || 'Saved analytics request', uuid, reveal);
       const box = chat ? node('article', undefined, 'analytics-ai-message analytics-ai-answer') : find('[data-ai-analysis]'); box.hidden = false; box.replaceChildren();
       box.append(node('h3',reply.interpretation === 'information' ? 'Analytics AI' : reply.interpretation === 'clarification' ? 'A quick clarification' : reply.interpretation === 'calculated' ? 'Report results' : reply.interpretation === 'data-only' ? 'Query results' : 'AI interpretation'));
       if (reply.summary) box.append(node('p',reply.summary));
       if (reply.interpretation === 'information') {
-        if (chat) { shownAnswers.add(uuid); transcript.append(box); box.scrollIntoView({block:'start'}); }
+        if (chat) { shownAnswers.add(uuid); transcript.append(box); if(reveal)box.scrollIntoView({block:'start'});else scrollWithinWorkspace(box); }
         return;
       }
       const evidence = reply.evidence;
@@ -243,7 +253,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       const detail = node('details'); detail.append(node('summary','Source calculations and limitations'));
       Object.entries(evidence.calculations).forEach(([key,text])=>detail.append(node('p',`${key}: ${text}`)));
       evidence.limitations.forEach(text=>detail.append(node('p',text))); box.append(detail);
-      if (chat) { shownAnswers.add(uuid); box.append(recommendations); transcript.append(box); box.scrollIntoView({block:'start'}); }
+      if (chat) { shownAnswers.add(uuid); box.append(recommendations); transcript.append(box); if(reveal)box.scrollIntoView({block:'start'});else scrollWithinWorkspace(box); }
     } else {
       find('[data-ai-headline]').value = reply.headline;
       find('[data-ai-text]').value = reply.text;
@@ -252,7 +262,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       checks(reply.checks, false);
       writingActions(false);
       const destination = displayedRequest === uuid ? find('[data-ai-check-result]') : output;
-      destination.scrollIntoView({block:'start'});
+      if (reveal) destination.scrollIntoView({block:'start'});
+      else scrollWithinWorkspace(destination);
     }
   }
   function renderHistory() {
@@ -261,9 +272,11 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       const items = historyItems.filter(item => item.created_at > historyCutoff && !hiddenRequests.has(item.client_request_id)); list.replaceChildren(); document.querySelector('[data-ai-history-empty]').hidden = items.length>0;
       if (resetHistoryButton) { resetHistoryButton.hidden = !canRemoveHistory; resetHistoryButton.disabled = items.length === 0 || historyChangePending; }
       items.forEach(item => { const li=node('li');const button=node('button',undefined,'ai-history-open');button.type='button';button.setAttribute('aria-label',item.question);button.append(node('span',item.question),node('small',`${item.created_at.replace(/\.[0-9]+$/,'')} UTC · ${item.outcome}`));if(item.client_request_id===displayedRequest){button.className+=' is-current';button.setAttribute('aria-current','true');}button.addEventListener('click',async()=>{
-          if(busy&&active===item.client_request_id){question(item.question,item.client_request_id);return;}
+          if(busy&&active===item.client_request_id){question(item.question,item.client_request_id,false);return;}
           if(busy){generation++;active='';clearPending();setBusy(false);}
-          const token=++generation;previous='';completed='';output.hidden=true;resetChat();question(item.question,item.client_request_id);
+          // Opening saved work must keep the history in view. New requests still
+          // reveal their question, working indicator and answer as they arrive.
+          const token=++generation;previous='';completed='';output.hidden=true;resetChat(false);question(item.question,item.client_request_id,false);
           displayedRequest=item.client_request_id;renderHistory();
           try{
             const result=await api(null,`?request_id=${encodeURIComponent(item.client_request_id)}`);if(token!==generation)return;
@@ -273,15 +286,15 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
               for(const [name,fallback]of Object.entries(defaults))if(form.elements[name])form.elements[name].value=typeof input?.[name]==='string'?input[name]:fallback;
               displayedRequest=item.client_request_id;
             }
-            if(result.state==='complete'){complete({...result,question:item.question},item.client_request_id);}
+            if(result.state==='complete'){complete({...result,question:item.question},item.client_request_id,false);}
             else if(result.state==='pending'){
-              active=item.client_request_id;setBusy(true);announce('Your request is being processed');
+              active=item.client_request_id;setBusy(true,false);announce('Your request is being processed');
               const created=Date.parse(item.created_at.replace(' ','T')+'Z');const started=Number.isFinite(created)?created:Date.now();
               try{sessionStorage.setItem(storageKey,JSON.stringify({uuid:active,started,mode:config.mode}));}catch{/* Recovery is optional. */}
-              return poll(active,token,started);
-            }else failure('This request was interrupted. Please retry it.',item.client_request_id,item.question);
+              return poll(active,token,started,false);
+            }else failure('This request was interrupted. Please retry it.',item.client_request_id,item.question,'',false);
             if(config.mode==='content'&&!result.input)announce('Original source text is unavailable for this older request.');
-          }catch(error){if(token===generation)failure(error.message,item.client_request_id,item.question);}
+          }catch(error){if(token===generation)failure(error.message,item.client_request_id,item.question,'',false);}
         });
         li.append(button);
         if (canRemoveHistory) {
@@ -342,25 +355,25 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     await newRequest();
     announce('Request list reset. Ready for a new request. Saved responses are retained.');
   }));
-  function complete(result, uuid) {
+  function complete(result, uuid, reveal = true) {
     clearPending(); active=''; setBusy(false);
     if (chat && result.response?.evidence?.window) updateScope(Object.fromEntries(Object.keys(config.window).map(key => [key,result.response.evidence.window[key]])));
-    try { render(result.response, uuid, result.question); }
-    catch { failure('The answer was received but could not be displayed. Please try again.',uuid,result.question); }
+    try { render(result.response, uuid, result.question, reveal); }
+    catch { failure('The answer was received but could not be displayed. Please try again.',uuid,result.question,'',reveal); }
     history();
   }
-  async function poll(uuid, token, started) {
+  async function poll(uuid, token, started, reveal = true) {
     while (token===generation && Date.now()-started<maxWaitMs) {
       try {
         const result=await api(null,`?request_id=${encodeURIComponent(uuid)}`);
         if(token!==generation)return;
-        if(result.state==='complete'){complete(result,uuid);return;}
+        if(result.state==='complete'){complete(result,uuid,reveal);return;}
         if(result.state==='interrupted')break;
         announce(result.stage==='generating'?'Preparing your suggestion':'Your request is queued');
       } catch { if(Date.now()-started>maxWaitMs-5000)break; }
       await new Promise(resolve=>setTimeout(resolve,900));
     }
-    if(token===generation){clearPending();active='';setBusy(false);failure('The AI service did not finish in time. Please try again.',uuid);history();}
+    if(token===generation){clearPending();active='';setBusy(false);failure('The AI service did not finish in time. Please try again.',uuid,'','',reveal);history();}
   }
   async function stop() {
     const uuid=active,token=++generation;active='';clearPending();setBusy(false);

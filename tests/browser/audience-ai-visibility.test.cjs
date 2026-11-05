@@ -14,6 +14,7 @@ const reply = {purpose: 'audience-ai', mode: 'content', reason: '', headline: 'A
 const savedRequestId = 'saved-invitation';
 const savedReply = {...reply, headline: 'An invitation', text: 'Please join our next community gathering.',
     checks: {...checks, facts: [{label: 'Word count', value: 7, note: 'Counted from the supplied text'}]}};
+const analyticsReply = {purpose: 'audience-ai', mode: 'analytics', reason: '', interpretation: 'information', summary: 'Saved report details. '.repeat(120), recommendations: []};
 const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => page.waitForFunction(({selector, paneSelector}) => {
     const element = document.querySelector(selector), pane = document.querySelector(paneSelector);
     if (!element || !pane) return false;
@@ -22,7 +23,7 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
 }, {selector, paneSelector}, {timeout: 5000});
 
 (async () => {
-    for (const name of ['chromium', 'webkit']) {
+    for (const name of (process.env.DNR_BROWSER_ENGINES || 'chromium,webkit').split(',')) {
         const browser = await engines[name].launch({headless: true});
         try {
             for (const viewport of [{width: 1600, height: 900}, {width: 390, height: 844}]) {
@@ -42,18 +43,20 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                         if (url.searchParams.get('action') === 'history') {
                             const items = completed || analytics ? [{client_request_id: requestId, question: 'A saved request', manual_topic: `audience-ai:${analytics ? 'analytics' : 'content'}`, created_at: '2026-10-29 21:49:00', outcome: 'complete'}] : [];
                             if (completed && !analytics) items.push({client_request_id: savedRequestId, question: 'Write a warm invitation', manual_topic: 'audience-ai:content', created_at: '2026-10-29 21:48:00', outcome: 'complete'});
+                            if (analytics) for (const id of ['second','third']) items.push({client_request_id: id, question: `Saved ${id} analysis`, manual_topic: 'audience-ai:analytics', created_at: '2026-10-29 21:48:00', outcome: 'complete'});
                             data = {items, can_remove_history: true};
                         } else if (route.request().method() === 'POST') {
                             const body = route.request().postDataJSON();
                             if (body.action === 'checks') data = checks;
                             else { submitted = true; requestId = body.request_id; data = {state: 'pending'}; }
-                        } else data = completed ? {state: 'complete', response: url.searchParams.get('request_id') === savedRequestId ? savedReply : reply} : {state: 'pending', stage: 'generating'};
+                        } else data = completed ? {state: 'complete', response: analytics ? analyticsReply : url.searchParams.get('request_id') === savedRequestId ? savedReply : reply} : {state: 'pending', stage: 'generating'};
                         return route.fulfill({contentType: 'application/json', body: JSON.stringify(data)});
                     }
                     return route.fulfill({contentType: 'text/html', body: analytics ? analyticsMarkup : markup});
                 };
                 await page.route('https://ai.test/**', handleRoute);
                 await page.goto('https://ai.test/audience.php?view=assistant');
+                await page.evaluate(() => { const banner=document.createElement('div');banner.textContent='Account banner';banner.style.cssText='height:64px;flex:none';document.body.prepend(banner); });
                 await page.evaluate(() => document.documentElement.classList.add('dark-mode'));
                 await page.locator('[data-ai-checks]').click();
                 await visibleInPane(page, '[data-ai-check-result] h3');
@@ -76,8 +79,16 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                     if (await page.locator('[data-ai-history-panel]').isHidden()) {
                         await page.locator(viewport.width < 700 ? '.mm-mobile-history-toggle' : '[data-ai-history-toggle]').click();
                     }
-                    await page.locator('[data-ai-history]').getByRole('button', {name: question, exact: true}).click();
+                    const saved = page.locator('[data-ai-history]').getByRole('button', {name: question, exact: true});
+                    await saved.evaluate(element => element.scrollIntoView({block:'nearest'}));
+                    const pageScroll = await page.evaluate(() => window.scrollY);
+                    await saved.click();
                     await visibleInPane(page, '[data-ai-check-result] h3');
+                    if (viewport.width > 700) {
+                        assert.ok(Math.abs(await page.evaluate(() => window.scrollY) - pageScroll) <= 1, 'Opening writing history must not scroll the document');
+                        await visibleInPane(page, '[data-ai-history] .ai-history-open.is-current', '[data-ai-history-panel]');
+                        assert.equal(await page.locator('[data-ai-history] li').count(), 2);
+                    }
                     assert.equal(await page.locator('[data-ai-check-result] dd').textContent(), String(expected.checks.facts[0].value));
                     assert.equal(await page.locator('[data-ai-text]').inputValue(), expected.text);
                     assert.ok(await page.locator('[data-ai-generate]').isHidden());
@@ -102,15 +113,31 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                 page.on('pageerror', error => errors.push(error.message));
                 await page.route('https://ai.test/**', handleRoute);
                 await page.goto('https://ai.test/audience.php?view=assistant&mode=analytics', {waitUntil: 'networkidle'});
+                await page.evaluate(() => { const banner=document.createElement('div');banner.textContent='Account banner';banner.style.cssText='height:64px;flex:none';document.body.prepend(banner); });
                 assert.equal(await page.locator('.analytics-ai-compose-area').evaluate(el => getComputedStyle(el).marginBottom), '50px');
                 await page.locator('[name=prompt]').fill('How can I improve my email performance? '.repeat(24));
                 await page.locator('[data-ai-generate]').click();
                 await visibleInPane(page, '[data-ai-thinking]', '.analytics-ai-conversation');
                 assert.equal(await page.locator('.ai-thinking-dots i').first().evaluate(el => getComputedStyle(el).animationName), 'ai-thinking-bounce');
                 await page.locator('[data-ai-stop]').click();
+                await page.waitForLoadState('networkidle');
                 assert.ok(await page.locator('[data-ai-thinking]').isHidden());
                 if (await page.locator('[data-ai-history-panel]').isHidden()) {
                     await page.locator(viewport.width < 700 ? '.mm-mobile-history-toggle' : '[data-ai-history-toggle]').click();
+                }
+                completed = true;
+                for (const index of [2,0,1,2]) {
+                    const saved = page.locator('[data-ai-history] .ai-history-open').nth(index);
+                    await saved.evaluate(element => element.scrollIntoView({block:'nearest'}));
+                    const pageScroll = await page.evaluate(() => window.scrollY);
+                    await saved.click();
+                    await page.waitForLoadState('networkidle');
+                    await visibleInPane(page, '.analytics-ai-answer h3', '.analytics-ai-conversation');
+                    assert.equal(await page.locator('[data-ai-history] li').count(), 3);
+                    if (viewport.width > 700) {
+                        assert.ok(Math.abs(await page.evaluate(() => window.scrollY) - pageScroll) <= 1, 'Opening analytics history must not scroll the document');
+                        await visibleInPane(page, '[data-ai-history] .ai-history-open.is-current', '[data-ai-history-panel]');
+                    }
                 }
                 await page.locator('[data-ai-history-reset]').click();
                 await page.locator('[data-ai-history-confirm-submit]').click();
@@ -121,7 +148,7 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                 assert.equal(await page.locator('.analytics-ai-footer').count(), 0);
                 assert.deepEqual(errors, []);
                 await page.close();
-                console.log(`${name} ${viewport.width}px: history selections reveal the corresponding content checks; writing results and Analytics working dots visible; Reset list opens a fresh chat`);
+                console.log(`${name} ${viewport.width}px: saved writing and analytics results load with history retained; desktop page position stable; new results, working dots and Reset list verified`);
             }
         } finally { await browser.close(); }
     }

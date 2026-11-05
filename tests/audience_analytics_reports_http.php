@@ -11,6 +11,28 @@ $evidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_col
 $before=$evidence['links'][0];$rid=$as->one("SELECT e.recipient_id,e.details_json FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id WHERE e.audience_id=? AND e.event_type='click' AND JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot'))='false' ORDER BY e.id LIMIT 1",[$analyticsAid]);
 $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',UTC_TIMESTAMP(),?)",[$analyticsAid,$rid['recipient_id'],bin2hex(random_bytes(32)),$rid['details_json']]);
 $updatedEvidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_column($updatedEvidence['links'],'messages'))===3&&array_sum(array_column($updatedEvidence['links'],'observations'))===4,'Repeated link clicks increase observations while unique messages stay fixed');
+// New classifications coexist with older events without reclassifying historical data.
+$conn->begin_transaction();
+try{
+    $recipient=$as->one('SELECT r.id,r.delivery_id FROM marketing_campaign_recipients r WHERE r.id=?',[$rid['recipient_id']]);
+    $scope=array_replace($window,['delivery_id'=>(int)$recipient['delivery_id']]);
+    $beforeOs=$as->analyticsEvidence($scope)['os'];
+    audienceHttpExpect(count($beforeOs)===1&&$beforeOs[0]['label']==='Unknown','Historical events without OS evidence stay Unknown');
+    $details=audienceAnalyticsClientEvidence('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/128.0.6613.98 Mobile/15E148 Safari/604.1',null);
+    foreach([false,false,true]as$bot)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',UTC_TIMESTAMP(),?)",[$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),json_encode(['bot'=>$bot]+$details)]);
+    $classified=$as->analyticsEvidence($scope);
+    foreach(['client'=>'Chrome Mobile iOS','os'=>'iOS','device'=>'Smartphone']as$key=>$label){
+        $rows=array_column($classified[$key],null,'label');
+        audienceHttpExpect((int)$rows[$label]['messages']===1&&(int)$rows[$label]['observations']===2,'Detailed '.$key.' counts deduplicate messages and honor bot filtering');
+    }
+    $allOs=array_column($as->analyticsEvidence(array_replace($scope,['bots'=>'all']))['os'],null,'label');
+    audienceHttpExpect((int)$allOs['iOS']['observations']===3,'OS evidence uses the selected bot filter');
+    $emptyScope=array_replace($scope,['messages_mode'=>'selected','messages'=>[]]);
+    audienceHttpExpect($as->analyticsEvidence($emptyScope)['os']===[],'OS evidence honors campaign selection');
+    audienceHttpExpect(!in_array('iOS',array_column($campaignStore->analyticsEvidence($scope)['os'],'label'),true),'OS evidence cannot cross audience boundaries');
+    $afterOs=array_column($classified['os'],null,'label');
+    audienceHttpExpect($afterOs['Unknown']===$beforeOs[0],'Recording new classifications preserves historical counts');
+}finally{$conn->rollback();}
 $custom=$as->analyticsReportRows($window,['dataset'=>'email','dimension'=>'day','columns'=>['accepted','open_rate']]);
 audienceHttpExpect(array_sum(array_column($custom,'accepted'))===36,'Custom daily report reconciles with email dashboard');
 $segmentPerson=$samples['archived_fictional_contacts'][1];$as->write('UPDATE marketing_contacts SET is_archived=0 WHERE audience_id=? AND id=?',[$analyticsAid,$segmentPerson]);
