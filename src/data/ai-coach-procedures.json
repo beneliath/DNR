@@ -1340,7 +1340,7 @@
         "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
         "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
         "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
-        "shared/rendering.php": "80aed24ceca0645d5c6f2d728a91e08396611b2f49fb3055f968386bd77992f2",
+        "shared/rendering.php": "e9a0a42a438d162161f54b423f7548c37d3df50798f63f7bb49ad562fa62d11f",
         "shared/sessions.php": "b4a0ba7db450b19afa16eab2a89693752da0ac37afc77a022fbf71a5e332aaa9",
         "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa",
         "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
@@ -1385,7 +1385,7 @@
         "shared/http-security.php": "b0d94380179c50b1924870ba8bfdd068397d02a43c94c1c2797a8172f69c0425",
         "shared/phones.php": "38b57339ae328bccba4dd8cf98da72730419e1eb94ea3201fe8ef39647a38727",
         "shared/records.php": "feeca9aaac38cfd803a987ea7f1f8e58c4546fd4e0a649b11f24f8a12d31df8d",
-        "shared/rendering.php": "80aed24ceca0645d5c6f2d728a91e08396611b2f49fb3055f968386bd77992f2",
+        "shared/rendering.php": "e9a0a42a438d162161f54b423f7548c37d3df50798f63f7bb49ad562fa62d11f",
         "shared/sessions.php": "b4a0ba7db450b19afa16eab2a89693752da0ac37afc77a022fbf71a5e332aaa9",
         "shared/validation.php": "e963190190c2037a0f4f0b9b13c518adf8eeef9f67960b75f0ef3a86a559b1aa",
         "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
