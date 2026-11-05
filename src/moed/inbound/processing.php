@@ -152,6 +152,14 @@ function processInboundEmailMessage(
         }
         $messageStatus = (string) ($message['status'] ?? '');
         requireInboundEmailProcessableStatus($messageStatus, $manual);
+        if ($manual && stripos($message['to_addresses'].$message['cc_addresses'], '+mm.') !== false) {
+            require_once dirname(__DIR__, 2).'/audience_inbox_runtime.php';
+            $inboxTarget = audienceInboxInboundTarget($conn, $message);
+            if (isset($inboxTarget['source']) && audienceInboxHasCampaignRecipient($message,$inboxTarget['source'])
+                && !inboundEmailSenderAuthentication($message,true)['trusted']) {
+                throw new InvalidArgumentException('This campaign reply belongs in MessageMonkey. Choose Find Matches Again to route it to the Audience Inbox.');
+            }
+        }
 
         $routing = routeInboundEmailMessage($conn, $message, !$manual);
         if (!$manual && !$routing['automatic']) {

@@ -31,9 +31,14 @@ $make=static function(string $name,string $to,string $kind='dmarc',string $extra
 };
 $mailbox->messages=[1=>$make('valid',$address),2=>$make('unverified',$address,'unverified'),3=>$make('automatic',$address,'internal',"Auto-Submitted: auto-replied\r\n"),4=>$make('forged',preg_replace('/\.([a-f0-9]{32})@/','.00000000000000000000000000000000@',$address))];
 $mailbox->messages[5]=$mailbox->messages[1];
+$campaignRoute=$db->query("SELECT id FROM marketing_inbox_routes WHERE audience_id=1 AND source='email' AND reference_id=0 AND enabled=1")->fetch_assoc();
+if (!$campaignRoute) throw new RuntimeException('Campaign reply route fixture missing.');
+$campaignAddress=audienceInboxAddress(inboundEmailGatewayAddress(),currentAccountKey(),(int)$campaignRoute['id'],accountMailSigningKey());
+$mailbox->messages[6]=$make('campaign-review',inboundEmailGatewayAddress(),'unverified',"Cc: $campaignAddress\r\nReferences: <inbox-original@example.test>\r\n");
+$mailbox->messages[7]=$make('campaign-auto',$campaignAddress,'unverified',"Auto-Submitted: auto-replied\r\n");
 $chronBefore=(int)$db->query('SELECT COUNT(*) n FROM engagement_chron_entries')->fetch_assoc()['n'];
 syncInboundMailbox($db,$mailbox,$key,'Disposable Inbox gateway');
-$expected=['valid'=>'processed','unverified'=>'review','automatic'=>'rejected','forged'=>'review'];
+$expected=['valid'=>'processed','unverified'=>'review','automatic'=>'rejected','forged'=>'review','campaign-review'=>'processed','campaign-auto'=>'rejected'];
 foreach($expected as$name=>$status){
     $m=$db->execute_query('SELECT id FROM inbound_email_messages WHERE rfc_message_id=?',['gateway-'.$name.'@example.test'])->fetch_assoc();
     $expect($m!==null,'Mailbox discovery retains '.$name);
@@ -47,6 +52,12 @@ $expect((int)$db->query('SELECT COUNT(*) n FROM engagement_chron_entries')->fetc
 $expect(syncInboundMailbox($db,$mailbox,$key,'Disposable Inbox gateway')===0,'Repeated poll does not import completed UIDs');
 $proofFor=static function(string $name)use($db):?array{return $db->execute_query('SELECT r.sender_verified,r.authentication_method FROM marketing_inbox_route_receipts r JOIN inbound_email_messages m ON m.id=r.inbound_id WHERE r.audience_id=1 AND m.rfc_message_id=?',['gateway-'.$name.'@example.test'])->fetch_assoc()?:null;};
 $verified=$proofFor('valid');$unverified=$proofFor('unverified');
+$campaign=$db->query("SELECT t.id,t.contact_id,t.sender_verified,m.references_json,m.id message_id FROM inbound_email_messages source
+    JOIN marketing_inbox_messages m ON m.audience_id=1 AND m.source_key=LOWER(HEX(source.deduplication_hash))
+    JOIN marketing_inbox_threads t ON t.audience_id=m.audience_id AND t.id=m.thread_id WHERE source.rfc_message_id='gateway-campaign-review@example.test'")->fetch_assoc();
+$expect($campaign && (int)$campaign['id']!==(int)$thread['id'] && !$campaign['sender_verified'] && $campaign['contact_id']===null
+    && json_decode($campaign['references_json'],true)===[] && (int)$proofFor('campaign-review')['sender_verified']===0,'Unverified campaign mail in Cc creates an isolated conversation and preserves the unverified receipt');
+$expect((int)$db->execute_query('SELECT COUNT(*) n FROM marketing_inbox_attachments WHERE message_id=?',[$campaign['message_id']])->fetch_assoc()['n']===1,'Campaign review keeps the validated attachment');
 $expect($verified!==null&&(int)$verified['sender_verified']===1,'A valid authenticated signed message records receiving proof');
 $expect($unverified!==null&&(int)$unverified['sender_verified']===0,'An unverified sender never produces verified receiving proof');
 $expect($proofFor('forged')===null,'A forged account route cannot produce receiving proof');

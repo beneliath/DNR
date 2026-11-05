@@ -56,6 +56,7 @@
                 <div class="inbox-thread-subject"><?= $h($item['subject']) ?></div>
                 <p><?= $item['direction']==='comment'?'Team note: ':($item['direction']==='outbound'?'You: ':'') ?><?= $h(mb_substr($item['preview']??'',0,140)) ?></p>
                 <div class="inbox-thread-tags"><span class="inbox-source-tag"><?php $icon($item['source']); ?><?= $h($sourceNames[$item['source']]) ?></span>
+                    <?php if (($item['folder']??'')==='review'): ?><span class="inbox-label-tag">Unverified sender</span><?php endif; ?>
                     <?php if(!empty($item['forward_state'])): $forwardLabel=$item['forward_state']==='forwarded'?'Contains a forwarded email':'Email forward queued'; ?>
                         <span class="inbox-forward-marker" role="img" aria-label="<?= $forwardLabel ?>" title="<?= $forwardLabel ?>" data-forward-state="<?= $h($item['forward_state']) ?>" data-forward-thread="<?= (int)$item['id'] ?>"><?php $icon('forward'); $icon('clock'); ?></span>
                     <?php endif; ?>
@@ -68,6 +69,9 @@
         <?php endforeach; ?>
         <?php if(!$list['items']): ?><div class="inbox-list-empty"><div class="inbox-empty-icon"><?php $icon($filtered?'search':($list['status']==='todo'?'done':'todo')); ?></div><h2><?= $filtered?'No matching conversations':($list['status']==='todo'?'All caught up':'No conversations here') ?></h2><p><?= $filtered?'Try another search or clear your filters.':($list['status']==='todo'?'New messages will appear here when they arrive.':'Conversations in this folder will appear here.') ?></p><?php if($filtered): ?><a href="<?= $h('audience.php?'.http_build_query(['view'=>'inbox','status'=>$list['status']])) ?>">Clear filters</a><?php endif; ?></div><?php endif; ?>
     </div>
+    <?php if ($list['status'] === 'review'): ?>
+        <?php audiencePagination(['total'=>$list['total'],'page'=>$list['page'],'size'=>$list['per_page'],'label'=>'Campaign replies needing review','url'=>$filterUrl]); ?>
+    <?php endif; ?>
     <div class="inbox-pane-resizer" role="separator" aria-orientation="vertical" aria-label="Resize conversations pane" aria-controls="inbox-conversations inbox-main" aria-valuemin="280" aria-valuemax="840" aria-valuenow="400" tabindex="0" title="Drag to resize · Arrow keys to adjust · Double-click to reset" data-inbox-divider></div>
 </section>
 <?php endif; ?>

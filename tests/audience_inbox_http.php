@@ -79,6 +79,48 @@ putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.inbox.test');$gateway=$ib->inboxRepl
 $raw="Authentication-Results: mx.inbox.test; dmarc=pass header.from=example.test\r\nFrom: Inbox sender <inbox-person@example.test>\r\nTo: $gateway\r\nSubject: Native gateway reply\r\nMessage-ID: <gateway-inbox@example.test>\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nAuthenticated gateway message";
 $parsed=parseInboundEmail($raw);$stored=storeInboundEmailMessage($conn,'file','inbox-fixture',$parsed,inboundEmailGatewayAddress());audienceHttpExpect(processInboundEmailMessage($conn,$stored['id'])==='processed','Signed authenticated message routes to Inbox');audienceHttpExpect(processInboundEmailMessage($conn,$stored['id'])==='processed','Gateway processing replay is idempotent');
 $spoof=parseInboundEmail(str_replace(['gateway-inbox@example.test','dmarc=pass'],['gateway-spoof@example.test','dmarc=fail'],$raw));$stored=storeInboundEmailMessage($conn,'file','inbox-spoof',$spoof,inboundEmailGatewayAddress());audienceHttpExpect(processInboundEmailMessage($conn,$stored['id'])==='review','Untrusted sender is quarantined for review');
+// A previously held campaign reply has the subscriber's address and can quote a real conversation.
+$campaignAddress = $ib->inboxReplyRoute('email');
+$campaignRouteId = (int)$ib->one("SELECT id FROM marketing_inbox_routes WHERE audience_id=1 AND source='email' AND reference_id=0")['id'];
+$campaignRaw = "From: inbox-person@example.test\r\nTo: $campaignAddress\r\nSubject: Held campaign reply\r\n"
+    ."Message-ID: <held-campaign@example.test>\r\nReferences: <inbox-original@example.test>\r\n"
+    ."Authentication-Results: mx.inbox.test; dmarc=none header.from=example.test\r\n\r\nCampaign reply for review";
+$held = storeInboundEmailMessage($conn,'file','held-campaign',parseInboundEmail($campaignRaw,'2026-10-01T12:30:00Z'),inboundEmailGatewayAddress());
+$ib->write("UPDATE inbound_email_messages SET status='review' WHERE id=?",[$held['id']]);
+$ib->write("INSERT INTO marketing_inbox_route_receipts(audience_id,inbound_id,route_id,sender_verified,authentication_method,received_at) VALUES (1,?,?,0,'unverified','2026-10-01 12:30:00')",[$held['id'],$campaignRouteId]);
+$preferencesBefore = $ib->one('SELECT * FROM marketing_inbox_preferences WHERE audience_id=1 AND email_hash=?',[audienceDispatchEmailHash('inbox-person@example.test')]);
+try {
+    processInboundEmailMessage($conn,$held['id'],[],[],$actor);
+    throw new RuntimeException('Manual Chron filing accepted a campaign reply for MessageMonkey review');
+} catch (InvalidArgumentException $e) {
+    audienceHttpExpect(str_contains($e->getMessage(),'belongs in MessageMonkey'),'An old Chron form cannot claim a held campaign reply');
+}
+audienceHttpExpect(processInboundEmailMessage($conn,$held['id'])==='processed' && processInboundEmailMessage($conn,$held['id'])==='processed','A held campaign reply can be rerouted and retried');
+$reviews = $ib->inboxList(['status'=>'review','q'=>'Held campaign reply']);
+audienceHttpExpect($reviews['total']===1 && $ib->inboxList(['status'=>'todo','q'=>'Held campaign reply'])['total']===0,'Campaign reply appears once in Needs Review, separate from To do');
+$reviewThread = $ib->inboxThread((int)$reviews['items'][0]['id']);
+$reviewMessages = $ib->inboxMessages((int)$reviewThread['id']);
+audienceHttpExpect($reviewThread['folder']==='review' && !(int)$reviewThread['sender_verified'] && $reviewThread['contact_id']===null
+    && count($reviewMessages)===1 && str_starts_with($reviewMessages[0]['occurred_at'],'2026-10-01 12:30:00')
+    && $reviewMessages[0]['body_text']==='Campaign reply for review','Review isolates the original reply with its received time and no claimed connection');
+audienceHttpExpect($preferencesBefore===$ib->one('SELECT * FROM marketing_inbox_preferences WHERE audience_id=1 AND email_hash=?',[audienceDispatchEmailHash('inbox-person@example.test')])
+    && !$ib->one('SELECT id FROM marketing_inbox_notifications WHERE audience_id=1 AND thread_id=?',[$reviewThread['id']]),'A held reply cannot change consent or trigger a new-mail alert');
+$reviewPage = $editor($inboxPath.'&status=review&thread='.$reviewThread['id']);
+audienceHttpExpect($reviewPage['status']===200 && str_contains($reviewPage['body'],'Needs Review') && str_contains($reviewPage['body'],'Unverified sender.')
+    && str_contains($reviewPage['body'],'Campaign reply for review'),'Editor can read the flagged reply in the Needs Review folder');
+$originalPage = $editor('inbound_mail.php?status=all&id='.$held['id']);
+audienceHttpExpect(str_contains($originalPage['body'],'Open in Audience Inbox') && !str_contains($originalPage['body'],'Saved to Chron'),'Original source identifies its MessageMonkey destination');
+foreach ([
+    'wrong-domain'=>preg_replace('/@[^@]+$/','@elsewhere.example',$campaignAddress),
+    'wrong-mailbox'=>'other'.substr($campaignAddress,strpos($campaignAddress,'+')),
+    'body-only'=>inboundEmailGatewayAddress(),
+] as $case=>$to) {
+    $rawCase = str_replace([$campaignAddress,'held-campaign@example.test'],[$to,$case.'@example.test'],$campaignRaw)."\r\n".accountMailMarker('M',$campaignRouteId);
+    $heldCase = storeInboundEmailMessage($conn,'file','campaign-'.$case,parseInboundEmail($rawCase),inboundEmailGatewayAddress());
+    audienceHttpExpect(processInboundEmailMessage($conn,$heldCase['id'])==='review','Only the full campaign recipient address admits unverified mail: '.$case);
+}
+$ib->inboxThreadOperation((int)$reviewThread['id'],(int)$reviewThread['version'],'done');
+audienceHttpExpect($ib->inboxList(['status'=>'review','q'=>'Held campaign reply'])['total']===0 && !(int)$ib->inboxThread((int)$reviewThread['id'])['sender_verified'],'Completing review keeps the sender unverified');
 // MIME bytes survive ingestion only through the private, validated attachment path.
 $png=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=');
 $multipart=str_replace(['gateway-inbox@example.test',"Content-Type: text/plain; charset=UTF-8\r\n\r\nAuthenticated gateway message"],['gateway-attachment@example.test',"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=stage6\r\n\r\n--stage6\r\nContent-Type: text/plain\r\n\r\nAttachment message\r\n--stage6\r\nContent-Type: image/png\r\nContent-Disposition: attachment; filename=pixel.png\r\nContent-Transfer-Encoding: base64\r\n\r\n".base64_encode($png)."\r\n--stage6--\r\n"],$raw);

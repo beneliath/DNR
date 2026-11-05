@@ -7,6 +7,9 @@ require_once __DIR__.'/audience_inbox_forward.php';
 trait AudienceInbox
 {
     use AudienceInboxCompose, AudienceInboxForward;
+    // Linking a connection or marking a conversation done resolves the review without changing sender verification.
+    private const UNREVIEWED_CAMPAIGN_SENDER = "t.source='email' AND t.sender_verified=0 AND t.contact_id IS NULL";
+    private const INBOX_FOLDER_SQL = "CASE WHEN t.status='todo' AND ".self::UNREVIEWED_CAMPAIGN_SENDER." THEN 'review' ELSE t.status END";
     public function inboxAvailable():bool{return audienceInboxInstalled($this->db);}
     public function inboxSettings():array
     {
@@ -127,18 +130,28 @@ trait AudienceInbox
     }
     public function inboxList(array $input,bool $continuous=false):array
     {
-        $status=in_array($input['status']??'todo',['todo','done','trash','all'],true)?($input['status']??'todo'):'todo';
+        $status=in_array($input['status']??'todo',['todo','review','done','trash','all'],true)?($input['status']??'todo'):'todo';
+        $continuous = $continuous && $status !== 'review';
         $source=in_array($input['source']??'',['email','contact','survey','direct'],true)?$input['source']:'';
         $q=audienceText($input,'q',100);$label=max(0,(int)($input['label']??0));$unread=($input['unread']??'')==='1';
         $where='t.audience_id=? AND t.last_message_id>0';$p=[$this->audienceId];
-        if($status!=='all'){$where.=' AND t.status=?';$p[]=$status;}else$where.=" AND t.status<>'trash'";
+        $folder = self::INBOX_FOLDER_SQL;
+        if ($status === 'all') {
+            $where .= " AND t.status<>'trash'";
+        } else {
+            $where .= ' AND t.status=?';
+            $p[] = $status === 'review' ? 'todo' : $status;
+            if ($status === 'todo' || $status === 'review') {
+                $where .= ($status === 'todo' ? ' AND NOT (' : ' AND (').self::UNREVIEWED_CAMPAIGN_SENDER.')';
+            }
+        }
         if($source!==''){$where.=' AND t.source=?';$p[]=$source;}
         if($label){$where.=' AND EXISTS(SELECT 1 FROM marketing_inbox_thread_labels tl JOIN marketing_inbox_labels l ON l.audience_id=tl.audience_id AND l.id=tl.label_id AND l.deleted_at IS NULL WHERE tl.audience_id=t.audience_id AND tl.thread_id=t.id AND tl.label_id=?)';$p[]=$label;}
         if($q!==''){$where.=' AND (LOCATE(?,t.subject)>0 OR LOCATE(?,t.sender_email)>0 OR LOCATE(?,t.sender_name)>0 OR EXISTS(SELECT 1 FROM marketing_inbox_messages sm WHERE sm.audience_id=t.audience_id AND sm.thread_id=t.id AND LOCATE(?,sm.body_text)>0))';array_push($p,$q,$q,$q,$q);}
         $read='COALESCE((SELECT last_read_id FROM marketing_inbox_read_state rs WHERE rs.audience_id=t.audience_id AND rs.thread_id=t.id AND rs.user_id='.(int)$this->actorId.'),0)';
         if($unread)$where.=" AND t.last_message_id>$read";
         $size=audiencePageSize($input);$total=(int)$this->one("SELECT COUNT(*) n FROM marketing_inbox_threads t WHERE $where",$p)['n'];$page=$continuous?1:max(1,min(max(1,(int)ceil($total/$size)),(int)($input['page']??1)));
-        $items=$this->all("SELECT t.*,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC".($continuous?'':' LIMIT ? OFFSET ?'),$continuous?$p:[...$p,$size,($page-1)*$size]);
+        $items=$this->all("SELECT t.*,$folder folder,t.last_message_id>$read unread,LEFT(m.body_text,180) preview,m.direction FROM marketing_inbox_threads t JOIN marketing_inbox_messages m ON m.id=t.last_message_id AND m.audience_id=t.audience_id WHERE $where ORDER BY t.last_activity_at DESC,t.id DESC".($continuous?'':' LIMIT ? OFFSET ?'),$continuous?$p:[...$p,$size,($page-1)*$size]);
         $itemLabels=[];
         if($items){$ids=array_column($items,'id');foreach($this->all('SELECT tl.thread_id,l.name FROM marketing_inbox_thread_labels tl JOIN marketing_inbox_labels l ON l.id=tl.label_id AND l.audience_id=tl.audience_id AND l.deleted_at IS NULL WHERE tl.audience_id=? AND tl.thread_id IN ('.implode(',',array_fill(0,count($ids),'?')).') ORDER BY l.name',[$this->audienceId,...$ids])as$l)$itemLabels[$l['thread_id']][]=$l['name'];}
         $forwardStates=$this->inboxForwardStates(array_column($items,'id'));
@@ -146,13 +159,13 @@ trait AudienceInbox
             $item['labels']=$itemLabels[$item['id']]??[];
             $item['forward_state']=$forwardStates[$item['id']]??'';
         }unset($item);
-        $counts=['todo'=>0,'done'=>0,'trash'=>0,'all'=>0];foreach($this->all('SELECT status,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 GROUP BY status',[$this->audienceId])as$r){$counts[$r['status']]=(int)$r['n'];if($r['status']!=='trash')$counts['all']+=(int)$r['n'];}
+        $counts=['todo'=>0,'review'=>0,'done'=>0,'trash'=>0,'all'=>0];foreach($this->all("SELECT $folder folder,COUNT(*) n FROM marketing_inbox_threads t WHERE t.audience_id=? AND t.last_message_id>0 GROUP BY folder",[$this->audienceId])as$r){$counts[$r['folder']]=(int)$r['n'];if($r['folder']!=='trash')$counts['all']+=(int)$r['n'];}
         $sources=['email'=>0,'contact'=>0,'survey'=>0,'direct'=>0];foreach($this->all("SELECT source,COUNT(*) n FROM marketing_inbox_threads WHERE audience_id=? AND last_message_id>0 AND status<>'trash' GROUP BY source",[$this->audienceId])as$r)$sources[$r['source']]=(int)$r['n'];
         return ['per_page'=>$size]+compact('items','total','page','status','source','q','label','unread','counts','sources');
     }
     public function inboxThread(int $id,bool $lock=false):array
     {
-        $t=$this->one('SELECT * FROM marketing_inbox_threads WHERE audience_id=? AND id=?'.($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
+        $t=$this->one('SELECT t.*, '.self::INBOX_FOLDER_SQL.' AS folder FROM marketing_inbox_threads t WHERE t.audience_id=? AND t.id=?'.($lock?' FOR UPDATE':''),[$this->audienceId,$id]);
         if(!$t)throw new InvalidArgumentException('This conversation is unavailable in this audience.');
         $t['contact']=$t['contact_id']?$this->one('SELECT id,email,first_name,last_name,email_status,is_archived FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL AND LOWER(email)=LOWER(?)',[$this->audienceId,$t['contact_id'],$t['sender_email']]):null;
         $t['labels']=array_map('intval',array_column($this->all('SELECT label_id FROM marketing_inbox_thread_labels WHERE audience_id=? AND thread_id=?',[$this->audienceId,$id]),'label_id'));
@@ -241,15 +254,15 @@ trait AudienceInbox
         });
     }
     /** The caller may join a collection/inbound transaction, retaining exactly-once effects. */
-    public function inboxReceive(string $source,int $reference,string $email,string $name,string $subject,string $text,string $key,bool $verified,array $references=[],int $thread=0,array $attachments=[],bool $inTransaction=false,string $rfcMessageId=''):int
+    public function inboxReceive(string $source,int $reference,string $email,string $name,string $subject,string $text,string $key,bool $verified,array $references=[],int $thread=0,array $attachments=[],bool $inTransaction=false,string $rfcMessageId='',?string $receivedAt=null):int
     {
         if(!in_array($source,['email','contact','survey','direct'],true))throw new InvalidArgumentException('Invalid message source.');
         $email=audienceInboxEmail($email);$name=mb_substr(trim($name),0,100);$subject=audienceInboxSubject(mb_substr(preg_replace('/[\x00-\x1f\x7f]/',' ',$subject)??'',0,250))?:'(No subject)';
-        if(strlen($text)>1_000_000)throw new InvalidArgumentException('The message exceeds the retained text limit.');
+        if(strlen($text)>AUDIENCE_INBOX_TEXT_BYTES)throw new InvalidArgumentException('The message exceeds the retained text limit.');
         if(!preg_match('/\A[a-f0-9]{64}\z/D',$key))throw new InvalidArgumentException('Invalid message receipt.');
         if(count($references)>20)throw new InvalidArgumentException('The message has too many references.');
         foreach([...$references,...($rfcMessageId!==''?[$rfcMessageId]:[])]as$ref)if(!is_string($ref)||!preg_match('/\A<[A-Za-z0-9.!#$%&\x27*+\/=?^_`{|}~@-]{1,500}>\z/D',$ref))throw new InvalidArgumentException('Invalid message reference.');
-        $perform=function()use($source,$reference,$email,$name,$subject,$text,$key,$verified,$references,$thread,$attachments,$rfcMessageId):int{
+        $perform=function()use($source,$reference,$email,$name,$subject,$text,$key,$verified,$references,$thread,$attachments,$rfcMessageId,$receivedAt):int{
             $old=$this->one('SELECT thread_id FROM marketing_inbox_messages WHERE audience_id=? AND source_key=?',[$this->audienceId,$key]);if($old)return (int)$old['thread_id'];
             $contact=$verified?$this->one('SELECT id FROM marketing_contacts WHERE audience_id=? AND LOWER(email)=? AND deleted_at IS NULL AND is_archived=0',[$this->audienceId,$email]):null;
             $target=$thread;
@@ -259,13 +272,15 @@ trait AudienceInbox
             $messageId=$rfcMessageId;
             $row=['audience_id'=>$this->audienceId,'thread_id'=>$target,'direction'=>'inbound','source_key'=>$key,'rfc_message_id'=>$messageId,
                 'references_json'=>json_encode($references,JSON_THROW_ON_ERROR),'sender_email'=>$email,'sender_name'=>$name,'body_text'=>$text,'body_html'=>''];
+            if ($receivedAt !== null) $row['occurred_at'] = $receivedAt;
             if(in_array($source,['email','direct'],true)&&$this->inboxForwardingInstalled())$row['email_subject']=$subject;
             $this->write('INSERT INTO marketing_inbox_messages('.implode(',',array_keys($row)).') VALUES ('.implode(',',array_fill(0,count($row),'?')).')',array_values($row));
             $message=(int)$this->db->insert_id;
             $total=0;foreach($attachments as$a){$total+=strlen($a['data']);if($total>AUDIENCE_INBOX_ATTACHMENTS_BYTES||count($attachments)>10)throw new InvalidArgumentException('Attachments exceed the Inbox message limit.');$this->write('INSERT INTO marketing_inbox_attachments(audience_id,message_id,filename,mime_type,byte_size,sha256,content) VALUES (?,?,?,?,?,?,?)',[$this->audienceId,$message,$a['filename'],$a['content_type'],strlen($a['data']),hash('sha256',$a['data']),$a['data']]);}
-            $this->write("UPDATE marketing_inbox_threads SET last_message_id=?,last_inbound_id=?,last_activity_at=UTC_TIMESTAMP(6),status='todo',sender_verified=GREATEST(sender_verified,?),version=version+1 WHERE audience_id=? AND id=?",[$message,$message,(int)$verified,$this->audienceId,$target]);
+            $this->write("UPDATE marketing_inbox_threads SET last_message_id=?,last_inbound_id=?,last_activity_at=COALESCE(?,UTC_TIMESTAMP(6)),status='todo',sender_verified=GREATEST(sender_verified,?),version=version+1 WHERE audience_id=? AND id=?",[$message,$message,$receivedAt,(int)$verified,$this->audienceId,$target]);
             if($verified)$this->write('INSERT INTO marketing_inbox_preferences(audience_id,email_hash,last_inbound_at) VALUES (?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE last_inbound_at=UTC_TIMESTAMP(6)',[$this->audienceId,hash('sha256',$email)]);
-            $this->inboxNotify($target,$message,'inbound');return $target;
+            if ($source !== 'email' || $verified) $this->inboxNotify($target,$message,'inbound');
+            return $target;
         };
         return $inTransaction?$perform():$this->transaction($perform);
     }
