@@ -34,14 +34,6 @@ if (!$contact) {
     exit;
 }
 
-if (!empty($contact['contact_photo_key'])) {
-    $key = \Dnr\Http\RequestInput::string($_GET, 'size') !== 'full'
-        ? ($contact['contact_photo_thumbnail_key'] ?: $contact['contact_photo_key'])
-        : $contact['contact_photo_key'];
-    servePersistentPortrait($conn, (string) $key);
-    exit;
-}
-
 $allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp'];
 $mime_type = (string) ($contact['contact_photo_mime'] ?? '');
 $photo_hash = strtolower((string) ($contact['contact_photo_sha256'] ?? ''));
@@ -49,6 +41,14 @@ $requested_version = strtolower(\Dnr\Http\RequestInput::string($_GET, 'v', '', 6
 $has_content_version = preg_match('/^[0-9a-f]{64}$/', $requested_version) === 1
     && preg_match('/^[0-9a-f]{64}$/', $photo_hash) === 1
     && hash_equals($photo_hash, $requested_version);
+
+if (!empty($contact['contact_photo_key'])) {
+    $key = \Dnr\Http\RequestInput::string($_GET, 'size') !== 'full'
+        ? ($contact['contact_photo_thumbnail_key'] ?: $contact['contact_photo_key'])
+        : $contact['contact_photo_key'];
+    servePersistentPortrait($conn, (string) $key, $has_content_version);
+    exit;
+}
 
 header(
     $has_content_version

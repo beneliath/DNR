@@ -9,7 +9,7 @@ function renderAudienceAi(AudienceStore $store,array $audience,bool $canManage,b
     if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');exit('Use the assistant controls to request a suggestion.');}
     $audienceId=1;$id=0;$canExport=$canManage;$pageTitle=$aiMode==='analytics'?'Analytics AI':'Write with AI';$message='';$error='';
     $h=static fn($v):string=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$url=static fn(array $p=[]):string=>'audience.php'.($p?'?'.http_build_query($p):'');
-    $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':1';
+    $catalog=[];$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':1';
     $aiText='';$aiSubject='';$aiSourceName='';$aiImages=[];$aiWindow=[];$aiPrompt='';
     if($aiMode==='analytics'){
         try{$aiWindow=audienceAiReportWindow($_GET);$aiPrompt=audienceText($_GET,'prompt',1500);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$aiWindow=audienceAiReportWindow([]);}

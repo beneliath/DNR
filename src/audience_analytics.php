@@ -134,9 +134,22 @@ trait AudienceAnalytics
         return $result;
     }
 
-    public function analyticsOverview(array $window, bool $drafts = false): array
+    public function analyticsOverview(array $window, bool $drafts = false, bool $includeEmailMetrics = true): array
     {
         foreach($window['messages']??[] as$campaign)if(!$this->one('SELECT id FROM marketing_campaigns WHERE audience_id=? AND id=?',[$this->audienceId,$campaign]))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
+        $audience = $this->one("SELECT COUNT(*) total,SUM(email_status='subscribed') subscribed,
+            SUM(email_status='unsubscribed') unsubscribed,SUM(email_status='non-subscribed') non_subscribed,
+            SUM(email_status='cleaned') cleaned,SUM(email_status='pending') pending,
+            SUM(created_at>=? AND created_at<?) added FROM marketing_contacts
+            WHERE audience_id=? AND is_archived=0 AND deleted_at IS NULL",[$window['from'],$window['until'],$this->audienceId]);
+        $audience['visible_total']=(int)$audience['total']-(int)$audience['cleaned']-(int)$audience['pending'];
+        $sample=$this->one("SELECT 1 FROM marketing_campaign_deliveries d JOIN marketing_campaigns c ON c.audience_id=d.audience_id AND c.id=d.campaign_id WHERE d.audience_id=? AND d.due_at>=? AND d.due_at<? AND JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.sample_dataset'))='stage7-local' LIMIT 1",[$this->audienceId,$window['from'],$window['until']]);
+        $snapshot = ['audience' => $audience, 'includes_samples' => $sample !== null];
+        if (!$includeEmailMetrics) {
+            // Validate a bookmarked segment even when the view only uses the snapshot.
+            if (!empty($window['segment'])) $this->analyticsRecipientScope($window);
+            return $snapshot;
+        }
         $rows = $this->analyticsRecipients($window['from'],$window['until'],$window['bots'],$window);
         $priorRows=$this->analyticsRecipients($window['previous_from'],$window['previous_until'],$window['bots'],$window);
         $previous = $this->analyticsTotals($priorRows);
@@ -155,12 +168,6 @@ trait AudienceAnalytics
             ORDER BY updated_at DESC,id DESC LIMIT 10",[$this->audienceId,(int)$drafts,$window['from'],$window['until']]);
         foreach ($campaigns as &$campaign) $campaign['metrics']=$this->analyticsTotals($byCampaign[(int)$campaign['id']]??[]);
         unset($campaign);
-        $audience = $this->one("SELECT COUNT(*) total,SUM(email_status='subscribed') subscribed,
-            SUM(email_status='unsubscribed') unsubscribed,SUM(email_status='non-subscribed') non_subscribed,
-            SUM(email_status='cleaned') cleaned,SUM(email_status='pending') pending,
-            SUM(created_at>=? AND created_at<?) added FROM marketing_contacts
-            WHERE audience_id=? AND is_archived=0 AND deleted_at IS NULL",[$window['from'],$window['until'],$this->audienceId]);
-        $audience['visible_total']=(int)$audience['total']-(int)$audience['cleaned']-(int)$audience['pending'];
         $collection=$this->all("SELECT c.id,c.name,c.kind,
             (SELECT COUNT(*) FROM marketing_collection_responses r WHERE r.audience_id=c.audience_id AND r.resource_id=c.id AND r.created_at>=? AND r.created_at<?) responses,
             (SELECT COUNT(*) FROM marketing_collection_visits v WHERE v.resource_id=c.id AND v.day>=? AND v.day<=?) daily_visitors
@@ -170,8 +177,7 @@ trait AudienceAnalytics
             (SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.audience_id=f.audience_id AND r.flow_id=f.id AND r.started_at>=? AND r.started_at<?) runs
             FROM marketing_flows f WHERE f.audience_id=? AND f.deleted_at IS NULL ORDER BY f.updated_at DESC LIMIT 5",
             [$window['from'],$window['until'],$this->audienceId]);
-        $sample=$this->one("SELECT COUNT(*) n FROM marketing_campaign_deliveries d JOIN marketing_campaigns c ON c.audience_id=d.audience_id AND c.id=d.campaign_id WHERE d.audience_id=? AND d.due_at>=? AND d.due_at<? AND JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.sample_dataset'))='stage7-local'",[$this->audienceId,$window['from'],$window['until']]);
-        return ['totals'=>$this->analyticsTotals($rows),'previous'=>$previous,'audience'=>$audience,'includes_samples'=>(int)$sample['n']>0,'cohorts'=>$rows,'previous_cohorts'=>$priorRows,
+        return $snapshot + ['totals'=>$this->analyticsTotals($rows),'previous'=>$previous,'cohorts'=>$rows,'previous_cohorts'=>$priorRows,
             'daily'=>$daily,'campaigns'=>$campaigns,'collections'=>$collection,'flows'=>$flows];
     }
 }

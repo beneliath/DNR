@@ -1,6 +1,6 @@
 <?php
 $homeHistory=$store->analyticsAudienceHistory($window);
-$homeGrowth=$store->analyticsReportRows($window,['dataset'=>'audience','dimension'=>'week']);
+$homeGrowth=$store->analyticsReportRows($window,['dataset'=>'audience','dimension'=>'week'],$homeHistory);
 include __DIR__.'/analytics-report-table.php';
 ?>
 <section class="analytics-card analytics-growth"><header><h2>Audience growth</h2><a href="<?= $h($url(['view'=>'analytics','section'=>'audience','start'=>$window['start'],'end'=>$window['end'],'compare'=>$window['compare']])) ?>">View audience analytics →</a></header>

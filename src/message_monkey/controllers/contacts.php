@@ -15,6 +15,7 @@ function renderAudienceContactsWorkspace(
     $url = static fn(array $params = []): string => 'audience.php' . ($params ? '?' . http_build_query($params) : '');
     $redirect = $url(['view' => $view]);
 $tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
+$catalog = $store->catalogForDefinitions($fields, $tags, $groups);
 $definitionArchiveAvailable=$store->definitionArchiveAvailable();
 $rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;
 try{
@@ -23,7 +24,7 @@ try{
     $rulesText=audienceText($isPost?$_POST:$_GET,'rules',50000);if($rulesText!=='')$rules=audienceJson($rulesText);
     $segmentId=\Dnr\Http\RequestInput::positiveInt($_GET,'segment')??0;
     if($segmentId){$segment=$store->one('SELECT * FROM marketing_segments WHERE id=? AND audience_id=?',[$segmentId,$audienceId]);if(!$segment)throw new InvalidArgumentException('That segment is unavailable.');if($rulesText==='')$rules=audienceLegacyRules(audienceJson($segment['filters_json']),$tags);}
-    audienceCompileRules(audienceActiveRules($filters,$rules),$store->catalog());
+    audienceCompileRules(audienceActiveRules($filters,$rules),$catalog);
 }catch(InvalidArgumentException $e){$error=$e->getMessage();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);}
 
 if($isPost){
@@ -151,18 +152,26 @@ if(isset($_GET['download'])){
 if(($_GET['export']??'')==='person'){
     if(!$canExport){http_response_code(403);exit;}$person=$store->person($id);$data=['person'=>$store->exportPerson($person,['fields'=>$store->fields(),'tag_names'=>array_column($store->tags(),'name','id'),'group_names'=>$store->catalog()['groups']['options']]),'notes'=>$store->all('SELECT body,actor_label,created_at,updated_at FROM marketing_notes WHERE contact_id=? ORDER BY id',[$id]),'activity'=>$store->all('SELECT event_type,details_json,actor_label,created_at FROM marketing_contact_events WHERE contact_id=? ORDER BY id',[$id])];releaseApplicationSessionLock();header('Content-Type: application/json; charset=UTF-8');header('Content-Disposition: attachment; filename="audience-person-'.$id.'.json"');header('Cache-Control: no-store');echo json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
 }
-$tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();$catalog=$store->catalog();
+if ($isPost) {
+    // A submitted operation may have changed the choices or membership counts.
+    $tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
+    $catalog = $store->catalogForDefinitions($fields, $tags, $groups);
+}
 $activeTags=array_values(array_filter($tags,static fn($tag)=>empty($tag['archived_at'])));
 $activeGroups=array_values(array_filter($groups,static fn($group)=>empty($group['archived_at'])));
 $segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=? ORDER BY name,id',[$audienceId]);
-$sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
-$counts=$store->one("SELECT COALESCE(SUM(is_archived=0),0) records,COALESCE(SUM(is_archived=0 AND email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(is_archived=0 AND email_status='subscribed'),0) subscribed,COALESCE(SUM(is_archived=0 AND email_status='unsubscribed'),0) unsubscribed,COALESCE(SUM(is_archived=0 AND email_status='non-subscribed'),0) non_subscribed,COALESCE(SUM(is_archived=0 AND email_status='pending'),0) pending,COALESCE(SUM(is_archived=1),0) archived,COALESCE(SUM(is_archived=0 AND email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL",[$audienceId]);
-[$where,$params]=$store->where($filters,$rules);$total=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
-$pageSize=audiencePageSize($_GET);$page=max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
+$pageSize=audiencePageSize($_GET);
 $sort=audienceText($_GET,'sort')?:'created_at';$sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];foreach($fields as$field)if($field['field_type']==='date')$sortColumns[]='custom:'.(int)$field['id'];if(!in_array($sort,$sortColumns,true))$sort='created_at';$direction=($_GET['direction']??'desc')==='asc'?'asc':'desc';
-$connectionOrder=audienceConnectionOrder($sort,$direction,$fields);
-$rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);
-['tags'=>$rowTags,'groups'=>$rowGroups]=$store->contactListRelations(array_column($rows,'id'));
+if ($view === 'contacts') {
+    $sources=$store->all('SELECT DISTINCT c.source,'.audienceSignupSourceExpression().' source_type FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.source',[$audienceId]);
+    $counts=$store->one("SELECT COALESCE(SUM(is_archived=0),0) records,COALESCE(SUM(is_archived=0 AND email_status IN ('subscribed','unsubscribed','non-subscribed')),0) total,COALESCE(SUM(is_archived=0 AND email_status='subscribed'),0) subscribed,COALESCE(SUM(is_archived=0 AND email_status='unsubscribed'),0) unsubscribed,COALESCE(SUM(is_archived=0 AND email_status='non-subscribed'),0) non_subscribed,COALESCE(SUM(is_archived=0 AND email_status='pending'),0) pending,COALESCE(SUM(is_archived=1),0) archived,COALESCE(SUM(is_archived=0 AND email_status='cleaned'),0) cleaned FROM marketing_contacts WHERE audience_id=? AND deleted_at IS NULL",[$audienceId]);
+    [$where,$params] = $store->where($filters, $rules, $catalog);
+    $total = (int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
+    $page = max(1,min(max(1,(int)ceil($total/$pageSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
+    $connectionOrder=audienceConnectionOrder($sort,$direction,$fields);
+    $rows=$store->all("SELECT c.* FROM marketing_contacts c WHERE $where ORDER BY $connectionOrder LIMIT ? OFFSET ?",[...$params,$pageSize,($page-1)*$pageSize]);
+    ['tags'=>$rowTags,'groups'=>$rowGroups]=$store->contactListRelations(array_column($rows,'id'));
+}
 $query=$filters+['rules'=>json_encode($rules,JSON_THROW_ON_ERROR),'sort'=>$sort,'direction'=>$direction,'per_page'=>$pageSize];if($segment)$query['segment']=(int)$segment['id'];
 $contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'','timezone'=>'','is_archived'=>0,'consent_note'=>''];
 $events=[];$notes=[];$interactionHistory=[];$eventTotal=0;$eventSize=audiencePageSize($_GET,'activity_size');$eventPage=max(1,(int)($_GET['activity_page']??1));$tab=\Dnr\Http\RequestInput::enum($_GET,'tab',['overview','insights','notes','settings'],'overview');

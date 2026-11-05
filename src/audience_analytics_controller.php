@@ -43,14 +43,17 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     $presets=audienceAnalyticsPresets();
     $rangeKey=audienceText($reportInput,'range',20)?:((isset($reportInput['start'])||isset($reportInput['end']))?'custom':($view==='home'?'30':($section==='locations'?'7':'90')));
     if(!isset($reportInput['range'])&&isset($reportInput['start'],$reportInput['end']))foreach($presets as$key=>$preset)if($reportInput['start']===$preset['start']&&$reportInput['end']===$preset['end']){$rangeKey=(string)$key;break;}
+    $download=audienceText($_GET,'download',20);
+    $showDrafts=($reportInput['drafts']??'')==='1';
+    $includeEmailMetrics = $view === 'home' || $download === 'csv' || in_array($section, ['email','conversions','insights'], true);
     try{
         if($rangeKey!=='custom'){
             if(!isset($presets[$rangeKey]))throw new InvalidArgumentException('Choose a supported date range.');
             $reportInput['start']=$presets[$rangeKey]['start'];$reportInput['end']=$presets[$rangeKey]['end'];
         }
-        $window=audienceAnalyticsWindow($reportInput);$overview=$store->analyticsOverview($window,($reportInput['drafts']??'')==='1');
+        $window=audienceAnalyticsWindow($reportInput);$overview=$store->analyticsOverview($window,$showDrafts,$includeEmailMetrics);
     }catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$window=audienceAnalyticsWindow([]);}
-    $showDrafts=($reportInput['drafts']??'')==='1';$overview??=$store->analyticsOverview($window,$showDrafts);
+    $overview??=$store->analyticsOverview($window,$showDrafts,$includeEmailMetrics);
     $messageOptions=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status<>'draft' ORDER BY updated_at DESC,id DESC",[$audienceId]);
     $metric=audienceText($reportInput,'metric',30)?:'accepted';$group=audienceText($reportInput,'group',10)?:'campaign';
     $deliveryMetric=audienceText($reportInput,'delivery_metric',30)?:'bounce_rate';$deliveryGroup=audienceText($reportInput,'delivery_group',10)?:'campaign';
@@ -64,7 +67,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     try{
         if($section==='custom'){$definition=audienceAnalyticsReportDefinition($reportInput);$customRows=$store->analyticsReportRows($window,$definition);}
         if($section==='activity')$activityReport=$store->analyticsActivity($window,$activity,$page,$activitySize,$linkHash);
-        if(in_array($section,['links','devices'],true))$evidence=$store->analyticsEvidence($window);
+        if(in_array($section,['links','devices'],true))$evidence=$store->analyticsEvidence($window,$section);
         if($section==='links'&&($reportInput['map']??'')==='1')$clickMap=$store->analyticsClickMap($window,max(0,(int)($reportInput['delivery']??0)));
         if($section==='locations'){
             require_once __DIR__.'/map_helpers.php';
@@ -90,7 +93,6 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
             $savedReports=array_slice($savedReports,($reportPage-1)*$reportSize,$reportSize);
         }
     }catch(InvalidArgumentException $e){http_response_code($e->getCode()===403?403:400);$error=$e->getMessage();}
-    $download=audienceText($_GET,'download',20);
     if($download!==''){
         if(!$canManage){http_response_code(403);exit('Export requires an editor or administrator.');}
         if($error!==''){http_response_code(400);exit($h($error));}
@@ -104,7 +106,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         elseif($download==='recipients'){
             $csv(['Recipient receipt','Email at sending','Campaign','Accepted UTC','Delivered','Opened','Clicked','Bounced','Complained','Unsubscribed']);
             for($n=1;;$n++){$batch=$store->analyticsActivity($window,$activity,$n,500,$linkHash);foreach($batch['rows']as$r)$csv([$r['id'],$r['destination'],$r['campaign'],$r['accepted_at'],$r['delivered'],$r['opens'],$r['clicks'],$r['bounced'],$r['complaints'],$r['unsubscribed']]);if($n*500>=$batch['total'])break;}
-        }elseif($download==='links'){$csv(['Link hash','Destination without query','Unique messages','Observations']);foreach(($evidence??$store->analyticsEvidence($window))['links']as$r)$csv([$r['link_hash'],$r['label']??'Unavailable',$r['messages'],$r['observations']]);}
+        }elseif($download==='links'){$csv(['Link hash','Destination without query','Unique messages','Observations']);foreach(($evidence['links']??$store->analyticsEvidence($window,'links')['links'])as$r)$csv([$r['link_hash'],$r['label']??'Unavailable',$r['messages'],$r['observations']]);}
         else{
             $exportDefinition=$download==='custom'?($definition??audienceAnalyticsReportDefinition($reportInput)):audienceAnalyticsReportDefinition(['dataset'=>$download==='audience'?'audience':$download,'source'=>$source]);
             $exportRows=$download==='custom'&&$definition?$customRows:$store->analyticsReportRows($window,$exportDefinition);$labels=audienceAnalyticsMetricLabels();
@@ -113,7 +115,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         }
         fclose($out);return;
     }
-    $catalog=$store->catalog();$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;
+    $catalog=[];$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;
     $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing','locations'=>'Interaction Locations',default=>'Email dashboard'};
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
