@@ -64,5 +64,6 @@ export const javascriptAssets = [
 export const stylesheetAssets = [
     {name: 'style'},
     {name: 'modern'},
+    {name: 'record-actions'},
     {name: 'map', bundle: true, loader: {'.png': 'dataurl'}},
 ];

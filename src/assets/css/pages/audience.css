@@ -1540,14 +1540,6 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 
 /* List pagination is shared by Campaigns and Automations. */
 
-.campaign-list-table .campaign-row-actions{display:grid;grid-template-columns:repeat(2,44px);gap:var(--audience-action-gap,16px);justify-content:end}
-.campaign-list-table .campaign-row-actions-manage{grid-template-columns:repeat(6,44px)}
-.campaign-row-actions [data-campaign-action="report"]{grid-column:1;grid-row:1}
-.campaign-row-actions [data-campaign-action="edit"]{grid-column:2;grid-row:1}
-.campaign-row-actions [data-campaign-action="rename"]{grid-column:3;grid-row:1}
-.campaign-row-actions [data-campaign-action="move"]{grid-column:4;grid-row:1}
-.campaign-row-actions :is([data-campaign-action="replicate"],[data-campaign-action="restore"]){grid-column:5;grid-row:1}
-.campaign-row-actions :is([data-campaign-action="archive"],[data-campaign-action="delete"]){grid-column:6;grid-row:1}
 .campaign-archive-tabs{display:flex;gap:8px;margin-bottom:20px}
 .campaign-archive-tabs [aria-current]{background:var(--audience-heading-bg);font-weight:600}
 .campaign-archive-help{margin-bottom:24px}

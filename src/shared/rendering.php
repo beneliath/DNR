@@ -56,6 +56,8 @@ function renderPageHead($title, array $options = []) {
     }
     // Normalize native dropdowns after both MOED and MessageMonkey page styles.
     $styles[] = 'assets/css/pages/native-selects.min.css';
+    // Reserve common record-action columns after each page's own layout rules.
+    $styles[] = 'assets/css/record-actions.min.css';
     if (in_array('assets/css/pages/audience.min.css', $styles, true)) {
         $styles[] = 'assets/css/pages/audience-ui-standards.min.css';
         $styles[] = 'assets/css/pages/audience-mobile.min.css';
@@ -147,5 +149,7 @@ function actionIconSvg($action)
         'delete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></svg>',
     ];
 
-    return $icons[$action] ?? '';
+    return isset($icons[$action])
+        ? str_replace('<svg ', '<svg data-action-icon="' . $action . '" ', $icons[$action])
+        : '';
 }
