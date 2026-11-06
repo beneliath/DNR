@@ -413,10 +413,10 @@ document.querySelectorAll('.reimbursement-page a[href^="reimbursement_expense.ph
 
 // Match invitation submission feedback while preserving the named submit button.
 document.querySelectorAll('[data-reimbursement-progress]').forEach(function (button) {
-  const status = document.querySelector('[data-reimbursement-progress-status]');
+  const form = button.form;
+  const status = (form || document).querySelector('[data-reimbursement-progress-status]');
   if (!status) return;
   const label = button.textContent;
-  const form = button.form;
   let busy = false;
   function start(event) {
     if (event.defaultPrevented || button.disabled) return;

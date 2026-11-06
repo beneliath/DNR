@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged. November 6, 2026: reimbursement photo reduction, email-size review, progress forms, and request filters reviewed; original uploads remain unchanged.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -1070,7 +1070,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_expense.php": "4d1b664fd84b302910668e885491b7e7752397188afa2ab3be29bd839e60bad1",
-        "assets/js/reimbursements.js": "82dd7ad5513e74358e7c14eb0f95c1499d987faa6e302bb8ef078b130f5520b5"
+        "assets/js/reimbursements.js": "4f3d74e1e70270d5b084fa6722c22d840cb2a91013c57974f8e7b71c02466a49"
       },
       "subjects": [
         "reimbursement",
@@ -1127,18 +1127,21 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional brief note or comment, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every original receipt. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every receipt, using originals unless you choose Reduce Photo Sizes. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
+        "When Large Receipt Photos Detected appears, select Reduce Photo Sizes. The app prepares smaller JPEG copies for supported photos, preserves the original uploads, and rechecks both size limits. PDFs remain unchanged. Download Package for Review and confirm every receipt is readable. Use Original Photos restores the original preview. If the package still exceeds a limit, return to the draft and remove expenses to submit smaller requests.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
+        "reimbursement_submit.php": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
+        "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
         "reimbursement_email_helpers.php": "04515a01f172e3f10d6c302a5d2ee71d50ca75b9d58335922a1b0aae3439520e",
         "email_helpers.php": "5c317c86b63b97607e619500dfc9437984f28d6cd9ed7f30e495840ff879ce3f",
         "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
-        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f",
-        "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6"
+        "reimbursement_requests.php": "02261a1b2bdafb8315b8c94a8a06b0bccfd1c955907c1912413b972cc07ffa11",
+        "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6",
+        "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
+        "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "subjects": [
         "reimbursement",
@@ -1256,7 +1259,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "727a1f30e5e820ef6ea33307007a7c819bae28af98806efcbb3677cba740e3fd",
-        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
+        "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "subjects": [
         "reimbursement",
@@ -1285,7 +1288,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "727a1f30e5e820ef6ea33307007a7c819bae28af98806efcbb3677cba740e3fd",
-        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
+        "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "subjects": [
         "reimbursement",

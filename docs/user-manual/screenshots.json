@@ -2783,7 +2783,7 @@
     "route": "reimbursement_submit.php?id=1",
     "steps": [
       "Check To, Cc, Bcc, and the readable Email Preview, including your saved note.",
-      "Only one ZIP is attached; it contains the report PDF, expense CSV, and original receipts. Download it before submitting."
+      "Only one ZIP is attached; it contains the report PDF, expense CSV, and receipts. This retained view shows original photos. Large requests now offer Reduce Photo Sizes to prepare smaller copies without changing uploads. Download the package and check readability before submitting."
     ],
     "file": "screenshots/reimbursement-review.png",
     "captured_at": "2026-10-13",
@@ -2810,7 +2810,7 @@
     "route": "reimbursement_submit.php?id=1",
     "steps": [
       "The gauge shows usage of the 18 MB ZIP limit. The encoded email, including headers and message, must also fit within 25 MB.",
-      "Match the PDF, CSV, and original receipt filenames to the expense list. The request also limits original files to 15 MB and 100 receipts.",
+      "Match the PDF, CSV, and receipt filenames to the expense list. The current request limit is 100 receipts and 25 MB of packaged receipt files. Reduce Photo Sizes can shrink photo copies; PDFs are unchanged and originals are retained.",
       "Check I Have Reviewed the Recipients, Email, and Package, then Submit Reimbursement Request. Wait for progress and check delivery afterward; Submitted does not mean paid."
     ],
     "file": "screenshots/reimbursement-confirm.png",

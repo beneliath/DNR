@@ -44,9 +44,15 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The October 27, 2026 edition applies to application version **2.8.4** and
+The November 6, 2026 edition applies to application version **2.10.34** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
+
+The reimbursement email review now offers Reduce Photo Sizes for large receipt
+photos. It prepares smaller email copies while preserving the original uploads,
+then rechecks the 18 MB ZIP and 25 MB encoded email limits. Users download the
+package to confirm receipt readability before submitting. Retained review
+screenshots show the original-photo workflow; their captions explain the new option.
 
 The operator appendix now documents Major.Minor.Patch versioning. The Inbox uses
 a conversation list and content pane, with explicit selection before reading,

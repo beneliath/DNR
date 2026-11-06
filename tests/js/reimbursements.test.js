@@ -329,6 +329,7 @@ function reviewFeedback(link = false, submitting = false) {
   const form = link ? null : node();
   const button = Object.assign(node(), {form, name: 'continue_to_review', value: '1', textContent: submitting ? 'Submit Reimbursement Request' : 'Review and Submit', dataset: submitting ? {submittingLabel: 'Submitting Request…'} : {}});
   const status = {hidden: true};
+  if (form) form.querySelector = () => status;
   const window = node();
   vm.runInNewContext(source, {window, document: {
     querySelectorAll: selector => selector === '[data-reimbursement-progress]' ? [button] : [],

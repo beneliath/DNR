@@ -5,6 +5,7 @@ require_once __DIR__ . '/reimbursement_pdf.php';
 require_once __DIR__ . '/reimbursement_limits.php';
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/email_ascii_footer.php';
+require_once __DIR__ . '/reimbursement_photo_helpers.php';
 
 /** The review fingerprint covers every value used for recipients, email, and ZIP. */
 function reimbursementSubmissionContext(mysqli $conn, int $id, int $userId, bool $lock = false): array
@@ -35,6 +36,11 @@ function reimbursementSubmissionContext(mysqli $conn, int $id, int $userId, bool
 
 function reimbursementReviewFingerprint(array $context): string
 {
+    unset($context['photos_prepared']);
+    foreach ($context['receipts'] as &$receipt) {
+        foreach (array_keys($receipt) as $key) if (str_starts_with($key, 'package_')) unset($receipt[$key]);
+    }
+    unset($receipt);
     return hash('sha256', serialize($context));
 }
 
@@ -70,7 +76,7 @@ function reimbursementIndividualAttachmentManifest(array $context): array
     $manifest[] = ['archive_path' => $base . '.csv', 'filename' => $base . '.csv', 'content_type' => 'text/csv'];
     foreach ($context['receipts'] as $receipt) {
         $filename = reimbursementReceiptPackageFilename($receipt);
-        $manifest[] = ['archive_path' => 'receipts/' . $filename, 'filename' => $filename, 'content_type' => $receipt['content_type']];
+        $manifest[] = ['archive_path' => 'receipts/' . $filename, 'filename' => $filename, 'content_type' => $receipt['package_content_type'] ?? $receipt['content_type']];
     }
     return $manifest;
 }
@@ -127,7 +133,7 @@ function createReimbursementZip(string $pdf, string $csv, array $receipts, strin
             foreach ($receipts as $receipt) {
                 $file = openPersistentFile($receipt, true); fclose($file);
                 $entry = 'receipts/' . reimbursementReceiptPackageFilename($receipt);
-                if (!$zip->addFile(persistentFilePath($receipt['storage_key']), $entry)) throw new RuntimeException('Unable to add receipt.');
+                if (!$zip->addFile($receipt['package_path'] ?? persistentFilePath($receipt['storage_key']), $entry)) throw new RuntimeException('Unable to add receipt.');
             }
         } catch (Throwable $e) { $zip->close(); throw $e; }
         if (!$zip->close()) throw new RuntimeException('Unable to finish reimbursement package.');
@@ -195,6 +201,7 @@ function reimbursementSubmissionMessage(array $context, bool $forDelivery = fals
     $subject = 'Reimbursement request ' . $request['request_hash'] . ' — ' . $name;
     $greeting = trim($setup['bookkeeper_first_name'] . ' ' . $setup['bookkeeper_last_name']) ?: 'Bookkeeper';
     $filename = reimbursementPackageBase($request) . '.zip';
+    $receiptDescription = reimbursementPackageReceiptDescription($context);
     $range = $request['start_date'] . ' to ' . $request['end_date'];
     $body = "Hello {$greeting},\n\nPlease process the reimbursement request from {$name}.\n\nRequest: {$request['request_hash']}\nExpense Dates: {$range}\nExpenses: " . count($context['items']) . "\nReceipts: " . count($context['receipts']) . "\nTotal Amount Due: {$total}\n\n";
     if ($note !== '') $body .= "Note from {$name}:\n{$note}\n\n";
@@ -211,33 +218,36 @@ function reimbursementSubmissionMessage(array $context, bool $forDelivery = fals
         $body .= $item['expense_date'] . ' | ' . $item['merchant'] . ' | ' . $item['coa_number'] . ' | ' . $amount . ( $mileageDetail !== '' ? "\n" . $mileageDetail : '' ) . "\nReceipt Files: " . $receiptText . "\n";
         $rows .= '<tr><td nowrap style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($item['expense_date']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['merchant']) . ($mileageDetail !== '' ? '<br>' . nl2br($h($mileageDetail)) : '') . '<br><span style="display:block;font-size:12px;overflow-wrap:anywhere;word-break:break-word"><strong>Receipt Files:</strong><br>' . $receiptHtml . '</span></td><td style="padding:10px;border-bottom:1px solid #dfe4ec">' . $h($item['coa_number'] . ' · ' . $item['coa_description']) . '</td><td style="padding:10px;border-bottom:1px solid #dfe4ec;white-space:nowrap">' . $h($amount) . '</td></tr>';
     }
-    $body .= "\nAttached: {$filename} (ZIP containing the expense report PDF, CSV, and all original receipts).\nThe CSV has one row per expense; its receipt filenames match the files in the ZIP receipts/ folder.\n\nThank you,\n{$name}\n";
+    $body .= "\nAttached: {$filename} (ZIP containing the expense report PDF, CSV, and {$receiptDescription}).\nThe CSV has one row per expense; its receipt filenames match the files in the ZIP receipts/ folder.\n\nThank you,\n{$name}\n";
     $body .= "\n" . emailAsciiFooterText() . "\n";
     $logo = $h($forDelivery ? emailBrandLogoUrl() : applicationPublicUrl(applicationBrandEmailLogo()));
     $inlineImages = [];
     $noteHtml = $note === '' ? '' : '<p style="white-space:pre-wrap;overflow-wrap:anywhere"><strong>Note from ' . $h($name) . ':</strong><br>' . $h($note) . '</p>';
-    $html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' . $h($subject) . '</title></head><body style="margin:0;background:#f6f7fb;color:#172033;font:15px/1.6 Arial,sans-serif"><table role="presentation" width="100%" style="background:#f6f7fb"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="720" style="width:100%;max-width:720px"><tr><td style="padding:20px 24px;background:#fff;border:1px solid #dfe4ec;border-radius:14px"><img src="' . $logo . '" alt="' . $h(applicationBrandLabel()) . '" width="227" height="39" border="0" style="display:block;width:227px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;"><h1 style="font-size:24px;margin:16px 0 0">Reimbursement Request</h1><p style="color:#667085;margin:4px 0">' . $h($setup['account_name']) . '</p></td></tr><tr><td style="height:16px"></td></tr><tr><td style="padding:24px;background:#fff;border:1px solid #dfe4ec;border-radius:14px"><p>Hello ' . $h($greeting) . ',</p><p>Please process the reimbursement request from <strong>' . $h($name) . '</strong>.</p><p><strong>Request:</strong> ' . $h($request['request_hash']) . '<br><strong>Expense Dates:</strong> ' . $h($range) . '<br><strong>Expenses:</strong> ' . count($context['items']) . ' · <strong>Receipts:</strong> ' . count($context['receipts']) . '</p><div style="background:#eff4ff;border-radius:10px;padding:16px;color:#2457d6"><strong>Total Amount Due: ' . $h($total) . '</strong></div><div data-reimbursement-note-preview>' . $noteHtml . '</div><table width="100%" style="border-collapse:collapse;font-size:14px;margin:18px 0"><thead><tr><th align="left">Date</th><th align="left">Merchant / Payee</th><th align="left">Account</th><th align="left">Amount</th></tr></thead><tbody>' . $rows . '</tbody></table><p><strong>Attachments:</strong> ' . $h($filename) . ' (ZIP containing the expense report PDF, CSV, and all original receipts).<br>The CSV has one row per expense; its receipt filenames match the files in the ZIP receipts/ folder.</p><p>Thank you,<br>' . $h($name) . '</p></td></tr><tr><td style="padding:16px;text-align:center;color:#667085;font-size:12px">Sent through ' . $h(applicationBrandName()) . '</td></tr><tr><td align="center" style="padding:18px 8px 2px">' . renderEmailAsciiFooter() . '</td></tr></table></td></tr></table></body></html>';
+    $html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' . $h($subject) . '</title></head><body style="margin:0;background:#f6f7fb;color:#172033;font:15px/1.6 Arial,sans-serif"><table role="presentation" width="100%" style="background:#f6f7fb"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="720" style="width:100%;max-width:720px"><tr><td style="padding:20px 24px;background:#fff;border:1px solid #dfe4ec;border-radius:14px"><img src="' . $logo . '" alt="' . $h(applicationBrandLabel()) . '" width="227" height="39" border="0" style="display:block;width:227px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;"><h1 style="font-size:24px;margin:16px 0 0">Reimbursement Request</h1><p style="color:#667085;margin:4px 0">' . $h($setup['account_name']) . '</p></td></tr><tr><td style="height:16px"></td></tr><tr><td style="padding:24px;background:#fff;border:1px solid #dfe4ec;border-radius:14px"><p>Hello ' . $h($greeting) . ',</p><p>Please process the reimbursement request from <strong>' . $h($name) . '</strong>.</p><p><strong>Request:</strong> ' . $h($request['request_hash']) . '<br><strong>Expense Dates:</strong> ' . $h($range) . '<br><strong>Expenses:</strong> ' . count($context['items']) . ' · <strong>Receipts:</strong> ' . count($context['receipts']) . '</p><div style="background:#eff4ff;border-radius:10px;padding:16px;color:#2457d6"><strong>Total Amount Due: ' . $h($total) . '</strong></div><div data-reimbursement-note-preview>' . $noteHtml . '</div><table width="100%" style="border-collapse:collapse;font-size:14px;margin:18px 0"><thead><tr><th align="left">Date</th><th align="left">Merchant / Payee</th><th align="left">Account</th><th align="left">Amount</th></tr></thead><tbody>' . $rows . '</tbody></table><p><strong>Attachments:</strong> ' . $h($filename) . ' (ZIP containing the expense report PDF, CSV, and ' . $h($receiptDescription) . ').<br>The CSV has one row per expense; its receipt filenames match the files in the ZIP receipts/ folder.</p><p>Thank you,<br>' . $h($name) . '</p></td></tr><tr><td style="padding:16px;text-align:center;color:#667085;font-size:12px">Sent through ' . $h(applicationBrandName()) . '</td></tr><tr><td align="center" style="padding:18px 8px 2px">' . renderEmailAsciiFooter() . '</td></tr></table></td></tr></table></body></html>';
     return ['subject' => $subject, 'body' => $body, 'html_body' => $html, 'filename' => $filename,
         'individual_attachments' => reimbursementIndividualAttachmentManifest($context), 'inline_images' => $inlineImages];
 }
 
-function queueReimbursementSubmission(mysqli $conn, int $id, int $userId, string $fingerprint): void
+function queueReimbursementSubmission(mysqli $conn, int $id, int $userId, string $fingerprint, bool $reducePhotos = false): void
 {
     $path = null;
     // Rendering and hashing do not hold database row locks. Revalidate every
     // approved value under locks immediately before publishing the artifact.
     $context = reimbursementSubmissionContext($conn, $id, $userId);
+    if ($reducePhotos) $context['reduce_photos'] = true;
     if (!hash_equals(reimbursementReviewFingerprint($context), $fingerprint)) throw new InvalidArgumentException('The request, receipts, or recipients changed. Review the updated email before submitting.');
     $recipients = reimbursementSubmissionRecipients($context);
-    $message = reimbursementSubmissionMessage($context, true);
     try {
         lockPersistentFiles();
+        $context = reimbursementPreparePhotoCopies($context);
+        $message = reimbursementSubmissionMessage($context, true);
         $path = reimbursementSubmissionPackage($context);
         $size = filesize($path); $checksum = hash_file('sha256', $path);
         $key = storePersistentFileFromPath($conn, $path, $message['filename'], 'application/zip', $size, $checksum);
         $conn->begin_transaction();
         try {
             $current = reimbursementSubmissionContext($conn, $id, $userId, true);
+            if ($reducePhotos) $current['reduce_photos'] = true;
             if (!hash_equals(reimbursementReviewFingerprint($current), $fingerprint)) throw new InvalidArgumentException('The request changed while preparing the package. Review it again. Nothing was submitted.');
             submitReimbursementRequest($conn, $id, $userId, false);
             $conn->execute_query('UPDATE reimbursement_requests SET owner_name_snapshot=? WHERE id=?',[$context['owner']['display_name'],$id]);
@@ -250,11 +260,17 @@ function queueReimbursementSubmission(mysqli $conn, int $id, int $userId, string
                     [$id, $context['request']['request_hash'], hash('sha256', $address, true), $type, $key, $payload]);
                 $deliveries[(string)$conn->insert_id] = $approved;
             }
-            $snapshot = ['template_version'=>5, 'context'=>$context, 'recipients'=>$recipients, 'deliveries'=>$deliveries];
+            $savedContext = $context;
+            foreach ($savedContext['receipts'] as &$receipt) unset($receipt['package_path']);
+            unset($receipt);
+            $snapshot = ['template_version'=>6, 'context'=>$savedContext, 'recipients'=>$recipients, 'deliveries'=>$deliveries];
             $conn->execute_query('INSERT INTO reimbursement_submissions (id,attachment_key,snapshot_ciphertext) VALUES (?,?,?)',
                 [$id,$key,\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR))]);
             reimbursementEvent($conn,'request',$id,'submitted','Approved package SHA-256: '.$checksum,$userId);
             $conn->commit();
         } catch (Throwable $e) { $conn->rollback(); throw $e; }
-    } finally { if ($path !== null) @unlink($path); }
+    } finally {
+        if ($path !== null) @unlink($path);
+        reimbursementCleanupPhotoCopies($context);
+    }
 }

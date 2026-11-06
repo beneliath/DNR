@@ -21,12 +21,13 @@ function reimbursementSubmissionNote(mixed $value): string
 /** The exact, unique filename used in the package's receipts directory. */
 function reimbursementReceiptPackageFilename(array $receipt): string
 {
-    $extension = match ($receipt['content_type']) {
+    $extension = match ($receipt['package_content_type'] ?? $receipt['content_type']) {
         'application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp',
         default => throw new RuntimeException('Unsupported receipt type.'),
     };
     $stem = substr(preg_replace('/[^A-Za-z0-9._-]+/', '_', pathinfo($receipt['filename'], PATHINFO_FILENAME)) ?: 'receipt', 0, 100);
-    return 'expense-' . (int) $receipt['expense_id'] . '-receipt-' . (int) $receipt['id'] . '-' . $stem . '.' . $extension;
+    return 'expense-' . (int) $receipt['expense_id'] . '-receipt-' . (int) $receipt['id'] . '-' . $stem
+        . (isset($receipt['package_size']) ? '-email' : '') . '.' . $extension;
 }
 
 function reimbursementDate(mixed $value, string $label): string

@@ -3397,7 +3397,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f",
+      "sha256": "02261a1b2bdafb8315b8c94a8a06b0bccfd1c955907c1912413b972cc07ffa11",
       "controls": [
         {
           "kind": "a",
@@ -3513,7 +3513,7 @@
       ]
     },
     "reimbursement_submit.php": {
-      "sha256": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
+      "sha256": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
       "controls": [
         {
           "kind": "a",
@@ -3528,6 +3528,15 @@
         {
           "kind": "h1",
           "label": "Review Reimbursement Email"
+        },
+        {
+          "kind": "button",
+          "label": "Use Original Photos",
+          "name": "photo_action"
+        },
+        {
+          "kind": "button",
+          "label": "Reduce Photo Sizes"
         },
         {
           "kind": "h2",
