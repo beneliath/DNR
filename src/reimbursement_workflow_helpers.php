@@ -28,7 +28,7 @@ function reimbursementSnapshot(mysqli $conn, int $id): ?array
     return json_decode(\Dnr\Security\ApplicationKey::open($row['snapshot_ciphertext']),true,32,JSON_THROW_ON_ERROR);
 }
 
-function reimbursementReceiptsReady(array $receipts): void
+function reimbursementReceiptsReady(array $receipts, bool $checkBytes = true): void
 {
     foreach ($receipts as $receipt) {
         $state = $receipt['scan_state'] ?? 'unscanned';
@@ -36,8 +36,11 @@ function reimbursementReceiptsReady(array $receipts): void
             throw new InvalidArgumentException('Receipt security checks are pending or rejected. Open the expense to review its receipts before downloading or submitting.');
         }
     }
-    if (count($receipts)>100 || array_sum(array_column($receipts,'size'))>REIMBURSEMENT_MAX_RECEIPT_BYTES) {
-        throw new InvalidArgumentException('This request exceeds 100 receipts or 25 MB of receipt files. Remove expenses from this draft and submit smaller requests.');
+    if (count($receipts)>100) {
+        throw new InvalidArgumentException('This request exceeds 100 receipts. Remove expenses from this draft and submit smaller requests.');
+    }
+    if ($checkBytes && array_sum(array_map(static fn($r) => $r['package_size'] ?? $r['size'], $receipts))>REIMBURSEMENT_MAX_RECEIPT_BYTES) {
+        throw new InvalidArgumentException('Receipt files exceed 25 MB. Use Reduce Photo Sizes on Review Email, or split this draft into smaller requests.');
     }
 }
 

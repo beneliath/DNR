@@ -329,7 +329,7 @@
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "4d1b664fd84b302910668e885491b7e7752397188afa2ab3be29bd839e60bad1",
-        "reimbursement_helpers.php": "570810247327dde6e7c0225551a59fe0711767062be9a119e542f5cdc53268c7",
+        "reimbursement_helpers.php": "66f22a921f124e25989341b654cbf182dfa2dcacd0c1a5a9a1a3b5bd1bf53249",
         "reimbursement_mileage_helpers.php": "29c40b2379741cc4622715b0647b0125fc1fc28412dc4c357d5eab6c0bae9cc3",
         "templates/reimbursement_mileage_fields.php": "fe8942e2b6eba2785d0e30139644099a37e58627ac8fc71579832d13beddd5a8"
       },
@@ -402,7 +402,7 @@
       "source_files": {
         "reimbursements.php": "4d3da72515c47064ab6f231411d6c762fef8ff6fcba2de1e61cb26d4c099511a",
         "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
-        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
+        "reimbursement_requests.php": "02261a1b2bdafb8315b8c94a8a06b0bccfd1c955907c1912413b972cc07ffa11"
       },
       "controls": {
         "reimbursement-select-all-available": {
@@ -448,11 +448,13 @@
         "editor"
       ],
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
-      "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
+      "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
       "source_files": {
-        "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
-        "reimbursement_submission_helpers.php": "8fcfd9bbc9b805dfc6ae0813638f2418db91b999268f96d23e86e1f51c9a6377",
-        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b"
+        "reimbursement_submit.php": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
+        "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
+        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
+        "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
+        "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "controls": {
         "reimbursement-confirm": {
@@ -462,6 +464,14 @@
         "reimbursement-send": {
           "label": "Submit Reimbursement Request",
           "selector": "form:has(input[name=\"confirm_submission\"]) button[type=\"submit\"]"
+        },
+        "reimbursement-reduce-photos": {
+          "label": "Reduce Photo Sizes",
+          "selector": ".reimbursement-photo-form button[type=\"submit\"]"
+        },
+        "reimbursement-original-photos": {
+          "label": "Use Original Photos",
+          "selector": "button[name=\"photo_action\"][value=\"originals\"]"
         }
       }
     },

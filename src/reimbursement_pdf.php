@@ -92,7 +92,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
         foreach ($receipts[(int) $item['expense_id']] ?? [] as $receipt) {
             $receiptFiles++;
             $receiptNumber++;
-            $path = persistentFilePath($receipt['storage_key']);
+            $path = $receipt['package_path'] ?? persistentFilePath($receipt['storage_key']);
             if ($receipt['content_type'] === 'application/pdf') {
                 try {
                     $pageCount = reimbursementPdfReceiptPageCount($pdf, $receipt);
@@ -124,7 +124,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
             $imagePath = $path;
             $temporary = null;
             try {
-                $source = match($receipt['content_type']) {'image/jpeg'=>@imagecreatefromjpeg($path),'image/png'=>@imagecreatefrompng($path),'image/webp'=>@imagecreatefromwebp($path),default=>false};
+                $source = match($receipt['package_content_type'] ?? $receipt['content_type']) {'image/jpeg'=>@imagecreatefromjpeg($path),'image/png'=>@imagecreatefrompng($path),'image/webp'=>@imagecreatefromwebp($path),default=>false};
                 if (!$source) throw new RuntimeException('Unable to read a receipt image.');
                 $ratio=min(1,1600/max(imagesx($source),imagesy($source)));
                 $scaled=imagecreatetruecolor(max(1,(int)(imagesx($source)*$ratio)),max(1,(int)(imagesy($source)*$ratio)));
@@ -148,7 +148,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
     if ($receiptFiles) {
         $pdf->AddPage();
         reimbursementPdfHeading($pdf, 'Receipt Files');
-        $pdf->writeHTML('<p>' . $receiptFiles . ' original receipt file(s) accompany this report in the package ZIP. They are listed by expense below.</p>', true, false, true, false, '');
+        $pdf->writeHTML('<p>' . $receiptFiles . ' receipt file(s) accompany this report in the package ZIP. They are listed by expense below.</p>', true, false, true, false, '');
         $pdf->Ln(5);
         foreach ($items as $item) {
             foreach ($receipts[(int) $item['expense_id']] ?? [] as $receipt) {
