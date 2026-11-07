@@ -270,7 +270,7 @@ test("file drop preserves selection on invalid input and triggers change for a v
     assert.equal(input.files, replacement);
     assert.equal(input.dispatched.type, 'change');
     assert.equal(input.dispatched.bubbles, true);
-    assert.match(status.textContent, /replacement.pdf selected/);
+    assert.equal(status.textContent, '');
     button.click();
     assert.equal(input.clicked, true);
 });

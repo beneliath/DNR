@@ -102,8 +102,7 @@
             input.dispatchEvent(new Event("change", { bubbles: true }));
         });
         input.addEventListener("change", function () {
-            status.textContent = input.files && input.files[0]
-                ? input.files[0].name + " selected. Select Save Changes to upload or replace." : "";
+            status.textContent = "";
         });
     }
 
@@ -372,7 +371,9 @@
                     } else if (hasRemoval) {
                         notice.textContent = "Removal pending. Select Save Changes to remove the current " + fileType + ".";
                     } else if (hasReplacement) {
-                        notice.textContent = "Replacement pending. Select Save Changes to replace the current " + fileType + ".";
+                        notice.textContent = remove
+                            ? "Replacement pending. Select Save Changes to replace the current " + fileType + "."
+                            : "Select Save Changes to upload this file.";
                     } else {
                         notice.textContent = "";
                     }
@@ -428,8 +429,8 @@
             '    <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>',
             '    <div class="presentation-pdf-picker-row">',
             '    <label class="presentation-file-picker" for="' + inputId + '">Choose PDF</label>',
-            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="application/pdf,.pdf" data-presentation-file-name>',
-            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
+            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="application/pdf,.pdf" aria-describedby="' + inputId + '_save_notice" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" role="status" data-selected-file-name data-empty-file-label="No PDF Selected">No PDF Selected</span>',
             '    </div>',
             '    </div>',
             '    <div class="presentation-file-drop" data-file-drop>',
@@ -437,9 +438,9 @@
             '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
             '        <strong>Drop PDF here</strong>',
             '        <span>or click to choose · .pdf · up to 100 MB</span>',
-            '        <span>Select Save Changes to upload or replace.</span>',
             '      </button>',
             '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
+            '      <p id="' + inputId + '_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PDF" role="status" hidden></p>',
             '    </div>',
             '  </div>'
         ].join("");
@@ -455,8 +456,8 @@
             '    <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>',
             '    <div class="presentation-pdf-picker-row">',
             '    <label class="presentation-file-picker" for="' + inputId + '">Choose PPT</label>',
-            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" data-presentation-file-name>',
-            '    <span class="presentation-selected-file" data-selected-file-name>No PowerPoint selected</span>',
+            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-describedby="' + inputId + '_save_notice" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" role="status" data-selected-file-name data-empty-file-label="No PowerPoint Selected">No PowerPoint Selected</span>',
             '    </div>',
             '    </div>',
             '    <div class="presentation-file-drop" data-file-drop>',
@@ -464,9 +465,9 @@
             '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
             '        <strong>Drop PowerPoint here</strong>',
             '        <span>or click to choose · .ppt or .pptx · up to 500 MB</span>',
-            '        <span>Select Save Changes to upload or replace.</span>',
             '      </button>',
             '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
+            '      <p id="' + inputId + '_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PPT" role="status" hidden></p>',
             '    </div>',
             '  </div>'
         ].join("");
@@ -479,8 +480,10 @@
             '    <h3>Presentation Files &amp; QR Codes</h3>',
             '    <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may be up to 500 MB. Keep each save under 600 MB total. QR codes are generated when you save.</p>',
             '  </div>',
+            '  <div class="presentation-upload-cards">',
             pdfUploadMarkup(id),
             slidedeckUploadMarkup(id),
+            '  </div>',
             '  <p>Save the presentation to download its unique QR codes.</p>',
             '</div>'
         ].join("");
@@ -625,16 +628,22 @@
         return [
             '<h3 class="presentation-entry-heading">Presentation</h3>',
             '<div class="presentation-fields">',
-            '  <div class="form-field topic">',
-            '    <label for="presentation_topic_' + id + '">Topic/Title</label>',
-            '    <input type="text" name="presentations[' + id + '][topic_title]" id="presentation_topic_' + id + '" maxlength="255">',
-            '  </div>',
-            '  <div class="datetime-row">',
+            '  <div class="presentation-primary-fields">',
             '    <div class="form-field">',
+            '      <label for="presentation_topic_' + id + '">Topic/Title</label>',
+            '      <input type="text" name="presentations[' + id + '][topic_title]" id="presentation_topic_' + id + '" maxlength="255">',
+            '    </div>',
+            '    <div class="form-field">',
+            '      <label for="speaker_id_' + id + '">Speaker</label>',
+            '      <select name="presentations[' + id + '][speaker_id]" id="speaker_id_' + id + '"></select>',
+            '    </div>',
+            '  </div>',
+            '  <div class="presentation-session-fields">',
+            '    <div class="form-field presentation-date-field">',
             '      <label for="presentation_date_' + id + '">Date</label>',
             '      <input type="date" name="presentations[' + id + '][presentation_date]" id="presentation_date_' + id + '">',
             '    </div>',
-            '    <div class="form-field">',
+            '    <div class="form-field presentation-time-field">',
             '      <label for="presentation_time_' + id + '">Time</label>',
             '      <div class="time-input-container">',
             '        <input type="text" id="presentation_time_' + id + '" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530">',
@@ -645,23 +654,15 @@
             '      </div>',
             '      <input type="hidden" name="presentations[' + id + '][presentation_time]" id="presentation_time_hidden_' + id + '">',
             '    </div>',
-            '  </div>',
-            '  <div class="speaker-row">',
-            '    <div class="form-field speaker">',
-            '      <label for="speaker_id_' + id + '">Speaker</label>',
-            '      <select name="presentations[' + id + '][speaker_id]" id="speaker_id_' + id + '"></select>',
-            '    </div>',
-            '    <div class="form-field attendance">',
-            '      <label for="duration_minutes_' + id + '">Duration (minutes)</label>',
+            '    <div class="form-field">',
+            '      <label for="duration_minutes_' + id + '">Duration (Minutes)</label>',
             '      <input type="number" name="presentations[' + id + '][duration_minutes]" id="duration_minutes_' + id + '" min="1" max="1440" step="1" value="60">',
             '    </div>',
-            '  </div>',
-            '  <div class="attendance-row">',
-            '    <div class="form-field attendance">',
+            '    <div class="form-field">',
             '      <label for="expected_attendance_' + id + '">Expected Attendance</label>',
             '      <input type="number" name="presentations[' + id + '][expected_attendance]" id="expected_attendance_' + id + '" min="1" step="1">',
             '    </div>',
-            '    <div class="form-field attendance">',
+            '    <div class="form-field">',
             '      <label for="actual_attendance_' + id + '">Actual Attendance</label>',
             '      <input type="number" name="presentations[' + id + '][actual_attendance]" id="actual_attendance_' + id + '" min="0" step="1">',
             '    </div>',

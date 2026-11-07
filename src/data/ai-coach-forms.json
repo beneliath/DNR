@@ -12,7 +12,7 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "44e3d4f000430025d7d7786ed2e7d2853886d6c6d155f1730ca6d9099f19d2c6"
+        "index.php": "b230fb85595cf5f879e7899bcaeeb4352d1bf92da94803600f7bf76ac1bae1a1"
       },
       "controls": {
         "new-organization": {
@@ -58,8 +58,8 @@
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
         "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
-        "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
-        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
+        "templates/presentation_form.php": "ed8337fa84ae29e8b8fd080474fd2de94852ae3c49210f971f94ce7729272a5e",
+        "edit_engagement.php": "da52b6093d59014d5bd614f7abcfc9ad8af2956e10302f3cd54dff3a0bf9bed2"
       },
       "controls": {
         "presentations-tab": {
@@ -101,7 +101,7 @@
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
         "follow_up_task_helpers.php": "de5a0ba8a1caac0158c26e943479b2de541d57e006b3ce114df18d927c3a6301",
-        "moed/tasks/generation.php": "355c1bb4a97803f20bff64ece21f2ebae39ce8db9aaebf8e507aaeb27b1084bb",
+        "moed/tasks/generation.php": "837a58aac02d8cf6df76360992e1883ff1e853f2f5d50da5190e5bb7782edc77",
         "moed/tasks/input.php": "52bf58fa9ddd7055545efc30ffdcd5a157494c30b924a8c025a915be1d5f0622",
         "moed/tasks/lifecycle.php": "9f2a415061ae9536e82669a6ec04a7f28000b69b1ff9d583c3426cf28d99619a",
         "moed/tasks/policy.php": "316dedd3c6aa1cf5e3e4c6e14861e07b333c0a2b51cdbac887c3781c109a73f2",
@@ -109,7 +109,7 @@
         "moed/tasks/repository.php": "29af180c6c168067207e365e54d888df31bb4c6f81416530854f9b9f8d43ed6b",
         "moed/tasks/subjects.php": "7b0ea616f3d1cf6ca0eb16c9eb326b03d7e2ab6c71d01753ecda748d51f16972",
         "moed/tasks/templates.php": "5df81cd25625fe0ede008f248a5de9459628627b1c24cc5c8c3968285fcfc4ff",
-        "moed/tasks/activity.php": "85b17f0c7fbb28fa7a1e226249919d678c980d3e8527949a4c4f3583534d9f77"
+        "moed/tasks/activity.php": "6c39d3c67bb433066e27f16ee945ac57318601ab1c39e9557530b16e3488bd07"
       },
       "controls": {
         "task-title": {
@@ -217,7 +217,7 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
-        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456"
+        "edit_engagement.php": "da52b6093d59014d5bd614f7abcfc9ad8af2956e10302f3cd54dff3a0bf9bed2"
       },
       "controls": {
         "edit-event": {
@@ -523,8 +523,8 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f34686710c3d4735c279b23a634f76cbfb44052cc0579da506febac9c334ba8a",
-        "edit_engagement.php": "96275852a2b01cec97f2cc0ae520d708bcc2257ffaf2f2b477ada49fe0456456",
-        "templates/presentation_form.php": "7531c905711603f6654d651a320488aa4fc4246d8009d4ca0efd501e04196372",
+        "edit_engagement.php": "da52b6093d59014d5bd614f7abcfc9ad8af2956e10302f3cd54dff3a0bf9bed2",
+        "templates/presentation_form.php": "ed8337fa84ae29e8b8fd080474fd2de94852ae3c49210f971f94ce7729272a5e",
         "templates/footer.php": "585b8620ecfb524aa0631b1864c639e9cd03c1df4e92854cff45c0128c47184a",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"

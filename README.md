@@ -390,7 +390,8 @@ The required built-in **Complete the event financial closeout** task cannot be e
 deleted; it is due seven days after the event end date and directs staff to finalize giving/income,
 lodging, and travel received. Finalizing the report completes this task. Saving or restoring a
 presentation completes the generated **Populate event record with one or more presentations** task.
-If either activity has already happened when its checklist task is added, the task starts completed.
+When one active presentation has a saved topic, date, and time, **Confirm presentation topics, dates, and times** also completes.
+If the activity has already happened when its checklist task is added, the task starts completed.
 
 ### Task-backed follow-up and recoverable drafts
 

@@ -753,6 +753,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
   'scripts' => ['assets/js/relationship-search.min.js'],
 )); ?>
 <body class="edit-engagement-body">
+<?php renderScript('assets/js/edit-engagement.min.js', false); ?>
 <?php include 'templates/header.php'; ?>
 <div class="container edit-engagement-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
@@ -771,16 +772,26 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+        <?php $edit_baseline = $_POST['edit_baseline'] ?? ''; ?>
+        <input type="hidden" name="edit_baseline" value="<?php echo is_string($edit_baseline) && preg_match('/\A[a-f0-9]{64}\z/', $edit_baseline) ? $edit_baseline : ''; ?>">
+        <section class="form-draft-panel" data-form-draft-panel>
+            <p role="status">No saved draft</p>
+            <button type="button" class="button-secondary" disabled>Save Draft</button>
+            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
+        </section>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+        <?php include 'templates/engagement_lifecycle_form.php'; ?>
         <section class="form-section engagement-event-details-section">
         <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
+            <input type="search" placeholder="Find an organization…" aria-label="Find an organization for Organization" data-relationship-search-input>
             <select name="organization_id" id="organization_id" data-organization-search required>
                 <?php foreach ($engagement_organization_options as $organization_option): ?>
                     <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
             </select>
+            <p class="field-help" role="status" data-relationship-search-status></p>
         </div>
 
         <div class="event-schedule-row">
@@ -989,8 +1000,6 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         </div>
         </section>
 
-        <?php include 'templates/engagement_lifecycle_form.php'; ?>
-
     </form>
 
     <?php foreach ($presentations as $presentation_management_row): ?>
@@ -1096,7 +1105,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
     <div class="engagement-page-actions" aria-label="Engagement Form Actions">
         <div class="engagement-edit-actions-inner">
             <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>
+            <button type="submit" name="save_engagement" value="1" class="save-button"<?php if (!empty($error_message)): ?> data-unsaved-changes<?php endif; ?> form="engagement-edit-form">Save Changes</button>
         </div>
     </div>
 </div>

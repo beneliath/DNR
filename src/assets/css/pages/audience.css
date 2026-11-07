@@ -173,9 +173,7 @@ html:not(.has-js) .audience-file-drop>[data-file-browse]{display:none}
 input,select,textarea{border:1px solid var(--audience-input-border);background:var(--audience-surface);border-radius:4px;min-height:34px;padding:7px 10px;color:var(--audience-text)}
 input::placeholder,textarea::placeholder{color:var(--audience-placeholder)}
 input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--audience-primary);outline-offset:2px}
-input[type=checkbox]:focus:not(:focus-visible),.audience-pointer-input input[type=checkbox]:focus{outline:none}
-/* Shared input modality keeps keyboard radio focus visible across browser heuristics. */
-.audience-pointer-input input[type=radio]:focus{outline:none}
+input[type=checkbox]:focus:not(:focus-visible),.pointer-input input:is([type=checkbox],[type=radio]):focus{outline:none}
 textarea{resize:vertical}
 h1,h2,p{margin-top:0}
 h1{font-size:calc(26px * var(--audience-font-scale, 1));line-height:1.2;font-weight:500;margin:0}

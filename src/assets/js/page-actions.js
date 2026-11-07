@@ -1,4 +1,5 @@
 import {initializeAddressInputs} from './address-inputs.mjs';
+import {initializeInputModality} from './input-modality.mjs';
 import {initializeAdditionalOrganizationContacts, initializeContactRole, initializeExistingOrganizationContacts, initializeMailingAddress, updatePrimaryOrganizationContactRequirements} from './moed/contact-forms.mjs';
 import {initializeEngagementForm} from './moed/engagement-forms.mjs';
 import {initializeSelectAll} from './moed/record-selection.mjs';
@@ -7,6 +8,7 @@ import {initializeDatabaseBackupSubmission, initializeInvitationSubmission} from
 import {initializeDashboardHighlights, initializeDisclosurePopovers, initializeIconTooltips, initializeInquiryTabs, initializeStatusMessages} from './moed/workspace.mjs';
 
 function initialize() {
+    initializeInputModality();
     initializeIconTooltips();
     initializeStatusMessages();
     initializeContactRole();

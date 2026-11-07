@@ -55,6 +55,7 @@ export function initializeConnectionsWorkspace(config, show) {
         for (const [key,value] of data) if (!['open_filter','filter_query'].includes(key)) url.searchParams.append(key,String(value));
         peopleResults.inert = true; peopleResults.setAttribute('aria-busy','true'); $('[data-filter-error]').hidden = true;
         filterPending = (async () => {
+            const finishLoading = window.DnrPageLoading?.begin();
             try {
                 const response = await fetch(url,{credentials:'same-origin',headers:{Accept:'text/html'},cache:'no-store',signal:filterRequest.signal});
                 if (!response.ok) throw new Error('Unable to update these filters. Try again.');
@@ -88,7 +89,10 @@ export function initializeConnectionsWorkspace(config, show) {
             } catch (error) {
                 if (error.name === 'AbortError' || sequence !== filterSequence) return false;
                 const notice = $('[data-filter-error]'); notice.textContent = error.message; notice.hidden = false; return false;
-            } finally { if (sequence === filterSequence) { peopleResults.inert = false; peopleResults.removeAttribute('aria-busy'); } }
+            } finally {
+                finishLoading?.();
+                if (sequence === filterSequence) { peopleResults.inert = false; peopleResults.removeAttribute('aria-busy'); }
+            }
         })();
         return filterPending;
     };

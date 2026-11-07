@@ -146,3 +146,4 @@
 20261031_add_marketing_ses_alerts.sql
 20261103_add_inbox_email_forwards.sql
 20261107_complete_performed_event_tasks.sql
+20261107_complete_confirmed_presentation_tasks.sql

@@ -60,6 +60,10 @@ html body #new-engagement-form label[for="event_type_other"] .required {
     min-width: 0;
 }
 
+#new-engagement-form .engagement-schedule-section {
+    grid-column: 1 / -1;
+}
+
 #new-engagement-form .engagement-primary-row > .required-fields-note {
     grid-column: 2;
     grid-row: 1;
@@ -155,22 +159,7 @@ html body #new-engagement-form label[for="event_type_other"] .required {
 }
 
 /* Match nested section titles to the other new engagement headings. */
-#new-engagement-form .presentation-fields .speaker-row {
-    align-items: flex-start !important;
-}
-
-#new-engagement-form .presentation-fields .speaker-row :is(select, input[type="number"]) {
-    height: 44px;
-    min-height: 44px;
-    margin-bottom: 0 !important;
-}
-
-#new-engagement-form .presentation-fields :is(.topic, .speaker-row .form-field, .attendance-row .form-field) > label {
-    margin-bottom: 8px !important;
-}
-
-#new-engagement-form .engagement-contacts-heading h2,
-#new-engagement-form .engagement-lifecycle-heading h2 {
+#new-engagement-form .engagement-contacts-heading h2 {
     font-size: 1.14rem;
 }
 
@@ -263,90 +252,6 @@ html body #new-engagement-form label[for="event_type_other"] .required {
         padding: 15px;
         margin-bottom: 15px;
         border-radius: var(--radius-md);
-    }
-
-    .presentation-fields {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .presentation-fields .form-field.topic {
-        grid-column: 1 / -1;
-    }
-
-    .presentation-fields .datetime-row {
-        display: grid;
-        grid-template-columns: 0.5fr 1fr;
-        gap: 15px;
-    }
-
-    .presentation-fields .datetime-row .form-field {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 10px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .presentation-fields .datetime-row .form-field label {
-        margin: 0 !important;
-        padding: 0 !important;
-        white-space: nowrap !important;
-    }
-
-    .presentation-fields .datetime-row .form-field input[type="date"] {
-        width: 180px !important;
-        margin: 0 !important;
-    }
-
-    .presentation-fields .speaker-row {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 30px !important;
-        margin-top: 10px !important;
-        width: 100% !important;
-    }
-
-    .speaker-row .form-field {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 10px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .speaker-row .form-field.speaker {
-        flex: 1 !important;
-        min-width: 0 !important;
-    }
-
-    .speaker-row .form-field.speaker input {
-        width: 300px !important;
-        min-width: 0 !important;
-    }
-
-    .speaker-row .form-field.attendance {
-        width: auto !important;
-        min-width: unset !important;
-        white-space: nowrap !important;
-        flex: 0 0 auto !important;
-    }
-
-    .speaker-row .form-field.attendance input {
-        width: 70px !important;
-        min-width: 70px !important;
-    }
-
-    .speaker-row .form-field label {
-        margin: 0 !important;
-        padding: 0 !important;
-        white-space: nowrap !important;
-        width: auto !important;
-        min-width: 0 !important;
     }
 
     .form-field label {

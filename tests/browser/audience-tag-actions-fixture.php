@@ -5,6 +5,7 @@ require __DIR__.'/../../src/functions.php';
 require __DIR__.'/../../src/audience_store.php';
 $view=$argv[7]??'tags';$role=$argv[1]??'admin';$tab=$argv[2]??'active';$unlocked=($argv[3]??'locked')==='unlocked';
 parse_str($argv[5]??'',$_GET);
+$definitionArchiveAvailable=isset($_GET['definition_status']);
 $_SESSION=['user_id'=>11,'username'=>'fixture-'.$role,'role'=>$role,'_csrf_token'=>'fixture-token'];
 if($unlocked)$_SESSION['_admin_elevated_at']=time();
 $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
@@ -17,6 +18,7 @@ $audience=['name'=>'Example audience','settings_json'=>'{}','version'=>1];
 $groups=$fields=$catalog=$query=$recentDesigns=[];$tags=[['id'=>7,'version'=>3,'name'=>'Newsletter subscribers','contact_count'=>128,'created_at'=>'2026-10-22 12:00:00'],['id'=>8,'version'=>5,'name'=>'Community friends & volunteers with a longer tag name','contact_count'=>24,'created_at'=>'2026-10-21 12:00:00']];
 foreach(array_slice(['Prayer team','Recent donors','Devotions','Israel tour interest','Fundraising volunteers','Monthly donors','Community updates','Welcome team','Prayer letter','SMS','Event attendees','Ministry partners','New connections','Youth group','Christmas outreach','2025 donors','Launch donors','Website signup','Newsletter archive','Spring event','Summer event','Fall event','Winter event','Regional partners','International partners'],0,max(0,min(25,(int)($argv[4]??2)-2)))as$index=>$name)$tags[]=['id'=>9+$index,'version'=>1,'name'=>$name,'contact_count'=>$index*7,'created_at'=>null];
 if(($argv[6]??'')==='unknown-dates')foreach($tags as&$tag)$tag['created_at']=null;
+if(($_GET['definition_status']??'')==='archived')foreach($tags as&$tag)$tag['archived_at']='2026-10-23 12:00:00';
 unset($tag);
 if($view==='contact'){
     $id=7;$tab='overview';$events=$notes=$activityYears=[];$eventTotal=$activityYear=0;$eventSize=25;$eventPage=1;$eventFilter='';$days=30;

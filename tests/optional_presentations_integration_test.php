@@ -78,8 +78,12 @@ try {
         (title, template_key, subject_type, engagement_id, status, waiting_on)
         VALUES ('Customized event copy', ?, 'engagement', ?, 'waiting', 'Speaker'), (?, NULL, 'engagement', ?, 'open', NULL)",
         [$key, $engagementId, EVENT_PRESENTATION_TASK_TITLE, $engagementId]);
-    $readTask = static fn() => $conn->execute_query('SELECT status, waiting_on, completed_by, completed_at, updated_at
-        FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?', [$engagementId, $key])->fetch_assoc();
+    $conn->execute_query("INSERT INTO follow_up_tasks
+        (title, template_key, subject_type, engagement_id, status, waiting_on)
+        VALUES ('Customized schedule task', ?, 'engagement', ?, 'waiting', 'Speaker')",
+        [EVENT_CONFIRM_PRESENTATIONS_TASK_KEY, $engagementId]);
+    $readTask = static fn(?string $templateKey = null) => $conn->execute_query('SELECT status, waiting_on, completed_by, completed_at, updated_at
+        FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?', [$engagementId, $templateKey ?? $key])->fetch_assoc();
 
     $untouchedRow = [
         'topic_title' => '',
@@ -108,6 +112,7 @@ try {
     $completion = $readTask();
     expectOptionalPresentationsIntegration(
         $completion['status'] === 'completed' && $completion['waiting_on'] === null
+            && $readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY)['status'] === 'waiting'
             && (int) $completion['completed_by'] === $actor && $completion['completed_at'] !== null
             && $conn->execute_query('SELECT status FROM follow_up_tasks WHERE engagement_id = ? AND template_key IS NULL',
                 [$engagementId])->fetch_column() === 'open',
@@ -135,10 +140,28 @@ try {
         'presentation_time' => '3:30 PM',
         'duration_minutes' => '45',
     ]);
+    foreach (['topic_title', 'presentation_date', 'presentation_time'] as $missing) {
+        $incompleteRow = array_replace($completeRow, [$missing => '']);
+        syncEngagementPresentations($conn, $engagementId, $normalize([$incompleteRow]), $actor);
+        expectOptionalPresentationsIntegration($readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY)['status'] === 'waiting',
+            "The scheduling task must stay pending without {$missing}.");
+    }
+    $conn->query('SAVEPOINT before_confirmed_schedule');
+    syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow]), $actor);
+    $conn->query('ROLLBACK TO SAVEPOINT before_confirmed_schedule');
+    expectOptionalPresentationsIntegration($readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY)['status'] === 'waiting',
+        'Rolling back a presentation save must also roll back task completion.');
     expectOptionalPresentationsIntegration(
-        syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow])),
+        syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow]), $actor),
         'an existing partial presentation must accept details added later.'
     );
+    $confirmed = $readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY);
+    expectOptionalPresentationsIntegration($confirmed['status'] === 'completed' && $confirmed['waiting_on'] === null
+        && (int) $confirmed['completed_by'] === $actor && $confirmed['completed_at'] !== null,
+        'Saving the last required detail must complete the associated scheduling task.');
+    syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow]), $actor);
+    expectOptionalPresentationsIntegration($readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY) === $confirmed,
+        'Saving the same schedule twice must preserve the completion history.');
     $stored = fetchOptionalPresentationsIntegration($conn, $engagementId);
     expectOptionalPresentationsIntegration(
         count($stored) === 1
@@ -171,6 +194,8 @@ try {
             && !syncEngagementPresentations($conn, $engagementId, $cleared),
         'cleared values must remain NULL on readback and unchanged on a subsequent save.'
     );
+    expectOptionalPresentationsIntegration($readTask(EVENT_CONFIRM_PRESENTATIONS_TASK_KEY) === $confirmed,
+        'Later edits must preserve the completed task.');
 
     foreach ([0, 1441, -1] as $invalidDuration) {
         $rejected = false;

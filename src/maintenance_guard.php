@@ -10,7 +10,8 @@ if (!is_string($identifier) || preg_match('/\A[a-f0-9]{32}\z/', $identifier) !==
 }
 header('Cache-Control: no-store, max-age=0');
 header('X-DNR-Maintenance-Guard: ' . $identifier);
-header("Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'");
+$maintenanceNonce=base64_encode(random_bytes(18));
+header("Content-Security-Policy: default-src 'none'; script-src 'self' 'nonce-$maintenanceNonce'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'");
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 preg_match('~\A(/a/[a-z][a-z0-9-]{2,63})(?:/|$)~', $path, $match);

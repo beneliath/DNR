@@ -1,29 +1,20 @@
-.engagement-lifecycle-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.engagement-lifecycle-heading h2 {
-    margin-bottom: 6px;
-}
-
-.engagement-lifecycle-heading .field-help {
-    max-width: 760px;
-    margin: 0;
+.engagement-lifecycle-section {
+    margin-block: 18px 24px;
+    container-type: inline-size;
 }
 
 .engagement-lifecycle-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-top: 18px;
+    grid-template-columns: repeat(2, minmax(0, 12rem)) minmax(max-content, 1fr);
+    gap: 7px 16px;
 }
 
-.engagement-lifecycle-grid:has([data-confirmation-field][hidden]) {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 32rem;
+.engagement-lifecycle-grid > .lifecycle-badge {
+    --status-pill-min-height: 1.75rem;
+    --status-pill-padding: 0.25rem 0.625rem;
+    --status-pill-font-size: 0.875rem;
+    grid-area: 2 / -2;
+    place-self: center end;
 }
 
 .engagement-lifecycle-grid [data-confirmation-field][hidden] {
@@ -31,10 +22,19 @@
 }
 
 .engagement-lifecycle-grid .lifecycle-field {
-    display: flex;
-    align-items: stretch;
-    flex-direction: column;
-    gap: 7px;
+    display: grid;
+    grid-row: 1 / span 2;
+    grid-template-rows: subgrid;
+    min-width: 0;
+}
+
+@container (max-width: 29rem) {
+    .engagement-lifecycle-grid {
+        grid-template-columns: minmax(0, 12rem) minmax(max-content, 1fr);
+    }
+    .engagement-lifecycle-grid [data-confirmation-field] {
+        grid-area: 3 / 1 / span 2;
+    }
 }
 
 .engagement-lifecycle-grid .lifecycle-field label,
@@ -51,6 +51,10 @@
 
 .lifecycle-dependent-field {
     margin-top: 16px;
+}
+
+.lifecycle-dependent-field[data-reschedule-fields] {
+    max-width: 32rem;
 }
 
 .lifecycle-dependent-field > label {
@@ -123,14 +127,4 @@
     background: var(--control-hover-bg, #dbeafe);
     color: var(--control-hover-fg, #1d4ed8);
     text-decoration: none;
-}
-
-@media (max-width: 620px) {
-    .engagement-lifecycle-heading {
-        flex-direction: column;
-    }
-
-    .engagement-lifecycle-grid {
-        grid-template-columns: 1fr;
-    }
 }

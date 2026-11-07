@@ -195,6 +195,7 @@ HTML],
 HTML],
             ['flow-results', 'Results and flow lifecycle', <<<'HTML'
 <p>In the automation list, <strong>Results</strong> appears before <strong>Edit</strong>. Use Results to review the flow’s reported activity and execution outcomes. Investigate failed or waiting steps in context rather than treating every enrolled connection as a delivered email.</p>
+<p>To rename an automation, select <strong>Rename</strong> in its row, enter the new flow name, and select <strong>Save name</strong>. An active flow keeps running, and enrolled connections keep their places.</p>
 <p>In <strong>Report</strong>, <strong>Step analysis</strong> shows waiting, completed, skipped, and needs-attention counts for each step. Select a step to filter <strong>Connection activity</strong>, or use its status and step filters together. Open a connection's activity row to inspect its path and any error before retrying or removing it from the flow.</p>
 <p>Archive a flow when it is no longer needed in the active list. Restoring an archived flow returns it as a draft so it can be reviewed before activation. Permanent deletion is a separate protected action. A duplicate also needs its own review before use.</p>
 HTML],

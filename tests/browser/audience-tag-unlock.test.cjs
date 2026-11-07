@@ -8,7 +8,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
   await page.addInitScript(dark=>localStorage.setItem('theme',dark?'dark':'light'),dark);
   await page.route('http://tags.test/**',route=>{const request=route.request(),url=new URL(request.url());
    if(['/admin_elevation.php','/admin_unlock_status.php'].includes(url.pathname)){if(request.method()==='POST')unlocked=true;return route.fulfill({contentType:'application/json',body:JSON.stringify({unlocked,csrf_token:unlocked?'rotated-token':'fixture-token',server_now:Date.now()/1000,expires_at:unlocked?Date.now()/1000+300:null})});}
-   if(url.pathname==='/audience.php'){if(request.method()==='POST'){posts.push(Object.fromEntries(new URLSearchParams(request.postData())));return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Fixture deletion submitted</p>'});}return route.fulfill({contentType:'text/html',body:execFileSync('php',['tests/browser/audience-tag-actions-fixture.php',role],{cwd:root,encoding:'utf8'})});}
+   if(url.pathname==='/audience.php'){if(request.method()==='POST'){posts.push(Object.fromEntries(new URLSearchParams(request.postData())));return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Fixture deletion submitted</p>'});}return route.fulfill({contentType:'text/html',body:execFileSync('php',['tests/browser/audience-tag-actions-fixture.php',role,'active','locked','2',url.searchParams.toString()],{cwd:root,encoding:'utf8'})});}
    const file=path.join(root,'src',url.pathname);return fs.existsSync(file)?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'image/svg+xml'}):route.fulfill({status:404,body:''});
   });
   const go=async(expand=true)=>{await page.goto('http://tags.test/audience.php?view=tags');if(expand)await expandRowActions(page.locator('.audience-tag-actions').first());};await go(false);
@@ -39,6 +39,20 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
    await removeTag();await enter();await confirm.waitFor({state:'visible'});await confirm.getByRole('button',{name:'Continue',exact:true}).click();await page.getByText('Fixture deletion submitted').waitFor();assert.equal(posts.length,1);assert.equal(posts[0].action,'delete_tag');assert.equal(posts[0].id,'7');assert.equal(posts[0].version,'3');assert.equal(posts[0].csrf_token,'rotated-token');
    await go();unlocked=false;await page.locator('[data-definition-item]').first().check();const bulk=page.locator('#definition-selection button[type=submit]');await bulk.click();await unlock.waitFor({state:'visible'});await unlock.locator('[data-unlock-cancel]').click();assert.equal(posts.length,1);
    await bulk.click();await enter();await confirm.waitFor({state:'visible'});await confirm.getByRole('button',{name:'Continue',exact:true}).click();await page.getByText('Fixture deletion submitted').waitFor();assert.equal(posts.length,2);assert.equal(posts[1].action,'delete_selected_definitions');assert.equal(posts[1].kind,'tags');assert.equal(posts[1]['selected_ids[]'],'7');assert.equal(posts[1]['versions[7]'],'3');assert.equal(posts[1].csrf_token,'rotated-token');
+  }
+  if(!mobile && role!=='reviewer'){
+   for(const status of ['active','archived']){
+    await page.goto('http://tags.test/audience.php?view=tags&definition_status='+status);
+    const table=page.locator('.audience-tag-list');
+    const headerRight=await table.locator('th.tag-actions').evaluate(cell=>
+     cell.getBoundingClientRect().right-parseFloat(getComputedStyle(cell).paddingInlineEnd));
+    const groups=table.locator('td.tag-actions .audience-tag-actions');
+    assert.equal(await groups.count(),2);
+    for(const group of await groups.all()){
+     const last=await group.locator('.action-icon-button').last().boundingBox();
+     assert.ok(Math.abs(last.x+last.width-headerRight)<1,'The last '+status+' tag action lines up with the Actions heading');
+    }
+   }
   }
   assert.deepEqual(errors,[]);checks++;await page.close();
  }

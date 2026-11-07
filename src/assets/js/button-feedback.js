@@ -188,7 +188,9 @@
             controls.forEach(finish => finish());
             if (notice) notice.hidden = true;
         });
-        win.DnrButtonFeedback = Object.freeze({ begin });
+        win.DnrButtonFeedback = Object.freeze({ begin,
+            isDownload: href => Boolean(downloadKind({href, hasAttribute: () => false}, win.location.href))
+        });
         return win.DnrButtonFeedback;
     }
 

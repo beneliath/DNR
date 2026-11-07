@@ -300,6 +300,13 @@ def validate(db,anchor):
        AND (template.id IS NOT NULL OR task.template_key REGEXP '^(standard|custom|deployment)[.]')
        AND EXISTS (SELECT 1 FROM dnr.presentations p WHERE p.engagement_id=task.engagement_id AND p.is_archived=0)))""")
   require(pending=='0','A performed standard event task is still outstanding')
+ if query(db,"SELECT COUNT(*) FROM dnr.schema_migrations WHERE migration_name='20261107_complete_confirmed_presentation_tasks.sql' AND state='applied'")=='1':
+  pending=query(db,"""SELECT COUNT(*) FROM dnr.follow_up_tasks task
+   WHERE task.template_key='standard.confirm_presentations' AND task.subject_type='engagement'
+     AND task.is_archived=0 AND task.status IN ('open','in_progress','waiting')
+     AND EXISTS (SELECT 1 FROM dnr.presentations p WHERE p.engagement_id=task.engagement_id AND p.is_archived=0
+                 AND p.topic_title REGEXP '[^[:space:]]' AND p.presentation_date IS NOT NULL AND p.presentation_time IS NOT NULL)""")
+  require(pending=='0','A presentation confirmation task with a saved topic, date and time is still outstanding')
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title LIKE '[Demo team task] %' AND u.username IN ('TestAdmin','TestReviewer') AND t.status IN ('open','in_progress','waiting') AND t.is_archived=0")=='6','Task examples missing'
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title NOT LIKE '[Demo team task] %' AND u.username<>'TestEditor'")=='0','Baseline ownership failed'
  assert not foreign_key_errors(db),'Broken foreign keys: '+str(foreign_key_errors(db))

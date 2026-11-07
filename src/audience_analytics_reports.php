@@ -223,18 +223,36 @@ trait AudienceAnalyticsReports
 
     public function analyticsNativeFunnels(array $w):array
     {
+        return ['forms'=>$this->analyticsFormMetrics($w),'flows'=>$this->analyticsFlowMetrics($w)];
+    }
+
+    private function analyticsFormMetrics(array $w):array
+    {
         $forms=$this->all("SELECT c.id,c.name label,c.kind,
             (SELECT COUNT(*) FROM marketing_collection_visits v WHERE v.resource_id=c.id AND v.day>=? AND v.day<=?) visitors,
             (SELECT COUNT(*) FROM marketing_collection_responses r WHERE r.audience_id=c.audience_id AND r.resource_id=c.id AND r.created_at>=? AND r.created_at<?) responses,
-            (SELECT COUNT(DISTINCT e.contact_id) FROM marketing_contact_events e JOIN marketing_contacts p ON p.id=e.contact_id AND p.audience_id=c.audience_id WHERE p.deleted_at IS NULL AND e.event_type='collection-converted' AND JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.resource_id'))=CAST(c.id AS CHAR) AND e.created_at>=? AND e.created_at<?) confirmed
-            FROM marketing_collection_resources c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY label,c.id",[$w['start'],$w['end'],$w['from'],$w['until'],$w['from'],$w['until'],$this->audienceId]);
+            COALESCE(conversions.confirmed,0) confirmed
+            FROM marketing_collection_resources c
+            LEFT JOIN (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.resource_id')) resource_key,COUNT(DISTINCT e.contact_id) confirmed
+                FROM marketing_contact_events e JOIN marketing_contacts p ON p.id=e.contact_id
+                WHERE p.audience_id=? AND p.deleted_at IS NULL AND e.event_type='collection-converted' AND e.created_at>=? AND e.created_at<?
+                GROUP BY resource_key
+            ) conversions ON conversions.resource_key=CAST(c.id AS CHAR)
+            WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY label,c.id",
+            [$w['start'],$w['end'],$w['from'],$w['until'],$this->audienceId,$w['from'],$w['until'],$this->audienceId]);
         foreach($forms as&$r){foreach(['visitors','responses','confirmed']as$key)$r[$key]=(int)$r[$key];$r['conversion_rate']=audienceAnalyticsRate($r['confirmed'],$r['visitors']);}unset($r);
+        return $forms;
+    }
+
+    private function analyticsFlowMetrics(array $w):array
+    {
         $flows=$this->all("SELECT f.id,f.name label,COUNT(r.id) runs,COALESCE(SUM(r.state='completed'),0) completed,
             COALESCE(SUM(r.state='exited'),0) exited,COALESCE(SUM(r.state='failed'),0) failed,COALESCE(SUM(r.state='active'),0) active
             FROM marketing_flows f LEFT JOIN marketing_flow_runs r ON r.flow_id=f.id AND r.audience_id=f.audience_id AND r.started_at>=? AND r.started_at<?
             WHERE f.audience_id=? AND f.deleted_at IS NULL GROUP BY f.id ORDER BY label,f.id",[$w['from'],$w['until'],$this->audienceId]);
         foreach($flows as&$r){foreach(['runs','completed','exited','failed','active']as$key)$r[$key]=(int)$r[$key];$r['completion_rate']=audienceAnalyticsRate($r['completed'],$r['runs']);}unset($r);
-        return ['forms'=>$forms,'flows'=>$flows];
+        return $flows;
     }
 
     public function analyticsReportRows(array $w,array $definition,?array $audienceHistory = null):array
@@ -255,8 +273,9 @@ trait AudienceAnalyticsReports
             foreach(['current','previous']as$period){$out=[];foreach($groupRows($history[$period],$d['dimension'],'audience')as$key=>$g){$out[$key]=['label'=>$g['label']];foreach(['added','subscriptions','optouts','net']as$m)$out[$key][$m]=array_sum(array_column($g['rows'],$m));}if($period==='current')$groups=$out;else$previous=$out;}
         }else{
             $prior=array_replace($w,['from'=>$w['previous_from'],'until'=>$w['previous_until'],'start'=>substr($w['previous_from'],0,10),'end'=>(new DateTimeImmutable($w['previous_until']))->modify('-1 day')->format('Y-m-d')]);
-            foreach($this->analyticsNativeFunnels($w)[$d['dataset']]as$row)$groups[$row['id']]=$row;
-            foreach($this->analyticsNativeFunnels($prior)[$d['dataset']]as$row)$previous[$row['id']]=$row;
+            $metrics=$d['dataset']==='forms'?$this->analyticsFormMetrics(...):$this->analyticsFlowMetrics(...);
+            foreach($metrics($w)as$row)$groups[$row['id']]=$row;
+            foreach($metrics($prior)as$row)$previous[$row['id']]=$row;
         }
         // Align dated comparison buckets by their relative position, not their different calendar dates.
         if(in_array($d['dimension'],['day','week','month'],true)){

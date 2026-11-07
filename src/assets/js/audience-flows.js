@@ -41,7 +41,12 @@
         const dialog=$(`#flow-${button.dataset.flowLifecycle}`);if(!dialog)return;
         const record=JSON.parse(button.dataset.flowRecord);
         $('input[name=id]',dialog).value=record.id;$('input[name=version]',dialog).value=record.version;
-        $('[data-flow-lifecycle-name]',dialog).textContent=record.name;
+        const label=$('[data-flow-lifecycle-name]',dialog);if(label)label.textContent=record.name;
+        const name=$('input[name=name]',dialog);
+        if(name){
+            name.value=record.name;name.select();
+            const error=$('[data-flow-rename-error]',dialog);if(error)error.hidden=true;
+        }
         const confirmation=$('input[name=confirm]',dialog);if(confirmation)confirmation.value='';
     }));
     $$('.flow-overview-filters select').forEach(control=>control.addEventListener('change',()=>control.form.requestSubmit()));

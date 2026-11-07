@@ -24,6 +24,9 @@ $forwardedPrefix = $_SERVER['HTTP_X_FORWARDED_PREFIX'] ?? '';
 $assetPrefix = is_string($forwardedPrefix) && preg_match('/\A\/a\/[a-z][a-z0-9-]{2,63}\z/', $forwardedPrefix) === 1
     ? $forwardedPrefix : '';
 $timerVersion = substr(hash_file('sha256', __DIR__ . '/assets/js/maintenance-timer.js'), 0, 12);
+// The standalone ingress can render this page while the application is offline.
+$loadingAssets = is_file(__DIR__.'/assets/js/page-loading.min.js') ? __DIR__.'/assets' : '/opt/dnr/account-assets';
+$maintenanceNonce ??= function_exists('contentSecurityPolicyNonce') ? contentSecurityPolicyNonce() : null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -32,7 +35,9 @@ $timerVersion = substr(hash_file('sha256', __DIR__ . '/assets/js/maintenance-tim
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101a24">
     <title>Under maintenance</title>
+    <script<?= isset($maintenanceNonce)?' nonce="'.htmlspecialchars($maintenanceNonce,ENT_QUOTES,'UTF-8').'"':'' ?>><?php readfile($loadingAssets.'/js/page-loading.min.js'); ?></script>
     <style>
+        <?php readfile($loadingAssets.'/css/page-loading.min.css'); ?>
         :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #101a24; color: #f2f6f9; }
         main { box-sizing: border-box; width: min(100% - 2rem, 38rem); padding: clamp(1.5rem, 5vw, 3rem); background: #1d2b39; border-radius: 1rem; }

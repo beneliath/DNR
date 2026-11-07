@@ -1,4 +1,5 @@
 import hashlib
+import gzip
 import io
 import json
 from pathlib import Path
@@ -9,9 +10,35 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
-from deployment_backup import verify_file_stream, create_verified_backup, wait_for_restore_database
+from deployment_backup import (backup_persistent_files, create_verified_backup, restore_encrypted_database,
+                               verify_file_stream, wait_for_restore_database)
 
 class NativeFileStreamTests(unittest.TestCase):
+    def test_file_backup_requires_a_web_container_with_the_upload_mount(self):
+        with patch('deployment_backup.query',side_effect=['1','']), \
+                patch('deployment_backup.subprocess.check_output',side_effect=[
+                    '[{"Config":{"Labels":{"com.docker.compose.project":"example"}}}]','']) as commands, \
+                self.assertRaisesRegex(ValueError,'identify persistent file volume'):
+            backup_persistent_files('db','app',Path('archive'),Path('password'))
+        self.assertIn('volume=/var/lib/dnr/files',commands.call_args.args[0])
+
+    def test_failed_restore_drains_decryption_helper(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder=Path(temporary)
+            archive=folder/'backup'
+            marker=folder/'drained'
+            # Multiple independent gzip members keep producing data after mysql exits.
+            archive.write_bytes(gzip.compress(b'x'*1048576)*256)
+            worker=[sys.executable,'-c',
+                    'import pathlib,shutil,sys; shutil.copyfileobj(sys.stdin.buffer,sys.stdout.buffer); '
+                    'sys.stdout.buffer.flush(); pathlib.Path(sys.argv[1]).touch()',str(marker)]
+            with patch('deployment_backup.wait_for_restore_database'), \
+                    patch('deployment_backup.crypto_command',return_value=worker), \
+                    patch('deployment_backup.root_command',return_value=[sys.executable,'-c','raise SystemExit(1)']), \
+                    self.assertRaises(BrokenPipeError):
+                restore_encrypted_database(archive,'scratch','app',folder/'password')
+            self.assertTrue(marker.is_file())
+
     def test_restore_waits_through_temporary_mysql_and_its_shutdown(self):
         states = [SimpleNamespace(returncode=0, stdout='1\n'),
                   SimpleNamespace(returncode=1, stdout=''),

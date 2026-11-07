@@ -134,17 +134,45 @@ trait AudienceAnalytics
         return $result;
     }
 
-    public function analyticsOverview(array $window, bool $drafts = false, bool $includeEmailMetrics = true): array
+    private function validateAnalyticsMessages(array $window): void
     {
         foreach($window['messages']??[] as$campaign)if(!$this->one('SELECT id FROM marketing_campaigns WHERE audience_id=? AND id=?',[$this->audienceId,$campaign]))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
+    }
+
+    private function analyticsIncludesSamples(array $window): bool
+    {
+        return $this->one("SELECT 1 FROM marketing_campaign_deliveries d JOIN marketing_campaigns c ON c.audience_id=d.audience_id AND c.id=d.campaign_id WHERE d.audience_id=? AND d.due_at>=? AND d.due_at<? AND JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.sample_dataset'))='stage7-local' LIMIT 1",[$this->audienceId,$window['from'],$window['until']])!==null;
+    }
+
+    private function analyticsRecentCollections(array $window): array
+    {
+        return $this->all("SELECT c.id,c.name,c.kind,
+            (SELECT COUNT(*) FROM marketing_collection_responses r WHERE r.audience_id=c.audience_id AND r.resource_id=c.id AND r.created_at>=? AND r.created_at<?) responses,
+            (SELECT COUNT(*) FROM marketing_collection_visits v WHERE v.resource_id=c.id AND v.day>=? AND v.day<=?) daily_visitors
+            FROM marketing_collection_resources c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.updated_at DESC LIMIT 5",
+            [$window['from'],$window['until'],$window['start'],$window['end'],$this->audienceId]);
+    }
+
+    public function analyticsConversionReport(array $window): array
+    {
+        $this->validateAnalyticsMessages($window);
+        $current=$this->analyticsRecipients($window['from'],$window['until'],$window['bots'],$window);
+        return ['includes_samples'=>$this->analyticsIncludesSamples($window),'totals'=>$this->analyticsTotals($current),
+            'collections'=>$this->analyticsRecentCollections($window),
+            'forms'=>$this->analyticsReportRows($window,['dataset'=>'forms']),
+            'flows'=>$this->analyticsReportRows($window,['dataset'=>'flows'])];
+    }
+
+    public function analyticsOverview(array $window, bool $drafts = false, bool $includeEmailMetrics = true): array
+    {
+        $this->validateAnalyticsMessages($window);
         $audience = $this->one("SELECT COUNT(*) total,SUM(email_status='subscribed') subscribed,
             SUM(email_status='unsubscribed') unsubscribed,SUM(email_status='non-subscribed') non_subscribed,
             SUM(email_status='cleaned') cleaned,SUM(email_status='pending') pending,
             SUM(created_at>=? AND created_at<?) added FROM marketing_contacts
             WHERE audience_id=? AND is_archived=0 AND deleted_at IS NULL",[$window['from'],$window['until'],$this->audienceId]);
         $audience['visible_total']=(int)$audience['total']-(int)$audience['cleaned']-(int)$audience['pending'];
-        $sample=$this->one("SELECT 1 FROM marketing_campaign_deliveries d JOIN marketing_campaigns c ON c.audience_id=d.audience_id AND c.id=d.campaign_id WHERE d.audience_id=? AND d.due_at>=? AND d.due_at<? AND JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.sample_dataset'))='stage7-local' LIMIT 1",[$this->audienceId,$window['from'],$window['until']]);
-        $snapshot = ['audience' => $audience, 'includes_samples' => $sample !== null];
+        $snapshot = ['audience' => $audience, 'includes_samples' => $this->analyticsIncludesSamples($window)];
         if (!$includeEmailMetrics) {
             // Validate a bookmarked segment even when the view only uses the snapshot.
             if (!empty($window['segment'])) $this->analyticsRecipientScope($window);
@@ -168,11 +196,7 @@ trait AudienceAnalytics
             ORDER BY updated_at DESC,id DESC LIMIT 10",[$this->audienceId,(int)$drafts,$window['from'],$window['until']]);
         foreach ($campaigns as &$campaign) $campaign['metrics']=$this->analyticsTotals($byCampaign[(int)$campaign['id']]??[]);
         unset($campaign);
-        $collection=$this->all("SELECT c.id,c.name,c.kind,
-            (SELECT COUNT(*) FROM marketing_collection_responses r WHERE r.audience_id=c.audience_id AND r.resource_id=c.id AND r.created_at>=? AND r.created_at<?) responses,
-            (SELECT COUNT(*) FROM marketing_collection_visits v WHERE v.resource_id=c.id AND v.day>=? AND v.day<=?) daily_visitors
-            FROM marketing_collection_resources c WHERE c.audience_id=? AND c.deleted_at IS NULL ORDER BY c.updated_at DESC LIMIT 5",
-            [$window['from'],$window['until'],$window['start'],$window['end'],$this->audienceId]);
+        $collection=$this->analyticsRecentCollections($window);
         $flows=$this->all("SELECT f.id,f.name,f.state,
             (SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.audience_id=f.audience_id AND r.flow_id=f.id AND r.started_at>=? AND r.started_at<?) runs
             FROM marketing_flows f WHERE f.audience_id=? AND f.deleted_at IS NULL ORDER BY f.updated_at DESC LIMIT 5",

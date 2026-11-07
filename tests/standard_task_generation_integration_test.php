@@ -128,6 +128,57 @@ try {
     $conn->query($backfill);
     expectStandardTaskGeneration($conn->affected_rows === 0, 'replaying the backfill must preserve completion history');
 
+    $confirmKey = EVENT_CONFIRM_PRESENTATIONS_TASK_KEY;
+    $confirmId = (int) $conn->execute_query('SELECT id FROM standard_event_tasks WHERE template_key = ?', [$confirmKey])->fetch_column();
+    $readConfirmation = static fn(int $event) => $conn->execute_query(
+        'SELECT status, completed_by, completed_at, waiting_on FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?',
+        [$event, $confirmKey])->fetch_assoc();
+    $conn->execute_query("UPDATE presentations SET presentation_date='2026-10-10' WHERE engagement_id=?", [$events['caller']]);
+    $conn->execute_query("UPDATE presentations SET topic_title=?, presentation_time='00:00:00'
+        WHERE engagement_id=? AND topic_title='Second'", [" \t ", $events['caller']]);
+    $conn->execute_query("UPDATE presentations SET presentation_date='2026-10-10', presentation_time='09:00:00'
+        WHERE engagement_id IN (?, ?, ?)", [$events['unassigned'], $events['inactive'], $events['postponed']]);
+    $deleteCallerConfirmation = static fn() => $conn->execute_query('DELETE FROM follow_up_tasks WHERE engagement_id=? AND template_key=?',
+        [$events['caller'], $confirmKey]);
+    $deleteCallerConfirmation();
+    generateStandardTaskForOpenEngagements($conn, $confirmId, $users['creator'], false);
+    expectStandardTaskGeneration($readConfirmation($events['caller'])['status'] === 'open'
+        && $readConfirmation($events['unassigned'])['status'] === 'open',
+        'confirmation requires all three details on the same active presentation');
+    $conn->execute_query("UPDATE presentations SET presentation_time='00:00:00' WHERE engagement_id=? AND topic_title='First'",
+        [$events['caller']]);
+    $deleteCallerConfirmation();
+    generateStandardTaskForOpenEngagements($conn, $confirmId, $users['creator'], false);
+    expectStandardTaskGeneration($readConfirmation($events['caller'])['status'] === 'completed'
+        && (int) $readConfirmation($events['caller'])['completed_by'] === $users['creator'],
+        'bulk generation must recognize a saved schedule including midnight');
+    $deleteCallerConfirmation();
+    generateEngagementFollowUpChecklist($conn, $events['caller'], $users['caller'], $users['creator'], false);
+    expectStandardTaskGeneration($readConfirmation($events['caller'])['status'] === 'completed',
+        'a later checklist must recognize a previously scheduled presentation');
+
+    $conn->execute_query("UPDATE follow_up_tasks SET status='waiting', waiting_on='Speaker', completed_at=NULL, completed_by=NULL
+        WHERE engagement_id=? AND template_key=?", [$events['caller'], $confirmKey]);
+    $conn->execute_query("UPDATE follow_up_tasks SET status='canceled', completed_at=NULL, completed_by=NULL
+        WHERE engagement_id=? AND template_key=?", [$events['inactive'], $confirmKey]);
+    $conn->execute_query("INSERT INTO follow_up_tasks (engagement_id, subject_type, title, template_key, status, is_archived, archived_at)
+        VALUES (?, 'engagement', 'Archived confirmation', ?, 'open', 1, UTC_TIMESTAMP()),
+               (?, 'engagement', 'Confirm presentation topics, dates, and times', NULL, 'open', 0, NULL)",
+        [$events['postponed'], $confirmKey, $events['caller']]);
+    $confirmationBackfill = file_get_contents(__DIR__ . '/../migrations/20261107_complete_confirmed_presentation_tasks.sql');
+    $conn->query($confirmationBackfill);
+    $historical = $readConfirmation($events['caller']);
+    expectStandardTaskGeneration($historical['status'] === 'completed' && $historical['completed_at'] !== null
+        && $historical['completed_by'] === null && $historical['waiting_on'] === null
+        && $readConfirmation($events['unassigned'])['status'] === 'open'
+        && $readConfirmation($events['inactive'])['status'] === 'canceled'
+        && $readConfirmation($events['postponed'])['status'] === 'open'
+        && $conn->execute_query("SELECT status FROM follow_up_tasks WHERE engagement_id=? AND template_key IS NULL
+            AND title='Confirm presentation topics, dates, and times'", [$events['caller']])->fetch_column() === 'open',
+        'historical scheduling must match the event and generated task and preserve archived, canceled and manual tasks');
+    $conn->query($confirmationBackfill);
+    expectStandardTaskGeneration($conn->affected_rows === 0, 'replaying schedule reconciliation must preserve completion history');
+
     $conn->query("UPDATE standard_event_tasks SET is_archived = 1, archived_at = UTC_TIMESTAMP() WHERE id = {$id}");
     try {
         generateStandardTaskForOpenEngagements($conn, $id, $users['creator'], false);

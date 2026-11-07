@@ -1,17 +1,7 @@
-<section class="form-section engagement-lifecycle-section"
+<section class="engagement-lifecycle-section" aria-label="Event lifecycle"
          data-engagement-lifecycle
          data-reschedule-options-url="engagement_reschedule_options.php"
          data-engagement-id="<?php echo (int) ($current_engagement_id ?? 0); ?>">
-    <div class="engagement-lifecycle-heading">
-        <div>
-            <h2>Lifecycle</h2>
-            <p class="field-help">Track whether the event is operationally active, postponed, canceled, or completed. Confirmation remains a separate planning status.</p>
-        </div>
-        <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $selected_lifecycle_status, ENT_QUOTES, 'UTF-8'); ?>" data-lifecycle-badge>
-            <?php echo htmlspecialchars(engagementLifecycleLabel($selected_lifecycle_status), ENT_QUOTES, 'UTF-8'); ?>
-        </span>
-    </div>
-
     <div class="engagement-lifecycle-grid">
         <div class="form-field lifecycle-field">
             <label for="lifecycle_status">Lifecycle State</label>
@@ -30,6 +20,9 @@
                 <?php endforeach; ?>
             </select>
         </div>
+        <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $selected_lifecycle_status, ENT_QUOTES, 'UTF-8'); ?>" data-lifecycle-badge>
+            <?php echo htmlspecialchars(engagementLifecycleLabel($selected_lifecycle_status), ENT_QUOTES, 'UTF-8'); ?>
+        </span>
     </div>
 
     <div class="lifecycle-dependent-field" data-cancellation-fields<?php echo $selected_lifecycle_status === 'canceled' ? '' : ' hidden'; ?>>

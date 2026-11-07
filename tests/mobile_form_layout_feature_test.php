@@ -26,7 +26,7 @@ expectMobileFormLayoutFeature(
 );
 
 expectMobileFormLayoutFeature(
-    str_contains($engagement_styles, 'width: 300px !important;')
+    preg_match('/\.form-row \.form-field select\s*\{[^}]*\bwidth:\s*\d+px\s*!important;/s', $engagement_styles) === 1
         && preg_match(
             '/@media \(max-width: 760px\).*?form:not\(\.footer-logout-form\):not\(\.sidebar-logout-form\).*?input:not\(\[type="checkbox"\]\).*?width:\s*100%\s*!important;.*?min-width:\s*0\s*!important;.*?max-width:\s*100%\s*!important;/s',
             $modern_styles

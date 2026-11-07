@@ -10,6 +10,32 @@ $enroll=static function(array $flow,?int $person=null,?int $at=null)use($fs,$flo
 $stop=static function(int $id)use($fs):void{$r=$fs->flow($id);$fs->flowOperation($id,(int)$r['version'],'pause');};
 $d=audienceFlowDefault();$d['nodes']=[['id'=>'tag','type'=>'tag','tag_id'=>$flowTag,'next'=>'']];$d['start']='tag';
 $basic=$newFlow($d);$runId=$enroll($basic);audienceHttpExpect((bool)$runId,'A qualifying connection can enter an active flow');
+$renamePath='audience.php?view=automations&tab=flows&state=running&sort=updated&page=1&per_page=10';
+$rename=['action'=>'flow_operation','operation'=>'rename','id'=>$basic['id'],'version'=>$basic['version'],'name'=>'  Renamed & running  '];
+$renameToken=audienceHttpCsrf($editor($renamePath));
+audienceHttpExpect($reviewer($renamePath,['csrf_token'=>audienceHttpCsrf($reviewer($renamePath))]+$rename)['status']===403,'Reviewers cannot rename flows');
+audienceHttpExpect($editor($renamePath,['csrf_token'=>'invalid']+$rename)['status']===400,'Renaming requires CSRF');
+foreach(['   ',str_repeat('a',101)]as$badName){
+    $invalid=$editor($renamePath,['csrf_token'=>$renameToken,'format'=>'json','name'=>$badName]+$rename);
+    audienceHttpExpect($invalid['status']===422&&$fs->flow((int)$basic['id'])['name']===$basic['name'],'Invalid rename preserves the original name');
+}
+$invalidForm=$editor($renamePath,['csrf_token'=>$renameToken,'name'=>'']+$rename);
+audienceHttpExpect($invalidForm['status']===200&&preg_match('/<dialog id="flow-rename"[^>]+data-reopen-dialog/',$invalidForm['body'])
+    &&str_contains($invalidForm['body'],'Enter a flow name.'),'An invalid form reopens Rename with its validation message');
+$runBefore=$fs->one('SELECT * FROM marketing_flow_runs WHERE id=?',[$runId]);
+$renamed=$editor($renamePath,['csrf_token'=>$renameToken]+$rename);
+audienceHttpExpect($renamed['status']===302&&str_contains($renamed['headers'],$renamePath),'Renaming returns to the filtered list');
+$after=$fs->flow((int)$basic['id']);
+$metadata=array_flip(['name','updated_at','version']);
+audienceHttpExpect($after['name']==='Renamed & running'&&(int)$after['version']===(int)$basic['version']+1
+    &&array_diff_key($after,$metadata)===array_diff_key($basic,$metadata)
+    &&$fs->one('SELECT * FROM marketing_flow_runs WHERE id=?',[$runId])===$runBefore,'A running rename preserves the map, revision, cursor and enrolled connection');
+$staleRename=$editor($renamePath,['csrf_token'=>$renameToken,'format'=>'json','name'=>'Stale name']+$rename);
+audienceHttpExpect($staleRename['status']===422&&$fs->flow((int)$basic['id'])['name']===$after['name'],'A stale rename cannot overwrite a newer name');
+$sameName=$editor($renamePath,['csrf_token'=>$renameToken,'version'=>$after['version']]+$rename);
+audienceHttpExpect($sameName['status']===302&&$fs->flow((int)$basic['id'])['version']===$after['version'],'Saving the current name keeps its version');
+audienceHttpExpect(str_contains($editor($renamePath.'&q=Renamed')['body'],'Renamed &amp; running'),'Search displays the persisted name');
+$basic=$after;
 processAudienceFlows($conn,20,$clock);
 audienceHttpExpect($fs->one('SELECT state FROM marketing_flow_runs WHERE id=?',[$runId])['state']==='completed','Native data action completes a flow');
 audienceHttpExpect(in_array($flowTag,$fs->person($flowPerson)['tag_ids'],true),'Flow applies its scoped tag');
@@ -26,6 +52,13 @@ $overviewIds=[];foreach(['Overview older','Overview newer','Overview classic']as
 $fs->write("UPDATE marketing_flows SET created_at='2026-01-01 00:00:00' WHERE id=?",[$overviewIds[0]]);$fs->write("UPDATE marketing_flows SET created_at='2026-02-01 00:00:00' WHERE id=?",[$overviewIds[1]]);
 $overview=$editor('audience.php?view=automations&q=Overview&sort=oldest');audienceHttpExpect($overview['status']===200&&strpos($overview['body'],'Overview older')<strpos($overview['body'],'Overview newer')&&!str_contains($overview['body'],'<h2><a href="audience.php?view=flow&amp;id='.$overviewIds[2].'"'),'Overview applies stable oldest-first sorting and separates converted classic flows');
 $classicOverview=$editor('audience.php?view=automations&tab=classic&q=Overview');audienceHttpExpect($classicOverview['status']===200&&str_contains($classicOverview['body'],'Overview classic')&&!str_contains($classicOverview['body'],'Overview older'),'Classic tab lists only converted classic workflows');
+$classicPath='audience.php?view=automations&tab=classic&q=Overview';
+$classicRename=['action'=>'flow_operation','operation'=>'rename','id'=>$overviewIds[2],'version'=>1,'name'=>'Overview renamed classic'];
+audienceHttpExpect($editor($classicPath,['csrf_token'=>$renameToken]+$classicRename)['status']===302
+    &&str_contains($editor($classicPath)['body'],'Overview renamed classic'),'A classic draft can be renamed in its own tab');
+$fs->flowOperation($overviewIds[2],2,'archive');
+$archivedRename=$editor($classicPath,['csrf_token'=>$renameToken,'version'=>3,'name'=>'Archived rename','format'=>'json']+$classicRename);
+audienceHttpExpect($archivedRename['status']===422&&$fs->flow($overviewIds[2],false,true)['name']==='Overview renamed classic','Archived flows cannot be renamed by direct POST');
 audienceHttpExpect($editor('audience.php?view=automations&sort=unknown')['status']===400,'Overview rejects unknown SQL sort choices');
 audienceHttpExpect($editor('audience.php?view=flow-templates&sort=name')['status']===200,'Catalog sorting remains independent from overview sorting');
 $flowIds=[...$flowIds,...$overviewIds];
@@ -47,6 +80,8 @@ $invalidMap=$d;$invalidMap['nodes'][0]['next']='tag';$invalid=$editor('audience.
 $saved=$editor('audience.php?view=flow',['csrf_token'=>$token,'action'=>'flow_save','format'=>'json','id'=>$httpFlow,'name'=>'HTTP flow','version'=>1,'document'=>json_encode($d)]);audienceHttpExpect($saved['status']===200&&json_decode($saved['body'],true)['version']===2,'Autosave persists a versioned native map');
 $stale=$editor('audience.php?view=flow',['csrf_token'=>$token,'action'=>'flow_save','format'=>'json','id'=>$httpFlow,'name'=>'Stale','version'=>1,'document'=>json_encode($d)]);audienceHttpExpect($stale['status']===422,'Stale autosave fails without replacing data');
 $foreignFlow=$otherStore->saveFlow('Foreign flow',audienceFlowDefault());
+audienceHttpExpect($editor($renamePath,['csrf_token'=>$renameToken,'id'=>$foreignFlow,'version'=>1,'format'=>'json']+$rename)['status']===422
+    &&$otherStore->flow($foreignFlow)['name']==='Foreign flow','Renaming cannot cross audience boundaries');
 audienceHttpExpect($editor('audience.php?view=flow&id='.$foreignFlow)['status']===404,'Flow map IDs remain audience scoped');
 audienceHttpExpect($editor('audience.php?view=flow-report&id='.$foreignFlow)['status']===404,'Flow reports remain audience scoped');
 audienceHttpExpect($reviewer('audience.php?view=flow-report&id='.$basic['id'].'&download=csv')['status']===403,'Reviewer cannot export flow executions');
