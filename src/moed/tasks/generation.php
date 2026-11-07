@@ -39,7 +39,9 @@ function generateStandardTaskForOpenEngagements(
         // and two database round trips per row. Share locks preserve the same
         // ordering against concurrent closeout, archive, date and owner changes.
         // Existing copies (including archived/completed ones) are left untouched.
-        $isPresentationTask = (int) (strcasecmp($template['title'], EVENT_PRESENTATION_TASK_TITLE) === 0);
+        $needsSchedule = (int) ($template['template_key'] === EVENT_CONFIRM_PRESENTATIONS_TASK_KEY);
+        $isPresentationTask = (int) ($needsSchedule || strcasecmp($template['title'], EVENT_PRESENTATION_TASK_TITLE) === 0);
+        $scheduled = SCHEDULED_PRESENTATION_SQL;
         $insert = $conn->prepare(
             "INSERT INTO follow_up_tasks
                 (title, details, status, priority, due_date, subject_type, engagement_id,
@@ -53,7 +55,8 @@ function generateStandardTaskForOpenEngagements(
              LEFT JOIN users caller ON caller.id = engagement.caller_user_id AND caller.account_status = 'active'
              LEFT JOIN LATERAL (
                  SELECT 1 AS done FROM presentations p
-                 WHERE ? = 1 AND p.engagement_id = engagement.id AND p.is_archived = 0 LIMIT 1
+                 WHERE ? = 1 AND p.engagement_id = engagement.id AND p.is_archived = 0
+                   AND (? = 0 OR ({$scheduled})) LIMIT 1
              ) presented ON TRUE
              WHERE engagement.is_deleted = 0 AND organization.is_deleted = 0
                AND engagement.lifecycle_status = 'active' AND report.engagement_id IS NULL
@@ -64,9 +67,9 @@ function generateStandardTaskForOpenEngagements(
              ORDER BY engagement.id
              FOR SHARE"
         );
-        $insert->bind_param('sssiiisiis', $template['title'], $template['details'],
+        $insert->bind_param('sssiiisiiis', $template['title'], $template['details'],
             $template['priority'], $template['due_offset_days'], $created_by, $created_by,
-            $template['template_key'], $created_by, $isPresentationTask, $template['template_key']);
+            $template['template_key'], $created_by, $isPresentationTask, $needsSchedule, $template['template_key']);
         try {
             $insert->execute();
             $inserted = $insert->affected_rows;

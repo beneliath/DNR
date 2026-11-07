@@ -214,6 +214,7 @@
         status.textContent = 'Loading more weeks…';
         viewport.setAttribute('aria-busy', 'true');
         const month = requestedMonth || adjacentMonth(direction < 0 ? first : last, direction);
+        const finishLoading = window.DnrPageLoading?.begin();
         try {
             const url = new URL('view_calendar.php', window.location.href);
             url.searchParams.set('month', month);
@@ -260,6 +261,7 @@
             status.textContent = 'More weeks could not be loaded. Retry or use Previous and Next.';
             retry.hidden = false;
         } finally {
+            finishLoading?.();
             loading = false;
             viewport.removeAttribute('aria-busy');
             if (pendingJump !== null) {

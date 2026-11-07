@@ -53,7 +53,8 @@ def sha(path):
     with path.open('rb') as handle: return hashlib.file_digest(handle, 'sha256').hexdigest()
 
 def crypto_command(app_image, password_file, mode):
-    return ['docker', 'run', '--rm', '-i', '--network', 'none', '--read-only',
+    return ['docker', 'run', '--rm', '-i', '--network', 'none', '--read-only', '--no-healthcheck', '--log-driver=none',
+            '--label', 'com.docker.compose.oneoff=True',
             '--user', str(os.getuid()) + ':' + str(os.getgid()), '--cap-drop', 'ALL',
             '--security-opt', 'no-new-privileges', '--memory', '768m',
             '--mount', 'type=bind,src=' + str(password_file) + ',dst=/run/secrets/backup_password,readonly',
@@ -67,6 +68,25 @@ def stop_process(process):
         process.wait(timeout=15)
     except subprocess.TimeoutExpired:
         process.kill(); process.wait()
+
+
+def restore_encrypted_database(archive, container, app_image, password_file):
+    wait_for_restore_database(container)
+    with archive.open('rb') as ciphertext, \
+            subprocess.Popen(crypto_command(app_image, password_file, 'decrypt'), stdin=ciphertext, stdout=subprocess.PIPE) as decryptor, \
+            subprocess.Popen(root_command(container, 'mysql', '-uroot', 'dnr'), stdin=subprocess.PIPE,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) as restore:
+        try:
+            with gzip.GzipFile(fileobj=decryptor.stdout) as source:
+                shutil.copyfileobj(source, restore.stdin, 1048576)
+            restore.stdin.close()
+        finally:
+            # If MySQL exits early, finish consuming the bounded decryption pipe
+            # so the network-isolated Docker helper can exit and remove itself.
+            while decryptor.stdout.read(1048576):
+                pass
+        if decryptor.wait() != 0 or restore.wait() != 0:
+            raise ValueError('Encrypted backup restore verification failed')
 
 
 def encrypt_command(command, archive, app_image, password_file, compress=False):
@@ -122,12 +142,13 @@ def backup_persistent_files(db_container, app_image, archive, password_file):
         expected[key] = (int(size), checksum)
     project = json.loads(subprocess.check_output(['docker', 'inspect', db_container]))[0]['Config']['Labels']['com.docker.compose.project']
     ids = subprocess.check_output(['docker', 'ps', '-aq', '--filter', 'label=com.docker.compose.project=' + project,
-        '--filter', 'label=com.docker.compose.service=web', '--filter', 'label=com.docker.compose.oneoff=False'], text=True).split()
+        '--filter', 'label=com.docker.compose.service=web', '--filter', 'label=com.docker.compose.oneoff=False',
+        '--filter', 'volume=/var/lib/dnr/files'], text=True).split()
     if len(ids) != 1: raise ValueError('Cannot identify persistent file volume')
     mounts = json.loads(subprocess.check_output(['docker', 'inspect', ids[0]]))[0]['Mounts']
     volume = next((m for m in mounts if m['Destination'] == '/var/lib/dnr/files'), None)
     if volume is None or volume['Type'] != 'volume': raise ValueError('A named uploaded_files volume is required')
-    command = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--user', 'www-data',
+    command = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--log-driver=none', '--user', 'www-data',
                '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                '--mount', 'type=volume,src=' + volume['Name'] + ',dst=/files,readonly',
                '--entrypoint', 'sh', app_image, '-c',
@@ -186,20 +207,7 @@ def _create_verified_backup(db_container, database_image, app_image, previous_co
             '--mount', 'type=bind,src=' + str(root_password) + ',dst=/run/secrets/root-password,readonly',
             '-e', 'MYSQL_ROOT_PASSWORD_FILE=/run/secrets/root-password', '-e', 'MYSQL_DATABASE=dnr',
             database_image, '--max-allowed-packet=256M', '--skip-log-bin'], check=True, stdout=subprocess.DEVNULL)
-        wait_for_restore_database(restore_container)
-        with encrypted.open('rb') as ciphertext:
-            decryptor = subprocess.Popen(crypto_command(app_image, password_file, 'decrypt'), stdin=ciphertext, stdout=subprocess.PIPE)
-            restore = subprocess.Popen(root_command(restore_container, 'mysql', '-uroot', 'dnr'),
-                                       stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            try:
-                with gzip.GzipFile(fileobj=decryptor.stdout, mode='rb') as source:
-                    shutil.copyfileobj(source, restore.stdin, 1048576)
-                restore.stdin.close()
-                if decryptor.wait() != 0 or restore.wait() != 0: raise ValueError('Encrypted backup restore verification failed')
-            finally:
-                decryptor.stdout.close()
-                if not restore.stdin.closed: restore.stdin.close()
-                stop_process(decryptor); stop_process(restore)
+        restore_encrypted_database(encrypted, restore_container, app_image, password_file)
         if fingerprint(restore_container) != before: raise ValueError('Restored database differs from source')
         receipt = dict(persistent_files=file_receipt, backup_path=str(encrypted), backup_sha256=sha(encrypted),
             format='native-sql-gzip-secretstream-v2', verified_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),

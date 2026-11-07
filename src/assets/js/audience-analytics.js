@@ -277,6 +277,7 @@ import {calendarDates, formatCalendarDate, isoCalendarDate, parseCalendarDate} f
       const href = `${location.pathname}?${params}`;
       const results = document.querySelector('[data-analytics-results]');
       results?.setAttribute('aria-busy', 'true'); status.textContent = 'Updating…';
+      const finishLoading = window.DnrPageLoading?.begin();
       try {
         const response = await fetch(href, { signal: activeRequest.signal, credentials: 'same-origin', headers: { Accept: 'text/html' } });
         if (!response.ok) throw new Error('Unable to update report filters.');
@@ -299,7 +300,10 @@ import {calendarDates, formatCalendarDate, isoCalendarDate, parseCalendarDate} f
         history.replaceState(null, '', href); status.textContent = 'Report updated.';
       } catch (error) {
         if (error.name !== 'AbortError') status.textContent = 'Unable to update. Use Apply to retry.';
-      } finally { if (activeRequest === request) results?.removeAttribute('aria-busy'); }
+      } finally {
+        finishLoading?.();
+        if (activeRequest === request) results?.removeAttribute('aria-busy');
+      }
     };
     messageForm.addEventListener('change', event => {
       if (event.target === all) choices.forEach(input => { input.checked = all.checked; });

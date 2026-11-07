@@ -69,6 +69,8 @@ function renderPageHead($title, array $options = []) {
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
     echo '    <link rel="icon" type="image/svg+xml" href="'
         . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    echo '    <script async src="'.htmlspecialchars(assetUrl('assets/js/page-loading.min.js'),ENT_QUOTES,'UTF-8').'"></script>'.PHP_EOL;
+    array_unshift($styles,'assets/css/page-loading.min.css');
     renderScript('assets/js/account-context.min.js', false);
     renderScript('assets/js/theme-init.min.js', false);
     renderScript('assets/js/user-time.min.js', false);

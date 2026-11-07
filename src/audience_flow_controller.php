@@ -6,7 +6,7 @@ require_once __DIR__.'/audience_flow_presentation.php';
 function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string $view,int $id,string $message,string $error,bool $canManage,bool $canDelete,string $displayName,int $actor): void
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$url=static fn(array $p=[])=>'audience.php'.($p?'?'.http_build_query($p):'');
-    $audienceId=$store->audienceId;$available=$store->flowAvailable();$recover=null;
+    $audienceId=$store->audienceId;$available=$store->flowAvailable();$recover=null;$renameRecovery=null;
     $json=($_POST['format']??'')==='json';$respond=static function(array $data,int $status=200):void{http_response_code($status);header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');echo json_encode($data,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR);};
     if($_SERVER['REQUEST_METHOD']==='POST'){
         requireValidCsrfToken();if(!$canManage){http_response_code(403);exit('An editor or administrator must manage automations.');}
@@ -35,8 +35,10 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
                     requireRecentAdminElevation($url(['view'=>$view,'id'=>$id]));
                     if(audienceText($_POST,'confirm',10)!=='DELETE')throw new InvalidArgumentException('Type DELETE to permanently delete this archived flow and its execution history.');
                 }
-                $id=$store->flowOperation($id,$version,$op,audienceText($_POST,'node',40));$message=match($op){'activate'=>'Flow turned on. New qualifying activity can enter.','pause'=>'Flow paused. Connections keep their positions.','archive','remove'=>'Flow archived. Queued actions were cancelled.','restore'=>'Flow restored as a draft.','delete'=>'Flow permanently deleted.',default=>'Flow updated.'};
-                if(in_array($op,['archive','remove','restore','delete'],true)){$redirectView='automations';$id=0;$redirectUrl=$url(['view'=>'automations']+array_intersect_key($_GET,array_flip(['tab','trash','q','state','sort','page','per_page'])));}
+                $name=$op==='rename'?audienceText($_POST,'name',100):'';
+                $id=$store->flowOperation($id,$version,$op,audienceText($_POST,'node',40),$name);
+                $message=match($op){'rename'=>'Flow name saved.','activate'=>'Flow turned on. New qualifying activity can enter.','pause'=>'Flow paused. Connections keep their positions.','archive','remove'=>'Flow archived. Queued actions were cancelled.','restore'=>'Flow restored as a draft.','delete'=>'Flow permanently deleted.',default=>'Flow updated.'};
+                if(in_array($op,['rename','archive','remove','restore','delete'],true)){$redirectView='automations';$id=0;$redirectUrl=$url(['view'=>'automations']+array_intersect_key($_GET,array_flip(['tab','trash','q','state','sort','page','per_page'])));}
             }elseif($action==='flow_classic'){
                 try{$classic=json_decode(audienceText($_POST,'classic',100000),true,32,JSON_THROW_ON_ERROR);}catch(JsonException){throw new InvalidArgumentException('Enter a valid supported classic workflow.');}
                 if(!is_array($classic))throw new InvalidArgumentException('Enter a supported classic workflow.');$d=audienceFlowClassicDocument($classic);$id=$store->saveFlow(audienceText($_POST,'name',100),$d);$message='Classic workflow converted to a private draft. Review it before turning it on.';
@@ -63,7 +65,13 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
             }else throw new InvalidArgumentException('Choose a supported flow action.');
             if($json){$respond(['redirect'=>$redirectUrl??$url(array_filter(['view'=>$redirectView,'id'=>$id]))]);return;}
             $_SESSION['audience_message']=$message;header('Location: '.($redirectUrl??$url(array_filter(['view'=>$redirectView,'id'=>$id]))));return;
-        }catch(InvalidArgumentException $e){$error=$e->getMessage();if($json){$respond(['error'=>$error],422);return;}if(($_POST['action']??'')==='flow_save')$recover=$_POST;}
+        }catch(InvalidArgumentException $e){
+            $error=$e->getMessage();if($json){$respond(['error'=>$error],422);return;}
+            if(($_POST['action']??'')==='flow_save')$recover=$_POST;
+            if(($_POST['action']??'')==='flow_operation'&&($_POST['operation']??'')==='rename'){
+                $renameRecovery=['id'=>$id,'version'=>(int)($_POST['version']??0),'name'=>is_string($_POST['name']??null)?$_POST['name']:''];
+            }
+        }
     }
     if($view==='automations')$id=0;
     $flow=null;if($id&&$available){try{$flow=$store->flow($id,false,$view==='flow-report');}catch(InvalidArgumentException){http_response_code(404);exit('This flow is unavailable.');}}

@@ -139,7 +139,7 @@
             transform: translate(-50%, -50%);
         }
 
-        .radio-group input[type="radio"]:focus {
+        .radio-group input[type="radio"]:focus-visible {
             outline: none;
             box-shadow: 0 0 0 2px rgba(53, 122, 189, 0.3);
         }

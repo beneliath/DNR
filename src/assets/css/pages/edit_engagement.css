@@ -4,6 +4,10 @@
         padding-inline: var(--app-content-padding);
     }
 
+html[data-engagement-restoring] .edit-engagement-page {
+    visibility: hidden;
+}
+
 /* Match every pane title to the Event Contacts heading. */
 .edit-engagement-page .form-section h2 {
     font-size: 1.55rem;
@@ -142,6 +146,10 @@
     margin-bottom: 8px;
 }
 
+html:not(.has-js) #engagement-edit-form :is([data-form-draft-panel], [data-relationship-search-input], [data-relationship-search-status]) {
+    display: none;
+}
+
 .edit-engagement-page .engagement-form > .required-fields-note {
     margin-bottom: 8px;
 }
@@ -171,14 +179,6 @@
     min-width: 0;
 }
 
-.edit-engagement-page .presentation-fields .form-field {
-    gap: 10px !important;
-}
-
-.edit-engagement-page .presentation-fields .form-field > label {
-    margin-bottom: 0;
-}
-
 .edit-engagement-page .presentation-assets {
     border-top: 0;
 }
@@ -189,6 +189,24 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px 24px;
+}
+
+.edit-engagement-page .organization-container {
+    flex-wrap: wrap;
+}
+
+.edit-engagement-page .organization-container > :is(input, select) {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.edit-engagement-page .organization-container > [data-relationship-search-status] {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.edit-engagement-page .organization-container > [data-relationship-search-status]:empty {
+    display: none;
 }
 
 .edit-engagement-page .engagement-event-details-section .organization-container > :is(label, input, select),
@@ -236,7 +254,12 @@ body.edit-engagement-body {
 }
 
 html:has(.edit-engagement-body) {
+    scroll-behavior: auto;
     scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+.edit-engagement-body {
+    scrollbar-gutter: stable;
 }
 
 .edit-engagement-page .engagement-page-actions {
@@ -268,12 +291,33 @@ html:has(.edit-engagement-body) {
 
 .edit-engagement-page .engagement-page-actions .save-button {
     --primary-hover: var(--success);
-    outline: 4px double var(--primary);
-    outline-offset: 3px;
+    --save-outline-color: var(--primary);
+    position: relative;
 }
 
-.edit-engagement-page .engagement-page-actions .save-button:is(:hover, :focus-visible) {
-    outline-color: var(--success);
+.edit-engagement-page .engagement-page-actions .save-button:is(:hover, :focus-visible):not(.coach-control-highlight) {
+    --save-outline-color: var(--primary-hover);
+}
+
+.edit-engagement-page .engagement-page-actions .save-button[data-unsaved-changes]::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    outline: 4px double var(--save-outline-color);
+    outline-offset: 5px;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .edit-engagement-page .engagement-page-actions .save-button[data-unsaved-changes]::after {
+        animation: engagement-save-outline 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes engagement-save-outline {
+    0%, 100% { outline-offset: 2px; }
+    50% { outline-offset: 7px; }
 }
 
 @media (max-width: 860px) {

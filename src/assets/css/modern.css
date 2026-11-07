@@ -3680,6 +3680,11 @@ html body :is(button, input, select, textarea, a):focus-visible:not(.coach-contr
   box-shadow: var(--focus-ring) !important;
 }
 
+html body.pointer-input input[type="radio"]:focus:not(.coach-control-highlight) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Forms */
 label,
 .label-container {
@@ -3834,6 +3839,12 @@ textarea::placeholder {
 }
 
 .presentation-fields {
+  --presentation-date-width: 10.5rem;
+  --presentation-time-width: 18rem;
+  --presentation-number-width: 9.5rem;
+  --presentation-column-gap: 1rem;
+  --presentation-row-width: calc(var(--presentation-date-width) + var(--presentation-time-width)
+    + 3 * var(--presentation-number-width) + 4 * var(--presentation-column-gap));
   display: grid;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr);
@@ -3843,38 +3854,55 @@ textarea::placeholder {
 }
 
 .presentation-fields .form-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   min-width: 0;
   margin: 0;
 }
 
-.presentation-fields .topic,
-.presentation-fields .datetime-row,
-.presentation-fields .speaker-row,
-.presentation-fields .attendance-row {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 15px !important;
-  width: 100% !important;
-  margin: 0 !important;
+.presentation-fields .form-field > label {
+  margin: 0;
+  white-space: normal;
 }
 
-.presentation-fields .topic {
-  grid-template-columns: minmax(0, 1fr);
+.presentation-primary-fields,
+.presentation-session-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px var(--presentation-column-gap);
 }
 
-.presentation-fields .form-field,
-.presentation-fields .datetime-row .form-field,
-.presentation-fields .speaker-row .form-field,
-.presentation-fields .attendance-row .form-field {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 0 !important;
+.presentation-primary-fields {
+  max-width: var(--presentation-row-width);
+}
+
+.presentation-primary-fields > .form-field {
+  flex: 1 1 19rem;
+}
+
+.presentation-primary-fields > .form-field:last-child {
+  flex-basis: 20rem;
+}
+
+.presentation-session-fields > .form-field {
+  flex: 0 1 var(--presentation-number-width);
+}
+
+.presentation-session-fields > .presentation-date-field {
+  flex-basis: var(--presentation-date-width);
+}
+
+.presentation-session-fields > .presentation-time-field {
+  flex-basis: var(--presentation-time-width);
 }
 
 .presentation-fields input[type="text"],
 .presentation-fields input[type="date"],
-.presentation-fields input[type="number"] {
+.presentation-fields input[type="number"],
+.presentation-fields select {
   width: 100% !important;
   margin-bottom: 0 !important;
 }
@@ -3884,6 +3912,12 @@ textarea::placeholder {
   gap: 16px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
+}
+
+.presentation-upload-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+  gap: var(--presentation-column-gap);
 }
 
 .presentation-assets-heading h3 {
@@ -3913,6 +3947,12 @@ textarea::placeholder {
   align-items: center;
 }
 
+:where(.presentation-upload-cards) > .presentation-notes-card {
+  grid-template-columns: minmax(0, 1fr) min(42%, 200px);
+  gap: 16px;
+  min-width: 0;
+}
+
 .presentation-upload-details {
   display: flex;
   align-items: center;
@@ -3927,6 +3967,11 @@ textarea::placeholder {
   width: 200px;
   max-width: 100%;
   justify-self: end;
+}
+
+.presentation-upload-cards .presentation-file-drop {
+  grid-area: 1 / 2;
+  align-self: start;
 }
 
 html body button.presentation-file-drop-button {
@@ -3978,6 +4023,9 @@ html body button.presentation-file-drop-button:focus-visible {
   .presentation-notes-card {
     grid-template-columns: minmax(0, 1fr);
   }
+  .presentation-upload-cards .presentation-file-drop {
+    grid-column: 1;
+  }
 }
 
 .presentation-asset-label {
@@ -4007,13 +4055,12 @@ html body button.presentation-file-drop-button:focus-visible {
 }
 
 .presentation-file-save-notice {
-  flex-basis: 100%;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 10px 12px;
-  border-left: 4px solid var(--warning);
+  border-left: 4px solid var(--primary);
   border-radius: var(--radius-sm);
-  background: var(--warning-subtle);
-  color: var(--warning);
+  background: var(--primary-subtle);
+  color: var(--text);
   font-weight: 600;
   line-height: 1.5;
 }
@@ -4023,11 +4070,7 @@ html body button.presentation-file-drop-button:focus-visible {
 }
 
 .presentation-notes-card:has(.presentation-file-save-notice:not([hidden])) {
-  border-color: var(--warning);
-}
-
-.edit-engagement-page:has(.presentation-file-save-notice:not([hidden])) .engagement-page-actions .save-button {
-  outline-color: var(--warning);
+  border-color: var(--primary);
 }
 
 .presentation-pdf-link,
@@ -4202,8 +4245,9 @@ html body button.presentation-qr-preview:focus-visible {
 
 .time-input-container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
+  gap: 8px 12px;
 }
 
 .time-input-container > input[type="text"] {
@@ -5427,16 +5471,6 @@ html.dark-mode .login-secondary-link a {
 }
 
 @media (max-width: 760px) {
-  .presentation-fields .datetime-row,
-  .presentation-fields .speaker-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .time-input-container {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   h1 {
     font-size: 1.8rem;
   }
@@ -5500,11 +5534,7 @@ html.dark-mode .login-secondary-link a {
   .amount-row,
   .form-row,
   .name-phone-row,
-  .address-row,
-  .speaker-row,
-  .presentation-fields .speaker-row,
-  .presentation-fields .attendance-row,
-  .presentation-fields .datetime-row {
+  .address-row {
     display: flex !important;
     width: 100% !important;
     align-items: stretch !important;
@@ -5522,8 +5552,7 @@ html.dark-mode .login-secondary-link a {
   .amount-row > *,
   .form-row > *,
   .name-phone-row > *,
-  .address-row > *,
-  .speaker-row > * {
+  .address-row > * {
     width: 100% !important;
     min-width: 0 !important;
     flex: 1 1 auto !important;
@@ -5541,9 +5570,6 @@ html.dark-mode .login-secondary-link a {
   #other_event_type_div input[type="text"],
   .event-group select,
   .form-row .form-field select,
-  .speaker-row .form-field.speaker input,
-  .speaker-row .form-field.attendance input,
-  .presentation-fields .datetime-row .form-field input[type="date"],
   .narrow-select,
   #caller_name,
   #compensation_type,
@@ -6381,34 +6407,11 @@ html body .phone-country-option[aria-selected="true"] {
     overflow-wrap: anywhere;
   }
 
-  /* Later page styles still specify desktop rows with !important. Match the
-     form scope so new and dynamically added presentations stack consistently. */
-  html body .engagement-form .presentation-fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  html body .engagement-form .presentation-fields :is(.speaker-row, .datetime-row, .attendance-row) {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 15px !important;
-  }
-
-  html body .engagement-form .presentation-fields .form-field {
-    width: 100% !important;
-    flex: 0 1 auto !important;
-    margin: 0 !important;
-  }
-
   html body :is(.container, .view-container) form :is(label, .label-container) {
     min-width: 0 !important;
     max-width: 100%;
     white-space: normal !important;
     overflow-wrap: anywhere;
-  }
-
-  html body .time-input-container > input[type="text"] {
-    flex: 0 1 auto;
   }
 
   html body .engagement-form .presentations-outer-box {

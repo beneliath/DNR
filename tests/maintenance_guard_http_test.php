@@ -26,6 +26,10 @@ foreach (['', '/a/primary-account', '/a/member-account'] as $prefix) {
         guardCheck(str_contains($body, 'data-status-url="' . $prefix . '/deployment_status.php"')
             && str_contains($body, 'timer-expired') && str_contains($body, 'Temporarily unavailable'), 'Invalid scoped maintenance page');
         $headerText = strtolower(implode("\n", $headers));
+        guardCheck(preg_match('/<script nonce="([^"]+)">/',$body,$spinnerNonce)
+            &&str_contains(implode("\n",$headers),"'nonce-".$spinnerNonce[1]."'")
+            &&str_contains($body,'DnrPageLoading')&&str_contains($body,'.page-loading-indicator'),
+            'Maintenance loading feedback must work under the guard policy without a backend');
         guardCheck(str_contains($headerText, 'x-dnr-maintenance-guard: ' . str_repeat('a', 32))
             && str_contains($headerText, 'cache-control: no-store') && !str_contains($headerText, 'set-cookie:'), 'Guard must be identifiable, uncached and sessionless');
     }

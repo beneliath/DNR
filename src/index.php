@@ -371,6 +371,7 @@ try {
             <button type="button" class="button-secondary" disabled>Save Draft</button>
             <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
         </section>
+        <?php include 'templates/engagement_lifecycle_form.php'; ?>
         <div class="engagement-section-row engagement-primary-row">
             <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section engagement-details-section">
@@ -443,7 +444,6 @@ try {
             </div>
         </div>
         </section>
-            <?php include 'templates/engagement_lifecycle_form.php'; ?>
         </div>
 
         <div class="engagement-section-row">

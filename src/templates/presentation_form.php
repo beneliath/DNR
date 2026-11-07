@@ -49,16 +49,26 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         <input type="hidden" name="presentations[<?php echo $presentation_dom_id; ?>][id]" value="<?php echo (int) $presentation['id']; ?>">
                     <?php endif; ?>
                     <div class="presentation-fields">
-                        <div class="form-field topic">
-                            <label for="presentation_topic_<?php echo $presentation_dom_id; ?>">Topic/Title</label>
-                            <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][topic_title]" id="presentation_topic_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_topic, ENT_QUOTES, 'UTF-8'); ?>">
-                        </div>
-                        <div class="datetime-row">
+                        <div class="presentation-primary-fields">
                             <div class="form-field">
+                                <label for="presentation_topic_<?php echo $presentation_dom_id; ?>">Topic/Title</label>
+                                <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][topic_title]" id="presentation_topic_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_topic, ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="form-field">
+                                <label for="speaker_id_<?php echo $presentation_dom_id; ?>">Speaker</label>
+                                <select name="presentations[<?php echo $presentation_dom_id; ?>][speaker_id]" id="speaker_id_<?php echo $presentation_dom_id; ?>">
+                                    <?php foreach ($speaker_options as $speaker_option): ?>
+                                        <option value="<?php echo (int) $speaker_option['id']; ?>"<?php echo $presentation_speaker === (int) $speaker_option['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker_option['name'] . ' — ' . $speaker_option['email'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="presentation-session-fields">
+                            <div class="form-field presentation-date-field">
                                 <label for="presentation_date_<?php echo $presentation_dom_id; ?>">Date</label>
                                 <input type="date" name="presentations[<?php echo $presentation_dom_id; ?>][presentation_date]" id="presentation_date_<?php echo $presentation_dom_id; ?>" value="<?php echo htmlspecialchars((string) ($presentation['presentation_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
-                            <div class="form-field">
+                            <div class="form-field presentation-time-field">
                                 <label for="presentation_time_<?php echo $presentation_dom_id; ?>">Time</label>
                                 <div class="time-input-container">
                                     <input type="text" id="presentation_time_<?php echo $presentation_dom_id; ?>" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530" value="<?php echo htmlspecialchars($presentation_time_value, ENT_QUOTES, 'UTF-8'); ?>">
@@ -69,27 +79,15 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 </div>
                                 <input type="hidden" name="presentations[<?php echo $presentation_dom_id; ?>][presentation_time]" id="presentation_time_hidden_<?php echo $presentation_dom_id; ?>" value="<?php echo htmlspecialchars((string) ($presentation['presentation_time'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
-                        </div>
-                        <div class="speaker-row">
-                            <div class="form-field speaker">
-                                <label for="speaker_id_<?php echo $presentation_dom_id; ?>">Speaker</label>
-                                <select name="presentations[<?php echo $presentation_dom_id; ?>][speaker_id]" id="speaker_id_<?php echo $presentation_dom_id; ?>">
-                                    <?php foreach ($speaker_options as $speaker_option): ?>
-                                        <option value="<?php echo (int) $speaker_option['id']; ?>"<?php echo $presentation_speaker === (int) $speaker_option['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker_option['name'] . ' — ' . $speaker_option['email'], ENT_QUOTES, 'UTF-8'); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="form-field attendance">
+                            <div class="form-field">
                                 <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (Minutes)</label>
                                 <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][duration_minutes]" id="duration_minutes_<?php echo $presentation_dom_id; ?>" min="1" max="1440" step="1" value="<?php echo htmlspecialchars((string) (array_key_exists('duration_minutes', $presentation) ? $presentation['duration_minutes'] : ($is_saved_presentation ? '' : 60)), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
-                        </div>
-                        <div class="attendance-row">
-                            <div class="form-field attendance">
+                            <div class="form-field">
                                 <label for="expected_attendance_<?php echo $presentation_dom_id; ?>">Expected Attendance</label>
                                 <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][expected_attendance]" id="expected_attendance_<?php echo $presentation_dom_id; ?>" min="1" step="1" value="<?php echo htmlspecialchars((string) ($presentation['expected_attendance'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
-                            <div class="form-field attendance">
+                            <div class="form-field">
                                 <label for="actual_attendance_<?php echo $presentation_dom_id; ?>">Actual Attendance</label>
                                 <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][actual_attendance]" id="actual_attendance_<?php echo $presentation_dom_id; ?>" min="0" step="1" value="<?php echo htmlspecialchars((string) ($presentation['actual_attendance'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
@@ -99,8 +97,10 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 <h3>Presentation Files &amp; QR Codes</h3>
                                 <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may be up to 500 MB. Keep each save under 600 MB total. QR codes are generated when you save.</p>
                             </div>
-                            <?php include __DIR__ . '/presentation_pdf_upload.php'; ?>
-                            <?php include __DIR__ . '/presentation_slidedeck_upload.php'; ?>
+                            <div class="presentation-upload-cards">
+                                <?php include __DIR__ . '/presentation_pdf_upload.php'; ?>
+                                <?php include __DIR__ . '/presentation_slidedeck_upload.php'; ?>
+                            </div>
                             <?php if ($is_saved_presentation): ?>
                                 <?php
                                 $short_link_presentation_id = (int) $presentation['id'];

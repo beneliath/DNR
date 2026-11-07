@@ -106,7 +106,7 @@
       grid-row: 1;
       width: var(--record-action-size) !important;
       margin: 0 !important;
-      justify-self: start;
+      justify-self: var(--record-action-item-align, start);
     }
 
     & > :is(.action-icon-button:has(> [data-action-icon="results"]), form:has(> .action-icon-button > [data-action-icon="results"])) { grid-column: results; }
@@ -134,6 +134,8 @@
 
 /* Keep the visible columns in each list's existing keyboard/tab order. */
 .audience-tag-actions {
+  margin-inline-start: auto;
+  --record-action-item-align: end;
   --record-action-columns:
     [rename] var(--record-rename) [export-csv] var(--record-export-csv)
     [create-email] var(--record-create-email) [plain-text-email] var(--record-plain-text-email)

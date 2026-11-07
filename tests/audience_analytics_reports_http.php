@@ -57,6 +57,14 @@ audienceHttpExpect(count($funnels['forms'])===3&&array_sum(array_column($funnels
 audienceHttpExpect(array_sum(array_column($funnels['forms'],'confirmed'))===2,'Confirmed subscriptions require explicit collection conversion evidence');
 audienceHttpExpect(count($funnels['flows'])===2&&array_sum(array_column($funnels['flows'],'runs'))===16,'Cross-flow summaries count executions once');
 $flowRows=$as->analyticsReportRows($window,['dataset'=>'flows']);audienceHttpExpect(array_sum(array_column(array_column($flowRows,'previous'),'runs'))===12,'Cross-flow comparisons use the previous start-date cohort');
+$selectCount=static fn()=>(int)$as->db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1];
+$beforeConversion=$selectCount();
+$conversion=$as->analyticsConversionReport($window);
+audienceHttpExpect($selectCount()-$beforeConversion<=7,'Conversion insights reads each period and dataset once');
+$fullOverview=$as->analyticsOverview($window);
+audienceHttpExpect($conversion['totals']===$fullOverview['totals']&&$conversion['collections']===$fullOverview['collections']
+    &&$conversion['includes_samples']===$fullOverview['includes_samples'],'Conversion funnel and recent forms agree with the email dashboard');
+audienceHttpExpect($conversion['forms']===$as->analyticsReportRows($window,['dataset'=>'forms'])&&$conversion['flows']===$flowRows,'Both conversion tables preserve their current and previous period results');
 $timing=$as->analyticsTimingEvidence();audienceHttpExpect(!$timing['ready']&&$timing['contacts']<100,'Small native history exposes the selected-time fallback');
 $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($window));audienceHttpExpect(array_sum(array_column($patternRows,'accepted'))===36,'Content patterns reconcile with the same accepted cohort');
 // A large delivery must not multiply the saved newsletter by its recipient count to find its subject.

@@ -4,16 +4,19 @@ import argparse
 import datetime
 import fcntl
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
 import secrets
 import subprocess
 import sys
+import tarfile
 import time
 from urllib.parse import urlsplit
 
-from deployment_backup import create_verified_backup, query
+from deployment_backup import create_verified_backup, fingerprint, query
+from online_recovery_backup import create_online_backup
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / 'var/deployment/local-development-state'
@@ -71,8 +74,13 @@ def discover(primary_project):
     primary = inspect([primary_project+'-web-1'])[0]
     if not local_source_web(primary): raise ValueError('Refusing a deployment without local HTTP and this checkout’s source bind')
     primary_env = environment(primary)
-    ids = subprocess.check_output(['docker','ps','-aq'], text=True).split()
-    containers = inspect(ids)
+    inventory = [json.loads(row) for row in subprocess.check_output(
+        ['docker','ps','-a','--no-trunc','--format','{{json .}}'], text=True).splitlines()]
+    # Native backup helpers inherit the web image's Compose labels. They only
+    # stream ciphertext/plaintext and have no connection to an account database.
+    crypto_commands = {f'"php /opt/dnr/bin/native_backup_crypto.php {mode} - -"' for mode in ('encrypt','decrypt')}
+    backup_helpers = {row['ID'] for row in inventory if row['Networks'] == 'none' and row['Command'] in crypto_commands}
+    containers = inspect([row['ID'] for row in inventory if row['ID'] not in backup_helpers])
     ready = set()
     if primary_env.get('DNR_ACCOUNTS_ENABLED') == '1':
         ready = set(query(primary_project+'-db-1', "SELECT account_key FROM dnr.platform_accounts WHERE state='ready'").splitlines())
@@ -123,6 +131,7 @@ def discover(primary_project):
             by_project={a['project']:a for a in accounts}
             by_id={c['Id']:c for c in containers}
             for identity in paused_ids:
+                if identity in backup_helpers: continue
                 c=by_id.get(identity); project=c['Config'].get('Labels',{}).get('com.docker.compose.project') if c else None
                 if project not in by_project or not environment(c).get('MYSQL_PASSWORD_FILE') or c['Id']==by_project[project]['db']['Id']:
                     raise ValueError('Interrupted update writer ownership changed')
@@ -215,6 +224,31 @@ def migrate_database(account):
         run(['docker','exec',container,'rm','-f',grant_path],stdout=subprocess.DEVNULL)
 
 
+def can_snapshot_online(account):
+    if account['web']['State']['Status'] != 'running':
+        return False
+    online_tables = query(account['db']['Id'], "SELECT COUNT(*) = COUNT(IF(ENGINE='InnoDB',1,NULL)) "
+        "AND COUNT(IF(TABLE_NAME='stored_files',1,NULL)) = 1 FROM information_schema.tables "
+        "WHERE TABLE_SCHEMA='dnr' AND TABLE_TYPE='BASE TABLE'")
+    if online_tables != '1':
+        return False
+    return subprocess.run(['docker','exec',account['web']['Id'],'test','-f','/var/lib/dnr/files/.lifecycle.lock']).returncode == 0
+
+
+def backup_for_update(account, expected, password_file, *, online):
+    db, web = account['db'], account['web']
+    version = subprocess.check_output(['docker','cp',web['Id']+':/opt/dnr/VERSION','-'])
+    with tarfile.open(fileobj=io.BytesIO(version)) as archive:
+        previous_version = archive.extractfile(archive.getmembers()[0]).read().decode().strip()
+    commit = environment(web).get('DNR_BUILD_COMMIT','unknown-local-image')
+    directory = BACKUPS/account['project']
+    def verify(restored):
+        return qualify_restore(restored,account,expected)
+    if online:
+        return create_online_backup(db['Id'],web['Id'],password_file,directory,commit,previous_version,restore_verifier=verify)
+    return create_verified_backup(db['Id'],db['Image'],web['Image'],commit,previous_version,password_file,directory,restore_verifier=verify)
+
+
 def synchronize(accounts, expected, password_file):
     STATE.mkdir(parents=True,exist_ok=True); BACKUPS.mkdir(parents=True,exist_ok=True)
     deployment_locks=ROOT/'.git/dnr-deploy'; deployment_locks.mkdir(parents=True,exist_ok=True)
@@ -230,32 +264,37 @@ def synchronize(accounts, expected, password_file):
             if active: wait_for_health(active)
             print('All active local Account schemas, grants, and services are current.'); return
         writers = [c for a,_ in changed for c in a['writers']]
-        record = dict(started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),stage='pausing',
+        record = dict(started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),stage='preparing-backups',
                       paused_writers=[c['Id'] for c in writers],accounts={})
         receipt_path = STATE/'last-update.json'
         def save():
             receipt_path.write_text(json.dumps(record,indent=2)+'\n'); receipt_path.chmod(0o600)
-        save(); live_changed=False; paused=False
+        save(); live_changed=False
+        paused=any(c.get('State',{}).get('Status','running') not in ('running','restarting') for c in writers)
         try:
+            for account,state in changed:
+                project = account['project']
+                details = dict(pending=state['pending'])
+                record['accounts'][project] = details
+                if state['pending'] and not paused and can_snapshot_online(account):
+                    print(project+': verifying an online backup and rehearsing migrations',flush=True)
+                    details['backup'] = backup_for_update(account,expected,password_file,online=True)
+                save()
+            record['stage']='pausing'; save()
             paused=True
             if writers:
                 run(['docker','stop','--time','30',*[c['Id'] for c in writers]],stdout=subprocess.DEVNULL)
             record['stage']='backing-up'; save()
             for account,state in changed:
                 project=account['project']
-                print(project+': '+str(len(state['pending']))+' pending migrations; '+('qualifying backup' if state['pending'] else 'refreshing grants'),flush=True)
-                details=dict(pending=state['pending'])
-                if state['pending']:
-                    version=subprocess.check_output(['docker','cp',account['web']['Id']+':/opt/dnr/VERSION','-'])
-                    # The stopped web container can still supply immutable image provenance.
-                    import io,tarfile
-                    with tarfile.open(fileobj=io.BytesIO(version)) as archive:
-                        previous_version=archive.extractfile(archive.getmembers()[0]).read().decode().strip()
-                    commit=environment(account['web']).get('DNR_BUILD_COMMIT','unknown-local-image')
-                    details['backup']=create_verified_backup(account['db']['Id'],account['db']['Image'],account['web']['Image'],
-                        commit,previous_version,password_file,BACKUPS/project,
-                        restore_verifier=lambda restored,a=account:qualify_restore(restored,a,expected))
-                record['accounts'][project]=details; save()
+                details = record['accounts'][project]
+                if not state['pending']:
+                    continue
+                backup = details.get('backup')
+                if backup is None or backup['database_state'] != fingerprint(account['db']['Id']):
+                    print(project+': verifying the final paused recovery point',flush=True)
+                    details['backup'] = backup_for_update(account,expected,password_file,online=False)
+                    save()
             record['stage']='migrating'; save(); live_changed=True
             for account,_ in changed:
                 print(account['project']+': applying canonical migrations and grants',flush=True)

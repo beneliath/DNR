@@ -36,7 +36,6 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
                 Remove Current PPT
             </label>
         </div>
-        <p id="<?php echo $deck_input_id; ?>_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PPT" role="status" hidden></p>
     <?php endif; ?>
     <div class="presentation-pdf-picker-row">
     <label class="presentation-file-picker" for="<?php echo $deck_input_id; ?>">
@@ -47,9 +46,9 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
            name="presentations[<?php echo $presentation_dom_id; ?>][<?php echo $deck_key; ?>]"
            id="<?php echo $deck_input_id; ?>"
            accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-           <?php if ($has_deck): ?>aria-describedby="<?php echo $deck_input_id; ?>_save_notice"<?php endif; ?>
+           aria-describedby="<?php echo $deck_input_id; ?>_save_notice"
            data-presentation-file-name>
-    <span class="presentation-selected-file" data-selected-file-name data-empty-file-label="<?php echo $has_deck ? 'No Replacement Selected' : 'No PowerPoint Selected'; ?>"><?php echo $has_deck ? 'No Replacement Selected' : 'No PowerPoint Selected'; ?></span>
+    <span class="presentation-selected-file" role="status" data-selected-file-name data-empty-file-label="<?php echo $has_deck ? 'No Replacement Selected' : 'No PowerPoint Selected'; ?>"><?php echo $has_deck ? 'No Replacement Selected' : 'No PowerPoint Selected'; ?></span>
     </div>
     </div>
     <div class="presentation-file-drop" data-file-drop>
@@ -57,8 +56,8 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
             <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
             <strong>Drop PowerPoint Here</strong>
             <span>or click to choose · .ppt or .pptx · up to 500 MB</span>
-            <span>Select Save Changes to upload or replace.</span>
         </button>
         <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>
+        <p id="<?php echo $deck_input_id; ?>_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PPT" role="status" hidden></p>
     </div>
 </div>

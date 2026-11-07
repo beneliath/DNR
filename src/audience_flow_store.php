@@ -69,11 +69,19 @@ trait AudienceFlows
             $this->write('INSERT INTO marketing_flows(audience_id,name,draft_json,cursor_json,paused_nodes_json) VALUES (?,?,?,JSON_OBJECT(),JSON_ARRAY())',[$this->audienceId,$name,json_encode($d,JSON_THROW_ON_ERROR)]);return (int)$this->db->insert_id;
         });};return $id?$this->flowLock($id,$operation):$operation();
     }
-    public function flowOperation(int $id,int $version,string $op,string $node=''): int
+    public function flowOperation(int $id,int $version,string $op,string $node='',string $name=''): int
     {
-        return $this->flowLock($id,function()use($id,$version,$op,$node):int{return $this->transaction(function()use($id,$version,$op,$node):int{
+        return $this->flowLock($id,function()use($id,$version,$op,$node,$name):int{return $this->transaction(function()use($id,$version,$op,$node,$name):int{
             $row=$this->flow($id,true,in_array($op,['restore','delete'],true));if((int)$row['version']!==$version)throw new InvalidArgumentException('This flow changed. Reload before trying again.');
             if(in_array($op,['restore','delete'],true)&&!$row['deleted_at'])throw new InvalidArgumentException('Only archived flows can be restored or permanently deleted.');
+            if($op==='rename'){
+                $name=audienceText(['name'=>$name],'name',100);
+                if($name==='')throw new InvalidArgumentException('Enter a flow name.');
+                if($name!==$row['name']){
+                    $this->write('UPDATE marketing_flows SET name=?,version=version+1 WHERE audience_id=? AND id=?',[$name,$this->audienceId,$id]);
+                }
+                return $id;
+            }
             if($op==='replicate')return $this->saveFlow(mb_substr($row['name'].' (copy)',0,100),$row['document']);
             if($op==='activate'){
                 if(function_exists('isRestrictedDemoSession')&&isRestrictedDemoSession()||function_exists('accountSecurityAccessAllowed')&&!accountSecurityAccessAllowed())throw new InvalidArgumentException('Starting a flow requires an unrestricted editor or administrator.');

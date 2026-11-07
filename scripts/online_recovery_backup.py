@@ -3,7 +3,6 @@
 import contextlib
 import datetime
 import fcntl
-import gzip
 import hashlib
 import json
 import os
@@ -11,12 +10,10 @@ from pathlib import Path
 import re
 import secrets
 import selectors
-import shutil
 import subprocess
-import time
 
 from deployment_backup import (crypto_command, encrypt_command, fingerprint, query,
-                               root_command, sha, stop_process, verify_file_stream)
+                               restore_encrypted_database, root_command, sha, stop_process, verify_file_stream)
 
 
 def utc_now():
@@ -83,28 +80,7 @@ def restored_database(archive, database_image, app_image, password_file, working
             '--tmpfs', '/var/lib/mysql-keyring:rw,nosuid,size=1m',
             '-e', 'MYSQL_ROOT_PASSWORD_FILE=/run/secrets/root-password', '-e', 'MYSQL_DATABASE=dnr',
             database_image, '--max-allowed-packet=256M', '--skip-log-bin'], check=True, stdout=subprocess.DEVNULL)
-        for _ in range(90):
-            if subprocess.run(root_command(container, 'mysql', '-uroot', 'dnr', '-e', 'SELECT 1'),
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
-                break
-            time.sleep(2)
-        else:
-            raise ValueError('Recovery verification database did not become ready')
-        with archive.open('rb') as ciphertext:
-            decryptor = subprocess.Popen(crypto_command(app_image, password_file, 'decrypt'), stdin=ciphertext, stdout=subprocess.PIPE)
-            restore = subprocess.Popen(root_command(container, 'mysql', '-uroot', 'dnr'),
-                                       stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            try:
-                with gzip.GzipFile(fileobj=decryptor.stdout, mode='rb') as source:
-                    shutil.copyfileobj(source, restore.stdin, 1048576)
-                restore.stdin.close()
-                if decryptor.wait() != 0 or restore.wait() != 0:
-                    raise ValueError('Online snapshot failed authenticated restore')
-            finally:
-                decryptor.stdout.close()
-                if not restore.stdin.closed:
-                    restore.stdin.close()
-                stop_process(decryptor); stop_process(restore)
+        restore_encrypted_database(archive, container, app_image, password_file)
         yield container
     finally:
         subprocess.run(['docker', 'rm', '-fv', container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -124,7 +100,7 @@ def archive_snapshot_files(restored, app_image, volume, password_file, working):
     try:
         # Exact immutable names from the restored snapshot avoid including new
         # uploads and avoid tar's directory-changed race while users upload.
-        command = ['docker', 'run', '--rm', '--network', 'none', '--read-only',
+        command = ['docker', 'run', '--rm', '--network', 'none', '--read-only', '--log-driver=none',
                    '--user', 'www-data', '--memory', '128m', '--cpus', '1', '--cap-drop', 'ALL',
                    '--security-opt', 'no-new-privileges',
                    '--mount', 'type=volume,src=' + volume + ',dst=/files,readonly',
@@ -145,7 +121,7 @@ def archive_snapshot_files(restored, app_image, volume, password_file, working):
         inventory.unlink(missing_ok=True)
 
 
-def create_online_backup(db, web, password_file, directory, commit, version):
+def create_online_backup(db, web, password_file, directory, commit, version, *, restore_verifier=None):
     """Caller must hold the deployment lock throughout to exclude DDL/releases."""
     directory = Path(directory).resolve()
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -174,11 +150,14 @@ def create_online_backup(db, web, password_file, directory, commit, version):
             with restored_database(encrypted, database_image, app_image, password_file, working, owner) as restored:
                 state = fingerprint(restored)
                 files = archive_snapshot_files(restored, app_image, volume, password_file, working)
+                qualification = restore_verifier(restored) if restore_verifier is not None else None
         receipt = dict(format='native-sql-gzip-secretstream-v2', backup_path=str(encrypted),
             backup_sha256=sha(encrypted), persistent_files=files, restore_verified=True,
             snapshot_started_at=snapshot_started, verified_at=utc_now(),
             snapshot_method='InnoDB consistent snapshot with immutable-file lifecycle pin',
             previous_commit=commit, previous_version=version, app_image=app_image,
             database_image=database_image, database_version=query(db, 'SELECT VERSION()'), database_state=state)
+        if restore_verifier is not None:
+            receipt['restore_qualification'] = qualification
         (working / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
         return receipt

@@ -2,6 +2,7 @@
 // bundled through their entry point; map workers and PDF.js retain their own builds.
 export const javascriptAssets = [
     {name: 'user-time'},
+    {name: 'page-loading'},
     {name: 'audience-ai', bundle: true},
     {name: 'audience-analytics', bundle: true},
     {name: 'audience-inbox'},
@@ -38,6 +39,7 @@ export const javascriptAssets = [
     {name: 'presentation-upload'},
     {name: 'presentation-form'},
     {name: 'engagement-contacts'},
+    {name: 'edit-engagement'},
     {name: 'engagement-lifecycle'},
     {name: 'engagement-date-reminder'},
     {name: 'engagement-email'},
@@ -62,6 +64,7 @@ export const javascriptAssets = [
 ];
 
 export const stylesheetAssets = [
+    {name: 'page-loading'},
     {name: 'style'},
     {name: 'modern'},
     {name: 'record-actions'},
