@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/presentation_asset_helpers.php';
 require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/short_link_helpers.php';
+require_once __DIR__ . '/moed/tasks/activity.php';
 
 function presentationScalarValue(array $presentation, $key)
 {
@@ -477,5 +478,8 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
         $insert_stmt->close();
     }
 
+    if ($presentations !== []) {
+        completePerformedStandardEventTasks($conn, (int) $engagement_id, $uploaded_by);
+    }
     return $presentations_changed;
 }

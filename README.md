@@ -388,7 +388,9 @@ administrators can permanently delete archived definitions after fresh authentic
 archiving, or deleting a definition does not rewrite tasks already generated for events.
 The required built-in **Complete the event financial closeout** task cannot be edited, archived, or
 deleted; it is due seven days after the event end date and directs staff to finalize giving/income,
-lodging, and travel received.
+lodging, and travel received. Finalizing the report completes this task. Saving or restoring a
+presentation completes the generated **Populate event record with one or more presentations** task.
+If either activity has already happened when its checklist task is added, the task starts completed.
 
 ### Task-backed follow-up and recoverable drafts
 
@@ -502,12 +504,11 @@ Editors and administrators can close an active event from its detail page by fin
 Giving, Lodging, Travel, and Book Table amounts received. Every category requires an explicit
 amount: enter zero when nothing was received; a blank draft amount remains unknown. These actual
 receipts are stored separately from the anticipated travel, lodging, and compensation fields used
-during planning. Before the first
-report can be finalized, every event task due on or before the last active presentation must be
-marked Completed. Tasks due after that presentation and tasks without due dates do not hold the
-closeout. A report can be corrected later without changing its original closer or close timestamp;
-concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and
-correction is captured by the database audit log.
+during planning. Finalization completes the outstanding financial closeout task. Other tasks due
+on or before the last active presentation must first be marked Completed. Canceled tasks due by
+that date also hold finalization. Later and undated tasks do not hold the closeout.
+Corrections preserve the original closer and close timestamp. The app rejects stale corrections,
+and the database audit log records each finalization and correction.
 
 Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
 event, and aggregate lodging, travel, and book-table receipts from finalized reports only.

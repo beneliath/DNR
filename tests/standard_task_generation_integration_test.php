@@ -44,7 +44,8 @@ try {
         $events[$kind] = (int) $conn->insert_id;
         $stmt->close();
     }
-    $conn->query("INSERT INTO engagement_financial_reports (engagement_id) VALUES ({$events['closed']})");
+    $conn->execute_query('INSERT INTO engagement_financial_reports (engagement_id, closed_by) VALUES (?, ?)',
+        [$events['closed'], $users['caller']]);
     $conn->query("INSERT INTO engagement_financial_drafts (engagement_id) VALUES ({$events['unassigned']})");
     $input = ['title' => 'Check notes ' . $suffix, 'details' => 'Inspect the speaker notes', 'priority' => 'high',
         'due_anchor' => 'event_start', 'due_offset_days' => '-3', 'sort_order' => '62'];
@@ -73,6 +74,60 @@ try {
     $endKey = fetchStandardEventTask($conn, $endId)['template_key'];
     $due = $conn->query("SELECT due_date FROM follow_up_tasks WHERE template_key = '{$endKey}' AND engagement_id = {$events['caller']}")->fetch_assoc()['due_date'];
     expectStandardTaskGeneration($due === '2026-10-19', 'event-end rules should use each engagement end date');
+
+    $conn->execute_query("INSERT INTO presentations (engagement_id, topic_title, speaker_id, is_archived, archived_at)
+        VALUES (?, 'First', (SELECT MIN(id) FROM speakers), 0, NULL),
+               (?, 'Second', (SELECT MIN(id) FROM speakers), 0, NULL),
+               (?, 'Archived', (SELECT MIN(id) FROM speakers), 1, UTC_TIMESTAMP())",
+        [$events['caller'], $events['caller'], $events['unassigned']]);
+    $populatedId = createStandardEventTask($conn, array_replace($input, ['title' => EVENT_PRESENTATION_TASK_TITLE]), $users['creator']);
+    $populatedKey = fetchStandardEventTask($conn, $populatedId)['template_key'];
+    $readPresentationTask = static fn(int $event) => $conn->execute_query(
+        'SELECT status, completed_by, completed_at FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?',
+        [$event, $populatedKey])->fetch_assoc();
+    generateStandardTaskForOpenEngagements($conn, $populatedId, $users['creator'], false);
+    $completed = $readPresentationTask($events['caller']);
+    expectStandardTaskGeneration($completed['status'] === 'completed' && $completed['completed_at'] !== null
+        && (int) $completed['completed_by'] === $users['creator']
+        && $readPresentationTask($events['unassigned'])['status'] === 'open'
+        && $readPresentationTask($events['inactive'])['status'] === 'open',
+        'bulk generation must satisfy only engagements with an active presentation, including those with several');
+    $conn->execute_query('DELETE FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?', [$events['caller'], $populatedKey]);
+    generateEngagementFollowUpChecklist($conn, $events['caller'], $users['caller'], $users['creator'], false);
+    expectStandardTaskGeneration($readPresentationTask($events['caller'])['status'] === 'completed'
+        && $conn->execute_query('SELECT status FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?',
+            [$events['caller'], 'standard.confirm_presentations'])->fetch_column() === 'open',
+        'a checklist generated after presentations are saved must complete only the population task');
+
+    // Recreate pre-patch task states and apply the actual one-time migration.
+    $conn->execute_query("UPDATE follow_up_tasks SET status='waiting', waiting_on='Speaker', completed_at=NULL, completed_by=NULL
+        WHERE engagement_id=? AND template_key=?", [$events['caller'], $populatedKey]);
+    $conn->execute_query("UPDATE follow_up_tasks SET status='canceled' WHERE engagement_id=? AND template_key=?",
+        [$events['inactive'], $populatedKey]);
+    $conn->execute_query("INSERT INTO presentations (engagement_id, speaker_id, topic_title)
+        VALUES (?, (SELECT MIN(id) FROM speakers), 'Canceled task'), (?, (SELECT MIN(id) FROM speakers), 'Archived task')",
+        [$events['inactive'], $events['postponed']]);
+    $conn->execute_query("INSERT INTO follow_up_tasks (engagement_id, subject_type, title, template_key, status, is_archived, archived_at)
+        VALUES (?, 'engagement', 'Receipts', ?, 'in_progress', 0, NULL),
+               (?, 'engagement', 'Archived copy', ?, 'open', 1, UTC_TIMESTAMP()),
+               (?, 'engagement', ?, NULL, 'open', 0, NULL)",
+        [$events['closed'], EVENT_CLOSEOUT_TASK_KEY, $events['postponed'], $populatedKey, $events['caller'], EVENT_PRESENTATION_TASK_TITLE]);
+    $backfill = file_get_contents(__DIR__ . '/../migrations/20261107_complete_performed_event_tasks.sql');
+    $conn->query($backfill);
+    $closeout = $conn->execute_query('SELECT status, completed_by, completed_at FROM follow_up_tasks
+        WHERE engagement_id=? AND template_key=?', [$events['closed'], EVENT_CLOSEOUT_TASK_KEY])->fetch_assoc();
+    expectStandardTaskGeneration($closeout['status'] === 'completed' && (int) $closeout['completed_by'] === $users['caller']
+        && $closeout['completed_at'] !== null && $readPresentationTask($events['caller'])['status'] === 'completed'
+        && $readPresentationTask($events['caller'])['completed_by'] === null
+        && $readPresentationTask($events['unassigned'])['status'] === 'open'
+        && $readPresentationTask($events['inactive'])['status'] === 'canceled'
+        && $readPresentationTask($events['postponed'])['status'] === 'open'
+        && $conn->execute_query('SELECT status FROM follow_up_tasks WHERE engagement_id=? AND template_key IS NULL',
+            [$events['caller']])->fetch_column() === 'open',
+        'historical completion requires the activity and its generated task and preserves cancellations, archives and manual work');
+    $conn->query($backfill);
+    expectStandardTaskGeneration($conn->affected_rows === 0, 'replaying the backfill must preserve completion history');
+
     $conn->query("UPDATE standard_event_tasks SET is_archived = 1, archived_at = UTC_TIMESTAMP() WHERE id = {$id}");
     try {
         generateStandardTaskForOpenEngagements($conn, $id, $users['creator'], false);

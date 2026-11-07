@@ -12,6 +12,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1'
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/config.php';
 require_once $sourceDirectory . '/presentation_helpers.php';
+require_once $sourceDirectory . '/follow_up_task_helpers.php';
 
 function expectOptionalPresentationsIntegration(bool $condition, string $message): void
 {
@@ -67,6 +68,19 @@ try {
     $engagementId = (int) $conn->insert_id;
     $engagementStmt->close();
 
+    $conn->execute_query("INSERT INTO users (username, password, role) VALUES (?, ?, 'editor')",
+        ['presentation-task-' . bin2hex(random_bytes(4)), password_hash('test', PASSWORD_DEFAULT)]);
+    $actor = (int) $conn->insert_id;
+    $template = createStandardEventTask($conn, ['title' => EVENT_PRESENTATION_TASK_TITLE, 'priority' => 'normal',
+        'due_anchor' => 'event_start', 'due_offset_days' => '0', 'sort_order' => '100'], $actor);
+    $key = fetchStandardEventTask($conn, $template)['template_key'];
+    $conn->execute_query("INSERT INTO follow_up_tasks
+        (title, template_key, subject_type, engagement_id, status, waiting_on)
+        VALUES ('Customized event copy', ?, 'engagement', ?, 'waiting', 'Speaker'), (?, NULL, 'engagement', ?, 'open', NULL)",
+        [$key, $engagementId, EVENT_PRESENTATION_TASK_TITLE, $engagementId]);
+    $readTask = static fn() => $conn->execute_query('SELECT status, waiting_on, completed_by, completed_at, updated_at
+        FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?', [$engagementId, $key])->fetch_assoc();
+
     $untouchedRow = [
         'topic_title' => '',
         'presentation_date' => '',
@@ -78,7 +92,8 @@ try {
     expectOptionalPresentationsIntegration(
         $untouched === []
             && !syncEngagementPresentations($conn, $engagementId, $untouched)
-            && fetchOptionalPresentationsIntegration($conn, $engagementId) === [],
+            && fetchOptionalPresentationsIntegration($conn, $engagementId) === []
+            && $readTask()['status'] === 'waiting',
         'creating an event with an untouched default-only row must not create a presentation.'
     );
 
@@ -87,8 +102,16 @@ try {
         'duration_minutes' => '',
     ]);
     expectOptionalPresentationsIntegration(
-        syncEngagementPresentations($conn, $engagementId, $normalize([$untouchedRow, $partialRow])),
+        syncEngagementPresentations($conn, $engagementId, $normalize([$untouchedRow, $partialRow]), $actor),
         'a partial presentation must be saved without a title, date, time, or duration.'
+    );
+    $completion = $readTask();
+    expectOptionalPresentationsIntegration(
+        $completion['status'] === 'completed' && $completion['waiting_on'] === null
+            && (int) $completion['completed_by'] === $actor && $completion['completed_at'] !== null
+            && $conn->execute_query('SELECT status FROM follow_up_tasks WHERE engagement_id = ? AND template_key IS NULL',
+                [$engagementId])->fetch_column() === 'open',
+        'saving a presentation must complete the generated task and leave a same-title manual task open.'
     );
     $stored = fetchOptionalPresentationsIntegration($conn, $engagementId);
     expectOptionalPresentationsIntegration(
@@ -102,7 +125,7 @@ try {
     $presentationId = (int) $stored[0]['id'];
     $partialRow['id'] = (string) $presentationId;
     expectOptionalPresentationsIntegration(
-        !syncEngagementPresentations($conn, $engagementId, $normalize([$partialRow])),
+        !syncEngagementPresentations($conn, $engagementId, $normalize([$partialRow])) && $readTask() === $completion,
         'saving unchanged NULL values must not report a presentation change.'
     );
 

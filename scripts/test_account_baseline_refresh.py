@@ -289,6 +289,17 @@ def validate(db,anchor):
  assert query(db,"SELECT MIN(event_start_date),MAX(event_end_date) FROM dnr.engagements")=='\t'.join(window),'Date coverage failed'
  assert query(db,"SELECT COUNT(DISTINCT DATE_FORMAT(event_start_date,'%Y-%m')) FROM dnr.engagements")=='13','Missing month'
  assert query(db,'SELECT COUNT(*) FROM dnr.follow_up_tasks')=='155','Wrong task total'
+ # The event-task backfill uses only existing restored business tables and adds no dependencies to clear.
+ if query(db,"SELECT COUNT(*) FROM dnr.schema_migrations WHERE migration_name='20261107_complete_performed_event_tasks.sql' AND state='applied'")=='1':
+  pending=query(db,"""SELECT COUNT(*) FROM dnr.follow_up_tasks task
+   LEFT JOIN dnr.standard_event_tasks template ON template.template_key=task.template_key
+   WHERE task.subject_type='engagement' AND task.is_archived=0 AND task.status IN ('open','in_progress','waiting')
+     AND ((task.template_key='standard.financial_closeout' AND EXISTS (
+       SELECT 1 FROM dnr.engagement_financial_reports r WHERE r.engagement_id=task.engagement_id))
+     OR (COALESCE(template.title,task.title)='Populate event record with one or more presentations'
+       AND (template.id IS NOT NULL OR task.template_key REGEXP '^(standard|custom|deployment)[.]')
+       AND EXISTS (SELECT 1 FROM dnr.presentations p WHERE p.engagement_id=task.engagement_id AND p.is_archived=0)))""")
+  require(pending=='0','A performed standard event task is still outstanding')
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title LIKE '[Demo team task] %' AND u.username IN ('TestAdmin','TestReviewer') AND t.status IN ('open','in_progress','waiting') AND t.is_archived=0")=='6','Task examples missing'
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title NOT LIKE '[Demo team task] %' AND u.username<>'TestEditor'")=='0','Baseline ownership failed'
  assert not foreign_key_errors(db),'Broken foreign keys: '+str(foreign_key_errors(db))
