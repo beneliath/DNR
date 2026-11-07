@@ -73,11 +73,31 @@ try {
         event_type, confirmation_status) VALUES ({$organizationId}, 'HTTP receipt fixture', '2026-01-01',
         '2026-01-02', 'conference', 'confirmed')");
     $engagementId = (int) $conn->insert_id;
-    $conn->query("INSERT INTO presentations (engagement_id, topic_title, presentation_date, speaker_id)
-        VALUES ({$engagementId}, 'Final active presentation', '2026-01-02', (SELECT MIN(id) FROM speakers))");
+    $conn->execute_query("INSERT INTO presentations (engagement_id, topic_title, presentation_date, speaker_id, is_archived, archived_at)
+        VALUES (?, 'Final presentation', '2026-01-02', (SELECT MIN(id) FROM speakers), 1, UTC_TIMESTAMP())", [$engagementId]);
+    $presentationId = (int) $conn->insert_id;
+    $presentationKey = 'custom.' . bin2hex(random_bytes(16));
+    $conn->execute_query('INSERT INTO standard_event_tasks (template_key, title, created_by) VALUES (?, ?, ?)',
+        [$presentationKey, EVENT_PRESENTATION_TASK_TITLE, $userId]);
+    $conn->execute_query("INSERT INTO follow_up_tasks (title, subject_type, engagement_id, created_by, template_key)
+        VALUES ('Restore speaker session', 'engagement', ?, ?, ?)", [$engagementId, $userId, $presentationKey]);
+    $restorationPath = 'restore_presentations.php?engagement_id=' . $engagementId;
+    $restorationForm = $request($restorationPath);
+    $restored = $request($restorationPath, ['csrf_token' => uiuxHidden($restorationForm['body'], 'csrf_token'),
+        'restore_selected' => '1', 'presentation_ids' => [$presentationId]]);
+    expectUiuxHttp($restored['status'] === 302 && $conn->execute_query('SELECT status FROM follow_up_tasks
+        WHERE engagement_id=? AND template_key=?', [$engagementId, $presentationKey])->fetch_column() === 'completed',
+        'Restoring the first active presentation must complete its associated task');
     $conn->query("INSERT INTO follow_up_tasks (title, status, due_date, subject_type, engagement_id, created_by)
         VALUES ('Canceled closeout prerequisite', 'canceled', '2026-01-02', 'engagement', {$engagementId}, {$userId})");
     $blockerId = (int) $conn->insert_id;
+    $conn->execute_query("INSERT INTO follow_up_tasks (title, status, waiting_on, due_date, subject_type, engagement_id, created_by, template_key)
+        VALUES ('Closeout with overridden due date', 'waiting', 'Receipts', '2026-01-02', 'engagement', ?, ?, ?)",
+        [$engagementId, $userId, EVENT_CLOSEOUT_TASK_KEY]);
+    $closeoutTaskId = (int) $conn->insert_id;
+    $readCloseoutTask = static fn() => $conn->execute_query('SELECT status, waiting_on, completed_by, completed_at, updated_at
+        FROM follow_up_tasks WHERE id = ?', [$closeoutTaskId])->fetch_assoc();
+    $pendingTask = $readCloseoutTask();
     $path = 'close_engagement.php?id=' . $engagementId;
     $form = $request($path);
     expectUiuxHttp($form['status'] === 200 && str_contains($form['body'], 'Canceled closeout prerequisite'),
@@ -86,7 +106,8 @@ try {
         'report_version' => '', 'giving_income_received' => '123.45', 'lodging_received' => '',
         'travel_received' => '0', 'book_table_received' => '', 'notes' => 'Awaiting lodging'];
     $saved = $request($path, $fields + ['action' => 'save_draft']);
-    expectUiuxHttp($saved['status'] === 302, 'Partial receipt draft should save despite the task hold');
+    expectUiuxHttp($saved['status'] === 302 && $readCloseoutTask() === $pendingTask,
+        'Partial receipt drafts must leave the closeout task pending');
     $draft = fetchEngagementFinancialDraft($conn, $engagementId);
     expectUiuxHttp($draft !== null && $draft['giving_income_received'] === '123.45'
         && $draft['lodging_received'] === null && $draft['travel_received'] === '0.00' && $draft['book_table_received'] === null,
@@ -98,10 +119,15 @@ try {
     $fields['book_table_received'] = '7.55';
     $held = $request($path, $fields + ['action' => 'finalize', 'confirm_final' => 'yes']);
     expectUiuxHttp($held['status'] === 200 && str_contains($held['body'], 'must be marked completed')
-        && fetchEngagementFinancialReport($conn, $engagementId) === null,
+        && fetchEngagementFinancialReport($conn, $engagementId) === null && $readCloseoutTask() === $pendingTask,
         'A forged enabled finalize submission should still respect the canceled-task blocker');
     $conn->query("UPDATE follow_up_tasks SET status='completed', completed_by={$userId},
         completed_at=UTC_TIMESTAMP() WHERE id={$blockerId}");
+    $conn->execute_query("UPDATE follow_up_tasks SET status='canceled', waiting_on=NULL WHERE id=?", [$closeoutTaskId]);
+    $canceledCloseout = $request($path, $fields + ['action' => 'finalize', 'confirm_final' => 'yes']);
+    expectUiuxHttp($canceledCloseout['status'] === 200 && str_contains($canceledCloseout['body'], 'must be marked completed')
+        && $readCloseoutTask()['status'] === 'canceled', 'An explicitly canceled prerequisite must still hold finalization');
+    $conn->execute_query("UPDATE follow_up_tasks SET status='waiting', waiting_on='Receipts' WHERE id=?", [$closeoutTaskId]);
     $missing = $fields;
     $missing['lodging_received'] = '';
     $rejected = $request($path, $missing + ['action' => 'finalize', 'confirm_final' => 'yes']);
@@ -123,6 +149,10 @@ try {
         'Finalization must reject an obsolete draft version');
     $final = $request($path, $fields + ['action' => 'finalize', 'confirm_final' => 'yes']);
     $report = fetchEngagementFinancialReport($conn, $engagementId);
+    $completedTask = $readCloseoutTask();
+    expectUiuxHttp($completedTask['status'] === 'completed' && $completedTask['waiting_on'] === null
+        && $completedTask['completed_at'] !== null && (int) $completedTask['completed_by'] === $userId,
+        'Finalizing must complete its own task even when that task is due by the last presentation');
     $lifecycle = $conn->query("SELECT lifecycle_status FROM engagements WHERE id={$engagementId}")->fetch_assoc();
     expectUiuxHttp($final['status'] === 302 && $report !== null
         && $report['giving_income_received'] === '123.45' && $report['lodging_received'] === '15.00'
@@ -138,7 +168,8 @@ try {
     expectUiuxHttp($rejected['status']===200 && str_contains($rejected['body'],'Enter a correction reason'),'Financial correction requires a reason');
     $corrected=$request($path,$correction+['correction_reason'=>'Confirmed no book-table receipts']);
     expectUiuxHttp($corrected['status']===302 && count(fetchEngagementFinancialRevisions($conn,$engagementId))===2
-        && fetchEngagementFinancialReport($conn,$engagementId)['book_table_received']==='0.00','Correction preserves both revisions and confirmed zero book-table receipts');
+        && fetchEngagementFinancialReport($conn,$engagementId)['book_table_received']==='0.00'
+        && $readCloseoutTask() === $completedTask, 'Correction preserves both revisions, confirmed zero book-table receipts, and task completion history');
     $revisions=fetchEngagementFinancialRevisions($conn,$engagementId);
     expectUiuxHttp($revisions[0]['book_table_received']==='0.00' && $revisions[1]['book_table_received']==='7.55', 'Book-table-only corrections retain the original amount in revision history');
 
@@ -233,6 +264,7 @@ try {
     echo "UI/UX workflow HTTP integration tests passed (draft/finalize, canceled hold, NULL/zero, queue scope, stale inquiry edits, none/some/all conversion, action history).\n";
 } finally {
     if ($userId > 0) { $conn->query("DELETE FROM follow_up_tasks WHERE created_by={$userId}"); }
+    if (isset($presentationKey)) { $conn->execute_query('DELETE FROM standard_event_tasks WHERE template_key=?', [$presentationKey]); }
     if ($organizationId > 0) {
         $conn->query("DELETE FROM booking_inquiries WHERE organization_id={$organizationId}");
         // The web account must respect financial retention even in fixtures.

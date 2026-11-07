@@ -72,8 +72,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['audience'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|audience|audience-minor-fixes|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['event-tasks'], ['audience'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|event-tasks|audience|audience-minor-fixes|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -192,8 +192,10 @@ def main():
                     raise ValueError('Recovery operator did not release exactly the reviewed generation')
                 print('Recovery operator prepare, stale-generation rejection and audited release passed.', flush=True)
                 return
-            if sys.argv[1:] in (['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
-                suites = {'audience-minor-fixes': ('audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
+            if sys.argv[1:] in (['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data'], ['event-tasks']):
+                suites = {'event-tasks': ('optional_presentations_integration_test.php', 'standard_task_generation_integration_test.php',
+                                          'standard_task_generation_http_integration_test.php', 'uiux_workflow_http_integration_test.php'),
+                          'audience-minor-fixes': ('audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
                           'audience-presend': ('audience_http_integration_test.php',),
                           'user-timezone': ('user_timezone_http_integration_test.php', 'admin_user_profile_http_integration_test.php'),
                           'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),

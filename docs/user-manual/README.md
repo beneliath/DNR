@@ -44,9 +44,10 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The November 6, 2026 edition applies to application version **2.10.34** and
-covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
-high-level; the PDF adds illustrated steps for the same current workflows.
+The November 7, 2026 edition applies to application version **2.10.35**.
+The Work Queue chapter explains which Standard Event Tasks complete when a
+presentation is saved or restored and when a financial report is finalized.
+The README appendix includes the closeout prerequisites.
 
 The reimbursement email review now offers Reduce Photo Sizes for large receipt
 photos. It prepares smaller email copies while preserving the original uploads,

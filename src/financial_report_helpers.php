@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Dnr\Domain\FinancialReportInput;
 
+require_once __DIR__ . '/moed/tasks/activity.php';
+
 /** @return array<string, mixed>|null */
 function fetchEngagementFinancialReport(mysqli $conn, int $engagement_id): ?array
 {
@@ -78,6 +80,7 @@ function fetchEngagementCloseoutTaskReadiness(
          WHERE engagement_id = ? AND is_archived = 0
            AND due_date <= ?
            AND status <> 'completed'
+           AND (template_key IS NULL OR template_key <> ? OR status = 'canceled')
          ORDER BY due_date, id";
     if ($lock) {
         $task_sql .= ' FOR UPDATE';
@@ -86,7 +89,8 @@ function fetchEngagementCloseoutTaskReadiness(
     if (!$task_stmt) {
         throw new RuntimeException('Unable to prepare the engagement closeout tasks.');
     }
-    $task_stmt->bind_param('is', $engagement_id, $last_presentation_date);
+    $closeout_key = EVENT_CLOSEOUT_TASK_KEY;
+    $task_stmt->bind_param('iss', $engagement_id, $last_presentation_date, $closeout_key);
     $task_stmt->execute();
     $blocking_tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $task_stmt->close();

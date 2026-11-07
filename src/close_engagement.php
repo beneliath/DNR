@@ -26,6 +26,7 @@ if ($engagement_id === null) {
     exit();
 }
 
+$conn = applicationDatabaseConnection();
 $engagement_stmt = $conn->prepare(
     'SELECT engagement.id, engagement.event_title, engagement.event_start_date,
             engagement.event_end_date, engagement.confirmation_status,
@@ -229,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to save the financial report.');
             }
             $save_stmt->close();
+            completePerformedStandardEventTasks($conn, $engagement_id, $current_user_id);
             $delete_draft = $conn->prepare('DELETE FROM engagement_financial_drafts WHERE engagement_id = ?');
             $delete_draft->bind_param('i', $engagement_id);
             $delete_draft->execute();
@@ -352,7 +354,7 @@ $closed_timestamp = $is_correction
     <?php elseif ($closeout_is_held): ?>
         <section class="closeout-task-hold" aria-labelledby="closeout-task-hold-title">
             <h2 id="closeout-task-hold-title">Finalization Prerequisites</h2>
-            <p>You can save receipt drafts now. Finalizing requires every task due through the last dated presentation to be Completed, including canceled tasks under the current closeout policy.</p>
+            <p>You can save receipt drafts now. Finalizing completes the outstanding financial closeout task. Resolve the tasks listed below before finalizing, including any canceled tasks.</p>
             <p class="error" role="alert"><?php echo htmlspecialchars($task_hold_message, ENT_QUOTES, 'UTF-8'); ?></p>
             <ul class="closeout-blocking-task-list">
                 <?php foreach ($task_readiness['blocking_tasks'] as $blocking_task): ?>

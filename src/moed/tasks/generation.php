@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/activity.php';
+
 function generateStandardTaskForOpenEngagements(
     mysqli $conn,
     int $template_id,
@@ -37,16 +39,22 @@ function generateStandardTaskForOpenEngagements(
         // and two database round trips per row. Share locks preserve the same
         // ordering against concurrent closeout, archive, date and owner changes.
         // Existing copies (including archived/completed ones) are left untouched.
+        $isPresentationTask = (int) (strcasecmp($template['title'], EVENT_PRESENTATION_TASK_TITLE) === 0);
         $insert = $conn->prepare(
             "INSERT INTO follow_up_tasks
                 (title, details, status, priority, due_date, subject_type, engagement_id,
-                 assigned_to, created_by, template_key, due_date_overridden)
-             SELECT ?, ?, 'open', ?, DATE_ADD(engagement.{$anchor}, INTERVAL ? DAY),
-                    'engagement', engagement.id, COALESCE(caller.id, ?), ?, ?, 0
+                 assigned_to, created_by, template_key, due_date_overridden, completed_by, completed_at)
+             SELECT ?, ?, IF(presented.done IS NULL, 'open', 'completed'), ?, DATE_ADD(engagement.{$anchor}, INTERVAL ? DAY),
+                    'engagement', engagement.id, COALESCE(caller.id, ?), ?, ?, 0,
+                    IF(presented.done IS NULL, NULL, ?), IF(presented.done IS NULL, NULL, UTC_TIMESTAMP())
              FROM engagements engagement
              INNER JOIN organizations organization ON organization.id = engagement.organization_id
              LEFT JOIN engagement_financial_reports report ON report.engagement_id = engagement.id
              LEFT JOIN users caller ON caller.id = engagement.caller_user_id AND caller.account_status = 'active'
+             LEFT JOIN LATERAL (
+                 SELECT 1 AS done FROM presentations p
+                 WHERE ? = 1 AND p.engagement_id = engagement.id AND p.is_archived = 0 LIMIT 1
+             ) presented ON TRUE
              WHERE engagement.is_deleted = 0 AND organization.is_deleted = 0
                AND engagement.lifecycle_status = 'active' AND report.engagement_id IS NULL
                AND NOT EXISTS (
@@ -56,9 +64,9 @@ function generateStandardTaskForOpenEngagements(
              ORDER BY engagement.id
              FOR SHARE"
         );
-        $insert->bind_param('sssiiiss', $template['title'], $template['details'],
+        $insert->bind_param('sssiiisiis', $template['title'], $template['details'],
             $template['priority'], $template['due_offset_days'], $created_by, $created_by,
-            $template['template_key'], $template['template_key']);
+            $template['template_key'], $created_by, $isPresentationTask, $template['template_key']);
         try {
             $insert->execute();
             $inserted = $insert->affected_rows;
@@ -222,6 +230,7 @@ function generateEngagementFollowUpChecklist(
             $inserted += $stmt->affected_rows;
         }
         $stmt->close();
+        completePerformedStandardEventTasks($conn, $engagement_id, $created_by);
         if ($manage_transaction) {
             $conn->commit();
         }

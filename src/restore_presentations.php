@@ -205,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($restored_count < 1) {
                 throw new InvalidArgumentException('The selected presentations are no longer archived.');
             }
+            completePerformedStandardEventTasks($conn, $engagement_id, (int) $_SESSION['user_id']);
             $action_message = $restored_count === 1
                 ? '1 presentation restored.'
                 : $restored_count . ' presentations restored.';
