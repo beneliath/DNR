@@ -138,24 +138,38 @@ trait AudienceAnalyticsReports
             if(!preg_match('/^[a-f0-9]{64}$/D',$link))throw new InvalidArgumentException('Choose a valid tracked link.');
             $scope.=" AND EXISTS(SELECT 1 FROM marketing_message_events le WHERE le.recipient_id=r.id AND le.audience_id=r.audience_id AND le.event_type='click' AND le.event_at<? AND JSON_UNQUOTE(JSON_EXTRACT(le.details_json,'$.link_hash'))=?".($w['bots']==='filtered'?" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(le.details_json,'$.bot')),'false')<>'true'":'').')';array_push($params,$w['until'],$link);
         }
-        $query="SELECT r.id,r.contact_id,r.accepted_at,r.context_ciphertext,c.email,c.first_name,c.last_name,c.deleted_at,d.campaign_id,m.name campaign,
-            $columns,
-            EXISTS(SELECT 1 FROM marketing_contact_events ce WHERE ce.contact_id=r.contact_id AND ce.event_type='status'
-                AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed'
-                AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR) AND ce.created_at<?) unsubscribed
-            FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id
+        $recipients="FROM marketing_campaign_recipients r
+            JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id
             JOIN marketing_campaigns m ON m.id=d.campaign_id AND m.audience_id=d.audience_id
-            JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id
-            LEFT JOIN marketing_message_events e ON e.recipient_id=r.id AND e.audience_id=r.audience_id AND e.event_at<?
-            WHERE $scope GROUP BY r.id";
-        $params=[$w['until'],$w['until'],...$params];$where=$activity==='accepted'?'1=1':$activity.'=1';
-        $total=(int)$this->one("SELECT COUNT(*) n FROM ($query) observations WHERE $where",$params)['n'];
+            JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id";
+        $events="LEFT JOIN marketing_message_events e ON e.recipient_id=r.id AND e.audience_id=r.audience_id AND e.event_at<?";
+        $unsubscribed="EXISTS(SELECT 1 FROM marketing_contact_events ce WHERE ce.contact_id=r.contact_id AND ce.event_type='status'
+                AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.to'))='unsubscribed'
+                AND JSON_UNQUOTE(JSON_EXTRACT(ce.details_json,'$.recipient_id'))=CAST(r.id AS CHAR) AND ce.created_at<?)";
+        $matches="SELECT r.id $recipients WHERE $scope";
+        if($activity==='unsubscribed'){
+            $matches.=" AND $unsubscribed";
+            $params[]=$w['until'];
+        }elseif($activity!=='accepted'){
+            $matches="SELECT r.id,$columns $recipients $events WHERE $scope GROUP BY r.id HAVING $activity=1";
+            array_unshift($params,$w['until']);
+        }
+        // Rank only matching IDs. For Sent, event history and encrypted receipts are read only for the visible page.
+        $rows=$this->all("WITH matches AS ($matches), ranked AS (
+                SELECT id,ROW_NUMBER() OVER (ORDER BY id DESC) row_num,COUNT(*) OVER () matched_total FROM matches
+            )
+            SELECT r.id,r.contact_id,r.accepted_at,r.context_ciphertext,c.email,c.first_name,c.last_name,c.deleted_at,
+                d.campaign_id,m.name campaign,ranked.matched_total,$columns,$unsubscribed unsubscribed
+            $recipients JOIN ranked ON ranked.id=r.id $events
+            WHERE (ranked.row_num-1) DIV $size = LEAST(?, (ranked.matched_total-1) DIV $size)
+            GROUP BY r.id,ranked.matched_total ORDER BY r.id DESC",
+            [...$params,$w['until'],$w['until'],$page-1]);
+        $total=(int)($rows[0]['matched_total']??0);
         $page=min($page,max(1,(int)ceil($total/$size)));
-        $rows=$this->all("SELECT * FROM ($query) observations WHERE $where ORDER BY id DESC LIMIT $size OFFSET ".(($page-1)*$size),$params);
         foreach($rows as&$row){
             $row['destination']='Deleted connection';
             if($row['deleted_at']===null){$row['destination']=$row['email'];try{$context=audienceJson(\Dnr\Security\ApplicationKey::open($row['context_ciphertext']));$row['destination']=$context['email']??$row['email'];}catch(Throwable){/* Old receipt may no longer be decryptable. */}}
-            unset($row['context_ciphertext']);foreach(['delivered','opens','clicks','bounced','complaints','unsubscribed']as$key)$row[$key]=(int)($row[$key]??0);
+            unset($row['context_ciphertext'],$row['matched_total']);foreach(['delivered','opens','clicks','bounced','complaints','unsubscribed']as$key)$row[$key]=(int)($row[$key]??0);
         }unset($row);
         return ['rows'=>$rows,'total'=>$total,'page'=>$page,'size'=>$size];
     }
@@ -196,20 +210,21 @@ trait AudienceAnalyticsReports
         return $result;
     }
 
-    public function analyticsAudienceHistory(array $w,string $source=''):array
+    public function analyticsAudienceHistory(array $w,string $source='',bool $bySource=true):array
     {
         $sourceWhere=$source!==''?' AND c.source=?':'';$sp=$source!==''?[$source]:[];
-        $sources=$this->all("SELECT c.source label,COUNT(*) total,SUM(c.email_status='subscribed') subscribed,
-            SUM(c.created_at>=? AND c.created_at<?) added FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL AND c.is_archived=0 AND c.email_status NOT IN ('cleaned','pending') $sourceWhere GROUP BY c.source ORDER BY total DESC,label",[$w['from'],$w['until'],$this->audienceId,...$sp]);
+        $label=$bySource?'c.source':"''";$group=$bySource?',c.source':'';
+        $sources=$bySource?$this->all("SELECT c.source label,COUNT(*) total,SUM(c.email_status='subscribed') subscribed,
+            SUM(c.created_at>=? AND c.created_at<?) added FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL AND c.is_archived=0 AND c.email_status NOT IN ('cleaned','pending') $sourceWhere GROUP BY c.source ORDER BY total DESC,label",[$w['from'],$w['until'],$this->audienceId,...$sp]):[];
         $history=[];$unknown=0;
         $from=min($w['from'],$w['previous_from']);$until=max($w['until'],$w['previous_until']);
-        foreach($this->all("SELECT DATE(c.created_at) day,c.source label,COUNT(*) added FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL AND c.created_at>=? AND c.created_at<? $sourceWhere GROUP BY day,c.source",[$this->audienceId,$from,$until,...$sp])as$row)$history[$row['day'].'|'.$row['label']]=['day'=>$row['day'],'source'=>$row['label'],'added'=>(int)$row['added'],'subscriptions'=>0,'optouts'=>0,'net'=>0];
-        $events=$this->all("SELECT DATE(e.created_at) day,c.source label,
+        foreach($this->all("SELECT DATE(c.created_at) day,$label label,COUNT(*) added FROM marketing_contacts c WHERE c.audience_id=? AND c.deleted_at IS NULL AND c.created_at>=? AND c.created_at<? $sourceWhere GROUP BY day$group",[$this->audienceId,$from,$until,...$sp])as$row)$history[$row['day'].'|'.$row['label']]=['day'=>$row['day'],'source'=>$row['label'],'added'=>(int)$row['added'],'subscriptions'=>0,'optouts'=>0,'net'=>0];
+        $events=$this->all("SELECT DATE(e.created_at) day,$label label,
             JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.from')) old_status,
             COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.to')),IF(e.event_type='contact_added',JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.status')),NULL)) new_status,
             COUNT(*) n FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id
             WHERE c.audience_id=? AND c.deleted_at IS NULL AND e.created_at>=? AND e.created_at<? $sourceWhere
-            AND e.event_type IN ('status','subscription_changed','subscription-confirmed','contact_added') GROUP BY day,c.source,old_status,new_status",[$this->audienceId,$from,$until,...$sp]);
+            AND e.event_type IN ('status','subscription_changed','subscription-confirmed','contact_added') GROUP BY day$group,old_status,new_status",[$this->audienceId,$from,$until,...$sp]);
         foreach($events as$row){$key=$row['day'].'|'.$row['label'];$history[$key]??=['day'=>$row['day'],'source'=>$row['label'],'added'=>0,'subscriptions'=>0,'optouts'=>0,'net'=>0];
             $n=(int)$row['n'];if(!$row['new_status']){$unknown+=$n;continue;}
             if($row['new_status']==='subscribed'&&$row['old_status']!=='subscribed')$history[$key]['subscriptions']+=$n;

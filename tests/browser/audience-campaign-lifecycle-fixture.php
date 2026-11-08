@@ -23,7 +23,7 @@ if(($argv[3]??'')==='recent'){
     for($i=0;$i<9;$i++)$recentCampaigns[]=['id'=>70+$i,'name'=>['Community newsletter','Special update','Prayer letter'][$i%3].' '.($i+1),'version'=>3,'status'=>'sent','sent_at'=>sprintf('2026-10-%02d 14:00:00',25-$i)];
 }
 $folders=[['id'=>4,'name'=>'Newsletters','version'=>1,'campaign_count'=>0]];
-$store=new class{public function analyticsAudienceHistory(array $w,string $source=''):array{return ['current'=>[],'previous'=>[]];}public function analyticsReportRows(array $w,array $definition):array{return [];}};
+$store=new class{public function analyticsAudienceHistory(array $w,string $source='',bool $bySource=true):array{return ['current'=>[],'previous'=>[]];}public function analyticsReportRows(array $w,array $definition,?array $history=null):array{return [];}};
 $window=['start'=>'2026-10-01','end'=>'2026-10-22','compare'=>'none','bots'=>'filtered','messages_mode'=>'all','messages'=>[]];$showDrafts=false;$section='home';$rangeKey='custom';$presets=[];
 $totals=array_fill_keys(['accepted','delivery_rate','open_rate','click_rate','clicks_per_open','unsubscribe_rate','awaiting_receipt','detected_bot'],0);$overview=['totals'=>$totals,'previous'=>$totals,'audience'=>array_fill_keys(['visible_total','subscribed','added'],0),'includes_samples'=>false,'campaigns'=>[]];
 if($view==='campaign-manager'){

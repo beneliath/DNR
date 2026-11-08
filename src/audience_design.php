@@ -96,7 +96,7 @@ function audienceDesignBrandDefaults(array $input,array $brand,bool $newDesign=f
     }
     return $design;
 }
-function audienceDesignStarters(): array
+function audienceDesignStarters(?string $onlyKey=null,bool $includeBanners=true): array
 {
     $block=static fn($type,$text,$extra=[])=>['type'=>$type,'text'=>$text,'inherit'=>array_values(array_diff(['color','size','font','lineHeight','letterSpacing','paragraphSpacing','background','radius','dividerWidth','dividerHeight'],array_keys($extra)))]+$extra;
     $intro=[$block('heading','Share something great.',['align'=>'center']),$block('text',"Hello *|FNAME|*,\n\nUse this space to share your news, tell your story, and connect with your connections."),$block('button','Learn more',['align'=>'center','url'=>'https://example.com'])];
@@ -123,6 +123,8 @@ function audienceDesignStarters(): array
         $features=[];for($i=1;$i<=$columns;$i++)$features[]=[ $block('heading','Highlight '.$i,['headingLevel'=>2]),$block('text','Share a useful detail, a new idea, or a story that matters to your readers.'),$block('button','Explore more',['url'=>'https://example.com']) ];
         $starters[$key]=['name'=>$name,'category'=>$category,'design'=>audienceDesign(['schema'=>1,'rows'=>[['name'=>'Header','columns'=>[[$block('heading',$headline,['align'=>'center']),$block('text','Hello *|FNAME|*, make this message your own.')]]],['name'=>'Featured content','columns'=>$features]]])];
     }
+    if($onlyKey!==null)$starters=array_intersect_key($starters,[$onlyKey=>true]);
+    if(!$includeBanners)return $starters;
     $banners=[
         'newsletter'=>['neve-tzedek-market','People browsing an outdoor market in Neve Tzedek'],
         'welcome'=>['jaffa-steps','A visitor on the stone steps of Old Jaffa'],

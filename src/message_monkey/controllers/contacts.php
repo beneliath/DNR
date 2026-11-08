@@ -14,7 +14,8 @@ function renderAudienceContactsWorkspace(
     $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     $url = static fn(array $params = []): string => 'audience.php' . ($params ? '?' . http_build_query($params) : '');
     $redirect = $url(['view' => $view]);
-$tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
+$withDefinitionCounts=$view!=='segments';
+$tags=$store->tags(true,$withDefinitionCounts);$groups=$store->groups(true,$withDefinitionCounts);$fields=$store->fields();
 $catalog = $store->catalogForDefinitions($fields, $tags, $groups);
 $definitionArchiveAvailable=$store->definitionArchiveAvailable();
 $rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;
@@ -154,7 +155,7 @@ if(($_GET['export']??'')==='person'){
 }
 if ($isPost) {
     // A submitted operation may have changed the choices or membership counts.
-    $tags=$store->tags(true);$groups=$store->groups(true);$fields=$store->fields();
+    $tags=$store->tags(true,$withDefinitionCounts);$groups=$store->groups(true,$withDefinitionCounts);$fields=$store->fields();
     $catalog = $store->catalogForDefinitions($fields, $tags, $groups);
 }
 $activeTags=array_values(array_filter($tags,static fn($tag)=>empty($tag['archived_at'])));

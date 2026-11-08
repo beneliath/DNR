@@ -17,7 +17,7 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
  const browser=await chromium.launch({headless:true,...(process.env.DNR_BROWSER_EXECUTABLE?{executablePath:process.env.DNR_BROWSER_EXECUTABLE}:{})});
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(5000);
-  let unlocked=false;const posts=[],uploads=[],errors=[];
+  let unlocked=false;const posts=[],uploads=[],errors=[],previews=[];
   const status=()=>({unlocked,expires_at:unlocked?Date.now()/1000+300:0,server_now:Date.now()/1000,csrf_token:unlocked?'fixture-rotated-token':'fixture-locked-token'});
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('http://localhost:43201/**',route=>{
@@ -29,6 +29,10 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
    if(url.pathname==='/admin_unlock_status.php')return route.fulfill({contentType:'application/json',body:JSON.stringify(status())});
    if(url.pathname==='/admin_lock.php'){unlocked=false;return route.fulfill({contentType:'application/json',body:JSON.stringify({...status(),locked:true})});}
    if(url.pathname==='/audience.php'){
+    if(url.searchParams.has('preview')){
+     previews.push(url.searchParams.get('preview'));
+     return route.fulfill({json:{html:'<html><body>Template preview</body></html>'}});
+    }
     if(request.method()==='POST'){
      if((request.headers()['content-type']||'').startsWith('multipart/form-data'))uploads.push(request.postData());
      else posts.push(Object.fromEntries(new URLSearchParams(request.postData())));
@@ -55,6 +59,17 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
    assert.equal(await page.locator('[data-tooltip="Export"]').count(),role==='reviewer'?0:1,'Editors and administrators can export active and archived cards');
    assert.equal(await page.locator('[data-open-dialog="template-package-import"]').count(),role==='reviewer'?0:1,'Only editors and administrators can import');
   }
+  previews.length=0;
+  await page.goto('http://localhost:43201/audience.php?role=reviewer&tab=built-in');
+  await page.waitForFunction(()=>[...document.querySelectorAll('[data-preview-url]')].some(frame=>frame.contentDocument?.body?.textContent==='Template preview'));
+  // A near-fold card can move as the first thumbnails settle. Use a card well outside both layouts.
+  const offscreen=await page.locator('[data-preview-url]').evaluateAll(frames=>frames.findLast(frame=>frame.closest('article').getBoundingClientRect().top>2*innerHeight)?.closest('article').dataset.templateKey.slice(8));
+  assert.ok(offscreen&&!previews.includes(offscreen),`Offscreen gallery card ${offscreen} should not be among the initial previews: ${previews.join(', ')}`);
+  const card=page.locator(`[data-template-key="starter:${offscreen}"]`);
+  await page.locator('[data-template-search]').fill(await card.locator('h3').innerText());
+  await card.scrollIntoViewIfNeeded();
+  await page.waitForFunction(key=>document.querySelector(`[data-template-key="starter:${key}"] iframe`)?.contentDocument?.body?.textContent==='Template preview',offscreen);
+  assert.equal(previews.filter(key=>key===offscreen).length,1,'Filtering the gallery loads the newly visible preview once');
   await page.goto('http://localhost:43201/audience.php?role=editor&tab=saved');
   // Exercise wrapping below the desktop width that fits all eight actions.
   await page.locator('#template-gallery').evaluate(gallery=>{gallery.style.maxWidth='340px';});

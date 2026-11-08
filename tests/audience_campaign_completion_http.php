@@ -84,6 +84,19 @@ $conn->execute_query("UPDATE marketing_campaigns SET status='sent',sent_at=UTC_T
 $c2reject(fn()=>$campaignStore->saveCampaignPublication($c2id,$c2version,['enabled'=>'1'],$c2audience),'Publication needs explicit review confirmation');
 $campaignStore->saveCampaignPublication($c2id,$c2version,['enabled'=>'1','archive_listed'=>'1','publication_confirmed'=>'1'],$c2audience);$c2publication=$campaignStore->campaignPublication($c2id);$c2public='audience_campaign_public.php?key='.$c2publication['public_key'];
 $c2anon=static function(string $path):array{$ch=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>20]);$raw=curl_exec($ch);$size=curl_getinfo($ch,CURLINFO_HEADER_SIZE);$out=['status'=>curl_getinfo($ch,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];return $out;};
+$photoCampaign=$campaignStore->createCampaign(['name'=>'Thumbnail qualification','campaign_type'=>'regular']);
+$photoDraft=$campaignStore->campaign($photoCampaign)['draft'];$photoDraft['design']=audienceDesignStarters('newsletter')['newsletter']['design'];$photoDraft['subject']='Thumbnail subject';$photoDraft['recipients_saved']=true;$photoDraft['include']=['tag:1'];
+$campaignStore->write('UPDATE marketing_campaigns SET draft_json=? WHERE audience_id=? AND id=?',[json_encode($photoDraft,JSON_THROW_ON_ERROR),$campaignStore->audienceId,$photoCampaign]);
+$cardPage=$reviewer('audience.php?view=campaigns&search=Thumbnail+qualification');
+$thumbPath='audience.php?view=campaigns&api=campaign_thumbnail&id=';$thumb=$reviewer($thumbPath.$photoCampaign);$info=getimagesizefromstring($thumb['body']);
+audienceHttpExpect($cardPage['status']===200&&str_contains($cardPage['body'],'Thumbnail subject')&&str_contains($cardPage['body'],'Selected subscribers')&&str_contains($cardPage['body'],'api=campaign_thumbnail')&&!str_contains($cardPage['body'],'data:image/jpeg;base64,'),'List sends the subject and targeting label without the original newsletter image');
+audienceHttpExpect($thumb['status']===200&&$info&&[$info[0],$info[1],$info['mime']] === [88,128,'image/png']&&str_contains(strtolower($thumb['headers']),'cache-control: no-store'),'A signed-in reviewer can load just the small raster preview');
+audienceHttpExpect($c2anon($thumbPath.$photoCampaign)['status']===302&&$reviewer($thumbPath.$foreignCampaign)['status']===404,'Campaign thumbnails require login and stay in the current audience');
+$campaignStore->campaignOperation('archive',[$photoCampaign],[$photoCampaign=>1]);
+audienceHttpExpect($reviewer($thumbPath.$photoCampaign)['status']===200,'The archived campaign list keeps its thumbnail');
+$campaignStore->campaignOperation('delete',[$photoCampaign],[$photoCampaign=>2]);
+audienceHttpExpect($reviewer($thumbPath.$photoCampaign)['status']===404,'Permanently removed campaigns cannot serve thumbnails');
+
 $c2publicPage=$c2anon($c2public);audienceHttpExpect($c2publicPage['status']===200&&str_contains($c2publicPage['body'],'og:title')&&str_contains($c2publicPage['body'],'Public fixture title'),'Anonymous sent browser version and social metadata');
 audienceHttpExpect(preg_match("/style-src [^;]*'nonce-/",$c2publicPage['headers'])===1&&str_contains($c2publicPage['body'],'sandbox=""'),'Public email retains nonce styles and script-disabled frame');
 audienceHttpExpect(!str_contains($c2publication['html'],'*|UNSUB|*')&&!str_contains($c2publication['html'],'completion-subscriber@example.test'),'Public snapshot has no recipient identity or unsubscribe token');

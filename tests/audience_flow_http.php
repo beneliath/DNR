@@ -10,6 +10,18 @@ $enroll=static function(array $flow,?int $person=null,?int $at=null)use($fs,$flo
 $stop=static function(int $id)use($fs):void{$r=$fs->flow($id);$fs->flowOperation($id,(int)$r['version'],'pause');};
 $d=audienceFlowDefault();$d['nodes']=[['id'=>'tag','type'=>'tag','tag_id'=>$flowTag,'next'=>'']];$d['start']='tag';
 $basic=$newFlow($d);$runId=$enroll($basic);audienceHttpExpect((bool)$runId,'A qualifying connection can enter an active flow');
+// A realistic campaign photo used to overflow MySQL's sort buffer even on the flow overview.
+$largeChoice=$fs->createCampaign(['name'=>'Newsletter with a banner','campaign_type'=>'regular']);
+try{
+    $draft=$fs->campaign($largeChoice)['draft'];
+    $draft['design']=audienceDesignStarters('newsletter')['newsletter']['design'];
+    $draft['send_time']['mode']='triggered';
+    $fs->write('UPDATE marketing_campaigns SET draft_json=? WHERE audience_id=? AND id=?',[json_encode($draft,JSON_THROW_ON_ERROR),$fs->audienceId,$largeChoice]);
+    foreach(['automations','flow-templates']as$view)audienceHttpExpect($editor('audience.php?view='.$view)['status']===200,'Large campaign designs do not block '.$view);
+    $classic=$editor('audience.php?view=automations&tab=classic');
+    $builder=$editor('audience.php?view=flow&id='.$basic['id']);
+    audienceHttpExpect($classic['status']===200&&str_contains($classic['body'],'Convert Newsletter with a banner')&&$builder['status']===200&&str_contains($builder['body'],'Newsletter with a banner'),'Classic conversion and the flow editor still list eligible campaigns with large designs');
+}finally{$fs->campaignOperation('archive',[$largeChoice],[$largeChoice=>1]);}
 $renamePath='audience.php?view=automations&tab=flows&state=running&sort=updated&page=1&per_page=10';
 $rename=['action'=>'flow_operation','operation'=>'rename','id'=>$basic['id'],'version'=>$basic['version'],'name'=>'  Renamed & running  '];
 $renameToken=audienceHttpCsrf($editor($renamePath));

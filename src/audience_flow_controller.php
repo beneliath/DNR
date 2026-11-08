@@ -79,15 +79,28 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
     if($recover&&$flow){try{$flow['document']=audienceFlowDocument(json_decode($recover['document'],true,48,JSON_THROW_ON_ERROR));$flow['version']=(int)$recover['version'];$flow['name']=audienceText($recover,'name',100);}catch(Throwable){}}
     try{$listOptions=audienceFlowListOptions($view==='automations'?$_GET:[]);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$listOptions=audienceFlowListOptions([]);}
     $q=$view==='flow-templates'?audienceText($_GET,'q',100):$listOptions['q'];$state=$listOptions['state'];$flowSort=$listOptions['sort'];$flowOrder=match($flowSort){'updated'=>'f.updated_at DESC,f.id DESC','oldest'=>'f.created_at ASC,f.id ASC',default=>'f.created_at DESC,f.id DESC'};$classic=($_GET['tab']??'')==='classic';$trash=($_GET['trash']??'')==='1';$flows=[];$flowSize=audiencePageSize($_GET);$flowPage=max(1,(int)($_GET['page']??1));$flowTotal=0;
-    if($available){$where='f.audience_id=? AND f.deleted_at IS '.($trash?'NOT NULL':'NULL');$params=[$audienceId];if($q!==''){$where.=' AND LOCATE(?,f.name)>0';$params[]=$q;}if(in_array($state,['draft','running','paused'],true)){$where.=' AND f.state=?';$params[]=$state;}$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic?'true':'false')."'";$flowTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where,$params)['n'];$flowPage=min($flowPage,max(1,(int)ceil($flowTotal/$flowSize)));$flows=$store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id) started,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'active\') active,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'completed\') completed FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT ? OFFSET ?',[...$params,$flowSize,($flowPage-1)*$flowSize]);}
-    $tags=$store->tags();$groups=$store->groups();$fields=$store->fields();
-    $catalog = $view === 'flow' ? $store->catalog() : [];
+    if($available&&$view==='automations'){$where='f.audience_id=? AND f.deleted_at IS '.($trash?'NOT NULL':'NULL');$params=[$audienceId];if($q!==''){$where.=' AND LOCATE(?,f.name)>0';$params[]=$q;}if(in_array($state,['draft','running','paused'],true)){$where.=' AND f.state=?';$params[]=$state;}$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic?'true':'false')."'";$flowTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where,$params)['n'];$flowPage=min($flowPage,max(1,(int)ceil($flowTotal/$flowSize)));$flows=$store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id) started,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'active\') active,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'completed\') completed FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT ? OFFSET ?',[...$params,$flowSize,($flowPage-1)*$flowSize]);}
+    $setup=$view==='automations'&&$available&&!$classic&&!$trash;
+    $editing=$view==='flow';
+    $tags=($setup||$editing)?$store->tags(withCounts:false):[];
+    $groups=($setup||$editing)?$store->groups(withCounts:false):[];
+    $fields=$editing?$store->fields():[];
+    $catalog=$editing?$store->catalog():[];
     $rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;$editorRecovery=null;
-    $campaignOptions=$store->all("SELECT id,name,campaign_type,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.send_time.mode')) send_mode FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND campaign_type IN ('regular','plain-text') ORDER BY updated_at DESC LIMIT 500",[$audienceId]);
-    $surveyOptions=$store->all("SELECT id,name FROM marketing_collection_resources WHERE audience_id=? AND kind='survey' AND deleted_at IS NULL ORDER BY name LIMIT 500",[$audienceId]);
-    $flowOptions=$available?$store->all('SELECT id,name FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL ORDER BY name LIMIT 500',[$audienceId]):[];
+    $campaignOptions=[];
+    if($editing||($view==='automations'&&$classic&&$canManage)){
+        // Sort only IDs. Including draft_json in this sort can exceed MySQL's sort buffer on one newsletter.
+        $ids=array_column($store->all("SELECT id FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND campaign_type IN ('regular','plain-text') ORDER BY updated_at DESC,id DESC LIMIT 500",[$audienceId]),'id');
+        if($ids){
+            $choices=$store->all("SELECT id,name,campaign_type,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.send_time.mode')) send_mode FROM marketing_campaigns WHERE audience_id=? AND id IN (".implode(',',array_fill(0,count($ids),'?')).')',[$audienceId,...$ids]);
+            $byId=array_column($choices,null,'id');
+            foreach($ids as$campaignId)if(isset($byId[$campaignId]))$campaignOptions[]=$byId[$campaignId];
+        }
+    }
+    $surveyOptions=$editing?$store->all("SELECT id,name FROM marketing_collection_resources WHERE audience_id=? AND kind='survey' AND deleted_at IS NULL ORDER BY name LIMIT 500",[$audienceId]):[];
+    $flowOptions=$editing&&$available?$store->all('SELECT id,name FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL ORDER BY name LIMIT 500',[$audienceId]):[];
     $flowSetupTasks=[];$nativeFlowTotal=0;
-    if($view==='automations'&&$available&&!$classic&&!$trash){
+    if($setup){
         $nativeFlowTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.classic')),'false')='false'",[$audienceId])['n'];
         $welcome=$store->one("SELECT id FROM marketing_flows WHERE audience_id=? AND deleted_at IS NULL AND (JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.trigger.type'))='signup' OR JSON_CONTAINS(JSON_EXTRACT(draft_json,'$.additional_triggers'),JSON_OBJECT('type','signup'))) AND JSON_CONTAINS(JSON_EXTRACT(draft_json,'$.nodes'),JSON_OBJECT('type','email')) LIMIT 1",[$audienceId]);
         $hosted=$store->collectionAvailable()?$store->one("SELECT id FROM marketing_collection_resources WHERE audience_id=? AND kind='hosted' AND state='published' AND deleted_at IS NULL LIMIT 1",[$audienceId]):null;

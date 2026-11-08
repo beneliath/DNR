@@ -94,7 +94,21 @@ trait AudienceContent
         // LIMIT prevents derived-table merging, which otherwise carries large JSON
         // image documents into filesort when filtering by folder or sorting by size.
         $ids=array_column($this->all("SELECT id FROM (SELECT id,$order sort_value FROM marketing_design_library WHERE $where LIMIT 18446744073709551615) content_matches ORDER BY sort_value $direction,id $direction LIMIT $pageSize OFFSET ?",[...$params,($page-1)*$pageSize]),'id');
-        $byId=[];if($ids)foreach($this->all('SELECT * FROM marketing_design_library WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($ids),'?')).')',[$this->audienceId,...$ids])as$item){$item['data']=audienceJson($item['data_json']);$byId[$item['id']]=$item;}
+        $byId=[];
+        if($ids){
+            // Cards use only metadata; the authenticated image request or file editor reads one body.
+            $rows=$this->all("SELECT id,item_type,name,version,updated_at,
+                data_json->>'$.alt' alt, COALESCE(data_json->>'$.url',data_json->>'$.link') link_url, data_json->>'$.folder' folder,
+                JSON_LENGTH(data_json,'$.rows') row_count,
+                CASE WHEN item_type IN ('image','file') THEN COALESCE(NULLIF(CAST(data_json->>'$.bytes' AS UNSIGNED),0),
+                    OCTET_LENGTH(FROM_BASE64(SUBSTRING_INDEX(IF(item_type='image',data_json->>'$.image',data_json->>'$.document'),',',-1))))
+                END file_bytes
+                FROM marketing_design_library WHERE audience_id=? AND id IN (".implode(',',array_fill(0,count($ids),'?')).')',[$this->audienceId,...$ids]);
+            foreach($rows as$item){
+                $item['data']=['alt'=>$item['alt'],'url'=>$item['link_url'],'folder'=>$item['folder'],'bytes'=>(int)$item['file_bytes']];
+                $byId[$item['id']]=$item;
+            }
+        }
         $items=[];foreach($ids as$id)if(isset($byId[$id]))$items[]=$byId[$id];
         return ['items'=>$items,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/$pageSize)),'per_page'=>$pageSize,'search'=>$search,'folder'=>$folder,'type'=>$type,'sort'=>$sort,'direction'=>$direction,'trash'=>$trash,'layout'=>($input['layout']??'')==='list'?'list':'grid'];
     }
@@ -116,7 +130,8 @@ trait AudienceContent
             if($old&&$old['item_type']==='file'&&trim((string)($input['image']??''))!=='')throw new InvalidArgumentException('Upload a replacement PDF, or create a new image file.');
             $data=$old['data']??[];$document=$input['document']??($data['document']??'');$type=$document!==''?'file':'image';
             if($old&&$old['item_type']!==$type)throw new InvalidArgumentException('Upload a replacement of the same file type, or create a new file.');
-            $image=$type==='image'?audienceDesignImage($input['image']??($data['image']??''),1000000):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
+            $replacement=$input['image']??'';
+            $image=$type==='image'?audienceDesignImage($replacement!==''?$replacement:($data['image']??''),1000000):'';if($type==='image'&&$image==='')throw new InvalidArgumentException('Upload an image or PDF before saving.');
             $url=audienceText($input,'link',2048);if($url!==''&&!audienceDesignUrl($url))throw new InvalidArgumentException('Enter a valid image link.');
             $folder=audienceText($input,'folder',100);if($folder!==''&&!in_array($folder,$settings['content_folders']??[],true))throw new InvalidArgumentException('Choose an existing folder or Unfiled.');
             $encoded=$type==='file'?$document:$image;$bytes=base64_decode(substr($encoded,strpos($encoded,',')+1),true);$info=$type==='image'?getimagesizefromstring($bytes):[0,0];

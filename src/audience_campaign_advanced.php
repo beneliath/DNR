@@ -23,6 +23,25 @@ function audienceCampaignType(array $row):string
     $kind=$draft['experiment']['kind']??null;
     return $kind===null?$row['campaign_type']:($kind==='ab'?'ab':'unsupported');
 }
+// Rasterize only the requested card. No original artwork or active document leaves this endpoint.
+function audienceCampaignListThumbnail(array $draft):?string
+{
+    foreach($draft['design']['rows']??[]as$row)foreach($row['columns']??[]as$column)foreach($column as$block){
+        if(($block['type']??'')!=='image')continue;
+        try{$uri=audienceDesignImage($block['image']??'');}catch(InvalidArgumentException){continue;}
+        if($uri==='')continue;
+        $source=@imagecreatefromstring(base64_decode(substr($uri,strpos($uri,',')+1),true));
+        if(!$source)continue;
+        // The card is 44 × 64 CSS pixels; keep two physical pixels per CSS pixel.
+        $canvas=imagecreatetruecolor(88,128);imagefill($canvas,0,0,0xffffff);
+        $scale=min(88/imagesx($source),128/imagesy($source));
+        $w=max(1,(int)round(imagesx($source)*$scale));$h=max(1,(int)round(imagesy($source)*$scale));
+        imagecopyresampled($canvas,$source,intdiv(88-$w,2),intdiv(128-$h,2),0,0,$w,$h,imagesx($source),imagesy($source));
+        ob_start();imagepng($canvas);return ob_get_clean();
+    }
+    return null;
+}
+
 function audienceCampaignGoals():array
 {
     return ['Advertise a sale or promotion','Educate or inform','Sell products','Gather sign-ups','Make an announcement','Promote an event','Sell a service/get bookings','Other'];

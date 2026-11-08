@@ -12,16 +12,21 @@ $coSave=['csrf_token'=>$token,'action'=>'content_save','name'=>'Completion image
 $r=$editor($coPath,$coSave);audienceHttpExpect($r['status']===302,'Private content upload saves');audienceHttpExpect(!preg_match('/^Location:.*[?&]item=/mi',$r['headers']),'Saved upload returns to the library without reopening the editor');$coId=(int)$campaignStore->contentList(['search'=>'Completion image'])['items'][0]['id'];$coItem=$campaignStore->designLibraryItem($coId);$coLegacyKey=str_repeat('a',64);$coPublic='audience_asset.php?key='.$coLegacyKey;
 audienceHttpExpect($coItem['data']['width']===1&&$coItem['data']['bytes']>0&&$coItem['data']['url']==='https://example.test/image','File metadata persisted');
 audienceHttpExpect($reviewer($coPath.'&item='.$coId)['status']===200&&$c2anon($coPublic)['status']===404,'Private image available in authenticated library only');
+$imagePath=$coPath.'&api=content_image&id=';$response=$reviewer($imagePath.$coId);
+audienceHttpExpect($response['status']===200&&$response['body']===base64_decode(explode(',',$coImage,2)[1])&&str_contains(strtolower($response['headers']),'content-type: image/png')&&str_contains(strtolower($response['headers']),'cache-control: no-store'),'Signed-in viewers receive just the private raster image');
+audienceHttpExpect($c2anon($imagePath.$coId)['status']===302,'Private thumbnails require login');
 $campaignStore->write("UPDATE marketing_design_library SET data_json=JSON_SET(data_json,'$.published',true,'$.public_key',?) WHERE id=?",[$coLegacyKey,$coId]);
 audienceHttpExpect($c2anon($coPublic)['status']===404,'Legacy public file links are retired');
 $r=$editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'name'=>'']));audienceHttpExpect($r['status']===200&&str_contains($r['body'],'Enter a file name'),'File validation is retained');
 audienceHttpExpect(str_contains($r['body'],'data-reopen-dialog'),'Validation errors retain the file editor for correction');
 $r=$editor($coPath);audienceHttpExpect(!str_contains($r['body'],'data-reopen-dialog'),'Refreshing My files does not reopen an upload dialog');
-audienceHttpExpect($editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'published'=>'1','rights_confirmed'=>'1']))['status']===302,'Old publication fields do not prevent saving privately');
-$r=$c2anon($coPublic);$coPrivate=$campaignStore->designLibraryItem($coId);audienceHttpExpect($r['status']===404&&!$coPrivate['data']['published']&&!isset($coPrivate['data']['public_key']),'Publication cannot be enabled through a crafted POST');
+audienceHttpExpect($editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'image'=>'','published'=>'1','rights_confirmed'=>'1']))['status']===302,'Old publication fields do not prevent saving privately');
+$r=$c2anon($coPublic);$coPrivate=$campaignStore->designLibraryItem($coId);audienceHttpExpect($r['status']===404&&$coPrivate['data']['image']===$coImage&&!$coPrivate['data']['published']&&!isset($coPrivate['data']['public_key']),'Publication cannot be enabled through a crafted POST');
 audienceHttpExpect(str_contains(strtolower($r['headers']),'cache-control: no-store')&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Public image security and revocation headers');
 audienceHttpExpect($editor($coPath,array_replace($coSave,['id'=>$coId,'version'=>1,'name'=>'Stale file']))['status']===200&&$campaignStore->designLibraryItem($coId)['name']==='Completion image','Stale asset edit rejected');
 $coForeign=$otherStore->saveContentItem(['name'=>'Foreign asset','image'=>$coImage,'published'=>'1','rights_confirmed'=>'1']);$coForeignItem=$otherStore->designLibraryItem($coForeign);
+audienceHttpExpect($editor($imagePath.$coForeign)['status']===404,'A thumbnail cannot read a foreign library');
+
 audienceHttpExpect($editor($coPath.'&item='.$coForeign)['status']===404&&!isset($coForeignItem['data']['public_key']),'Foreign asset cannot cross canonical audience boundary');
 $coCurrent=$campaignStore->designLibraryItem($coId);$coVersion=$coCurrent['version'];
 $c2reject(fn()=>$campaignStore->contentOperation('delete',[$coId,$coForeign],[$coId=>$coVersion,$coForeign=>1]),'Bulk content ownership enforced');
@@ -46,6 +51,8 @@ $coTrashedResponse=$admin($coPath,$coTrashPost);
 audienceHttpExpect($coTrashedResponse['status']===302&&!str_contains($coTrashedResponse['headers'],'admin_elevation.php'),'Unlocked administrator can move content to recoverable Trash');
 $coSetElevation(null);
 audienceHttpExpect($c2anon($coPublic)['status']===404&&$campaignStore->contentList(['trash'=>'1','search'=>'Completion image'])['total']===1,'Trashed image revoked publicly and visible in Trash');
+audienceHttpExpect($reviewer($imagePath.$coId)['status']===404,'Trashed images immediately stop serving thumbnails');
+
 $coSetElevation(time());
 $coBlockedFolder=$admin($coPath,['csrf_token'=>$coAdminToken,'action'=>'content_folder','operation'=>'delete','name'=>'Completion files','version'=>$coSettingsVersion()]);
 audienceHttpExpect($coBlockedFolder['status']===200&&str_contains($coBlockedFolder['body'],'This folder contains files')&&in_array('Completion files',$campaignStore->contentSettings()['settings']['content_folders'],true),'A folder containing only files in Trash cannot be deleted');
@@ -161,6 +168,7 @@ $photoFolderHttp=$editor($coPath.'&search=Large+photo+fixture&folder=Large+photo
 audienceHttpExpect($photoFolderHttp['status']===200&&str_contains($photoFolderHttp['body'],'Large photo fixture 1')&&!str_contains($photoFolderHttp['body'],'Large photo fixture 4'),'Applying a folder filter renders only its matching photos over HTTP');
 $photoHttp=$editor($coPath.'&search=Large+photo+fixture');
 audienceHttpExpect($photoHttp['status']===200&&str_contains($photoHttp['body'],'Large photo fixture 4'),'Populated photo library renders over HTTP');
+audienceHttpExpect(!str_contains($photoHttp['body'],'data:image/jpeg;base64,')&&substr_count($photoHttp['body'],'api=content_image')===4,'The photo grid renders metadata and private thumbnail URLs without inline originals');
 foreach(['grid','list']as$layout){$sizePage=$editor($coPath.'&search=Large+photo+fixture&layout='.$layout);foreach($photoPage['items']as$photoItem)audienceHttpExpect(str_contains($sizePage['body'],'<small data-content-file-size>'.audienceContentFileSize($photoItem).'</small>'),'Stored file size shown in '.$layout);}
 audienceHttpExpect(!str_contains($photoHttp['body'],'name="published"')&&!str_contains($photoHttp['body'],'name="rights_confirmed"'),'Public-link controls removed from Content');
 $coLegacyItem=$coItem;unset($coLegacyItem['data']['bytes']);audienceHttpExpect(audienceContentFileSize($coLegacyItem)===$coItem['data']['bytes'].' B','Legacy image size derived from its stored data');

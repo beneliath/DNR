@@ -11,8 +11,17 @@ foreach([1,2]as$repeat)$as->write("INSERT INTO marketing_message_events(audience
 $after=$as->analyticsOverview($selection)['totals'];
 audienceHttpExpect($after['opens']===$before['opens']+1&&$after['clicks']===$before['clicks']+1&&$after['total_clicks']===$before['total_clicks']+2,'Click-only activity implies one unique open; repeat clicks remain separate totals');
 audienceHttpExpect($after['successful']===$after['accepted']-$after['failed']&&$after['failed']===1&&$after['click_rate']===audienceAnalyticsRate($after['clicks'],$after['successful']),'Bounced messages are excluded from engagement denominator');
-$listed=$as->analyticsCampaignMetrics([$cid])[$cid];
+$listed=$as->analyticsCampaignListMetrics([$cid])[$cid];
 audienceHttpExpect($listed['open_rate']===$after['open_rate']&&$listed['click_rate']===$after['click_rate'],'Campaign list metrics reconcile with the same campaign report');
+// Count a receipt-linked unsubscribe once, and never count a different contact or a status event at the cutoff.
+$conn->begin_transaction();
+try{
+    $optoutOtherReceipt=$as->one('SELECT r.id,r.contact_id FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id WHERE r.audience_id=? AND d.campaign_id=? AND r.contact_id<>? LIMIT 1',[$analyticsAid,$cid,$person]);
+    foreach([[$rid,$person,$window['from']],[$rid,$person,$window['from']],[$optoutOtherReceipt['id'],$person,$window['from']],[$optoutOtherReceipt['id'],$optoutOtherReceipt['contact_id'],$window['until']]]as[$receipt,$contact,$at])
+        $as->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json,created_at) VALUES (?,1,'Test','system','status',JSON_OBJECT('to','unsubscribed','recipient_id',?),?)",[$contact,(string)$receipt,$at]);
+    $headline=$as->analyticsHomeMetrics($selection)['totals'];
+    audienceHttpExpect($headline['unsubscribed']===$after['unsubscribed']+1&&$headline['accepted']===$after['accepted']&&$headline['opens']===$after['opens'],'Duplicate status events cannot multiply accepted, opened or unsubscribed receipts');
+}finally{$conn->rollback();}
 $insights=$as->personInsights($person);
 $personal=array_values(array_filter($insights['campaigns'],static fn($c)=>(int)$c['id']===$cid))[0]['metrics'];
 audienceHttpExpect($personal['opens']===1&&$personal['clicks']===1,'Profile Insights contains inferred opens and unique clicks');
@@ -39,6 +48,8 @@ audienceHttpExpect($pending['awaiting_receipt']>0&&$pending['awaiting_receipt']=
 foreach(['rejected','hard-bounce']as$type)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,?,?,'provider',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE),JSON_OBJECT())",[$analyticsAid,$rid,$type,bin2hex(random_bytes(32))]);
 $failed=$as->analyticsOverview($selection)['totals'];
 audienceHttpExpect($failed['successful']===$after['successful']-1&&$failed['clicks']===$before['clicks'],'A message with multiple failure events leaves the denominator once and does not inflate engagement');
+$listAfterFailure=$as->analyticsCampaignListMetrics([$cid])[$cid];
+audienceHttpExpect(array_intersect_key($failed,$listAfterFailure)===$listAfterFailure,'The campaign list excludes a multiply-failed receipt exactly once and retains pending receipts');
 audienceHttpExpect(!$matches($clickRule),'Engagement segment excludes failed messages consistently with reports');
 
 $foreignProfile=false;try{$campaignStore->personInsights($person);}catch(InvalidArgumentException){$foreignProfile=true;}

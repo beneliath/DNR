@@ -6,9 +6,16 @@ audienceHttpExpect($as->analyticsActivity($window,'opens')['total']===19,'Recipi
 audienceHttpExpect($as->analyticsActivity($window,'clicks')['total']===3,'Recipient clicks obey the dashboard bot filter');
 audienceHttpExpect($as->analyticsActivity(array_replace($window,['bots'=>'all']),'clicks')['total']===6,'Unfiltered recipient activity consistently includes detected bots');
 $last=$as->analyticsActivity($window,'accepted',2);audienceHttpExpect(count($last['rows'])===11&&!array_intersect(array_column($last['rows'],'id'),array_column($activityResult['rows'],'id')),'Recipient pagination has neither duplicates nor omissions');
+audienceHttpExpect($as->analyticsActivity($window,'accepted',999)===$last,'An out-of-range recipient page returns the exact last page');
+$emptyActivity=$as->analyticsActivity(array_replace($window,['messages_mode'=>'selected','messages'=>[]]),'opens',999);
+audienceHttpExpect($emptyActivity===['rows'=>[],'total'=>0,'page'=>1,'size'=>25],'An empty filtered recipient page keeps the first page and zero total');
+$foreignSelection=$editor('audience.php?'.http_build_query(['view'=>'analytics','section'=>'activity','messages_mode'=>'selected','messages'=>$samples['campaigns']]));
+audienceHttpExpect($foreignSelection['status']===400,'The Activity page rejects selected campaign IDs from a different audience');
 audienceHttpExpect(str_ends_with($last['rows'][0]['destination'],'@example.test'),'Recipient destinations come from the accepted receipt');
 $evidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_column($evidence['links'],'messages'))===3,'Link-level unique messages reconcile with tracked click recipients');
 $before=$evidence['links'][0];$rid=$as->one("SELECT e.recipient_id,e.details_json FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id WHERE e.audience_id=? AND e.event_type='click' AND JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot'))='false' ORDER BY e.id LIMIT 1",[$analyticsAid]);
+$linkPage=$as->analyticsActivity($window,'clicks',999,1,$before['link_hash']);
+audienceHttpExpect($linkPage['total']===$linkPage['page']&&$linkPage['total']===(int)$before['messages']&&count($linkPage['rows'])===1,'A tracked link counts distinct matching messages before clamping the requested page');
 $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',UTC_TIMESTAMP(),?)",[$analyticsAid,$rid['recipient_id'],bin2hex(random_bytes(32)),$rid['details_json']]);
 $updatedEvidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_column($updatedEvidence['links'],'messages'))===3&&array_sum(array_column($updatedEvidence['links'],'observations'))===4,'Repeated link clicks increase observations while unique messages stay fixed');
 // New classifications coexist with older events without reclassifying historical data.
@@ -52,6 +59,10 @@ $badSegment=false;try{$as->analyticsOverview(array_replace($window,['segment'=>2
 $history=$as->analyticsAudienceHistory($window,'Local sample data');
 audienceHttpExpect(array_sum(array_column($history['current'],'added'))>0&&array_sum(array_column($history['previous'],'added'))>0,'Growth fixtures provide real dated current and comparison evidence');
 audienceHttpExpect(count($as->analyticsAudienceHistory($window,'foreign source')['current'])===0,'Source filter is applied to both joins and transitions');
+$weekly=['dataset'=>'audience','dimension'=>'week'];
+$growth=$as->analyticsAudienceHistory($window,bySource:false);$allSources=$as->analyticsAudienceHistory($window);
+audienceHttpExpect($as->analyticsReportRows($window,$weekly,$growth)===$as->analyticsReportRows($window,$weekly,$allSources),'Home growth totals and comparisons match the source-by-source report in every week');
+audienceHttpExpect($as->analyticsHomeMetrics($segmentWindow)['totals']['accepted']===$as->analyticsOverview($segmentWindow)['totals']['accepted'],'Home respects current saved segment membership');
 $funnels=$as->analyticsNativeFunnels($window);
 audienceHttpExpect(count($funnels['forms'])===3&&array_sum(array_column($funnels['forms'],'visitors'))===18&&array_sum(array_column($funnels['forms'],'responses'))===9,'Cross-form summaries count native visitors and responses independently');
 audienceHttpExpect(array_sum(array_column($funnels['forms'],'confirmed'))===2,'Confirmed subscriptions require explicit collection conversion evidence');
