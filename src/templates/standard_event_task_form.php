@@ -75,6 +75,6 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
 
     <div class="engagement-page-actions">
         <a href="<?php echo htmlspecialchars($standard_task_form_cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-        <button type="submit" name="save_standard_task" value="1" class="save-button"><?php echo htmlspecialchars($standard_task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
+        <button type="submit" name="save_standard_task" value="1" class="save-button" data-pending-reminder="standard-task"><?php echo htmlspecialchars($standard_task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>

@@ -69,5 +69,9 @@
             button.type = 'submit'; button.className = 'button-secondary'; button.textContent = 'Search';
             form.appendChild(button);
         }
+        if (form.matches('form.list-search-form')) {
+            const submit = form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+            if (submit) submit.dataset.pendingReminder = 'list-search';
+        }
     });
 }());

@@ -25,7 +25,7 @@ $searchUrl = static fn(array $changes): string => 'search.php?' . http_build_que
     <form method="get" action="search.php" class="global-search-form" role="search">
         <label for="global-query">Search records<input type="search" id="global-query" name="q" value="<?= searchH($query) ?>" placeholder="Name, organization, or task" minlength="2" maxlength="100" required></label>
         <label for="search-type">Record type<select id="search-type" name="type"><option value="">All records</option><?php foreach (globalSearchDefinitions() as $key => $definition): ?><option value="<?= searchH($key) ?>" <?= $type === $key ? 'selected' : '' ?>><?= searchH($definition['label']) ?></option><?php endforeach; ?></select></label>
-        <button type="submit" class="button-add">Search</button>
+        <button type="submit" class="button-add" data-pending-reminder="global-search">Search</button>
         <?php if ($query !== '' || $type !== ''): ?><a href="search.php" class="button-secondary">Clear Filters</a><?php endif; ?>
     </form>
     <p class="field-help">Search includes unarchived records. Use each section’s archive view to find archived records.</p>

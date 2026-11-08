@@ -27,7 +27,7 @@ if($editorError){
             <label for="settings-language">Language</label><select id="settings-language" name="language"><?php foreach(audienceLanguageOptions($editorContact['language'])as$code=>$label): ?><option value="<?= $h($code) ?>"<?= $editorContact['language']===$code?' selected':'' ?>><?= $h($label) ?></option><?php endforeach; ?></select>
             <label for="settings-timezone">Time zone</label><select id="settings-timezone" name="timezone"><option value="">Not set</option><?php foreach(DateTimeZone::listIdentifiers()as$zone): ?><option value="<?= $h($zone) ?>"<?= $editorContact['timezone']===$zone?' selected':'' ?>><?= $h(str_replace('_',' ',$zone)) ?></option><?php endforeach; ?></select>
         <?php endif; ?>
-        </div><div class="form-actions"><button type="button" data-close-dialog>Cancel</button><button class="primary">Save changes</button></div>
+        </div><div class="form-actions"><button type="button" data-close-dialog>Cancel</button><button class="primary" data-pending-reminder="profile-<?= $section ?>">Save changes</button></div>
     </form>
 </dialog>
 <?php endforeach; ?>

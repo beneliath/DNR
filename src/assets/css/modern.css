@@ -3043,6 +3043,12 @@ html body .task-action-button:focus-visible {
   gap: 0 18px;
 }
 
+@media (min-width: 1100px) {
+  .follow-up-task-form .task-form-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 html body .container > .follow-up-task-form,
 html body .container > .standard-event-task-form,
 .follow-up-task-form > .engagement-page-actions,
@@ -3054,7 +3060,7 @@ html body .container > .standard-event-task-form,
   box-shadow: none;
 }
 
-.follow-up-task-form #task-subject-search {
+.task-record-search-dialog #task-subject-search {
   display: block;
   width: 100%;
   min-width: 0;
@@ -3066,6 +3072,7 @@ html.has-js .follow-up-task-form #task-subject {
 }
 
 .follow-up-task-form .task-selected-record {
+  display: none;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
@@ -3076,7 +3083,7 @@ html.has-js .follow-up-task-form #task-subject {
   background: var(--surface-subtle);
 }
 
-.follow-up-task-form .task-selected-record:not([hidden]) {
+html.has-js .follow-up-task-form .task-selected-record:not([hidden]) {
   display: flex;
 }
 
@@ -3104,22 +3111,35 @@ html body .follow-up-task-form .task-selected-record > button {
   margin: 0 !important;
 }
 
-.follow-up-task-form #task-record-search-panel {
-  margin-top: 20px;
+.confirmation-dialog.task-record-search-dialog {
+  width: min(calc(100% - 32px), 640px);
+  max-width: 640px !important;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
 }
 
-.follow-up-task-form #task-record-search-panel > label {
-  display: block;
-  margin-bottom: 8px;
+.task-record-search-dialog[open] {
+  display: flex;
+  flex-direction: column;
 }
 
-.follow-up-task-form .task-subject-results:not(:empty) {
+.task-record-search-dialog > :not(.task-subject-results) {
+  flex-shrink: 0;
+}
+
+.task-record-search-dialog .task-subject-results:not(:empty) {
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 8px;
+  min-height: 0;
   margin-block: 12px;
+  padding: 3px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-html body .follow-up-task-form .task-subject-result {
+html body .task-record-search-dialog .task-subject-result {
   justify-content: flex-start;
   min-height: 44px !important;
   margin: 0 !important;
@@ -3133,7 +3153,7 @@ html body .follow-up-task-form .task-subject-result {
   overflow-wrap: anywhere;
 }
 
-html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
+html body .task-record-search-dialog .task-subject-result:is(:hover, :focus-visible) {
   background: var(--surface-hover) !important;
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -6026,6 +6046,12 @@ html body .address-country-option[aria-selected="true"] {
   font-weight: 650;
 }
 
+html body [data-address-region-control] > [data-address-region-input] {
+  height: 44px !important;
+  min-height: 44px;
+  margin: 0 !important;
+}
+
 html body .address-region-trigger {
   display: flex !important;
   width: 100% !important;
@@ -6941,7 +6967,7 @@ html body form.bulk-delete-toolbar {
 .bulk-delete-review-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
 
 /* Shared workflow controls: readable labels, stable layouts, and touch targets. */
-.shell-search { display: flex; width: 100%; gap: 6px; padding: 0 0 12px; }
+.shell-search { display: flex; width: 100%; gap: 16px; padding: 0 0 12px; }
 .shell-search input { flex: 1; min-width: 0; width: 100%; min-height: 40px; margin: 0; }
 html body .shell-search button { flex-shrink: 0; padding: 8px; font-size: .78rem; }
 .mobile-search-link { margin-left: auto; color: var(--link-color, var(--primary)); font-weight: 650; padding: 10px 6px; }
@@ -7000,6 +7026,7 @@ html body .task-actions > *, html body .context-task-actions > *, html body td .
 .form-draft-panel { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem; }
 .form-draft-panel button { margin-right: .5rem; }
 .form-draft-panel textarea { width: 100%; }
+html:not(.has-js) [data-contact-affiliations] :is([data-make-primary-affiliation], [data-remove-affiliation], [data-add-affiliation]) { display: none; }
 [data-task-bulk] { flex-wrap: wrap; margin-block: 1rem; }
 [data-task-bulk] [hidden] { display: none !important; }
 

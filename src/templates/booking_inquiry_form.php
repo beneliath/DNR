@@ -16,6 +16,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
     <?php if (!empty($inbound_email_message_id)): ?><input type="hidden" name="inbound_email_message_id" value="<?php echo (int) $inbound_email_message_id; ?>"><?php endif; ?>
+    <?php renderFormDraftPanel(); ?>
     <section class="form-section">
         <div class="inquiry-form-section-heading"><span>01</span><div><h2>Request</h2><p>Capture enough context to qualify the opportunity without inventing event details.</p></div></div>
         <div class="form-group">
@@ -25,7 +26,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
         <div class="inquiry-form-grid">
             <div class="form-group">
                 <label for="inquiry-organization">Organization</label>
-                <label class="visually-hidden" for="inquiry-organization-search">Search Organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Organizations" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-organization-search">Search Organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" data-pending-ignore value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Organizations" autocomplete="off">
                 <select id="inquiry-organization" name="organization_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_organizations as $organization): ?>
@@ -35,7 +36,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             </div>
             <div class="form-group">
                 <label for="inquiry-contact">Primary Contact</label>
-                <label class="visually-hidden" for="inquiry-contact-search">Search Compatible Contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Compatible Contacts" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-contact-search">Search Compatible Contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" data-pending-ignore value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Compatible Contacts" autocomplete="off">
                 <select id="inquiry-contact" name="primary_contact_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_contacts as $contact): ?>
@@ -138,7 +139,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
 
     <div class="engagement-page-actions inquiry-form-actions">
         <a href="<?php echo !empty($inquiry_id) ? 'view_inquiry.php?id=' . (int) $inquiry_id : 'inquiries.php'; ?>" class="button-secondary">Cancel</a>
-        <button type="submit" name="save_inquiry" value="1" class="save-button inquiry-primary-action"><?php echo htmlspecialchars($inquiry_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
+        <button type="submit" name="save_inquiry" value="1" class="save-button inquiry-primary-action" data-pending-reminder="inquiry"><?php echo htmlspecialchars($inquiry_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>
 <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(

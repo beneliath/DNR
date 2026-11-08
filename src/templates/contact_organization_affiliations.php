@@ -28,8 +28,8 @@ $render_affiliation_row = static function (array $row, string $index) use ($cont
             <input type="text" id="additional-role-<?php echo $index; ?>" name="additional_organizations[<?php echo $index; ?>][role_title]" value="<?php echo htmlspecialchars($role_value, ENT_QUOTES, 'UTF-8'); ?>" maxlength="255" placeholder="For example, Chairman" data-affiliation-role>
         </div>
         <div class="contact-affiliation-actions">
-            <button type="button" class="button-secondary" data-make-primary-affiliation hidden>Make Primary</button>
-            <button type="button" class="button-secondary" data-remove-affiliation hidden>Remove</button>
+            <button type="button" class="button-secondary" data-make-primary-affiliation>Make Primary</button>
+            <button type="button" class="button-secondary" data-remove-affiliation>Remove</button>
         </div>
     </div>
     <?php
@@ -43,7 +43,7 @@ $render_affiliation_row = static function (array $row, string $index) use ($cont
             <?php $render_affiliation_row(is_array($row) ? $row : [], (string) $index); ?>
         <?php endforeach; ?>
     </div>
-    <button type="button" class="button-secondary" data-add-affiliation hidden>Add Another Organization</button>
+    <button type="button" class="button-secondary" data-add-affiliation>Add Another Organization</button>
     <p class="field-help" data-affiliation-status role="status" aria-live="polite"></p>
     <noscript><p>To remove an additional organization, clear both its organization and role fields.</p></noscript>
     <template data-affiliation-template><?php $render_affiliation_row([], '__index__'); ?></template>

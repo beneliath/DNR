@@ -49,6 +49,7 @@ export const javascriptAssets = [
     {name: 'ai-coach'},
     {name: 'button-feedback'},
     {name: 'form-ux'},
+    {name: 'form-reminders'},
     {name: 'inquiry-workflow'},
     {name: 'record-workspace'},
     {name: 'map-list'},
@@ -67,6 +68,7 @@ export const stylesheetAssets = [
     {name: 'page-loading'},
     {name: 'style'},
     {name: 'modern'},
+    {name: 'form-reminders'},
     {name: 'record-actions'},
     {name: 'map', bundle: true, loader: {'.png': 'dataurl'}},
 ];

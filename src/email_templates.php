@@ -81,12 +81,13 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
     <?php if ($message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <div class="list-controls">
-        <form method="get" action="email_templates.php" class="list-search-form" role="search">
+        <form method="get" action="email_templates.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo $status; ?>">
             <?php if ($engagementId !== null): ?><input type="hidden" name="engagement_id" value="<?php echo $engagementId; ?>"><?php endif; ?>
             <label class="visually-hidden" for="template-search">Search Email Templates</label><span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="template-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Email Templates">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($listUrl, ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
         <div class="control-group" aria-label="Email Template Archive Status">
             <a href="email_templates.php?status=active<?php echo $contextQuery; ?>" class="sort-button<?php echo !$archived ? ' active' : ''; ?>"<?php echo !$archived ? ' aria-current="page"' : ''; ?>>Active (<?php echo (int) ($counts['active_count'] ?? 0); ?>)</a>

@@ -96,7 +96,7 @@ $pageTitle = $id === null ? 'New Email Template' : ($readOnly ? 'View Email Temp
         </section>
         <div class="engagement-page-actions">
             <a href="<?php echo htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button"><?php echo $readOnly ? 'Back to Templates' : 'Cancel'; ?></a>
-            <?php if (!$readOnly): ?><button type="submit" class="save-button"><?php echo $id === null ? 'Create Template' : 'Save Changes'; ?></button><?php endif; ?>
+            <?php if (!$readOnly): ?><button type="submit" class="save-button" data-pending-reminder="email-template"><?php echo $id === null ? 'Create Template' : 'Save Changes'; ?></button><?php endif; ?>
         </div>
     </form>
 </main>

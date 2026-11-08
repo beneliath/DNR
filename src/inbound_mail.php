@@ -217,7 +217,7 @@ $statusLabels = [
     </nav>
 
     <?php renderListFilterSummary(['Status' => $statusLabels[$statusFilter], 'Search' => $queueSearch, 'Order' => $queueSort === 'oldest' ? 'Oldest first' : 'Newest first'], 'inbound_mail.php?status=review&sort=oldest'); ?>
-        <form method="get" action="inbound_mail.php" class="inbound-queue-search" id="inbound-queue-search">
+        <form method="get" action="inbound_mail.php" class="inbound-queue-search unified-list-filter" id="inbound-queue-search">
         <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="inbound-search-field"><label for="inbox-search">Search Messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Subject, Sender, or Message Content"></div>

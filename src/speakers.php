@@ -43,13 +43,14 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <div class="list-controls">
         <?php renderListFilterSummary(['Search' => $search], 'speakers.php'); ?>
-        <form method="get" action="speakers.php" class="list-search-form" role="search">
+        <form method="get" action="speakers.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <input type="hidden" name="name_sort" value="<?php echo $name_sort; ?>">
             <label class="visually-hidden" for="speaker-search">Search Speakers</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Speakers">
             <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
+            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
         <div class="control-group" aria-label="Speaker Sort Order">
             <span class="control-label">Sort:</span>
@@ -62,19 +63,19 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     <?php renderBulkDeleteToolbar('speaker', $list_current_url); ?>
     <?php renderPagination($total_speakers, $current_page, $page_size, $list_current_url, 'speakers', 'Speaker pages'); ?>
     <div class="contact-table-wrapper">
-        <table class="contact-table speaker-table data-table">
+        <table class="contact-table speaker-table data-table mobile-record-table">
             <thead><tr><th scope="col">Speaker</th><th scope="col">Phone Number</th><th scope="col">Email Address</th><th scope="col">Actions</th></tr></thead>
             <tbody>
             <?php foreach ($speakers as $speaker): ?>
                 <tr>
-                    <td><span class="contact-name-cell"><?php renderBulkDeleteCheckbox((int) $speaker['id'], $speaker['name']); ?>
+                    <td data-field="Speaker"><span class="contact-name-cell"><?php renderBulkDeleteCheckbox((int) $speaker['id'], $speaker['name']); ?>
                         <?php if (!empty($speaker['photo_mime'])): ?><img class="contact-list-avatar" src="speaker_photo.php?id=<?php echo (int) $speaker['id']; ?>&amp;v=<?php echo (int) $speaker['version']; ?>" alt="" loading="lazy" width="40" height="40">
                         <?php else: ?><span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(speakerInitials($speaker), ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
                         <a class="record-link" href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></a>
                     </span></td>
-                    <td><a class="contact-phone-link" href="tel:<?php echo htmlspecialchars($speaker['phone'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatPhoneNumberForDisplay($speaker['phone']), ENT_QUOTES, 'UTF-8'); ?></a></td>
-                    <td><a href="mailto:<?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?></a></td>
-                    <td><div class="action-buttons">
+                    <td data-field="Phone Number"><a class="contact-phone-link" href="tel:<?php echo htmlspecialchars($speaker['phone'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatPhoneNumberForDisplay($speaker['phone']), ENT_QUOTES, 'UTF-8'); ?></a></td>
+                    <td data-field="Email Address"><a href="mailto:<?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?></a></td>
+                    <td data-field="Actions"><div class="action-buttons">
                         <a href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Speaker" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                         <?php if ($can_manage_speakers): ?><a href="edit_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Speaker" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a><?php endif; ?>
                         <?php if (canDeleteEntries($_SESSION['role'] ?? null)): ?>

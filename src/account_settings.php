@@ -65,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error); ?></p><?php endif; ?>
 <?php if (isset($_GET['saved'])): ?><p class="success">Account settings saved.</p><?php endif; ?>
 <form method="post" action="account_settings.php" class="account-settings-form"><?php echo csrfInput(); ?><input type="hidden" name="version" value="<?php echo (int) $profile['version']; ?>">
-<div class="form-group"><label for="name">Account Name</label><input type="text" id="name" name="name" maxlength="160" value="<?php echo htmlspecialchars($profile['name']); ?>" required></div>
-<?php foreach ($fields as $key => [$label, $default]): $value = $profile['settings'][$key] ?? $default; ?>
+<div class="form-group"><label for="name">Account Name</label><input type="text" id="name" name="name" maxlength="160" value="<?php echo htmlspecialchars(isset($error) ? \Dnr\Http\RequestInput::string($_POST, 'name') : $profile['name']); ?>" required></div>
+<?php foreach ($fields as $key => [$label, $default]): $value = isset($error) ? \Dnr\Http\RequestInput::string($_POST, $key) : ($profile['settings'][$key] ?? $default); ?>
 <div class="form-group"><label for="<?php echo $key; ?>"><?php echo htmlspecialchars($label); ?></label>
 <?php if ($key === 'DNR_TIMEZONE'): ?>
 <select id="<?php echo $key; ?>" name="<?php echo $key; ?>" required>
@@ -78,13 +78,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <select id="<?php echo $key; ?>" name="<?php echo $key; ?>"<?php echo $speakerOptions ? ' required' : ''; ?>>
 <?php if (!$speakerOptions): ?><option value="">No speakers available</option><?php endif; ?>
 <?php foreach ($speakerOptions as $speaker): ?>
-<option value="<?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo (int) $speaker['id'] === $selectedSpeakerId ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+<option value="<?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo (isset($error) ? $speaker['name'] === $value : (int) $speaker['id'] === $selectedSpeakerId) ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></option>
 <?php endforeach; ?>
 </select>
 <?php else: ?>
 <input type="text" id="<?php echo $key; ?>" name="<?php echo $key; ?>" maxlength="255" value="<?php echo htmlspecialchars($value); ?>">
 <?php endif; ?></div>
 <?php endforeach; ?>
-<button type="submit" class="save-button" data-admin-unlock-required>Save Settings</button></form>
+<button type="submit" class="save-button" data-admin-unlock-required data-pending-reminder="account-settings">Save Settings</button></form>
 <p>Email is sent and received through moed@beneliath.com. Replies are linked to your records using their email routing markers.</p>
 </main><?php include 'templates/footer.php'; ?></body></html>

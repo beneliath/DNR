@@ -11,7 +11,15 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
         return {match:'all',rules:[{field:'email_status',operator:'is',value:scope},...conditions]};
     };
     const defaultRule = () => ({field: 'email_status', operator: 'is', value: 'subscribed'});
-    const clearPreview = () => { if ($('[data-segment-results]')) $('[data-segment-results]').hidden = true; if ($('[data-segment-error]')) $('[data-segment-error]').hidden = true; };
+    const clearPreview = () => {
+        if ($('[data-segment-results]')) $('[data-segment-results]').hidden = true;
+        if ($('[data-segment-error]')) $('[data-segment-error]').hidden = true;
+        const form = $('#segment-form');
+        if (form) {
+            setValue(form, 'rules', JSON.stringify(segmentTree()));
+            window.DnrFormReminders?.update(form);
+        }
+    };
     const ruleDepth = group => 1 + Math.max(0, ...group.rules.filter(rule => Array.isArray(rule.rules)).map(ruleDepth));
     let pickerNumber = 0, activeFieldPicker = null;
     window.addEventListener('resize', () => activeFieldPicker?.close());

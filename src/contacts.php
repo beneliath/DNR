@@ -302,7 +302,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
 
     <div class="list-controls">
         <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
-        <form method="get" action="contacts.php" class="list-search-form" role="search">
+        <form method="get" action="contacts.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
@@ -312,6 +312,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Contacts">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
         <div class="control-group" aria-label="Contact Archive Status">
             <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search), ENT_QUOTES, 'UTF-8'); ?>"
@@ -345,7 +346,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
     <?php renderBulkDeleteToolbar('contact', $list_current_url); ?>
     <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
     <div class="contact-table-wrapper">
-        <table class="contact-table data-table">
+        <table class="contact-table data-table mobile-record-table">
             <thead>
                 <tr>
                     <th>Contact</th>
@@ -363,7 +364,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                 <?php else: ?>
                     <?php foreach ($contacts as $rowIndex => $contact): ?>
                         <tr>
-                            <td>
+                            <td data-field="Contact">
                                 <span class="contact-name-cell">
                                     <?php renderBulkDeleteCheckbox((int) $contact['id'], $contact['contact_first_name'] . ' ' . $contact['contact_last_name']); ?>
                                     <?php if (!empty($contact['contact_photo_mime'])): ?>
@@ -383,7 +384,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                     ); ?></a>
                                 </span>
                             </td>
-                            <td>
+                            <td data-field="Organizations">
                                 <?php $listed_affiliations = $contact_organizations_by_id[(int) $contact['id']] ?? []; ?>
                                 <?php if ($listed_affiliations !== []): ?>
                                     <ul class="contact-affiliation-list">
@@ -400,21 +401,21 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                     No organizations linked
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-field="Phone Number">
                                 <?php if (!empty($contact['contact_phone'])): ?>
                                     <a class="contact-phone-link" href="tel:<?php echo htmlspecialchars($contact['contact_phone'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?>
                                     </a>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-field="Email Address">
                                 <?php if (!empty($contact['contact_email'])): ?>
                                     <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
                                     </a>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-field="Actions">
                                 <div class="action-buttons">
                                     <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                                     <?php if (!$show_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>

@@ -366,11 +366,7 @@ try {
 
     <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
         <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
-        <section class="form-draft-panel" data-form-draft-panel>
-            <p role="status">No saved draft</p>
-            <button type="button" class="button-secondary" disabled>Save Draft</button>
-            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
-        </section>
+        <?php renderFormDraftPanel(); ?>
         <?php include 'templates/engagement_lifecycle_form.php'; ?>
         <div class="engagement-section-row engagement-primary-row">
             <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
@@ -600,7 +596,7 @@ try {
         <div class="form-row">
             <div class="form-group create-form-actions create-form-actions-flush">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
-                <input type="submit" name="save_engagement" value="Create engagement" class="save-button save-button-flush">
+                <input type="submit" name="save_engagement" value="Create engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
             </div>
         </div>
     </form>

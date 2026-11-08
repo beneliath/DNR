@@ -42,11 +42,12 @@
 
     const selectedCard = document.getElementById('task-selected-record');
     const selectedLabel = document.getElementById('task-selected-record-label');
-    const searchPanel = document.getElementById('task-record-search-panel');
+    const searchDialog = document.getElementById('task-record-search-dialog');
+    const cancelSearch = document.getElementById('task-record-search-cancel');
     const results = document.getElementById('task-subject-results');
     const changeButton = document.getElementById('task-change-record');
     const clearButton = document.getElementById('task-clear-record');
-    if (!selectedCard || !selectedLabel || !searchPanel || !results || !changeButton) return;
+    if (!selectedCard || !selectedLabel || !searchDialog || !cancelSearch || !results || !changeButton) return;
     const generalOption = Array.from(select.options).find(function (option) { return option.value === 'general'; });
     function showSelection() {
         const option = select.selectedOptions[0];
@@ -65,17 +66,42 @@
         select.value = option.value;
         select.dispatchEvent(new Event('change', { bubbles: true }));
         showSelection();
-        searchPanel.hidden = true;
         feedback.textContent = 'Selected ' + option.textContent;
+        if (searchDialog.open) searchDialog.close();
         changeButton.focus();
     }
-    select.dataset.errorTarget = search.id;
+    select.dataset.errorTarget = changeButton.id;
     select.hidden = true;
     showSelection();
-    searchPanel.hidden = Boolean(select.value && select.value !== 'general');
-    changeButton.addEventListener('click', function () {
-        searchPanel.hidden = !searchPanel.hidden;
-        if (!searchPanel.hidden) search.focus();
+    const initialFeedback = feedback.textContent;
+    function openSearch() {
+        if (!searchDialog.open) {
+            search.value = '';
+            results.replaceChildren();
+            feedback.textContent = initialFeedback;
+            searchDialog.showModal();
+        }
+        search.focus();
+    }
+    changeButton.addEventListener('click', openSearch);
+    cancelSearch.addEventListener('click', function () { searchDialog.close(); });
+    searchDialog.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !event.isComposing) {
+            event.preventDefault();
+            searchDialog.close();
+        }
+    });
+    searchDialog.addEventListener('click', function (event) {
+        if (event.target !== searchDialog) return;
+        const bounds = searchDialog.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right
+            || event.clientY < bounds.top || event.clientY > bounds.bottom) searchDialog.close();
+    });
+    searchDialog.addEventListener('close', function () {
+        window.clearTimeout(timer);
+        request?.abort();
+        requestNumber++;
+        changeButton.focus();
     });
     if (clearButton && generalOption) clearButton.addEventListener('click', function () {
         chooseRecord({ value: generalOption.value, label: generalOption.textContent });
@@ -83,19 +109,29 @@
     // Keep required validation reachable when no destination has been selected.
     select.addEventListener('invalid', function (event) {
         event.preventDefault();
-        searchPanel.hidden = false;
+        openSearch();
         feedback.textContent = 'Choose a related record before saving.';
-        search.focus();
     });
     let timer;
     let request;
     let requestNumber = 0;
+    function sizeResults() {
+        const rows = results.children;
+        results.style.maxHeight = rows.length > 10
+            ? (rows[9].offsetTop + rows[9].offsetHeight - rows[0].offsetTop + 6) + 'px'
+            : '';
+    }
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(sizeResults).observe(results);
+    }
     function searchRecords(delay) {
         window.clearTimeout(timer);
         request?.abort();
         const currentRequest = ++requestNumber;
         const query = search.value.trim();
         results.replaceChildren();
+        results.scrollTop = 0;
+        sizeResults();
         if (query.length < 3) {
             feedback.textContent = 'Type at least three characters to search';
             return;
@@ -120,6 +156,7 @@
                     button.addEventListener('click', function () { chooseRecord(result); });
                     results.appendChild(button);
                 });
+                sizeResults();
                 const count = matchingSubjectResultCount(payload.results);
                 feedback.textContent = count ? count + ' matching records — choose one to replace the selected record' : 'No matching records — your selection is unchanged';
             } catch (error) {

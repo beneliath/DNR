@@ -16,6 +16,6 @@
     <h3>Settings</h3><div class="form-grid"><div><label for="person-language">Language</label><select id="person-language" name="language"><?php foreach(audienceLanguageOptions($contact['language'])as$code=>$label): ?><option value="<?= $h($code) ?>"<?= $contact['language']===$code?' selected':'' ?>><?= $h($label) ?></option><?php endforeach; ?></select></div><div><label for="person-timezone">Time zone</label><select id="person-timezone" name="timezone"><option value="">Not set</option><?php foreach(DateTimeZone::listIdentifiers()as$zone): ?><option value="<?= $h($zone) ?>"<?= $contact['timezone']===$zone?' selected':'' ?>><?= $h(str_replace('_',' ',$zone)) ?></option><?php endforeach; ?></select></div></div>
     <p class="audience-help">Signup source: <?= $h($contact['source']) ?>. Acquisition history is kept automatically.</p>
     </details>
-    <?php if($canManage): ?><div class="form-actions"><button class="primary">Save connection</button><?php if($id||($personModal??false)): ?><button type="button" data-close-dialog>Cancel</button><?php else: ?><a class="button" href="<?= $h($url()) ?>">Cancel</a><?php endif; ?></div><?php endif; ?>
+    <?php if($canManage): ?><div class="form-actions"><button class="primary" data-pending-reminder="connection">Save connection</button><?php if($id||($personModal??false)): ?><button type="button" data-close-dialog>Cancel</button><?php else: ?><a class="button" href="<?= $h($url()) ?>">Cancel</a><?php endif; ?></div><?php endif; ?>
     </fieldset>
 </form>

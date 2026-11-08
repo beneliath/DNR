@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 function element(properties = {}) {
     return Object.assign({
-        listeners: {}, dataset: {}, children: [], textContent: '', value: '',
+        listeners: {}, dataset: {}, style: {}, children: [], textContent: '', value: '',
         addEventListener(event, callback) { this.listeners[event] = callback; },
         appendChild(child) { this.children.push(child); },
         replaceChildren(...children) { this.children = children; },
@@ -27,8 +27,8 @@ function loadSearch(kind) {
     const nodes = kind === 'task' ? {
         'task-subject-search': search, 'task-subject': select, 'task-subject-status': status,
         'task-selected-record': element(), 'task-selected-record-label': element(),
-        'task-record-search-panel': element(), 'task-subject-results': element(),
-        'task-change-record': element()
+        'task-record-search-dialog': element(), 'task-record-search-cancel': element(),
+        'task-subject-results': element(), 'task-change-record': element({id: 'task-change-record'})
     } : {
         'inbound-engagement-search': search, 'inbound-engagement-id': select,
         'inbound-engagement-search-status': status, 'inbound-selection-summary': element()

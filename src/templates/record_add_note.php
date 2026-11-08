@@ -8,7 +8,7 @@
         <label for="new-record-note">Chron Log Entry</label>
         <textarea id="new-record-note" name="new_chron_entry" rows="4" maxlength="100000" required aria-describedby="record-note-scope"><?php echo htmlspecialchars(is_string($_POST['new_chron_entry'] ?? null) ? $_POST['new_chron_entry'] : '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         <p id="record-note-scope">This Chron Log Entry will be added to this <?php echo htmlspecialchars($record_note_entity, ENT_QUOTES, 'UTF-8'); ?>’s activity.</p>
-        <div class="record-note-actions"><button type="submit" class="save-button">Save Chron Log Entry</button></div>
+        <div class="record-note-actions"><button type="submit" class="save-button" data-pending-reminder="chron-note">Save Chron Log Entry</button></div>
     </form>
 </details>
 <?php endif; ?>

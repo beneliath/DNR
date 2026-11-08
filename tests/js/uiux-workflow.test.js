@@ -74,7 +74,7 @@ test('inquiry create-and-return preserves a free-text region and the original ed
 
 test('searching, clearing and failed searches preserve a task relation until explicit selection', async function () {
     class Element {
-        constructor() { this.value = ''; this.children = []; this.listeners = {}; this.dataset = {}; this.textContent = ''; this.hidden = false; }
+        constructor() { this.value = ''; this.children = []; this.listeners = {}; this.dataset = {}; this.style = {}; this.textContent = ''; this.hidden = false; this.open = false; }
         get options() { return this.children; }
         get selectedOptions() { return this.children.filter((option) => option.value === this.value); }
         appendChild(element) { this.children.push(element); }
@@ -82,8 +82,10 @@ test('searching, clearing and failed searches preserve a task relation until exp
         addEventListener(name, callback) { this.listeners[name] = callback; }
         dispatchEvent(event) { if (this.listeners[event.type]) this.listeners[event.type](event); }
         focus() { this.focused = true; }
+        showModal() { this.open = true; }
+        close() { this.open = false; this.listeners.close?.(); }
     }
-    const ids = ['task-subject-search', 'task-subject', 'task-subject-status', 'task-selected-record', 'task-selected-record-label', 'task-record-search-panel', 'task-subject-results', 'task-change-record', 'task-clear-record'];
+    const ids = ['task-subject-search', 'task-subject', 'task-subject-status', 'task-selected-record', 'task-selected-record-label', 'task-record-search-dialog', 'task-record-search-cancel', 'task-subject-results', 'task-change-record', 'task-clear-record'];
     const elements = Object.fromEntries(ids.map((id) => [id, Object.assign(new Element(), { id })]));
     const select = elements['task-subject'];
     select.children = [{ value: 'general', textContent: 'General work' }, { value: 'engagement:42', textContent: 'Original event' }];
@@ -116,11 +118,13 @@ test('searching, clearing and failed searches preserve a task relation until exp
     elements['task-clear-record'].listeners.click();
     assert.equal(select.value, 'general');
     select.value = '';
-    elements['task-record-search-panel'].hidden = true;
     let invalidPrevented = false;
     select.listeners.invalid({ preventDefault() { invalidPrevented = true; } });
     assert.equal(invalidPrevented, true);
-    assert.equal(elements['task-record-search-panel'].hidden, false);
+    assert.equal(elements['task-record-search-dialog'].open, true);
     assert.equal(elements['task-subject-search'].focused, true);
-    assert.equal(elements[select.dataset.errorTarget], elements['task-subject-search']);
+    assert.equal(elements[select.dataset.errorTarget], elements['task-change-record']);
+    elements['task-record-search-cancel'].listeners.click();
+    assert.equal(elements['task-record-search-dialog'].open, false);
+    assert.equal(elements['task-change-record'].focused, true);
 });

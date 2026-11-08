@@ -82,7 +82,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 <details><summary>Find Current Comprehensive Manual Topic IDs</summary><ul class="coach-topic-list"><?php foreach (aiCoachManualTopics() as $topic): ?><li><a href="<?php echo $escape('assets/docs/moed-comprehensive-user-manual.pdf#page=' . (int)$topic['page']); ?>"><?php echo $escape($topic['title']); ?></a> <code><?php echo $escape($topic['id']); ?></code></li><?php endforeach; ?></ul></details>
 <label class="coach-check"><input type="checkbox" name="verified" value="1"> I checked this guidance against the current application and manual</label>
 <label class="coach-check"><input type="checkbox" name="redacted" value="1"> This case contains no private names, record details, credentials, or personal data</label>
-<button class="button-primary" type="submit">Save Improvement</button> <a class="button-secondary" href="ai_coach_improvements.php">All Improvements</a>
+<button class="button-primary" type="submit" data-pending-reminder="coach-improvement">Save Improvement</button> <a class="button-secondary" href="ai_coach_improvements.php">All Improvements</a>
 </form></section>
 <?php else: ?>
 <section class="coach-review-card" aria-labelledby="feedback-queue-heading">

@@ -33,6 +33,7 @@ export function createWorkspaceDialogs() {
             dialog.prepend(...campaignShell);
             if (campaignBack) mainToolbar.querySelector('.audience-brand').prepend(campaignBack);
         }
+        dialog.querySelectorAll('form').forEach(form => window.DnrFormReminders?.reset(form));
         dialog.showModal();
     };
     $$('[data-open-dialog]').filter(b => !b.closest('[data-audience-filter-summary], [data-audience-results]')).forEach(b => b.addEventListener('click', async event => {
