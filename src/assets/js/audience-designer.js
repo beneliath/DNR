@@ -18,7 +18,7 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
   const button = (text, action, cls) => { const b = el('button', text, cls); b.type = 'button'; b.addEventListener('click', action); return b; };
   $$('[data-design-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   const frameHtml = (frame, html) => { frame.srcdoc = html; };
-  $$('[data-email-preview]').forEach(frame=>{
+  function initializeEmailPreview(frame, html){
     if(frame.hasAttribute('data-template-preview')){
       let observer, pending=false;
       const schedule=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;fit();});}};
@@ -74,8 +74,9 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
         schedule();
       });
     }
-    frameHtml(frame,frame.dataset.emailPreview);
-  });
+    frameHtml(frame,html);
+  }
+  $$('[data-email-preview]').forEach(frame=>initializeEmailPreview(frame,frame.dataset.emailPreview));
   const gallery = $('#template-gallery');
   if (gallery) {
     let category = 'All', galleryPage=1, gallerySize=25, matches=[], dragging=null, dropAfter=false, dropTarget=null, dragPoint=null, pointerDrag=null, scrollFrame=0, scrollTime=0, dragProxy=null, dropMarker=null;
@@ -131,6 +132,27 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
       resetFilter();saveOrder();$('[data-template-search]').focus();
     });
     filter();
+    const loadPreview=async frame=>{
+      try{
+        const response=await fetch(frame.dataset.previewUrl,{headers:{'X-Audience-Preview-Nonce':gallery.dataset.previewNonce}});
+        if(!response.ok)throw new Error();
+        const {html}=await response.json();
+        if(typeof html!=='string')throw new Error();
+        initializeEmailPreview(frame,html);
+      }catch{
+        const retry=button('Retry preview',()=>{retry.remove();loadPreview(frame);});
+        frame.closest('.template-card').querySelector('.template-card-info').append(retry);
+      }
+    };
+    const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(entries=>{
+      for(const entry of entries)if(entry.isIntersecting){
+        observer.unobserve(entry.target);
+        loadPreview($('[data-preview-url]',entry.target));
+      }
+    },{rootMargin:'100px 0px'});
+    $$('[data-preview-url]',gallery).forEach(frame=>{
+      if(observer)observer.observe(frame.parentElement);else loadPreview(frame);
+    });
     const clearDrop=()=>initialCards.forEach(card=>card.classList.remove('template-dragging'));
     const moveCard=(card,target,after)=>{
       if(card===target)return;
@@ -671,11 +693,43 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
   });
   $('#design-save-template').onclick=run(async()=>{closeMenus();dirty=true;if(await save(false))$('#design-template-dialog').showModal();});
   $('#design-template-form').onsubmit=run(async e=>{e.preventDefault();const submit=$('button.primary',e.target);submit.disabled=true;try{if(dirty&&!(await save(false)))return;await request('design_template',{name:e.target.elements.name.value,folder:e.target.elements.folder.value});$('#design-template-dialog').close();status.textContent='Template saved';}finally{submit.disabled=false;}});
-  $$('[data-design-template-source]').forEach(select=>select.onclick=()=>{
-    const entry=config[select.dataset.designTemplateSource][select.dataset.designTemplateKey];
-    confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(entry.design);selected=null;selectedRow=null;panel='add';});$('#design-change-dialog').close();});
-  });
-  $('#design-change').onclick=()=>{closeMenus();$('#design-change-dialog').showModal();};
+  const changeDialog=$('#design-change-dialog'), templateRequests=new WeakMap();
+  let templateSelection=0;
+  function loadTemplateChoice(select){
+    if(templateRequests.has(select))return templateRequests.get(select);
+    const box=select.closest('article').querySelector('.template-thumbnail');
+    box.textContent='Loading preview…';
+    const pending=request('design_template_choice',{source:select.dataset.designTemplateSource,key:select.dataset.designTemplateKey}).then(choice=>{
+      const frame=el('iframe');
+      frame.title='Preview '+$('.designer-template-name',select).textContent;
+      frame.tabIndex=-1;frame.inert=true;frame.sandbox='allow-same-origin';frame.referrerPolicy='no-referrer';frame.dataset.templatePreview='';
+      box.replaceChildren(frame);initializeEmailPreview(frame,choice.preview);
+      return choice.design;
+    }).catch(err=>{
+      templateRequests.delete(select);box.textContent='Preview unavailable';throw err;
+    });
+    templateRequests.set(select,pending);
+    return pending;
+  }
+  const templateObserver=new IntersectionObserver(entries=>{
+    for(const entry of entries)if(entry.isIntersecting){
+      templateObserver.unobserve(entry.target);
+      loadTemplateChoice($('[data-design-template-source]',entry.target)).catch(()=>{});
+    }
+  },{root:changeDialog});
+  for(const select of $$('[data-design-template-source]',changeDialog)){
+    select.onclick=run(async()=>{
+      const selection=++templateSelection;
+      const choice=await loadTemplateChoice(select);
+      if(!changeDialog.open||selection!==templateSelection)return;
+      confirmDesignAction('Change template?','Your current layout and content will be replaced. You can undo this change.',()=>{mutate(()=>{design=structuredClone(choice);selected=null;selectedRow=null;panel='add';});changeDialog.close();});
+    });
+  }
+  $('#design-change').onclick=()=>{
+    closeMenus();changeDialog.showModal();
+    for(const card of $$('.designer-template-card',changeDialog))templateObserver.observe(card);
+  };
+  changeDialog.addEventListener('close',()=>{templateSelection++;templateObserver.disconnect();});
   let recovered;try{recovered=JSON.parse(localStorage.getItem(recoveryKey)||'null');if(recovered&&Date.now()-recovered.time>7*86400000){localStorage.removeItem(recoveryKey);recovered=null;}}catch{}
   if(recovered?.design&&JSON.stringify(recovered.design)!==JSON.stringify(design)){$('#design-recovery').hidden=false;$('#design-recover').onclick=()=>confirmDesignAction('Restore recovered draft?',recovered.version===version?'Restore edits that were not saved before this tab closed.':'This recovered draft is based on an older saved version. Review it before saving over the latest design.',()=>{mutate(()=>{design=structuredClone(recovered.design);selected=null;selectedRow=null;});$('#design-recovery').hidden=true;});}
   $('#design-discard-recovery').onclick=()=>{try{localStorage.removeItem(recoveryKey);}catch{}$('#design-recovery').hidden=true;};

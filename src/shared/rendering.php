@@ -59,7 +59,8 @@ function renderPageHead($title, array $options = []) {
     // Reserve common record-action columns after each page's own layout rules.
     $styles[] = 'assets/css/record-actions.min.css';
     $styles[] = 'assets/css/form-reminders.min.css';
-    if (in_array('assets/css/pages/audience.min.css', $styles, true)) {
+    $audienceWorkspace = in_array('assets/css/pages/audience.min.css', $styles, true);
+    if ($audienceWorkspace) {
         $styles[] = 'assets/css/pages/audience-ui-standards.min.css';
         $styles[] = 'assets/css/pages/audience-mobile.min.css';
     }
@@ -68,14 +69,23 @@ function renderPageHead($title, array $options = []) {
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
     echo '    <meta name="user-timezone" content="'.htmlspecialchars(userDisplayTimezoneName(),ENT_QUOTES,'UTF-8').'">' . PHP_EOL;
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
+    if ($audienceWorkspace) {
+        // Start the main sheet before head scripts compete for connections; its cascade order stays unchanged.
+        echo '<link rel="preload" as="style" fetchpriority="high" href="'
+            . htmlspecialchars(assetUrl('assets/css/pages/audience.min.css'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    }
     echo '    <link rel="icon" type="image/svg+xml" href="'
         . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
-    echo '    <script async src="'.htmlspecialchars(assetUrl('assets/js/page-loading.min.js'),ENT_QUOTES,'UTF-8').'"></script>'.PHP_EOL;
     array_unshift($styles,'assets/css/page-loading.min.css');
-    renderScript('assets/js/account-context.min.js', false);
-    renderScript('assets/js/theme-init.min.js', false);
-    renderScript('assets/js/user-time.min.js', false);
-    renderScript('assets/js/form-drafts.min.js', false);
+    if ($audienceWorkspace) {
+        renderScript('assets/js/audience-head.min.js', false);
+    } else {
+        echo '    <script async src="'.htmlspecialchars(assetUrl('assets/js/page-loading.min.js'),ENT_QUOTES,'UTF-8').'"></script>'.PHP_EOL;
+        renderScript('assets/js/account-context.min.js', false);
+        renderScript('assets/js/theme-init.min.js', false);
+        renderScript('assets/js/user-time.min.js', false);
+        renderScript('assets/js/form-drafts.min.js', false);
+    }
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;

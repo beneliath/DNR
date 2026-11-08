@@ -20,6 +20,12 @@ audienceHttpExpect($as->analyticsOverview(array_replace($window,['channel'=>'aut
 audienceHttpExpect($result['previous']['accepted']===30&&$result['previous']['open_rate']===40.0,'Previous period uses its own accepted cohort and observations');
 audienceHttpExpect($result['totals']['accepted']>$result['previous']['accepted']&&$result['totals']['click_rate']<$result['previous']['click_rate'],'Sample comparisons exercise both up and down trends');
 audienceHttpExpect($result['previous']['unsubscribed']===1&&$result['totals']['unsubscribed']===0,'Unsubscribe attribution stays in the correct message cohort');
+foreach([[],['bots'=>'all'],['messages_mode'=>'selected','messages'=>[$samples['campaigns'][0]]],['messages_mode'=>'selected','messages'=>[]],['channel'=>'automation']]as$changes){
+    $scope=array_replace($window,$changes);$full=$as->analyticsOverview($scope);$home=$as->analyticsHomeMetrics($scope);
+    foreach(['totals','previous']as$period)audienceHttpExpect(array_intersect_key($full[$period],$home[$period])===$home[$period],'Home headline reconciles with the full report for '.$period.' '.json_encode($changes));
+    audienceHttpExpect(array_column($home['campaigns'],'id')===array_column($full['campaigns'],'id'),'Home preserves recent campaign ordering under filters');
+    foreach($home['campaigns']as$i=>$row)audienceHttpExpect(array_intersect_key($full['campaigns'][$i]['metrics'],$row['metrics'])===$row['metrics'],'Recent campaign metrics match the same report cohort');
+}
 $empty=$as->analyticsOverview(audienceAnalyticsWindow(['start'=>'2020-01-01','end'=>'2020-01-30']));
 audienceHttpExpect($empty['totals']['accepted']===0&&$empty['totals']['open_rate']===null,'Empty comparisons remain unknown rather than a fabricated percentage');
 audienceHttpExpect(array_sum(array_column($result['daily'],'accepted'))===36,'Trend and headline reconcile');

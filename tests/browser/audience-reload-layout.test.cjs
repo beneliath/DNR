@@ -48,7 +48,14 @@ async function checkReload(browser, view, html, selector, width = 1600) {
         const before = await geometry();
         assert(before.length > 0,view+' renders its controls without waiting for the workspace bundle');
         if (view==='writer') assert.equal(await page.getByRole('button',{name:'Fictional saved request',exact:true}).count(),1);
-        if (view==='campaigns') assert.equal(await page.locator('thead [data-campaign-column=folder]').isVisible(),false);
+        if (view==='campaigns') {
+            assert.equal(await page.locator('thead [data-campaign-column=folder]').isVisible(),false);
+            assert.equal(await page.evaluate(() => document.documentElement.classList.contains('dark-mode')
+                && DnrAccountContext.local.getItem('theme') === 'dark'
+                && DnrUserTime.timeZone === document.querySelector('meta[name=user-timezone]').content
+                && typeof DnrFormDrafts.initialize === 'function' && typeof DnrPageLoading.begin === 'function'),true,
+                'The saved theme, account storage, timezone and form helpers are ready before the workspace script');
+        }
         release();
         await page.waitForLoadState('load');
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));

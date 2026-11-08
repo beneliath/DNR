@@ -61,11 +61,11 @@
 .campaign-name-cell>div{min-width:0;flex:1}
 .campaign-list-table .campaign-name{display:flex;align-items:baseline;gap:6px;font-size:calc(16px * var(--audience-font-scale,1));font-weight:400;line-height:1.45}
 .campaign-name>svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;align-self:flex-start;margin-top:4px}
-.campaign-thumbnail{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:0 0 44px;height:64px;overflow:hidden;border:1px solid var(--audience-border);border-radius:5px;background:#fff;color:var(--audience-link);color-scheme:light}
-.campaign-thumbnail img{width:100%;height:100%;object-fit:contain}
+.campaign-thumbnail{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:0 0 44px;height:64px;overflow:hidden;border:1px solid var(--audience-border);border-radius:5px;background:#fff;color:var(--audience-link);color-scheme:light}
+.campaign-thumbnail img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .campaign-thumbnail svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.5;margin-bottom:3px}
 .campaign-thumbnail i{height:2px;width:26px;background:var(--audience-control-border)}
-.campaign-thumbnail i:last-child{width:18px}
+.campaign-thumbnail i:last-of-type{width:18px}
 .campaign-list-table .campaign-subject{font-size:calc(13px * var(--audience-font-scale,1));color:var(--audience-muted);margin:4px 0 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:260px}
 .campaign-list-table small{font-size:calc(12px * var(--audience-font-scale,1));color:var(--audience-muted)}
 .campaign-list-table time{display:block;font-size:calc(14px * var(--audience-font-scale,1))}

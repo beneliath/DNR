@@ -321,8 +321,8 @@ html.dark-mode .designer-style-toggle-group img{filter:invert(1)}
 
 /* The switcher uses the same scaled email previews as the template library. */
 .designer-change{max-height:calc(100dvh - 32px);overflow:auto}
-.designer-template-card{position:relative;display:flex;flex-direction:column;overflow:hidden}
-.designer-template-card .template-thumbnail{position:relative;flex:none;background:#fff}
+.designer-template-card{position:relative;display:flex;flex-direction:column;aspect-ratio:1/2;overflow:hidden}
+.designer-template-card .template-thumbnail{position:relative;flex:1;background:#fff}
 .designer-template-card .template-thumbnail iframe{position:absolute;inset:0 auto auto 0}
 .designer-template-options .designer-template-select{display:flex;flex-direction:column;align-items:flex-start;gap:8px;flex:none;width:100%;min-height:88px;padding:14px;border:0;border-radius:0 0 12px 12px;text-align:left;white-space:normal;background:var(--audience-surface);color:var(--audience-text)}
 .designer-template-select::after{content:"";position:absolute;inset:0;z-index:1;cursor:pointer}

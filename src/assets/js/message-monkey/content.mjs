@@ -31,16 +31,17 @@ export function initializeContentWorkspace(show) {
         preview.addEventListener('load',update);update();
         const stage=preview.closest('.content-brand-logo-stage');if(stage&&typeof ResizeObserver!=='undefined')new ResizeObserver(()=>fitBrandLogoPreview(preview)).observe(stage);
     });
-    const setContentImage = (form, key, value) => {
-        form.elements[key].value = value;
+    const setContentImage = (form, key, value, stored = false) => {
+        // A private preview URL is for display only. Submit image bytes only for a replacement.
+        form.elements[key].value = stored ? '' : value;
         const preview = $(`[data-content-preview="${key}"]`, form);
-        if (preview) { delete preview.dataset.artworkFitted; preview.src = value; preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
+        if (preview) { delete preview.dataset.artworkFitted; if(value)preview.src = value;else preview.removeAttribute('src'); preview.hidden = !value; const stage=preview.closest('.content-brand-logo-stage');if(stage)stage.hidden=!value; }
         if(!value)brandLogoDimensions(form,key);
         brandDirtyStates.get(form)?.();
         fileDirtyStates.get(form)?.update();
         if (key !== 'image' || !value) return;
         const image = new Image(); image.onload = () => {
-            if (form.elements[key].value !== value) return;
+            if (preview?.getAttribute('src') !== value) return;
             const dimensions = $('[data-content-dimensions]', form);
             if (dimensions) dimensions.textContent = `${image.naturalWidth} × ${image.naturalHeight} pixels`;
             for (const [field, number] of Object.entries({x:0,y:0,width:image.naturalWidth,height:image.naturalHeight,output_width:image.naturalWidth,output_height:image.naturalHeight})) {
@@ -184,11 +185,11 @@ export function initializeContentWorkspace(show) {
                 else ctx.drawImage(image,x,y,width,height,0,0,ow,oh);
                 const result = canvas.toDataURL('image/png'); if (result.length > 1333358) { contentStatus(contentEditor, 'The edited image is too large. Choose smaller output dimensions.'); return; }
                 setContentImage(contentEditor,'image',result); contentStatus(contentEditor,'Image edits applied. Save to keep this version.');
-            }; image.src = contentEditor.elements.image.value;
+            }; image.src = $('[data-content-preview="image"]',contentEditor).getAttribute('src') || '';
         };
         $('[data-content-crop-apply]',contentEditor)?.addEventListener('click', () => editImage(false));
         $('[data-content-rotate]',contentEditor)?.addEventListener('click', () => editImage(true));
-        contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && !(contentEditor.elements.file_kind.value === 'file' && Number(contentEditor.elements.id.value) > 0)) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
+        contentEditor.addEventListener('submit',event => { if (!contentEditor.elements.image.value && !contentEditor.elements.image_file.files.length && Number(contentEditor.elements.id.value) === 0) { event.preventDefault(); contentStatus(contentEditor,'Upload an image or PDF before saving.'); } });
     }
     const contentSection = $('#content-section');
     $$('[data-content-card] .content-thumbnail').forEach(link => link.addEventListener('click', event => {
@@ -217,7 +218,7 @@ export function initializeContentWorkspace(show) {
         const upload = $('[data-content-upload="image"]', contentEditor);
         if (upload) { upload.value = ''; setFileDropStatus(upload); }
         $('[data-content-dimensions]', contentEditor).textContent = '';
-        setContentImage(contentEditor, 'image', type === 'image' ? $('img', link)?.getAttribute('src') || '' : '');
+        setContentImage(contentEditor, 'image', type === 'image' ? $('img', link)?.getAttribute('src') || '' : '', true);
         let pdfDownload = $('a[href*="download=file"]', contentEditor)?.parentElement;
         if (type === 'file') {
             if (!pdfDownload) {

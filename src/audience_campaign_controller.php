@@ -143,28 +143,45 @@ if($isPost){
     $campaignRecovery=$_POST;
     if($view==='campaign-plan')$id=\Dnr\Http\RequestInput::positiveInt($_GET,'id')??0;
 }
-$folders=$store->campaignFolders();
-// Preview bodies are fetched only when their cards are visible.
-$recentCampaigns=$canManage?$store->all("SELECT id,name,version,status,sent_at FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' ORDER BY sent_at DESC,id DESC LIMIT 12",[$audienceId]):[];
-[$campaignWhere,$campaignParams]=audienceCampaignWhere($audienceId,$campaignFilters);
-$campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
-$campaignSize=(int)$campaignFilters['per_page'];
-$campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/$campaignSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
-$dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
-$campaignRowIds=array_column($store->all("SELECT c.id FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT ? OFFSET ?",[...$campaignParams,$campaignSize,($campaignPage-1)*$campaignSize]),'id');
-$campaignRowsById=[];$campaignRows=[];
-if($campaignRowIds)foreach($store->all("SELECT c.* $dispatchColumns,f.name folder_name FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds])as$campaignRow)$campaignRowsById[$campaignRow['id']]=$campaignRow;
-foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRowId]))$campaignRows[]=$campaignRowsById[$campaignRowId];
-$campaignMetrics=$runtimeInstalled?$store->analyticsCampaignMetrics($campaignRowIds):[];
-$campaignSnapshot=[];
-if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)as$row)$campaignSnapshot[$row['id']]=(int)$row['version'];
 $month=new DateTimeImmutable($campaignFilters['month'].'-01',userDisplayTimezone());
-$calendarStart=$month->modify('monday this week');$calendarEnd=$month->modify('last day of this month')->modify('sunday this week');
-$calendarRows=[];
-$calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
-if($campaignFilters['layout']==='calendar'){
-    $calendarRows=$store->all("SELECT c.id,c.name,c.status,$calendarDate calendar_at FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_at,c.id",[...$campaignParams,$calendarStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$calendarEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
-    foreach($calendarRows as&$calendarRow)$calendarRow['calendar_date']=userDisplayInstant($calendarRow['calendar_at'])?->format('Y-m-d');unset($calendarRow);
+$campaignRows=[];$recentCampaigns=[];$folders=[];
+if($view==='campaigns'||$view==='campaign'){
+    // Both pages include the create/move dialogs. Only the list displays engagement metrics.
+    $folders=$store->campaignFolders();
+    if($canManage)$recentCampaigns=$store->all("SELECT id,name,version,status,sent_at FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' ORDER BY sent_at DESC,id DESC LIMIT 12",[$audienceId]);
+}
+if($view==='campaigns'){
+    [$campaignWhere,$campaignParams]=audienceCampaignWhere($audienceId,$campaignFilters);
+    $campaignTotal=(int)$store->one("SELECT COUNT(*) n FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)['n'];
+    $campaignSize=(int)$campaignFilters['per_page'];
+    $campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/$campaignSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
+    $campaignPageNames=$store->all("SELECT c.id,c.name FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT ? OFFSET ?",[...$campaignParams,$campaignSize,($campaignPage-1)*$campaignSize]);
+    if($campaignFilters['layout']==='calendar'){
+        $calendarStart=$month->modify('monday this week');$calendarEnd=$month->modify('last day of this month')->modify('sunday this week');
+        $calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
+        $calendarRows=$store->all("SELECT c.id,c.name,c.status,$calendarDate calendar_at FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_at,c.id",[...$campaignParams,$calendarStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$calendarEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
+        foreach($calendarRows as&$calendarRow)$calendarRow['calendar_date']=userDisplayInstant($calendarRow['calendar_at'])?->format('Y-m-d');unset($calendarRow);
+        $campaignRows=$campaignPageNames; // The same search suggestions as the list, without its drafts or metrics.
+    }else{
+        $dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
+        $campaignRowIds=array_column($campaignPageNames,'id');
+        $campaignRowsById=[];
+        if($campaignRowIds){
+            // A list row needs labels and an image hint, not the newsletter document or its embedded artwork.
+            $rows=$store->all("SELECT c.id,c.name,c.version,c.status,c.campaign_type,c.folder_id,c.actor_label,c.created_at,c.updated_at,c.sent_at $dispatchColumns,
+                f.name folder_name,JSON_OBJECT('subject',c.draft_json->'$.subject','target',c.draft_json->'$.target','include',c.draft_json->'$.include',
+                    'exclude',c.draft_json->'$.exclude','exclude_tag',c.draft_json->'$.exclude_tag','recipients_saved',c.draft_json->'$.recipients_saved',
+                    'recipient_rules',c.draft_json->'$.recipient_rules','experiment',JSON_OBJECT('kind',c.draft_json->'$.experiment.kind')) draft_json,
+                JSON_SEARCH(c.draft_json,'one','image',NULL,'$.design.rows[*].columns[*][*].type') IS NOT NULL has_thumbnail
+                FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id
+                WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds]);
+            $campaignRowsById=array_column($rows,null,'id');
+        }
+        foreach($campaignRowIds as$campaignRowId)if(isset($campaignRowsById[$campaignRowId]))$campaignRows[]=$campaignRowsById[$campaignRowId];
+        $loadCampaignMetrics=fn()=>$runtimeInstalled?$store->analyticsCampaignListMetrics($campaignRowIds):[];
+        $campaignSnapshot=[];
+        if($canManage&&$campaignTotal<=5000)foreach($store->all("SELECT c.id,c.version FROM marketing_campaigns c WHERE $campaignWhere",$campaignParams)as$row)$campaignSnapshot[$row['id']]=(int)$row['version'];
+    }
 }
 $campaign=null;$recipientCount=null;$targetError='';
 $reopenDesignerUnavailable=$view==='campaign'&&(int)($_SESSION['audience_designer_unavailable']??0)===$id;
@@ -172,11 +189,11 @@ if($reopenDesignerUnavailable)unset($_SESSION['audience_designer_unavailable']);
 if(in_array($view,['campaign','campaign-review','campaign-send','campaign-delivery'],true)){
     try{$campaign=$store->campaign($id,false,$view==='campaign-delivery');}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
     if($campaign['deleted_at'])$canSend=false;
-    if(!empty($campaign['draft']['recipients_saved']))try{[$targetWhere,$targetParams]=$store->campaignTarget($campaign['draft']);$recipientCount=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $targetWhere",$targetParams)['n'];}catch(InvalidArgumentException $e){$targetError=$e->getMessage();}
+    if($view==='campaign'&&!empty($campaign['draft']['recipients_saved']))try{[$targetWhere,$targetParams]=$store->campaignTarget($campaign['draft']);$recipientCount=(int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $targetWhere",$targetParams)['n'];}catch(InvalidArgumentException $e){$targetError=$e->getMessage();}
 }
 // Shared shell dependencies, without loading a page of unrelated Connections.
-$tags=$store->tags();$groups=$store->groups();$fields=$store->fields();$catalog=[];
-$segments=$store->all('SELECT * FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name,id',[$audienceId]);
+$tags=$view==='campaign'?$store->tags(withCounts:false):[];$catalog=[];
+$segments=$view==='campaign'?$store->all('SELECT id,name FROM marketing_segments WHERE audience_id=?'.($store->definitionArchiveAvailable()?' AND archived_at IS NULL':'').' ORDER BY name,id',[$audienceId]):[];
 $filters=audienceListFilters([]);$rules=['match'=>'all','rules'=>[]];$segment=null;$job=null;$editorRecovery=null;
 $plan=null;$planRows=[];$planChoices=[];$touchpoints=[];$planTotal=0;$planPage=1;$plannerLayout=in_array($_GET['planner_layout']??'', ['calendar','agenda','list'],true)?$_GET['planner_layout']:'calendar';
 $plannerScale=in_array($_GET['scale']??'', ['day','week','month'],true)?$_GET['scale']:'month';
@@ -200,21 +217,22 @@ if(in_array($view,['campaign-manager','campaign-plan'],true)){
     $touchpoints=$store->all("SELECT t.*,c.status email_status,c.deleted_at email_deleted FROM marketing_campaign_touchpoints t LEFT JOIN marketing_campaigns c ON c.id=t.campaign_id AND c.audience_id=t.audience_id LEFT JOIN marketing_campaign_plans p ON p.id=t.plan_id AND p.audience_id=t.audience_id WHERE t.audience_id=? AND $touchpointStateWhere $planWhere AND t.start_at<? AND t.end_at>=? ORDER BY t.start_at,t.id LIMIT 1001",[$audienceId,...$planParams,$plannerEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$plannerStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
     $plannerEmails=$store->all("SELECT id,name FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id",[$audienceId]);
 }
-$deliveryPolicy=$runtimeInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailActivityTotal=0;$mailActivityPage=1;$mailActivitySize=audiencePageSize($_GET,'activity_size');$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
-$deliveryAvailable=$store->deliverySetupAvailable();$deliveryDomains=[];$deliveryAddresses=[];$deliverySender=null;$deliverySenderJob=null;$deliveryDomain=null;$deliveryDevelopmentCode='';$deliveryProbe=null;$senderReadiness=null;
+$sesInstalled=$view==='delivery'&&$store->sesAvailable();
+$deliveryPolicy=$view==='delivery'&&$runtimeInstalled&&!$sesInstalled?$store->deliveryPolicy():[];$mailActivity=[];$mailActivityTotal=0;$mailActivityPage=1;$mailActivitySize=audiencePageSize($_GET,'activity_size');$mailUsage=[];$operationalQueues=[];$eventSummary=[];$sesInboxCounts=[];
+$deliveryAvailable=in_array($view,['delivery','campaign'],true)&&$store->deliverySetupAvailable();$deliveryDomains=[];$deliveryAddresses=[];$deliverySender=null;$deliverySenderJob=null;$deliveryDomain=null;$deliveryDevelopmentCode='';$deliveryProbe=null;$senderReadiness=null;
 if($view==='delivery'){
     if($runtimeInstalled){
-        if(!$store->sesAvailable()&&$canConfigureDelivery)foreach(['email_outbox'=>'Account access','notification_outbox'=>'Task notifications','engagement_email_deliveries'=>'Engagement correspondence','reimbursement_email_deliveries'=>'Reimbursement submissions']as$table=>$label)$operationalQueues[$label]=$store->all("SELECT status,COUNT(*) n,MIN(CASE WHEN status IN ('pending','retry') THEN next_attempt_at END) next_attempt FROM $table WHERE created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY status");
+        if(!$sesInstalled&&$canConfigureDelivery)foreach(['email_outbox'=>'Account access','notification_outbox'=>'Task notifications','engagement_email_deliveries'=>'Engagement correspondence','reimbursement_email_deliveries'=>'Reimbursement submissions']as$table=>$label)$operationalQueues[$label]=$store->all("SELECT status,COUNT(*) n,MIN(CASE WHEN status IN ('pending','retry') THEN next_attempt_at END) next_attempt FROM $table WHERE created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY status");
         if(($_GET['tab']??'')==='activity'){
             $mailActivityTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=?',[$audienceId])['n'];
             $mailActivityPage=max(1,min(max(1,(int)ceil($mailActivityTotal/$mailActivitySize)),\Dnr\Http\RequestInput::positiveInt($_GET,'activity_page')??1));
             $mailActivity=$store->serviceMailActivity($mailActivitySize,($mailActivityPage-1)*$mailActivitySize);
         }
-        if(!$store->sesAvailable())$mailUsage=$store->all("SELECT lane,COUNT(*) daily,SUM(created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)) hourly FROM marketing_relay_usage WHERE audience_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY lane",[$audienceId]);
-        $eventSummary=$store->one("SELECT COUNT(*) n,MAX(created_at) latest FROM marketing_message_events WHERE audience_id=? AND source='provider'",[$audienceId]);
-        if($store->sesAvailable())$sesInboxCounts=$store->one("SELECT SUM(state IN ('queued','processing')) pending,SUM(state='failed') failed FROM marketing_ses_inbox WHERE audience_id=?",[$audienceId])??[];
+        if(!$sesInstalled)$mailUsage=$store->all("SELECT lane,COUNT(*) daily,SUM(created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)) hourly FROM marketing_relay_usage WHERE audience_id=? AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 24 HOUR) GROUP BY lane",[$audienceId]);
+        if(!$sesInstalled)$eventSummary=$store->one("SELECT COUNT(*) n,MAX(created_at) latest FROM marketing_message_events WHERE audience_id=? AND source='provider'",[$audienceId]);
+        if($sesInstalled&&($_GET['tab']??'')==='events')$sesInboxCounts=$store->one("SELECT SUM(state IN ('queued','processing')) pending,SUM(state='failed') failed FROM marketing_ses_inbox WHERE audience_id=?",[$audienceId])??[];
     }
-    if($deliveryAvailable&&!$store->sesAvailable()){
+    if($deliveryAvailable&&!$sesInstalled){
         $deliveryDomains=$store->all('SELECT d.*,(SELECT COUNT(*) FROM marketing_sending_addresses s WHERE s.domain_id=d.id AND s.audience_id=d.audience_id AND s.deleted_at IS NULL AND s.verified_at IS NOT NULL AND s.verified_transport=\'smtp\') verified_count FROM marketing_sending_domains d WHERE d.audience_id=? AND d.deleted_at IS NULL ORDER BY domain,id',[$audienceId]);
         $deliveryAddresses=$store->all('SELECT id,domain_id,email,verified_at,verified_transport FROM marketing_sending_addresses WHERE audience_id=? AND deleted_at IS NULL ORDER BY email,id',[$audienceId]);
         $senderId=($campaignRecovery['action']??'')==='delivery_verify'?$id:(\Dnr\Http\RequestInput::positiveInt($_GET,'sender')??0);
@@ -225,24 +243,32 @@ if($view==='delivery'){
 }
 if($view==='campaign'&&$campaign&&$deliveryAvailable)$senderReadiness=$store->sendingReadiness((string)($campaign['draft']['from_email']??''),audienceJson($audience['settings_json']));
 // Review is read-only. Queue creation only happens on an explicit CSRF-protected confirmation.
-$dispatchReview=null;$dispatchError='';$delivery=null;$deliveryCounts=[];$deliveryRows=[];$deliveryReport=[];$experimentReport=[];$deliverySnapshot=[];
+$dispatchReview=null;$dispatchError='';$delivery=null;$deliveryCounts=[];$deliveryRows=[];$deliveryReport=[];$deliverySnapshot=[];
 if($campaign&&$dispatchInstalled){
     $delivery=$store->campaignDelivery((int)$campaign['id']);
-    if($delivery){if($runtimeInstalled){$deliveryReport=$store->deliveryReport((int)$delivery['id']);$experimentReport=$store->deliveryReport((int)$delivery['id'],true);$deliverySnapshot=audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']));}if($campaign['status']!=='draft')$recipientCount=(int)$delivery['recipient_count'];$deliveryCounts=$store->campaignDeliveryCounts((int)$delivery['id']);$deliveryRows=$store->all('SELECT r.id,r.contact_id,r.state,r.attempts,r.accepted_at,r.next_attempt_at,r.error_message FROM marketing_campaign_recipients r WHERE r.audience_id=? AND r.delivery_id=? ORDER BY r.id DESC LIMIT 25',[$audienceId,$delivery['id']]);}
+    if($delivery){
+        if($runtimeInstalled)$deliverySnapshot=audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']));
+        if($campaign['status']!=='draft')$recipientCount=(int)$delivery['recipient_count'];
+        if($view==='campaign-delivery'){
+            if($runtimeInstalled)$deliveryReport=$store->deliveryReport((int)$delivery['id']);
+            $deliveryCounts=$store->campaignDeliveryCounts((int)$delivery['id']);
+            $deliveryRows=$store->all('SELECT r.id,r.contact_id,r.state,r.attempts,r.accepted_at,r.next_attempt_at,r.error_message FROM marketing_campaign_recipients r WHERE r.audience_id=? AND r.delivery_id=? ORDER BY r.id DESC LIMIT 25',[$audienceId,$delivery['id']]);
+        }
+    }
     if($view==='campaign-send'&&$canSend)try{$dispatchReview=$store->reviewCampaignDispatch($id,$audience,currentAccountPublicUrl());}catch(InvalidArgumentException|RuntimeException $e){$dispatchError=$e instanceof InvalidArgumentException?$e->getMessage():'Public email links are not configured. Review Email delivery setup.';}
 }
 if($view==='campaign-send'&&!$canSend)$dispatchError='Sending requires an unrestricted editor or administrator.';
 $contentLibrary=null;$contentItem=null;$contentContext=null;$brand=[];$brandTemplates=[];
 if(in_array($view,['content','brand'],true)){
-    $contentContext=$store->contentSettings();$brand=$contentContext['settings']['brand']??[];
+    $contentContext=['settings'=>audienceJson($audience['settings_json']),'version'=>(int)$audience['version']];$brand=$contentContext['settings']['brand']??[];
     if($view==='content'){$contentLibrary=$store->contentList($_GET);$contentId=\Dnr\Http\RequestInput::positiveInt($_GET,'item')??0;if($contentId){try{$contentItem=$store->designLibraryItem($contentId);$contentItem['usage']=$store->contentUsage($contentItem);}catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}}}
-    else{$brandTemplates=$store->all('SELECT id,name,version FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);$brandPreview=$store->brandedDesign(audienceDesignStarters()['newsletter']['design'],$brand,!empty($brand['logo']));}
+    else{$brandTemplates=$store->all('SELECT id,name,version FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY name,id',[$audienceId]);$brandPreview=$store->brandedDesign(audienceDesignStarters('newsletter')['newsletter']['design'],$brand,!empty($brand['logo']));}
 }
-$publication=$campaign&&!$campaign['deleted_at']?$store->campaignPublication((int)$campaign['id']):null;
+$publication=$view==='campaign'&&!$campaign['deleted_at']?$store->campaignPublication((int)$campaign['id']):null;
 $campaignComments=$view==='campaign-review'?$store->designComments('campaign',$id):[];
-$campaignMergeTags=$store->campaignMergeTags();
-$previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
-$sesInstalled=$store->sesAvailable();$sesSettings=$sesInstalled?$store->sesSettings():[];
+$campaignMergeTags=$view==='campaign'?$store->campaignMergeTags():[];
+if(in_array($view,['campaign','campaign-review','campaign-send'],true))$previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
+$sesSettings=$sesInstalled?$store->sesSettings():[];
 $managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc','plan_size'=>$planSize??25,'plan_trash'=>!empty($planArchived)?'1':'0','touchpoint_trash'=>!empty($touchpointArchived)?'1':'0'],$changes));
 $pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();

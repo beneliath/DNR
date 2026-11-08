@@ -8,12 +8,36 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     $folderFilter=$_GET['folder']??'';
     if(!is_string($folderFilter)||!mb_check_encoding($folderFilter,'UTF-8')||mb_strlen($folderFilter)>100)$folderFilter='';
     $templateListUrl=static fn(string $tab='saved')=>$url(['view'=>'templates','tab'=>$tab]+($folderFilter!==''?['folder'=>$folderFilter]:[]));
-    $kind=($_GET['kind']??'')==='template'?'template':'campaign';$starters=audienceDesignStarters();
-    $brand=$store->contentSettings()['settings']['brand']??[];
-    foreach($starters as&$starter)$starter['design']=audienceDesignBrandDefaults($starter['design'],$brand,true);unset($starter);
+    $kind=($_GET['kind']??'')==='template'?'template':'campaign';
+    $settings=audienceJson($audience['settings_json']);
+    $brand=$settings['brand']??[];
+    $brandedStarter=static function(string $key)use($brand):array{
+        $starter=audienceDesignStarters($key)[$key]??throw new InvalidArgumentException('Choose a starter template.');
+        $starter['design']=audienceDesignBrandDefaults($starter['design'],$brand,true);
+        return $starter;
+    };
     $variantRaw=$_GET['variant']??'0';if(!is_string($variantRaw)||!preg_match('/^[0-7]$/D',$variantRaw)||($kind==='template'&&$variantRaw!=='0')){http_response_code(404);exit('This content variation is unavailable.');}$variant=(int)$variantRaw;
     $jsonRequest=($_SERVER['HTTP_X_AUDIENCE_DESIGN']??'')==='1'||(is_string($_POST['action']??null)&&str_starts_with($_POST['action'],'design_'));
     $respond=static function(array $data,int $status=200):never{http_response_code($status);header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode($data,JSON_THROW_ON_ERROR);exit;};
+    // Gallery readers may see these inert previews, but only editors may export or edit the design.
+    if($view==='templates'&&$_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['preview'])){
+        releaseApplicationSessionLock();
+        try{
+            $tab=audienceText($_GET,'tab',10);
+            if($tab==='built-in'){
+                $design=$brandedStarter(audienceText($_GET,'preview',100))['design'];
+            }elseif($tab==='saved'||$tab==='archived'){
+                $row=$store->emailTemplate(\Dnr\Http\RequestInput::positiveInt($_GET,'preview')??0,false,$tab==='archived');
+                if(($row['deleted_at']!==null)!==($tab==='archived'))throw new InvalidArgumentException();
+                $design=$row['design'];
+            }elseif($tab==='recent'){
+                $row=$store->campaign(\Dnr\Http\RequestInput::positiveInt($_GET,'preview')??0);
+                if($row['status']!=='sent'||$row['campaign_type']!=='regular'||!isset($row['draft']['design']))throw new InvalidArgumentException();
+                $design=$row['draft']['design'];
+            }else throw new InvalidArgumentException();
+            $respond(['html'=>audienceDesignPreviewHtml($design,$_SERVER['HTTP_X_AUDIENCE_PREVIEW_NONCE']??'',null,false,audienceBrandIdentity($settings,$audience['name']))]);
+        }catch(InvalidArgumentException){$respond(['error'=>'This template preview is unavailable.'],404);}
+    }
     if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['template_export'])){
         if(!$canManage){http_response_code(403);exit('Template export requires an editor or administrator.');}
         try{$template=$store->emailTemplate(\Dnr\Http\RequestInput::positiveInt($_GET,'template_export')??0,false,true);$file=audienceTemplatePackageExport($template['name'],$template['design'],currentAccountKey(),applicationVersion());}
@@ -29,8 +53,20 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
     if($_SERVER['REQUEST_METHOD']==='POST'){
         requireValidCsrfToken();if(!$canManage){http_response_code(403);exit('You do not have permission to edit email designs.');}
         try{
-            $action=audienceText($_POST,'action');if(str_starts_with($action,'design_')){$owner=$store->designOwner($kind,$id);if($kind==='campaign')$store->campaignDesign($owner,$variant);}$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;$redirect=$templateListUrl();
+            $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;$redirect=$templateListUrl();
             if(isset($_POST['audience'])&&(string)$_POST['audience']!=='1')throw new InvalidArgumentException('Reload the canonical audience before saving.');
+            if($action==='design_template_choice')releaseApplicationSessionLock();
+            if(str_starts_with($action,'design_')){$owner=$store->designOwner($kind,$id);if($kind==='campaign')$store->campaignDesign($owner,$variant);}
+            if($view==='designer'&&$action==='design_template_choice'){
+                $source=audienceText($_POST,'source',10);
+                $choice=match($source){
+                    'starters'=>$brandedStarter(audienceText($_POST,'key',100))['design'],
+                    'saved'=>audienceDesignBrandDefaults($store->emailTemplate(\Dnr\Http\RequestInput::positiveInt($_POST,'key')??0)['design'],$brand),
+                    default=>throw new InvalidArgumentException('Choose an available template.'),
+                };
+                $identity=audienceBrandIdentity($settings,$audience['name']);
+                $respond(['design'=>$choice,'preview'=>audienceDesignPreviewHtml($choice,audienceText($_POST,'preview_nonce',100),null,false,$identity)]);
+            }
             if($action==='design_test'){
                 if(isRestrictedDemoSession()||!accountSecurityAccessAllowed())$respond(['error'=>'Sending requires an unrestricted editor or administrator.'],403);
                 if(!$store->deliveryRuntimeAvailable())throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
@@ -88,17 +124,17 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 $code='<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><table role="presentation" width="600" align="center"><tr><td colspan="'.$columns.'" mc:edit="header"><h1>Your Headline</h1></td></tr><tr>';
                 for($column=1;$column<=$columns;$column++)$code.='<td valign="top" width="'.(100/$columns).'%" mc:edit="body_'.$column.'"><p>Add your content here.</p></td>';
                 $code.='</tr><tr><td colspan="'.$columns.'" mc:edit="footer"><p>Stay connected with our community.</p></td></tr></table></body></html>';
-                $document=$starters['blank']['design'];$document['mode']='code';$document['code']=$code;$tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:'Legacy template',$document);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
+                $document=$brandedStarter('blank')['design'];$document['mode']='code';$document['code']=$code;$tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:'Legacy template',$document);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_package_import'){
                 $import=audienceTemplatePackageUpload($_FILES['template_package']??[],currentAccountKey());
                 $tid=$store->createEmailTemplate($import['name'],$import['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_import'){
                 $import=isset($_FILES['template_file'])&&($_FILES['template_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE?audienceDesignImportFile($_FILES['template_file']):['code'=>audienceText($_POST,'code',1000000)];
                 if(trim($import['code'])==='')throw new InvalidArgumentException('Paste HTML or choose an HTML/ZIP file.');
-                $document=$starters['blank']['design'];$document['mode']='code';$document['code']=$import['code'];$tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:'Custom HTML template',$document);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
+                $document=$brandedStarter('blank')['design'];$document['mode']='code';$document['code']=$import['code'];$tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:'Custom HTML template',$document);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_create'){
-                $starter=audienceText($_POST,'starter');if(!isset($starters[$starter]))throw new InvalidArgumentException('Choose a starter template.');
-                $tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:$starters[$starter]['name'],$starters[$starter]['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
+                $starter=$brandedStarter(audienceText($_POST,'starter'));
+                $tid=$store->createEmailTemplate(audienceText($_POST,'name',100)?:$starter['name'],$starter['design']);$redirect=$url(['view'=>'designer','kind'=>'template','id'=>$tid]);
             }elseif($action==='template_folder'){
                 $store->emailTemplateFolder(audienceText($_POST,'operation'),audienceText($_POST,'name',100),audienceText($_POST,'new_name',100),$version);
                 $message='Template folders updated.';$redirect=$templateListUrl(($_GET['tab']??'')==='archived'?'archived':'saved');
@@ -122,35 +158,51 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
         catch(Throwable $e){applicationLog('error','Email design operation failed',['error'=>$e->getMessage()]);if($jsonRequest)$respond(['error'=>'Unable to save. Your edits are still here. Try again.'],500);$error='Unable to save. Try again.';}
     }
     $csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
-    $templateFolderContext=$store->contentSettings();$templateFolders=$store->emailTemplateFolders($templateFolderContext['settings']);
-    $templateFolderFilter=$folderFilter==='unfiled'||in_array($folderFilter,$templateFolders,true)?$folderFilter:'';
-    $archivedTemplates=$view==='templates'&&($_GET['tab']??'')==='archived';
-    $templates=$store->all('SELECT id,name,folder,version,updated_at,actor_label,design_json,deleted_at FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS '.($archivedTemplates?'NOT NULL':'NULL'),[$audienceId]);
-    // Embedded photographs must not become MySQL filesort payloads.
-    usort($templates,static fn($a,$b)=>[$b['updated_at'],(int)$b['id']]<=>[$a['updated_at'],(int)$a['id']]);
     if($view==='designer'){
         if(!$canManage){http_response_code(403);exit('The designer requires an editor or administrator.');}
         try{$record=$kind==='template'?$store->emailTemplate($id):$store->campaign($id);if($kind==='campaign'&&($record['status']!=='draft'||$record['campaign_type']!=='regular')){$_SESSION['audience_designer_unavailable']=$id;header('Location: '.$url(['view'=>'campaign','id'=>$id]));return;}$variantDesign=$kind==='template'?$record['design']:$store->campaignDesign($record,$variant);}
         catch(InvalidArgumentException $e){http_response_code(404);exit($h($e->getMessage()));}
-        $design=audienceDesignBrandDefaults($variantDesign??$starters['blank']['design'],$brand);if($variant>0)$record['name'].=' · Variation '.($variant+1);
-        $savedDesigns=[];foreach($templates as$t)$savedDesigns[]=['id'=>(int)$t['id'],'name'=>$t['name'],'design'=>audienceDesignBrandDefaults(audienceJson($t['design_json']),$brand)];
-        $dynamicFields=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address','SOURCE'=>'Signup source','EMAIL_STATUS'=>'Email status'];foreach($store->fields()as$f)$dynamicFields[$f['merge_tag']]=$f['label'];foreach($store->tags()as$t)$dynamicFields['tag:'.$t['id']]='Tag: '.$t['name'];foreach($store->groups()as$g)foreach($g['options']as$o)$dynamicFields['group:'.$o['id']]='Group: '.$g['name'].' / '.$o['name'];
-        $mergeTags=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address'];foreach($store->fields()as$f)$mergeTags[$f['merge_tag']]=$f['label'];
+        $design=audienceDesignBrandDefaults($variantDesign??$brandedStarter('blank')['design'],$brand);if($variant>0)$record['name'].=' · Variation '.($variant+1);
+        $templateChoices=[
+            'starters'=>array_map(static fn($starter)=>$starter['name'],audienceDesignStarters(includeBanners:false)),
+            'saved'=>array_column($store->all('SELECT id,name FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS NULL ORDER BY updated_at DESC,id DESC',[$audienceId]),'name','id'),
+        ];
+        $fields=$store->fields();
+        $dynamicFields=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address','SOURCE'=>'Signup source','EMAIL_STATUS'=>'Email status'];foreach($fields as$f)$dynamicFields[$f['merge_tag']]=$f['label'];foreach($store->tags(withCounts:false)as$t)$dynamicFields['tag:'.$t['id']]='Tag: '.$t['name'];foreach($store->groups(withCounts:false)as$g)foreach($g['options']as$o)$dynamicFields['group:'.$o['id']]='Group: '.$g['name'].' / '.$o['name'];
+        $mergeTags=['FNAME'=>'First Name','LNAME'=>'Last Name','EMAIL'=>'Email Address'];foreach($fields as$f)$mergeTags[$f['merge_tag']]=$f['label'];
         $sesSettings=$store->sesAvailable()?$store->sesSettings():[];
         $testSenders=$sesSettings&&!audienceSesReasons($sesSettings,$sesSettings['from_email']??'',requireFreshCheck:false)?[['email'=>$sesSettings['from_email']]]:[];
         $brandFont=audienceBrandFont($brand);
         $brandLogos=[];foreach(['logo'=>'Primary logo','secondary_logo'=>'Secondary logo']as$key=>$label)if(!empty($brand[$key]))$brandLogos[$key]=['label'=>$label,'image'=>audienceDesignImage($brand[$key],2000000,true)];
-        $designerConfig=['permissionReminder'=>audiencePermissionReminder(audienceBrandIdentity(audienceJson($audience['settings_json']),(string)$audience['name'])),'brandFont'=>$brandFont,'brandColors'=>audienceBrandColorPalette($brand),'brandLogos'=>(object)$brandLogos,'brandUrl'=>$url(['view'=>'brand']),'nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'starters'=>$starters,'saved'=>$savedDesigns,'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
+        $designerConfig=['permissionReminder'=>audiencePermissionReminder(audienceBrandIdentity(audienceJson($audience['settings_json']),(string)$audience['name'])),'brandFont'=>$brandFont,'brandColors'=>audienceBrandColorPalette($brand),'brandLogos'=>(object)$brandLogos,'brandUrl'=>$url(['view'=>'brand']),'nonce'=>contentSecurityPolicyNonce(),'design'=>$design,'version'=>(int)$record['version'],'endpoint'=>$url(['view'=>'designer','kind'=>$kind,'id'=>$id,'variant'=>$variant]),'exit'=>$url($kind==='template'?['view'=>'templates','tab'=>'saved']:['view'=>'campaign','id'=>$id]),'mergeTags'=>$mergeTags,'dynamicFields'=>$dynamicFields,'recoveryKey'=>hash('sha256',$themeKey.':'.$kind.':'.$id.':'.$variant),'kind'=>$kind,'canSend'=>!isRestrictedDemoSession()&&accountSecurityAccessAllowed(),'senders'=>$testSenders];
         $aiInline=true;$aiText='';$aiSubject='';$aiImages=[];$aiConfig=['mode'=>'content','endpoint'=>'audience_ai_api.php','window'=>[],'enabled'=>aiCoachEnabled(),'key'=>hash('sha256',$themeKey.':'.($_SESSION['role']??'').':'.aiCoachStorageKey())];
         releaseApplicationSessionLock();
         ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Designer'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css','assets/css/pages/audience-ai.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js','assets/js/audience-ai.min.js']]);include __DIR__.'/templates/audience/designer.php';?></html><?php
         return;
     }
     $tab=in_array($_GET['tab']??'', ['built-in','saved','recent','archived'],true)?$_GET['tab']:'saved';
-    $recentIds=array_column($store->all("SELECT id FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' AND campaign_type='regular' ORDER BY sent_at DESC,id DESC LIMIT 50",[$audienceId]),'id');
-    $recentById=[];$recentDesigns=[];
-    if($recentIds)foreach($store->all('SELECT id,name,draft_json,updated_at FROM marketing_campaigns WHERE audience_id=? AND id IN ('.implode(',',array_fill(0,count($recentIds),'?')).')',[$audienceId,...$recentIds])as$recent)$recentById[$recent['id']]=$recent;
-    foreach($recentIds as$recentId)if(isset($recentById[$recentId]))$recentDesigns[]=$recentById[$recentId];
+    $templateFolderContext=['settings'=>$settings,'version'=>(int)$audience['version']];$templateFolders=$store->emailTemplateFolders($settings);
+    $templateFolderFilter=$folderFilter==='unfiled'||in_array($folderFilter,$templateFolders,true)?$folderFilter:'';
+    $library=[];
+    if($tab==='built-in'){
+        foreach(audienceDesignStarters(includeBanners:false) as$key=>$starter){
+            $library[]=['key'=>$key,'name'=>$starter['name'],'category'=>$starter['category'],'mode'=>$starter['design']['mode'],'folder'=>'','updated_at'=>''];
+        }
+    }elseif($tab==='saved'||$tab==='archived'){
+        $library=$store->all("SELECT id,name,folder,version,updated_at,JSON_UNQUOTE(JSON_EXTRACT(design_json,'$.mode')) mode
+            FROM marketing_email_templates WHERE audience_id=? AND deleted_at IS ".($tab==='archived'?'NOT NULL':'NULL'),[$audienceId]);
+        // Keep the design JSON out of MySQL's sorting buffer.
+        usort($library,static fn($a,$b)=>[$b['updated_at'],(int)$b['id']]<=>[$a['updated_at'],(int)$a['id']]);
+    }else{
+        // Bound and order the newest 50 campaign IDs before inspecting their design metadata.
+        $recentIds=array_column($store->all("SELECT id FROM marketing_campaigns WHERE audience_id=? AND deleted_at IS NULL AND status='sent' AND campaign_type='regular' ORDER BY sent_at DESC,id DESC LIMIT 50",[$audienceId]),'id');
+        if($recentIds){
+            $rows=$store->all("SELECT id,name,updated_at,JSON_UNQUOTE(JSON_EXTRACT(draft_json,'$.design.mode')) mode FROM marketing_campaigns
+                WHERE audience_id=? AND id IN (".implode(',',array_fill(0,count($recentIds),'?')).") AND JSON_TYPE(JSON_EXTRACT(draft_json,'$.design'))='OBJECT'",[$audienceId,...$recentIds]);
+            $byId=array_column($rows,null,'id');
+            foreach($recentIds as$recentId)if(isset($byId[$recentId]))$library[]=$byId[$recentId];
+        }
+    }
     $canExport=$canManage;$tags=[];$groups=[];$fields=[];$catalog=[];$segments=[];$filters=audienceListFilters([]);$rules=['match'=>'all','rules'=>[]];$segment=null;$job=null;$editorRecovery=null;$pageTitle='Email Templates';
     releaseApplicationSessionLock();
     ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle('Email Templates'),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-designer.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-designer.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php

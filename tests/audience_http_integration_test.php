@@ -13,7 +13,7 @@ try{
         $username='audience-'.$clientKey.'-'.$suffix;$password=bin2hex(random_bytes(16));
         $conn->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$username,password_hash($password,PASSWORD_DEFAULT),$role]);
         $cookie=tempnam(sys_get_temp_dir(),'audience-cookie-');$cookies[]=$cookie;
-        $client=static function(string $path,?array $post=null,bool $multipart=false)use($cookie):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>30]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,$multipart?$post:http_build_query($post));$raw=curl_exec($curl);if($raw===false)throw new RuntimeException(curl_error($curl));$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);$result=['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];return $result;};
+        $client=static function(string $path,?array $post=null,bool $multipart=false,array $headers=[])use($cookie):array{$curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_COOKIEFILE=>$cookie,CURLOPT_COOKIEJAR=>$cookie,CURLOPT_TIMEOUT=>30,CURLOPT_HTTPHEADER=>$headers]);if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,$multipart?$post:http_build_query($post));$raw=curl_exec($curl);if($raw===false)throw new RuntimeException(curl_error($curl));$size=curl_getinfo($curl,CURLINFO_HEADER_SIZE);$result=['status'=>curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($raw,0,$size),'body'=>substr($raw,$size)];return $result;};
         $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
@@ -241,6 +241,20 @@ try{
     audienceHttpExpect($reuse['status']===302&&$campaignStore->campaign($reusedId)['draft']['design']==$newDesign,'Template creates independent campaign snapshot');
     $foreignTemplate=$otherStore->createEmailTemplate('Foreign design',$design);
     audienceHttpExpect($editor('audience.php?view=designer&kind=template&id='.$foreignTemplate)['status']===404,'Foreign template inaccessible');
+    $galleryPreview=static fn(string $tab,int|string $key)=>$reviewer('audience.php?'.http_build_query(['view'=>'templates','tab'=>$tab,'preview'=>$key]),null,false,['X-Audience-Preview-Nonce: GalleryTestNonce']);
+    $builtin=$reviewer('audience.php?view=templates&tab=built-in');
+    audienceHttpExpect(substr_count($builtin['body'],'data-preview-url=')===count(audienceDesignStarters(includeBanners:false))&&!str_contains($builtin['body'],'data-email-preview=')&&!str_contains($builtin['body'],'data:image/jpeg;base64,'),'Built-in gallery sends card names and controls without rendering every newsletter');
+    foreach([['built-in','newsletter'],['saved',$tid]]as[$tab,$key]){
+        $response=$galleryPreview($tab,$key);$preview=json_decode($response['body'],true);
+        audienceHttpExpect($response['status']===200&&array_keys($preview)===['html']&&str_contains($preview['html'],'nonce="GalleryTestNonce"'),'Reviewer can load the inert '.$tab.' preview without the editable document');
+    }
+    audienceHttpExpect($galleryPreview('saved',$foreignTemplate)['status']===404&&$galleryPreview('archived',$tid)['status']===404&&$galleryPreview('recent',$designCampaign)['status']===404,'Gallery previews reject foreign, wrong-state and unsent records');
+    $choice=['action'=>'design_template_choice','csrf_token'=>$token,'source'=>'saved','key'=>$tid,'preview_nonce'=>'PickerTestNonce'];
+    $result=json_decode($editor($designPath,$choice)['body'],true);
+    audienceHttpExpect(isset($result['design']['rows'],$result['preview'])&&str_contains($result['preview'],'PickerTestNonce'),'Template choices return the selected design and a preview with the editor nonce');
+    audienceHttpExpect($editor($designPath,array_replace($choice,['key'=>$foreignTemplate]))['status']===422,'Another audience’s template cannot be loaded by the picker');
+    audienceHttpExpect($editor('audience.php?view=designer&kind=template&id='.$foreignTemplate,$choice)['status']===422,'The picker requires access to the design being edited');
+    audienceHttpExpect($reviewer($designPath,array_replace($choice,['csrf_token'=>$reviewToken]))['status']===403,'Template choices require an editor');
     audienceHttpExpect($reviewer('audience.php?view=templates',array_replace($templateOp,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer template mutations denied');
     $copyResponse=$editor('audience.php?view=templates&tab=saved',array_replace($templateOp,['operation'=>'replicate']));preg_match('/id=(\d+)/',$copyResponse['headers'],$copyMatch);$copy=(int)($copyMatch[1]??0);
     audienceHttpExpect($copyResponse['status']===302&&str_contains($copyResponse['headers'],'kind=template')&&$copy!==$tid&&$campaignStore->emailTemplate($copy)['design']==$newDesign,'Template duplication opens an independent copy in the editor');
@@ -265,6 +279,7 @@ try{
     $archivedTemplate=$editor($templateList,array_replace($templateOp,['operation'=>'archive']));
     audienceHttpExpect($archivedTemplate['status']===302&&$editor($templatePath)['status']===404&&$campaignStore->campaign($reusedId)['draft']['design']==$newDesign,'Archiving preserves campaign snapshots and disables template editing');
     $archivedPage=$editor($templateArchive);
+    audienceHttpExpect($galleryPreview('archived',$tid)['status']===200&&$galleryPreview('saved',$tid)['status']===404,'Archived previews remain readable only in the archive');
     audienceHttpExpect(str_contains($archivedPage['body'],'data-template-key="archived:'.$tid.'"')&&!str_contains($archivedPage['body'],'data-template-operation="delete"'),'Editors can see and restore archives without delete controls');
     audienceHttpExpect(!str_contains($editor($templateList)['body'],'data-template-key="saved:'.$tid.'"'),'Archived templates leave the Saved library');
     audienceHttpExpect($editor($templateArchive,array_replace($templateOp,['operation'=>'restore','version'=>2]))['status']===200,'Stale archive version cannot restore a template');
@@ -314,6 +329,8 @@ try{
     audienceHttpExpect($blockedPlainComment['status']===200&&str_contains($blockedPlainComment['body'],'Only email drafts can be commented on.')&&count($campaignStore->designComments('campaign',$plain))===1,'Sent plain-text campaigns reject new comments');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$designCampaign]);audienceHttpExpect($editor($designPath,array_replace($designPost,['version'=>2]))['status']===422,'Sent designs cannot be overwritten');
 
+    $recentGallery=$reviewer('audience.php?view=templates&tab=recent');
+    audienceHttpExpect(str_contains($recentGallery['body'],'data-template-key="recent:'.$designCampaign.'"')&&!str_contains($recentGallery['body'],'data-email-preview=')&&$galleryPreview('recent',$designCampaign)['status']===200,'Recently sent gallery loads its selected campaign preview separately');
     $recentReuse=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_from_campaign','id'=>$designCampaign]);
     audienceHttpExpect($recentReuse['status']===302&&str_contains($recentReuse['headers'],'kind=template'),'Recently sent design can become a reusable template');
     $foreignReuse=$editor('audience.php?view=templates',['csrf_token'=>$token,'action'=>'template_from_campaign','id'=>$foreignCampaign]);

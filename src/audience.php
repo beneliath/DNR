@@ -13,14 +13,44 @@ if(!$canDelete&&$workspaceRequest->requiresDeliveryAdmin()){http_response_code(4
 $actor=(int)$_SESSION['user_id'];$displayName=mb_substr((string)($_SESSION['profile_display_name']??$_SESSION['username']??'Account'),0,100);
 // Each MOED account has one canonical audience. Older bookmarked selectors resolve here.
 $audienceId=1;
-$audience=$db->query('SELECT * FROM marketing_audiences WHERE id=1')->fetch_assoc();
-if(!$audience){http_response_code(503);exit('Audience setup is incomplete.');}
 if($_SERVER['REQUEST_METHOD']==='GET'&&isset($_GET['audience'])){
     $canonical=$_GET;unset($canonical['audience']);
     header('Location: audience.php'.($canonical?'?'.http_build_query($canonical):''));exit;
 }
 unset($_SESSION['marketing_audience']);
 $store=new AudienceStore($db,$audienceId,$actor,$displayName);
+if($view==='campaigns'&&($_GET['api']??null)==='campaign_thumbnail'){
+    releaseApplicationSessionLock();header('Cache-Control: no-store');
+    if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');exit;}
+    try{$campaign=$store->campaign(\Dnr\Http\RequestInput::positiveInt($_GET,'id')??0,false,true);}
+    catch(InvalidArgumentException){http_response_code(404);exit;}
+    $thumbnail=audienceCampaignListThumbnail($campaign['draft']);
+    header('X-Content-Type-Options: nosniff');
+    if($thumbnail!==null){header('Content-Type: image/png');echo $thumbnail;}
+    else{
+        // Empty/unsupported image blocks leave the normal email icon visible underneath.
+        header('Content-Type: image/gif');echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    }
+    exit;
+}
+if($view==='content'&&($_GET['api']??null)==='content_image'){
+    releaseApplicationSessionLock();
+    header('Cache-Control: no-store');
+    if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);header('Allow: GET');exit;}
+    try{
+        $id=\Dnr\Http\RequestInput::positiveInt($_GET,'id')??0;
+        $row=$store->one("SELECT JSON_UNQUOTE(JSON_EXTRACT(data_json,'$.image')) image FROM marketing_design_library WHERE audience_id=? AND id=? AND item_type='image' AND deleted_at IS NULL",[$audienceId,$id]);
+        $image=audienceDesignImage($row['image']??'',1000000);
+        if($image==='')throw new InvalidArgumentException();
+        [$type,$encoded]=explode(';base64,',$image,2);
+        header('Content-Type: '.substr($type,5));
+        header("Content-Security-Policy: sandbox; default-src 'none'");header('X-Content-Type-Options: nosniff');
+        echo base64_decode($encoded,true);
+    }catch(InvalidArgumentException){http_response_code(404);}
+    exit;
+}
+$audience=$db->query('SELECT * FROM marketing_audiences WHERE id=1')->fetch_assoc();
+if(!$audience){http_response_code(503);exit('Audience setup is incomplete.');}
 if(($_GET['api']??null)==='notifications'){
     header('Content-Type: application/json; charset=UTF-8');header('Cache-Control: no-store');
     if(!$canManage){http_response_code(403);echo json_encode(['error'=>'Notifications require an editor or administrator.']);exit;}

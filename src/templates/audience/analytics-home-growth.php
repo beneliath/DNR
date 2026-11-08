@@ -1,5 +1,6 @@
 <?php
-$homeHistory=$store->analyticsAudienceHistory($window);
+// The Home chart groups transitions by week, regardless of acquisition source.
+$homeHistory=$store->analyticsAudienceHistory($window,bySource:false);
 $homeGrowth=$store->analyticsReportRows($window,['dataset'=>'audience','dimension'=>'week'],$homeHistory);
 include __DIR__.'/analytics-report-table.php';
 ?>

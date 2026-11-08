@@ -177,7 +177,7 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
 
             current='inbox';await visit('http://mobile-workspace.test/audience.php');await settle(page);
             await page.locator('[data-mm-menu-open]').tap();
-            assert.equal(await page.locator('#mm-mobile-menu a[href*="view=campaigns"]').isVisible(),true,'Inbox keeps access to the workspace destinations');
+            assert.equal(await page.locator('#mm-mobile-menu').getByRole('link',{name:'Campaigns',exact:true}).isVisible(),true,'Inbox keeps access to the workspace destinations');
             await page.keyboard.press('Escape');
             assert.equal(await page.locator('.inbox-list').isVisible(),true);
             const conversationUrl=await page.locator('.inbox-thread-item').first().getAttribute('href');

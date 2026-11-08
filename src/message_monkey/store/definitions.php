@@ -24,18 +24,25 @@ trait AudienceDefinitions
 
     public function fields(): array { return $this->all('SELECT * FROM marketing_fields WHERE audience_id=? ORDER BY position,id',[$this->audienceId]); }
 
-    public function tags(bool $includeArchived = false): array
+    public function tags(bool $includeArchived = false, bool $withCounts = true): array
     {
-        $base=' FROM marketing_tags t LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE t.audience_id=?';
-        return $this->archiveAwareRows('SELECT t.*,t.archived_at AS archive_state,COUNT(c.id) AS contact_count'.$base.($includeArchived?'':' AND t.archived_at IS NULL').' GROUP BY t.id ORDER BY t.name','SELECT t.*,NULL AS archived_at,COUNT(c.id) AS contact_count'.$base.' GROUP BY t.id ORDER BY t.name',[$this->audienceId]);
+        $counts=$withCounts?',COUNT(c.id) AS contact_count':'';
+        $base=' FROM marketing_tags t';
+        if($withCounts)$base.=' LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL AND c.is_archived=0';
+        $base.=' WHERE t.audience_id=?';
+        $order=($withCounts?' GROUP BY t.id':'').' ORDER BY t.name';
+        return $this->archiveAwareRows('SELECT t.*,t.archived_at AS archive_state'.$counts.$base.($includeArchived?'':' AND t.archived_at IS NULL').$order,'SELECT t.*,NULL AS archived_at'.$counts.$base.$order,[$this->audienceId]);
     }
 
-    public function groups(bool $includeArchived = false): array
+    public function groups(bool $includeArchived = false, bool $withCounts = true): array
     {
         $groups = $this->archiveAwareRows('SELECT *,archived_at AS archive_state FROM marketing_group_categories WHERE audience_id=?'.($includeArchived?'':' AND archived_at IS NULL').' ORDER BY name,id','SELECT *,NULL AS archived_at FROM marketing_group_categories WHERE audience_id=? ORDER BY name,id',[$this->audienceId]);
         $options = [];
         if ($groups) {
-            foreach ($this->all('SELECT o.*,COUNT(c.id) AS contact_count FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=g.audience_id AND c.deleted_at IS NULL AND c.is_archived=0 WHERE g.audience_id=? GROUP BY o.id ORDER BY o.position,o.id',[$this->audienceId]) as $option) {
+            $sql='SELECT o.*'.($withCounts?',COUNT(c.id) AS contact_count':'').' FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id';
+            if($withCounts)$sql.=' LEFT JOIN marketing_contact_groups cg ON cg.option_id=o.id LEFT JOIN marketing_contacts c ON c.id=cg.contact_id AND c.audience_id=g.audience_id AND c.deleted_at IS NULL AND c.is_archived=0';
+            $sql.=' WHERE g.audience_id=?'.($withCounts?' GROUP BY o.id':'').' ORDER BY o.position,o.id';
+            foreach ($this->all($sql,[$this->audienceId]) as $option) {
                 $options[$option['category_id']][] = $option;
             }
         }
@@ -220,11 +227,13 @@ trait AudienceDefinitions
     }
 
     /** Count only the visible saved segments using the same active-connection scope as Connections. */
-    public function segmentConnectionCounts(array $segments): array
+    public function segmentConnectionCounts(array $segments, ?array $catalog=null, ?array $tags=null): array
     {
         if(count($segments)>100)throw new InvalidArgumentException('Count up to 100 visible segments at a time.');
         if(!$segments)return [];
-        $catalog=$this->catalog();$tags=$this->tags(true);$expressions=[];$params=[];$ids=[];
+        $tags??=$this->tags(true, withCounts:false);
+        $catalog??=$this->catalogForDefinitions($this->fields(),$tags,$this->groups(true, withCounts:false));
+        $expressions=[];$params=[];$ids=[];
         foreach($segments as$segment){
             $id=(int)($segment['id']??0);
             if($id<1||(isset($segment['audience_id'])&&(int)$segment['audience_id']!==$this->audienceId))throw new InvalidArgumentException('This segment is unavailable.');

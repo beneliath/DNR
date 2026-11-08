@@ -124,7 +124,7 @@ trait AudienceAnalytics
         return $totals;
     }
 
-    /** Lifetime metrics for the bounded page of campaigns, using the report aggregation. */
+    /** Full lifetime report totals, including repeat observations and unsubscribes. */
     public function analyticsCampaignMetrics(array $ids):array
     {
         if(!$ids)return [];
@@ -134,14 +134,84 @@ trait AudienceAnalytics
         return $result;
     }
 
+    /** These views need unique receipt outcomes per campaign, not daily report rows or counts of repeat observations. */
+    private function analyticsHeadlineRows(array $window,bool $home):array
+    {
+        [$scope,$params]=$this->analyticsRecipientScope($window);
+        $keys=['failed','delivered','opens','clicks'];
+        if($home)array_push($keys,'receipt','detected_bot');
+        $columns=audienceEngagementColumns($window['bots'],$keys);
+        $sums=implode(',',array_map(static fn($key)=>"SUM(m.$key) $key",$keys));
+        $types=$home?'':" AND e.event_type IN ('open','click','delivered','hard-bounce','soft-bounce','rejected')";
+        $join='';$extra='';
+        if($home){
+            // A repeated status event counts once. Match both the contact and the exact receipt ID,
+            // and keep the report cutoff even when the same receipt was unsubscribed later.
+            $join="LEFT JOIN (SELECT DISTINCT ce.contact_id,ce.details_json->>'$.recipient_id' recipient_key
+                FROM marketing_contact_events ce JOIN marketing_contacts c ON c.id=ce.contact_id AND c.audience_id=?
+                WHERE ce.event_type='status' AND ce.created_at<? AND ce.details_json->>'$.to'='unsubscribed'
+                AND ce.details_json->>'$.recipient_id' IS NOT NULL) u ON u.contact_id=m.contact_id AND u.recipient_key=CAST(m.id AS CHAR)";
+            $extra=',SUM(u.contact_id IS NOT NULL) unsubscribed';
+            array_push($params,$this->audienceId,$window['until']);
+        }
+        return $this->all("SELECT m.campaign_id,COUNT(*) accepted,$sums $extra FROM (
+            SELECT r.id,r.contact_id,MAX(d.campaign_id) campaign_id,$columns
+            FROM marketing_campaign_recipients r JOIN marketing_campaign_deliveries d ON d.audience_id=r.audience_id AND d.id=r.delivery_id
+            LEFT JOIN marketing_message_events e ON e.audience_id=r.audience_id AND e.recipient_id=r.id AND e.event_at<? $types
+            WHERE $scope GROUP BY r.id) m $join GROUP BY m.campaign_id",[$window['until'],...$params]);
+    }
+
+    /** Lifetime open/click rates and pending receipts for just the visible page. */
+    public function analyticsCampaignListMetrics(array $ids):array
+    {
+        if(!$ids)return [];
+        $rows=array_column($this->analyticsHeadlineRows(['from'=>'1970-01-01 00:00:00','until'=>gmdate('Y-m-d H:i:s',time()+1),'bots'=>'filtered',
+            'channel'=>'all','messages_mode'=>'selected','messages'=>$ids],false),null,'campaign_id');
+        $keys=array_flip(['open_rate','click_rate','awaiting_receipt']);$result=[];
+        foreach($ids as$id)$result[(int)$id]=array_intersect_key($this->analyticsTotals(isset($rows[$id])?[$rows[$id]]:[]),$keys);
+        return $result;
+    }
+
+    public function analyticsHomeMetrics(array $window,bool $drafts=false):array
+    {
+        $current=$this->analyticsHeadlineRows($window,true);
+        $prior=$window['compare']==='none'?[]:$this->analyticsHeadlineRows(array_replace($window,['from'=>$window['previous_from'],'until'=>$window['previous_until']]),true);
+        $byId=array_column($current,null,'campaign_id');
+        $fields=array_flip(['accepted','failed','delivered','successful','receipt','opens','clicks','detected_bot','unsubscribed',
+            'awaiting_receipt','delivery_rate','open_rate','click_rate','clicks_per_open','unsubscribe_rate']);
+        $totals=fn(array $rows)=>array_intersect_key($this->analyticsTotals($rows),$fields);
+        $campaigns=$this->analyticsOverviewCampaigns($window,$drafts);
+        foreach($campaigns as&$campaign)$campaign['metrics']=$totals(isset($byId[$campaign['id']])?[$byId[$campaign['id']]]:[]);
+        unset($campaign);
+        return ['totals'=>$totals($current),'previous'=>$totals($prior),'campaigns'=>$campaigns];
+    }
+
+    private function analyticsOverviewCampaigns(array $window,bool $drafts):array
+    {
+        return $this->all("SELECT id,name,status,sent_at,updated_at FROM marketing_campaigns
+            WHERE audience_id=? AND deleted_at IS NULL AND ((status='draft' AND ?=1)
+                OR (status<>'draft' AND COALESCE(sent_at,updated_at)>=? AND COALESCE(sent_at,updated_at)<?))
+            ORDER BY updated_at DESC,id DESC LIMIT 10",[$this->audienceId,(int)$drafts,$window['from'],$window['until']]);
+    }
+
     private function validateAnalyticsMessages(array $window): void
     {
-        foreach($window['messages']??[] as$campaign)if(!$this->one('SELECT id FROM marketing_campaigns WHERE audience_id=? AND id=?',[$this->audienceId,$campaign]))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
+        $messages=array_values(array_unique($window['messages']??[]));
+        if(!$messages)return;
+        $placeholders=implode(',',array_fill(0,count($messages),'?'));
+        $count=$this->one("SELECT COUNT(*) n FROM marketing_campaigns WHERE audience_id=? AND id IN ($placeholders)",[$this->audienceId,...$messages]);
+        if((int)$count['n']!==count($messages))throw new InvalidArgumentException('A selected message is unavailable in this audience.');
     }
 
     private function analyticsIncludesSamples(array $window): bool
     {
         return $this->one("SELECT 1 FROM marketing_campaign_deliveries d JOIN marketing_campaigns c ON c.audience_id=d.audience_id AND c.id=d.campaign_id WHERE d.audience_id=? AND d.due_at>=? AND d.due_at<? AND JSON_UNQUOTE(JSON_EXTRACT(c.draft_json,'$.sample_dataset'))='stage7-local' LIMIT 1",[$this->audienceId,$window['from'],$window['until']])!==null;
+    }
+
+    public function analyticsReportMetadata(array $window): array
+    {
+        $this->validateAnalyticsMessages($window);
+        return ['includes_samples'=>$this->analyticsIncludesSamples($window)];
     }
 
     private function analyticsRecentCollections(array $window): array
@@ -155,9 +225,9 @@ trait AudienceAnalytics
 
     public function analyticsConversionReport(array $window): array
     {
-        $this->validateAnalyticsMessages($window);
+        $metadata=$this->analyticsReportMetadata($window);
         $current=$this->analyticsRecipients($window['from'],$window['until'],$window['bots'],$window);
-        return ['includes_samples'=>$this->analyticsIncludesSamples($window),'totals'=>$this->analyticsTotals($current),
+        return $metadata+['totals'=>$this->analyticsTotals($current),
             'collections'=>$this->analyticsRecentCollections($window),
             'forms'=>$this->analyticsReportRows($window,['dataset'=>'forms']),
             'flows'=>$this->analyticsReportRows($window,['dataset'=>'flows'])];
@@ -165,14 +235,14 @@ trait AudienceAnalytics
 
     public function analyticsOverview(array $window, bool $drafts = false, bool $includeEmailMetrics = true): array
     {
-        $this->validateAnalyticsMessages($window);
+        $metadata=$this->analyticsReportMetadata($window);
         $audience = $this->one("SELECT COUNT(*) total,SUM(email_status='subscribed') subscribed,
             SUM(email_status='unsubscribed') unsubscribed,SUM(email_status='non-subscribed') non_subscribed,
             SUM(email_status='cleaned') cleaned,SUM(email_status='pending') pending,
             SUM(created_at>=? AND created_at<?) added FROM marketing_contacts
             WHERE audience_id=? AND is_archived=0 AND deleted_at IS NULL",[$window['from'],$window['until'],$this->audienceId]);
         $audience['visible_total']=(int)$audience['total']-(int)$audience['cleaned']-(int)$audience['pending'];
-        $snapshot = ['audience' => $audience, 'includes_samples' => $this->analyticsIncludesSamples($window)];
+        $snapshot = ['audience' => $audience] + $metadata;
         if (!$includeEmailMetrics) {
             // Validate a bookmarked segment even when the view only uses the snapshot.
             if (!empty($window['segment'])) $this->analyticsRecipientScope($window);
@@ -190,10 +260,7 @@ trait AudienceAnalytics
             $daily[$row['day']]['accepted'] += (int)$row['accepted'];
             foreach (['opens','clicks'] as $key) $daily[$row['day']][$key] += (int)$row[$key];
         }
-        $campaigns = $this->all("SELECT id,name,status,sent_at,updated_at FROM marketing_campaigns
-            WHERE audience_id=? AND deleted_at IS NULL AND ((status='draft' AND ?=1)
-                OR (status<>'draft' AND COALESCE(sent_at,updated_at)>=? AND COALESCE(sent_at,updated_at)<?))
-            ORDER BY updated_at DESC,id DESC LIMIT 10",[$this->audienceId,(int)$drafts,$window['from'],$window['until']]);
+        $campaigns=$this->analyticsOverviewCampaigns($window,$drafts);
         foreach ($campaigns as &$campaign) $campaign['metrics']=$this->analyticsTotals($byCampaign[(int)$campaign['id']]??[]);
         unset($campaign);
         $collection=$this->analyticsRecentCollections($window);
