@@ -172,7 +172,7 @@ if ($activeLink !== null) {
         <?php endif; ?>
         <div><label for="from_filter">From (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
         <div><label for="to_filter">Through (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
-        <div class="short-link-filter-actions"><button type="submit" class="button-primary">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
+        <div class="short-link-filter-actions"><button type="submit" class="button-primary" data-pending-reminder="link-filters">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
     </form>
     <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>
     <?php if ($presentationContext !== null): ?><p class="field-help">Totals combine visits to all matching QR codes for this presentation, including disabled codes and codes for previous speakers. A person opening multiple codes contributes multiple visits.</p><?php endif; ?>
@@ -255,6 +255,10 @@ if ($activeLink !== null) {
         <?php if (($link['link_type'] === 'notes' && !$link['has_notes'])
             || ($link['link_type'] === 'slidedeck' && !$link['has_slidedeck'])) continue; ?>
         <?php $id = (int) $link['id']; $label = shortLinkLabel($link); $qr = 'short_link_qr.php?id=' . $id;
+        if ($error !== '' && (int) ($_POST['link_id'] ?? 0) === $id) {
+            $link['target_url'] = \Dnr\Http\RequestInput::string($_POST, 'target_url');
+            $link['is_enabled'] = isset($_POST['is_enabled']);
+        }
         $url = (string) ($link['qr_url'] ?? ''); ?>
         <article class="short-link-card">
             <div class="short-link-card-heading"><h3><?php echo $h($label); ?></h3><span><?php echo number_format((int) $link['visits']); ?> visits</span></div>
@@ -273,7 +277,7 @@ if ($activeLink !== null) {
                 <?php echo csrfInput(); ?><input type="hidden" name="link_id" value="<?php echo $id; ?>"><input type="hidden" name="version" value="<?php echo (int) $link['version']; ?>">
                 <?php if (!in_array($link['link_type'], ['notes', 'slidedeck'], true)): ?><label for="target_<?php echo $id; ?>">Destination</label><input id="target_<?php echo $id; ?>" type="url" name="target_url" value="<?php echo $h($link['target_url']); ?>" maxlength="2048" required><?php endif; ?>
                 <label class="short-link-enabled"><input type="checkbox" name="is_enabled" value="1" <?php echo $link['is_enabled'] ? 'checked' : ''; ?>> Link Enabled</label>
-                <button type="submit" class="button-primary">Save Link</button>
+                <button type="submit" class="button-primary" data-pending-reminder="link-<?php echo $id; ?>">Save Link</button>
             </form>
             <?php else: ?><p><?php echo $h($link['target_url'] ?? (shortLinkLabel($link) . ' download')); ?></p><p><?php echo $link['is_enabled'] ? 'Enabled' : 'Disabled'; ?></p><?php endif; ?>
         </article>

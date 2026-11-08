@@ -33,6 +33,48 @@ test("engagement search normalizes IDs and de-duplicates refreshed selections", 
 const vm = require('node:vm');
 const fs = require('node:fs');
 
+test('Inbox Search highlights only while either filter differs from the applied values', () => {
+    const query = {value: 'report', defaultValue: 'report'};
+    const order = {selectedOptions: [{defaultSelected: true}]};
+    const classes = new Set();
+    const button = {classList: {
+        toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); },
+        remove(name) { classes.delete(name); }
+    }};
+    const form = Object.assign(new EventTarget(), {
+        elements: {namedItem: name => ({q: query, sort: order})[name]},
+        querySelector: () => button
+    });
+    const window = new EventTarget();
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/inbound-mail.js'), 'utf8'), {
+        document: {
+            getElementById: id => id === 'inbound-queue-search' ? form : null,
+            querySelector: () => null
+        },
+        window
+    });
+    const pending = () => classes.has('inbound-search-pending');
+    assert.equal(pending(), false);
+    query.value = '';
+    form.dispatchEvent(new Event('input'));
+    assert.equal(pending(), true);
+    order.selectedOptions = [{defaultSelected: false}];
+    form.dispatchEvent(new Event('change'));
+    query.value = 'report';
+    form.dispatchEvent(new Event('input'));
+    assert.equal(pending(), true);
+    order.selectedOptions = [{defaultSelected: true}];
+    form.dispatchEvent(new Event('change'));
+    assert.equal(pending(), false);
+    order.selectedOptions = [{defaultSelected: false}];
+    form.dispatchEvent(new Event('change'));
+    assert.equal(pending(), true);
+    form.dispatchEvent(new Event('submit'));
+    assert.equal(pending(), false);
+    window.dispatchEvent(new Event('pageshow'));
+    assert.equal(pending(), true);
+});
+
 test('filing requires a destination and updates the count as routes change', function () {
     let checked = 0;
     const engagement = { value: '' };

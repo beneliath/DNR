@@ -104,6 +104,6 @@ function reimbursementSetupH(mixed $value): string { return htmlspecialchars((st
 </div>
 <p class="field-help" id="mileage-rate-help">Default: $0.76 per mile, the IRS business rate for July–December 2026. Rate changes apply to new mileage entries; saved entries retain their rate. <a href="https://www.irs.gov/tax-professionals/standard-mileage-rates" target="_blank" rel="noopener">IRS Standard Mileage Rates</a></p>
 <p class="field-help">Saved details apply to drafts and future submissions. Submitted packages retain their original content. The Catalog address is used only as Bcc and is never printed in the report.</p>
-<div class="reimbursement-actions"><button type="submit" class="save-button">Save Reimbursement Setup</button></div>
+<div class="reimbursement-actions"><button type="submit" class="save-button" data-pending-reminder="reimbursement-setup">Save Reimbursement Setup</button></div>
 </form></section>
 </main><?php include 'templates/footer.php'; ?></body></html>

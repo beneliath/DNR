@@ -194,7 +194,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
                 <label for="coach-review-status">Assessment</label><select id="coach-review-status" name="review_status"><?php foreach ($statusLabels as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo ($error !== '' ? ($_POST['review_status'] ?? '') : $detail['review_status']) === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select>
                 <label for="coach-review-notes">What Worked or Needs Improvement?</label><textarea id="coach-review-notes" name="review_notes" rows="3" maxlength="4000"><?php echo $escape($error !== '' ? ($_POST['review_notes'] ?? '') : $detail['review_notes']); ?></textarea>
                 <label for="coach-correction">Correct Step-by-Step Guidance</label><textarea id="coach-correction" name="corrected_guidance" rows="6" maxlength="8000" placeholder="Start from the user's page. Name the next control, what changes after selecting it, and how to confirm the task succeeded."><?php echo $escape($error !== '' ? ($_POST['corrected_guidance'] ?? '') : $detail['corrected_guidance']); ?></textarea>
-                <button type="submit" class="button-primary">Save Review</button>
+                <button type="submit" class="button-primary" data-pending-reminder="coach-review">Save Review</button>
             </form>
         </section>
     <?php elseif ($id === null && $pagination): ?>
@@ -202,7 +202,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             <input type="hidden" name="per_page" value="<?php echo $pageSize; ?>">
             <div><label for="coach-request-search">Search Questions or Corrections</label><input id="coach-request-search" type="search" name="q" value="<?php echo $escape($query); ?>" maxlength="200"></div>
             <div><label for="coach-review-filter">Assessment</label><select id="coach-review-filter" name="review"><option value="all">All Requests</option><?php foreach ($statusLabels as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $review === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
-            <button type="submit" class="button-secondary">Filter</button>
+            <button type="submit" class="button-secondary" data-pending-reminder="coach-filter">Filter</button>
         </form>
         <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, 'ai_coach_requests.php?' . http_build_query(['q' => $query, 'review' => $review]), 'requests', 'ai coach request pages'); ?>
         <div class="data-table-scroll coach-request-table-wrapper" role="region" aria-label="AI Coach Request History" tabindex="0"><table class="data-table coach-request-table">

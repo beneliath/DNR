@@ -74,19 +74,20 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <?php if ($editingCenter): ?><input type="hidden" name="id" value="<?= (int) $editingCenter['id'] ?>"><input type="hidden" name="version" value="<?= reimbursementCenterH($formValues['version']) ?>"><?php endif; ?>
 <label>COA Number <input type="text" name="coa_number" maxlength="20" required value="<?= reimbursementCenterH($formValues['coa_number']) ?>"></label>
 <label>Description <input type="text" name="description" maxlength="120" required value="<?= reimbursementCenterH($formValues['description']) ?>"></label>
-<div class="reimbursement-actions"><button class="save-button" type="submit"><?= $editingCenter ? 'Save Account' : 'Add Account' ?></button><?php if ($editingCenter): ?><a class="button-secondary" href="<?= reimbursementCenterH($listUrl) ?>">Cancel</a><?php endif; ?></div>
+<div class="reimbursement-actions"><button class="save-button" type="submit" data-pending-reminder="cost-center"><?= $editingCenter ? 'Save Account' : 'Add Account' ?></button><?php if ($editingCenter): ?><a class="button-secondary" href="<?= reimbursementCenterH($listUrl) ?>">Cancel</a><?php endif; ?></div>
 </form></section>
 <section class="reimbursement-card">
 <h2>Chart of Accounts</h2>
 <div class="list-controls">
-<form method="get" action="reimbursement_cost_centers.php" class="list-search-form" role="search">
+<form method="get" action="reimbursement_cost_centers.php" class="list-search-form unified-list-filter" role="search">
 <input type="hidden" name="show" value="<?= reimbursementCenterH($view) ?>">
 <input type="hidden" name="sort_by" value="<?= reimbursementCenterH($sortBy) ?>">
 <input type="hidden" name="sort_dir" value="<?= reimbursementCenterH($sortDir) ?>">
 <label class="visually-hidden" for="cost-center-search">Search Chart of Accounts</label><span class="search-icon" aria-hidden="true">⌕</span>
 <input type="search" id="cost-center-search" name="q" value="<?= reimbursementCenterH($search) ?>" placeholder="Search Chart of Accounts">
 <?php if ($search !== ''): ?><a class="clear-search" href="<?= reimbursementCenterH($listLink(['q' => null])) ?>">Clear</a><?php endif; ?>
-</form>
+    <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+        </form>
 <nav class="control-group" aria-label="Account View">
 <?php foreach (['active' => 'Active', 'used' => 'In Use', 'archived' => 'Archived'] as $value => $label): ?>
 <a class="sort-button<?= $view === $value ? ' active' : '' ?>"<?= $view === $value ? ' aria-current="page"' : '' ?> href="<?= reimbursementCenterH($listLink(['show' => $value === 'active' ? null : $value])) ?>"><?= $label ?></a>

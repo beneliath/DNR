@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/form-drafts.js'), 'utf8');
 
-function fixture(countryCode, regionValue, regionType = 'select-one', version = '[]') {
+function fixture(countryCode, regionValue, regionType = 'select-one', version = '[]', loading = false) {
     function node(tagName = 'INPUT', attributes = []) {
         return {tagName, name: '', type: 'text', value: '', disabled: false, checked: false,
             events: {}, children: [], hasAttribute: name => attributes.includes(name),
@@ -43,13 +43,28 @@ function fixture(countryCode, regionValue, regionType = 'select-one', version = 
         {name: 'template', type: 'select-one', value: 'saved'}
     ];
     const stored = JSON.stringify({fields, version, at: Date.now(), expires: Date.now() + 100000});
-    const window = {DnrUserTime: require('../../src/assets/js/user-time.js'), DnrAccountContext: {local: {getItem: () => stored, removeItem() {}, setItem() {}}}, addEventListener() {}};
-    const document = {getElementById: () => ({dataset: {navPreferenceUser: 'user'}}),
+    const windowEvents = {}, documentEvents = {};
+    const window = {DnrUserTime: require('../../src/assets/js/user-time.js'), DnrAccountContext: {local: {getItem: () => stored, removeItem() {}, setItem() {}}},
+        addEventListener(type, handler) {(windowEvents[type] ||= []).push(handler);}};
+    const document = {readyState: loading ? 'loading' : 'complete',
+        addEventListener(type, handler) {(documentEvents[type] ||= []).push(handler);},
+        getElementById: () => ({dataset: {navPreferenceUser: 'user'}}),
         querySelectorAll: selector => selector.startsWith('form') ? [form] : [], createElement: node};
     vm.runInNewContext(source, {window, document, Event: class {constructor(type) {this.type = type;}},
         setTimeout: () => 1, clearTimeout() {}});
+    if (loading) window.DnrFormDrafts.initialize(form);
     const [status, , restore, , , recovery] = panel.children;
-    return {country, region, textRegion, body, restore, status, recovery};
+    return {country, region, textRegion, body, restore, status, recovery,
+        finishParsing() {
+            document.readyState = 'interactive';
+            documentEvents.DOMContentLoaded.forEach(handler => handler());
+            assert.equal(panel.children[2], restore, 'The ready scan reuses the already rendered draft controls');
+        },
+        warnsOnUnload() {
+            let warned = false;
+            windowEvents.beforeunload.forEach(handler => handler({preventDefault() {warned = true;}}));
+            return warned;
+        }};
 }
 
 test('restoring Canada rebuilds province options before restoring Ontario', () => {
@@ -82,4 +97,15 @@ test('a stale record version prevents draft restoration', () => {
     assert.equal(f.restore.disabled, true);
     f.restore.events.click();
     assert.equal(f.country.value, 'US');
+});
+
+test('early draft controls stay stable and do not warn while an untouched form is still loading', () => {
+    const f = fixture('CA', 'ON', 'select-one', '[["record",""]]', true);
+    assert.equal(f.warnsOnUnload(), false);
+    f.finishParsing();
+    assert.equal(f.warnsOnUnload(), false);
+    f.body.value = 'Unsaved body';
+    assert.equal(f.warnsOnUnload(), true);
+    f.body.value = 'Current body';
+    assert.equal(f.warnsOnUnload(), false);
 });

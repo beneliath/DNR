@@ -288,7 +288,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
 
     <div class="list-controls">
         <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
-        <form method="get" action="organizations.php" class="list-search-form" role="search">
+        <form method="get" action="organizations.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="last_giving_sort" value="<?php echo $last_giving_sort; ?>">
@@ -299,6 +299,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Organizations">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
         <div class="control-group" aria-label="Organization Archive Status">
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
@@ -327,7 +328,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
     <?php renderBulkDeleteToolbar('organization', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
     <div class="data-table-scroll">
-    <table class="organization-table data-table">
+    <table class="organization-table data-table mobile-record-table">
         <thead>
             <tr>
                 <th>Organization</th>
@@ -344,8 +345,8 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <?php endif; ?>
             <?php foreach ($organizations as $org): ?>
                 <tr>
-                    <td><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $org['id'], $org['organization_name']); ?><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></span></td>
-                    <td>
+                    <td data-field="Organization"><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $org['id'], $org['organization_name']); ?><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></span></td>
+                    <td data-field="Location">
                         <?php
                         $address_parts = [];
                         if (!empty($org['physical_city'])) $address_parts[] = htmlspecialchars($org['physical_city']);
@@ -353,12 +354,12 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                         echo implode(', ', $address_parts);
                         ?>
                     </td>
-                    <td>
+                    <td data-field="Contact(s)">
                         <?php echo htmlspecialchars($org['contact_names'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                     </td>
-                    <td class="money-column"><?php echo $org['last_event_receipts'] === null ? '—' : formatFinancialAmount($org['last_event_receipts']); ?></td>
-                    <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_receipts']); ?></strong></td>
-                    <td>
+                    <td data-field="Last Receipts" class="money-column"><?php echo $org['last_event_receipts'] === null ? '—' : formatFinancialAmount($org['last_event_receipts']); ?></td>
+                    <td data-field="Lifetime Receipts" class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_receipts']); ?></strong></td>
+                    <td data-field="Actions">
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>

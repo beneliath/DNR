@@ -187,10 +187,16 @@ expectFollowUpTaskFeature(
 );
 expectFollowUpTaskFeature(
     preg_match(
-        '/\.follow-up-task-form #task-subject-search\s*\{[^}]*width:\s*100%;[^}]*margin-bottom:\s*10px;/s',
+        '/\.task-record-search-dialog #task-subject-search\s*\{[^}]*width:\s*100%;[^}]*margin-bottom:\s*10px;/s',
         $styles
     ) === 1,
-    'the related-record search should span the task form and remain separated from its select.'
+    'the related-record search should span its dialog.'
+);
+expectFollowUpTaskFeature(
+    str_contains($form, '<dialog id="task-record-search-dialog"')
+        && str_contains($form, 'aria-controls="task-record-search-dialog"')
+        && str_contains($form, 'id="task-record-search-cancel"'),
+    'Change Record should open an accessible search dialog with a Cancel action.'
 );
 expectFollowUpTaskFeature(
     str_contains($helpers, 'LEFT JOIN organizations o ON o.id = c.organization_id')

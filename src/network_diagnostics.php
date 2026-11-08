@@ -85,7 +85,7 @@ unset($_SESSION['_network_statistics_reset']);
                     <option value="<?php echo $days; ?>"<?php echo $windowDays === $days ? ' selected' : ''; ?>><?php echo $days; ?> day<?php echo $days === 1 ? '' : 's'; ?></option>
                 <?php endfor; ?>
             </select>
-            <button type="submit" class="button-secondary">Apply</button>
+            <button type="submit" class="button-secondary" data-pending-reminder="network-window">Apply</button>
         </form>
     </div>
 

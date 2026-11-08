@@ -147,7 +147,7 @@ $amountValue = isset($expense['amount']) ? (string) $expense['amount'] : ($id ? 
     </div>
 </div>
 <?php endif; ?>
-<div class="reimbursement-actions"><?php if ($canEdit): ?><button type="submit" class="save-button"><?= $isMileage ? 'Save Mileage' : 'Save Expense' ?></button><?php endif; ?><a class="button-secondary" href="<?= reimbursementExpenseH($returnUrl) ?>"><?= !empty($expense['request_id']) ? 'Back to Request' : 'Back to Expenses' ?></a></div></form></section>
+<div class="reimbursement-actions"><?php if ($canEdit): ?><button type="submit" class="save-button" data-pending-reminder="expense"><?= $isMileage ? 'Save Mileage' : 'Save Expense' ?></button><?php endif; ?><a class="button-secondary" href="<?= reimbursementExpenseH($returnUrl) ?>"><?= !empty($expense['request_id']) ? 'Back to Request' : 'Back to Expenses' ?></a></div></form></section>
 <?php if ($id): ?><section class="reimbursement-card"><h2>Receipts (<?= count($receipts) ?>)</h2>
 <?php if (!$receipts): ?><p><?= $isMileage ? 'The trip details document this mileage reimbursement; a fuel receipt is not required.' : 'No receipts attached yet.' ?></p><?php endif; ?>
 <div class="reimbursement-receipts"><?php foreach ($receipts as $receipt): ?><div class="reimbursement-receipt">

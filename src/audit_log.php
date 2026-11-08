@@ -481,7 +481,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
 
     <?php endif; ?>
     <div class="audit-controls">
-        <form method="get" action="audit_log.php" class="list-search-form audit-filter-form" role="search">
+        <form method="get" action="audit_log.php" class="list-search-form audit-filter-form unified-list-filter" role="search">
             <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <span class="audit-search-field">
@@ -496,7 +496,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <input type="date" id="audit-to" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>">
             <label class="visually-hidden" for="audit-ip">Exact IP Address</label>
             <input type="text" id="audit-ip" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Exact IP">
-            <button type="submit" class="filter-button">Apply</button>
+            <button type="submit" data-pending-reminder="list-search" class="filter-button">Apply</button>
         </form>
         <nav class="audit-filters" aria-label="Audit Log Filters">
             <a href="<?php echo htmlspecialchars(auditLogPageUrl(null, '', $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"

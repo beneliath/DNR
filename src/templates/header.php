@@ -174,7 +174,7 @@ if (!empty($_SESSION['user_id'])) {
         <form class="shell-search" action="search.php" method="get" role="search" aria-label="Search all records">
             <label for="shell-query" class="visually-hidden">Search All Records</label>
             <input id="shell-query" type="search" name="q" placeholder="Search records" minlength="2" maxlength="100" required>
-            <button type="submit" class="button-secondary" aria-label="Search all records"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
+            <button type="submit" class="button-secondary" aria-label="Search all records" data-pending-reminder="shell-search"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
         </form>
         <div class="sidebar-scroll-area">
             <nav class="site-navigation" aria-label="Primary">

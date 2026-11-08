@@ -334,7 +334,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
 
     <div class="list-controls engagement-controls">
         <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Lifecycle' => ucfirst($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=all'); ?>
-        <form method="get" action="engagements.php" class="list-search-form" role="search">
+        <form method="get" action="engagements.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="date_sort" value="<?php echo htmlspecialchars($date_sort, ENT_QUOTES, 'UTF-8'); ?>">
@@ -356,7 +356,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                 <label for="engagement-date-to">Through
                     <input type="date" name="date_to" id="engagement-date-to" value="<?php echo htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8'); ?>">
                 </label>
-                <button type="submit" class="button-secondary" data-engagement-date-apply>Apply</button>
+                <button type="submit" data-pending-reminder="list-search" class="button-secondary" data-engagement-date-apply>Apply</button>
                 <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>
             </fieldset>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
@@ -409,7 +409,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     <?php renderBulkDeleteToolbar('engagement', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
     <div class="data-table-scroll">
-    <table class="engagement-table data-table">
+    <table class="engagement-table data-table mobile-record-table">
         <thead>
             <tr>
                 <th>Event Title</th>
@@ -426,10 +426,10 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <?php endif; ?>
             <?php foreach ($engagement_rows as $row): ?>
                 <tr>
-                    <td class="engagement-title"><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $row['id'], $row['event_title'] ?: $row['organization_name']); ?><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></span></td>
-                    <td class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
-                    <td class="engagement-lifecycle"><span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $row['lifecycle_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($row['lifecycle_status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                    <td class="engagement-status"><?php
+                    <td data-field="Event Title" class="engagement-title"><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $row['id'], $row['event_title'] ?: $row['organization_name']); ?><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></span></td>
+                    <td data-field="Event Date(s)" class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
+                    <td data-field="Lifecycle" class="engagement-lifecycle"><span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $row['lifecycle_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($row['lifecycle_status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                    <td data-field="Confirmation" class="engagement-status"><?php
                         $status = $row['confirmation_status'];
                         $status_class = 'status-' . str_replace('_', '-', $status);
                         $display_status = str_replace('_', ' ', $status);
@@ -437,13 +437,13 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                     ?></td>
                     <?php $is_financially_closed = !empty($row['financially_closed']); ?>
                     <?php $closeout_applicable = !in_array((string) $row['lifecycle_status'], ['postponed', 'canceled'], true); ?>
-                    <td class="engagement-closeout">
+                    <td data-field="Closeout" class="engagement-closeout">
                         <span class="event-closeout-badge <?php echo $is_financially_closed ? 'is-closed' : ($closeout_applicable ? 'is-open' : 'is-not-applicable'); ?>"
                               aria-label="Financial Closeout: <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'Not Applicable'); ?>">
                             <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'N/A'); ?>
                         </span>
                     </td>
-                    <td>
+                    <td data-field="Actions">
                         <div class="action-buttons">
                             <a href="view_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>

@@ -371,7 +371,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 
         <div class="form-group create-form-actions create-form-actions-flush">
             <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_contact" value="Create Contact" class="save-button save-button-flush">
+            <input type="submit" name="save_contact" value="Create Contact" class="save-button save-button-flush" data-pending-reminder="contact">
         </div>
     </form>
 </main>

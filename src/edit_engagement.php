@@ -738,6 +738,9 @@ try {
 }
 require_once __DIR__ . '/document_scanning_helpers.php';
 $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
+$submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
+    ? $_POST['chron_entry_versions']
+    : [];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -774,11 +777,16 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <?php $edit_baseline = $_POST['edit_baseline'] ?? ''; ?>
         <input type="hidden" name="edit_baseline" value="<?php echo is_string($edit_baseline) && preg_match('/\A[a-f0-9]{64}\z/', $edit_baseline) ? $edit_baseline : ''; ?>">
-        <section class="form-draft-panel" data-form-draft-panel>
-            <p role="status">No saved draft</p>
-            <button type="button" class="button-secondary" disabled>Save Draft</button>
-            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
-        </section>
+        <?php foreach ($chron_entries as $chron_entry): ?>
+            <?php
+            $submitted_chron_version = $submitted_chron_versions[(string) $chron_entry['id']] ?? null;
+            $chron_entry_version = is_scalar($submitted_chron_version)
+                ? (string) $submitted_chron_version
+                : (string) $chron_entry['updated_at'];
+            ?>
+            <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>">
+        <?php endforeach; ?>
+        <?php renderFormDraftPanel(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <?php include 'templates/engagement_lifecycle_form.php'; ?>
         <section class="form-section engagement-event-details-section">
@@ -1047,9 +1055,6 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
 $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
     ? $_POST['chron_entries']
     : [];
-$submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
-    ? $_POST['chron_entry_versions']
-    : [];
             ?>
             <?php foreach ($chron_entries as $chron_entry): ?>
                 <?php
@@ -1062,10 +1067,6 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                 $chron_entry_value = is_scalar($submitted_chron_value)
                     ? (string) $submitted_chron_value
                     : (string) $chron_entry['entry_text'];
-                $submitted_chron_version = $submitted_chron_versions[(string) $chron_entry['id']] ?? null;
-                $chron_entry_version = is_scalar($submitted_chron_version)
-                    ? (string) $submitted_chron_version
-                    : (string) $chron_entry['updated_at'];
                 ?>
                 <article class="chron-entry-card">
                     <div class="chron-entry-meta">
@@ -1079,7 +1080,6 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                     </div>
                     <div class="chron-entry-editor">
                         <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron Log Entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
-                        <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>" form="engagement-edit-form">
                         <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="6" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
                         <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
                             <?php echo csrfInput(); ?>

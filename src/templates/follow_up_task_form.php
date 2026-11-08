@@ -20,6 +20,11 @@ $task_subject_search_placeholder = $task_require_engagement_subject
     : 'Search inquiries, engagements, organizations, or contacts';
 $task_subject_search_url = 'task_subject_search.php'
     . ($task_require_engagement_subject ? '?type=engagement' : '');
+$task_selected_label = $task_selected_subject === 'general'
+    ? applicationGeneralWorkLabel()
+    : ($task_selected_record
+        ? $task_selected_record['label'] . (empty($task_selected_record['active']) ? ' · Archived' : '')
+        : 'No Record Selected');
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
@@ -40,11 +45,7 @@ $task_subject_search_url = 'task_subject_search.php'
         </div>
         <div class="form-group">
             <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="task-selected-record" id="task-selected-record" hidden><div><small>Selected record</small><strong id="task-selected-record-label"></strong></div><button type="button" class="button-secondary" id="task-change-record">Change Record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record">Clear Relationship</button><?php endif; ?></div>
-            <div id="task-record-search-panel"<?php echo $task_selected_subject !== '' && $task_selected_subject !== 'general' ? ' hidden' : ''; ?>><label for="task-subject-search">Find a Related Record</label>
-            <input type="search" id="task-subject-search" disabled aria-describedby="task-subject-status" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
-            <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
-            <div id="task-subject-results" class="task-subject-results" aria-label="Matching Records"></div></div>
+            <div class="task-selected-record" id="task-selected-record"><div><small>Selected record</small><strong id="task-selected-record-label"><?php echo htmlspecialchars($task_selected_label, ENT_QUOTES, 'UTF-8'); ?></strong></div><button type="button" class="button-secondary" id="task-change-record" aria-haspopup="dialog" aria-controls="task-record-search-dialog">Change Record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record"<?php echo $task_selected_subject === '' || $task_selected_subject === 'general' ? ' hidden' : ''; ?>>Clear Relationship</button><?php endif; ?></div>
             <select id="task-subject" name="subject" required>
                 <?php if ($task_require_engagement_subject): ?>
                     <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select Destination Event</option>
@@ -55,7 +56,7 @@ $task_subject_search_url = 'task_subject_search.php'
                     <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
                 <?php endif; ?>
             </select>
-            <small id="task-subject-status" class="field-help" aria-live="polite"><?php if ($task_require_engagement_subject): ?>Type at least three characters, then choose an event different from the source task.<?php else: ?>Type at least three characters, then choose a result. Searching does not change the selected record. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.<?php endif; ?></small>
+            <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
         </div>
     </section>
 
@@ -102,7 +103,17 @@ $task_subject_search_url = 'task_subject_search.php'
     <div class="engagement-page-actions">
         <a href="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
         <?php if ($task_duplicate_url !== ''): ?><a href="<?php echo htmlspecialchars($task_duplicate_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary task-duplicate-button">Duplicate to Another Event</a><?php endif; ?>
-        <button type="submit" name="save_task" value="1" class="save-button"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
+        <button type="submit" name="save_task" value="1" class="save-button" data-pending-reminder="task"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>
+<dialog id="task-record-search-dialog" class="confirmation-dialog task-record-search-dialog" aria-labelledby="task-record-search-title">
+    <h2 id="task-record-search-title">Find a Related Record</h2>
+    <label for="task-subject-search" class="confirmation-dialog-label"><?php echo $task_require_engagement_subject ? 'Search Events' : 'Search Records'; ?></label>
+    <input type="search" id="task-subject-search" disabled aria-describedby="task-subject-status" autocomplete="off" autofocus placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
+    <p id="task-subject-status" class="dialog-supporting-text" role="status"><?php if ($task_require_engagement_subject): ?>Type at least three characters, then choose an event different from the source task.<?php else: ?>Type at least three characters, then choose a result.<?php endif; ?></p>
+    <div id="task-subject-results" class="task-subject-results" aria-label="Matching Records"></div>
+    <div class="confirmation-dialog-actions">
+        <button type="button" class="button-secondary" id="task-record-search-cancel">Cancel</button>
+    </div>
+</dialog>
 <?php renderScript('assets/js/task-form.min.js'); ?>

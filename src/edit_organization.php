@@ -434,7 +434,7 @@ try {
 
     <div class="action-buttons">
         <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button back-button cancel-button">Cancel</a>
-        <button type="submit" name="save_organization" value="1" class="action-button save-button" form="organization-edit-form">Save Changes</button>
+        <button type="submit" name="save_organization" value="1" class="action-button save-button" form="organization-edit-form" data-pending-reminder="organization">Save Changes</button>
     </div>
 </div>
 <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(

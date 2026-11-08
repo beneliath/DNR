@@ -24,6 +24,22 @@
     }
     if (typeof document === 'undefined') return;
 
+    const queueForm = document.getElementById('inbound-queue-search');
+    if (queueForm) {
+        const query = queueForm.elements.namedItem('q');
+        const order = queueForm.elements.namedItem('sort');
+        const searchButton = queueForm.querySelector('button[type="submit"]');
+        function updateSearchReminder() {
+            const pending = query.value.trim() !== query.defaultValue || !order.selectedOptions[0].defaultSelected;
+            searchButton.classList.toggle('inbound-search-pending', pending);
+        }
+        queueForm.addEventListener('input', updateSearchReminder);
+        queueForm.addEventListener('change', updateSearchReminder);
+        queueForm.addEventListener('submit', () => searchButton.classList.remove('inbound-search-pending'));
+        window.addEventListener('pageshow', updateSearchReminder);
+        updateSearchReminder();
+    }
+
     const reviewForm = document.querySelector('.inbound-review-form');
     const selectionSummary = document.getElementById('inbound-selection-summary');
     const approveButton = reviewForm?.querySelector('button[value="approve"]');

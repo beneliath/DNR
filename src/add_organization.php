@@ -652,7 +652,7 @@ if (isset($_SESSION['success_message'])) {
         </details>
         <div class="form-group create-form-actions create-form-actions-end">
             <a href="<?php echo htmlspecialchars($creation_return ?: 'organizations.php', ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_org" value="Create Organization" class="save-button">
+            <input type="submit" name="save_org" value="Create Organization" class="save-button" data-pending-reminder="organization">
         </div>
     </form>
 </div>

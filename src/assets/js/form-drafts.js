@@ -1,18 +1,24 @@
 (function () {
     'use strict';
-    const sidebar = document.getElementById('app-sidebar');
-    if (!sidebar) return;
-    const prefix = 'dnr.form-draft.' + encodeURIComponent(sidebar.dataset.navPreferenceUser) + '.';
-    document.querySelectorAll('[data-clear-form-draft]').forEach(function (node) {
-        try { window.DnrAccountContext.local.removeItem(prefix + node.dataset.clearFormDraft); } catch (_) {}
-    });
-    document.querySelectorAll('form[data-recoverable-draft]').forEach(function (form) {
+    if (window.DnrFormDrafts) return;
+    const initialized = new WeakSet();
+    function initialize(form) {
+        const sidebar = document.getElementById('app-sidebar');
+        if (!sidebar || !form || initialized.has(form)) return;
+        initialized.add(form);
+        const prefix = 'dnr.form-draft.' + encodeURIComponent(sidebar.dataset.navPreferenceUser) + '.';
         const key = prefix + form.dataset.recoverableDraft;
         const controls = () => Array.from(form.elements).filter(el => el.name && !el.disabled && !['hidden','file','password','submit','button','reset'].includes(el.type));
         const versions = () => JSON.stringify(Array.from(form.elements).filter(el => /version/.test(el.name)).map(el => [el.name,el.value]).concat([['record',form.dataset.draftVersion || '']]));
         const capture = () => controls().map(el => ({name:el.name,type:el.type,value:el.value,checked:el.checked}));
-        let baseline = JSON.stringify(capture());
-        let lastSaved = baseline;
+        let baseline = '';
+        let lastSaved = '';
+        const captureBaseline = () => {
+            baseline = JSON.stringify(capture());
+            if (lastSaved === '') lastSaved = baseline;
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', captureBaseline, {once: true});
+        else captureBaseline();
         let saved = null;
         let timer;
         let submitting = false;
@@ -27,6 +33,8 @@
         panel.replaceChildren(status,save,restore,discard,note,recovery);
         if (!existingPanel) form.prepend(panel);
         try {
+            const cleared = JSON.parse(existingPanel?.dataset?.clearedDrafts || '[]');
+            if (cleared.includes(form.dataset.recoverableDraft)) window.DnrAccountContext.local.removeItem(key);
             saved=JSON.parse(window.DnrAccountContext.local.getItem(key) || 'null');
             if (saved && (!Array.isArray(saved.fields) || saved.expires<Date.now())) { window.DnrAccountContext.local.removeItem(key); saved=null; }
         } catch (_) { saved=null; }
@@ -83,8 +91,20 @@
         });
         form.addEventListener('submit',function () { clearTimeout(timer); persist(); submitting=true; });
         window.addEventListener('beforeunload',function (event) {
-            if(!submitting && JSON.stringify(capture())!==baseline && JSON.stringify(capture())!==lastSaved) { event.preventDefault(); event.returnValue=''; }
+            if(baseline !== '' && !submitting && JSON.stringify(capture())!==baseline && JSON.stringify(capture())!==lastSaved) { event.preventDefault(); event.returnValue=''; }
         });
         showSaved();
-    });
+    }
+    function scan() {
+        const sidebar = document.getElementById('app-sidebar');
+        if (!sidebar) return;
+        const prefix = 'dnr.form-draft.' + encodeURIComponent(sidebar.dataset.navPreferenceUser) + '.';
+        document.querySelectorAll('[data-clear-form-draft]').forEach(function (node) {
+            try { window.DnrAccountContext.local.removeItem(prefix + node.dataset.clearFormDraft); } catch (_) {}
+        });
+        document.querySelectorAll('form[data-recoverable-draft]').forEach(initialize);
+    }
+    window.DnrFormDrafts = {initialize};
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan, {once: true});
+    else scan();
 }());

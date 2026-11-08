@@ -58,6 +58,7 @@ function renderPageHead($title, array $options = []) {
     $styles[] = 'assets/css/pages/native-selects.min.css';
     // Reserve common record-action columns after each page's own layout rules.
     $styles[] = 'assets/css/record-actions.min.css';
+    $styles[] = 'assets/css/form-reminders.min.css';
     if (in_array('assets/css/pages/audience.min.css', $styles, true)) {
         $styles[] = 'assets/css/pages/audience-ui-standards.min.css';
         $styles[] = 'assets/css/pages/audience-mobile.min.css';
@@ -74,6 +75,7 @@ function renderPageHead($title, array $options = []) {
     renderScript('assets/js/account-context.min.js', false);
     renderScript('assets/js/theme-init.min.js', false);
     renderScript('assets/js/user-time.min.js', false);
+    renderScript('assets/js/form-drafts.min.js', false);
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
@@ -93,6 +95,16 @@ function renderPageHead($title, array $options = []) {
     }
     renderScript('assets/js/form-ux.min.js');
     renderScript('assets/js/button-feedback.min.js');
+    $reminder = $_POST['_form_reminder'] ?? null;
+    $reminder = is_string($reminder) && strlen($reminder) <= 1024 ? json_decode($reminder, true) : null;
+    if (is_array($reminder) && is_string($reminder['key'] ?? null)
+        && strlen($reminder['key']) <= 300 && is_string($reminder['baseline'] ?? null)
+        && preg_match('/\A(?:[0-9a-f]{64})?\z/', $reminder['baseline']) === 1) {
+        echo '<script type="application/json" id="form-reminder-recovery">'
+            . json_encode(['key' => $reminder['key'], 'baseline' => $reminder['baseline'], 'pending' => !empty($reminder['pending'])],
+                JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>' . PHP_EOL;
+    }
+    renderScript('assets/js/form-reminders.min.js');
     echo '</head>' . PHP_EOL;
 }
 
@@ -124,6 +136,19 @@ function renderScript($path, $defer = true, $module = false, $blockRender = fals
         . ($module ? ' type="module"' : '')
         . ($blockRender ? ' blocking="render"' : '')
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
+}
+
+function renderFormDraftPanel(): void {
+    $cleared = array_values(array_filter($_SESSION['clear_form_drafts'] ?? [], 'is_string'));
+    echo '<section class="form-draft-panel" data-form-draft-panel data-cleared-drafts="'
+        . htmlspecialchars(json_encode($cleared, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8') . '">'
+        . '<p role="status">No saved draft</p>'
+        . '<button type="button" class="button-secondary" disabled>Save Draft</button>'
+        . '<p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>'
+        . '</section>' . PHP_EOL;
+    echo '<script nonce="' . htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8') . '">'
+        . 'window.DnrFormDrafts?.initialize(document.currentScript.previousElementSibling.closest("form"));'
+        . '</script>' . PHP_EOL;
 }
 
 function actionIconSvg($action)

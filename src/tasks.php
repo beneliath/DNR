@@ -420,7 +420,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
 
     <div class="list-controls task-list-controls">
         <?php renderListFilterSummary(['Owner' => $scope_labels[$scope], 'Status' => $view_labels[$view], 'Search' => $search, 'Task' => $selected_task_id ?: ''], 'tasks.php?scope=mine&view=all'); ?>
-        <form method="get" action="tasks.php" class="list-search-form" role="search">
+        <form method="get" action="tasks.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="view" value="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="scope" value="<?php echo htmlspecialchars($scope, ENT_QUOTES, 'UTF-8'); ?>">
             <?php if ($has_subject_filter): ?>
                 <input type="hidden" name="subject_type" value="<?php echo htmlspecialchars($subject_filter_type, ENT_QUOTES, 'UTF-8'); ?>">
@@ -431,6 +431,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Tasks, Records, and Assignees">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
 
     </div>
@@ -454,7 +455,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
     <?php include 'templates/task_bulk_toolbar.php'; ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
     <div class="data-table-scroll">
-    <table class="task-table data-table">
+    <table class="task-table data-table mobile-record-table">
         <thead><tr><th>Due</th><th>Task</th><th>Related Record</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
         <?php if (!$tasks): ?><tr><td colspan="6" class="empty-state">No tasks match this work queue.</td></tr><?php endif; ?>
@@ -484,7 +485,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
             ]);
             ?>
             <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
-                <td>
+                <td data-field="Due">
                     <span class="bulk-delete-record">
                     <?php if ($can_manage_tasks): ?><input type="checkbox" form="task-bulk-form" name="selected_ids[]" value="<?php echo (int)$task['id']; ?>" data-task-selection aria-label="<?php echo htmlspecialchars('Select '.$task['title'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" form="task-bulk-form" name="versions[<?php echo (int)$task['id']; ?>]" value="<?php echo htmlspecialchars($task['updated_at'],ENT_QUOTES,'UTF-8'); ?>"><?php endif; ?>
                     <span>
@@ -497,7 +498,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     </span>
                     </span>
                 </td>
-                <td>
+                <td data-field="Task">
                     <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <div class="task-record-priority"><span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
@@ -506,10 +507,10 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     <?php endif; ?>
                     <?php if ($task['status'] === 'waiting' && !empty($task['waiting_on'])): ?><small class="task-waiting-on">Waiting on: <?php echo htmlspecialchars($task['waiting_on'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
-                <td><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a><small><?php echo htmlspecialchars(ucfirst($subject['type']), ENT_QUOTES, 'UTF-8'); ?></small></td>
-                <td><span class="table-username"><?php echo htmlspecialchars($task['assignee_username'] ?: 'Unassigned', ENT_QUOTES, 'UTF-8'); ?></span></td>
-                <td><?php if ($is_archived): ?><span class="task-status task-status-canceled">Archived</span> <?php endif; ?><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($status_labels[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></td>
-                <td>
+                <td data-field="Related Record"><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a><small><?php echo htmlspecialchars(ucfirst($subject['type']), ENT_QUOTES, 'UTF-8'); ?></small></td>
+                <td data-field="Owner"><span class="table-username"><?php echo htmlspecialchars($task['assignee_username'] ?: 'Unassigned', ENT_QUOTES, 'UTF-8'); ?></span></td>
+                <td data-field="Status"><?php if ($is_archived): ?><span class="task-status task-status-canceled">Archived</span> <?php endif; ?><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($status_labels[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                <td data-field="Actions">
                     <?php if ($can_manage_tasks): ?>
                     <div class="task-actions">
                         <?php if (!$is_archived): ?>

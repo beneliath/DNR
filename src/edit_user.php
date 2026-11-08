@@ -334,7 +334,7 @@ $task_digest_day_options = [
                 </fieldset>
             </div>
         </section>
-        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save Changes" class="save-button"></div>
+        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save Changes" class="save-button" data-pending-reminder="user"></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

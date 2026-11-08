@@ -608,7 +608,7 @@ try {
 
     <div class="action-buttons">
         <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button cancel-button">Cancel</a>
-        <button type="submit" name="save_contact" value="1" class="action-button save-button" form="contact-edit-form">Save Changes</button>
+        <button type="submit" name="save_contact" value="1" class="action-button save-button" form="contact-edit-form" data-pending-reminder="contact">Save Changes</button>
     </div>
 </div>
 

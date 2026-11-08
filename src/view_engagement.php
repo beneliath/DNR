@@ -508,7 +508,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                             <textarea id="chron-entry-edit-<?php echo (int) $chron_entry['id']; ?>" name="chron_entry" rows="5" maxlength="100000" required><?php echo htmlspecialchars($chron_edit_draft['text'] ?? (string) $chron_entry['entry_text'], ENT_QUOTES, 'UTF-8'); ?></textarea>
                             <div class="chron-view-editor-actions">
                                 <a href="<?php echo htmlspecialchars($chron_view_url . '#chron-log-entry-' . (int) $chron_entry['id'], ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Cancel</a>
-                                <button type="submit" class="save-button">Save Chron Log Entry</button>
+                                <button type="submit" class="save-button" data-pending-reminder="chron-note">Save Chron Log Entry</button>
                             </div>
                         </form>
                     <?php else: ?>

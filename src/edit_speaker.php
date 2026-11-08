@@ -129,7 +129,7 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
             <button type="button" class="button-secondary" data-add-custom-link>Add Custom Link</button>
             <p class="field-help" role="status" aria-live="polite" data-custom-link-status></p>
         </section>
-        <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button">Save Speaker</button></div>
+        <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button" data-pending-reminder="speaker">Save Speaker</button></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

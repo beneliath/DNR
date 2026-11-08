@@ -229,11 +229,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <?php echo csrfInput(); ?>
         <input type="hidden" name="id" value="<?php echo $engagementId; ?>">
 
-        <section class="form-draft-panel" data-form-draft-panel>
-            <p role="status">No saved draft</p>
-            <button type="button" class="button-secondary" disabled>Save Draft</button>
-            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
-        </section>
+        <?php renderFormDraftPanel(); ?>
 
         <div class="email-compose-options">
             <section class="email-compose-card">

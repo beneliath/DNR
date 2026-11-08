@@ -103,6 +103,5 @@
 <?php endif; ?>
 
 <?php foreach ($_SESSION['clear_form_drafts'] ?? [] as $draftKey): ?><span hidden data-clear-form-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>"></span><?php endforeach; unset($_SESSION['clear_form_drafts']); ?>
-<?php renderScript('assets/js/form-drafts.min.js'); ?>
 
 <?php renderScript('assets/js/creation-duplicates.min.js'); ?>

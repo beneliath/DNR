@@ -74,6 +74,16 @@ html body #inbound-queue-search {
 .inbound-queue-search label { margin: 0; font-size: .78rem; color: var(--text-muted); }
 html body .inbound-queue-search :is(input, select) { height: 42px; width: 100%; margin: 0; min-width: 0; }
 html body .inbound-queue-search > button { margin: 0; min-height: 42px !important; }
+.inbound-queue-search .inbound-search-pending { outline: 3px solid var(--primary); outline-offset: 3px; }
+@keyframes inbound-search-blink {
+    0%, 100% { outline-color: transparent; }
+    50% { outline-color: var(--primary); }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .inbound-queue-search .inbound-search-pending:not(:focus-visible) {
+        animation: inbound-search-blink 1.2s ease-in-out infinite;
+    }
+}
 .inbound-clear-search { align-self: center; margin-top: 22px; font-size: .85rem; white-space: nowrap; }
 .inbound-mail-layout {
     display: grid;
