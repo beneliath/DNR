@@ -517,7 +517,7 @@ if (isset($_SESSION['success_message'])) {
                                     <div class="form-group contact-birthday-field">
                                         <div class="contact-control-pair">
                                             <label for="contact_birthday">Birthday</label>
-                                            <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
+                                            <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" data-date-picker="birthday" placeholder="MM/DD" autocomplete="off" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
                                         </div>
                                         <p class="field-help">Optional; repeats annually.</p>
                                     </div>
@@ -610,7 +610,7 @@ if (isset($_SESSION['success_message'])) {
                                     <div class="form-group contact-birthday-field">
                                         <div class="contact-control-pair">
                                             <label for="additional-__CONTACT_INDEX__-birthday">Birthday</label>
-                                            <input type="text" id="additional-__CONTACT_INDEX__-birthday" name="contacts[__CONTACT_INDEX__][birthday]" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
+                                            <input type="text" id="additional-__CONTACT_INDEX__-birthday" name="contacts[__CONTACT_INDEX__][birthday]" data-date-picker="birthday" placeholder="MM/DD" autocomplete="off" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
                                         </div>
                                         <p class="field-help">Optional; repeats annually.</p>
                                     </div>

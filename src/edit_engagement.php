@@ -806,11 +806,11 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             <div class="date-fields">
                 <div class="date-field">
                     <label for="event_start_date">Start<span class="required">*</span></label>
-                    <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
                 </div>
                 <div class="date-field">
                     <label for="event_end_date">End<span class="required">*</span></label>
-                    <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
                 </div>
             </div>
             <div class="form-field event-caller-field">

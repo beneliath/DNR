@@ -3,10 +3,77 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'../..'),output=process.env.DNR_PLANNER_SCREENSHOTS;
 const fixture=(role,empty,layout,archived)=>execFileSync('php',['tests/browser/audience-campaign-lifecycle-fixture.php',role,'active',empty?'empty':'','campaign-manager',layout,archived?'archive':'active'],{cwd:root,encoding:'utf8'});
+const layouts = [
+    {width:320, height:568, phone:true},
+    {width:390, height:844, phone:true},
+    {width:932, height:430, phone:true},
+    {width:1600, height:1000},
+    {width:2200, height:1000},
+];
+
+async function checkActionSpacing(group, width, phone) {
+    const buttons = group.locator('.action-icon-button');
+    const boxes = await buttons.evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()));
+    assert.ok(boxes.length >= 2, 'The row contains adjacent actions');
+    const bounds = await group.boundingBox();
+    const expectedGap = phone ? 8 : 16;
+    for (const [index, box] of boxes.entries()) {
+        assert.ok(box.width >= 44 && box.height >= 44, 'Planner actions have a 44px target');
+        assert.ok(box.left >= bounds.x && box.right <= bounds.x + bounds.width && box.left >= 0 && box.right <= width,
+            'Actions fit within their row and viewport');
+        if (index) {
+            assert.equal(box.top, boxes[0].top, 'Planner actions share a row');
+            assert.equal(box.left - boxes[index - 1].right, expectedGap, 'Visible gap between adjacent planner actions');
+        }
+    }
+}
+
+async function checkPageWidth(page, width) {
+    const scrollWidth = await page.evaluate(() => document.scrollingElement.scrollWidth);
+    assert.ok(scrollWidth <= width, `The ${scrollWidth}px planner fits the ${width}px viewport`);
+}
+
+async function checkMobileCalendar(page, width, dark) {
+    const calendar = page.locator('[data-mm-calendar]');
+    const busyDay = calendar.locator('td').filter({has: page.locator('time[datetime="2026-10-24"]')});
+    await busyDay.waitFor({state: 'visible'});
+    assert.equal(await busyDay.locator('.campaign-touchpoint-chip').count(), 2);
+
+    const bounds = await busyDay.boundingBox();
+    const buttons = await busyDay.locator('button').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()));
+    let bottom = bounds.y;
+    for (const button of buttons) {
+        assert.ok(button.width >= 44 && button.height >= 44, 'Calendar actions are usable touch targets');
+        assert.ok(button.top >= bottom && button.bottom <= bounds.y + bounds.height,
+            'Day contains each touchpoint and the add button without overlap');
+        bottom = button.bottom;
+    }
+
+    const emptyDays = calendar.locator('td:not([data-mm-calendar-event])');
+    const emptyCount = await emptyDays.count();
+    assert.ok(emptyCount);
+    assert.equal(await emptyDays.filter({visible: true}).count(), 0);
+    if (output) {
+        await busyDay.scrollIntoViewIfNeeded();
+        await page.screenshot({path: path.join(output, `calendar-${width}-${dark ? 'dark' : 'light'}.png`)});
+    }
+    await page.getByRole('button', {name: 'Show empty days', exact: true}).tap();
+    assert.equal(await emptyDays.filter({visible: true}).count(), emptyCount);
+    await page.getByRole('button', {name: 'Hide empty days', exact: true}).tap();
+    assert.equal(await emptyDays.filter({visible: true}).count(), 0);
+    await checkPageWidth(page, width);
+
+    await busyDay.getByRole('button', {name: 'Add touchpoint on Oct 24'}).tap();
+    const editor = page.locator('#campaign-touchpoint-editor');
+    assert.equal(await editor.locator('[name=start_at]').inputValue(), '2026-10-24T09:00');
+    await editor.getByRole('button', {name: 'Close touchpoint'}).tap();
+}
+
 (async()=>{const browser=await chromium.launch({headless:true});let checks=0;
 try{
- for(const dark of [false,true])for(const width of [390,1600,2200]){
-  const page=await browser.newPage({viewport:{width,height:1000}});page.setDefaultTimeout(6000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ if(output)fs.mkdirSync(output,{recursive:true});
+ for(const dark of [false,true])for(const {width,height,phone=false} of layouts){
+  const page=await browser.newPage({viewport:{width,height},isMobile:phone,hasTouch:phone});page.setDefaultTimeout(6000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(dark=>{localStorage.setItem('theme',dark?'dark':'light');window.plannerSubmissions=[];document.addEventListener('submit',event=>{if(!event.defaultPrevented&&event.target.method!=='dialog'){event.preventDefault();window.plannerSubmissions.push(Object.fromEntries(new FormData(event.target)));}});},dark);
   let role='admin',empty=false,layout='agenda',archived=false;
   await page.route('http://planner.test/**',route=>{const u=new URL(route.request().url());
@@ -18,24 +85,41 @@ try{
   const open=()=>page.goto('http://planner.test/audience.php?view=campaign-manager&planner_layout='+layout);
   await open();assert.equal(await page.locator('.campaign-agenda-card').count(),6);checks++;
   const widths=await page.locator('.campaign-agenda-card').evaluateAll(cards=>cards.map(card=>card.getBoundingClientRect().width));
-  assert(widths.every(w=>width===390?w<=360:w===360));assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);checks+=2;
-  assert.equal(await page.locator('.campaign-agenda-actions').first().evaluate(el=>getComputedStyle(el).gap),'16px');checks++;
+  assert(widths.every(w=>phone?w<=360:w===360));await checkPageWidth(page,width);checks+=2;
+  await checkActionSpacing(page.locator('.campaign-agenda-actions').nth(1),width,phone);checks++;
   assert.deepEqual(await page.locator('.campaign-agenda-actions').nth(1).locator('button,a').evaluateAll(items=>items.map(item=>item.dataset.tooltip)),['Edit','View email','Archive']);checks++;
   const edits=page.locator('.campaign-agenda-actions [data-touchpoint-edit]');assert.equal(await edits.count(),6);assert.equal(await page.locator('.campaign-agenda-actions a').count(),2);checks+=2;
   for(const button of await edits.all()){assert.match(await button.getAttribute('aria-label'),/^Edit /);assert.equal(await button.getAttribute('data-tooltip'),'Edit');assert.equal(await button.locator('svg').count(),1);checks+=3;}
-  await edits.first().hover();let tooltip=page.locator('#'+await edits.first().getAttribute('aria-describedby'));await tooltip.waitFor({state:'visible'});assert.equal(await tooltip.textContent(),'Edit');assert.deepEqual(await tooltip.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color})),dark?{bg:'rgb(243, 246, 251)',color:'rgb(23, 32, 51)'}:{bg:'rgb(0, 0, 0)',color:'rgb(255, 255, 255)'});checks+=2;
-  await edits.first().click();const dialog=page.locator('#campaign-touchpoint-editor');await dialog.waitFor({state:'visible'});assert.equal(await dialog.locator('[name=name]').inputValue(),'Review newsletter copy');assert.equal(await dialog.locator('[name=id]').first().inputValue(),'21');checks+=2;
+  if(phone){
+   if(output){
+    await page.locator('.campaign-agenda-card').nth(1).scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(output,`agenda-${width}-${dark?'dark':'light'}.png`)});
+   }
+   await edits.first().tap();
+  }else{
+   await edits.first().hover();const tooltip=page.locator('#'+await edits.first().getAttribute('aria-describedby'));await tooltip.waitFor({state:'visible'});assert.equal(await tooltip.textContent(),'Edit');assert.deepEqual(await tooltip.evaluate(el=>({bg:getComputedStyle(el).backgroundColor,color:getComputedStyle(el).color})),dark?{bg:'rgb(243, 246, 251)',color:'rgb(23, 32, 51)'}:{bg:'rgb(0, 0, 0)',color:'rgb(255, 255, 255)'});checks+=2;
+   await edits.first().click();
+  }
+  const dialog=page.locator('#campaign-touchpoint-editor');await dialog.waitFor({state:'visible'});assert.equal(await dialog.locator('[name=name]').inputValue(),'Review newsletter copy');assert.equal(await dialog.locator('[name=id]').first().inputValue(),'21');checks+=2;
   const touchpointDelete=dialog.locator('[data-touchpoint-delete]');assert.equal(await touchpointDelete.getAttribute('data-admin-unlock-required'),'');checks++;
   await page.evaluate(()=>{window.touchpointUnlockChecks=0;window.DnrAdminUnlock={request:async()=>{window.touchpointUnlockChecks++;return false;}};});
   await touchpointDelete.click();await page.waitForFunction(()=>window.touchpointUnlockChecks===1);assert.equal(await page.locator('#audience-confirm-title').evaluate(el=>el.closest('dialog').open),false);assert.equal(await page.evaluate(()=>window.plannerSubmissions.length),0);checks+=2;
   await dialog.locator('[data-close-dialog]').first().click();await page.mouse.move(0,0);
   if(width>=1600){const nav=page.locator('#audience-sidebar [data-audience-tooltip]').first();await nav.hover();const help=page.locator('#'+await nav.getAttribute('aria-describedby'));await help.waitFor({state:'visible'});assert((await help.textContent()).length>0);checks++;await page.mouse.move(0,0);await nav.focus();await help.waitFor({state:'visible'});checks++;await nav.blur();await page.mouse.move(0,0);}
-  if(output&&!dark&&width===1600){fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,'campaign-manager-agenda.png'),fullPage:true});}
+  if(output&&!dark&&width===1600)await page.screenshot({path:path.join(output,'campaign-manager-agenda.png'),fullPage:true});
   empty=true;await open();const alignment=await page.locator('.campaign-agenda-empty').evaluate(el=>{const outer=el.getBoundingClientRect(),text=el.querySelector('p').getBoundingClientRect(),style=getComputedStyle(el);return {height:outer.height,inset:text.left-outer.left,offset:Math.abs((text.top+text.bottom)-(outer.top+outer.bottom)),padding:style.padding};});
   assert(alignment.height>=100);assert(alignment.inset>=24);assert(alignment.offset<2);checks+=3;
   if(output&&!dark&&width===1600)await page.screenshot({path:path.join(output,'campaign-manager-empty.png'),fullPage:true});
   empty=false;role='reviewer';await open();assert.equal(await page.locator('.campaign-agenda-actions button').count(),0);assert.equal(await page.locator('.campaign-agenda-actions a').count(),2);checks+=2;
-  role='admin';layout='calendar';await open();for(const selector of ['.campaign-calendar th','.campaign-calendar td']){const color=await page.locator(selector).first().evaluate(el=>getComputedStyle(el).borderTopColor);assert.equal(color,dark?'rgb(113, 129, 139)':'rgb(165, 175, 180)');checks++;}
+  role='admin';layout='calendar';await open();
+  if(phone){
+   await checkMobileCalendar(page,width,dark);
+   layout='list';await open();
+   await checkActionSpacing(page.locator('.campaign-plan-row-actions').first(),width,true);
+   await checkPageWidth(page,width);checks+=9;
+  }else{
+   for(const selector of ['.campaign-calendar th','.campaign-calendar td']){const color=await page.locator(selector).first().evaluate(el=>getComputedStyle(el).borderTopColor);assert.equal(color,dark?'rgb(113, 129, 139)':'rgb(165, 175, 180)');checks++;}
+  }
   if(output&&!dark&&width===1600)await page.screenshot({path:path.join(output,'campaign-manager-calendar.png'),fullPage:true});
   if(!dark&&width===1600){
    layout='list';
@@ -47,7 +131,7 @@ try{
     assert.equal(await actions.locator('[data-tooltip="Restore"]').count(),archived&&role!=='reviewer'?1:0);
     assert.equal(await actions.locator('[data-tooltip="Delete"]').count(),archived&&role==='admin'?1:0);checks+=4;
     if(role==='admin'){
-     assert.equal(await actions.evaluate(el=>getComputedStyle(el).gap),'16px');checks++;
+     await checkActionSpacing(actions,width,false);checks++;
      if(output)await page.screenshot({path:path.join(output,archived?'campaign-manager-plans-archive.png':'campaign-manager-plans.png'),fullPage:true});
      if(archived){
       const remove=actions.locator('[data-tooltip="Delete"]');assert.equal(await remove.getAttribute('data-admin-unlock-required'),'');checks++;

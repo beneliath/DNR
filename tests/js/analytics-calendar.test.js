@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {ruleValueAttributes} from '../../src/assets/js/message-monkey/rule-value.mjs';
 import {calendarDates, formatCalendarDate, parseCalendarDate} from '../../src/assets/js/analytics-calendar.mjs';
 
 test('report dates round trip without timezone shifts', () => {
@@ -23,4 +24,14 @@ test('October grid contains all seven days, including Saturdays', () => {
   assert.equal(days[41].iso, '2026-11-07');
   assert.equal(days[34].outside, false);
   assert.equal(days[41].outside, true);
+});
+
+test('segment and automation rules preserve date, month/day, relative-day and partial-text semantics', () => {
+  assert.equal(ruleValueAttributes({kind: 'event'}, 'before')['data-date-picker'], 'date');
+  assert.equal(ruleValueAttributes({kind: 'date'}, 'is')['data-date-picker'], 'date');
+  assert.equal(ruleValueAttributes({kind: 'date'}, 'last_days').type, 'number');
+  const birthday = {kind: 'text', field_type: 'birthday'};
+  assert.equal(ruleValueAttributes(birthday, 'is')['data-date-picker'], 'birthday');
+  assert.equal(ruleValueAttributes(birthday, 'is_not').placeholder, 'MM-DD');
+  assert.deepEqual(ruleValueAttributes(birthday, 'starts'), {type: 'text'});
 });

@@ -351,10 +351,10 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             </div>
             <fieldset class="engagement-date-window<?php echo $date_filter_active ? ' has-active-date-filter' : ''; ?>" aria-label="Engagement Dates" data-engagement-date-window>
                 <label for="engagement-date-from">From
-                    <input type="date" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
                 </label>
                 <label for="engagement-date-to">Through
-                    <input type="date" name="date_to" id="engagement-date-to" value="<?php echo htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="date_to" id="engagement-date-to" value="<?php echo htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8'); ?>">
                 </label>
                 <button type="submit" data-pending-reminder="list-search" class="button-secondary" data-engagement-date-apply>Apply</button>
                 <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>

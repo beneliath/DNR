@@ -1,3 +1,5 @@
+import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
+
 (() => {
     'use strict';
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -237,7 +239,10 @@
                 row.append(options(config.operators[definition.kind],rule.operator,value => { edit(rule,'operator',value); renderInspector(); renderSettings(); }));
                 if (!['empty','not_empty','ever','never'].includes(rule.operator)) {
                     if (definition.options) row.append(options(definition.options,rule.value,value => edit(rule,'value',value),definition.kind === 'membership'));
-                    else row.append(input(['last_days','not_last_days'].includes(rule.operator) || definition.kind === 'number' ? 'number' : definition.kind === 'date' || ['before','after'].includes(rule.operator) && ['event','engagement'].includes(definition.kind) ? 'date' : 'text',rule.value || '',value => edit(rule,'value',value)));
+                    else {
+                        const attrs = ruleValueAttributes(definition, rule.operator);
+                        row.append(input(attrs.type, rule.value ?? '', value => edit(rule, 'value', value), {...attrs, 'aria-label':'Condition value'}));
+                    }
                 }
                 if (definition.kind === 'engagement') {
                     row.append(options({'0':'Any campaign',...definition.campaigns},rule.campaign_id || '0',value => edit(rule,'campaign_id',value)));

@@ -91,7 +91,10 @@ function audienceRuleCatalog(array $fields, array $tags, array $groups,array $ca
     $opts = [];$archivedGroups=[];
     foreach ($groups as $group) foreach ($group['options'] as $option){$opts[$option['id']] = $group['name'] . ': ' . $option['name'];if(!empty($group['archived_at']))$archivedGroups[]=(int)$option['id'];}
     $catalog['groups'] = ['label' => 'Group membership', 'kind' => 'membership', 'options' => $opts, 'archived_options'=>$archivedGroups, 'section' => 'Tags and groups'];
-    foreach ($fields as $field) $catalog['custom:' . $field['id']] = ['label' => $field['label'], 'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience fields'];
+    foreach ($fields as $field) {
+        $catalog['custom:' . $field['id']] = ['label' => $field['label'], 'field_type' => $field['field_type'],
+            'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience fields'];
+    }
     $events = ['contact_added' => 'Connection added', 'contact_updated' => 'Information updated', 'subscription_changed' => 'Subscription changed', 'tags_changed' => 'Tags changed', 'groups_changed' => 'Groups changed', 'contact_archived' => 'Connection archived', 'contact_restored' => 'Connection restored', 'note_added' => 'Note added', 'imported' => 'Imported'];
     foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection activity'];
     foreach(['sent'=>'Email sent (accepted)','open'=>'Email opened','click'=>'Email link clicked']as$key=>$label)$catalog['engagement:'.$key]=['label'=>$label,'kind'=>'engagement','section'=>'Email engagement','campaigns'=>$campaigns,'links'=>$key==='click'?$links:[]];

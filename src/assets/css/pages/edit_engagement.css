@@ -423,7 +423,7 @@ html:has(.edit-engagement-body) {
         align-items: center;
         gap: 10px;
     }
-    .date-field input[type="date"] {
+    .date-field .date-picker-box input {
         padding: 8px;
         background-color: var(--surface);
         color: var(--text);

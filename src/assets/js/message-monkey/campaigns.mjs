@@ -234,7 +234,16 @@ export function initializeCampaignWorkspace(show, confirmations) {
         } catch (error) { output.textContent = status.textContent = error.message; }
         finally { button.disabled = false; }
     });
-    $('[data-campaign-date-preset]')?.addEventListener('change', event => { const form = event.target.form; $$('input[type=date]', form).forEach(input => { input.readOnly = !['','custom'].includes(event.target.value); if (event.target.value === '') input.value = ''; }); });
+    const datePreset = $('[data-campaign-date-preset]');
+    if (datePreset) {
+        const updateDates = event => $$('input[data-date-picker]', datePreset.form).forEach(input => {
+            input.readOnly = !['', 'custom'].includes(datePreset.value);
+            if (event && datePreset.value === '') input.value = '';
+            input.dispatchEvent(new Event('date-picker:refresh'));
+        });
+        datePreset.addEventListener('change', updateDates);
+        updateDates();
+    }
     const sendForm = $('[name=send_mode]')?.form;
     if (sendForm) {
         const updateSendMode = () => {

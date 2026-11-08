@@ -252,12 +252,12 @@ $map_payload = [
             <legend>Date Window</legend>
             <div class="map-filter-field">
                 <label for="map-date-from">From</label>
-                <input type="date" name="date_from" id="map-date-from" value="<?php echo htmlspecialchars($filters['date_from'], ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="date_from" id="map-date-from" value="<?php echo htmlspecialchars($filters['date_from'], ENT_QUOTES, 'UTF-8'); ?>">
             </div>
             <span class="map-date-separator" aria-hidden="true">to</span>
             <div class="map-filter-field">
                 <label for="map-date-to">Through</label>
-                <input type="date" name="date_to" id="map-date-to" value="<?php echo htmlspecialchars($filters['date_to'], ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="date_to" id="map-date-to" value="<?php echo htmlspecialchars($filters['date_to'], ENT_QUOTES, 'UTF-8'); ?>">
             </div>
         </fieldset>
         <div class="map-filter-field">

@@ -347,7 +347,7 @@ html body main.container.inquiry-form-page > form.inquiry-form.inquiry-form {
 .inquiry-date-ranges legend { padding: 0 .35rem; font-size: .82rem; font-weight: 750; }
 .inquiry-date-ranges label { display: block; margin-bottom: .3rem; }
 .inquiry-date-ranges input { width: 100%; }
-.inquiry-form input[type="date"] {
+.inquiry-form .date-picker-box input {
     min-height: 44px;
     padding: .65rem .75rem;
     border: 1px solid var(--border-strong);
@@ -360,24 +360,12 @@ html body main.container.inquiry-form-page > form.inquiry-form.inquiry-form {
     font-variant-numeric: tabular-nums;
     transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
 }
-.inquiry-form input[type="date"]:hover { border-color: var(--control-hover-border); }
-.inquiry-form input[type="date"]:focus-visible {
+.inquiry-form .date-picker-box input:hover { border-color: var(--control-hover-border); }
+.inquiry-form .date-picker-box input:focus-visible {
     border-color: var(--primary);
     box-shadow: var(--focus-ring);
 }
-.inquiry-form input[type="date"]::-webkit-calendar-picker-indicator {
-    margin-left: .45rem;
-    padding: .38rem;
-    border-radius: 6px;
-    background-color: var(--primary-subtle);
-    cursor: pointer;
-    opacity: .82;
-}
-.inquiry-form input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    background-color: var(--control-hover-bg);
-    opacity: 1;
-}
-html.dark-mode .inquiry-form input[type="date"] { color-scheme: dark; }
+html.dark-mode .inquiry-form .date-picker-box input { color-scheme: dark; }
 .inquiry-location-section {
     margin: .2rem 0 0;
     padding: 0;

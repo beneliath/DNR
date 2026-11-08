@@ -259,7 +259,7 @@ footer .ascii-art-container pre {
 
 /* Buttons */
 :where(
-  button:not(.logout-link-button):not(.sidebar-backdrop),
+  button:not(.logout-link-button, .sidebar-backdrop, .date-picker-trigger, .date-picker-calendar button),
   input[type="button"],
   input[type="submit"],
   input[type="reset"],

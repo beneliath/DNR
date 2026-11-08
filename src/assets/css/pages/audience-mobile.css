@@ -165,11 +165,12 @@
   body[data-mm-workspace] [data-mm-calendar] thead{display:none}
   body[data-mm-workspace] [data-mm-calendar] tbody{display:grid;gap:12px}
   body[data-mm-workspace] [data-mm-calendar] tr{display:contents}
-  body[data-mm-workspace] [data-mm-calendar] td{display:block;min-height:0;width:auto;min-width:0;padding:16px;border:1px solid var(--audience-border);border-radius:16px;background:var(--audience-surface)}
+  body[data-mm-workspace] [data-mm-calendar] td{display:block;height:auto;min-height:0;width:auto;min-width:0;padding:16px;border:1px solid var(--audience-border);border-radius:16px;background:var(--audience-surface)}
   body[data-mm-workspace] [data-mm-calendar]:not([data-mm-open]) td:not([data-mm-calendar-event]){display:none}
   body[data-mm-workspace] [data-mm-calendar] time[data-mm-date]{font-size:0}
   body[data-mm-workspace] [data-mm-calendar] time[data-mm-date]::after{content:attr(data-mm-date);font-size:14px;font-weight:650}
   body[data-mm-workspace] [data-mm-calendar] :is(a,.campaign-touchpoint-chip){white-space:normal;min-height:48px;padding:12px;font-size:15px}
+  body[data-mm-workspace] [data-mm-calendar] .campaign-day-add{min-width:44px;opacity:1}
   body[data-mm-workspace] .mm-mobile-calendar-toggle{align-items:center;margin:0 0 12px}
 
   /* Editors alternate between the canvas and tools. No nested phone-height

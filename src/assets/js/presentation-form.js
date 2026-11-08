@@ -641,7 +641,7 @@
             '  <div class="presentation-session-fields">',
             '    <div class="form-field presentation-date-field">',
             '      <label for="presentation_date_' + id + '">Date</label>',
-            '      <input type="date" name="presentations[' + id + '][presentation_date]" id="presentation_date_' + id + '">',
+            '      <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="presentations[' + id + '][presentation_date]" id="presentation_date_' + id + '">',
             '    </div>',
             '    <div class="form-field presentation-time-field">',
             '      <label for="presentation_time_' + id + '">Time</label>',

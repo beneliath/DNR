@@ -9,7 +9,7 @@ $rangeLabel=$presets[$rangeKey]['label']??'Custom date range';
 <div popover id="analytics-range" class="analytics-range-popover" aria-label="Date range picker">
     <form method="get" data-analytics-range><?php audienceInputs($dateQuery); ?>
     <div class="analytics-date-fields"><label>Date range<select name="range" data-analytics-preset><?php foreach($presets as$key=>$preset): ?><option value="<?= $h($key) ?>" data-start="<?= $h($preset['start']) ?>" data-end="<?= $h($preset['end']) ?>"<?= (string)$rangeKey===(string)$key?' selected':'' ?>><?= $h($preset['label']) ?></option><?php endforeach; ?><option value="custom"<?= $rangeKey==='custom'?' selected':'' ?>>Custom date range</option></select></label>
-    <?php foreach(['start'=>'Start date','end'=>'End date']as$key=>$label): ?><div class="analytics-date-field"><label for="analytics-date-<?= $key ?>"><?= $label ?></label><div class="analytics-date-input"><input type="date" id="analytics-date-<?= $key ?>" name="<?= $key ?>" value="<?= $h($window[$key]) ?>" required max="<?= gmdate('Y-m-d') ?>"></div></div><?php endforeach; ?></div>
+    <?php foreach(['start'=>'Start date','end'=>'End date']as$key=>$label): ?><div class="analytics-date-field"><label for="analytics-date-<?= $key ?>"><?= $label ?></label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="analytics-date-<?= $key ?>" name="<?= $key ?>" value="<?= $h($window[$key]) ?>" required max="<?= gmdate('Y-m-d') ?>"></div><?php endforeach; ?></div>
     <div class="analytics-range-actions"><button type="button" data-analytics-range-cancel>Cancel</button><button type="submit" class="primary">Apply</button></div>
     </form>
 </div></div>

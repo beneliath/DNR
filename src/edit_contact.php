@@ -541,7 +541,7 @@ try {
                     <div class="form-group contact-birthday-field">
                         <div class="contact-control-pair">
                             <label for="contact_birthday">Birthday</label>
-                            <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($contact_birthday_input, ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
+                            <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($contact_birthday_input, ENT_QUOTES, 'UTF-8'); ?>" data-date-picker="birthday" placeholder="MM/DD" autocomplete="off" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
                         </div>
                         <p class="field-help" id="contact-birthday-help">Optional; repeats annually.</p>
                     </div>

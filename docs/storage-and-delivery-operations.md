@@ -8,7 +8,23 @@ volumes. It verifies ownership before running fixtures and destroys only its own
 project afterward. Existing localhost databases and uploaded files are not test
 targets. To reuse already-built images, set `DNR_TEST_APP_IMAGE`,
 `DNR_TEST_INGRESS_IMAGE`, and `DNR_TEST_DATABASE_IMAGE` explicitly. Tests remain in
-fresh volumes even when images are reused.
+fresh volumes even when images are reused. Teardown removes the image tags generated for
+that run, including after a failed test. Caller-supplied image references are retained.
+
+### Local Docker Desktop storage
+
+Run `python3 scripts/local_docker_storage.py` to check free space on the Docker
+filesystem that holds the local MOED database. Use `--apply` for an immediate
+cleanup or `--install` to install the current user's macOS LaunchAgent. It checks
+every 15 minutes and starts cleanup below 16 GiB free. It removes unused
+`dnr-test-<12 hex digits>-app|ingress|database:latest` tags at least two days old
+from completed test projects, then clears build cache older than 24 hours if
+space is still low. If more room is needed, it removes superseded, untagged Open
+WebUI images oldest first. It retains tagged and digest-addressed images, all
+images used by running or stopped containers, and the two newest unused
+untagged Open WebUI versions for rollback. Account data, release images and rollback tags are outside its cleanup
+scope. The guard writes its results to `~/Library/Application Support/MOED/`
+and exits with an error if Docker still needs more space.
 
 ## Uploaded files and capacity
 

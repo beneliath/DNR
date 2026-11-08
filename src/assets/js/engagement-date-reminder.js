@@ -2,7 +2,7 @@
     const windowFields = document.querySelector('[data-engagement-date-window]');
     if (!windowFields) return;
 
-    const dates = Array.from(windowFields.querySelectorAll('input[type="date"]'));
+    const dates = Array.from(windowFields.querySelectorAll('input[data-date-picker]'));
     const apply = windowFields.querySelector('[data-engagement-date-apply]');
     if (!apply || dates.length !== 2) return;
 

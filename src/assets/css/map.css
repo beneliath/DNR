@@ -531,7 +531,7 @@ html.dark-mode .maplibregl-ctrl-attrib-button {
   }
 
   .map-filter-field select,
-  .map-filter-field input[type="date"] {
+  .map-filter-field .date-picker-field {
     display: block;
     width: 100% !important;
     min-width: 0 !important;
@@ -540,15 +540,6 @@ html.dark-mode .maplibregl-ctrl-attrib-button {
     min-inline-size: 0 !important;
     max-inline-size: 100% !important;
     box-sizing: border-box !important;
-  }
-
-  .map-filter-field input[type="date"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    inline-size: 100% !important;
-    max-inline-size: 100% !important;
-    appearance: none;
-    -webkit-appearance: none;
   }
 
   .map-date-separator {

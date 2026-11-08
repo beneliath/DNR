@@ -28,7 +28,7 @@ server:
 webapp:
 	rm -rf $(WEBAPP_DIST)
 	mkdir -p $(WEBAPP_DIST)
-	../node_modules/.bin/esbuild webapp/src/index.jsx --bundle --minify --legal-comments=none --loader:.jsx=jsx --outfile=$(WEBAPP_DIST)/main.js
+	../node_modules/.bin/esbuild webapp/src/index.jsx --bundle --minify --legal-comments=none --loader:.jsx=jsx --loader:.css=text --outfile=$(WEBAPP_DIST)/main.js
 
 bundle: server webapp
 	rm -rf $(BUNDLE_ROOT)
