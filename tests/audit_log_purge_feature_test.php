@@ -54,7 +54,7 @@ expectAuditLogPurgeFeature(
     'audit category pills should use compact, readable sizing.'
 );
 expectAuditLogPurgeFeature(
-    str_contains($page, 'class="list-search-form audit-filter-form"')
+    preg_match('/<form\b[^>]*\bclass="(?=[^"]*\blist-search-form\b)(?=[^"]*\baudit-filter-form\b)[^"]*"/', $page) === 1
         && str_contains($page, 'class="page-intro audit-retention-note"')
         && str_contains($page, 'class="audit-search-field"')
         && str_contains($styles, 'align-self: flex-end;')
