@@ -270,6 +270,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         if (!doc) return;
         doc.documentElement.style.overscrollBehavior = 'contain';
         initializeInputModality(doc);
+        if (!doc.documentElement.hasAttribute('data-disable-date-picker')) window.DnrDatePickers?.initialize(doc);
         initializeAddressInputs(doc);
         if (doc.documentElement.dataset.phoneInputs !== 'native') phoneInputs.initializePhoneInputs(doc);
     };
@@ -549,6 +550,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const restore = index => {
         if (index < 0 || index >= history.length) return; restoring = true; historyIndex = index; model = JSON.parse(history[index]);
         form.querySelectorAll('[data-doc]').forEach(input => { if(input.type==='checkbox')input.checked=model[input.dataset.doc];else input.value=model[input.dataset.doc];if(input.type==='color')input.dispatchEvent(new Event('change')); });
+        form.querySelector('[data-doc="close_at"]')?.dispatchEvent(new Event('date-picker:refresh'));
         if (config.kind === 'embedded' && model.width === 0) form.querySelector('[data-doc="width"]').value = '';
         form.querySelectorAll('[data-embed-option]').forEach(input => { if(input.type==='checkbox')input.checked=model.embedded[input.dataset.embedOption];else input.value=model.embedded[input.dataset.embedOption]; });
         form.querySelectorAll('[data-doc-message]').forEach(input => { input.value = model.messages[input.dataset.docMessage]; });

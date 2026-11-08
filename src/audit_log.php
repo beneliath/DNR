@@ -491,9 +491,9 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <?php if ($search !== '' || $from_date !== '' || $to_date !== '' || $ip_filter !== ''): ?><a href="<?php echo htmlspecialchars(auditLogPageUrl(null, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </span>
             <label class="visually-hidden" for="audit-from">From Date</label>
-            <input type="date" id="audit-from" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="audit-from" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>">
             <label class="visually-hidden" for="audit-to">To Date</label>
-            <input type="date" id="audit-to" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="audit-to" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>">
             <label class="visually-hidden" for="audit-ip">Exact IP Address</label>
             <input type="text" id="audit-ip" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Exact IP">
             <button type="submit" data-pending-reminder="list-search" class="filter-button">Apply</button>

@@ -12,7 +12,8 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "f7014f2624abe139a238cf072981e125794ed35bc91708087cbda38e78ac26e2"
+        "index.php": "fec5634ec8e10fa1c6c82e933b70c6c05c8f9b573a36939bd526af01edd4ec30",
+        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
       },
       "controls": {
         "new-organization": {
@@ -25,11 +26,11 @@
         },
         "new-start-date": {
           "label": "Start",
-          "selector": "#new-engagement-form #event_start_date"
+          "selector": "#new-engagement-form #event_start_date-display, #new-engagement-form #event_start_date"
         },
         "new-end-date": {
           "label": "End",
-          "selector": "#new-engagement-form #event_end_date"
+          "selector": "#new-engagement-form #event_end_date-display, #new-engagement-form #event_end_date"
         },
         "new-event-type": {
           "label": "Event Type",
@@ -58,8 +59,8 @@
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "ed8337fa84ae29e8b8fd080474fd2de94852ae3c49210f971f94ce7729272a5e",
-        "edit_engagement.php": "d198dce7d4f43d4a67638809c3f5b0d047dd806916f721db9ce48088ce4a3789"
+        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
+        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
       },
       "controls": {
         "presentations-tab": {
@@ -96,7 +97,7 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
       "condition": "Use Change Record to open the Find a Related Record dialog. Type at least three characters, then choose a result. Searching alone does not change the selection. Cancel, Escape, or clicking outside the dialog keeps the selected record. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
-        "templates/follow_up_task_form.php": "13ad13e6244e0b52da94031d1fe332d5ac241fd965e8cdc955196dd08b1fb90e",
+        "templates/follow_up_task_form.php": "7f677bb2a8884419b47c48d9460faf390a93a19abd5bcff7a457dce588310219",
         "add_task.php": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "bae97533386505e857f19ad4bb8eb2b795c812e4285a5a4f017329537c2a5f23",
@@ -109,7 +110,8 @@
         "moed/tasks/repository.php": "29af180c6c168067207e365e54d888df31bb4c6f81416530854f9b9f8d43ed6b",
         "moed/tasks/subjects.php": "7b0ea616f3d1cf6ca0eb16c9eb326b03d7e2ab6c71d01753ecda748d51f16972",
         "moed/tasks/templates.php": "5df81cd25625fe0ede008f248a5de9459628627b1c24cc5c8c3968285fcfc4ff",
-        "moed/tasks/activity.php": "6c39d3c67bb433066e27f16ee945ac57318601ab1c39e9557530b16e3488bd07"
+        "moed/tasks/activity.php": "6c39d3c67bb433066e27f16ee945ac57318601ab1c39e9557530b16e3488bd07",
+        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
       },
       "controls": {
         "task-title": {
@@ -142,7 +144,7 @@
         },
         "task-due": {
           "label": "Due Date",
-          "selector": "#task-due-date"
+          "selector": "#task-due-date-display, #task-due-date"
         },
         "task-priority": {
           "label": "Priority",
@@ -217,7 +219,8 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "d198dce7d4f43d4a67638809c3f5b0d047dd806916f721db9ce48088ce4a3789"
+        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
+        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
       },
       "controls": {
         "edit-event": {
@@ -226,11 +229,11 @@
         },
         "event-start-date": {
           "label": "Start",
-          "selector": "#engagement-edit-form #event_start_date"
+          "selector": "#engagement-edit-form #event_start_date-display, #engagement-edit-form #event_start_date"
         },
         "event-end-date": {
           "label": "End",
-          "selector": "#engagement-edit-form #event_end_date"
+          "selector": "#engagement-edit-form #event_end_date-display, #engagement-edit-form #event_end_date"
         }
       }
     },
@@ -330,15 +333,16 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "967c03a975b2c161534fb9a9c49fc5adf00b64535650fad533568bd689fff525",
+        "reimbursement_expense.php": "60f49a716f7c2ded6cd85ace1078f051e8e7f1f1da4860bf7d12d041e201f458",
         "reimbursement_helpers.php": "66f22a921f124e25989341b654cbf182dfa2dcacd0c1a5a9a1a3b5bd1bf53249",
         "reimbursement_mileage_helpers.php": "29c40b2379741cc4622715b0647b0125fc1fc28412dc4c357d5eab6c0bae9cc3",
-        "templates/reimbursement_mileage_fields.php": "fe8942e2b6eba2785d0e30139644099a37e58627ac8fc71579832d13beddd5a8"
+        "templates/reimbursement_mileage_fields.php": "e62c022bb2817b8334020f291a607a4c49e4b79d024c6af3f393aada8f89035b",
+        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
       },
       "controls": {
         "reimbursement-expense-date": {
           "label": "Expense Date",
-          "selector": "input[name=\"expense_date\"]"
+          "selector": ".date-picker-field:has(> input[name=\"expense_date\"]) .date-picker-box > input, input[name=\"expense_date\"]"
         },
         "reimbursement-merchant": {
           "label": "Merchant or Payee",
@@ -402,9 +406,10 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "75d65b659997c57106ec755d65fb5f087e0184ef702346ff67c2883652c18b86",
-        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
-        "reimbursement_requests.php": "e187c143709dfbdcf1d1e3885ade3a0eef93cfc819fa1d17665fade312f1a357"
+        "reimbursements.php": "772f30b5d4b06898ab67225b7acef96b4f2e985bcd9fa0c4636fc65a99f5afe2",
+        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90",
+        "reimbursement_requests.php": "35d7543e0b6915d4fbc6b1499545d199cd8ce12b4eb1ee93d840058f57f56ed0",
+        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
       },
       "controls": {
         "reimbursement-select-all-available": {
@@ -421,11 +426,11 @@
         },
         "reimbursement-request-start": {
           "label": "Start Date",
-          "selector": ".reimbursement-date-range-form input[name=\"start_date\"]"
+          "selector": ".reimbursement-date-range-form .date-picker-field:has(> input[name=\"start_date\"]) .date-picker-box > input, .reimbursement-date-range-form input[name=\"start_date\"]"
         },
         "reimbursement-request-end": {
           "label": "End Date",
-          "selector": ".reimbursement-date-range-form input[name=\"end_date\"]"
+          "selector": ".reimbursement-date-range-form .date-picker-field:has(> input[name=\"end_date\"]) .date-picker-box > input, .reimbursement-date-range-form input[name=\"end_date\"]"
         },
         "reimbursement-bookkeeper-note": {
           "label": "Brief note or comment (optional)",
@@ -454,7 +459,7 @@
       "source_files": {
         "reimbursement_submit.php": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
         "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
-        "reimbursement_request.php": "dd699fb9f836e75e3311194e278d9e079cd90ea631211d0a597e5d667254b94b",
+        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90",
         "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
@@ -523,8 +528,8 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "d198dce7d4f43d4a67638809c3f5b0d047dd806916f721db9ce48088ce4a3789",
-        "templates/presentation_form.php": "ed8337fa84ae29e8b8fd080474fd2de94852ae3c49210f971f94ce7729272a5e",
+        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
+        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
         "templates/footer.php": "ec54451daa45fa8e561bc21a2fac82cc0580916afaddc21ab48454390a4453d3",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"

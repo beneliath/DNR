@@ -196,7 +196,7 @@
             flex: 1 1 280px;
         }
         .audit-filter-form .audit-search-field input[type="search"],
-        .audit-filter-form > input[type="date"],
+        .audit-filter-form .date-picker-box input,
         .audit-filter-form > input[type="text"],
         .audit-filter-form > .filter-button {
             box-sizing: border-box;
@@ -208,9 +208,8 @@
         .audit-filter-form .audit-search-field input[type="search"] {
             width: 100%;
         }
-        .audit-filter-form > input[type="date"] {
+        .audit-filter-form > .date-picker-field {
             width: 172px;
-            padding: 8px 12px;
         }
         .audit-filter-form > input[type="text"] {
             width: 172px;

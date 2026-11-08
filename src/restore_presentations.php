@@ -314,7 +314,7 @@ if ($engagement_title === '') {
                         <div class="date-fields">
                             <div class="date-field">
                                 <label for="restore-presentation-date-<?php echo $presentation_id; ?>">Presentation Date</label>
-                                <input type="date" id="restore-presentation-date-<?php echo $presentation_id; ?>"
+                                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="restore-presentation-date-<?php echo $presentation_id; ?>"
                                        name="presentation_dates[<?php echo $presentation_id; ?>]"
                                        min="<?php echo htmlspecialchars($engagement['event_start_date']); ?>"
                                        max="<?php echo htmlspecialchars($engagement['event_end_date']); ?>"

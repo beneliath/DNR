@@ -1,11 +1,13 @@
 import json
 import ipaddress
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 from integration_environment import verify, allocate_test_networks, LABEL
+from local_docker_storage import eligible_images, old_open_webui_images, remove_run_images
 from storage_encryption_preflight import contains_encryption, require_encrypted_upload_storage
 
 class IsolationTests(unittest.TestCase):
@@ -44,6 +46,35 @@ class IsolationTests(unittest.TestCase):
     def test_lvm_does_not_count_as_encryption(self):
         self.assertFalse(contains_encryption([{'type': 'lvm', 'children': [{'type': 'part'}]}]))
         self.assertTrue(contains_encryption([{'type': 'lvm', 'children': [{'type': 'crypt', 'children': [{'type': 'part'}]}]}]))
+
+class DisposableImageTests(unittest.TestCase):
+    def test_pressure_cleanup_protects_named_images_recent_builds_and_stopped_projects(self):
+        now = datetime(2026, 11, 8, tzinfo=timezone.utc)
+        old = 1
+        names = [f'dnr-test-{number:012x}-app:latest' for number in range(5)]
+        images = [(ref, str(i), old) for i, ref in enumerate(names[:4])]
+        images += [(names[4], '4', now.timestamp()), ('dnr-php-rollback:saved', '6', old),
+                   ('dnr-app:local', '7', old), (names[0].replace(':latest', ':keep'), '8', old)]
+        containers = [('1', 'alias:local', ''), ('other', names[2], ''), ('db', 'shared:local', names[3][:-11])]
+        self.assertEqual(eligible_images(images, containers, now), [names[0]])
+
+    def test_open_webui_retains_current_tag_references_and_two_unused_rollbacks(self):
+        labels = {'org.opencontainers.image.source': 'https://github.com/open-webui/open-webui',
+                  'org.opencontainers.image.title': 'open-webui'}
+        images = [dict(Id=str(i), Created=i, Labels=labels) for i in range(8)]
+        images[5]['RepoTags'] = ['ghcr.io/open-webui/open-webui:main']
+        images[1]['RepoDigests'] = ['retained@sha256:example']
+        images[0]['Labels'] = {}
+        self.assertEqual(old_open_webui_images(images, [('3', 'retired', '')]), ['2', '4'])
+
+    def test_teardown_removes_only_generated_tags_that_were_built(self):
+        project = 'dnr-test-0123456789ab'
+        app = project + '-app:latest'
+        database = project + '-database:latest'
+        with patch('local_docker_storage.docker', return_value=app + '\n' + database), patch('subprocess.run') as remove:
+            remove_run_images(project, [app, project + '-ingress:latest'])
+            remove.assert_called_once_with(['docker', 'image', 'rm', '--no-prune', app], check=True)
+
 
 class StoragePreflightTests(unittest.TestCase):
     def test_bound_volume_uses_actual_device_and_requires_crypto(self):

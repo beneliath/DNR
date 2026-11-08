@@ -79,7 +79,8 @@ expectBookingInquiryFeature(
         && str_contains($formTemplate, 'class="save-button inquiry-primary-action"')
         && str_contains($formTemplate, 'class="form-group inquiry-request-summary"')
         && str_contains($bookingStyles, '.inquiry-request-summary { margin-top: .55rem; }')
-        && str_contains($bookingStyles, '.inquiry-form input[type="date"]::-webkit-calendar-picker-indicator')
+        && str_contains($bookingStyles, '.inquiry-form .date-picker-box input:focus-visible')
+        && str_contains($formTemplate, 'data-date-picker="date"')
         && str_contains($bookingStyles, 'accent-color: var(--primary);')
         && str_contains($bookingStyles, 'color-scheme: dark;')
         && preg_match('/\.inquiry-form-actions\s*\{[^}]*border-top:/s', $bookingStyles) === 0,

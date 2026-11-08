@@ -1,3 +1,5 @@
+import {attachDatePicker} from '../../../src/assets/js/date-picker.mjs';
+import datePickerStyles from '../../../src/assets/css/date-picker.css';
 import {shortMOEDSidebarChannelDisplayName} from './sidebar_channel_label.mjs';
 import {channelBindingRefreshDelay} from './channel_binding_refresh.mjs';
 import {updateTaskDashboard} from './task_dashboard_state.mjs';
@@ -603,12 +605,33 @@ function EmailModal({request, onClose}) {
     </section></div>;
 }
 
+function TaskDueDate() {
+    const host = useRef(null);
+    useLayoutEffect(() => {
+        const container = host.current;
+        const modal = container.closest('.moed-modal');
+        // Mattermost themes supply their own modal surface color, independent of the OS theme.
+        const rgb = getComputedStyle(modal).backgroundColor.match(/[\d.]+/g)?.map(Number);
+        if (rgb?.length >= 3) {
+            const [red, green, blue] = rgb;
+            modal.toggleAttribute('data-dark-date-picker', red * 0.2126 + green * 0.7152 + blue * 0.0722 < 128);
+        }
+        const input = document.createElement('input');
+        input.className = 'moed-input';
+        input.name = 'due_date';
+        input.dataset.datePicker = 'date';
+        container.append(input);
+        attachDatePicker(input);
+        return () => container.replaceChildren();
+    }, []);
+    return <label className='moed-label'>Due date<span ref={host}/></label>;
+}
+
 function ActionModal({request, onClose}) {
     const createTask = request.action === 'create_task';
     const [title, setTitle] = useState(suggestedTitle(request.post));
     const [details, setDetails] = useState(String(request.post.message || '').slice(0, 18000));
     const [entryText, setEntryText] = useState(String(request.post.message || '').slice(0, 24000));
-    const [dueDate, setDueDate] = useState('');
     const [priority, setPriority] = useState('normal');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -629,7 +652,7 @@ function ActionModal({request, onClose}) {
                 action: request.action,
                 title,
                 details,
-                due_date: dueDate,
+                due_date: new FormData(event.currentTarget).get('due_date') || '',
                 priority,
                 entry_text: entryText,
             };
@@ -654,7 +677,7 @@ function ActionModal({request, onClose}) {
             {createTask ? <>
                 <label className='moed-label'>Task title<input className='moed-input' required maxLength='255' value={title} onChange={(event) => setTitle(event.target.value)}/></label>
                 <label className='moed-label'>Notes<textarea className='moed-textarea' maxLength='18000' value={details} onChange={(event) => setDetails(event.target.value)} placeholder='Optional task instructions'/></label>
-                <div className='moed-form-row'><label className='moed-label'>Due date<input className='moed-input' type='date' value={dueDate} onChange={(event) => setDueDate(event.target.value)}/></label><label className='moed-label'>Priority<select className='moed-select' value={priority} onChange={(event) => setPriority(event.target.value)}><option value='low'>Low</option><option value='normal'>Normal</option><option value='high'>High</option><option value='urgent'>Urgent</option></select></label></div>
+                <div className='moed-form-row'><TaskDueDate/><label className='moed-label'>Priority<select className='moed-select' value={priority} onChange={(event) => setPriority(event.target.value)}><option value='low'>Low</option><option value='normal'>Normal</option><option value='high'>High</option><option value='urgent'>Urgent</option></select></label></div>
             </> : <label className='moed-label'>Chron entry<textarea className='moed-textarea' required maxLength='24000' value={entryText} onChange={(event) => setEntryText(event.target.value)}/></label>}
             {error && <p className='moed-modal__error' role='alert'>{error}</p>}
             </>}
@@ -702,7 +725,7 @@ class MOEDPlugin {
     initialize(registry, store) {
         const style = document.createElement('style');
         style.id = 'moed-mattermost-webapp-styles';
-        style.textContent = STYLES + EMAIL_STYLES;
+        style.textContent = STYLES + EMAIL_STYLES + datePickerStyles;
         document.head.appendChild(style);
         registry.registerRootComponent(Root);
         registry.registerPostTypeComponent('custom_moed_today', TodayPost);

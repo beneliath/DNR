@@ -9,6 +9,8 @@ import subprocess
 import sys
 import tempfile
 
+from local_docker_storage import image_lock, remove_run_images
+
 ROOT = Path(__file__).resolve().parent.parent
 LABEL = 'org.dnr.disposable-test'
 
@@ -89,7 +91,7 @@ def main():
     # Do not inherit real application secrets, addresses, project selection or mail settings.
     env = {k: v for k, v in os.environ.items()
            if not k.startswith(('DNR_', 'MYSQL_', 'COMPOSE_')) and k not in ('PORT', 'DEFAULT_SPEAKER')}
-    with tempfile.TemporaryDirectory(prefix='dnr-test-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='dnr-test-') as temporary, image_lock():
         folder = Path(temporary)
         # HTTP is the disposable transport; recipient-facing links still need a public HTTPS identity.
         values = {'PORT': '0', 'DNR_PUBLIC_BASE_URL': 'https://message-monkey.example.test',
@@ -108,8 +110,15 @@ def main():
         test_networks = allocate_test_networks(existing)
         values.update(DNR_BACKEND_SUBNET=str(test_networks['backend']),
                       DNR_INGRESS_PROXY_IP=str(test_networks['backend'].network_address + 254))
-        for kind in ('APP', 'INGRESS', 'DATABASE'):
-            values['DNR_' + kind + '_IMAGE'] = os.environ.get('DNR_TEST_' + kind + '_IMAGE', project + '-' + kind.lower())
+        owned_images = []
+        build_services = []
+        for kind, service in [('APP', 'web'), ('INGRESS', 'ingress'), ('DATABASE', 'db')]:
+            image = os.environ.get('DNR_TEST_' + kind + '_IMAGE')
+            if not image:
+                image = project + '-' + kind.lower() + ':latest'
+                owned_images.append(image)
+                build_services.append(service)
+            values['DNR_' + kind + '_IMAGE'] = image
         if scanning_only:
             values['DNR_DOCUMENT_SCANNING'] = '1'
         envfile = folder / 'test.env'
@@ -147,8 +156,8 @@ def main():
                    '-f', str(ROOT/'docker-compose.yaml'), '-f', str(ROOT/'docker-compose.dev.yaml'),
                    '-f', str(ROOT/'docker-compose.mail.yaml'), '-f', str(overlay)]
         try:
-            if not all(os.environ.get('DNR_TEST_' + k + '_IMAGE') for k in ('APP', 'INGRESS', 'DATABASE')):
-                subprocess.run(compose + ['build', 'web', 'ingress', 'db'], cwd=ROOT, env=env, check=True)
+            if build_services:
+                subprocess.run(compose + ['build', *build_services], cwd=ROOT, env=env, check=True)
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
@@ -379,6 +388,7 @@ def main():
         finally:
             # Project name is generated here, never supplied by a caller.
             subprocess.run(compose + ['down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True)
+            remove_run_images(project, owned_images)
 
 
 if __name__ == '__main__':

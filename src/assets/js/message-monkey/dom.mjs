@@ -13,7 +13,12 @@ export const el = (tag, attrs = {}, text) => {
     return node;
 };
 export const button = (text, action, label = text) => el('button', {type: 'button', onclick: action, 'aria-label': label}, text);
-export const setValue = (form, name, value) => { const control = form?.elements.namedItem(name); if (control) control.value = value ?? ''; };
+export const setValue = (form, name, value) => {
+    const control = form?.elements.namedItem(name);
+    if (!control) return;
+    control.value = value ?? '';
+    if (control.dataset?.datePicker) control.dispatchEvent(new Event('date-picker:refresh'));
+};
 export const hidden = (name, value) => el('input', {type: 'hidden', name, value});
 export const request = async (url, options) => {
     const response = await fetch(url, {credentials: 'same-origin', ...options});

@@ -3,7 +3,7 @@
 .short-link-filters label, .short-link-card label { display: block; margin-block: .5rem; }
 .short-link-filters input, .short-link-filters select { margin-bottom: 0 !important; }
 .short-link-filters .short-link-filter-actions { display: flex; align-items: center; flex: 0 0 auto; gap: .75rem; }
-#short-link-filters :is(select, input[type=date], .button-primary, .button-secondary) { height: 44px !important; min-height: 44px !important; box-sizing: border-box; margin-bottom: 0; }
+#short-link-filters :is(select, .date-picker-box input, .button-primary, .button-secondary) { height: 44px !important; min-height: 44px !important; box-sizing: border-box; margin-bottom: 0; }
 .short-link-filter-actions > :is(a, button) { margin: 0; }
 .short-link-card { padding: 1.25rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); min-width: 0; }
 .short-link-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 1.25rem; }

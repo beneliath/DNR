@@ -252,7 +252,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 </div>
                 <label class="reply-follow-up-toggle"><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
                 <label for="follow-up-date">Follow-Up Date</label>
-                <input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+                <input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="text" data-date-picker="date" placeholder="YYYY-MM-DD" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
                 <p class="field-help">The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p>
             </section>
         </div>

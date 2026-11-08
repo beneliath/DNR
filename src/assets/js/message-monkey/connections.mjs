@@ -439,7 +439,24 @@ export function initializeConnectionsWorkspace(config, show) {
         groupOptions.replaceChildren(); (data.options?.length ? data.options : [{}]).forEach(addGroupOption);
         $('[data-group-heading]').textContent = data.id ? 'Edit group' : 'Create group'; show('group-editor');
     }));
-    const updateFieldChoices = () => { if ($('[data-field-choices]')) $('[data-field-choices]').hidden = !['dropdown', 'radio', 'checkboxes'].includes($('#field-type').value); };
+    const updateFieldChoices = () => {
+        const type = $('#field-type').value;
+        $('[data-field-choices]').hidden = !['dropdown', 'radio', 'checkboxes'].includes(type);
+        const input = $('#field-default');
+        const mode = ['date', 'birthday'].includes(type) ? type : '';
+        if ((input.dataset.datePicker || '') === mode) return;
+        const next = document.createElement('input');
+        next.id = input.id;
+        next.name = input.name;
+        next.maxLength = input.maxLength;
+        next.value = input.value;
+        if (mode) {
+            next.dataset.datePicker = mode;
+            next.placeholder = mode === 'birthday' ? 'MM-DD' : 'YYYY-MM-DD';
+        }
+        (input.closest('.date-picker-field') || input).replaceWith(next);
+        $('#field-default-label').htmlFor = next.id;
+    };
     $('#field-type')?.addEventListener('change', updateFieldChoices);
     let mergeTagEdited = false;
     $('#field-merge')?.addEventListener('input', () => { mergeTagEdited = true; });
@@ -453,10 +470,12 @@ export function initializeConnectionsWorkspace(config, show) {
     };
     $$('[data-field-edit]').forEach(b => b.addEventListener('click', () => {
         const data = JSON.parse(b.dataset.fieldEdit), form = $('#field-editor form'); lockFieldType(0); form.reset();
-        ['id', 'version', 'label', 'merge_tag', 'field_type', 'position', 'default_value'].forEach(key => setValue(form, key, data[key] ?? (key === 'position' ? 0 : '')));
+        ['id', 'version', 'label', 'merge_tag', 'field_type', 'position'].forEach(key => setValue(form, key, data[key] ?? (key === 'position' ? 0 : '')));
+        updateFieldChoices();
+        setValue(form, 'default_value', data.default_value ?? '');
         setValue(form, 'options_text', (typeof data.options_json === 'string' ? JSON.parse(data.options_json) : data.options_json || []).join('\n'));
         ['required', 'is_public'].forEach(key => { form.elements.namedItem(key).checked = Number(data[key]) === 1; });
-        lockFieldType(data.id); updateFieldChoices(); mergeTagEdited = Number(data.id) > 0;
+        lockFieldType(data.id); mergeTagEdited = Number(data.id) > 0;
         $('[data-field-heading]').textContent = Number(data.id) ? 'Edit field' : 'Create new field';
         show('field-editor');
     }));

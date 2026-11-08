@@ -1,3 +1,4 @@
+import {ruleValueAttributes} from './rule-value.mjs';
 import {$, $$, el, button, setValue, clone, request, workspaceUrl} from './dom.mjs';
 
 export function initializeSegmentBuilder(config, show, currentFiltersReady, filterSummary) {
@@ -125,8 +126,8 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                         for (const [key, label] of Object.entries(definition.options || {})) value.append(el('option', {value: key}, label));
                         value.value = String(rule.value ?? ''); value.addEventListener('change', () => { rule.value = value.value; clearPreview(); }); row.append(value);
                     } else {
-                        const type = ['last_days', 'not_last_days'].includes(rule.operator) || definition.kind === 'number' ? 'number' : definition.kind === 'date' || (['event', 'engagement'].includes(definition.kind) && ['before', 'after'].includes(rule.operator)) ? 'date' : 'text';
-                        const value = el('input', {type, value: rule.value ?? '', 'aria-label': 'Condition value', required: true, ...(type === 'number' ? {step: ['last_days', 'not_last_days'].includes(rule.operator) ? 1 : 'any'} : {}), ...(['last_days', 'not_last_days'].includes(rule.operator) ? {min: 1, max: 36500} : {})});
+                        const value = el('input', {...ruleValueAttributes(definition, rule.operator),
+                            value: rule.value ?? '', 'aria-label': 'Condition value', required: true});
                         value.addEventListener('input', () => { rule.value = value.value; clearPreview(); }); row.append(value);
                     }
                 }

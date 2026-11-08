@@ -74,7 +74,7 @@ $task_selected_label = $task_selected_subject === 'general'
             </div>
             <div class="form-group">
                 <label for="task-due-date">Due Date</label>
-                <input type="date" id="task-due-date" name="due_date" value="<?php echo htmlspecialchars($task_form_values['due_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="task-due-date" name="due_date" value="<?php echo htmlspecialchars($task_form_values['due_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
             <div class="form-group">
                 <label for="task-priority" class="required">Priority</label>

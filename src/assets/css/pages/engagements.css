@@ -135,7 +135,7 @@
             font-weight: 620;
             color: var(--text-muted) !important;
         }
-        .engagement-date-window input[type="date"] {
+        .engagement-date-window .date-picker-box input {
             width: auto;
             min-width: 0;
             margin: 0;
@@ -166,17 +166,17 @@
             0%, 100% { outline-offset: 5px; }
             50% { outline-offset: 10px; outline-color: transparent; }
         }
-        .engagement-date-window.has-active-date-filter input[type="date"] {
+        .engagement-date-window.has-active-date-filter .date-picker-box {
             outline: 3px solid var(--accent);
             outline-offset: 5px;
             animation: engagement-date-filter-blink 900ms ease-in-out 3;
         }
         @media (prefers-reduced-motion: reduce) {
             html body .engagement-date-window .engagement-apply-reminder { animation: none; }
-            .engagement-date-window.has-active-date-filter input[type="date"] { animation: none; }
+            .engagement-date-window.has-active-date-filter .date-picker-box { animation: none; }
         }
         @media (forced-colors: active) {
-            .engagement-date-window.has-active-date-filter input[type="date"] { outline-color: Highlight; }
+            .engagement-date-window.has-active-date-filter .date-picker-box { outline-color: Highlight; }
         }
         @media (max-width: 760px) {
             .engagement-date-window {

@@ -43,6 +43,15 @@ function assetUrl($path) {
     return $path . (str_contains($path, '?') ? '&' : '?') . $identity . $fragment;
 }
 
+/** Attributes for calendar-valued MessageMonkey custom fields, including script-free embeds. */
+function audienceDatePickerAttributes(string $fieldType): string {
+    return match ($fieldType) {
+        'date' => ' data-date-picker="date" placeholder="YYYY-MM-DD" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"',
+        'birthday' => ' data-date-picker="birthday" placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"',
+        default => '',
+    };
+}
+
 function renderPageHead($title, array $options = []) {
     $full_title = trim((string) $title);
     if ($full_title === '') {
@@ -64,6 +73,7 @@ function renderPageHead($title, array $options = []) {
         $styles[] = 'assets/css/pages/audience-ui-standards.min.css';
         $styles[] = 'assets/css/pages/audience-mobile.min.css';
     }
+    $styles[] = 'assets/css/date-picker.min.css';
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
@@ -94,6 +104,7 @@ function renderPageHead($title, array $options = []) {
     if (in_array('assets/css/pages/audience-designer.min.css', $styles, true)) {
         $layoutScripts[] = 'assets/js/audience-designer.min.js';
     }
+    renderScript('assets/js/date-picker.min.js');
     foreach ($scripts as $script) {
         $path = is_array($script) ? ($script['path'] ?? '') : $script;
         if ($path === '' || $path === 'assets/js/theme-init.min.js') {

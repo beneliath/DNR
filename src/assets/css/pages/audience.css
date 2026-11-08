@@ -1210,7 +1210,7 @@ html.has-js .content-brand-logo-stage img:not([data-artwork-fitted]){visibility:
 .campaign-period-navigation>.audience-button{min-height:44px}
 .campaign-period-navigation>.campaign-period-arrow{width:44px;padding:0;color:var(--audience-text)}
 .campaign-period-arrow>svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.collection-report-filters :is(input[type=date],button,a){height:calc(1.5em + 16px);line-height:1.5}
+.collection-report-filters :is(.date-picker-box input,button,a){height:calc(1.5em + 16px);line-height:1.5}
 .collection-report-filters>a{display:inline-flex;align-items:center}
 .collection-response-connection{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px}
 .collection-response-tags{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0;min-width:0}

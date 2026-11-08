@@ -1,6 +1,7 @@
 // Browser entry points shared by MOED and MessageMonkey. Imported modules are
 // bundled through their entry point; map workers and PDF.js retain their own builds.
 export const javascriptAssets = [
+    {name: 'date-picker', bundle: true},
     {name: 'user-time'},
     {name: 'page-loading'},
     {name: 'audience-ai', bundle: true},
@@ -11,7 +12,7 @@ export const javascriptAssets = [
     {name: 'audience-head', bundle: true},
     {name: 'audience-layout-init', bundle: true},
     {name: 'audience-import'},
-    {name: 'audience-flows'},
+    {name: 'audience-flows', bundle: true},
     {name: 'audience-collection', bundle: true},
     {name: 'audience-collection-public', bundle: true},
     {name: 'account-context'},
@@ -66,6 +67,7 @@ export const javascriptAssets = [
 ];
 
 export const stylesheetAssets = [
+    {name: 'date-picker'},
     {name: 'page-loading'},
     {name: 'style'},
     {name: 'modern'},

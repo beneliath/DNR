@@ -1,5 +1,5 @@
 <?php /* Shared expense form supplies escaped values, permissions, and the stored rate. */ ?>
-<label>Date <input type="date" name="expense_date" value="<?= reimbursementExpenseH($expense['expense_date']) ?>" required<?= !$canEdit ? ' disabled' : '' ?>></label>
+<label>Date <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="expense_date" value="<?= reimbursementExpenseH($expense['expense_date']) ?>" required<?= !$canEdit ? ' disabled' : '' ?>></label>
 <div data-mileage-calculation data-mileage-rate="<?= reimbursementExpenseH($mileageRate) ?>">
 <input type="hidden" name="mileage_rate" value="<?= reimbursementExpenseH($mileageRate) ?>">
 <p><strong>Reimbursement Per Mile:</strong> $<?= reimbursementExpenseH($mileageRate) ?></p>

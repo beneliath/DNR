@@ -73,8 +73,8 @@ function audienceCollectionControl(string $name,string $label,string $type,mixed
         return $html.'</select>'.$hint;
     }
     if (in_array($type,['textarea','address'],true)) return $html.'<textarea id="'.$id.'" name="'.$h($name).'" rows="4" maxlength="5000"'.$need.$description.'>'.$h($v).'</textarea>'.$hint;
-    $inputType=match($type){'email'=>'email','date'=>'date','number'=>'number','url'=>'url','phone'=>'tel',default=>'text'};
-    return $html.'<input id="'.$id.'" name="'.$h($name).'" type="'.$inputType.'" value="'.$h($v).'" maxlength="2000"'.($type==='number'?' step="any"':'').($type==='birthday'?' placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"':'').$need.$description.'>'.$hint;
+    $inputType=match($type){'email'=>'email','number'=>'number','url'=>'url','phone'=>'tel',default=>'text'};
+    return $html.'<input id="'.$id.'" name="'.$h($name).'" type="'.$inputType.'" value="'.$h($v).'" maxlength="2000"'.($type==='number'?' step="any"':'').audienceDatePickerAttributes($type).$need.$description.'>'.$hint;
 }
 
 /** Shared branded document; preview controls use trusted application code without executing frame scripts. */
@@ -90,12 +90,15 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     $hasAddress=audienceCollectionHasAddress($r,$fields);
     $hasPhone=audienceCollectionHasPhone($r,$fields);
     $nativeAddress=$embedded&&($embedOptions['disable_javascript']||$embedOptions['remove_css']);
+    $hasDates = !($embedded && $embedOptions['disable_javascript']) && array_filter($fields, static fn($field) =>
+        !empty($field['is_public']) && in_array($field['field_type'], ['date', 'birthday'], true)
+        && in_array('custom:'.$field['id'], $d['fields'], true));
     $pageLoading=!$preview&&!$nativeAddress&&!in_array($r['kind'],['confirm','unsubscribe'],true);
     $control=static fn($name,$label,$type,$value,$required=false,$options=[],$help='')=>audienceCollectionControl($name,$label,$type,$value,$required,$options,$messages,$help,$nativeAddress);
     // All pages use their canonical content; historical variation receipts remain readable.
     ob_start();
     ?>
-    <!doctype html><html<?= $nativeAddress?' data-address-inputs="native" data-phone-inputs="native"':'' ?> lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
+    <!doctype html><html<?= $embedded&&$embedOptions['disable_javascript']?' data-disable-date-picker':'' ?><?= $nativeAddress?' data-address-inputs="native" data-phone-inputs="native"':'' ?> lang="<?= $h($d['language']) ?>" dir="<?= preg_match('/^(he|ar|fa|ur)(-|$)/',$d['language'])?'rtl':'ltr' ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= $h($d['title']) ?></title><meta name="description" content="<?= $h($d['description']) ?>"><meta property="og:title" content="<?= $h($d['title']) ?>"><meta property="og:description" content="<?= $h($d['description']) ?>"><?php if($d['favicon']): ?><link rel="icon" href="<?= $h($d['favicon']) ?>"><?php endif; ?>
     <?php if($pageLoading): ?><script nonce="<?= $h($nonce) ?>" async src="<?= $h(assetUrl('assets/js/page-loading.min.js')) ?>"></script><?php endif; ?>
     <style nonce="<?= $h($nonce) ?>">
     <?php if($pageLoading)readfile(__DIR__.'/assets/css/page-loading.min.css'); ?>
@@ -106,6 +109,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php // Keep branded public pages self-contained; share only native-control normalization. ?>
     <?= file_get_contents(__DIR__.'/assets/css/pages/native-selects.min.css') ?>
     <?php endif; ?>
+    <?php if($hasDates)readfile(__DIR__.'/assets/css/date-picker.min.css'); ?>
     <?php if($preview): ?>
     .collection-editable-block{position:relative;min-height:24px;cursor:pointer}
     .collection-editable-block:hover,.collection-editable-block:focus-within,.collection-editable-block.is-selected{outline:3px double #007c89;outline-offset:4px}
@@ -166,6 +170,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php if(!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/address-inputs-public.min.js')) ?>" defer></script><?php endif; ?>
     <?php endif; ?>
     <?php if(!$preview&&!$nativeAddress&&!in_array($r['kind'],['confirm','unsubscribe'],true)): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/audience-collection-public.min.js')) ?>" defer></script><?php endif; ?>
+    <?php if($hasDates&&!$preview): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/date-picker.min.js')) ?>" defer></script><?php endif; ?>
     <?php if($hasPhone&&!$preview&&!$nativeAddress): ?><script nonce="<?= $h($nonce) ?>" src="<?= $h(assetUrl('assets/js/phone-input.min.js')) ?>" defer></script><?php endif; ?>
     <?php if($embedded&&!$preview&&!$embedOptions['disable_javascript']&&isset($r['resize_script'])): ?>
     <script type="application/json" id="collection-resize-config"><?= json_encode(['key'=>$r['public_key'],'origins'=>$d['origins']],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR) ?></script>

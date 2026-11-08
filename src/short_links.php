@@ -170,8 +170,8 @@ if ($activeLink !== null) {
         </select></div>
         <div><label for="type_filter">Link Type</label><select name="type" id="type_filter"><option value="">All Types</option><?php foreach (SHORT_LINK_TYPES as $key => $label): ?><option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>><?php echo $h($label); ?></option><?php endforeach; ?></select></div>
         <?php endif; ?>
-        <div><label for="from_filter">From (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
-        <div><label for="to_filter">Through (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
+        <div><label for="from_filter">From (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
+        <div><label for="to_filter">Through (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
         <div class="short-link-filter-actions"><button type="submit" class="button-primary" data-pending-reminder="link-filters">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
     </form>
     <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>

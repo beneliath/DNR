@@ -3354,7 +3354,7 @@ html body .task-record-search-dialog .task-subject-result:is(:hover, :focus-visi
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close, .account-identity-switch),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option, .calendar-day-toggle, .calendar-day-popover-close, .account-identity-switch, .date-picker-trigger, .date-picker-calendar button),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,

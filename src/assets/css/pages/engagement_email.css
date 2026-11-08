@@ -341,6 +341,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     margin: 0;
 }
 
+.engagement-email-page .reply-follow-up .date-picker-field,
 .engagement-email-page .reply-follow-up-date {
     width: min(100%, 18rem);
 }

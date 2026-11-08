@@ -119,6 +119,7 @@
                 const list = doc.createElement('ul');
                 fields.forEach(function (field) {
                     if (field.disabled || field.validity.valid) return;
+                    if (field.dataset?.datePicker && fields.has(errorTarget(field))) return;
                     clearFieldError(field);
                     const message = fieldValidationMessage(field);
                     const label = fieldLabel(field);
@@ -126,7 +127,7 @@
                     inline.className = 'form-field-error';
                     inline.textContent = message;
                     const target = errorTarget(field);
-                    const placement = target.closest('[data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
+                    const placement = target.closest('.date-picker-field, [data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
                     placement.insertAdjacentElement('afterend', inline);
                     connect(errorTarget(field), inline);
                     const item = doc.createElement('li');
@@ -170,7 +171,7 @@
                 inline.className = 'form-field-error';
                 inline.textContent = text;
                 const target = errorTarget(field);
-                const placement = target.closest('[data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
+                const placement = target.closest('.date-picker-field, [data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
                 placement.insertAdjacentElement('afterend', inline);
                 connect(target, inline);
                 item.replaceChildren();
