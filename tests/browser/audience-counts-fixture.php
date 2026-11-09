@@ -15,6 +15,7 @@ $id=0;
 $contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'','timezone'=>'','source'=>'Manual','consent_note'=>''];
 $audience=['name'=>'Example audience','settings_json'=>'{}','version'=>1];
 $groups=$fields=$tags=$sources=$segments=$query=$rowTags=$rowGroups=[];
+$activeTags=$tags;
 $rules=['match'=>'all','rules'=>[]];$catalog=audienceRuleCatalog([],[],[]);$segment=$job=null;
 $filters=audienceListFilters($_GET);$query=$_GET;$sort='created_at';$direction='desc';$page=1;$pageSize=audiencePageSize($_GET);
 $sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];

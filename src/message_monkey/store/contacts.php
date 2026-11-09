@@ -196,6 +196,14 @@ trait AudienceContacts
     public function mutatePerson(int $id,int $version,string $action,array $params=[]): void
     {
         $this->transaction(function()use($id,$version,$action,$params){$person=$this->person($id,true);if((int)$person['version']!==$version)throw new InvalidArgumentException('This connection changed since selection. Reload before retrying.');
+            if ($action === 'subscribe') {
+                $consent = audienceText($params, 'consent_note', 1000);
+                if ($consent === '') throw new InvalidArgumentException('Record when and how these connections gave permission before subscribing.');
+                $this->saveProfileSection($id, $version, 'marketing', [
+                    'email' => $person['email'], 'email_consent' => '1', 'consent_note' => $consent,
+                ]);
+                return;
+            }
             if($action==='delete'){
                 $this->write('INSERT IGNORE INTO marketing_deleted_emails (audience_id,email_hash) VALUES (?,?)',[$this->audienceId,hash('sha256',$person['email'])]);
                 $this->write('DELETE FROM marketing_contact_tags WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_contact_groups WHERE contact_id=?',[$id]);$this->write('DELETE FROM marketing_notes WHERE contact_id=?',[$id]);

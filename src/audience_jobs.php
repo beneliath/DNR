@@ -92,7 +92,11 @@ trait AudienceJobs
         return $this->transaction(function()use($type,$name,$where,$params){
             if($type==='bulk'){
                 $action=$params['action']??'';
-                if(!in_array($action,['archive','restore','unsubscribe','tag','untag','group','ungroup','delete'],true))throw new InvalidArgumentException('Choose a supported connections action.');
+                if(!in_array($action,['archive','restore','subscribe','unsubscribe','tag','untag','group','ungroup','delete'],true))throw new InvalidArgumentException('Choose a supported connections action.');
+                if($action==='subscribe'){
+                    $params['consent_note']=audienceText($params,'consent_note',1000);
+                    if($params['consent_note']==='')throw new InvalidArgumentException('Record when and how these connections gave permission before subscribing.');
+                }
                 if(in_array($action,['tag','untag'],true)&&!$this->one('SELECT id FROM marketing_tags WHERE id=? AND audience_id=?'.($action==='tag'&&$this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[(int)($params['tag_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available tag.');
                 if(in_array($action,['group','ungroup'],true)&&!$this->one('SELECT o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE o.id=? AND g.audience_id=?'.($action==='group'&&$this->definitionArchiveAvailable()?' AND g.archived_at IS NULL':''),[(int)($params['option_id']??0),$this->audienceId]))throw new InvalidArgumentException('Choose an available group.');
             }
