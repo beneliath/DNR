@@ -4,6 +4,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./helpers/account-context.js');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
+test('receipt previews load the PDF.js library and worker matching the dependency version', () => {
+  const version = require('../../package.json').dependencies['pdfjs-dist'];
+  const renderer = fs.readFileSync(require.resolve('../../src/assets/js/reimbursement-receipt-preview.mjs'), 'utf8');
+  const assets = Array.from(renderer.matchAll(/\.\/vendor\/pdfjs-([^/'"]+)\/pdf(?:\.worker)?\.min\.mjs/g));
+  assert.deepEqual(assets.map(match => match[1]), [version, version]);
+  for (const match of assets) {
+    assert.ok(fs.existsSync(require('node:path').resolve(__dirname, '../../src/assets/js', match[0])));
+  }
+});
 test('mileage preview uses whole readings, matches cent rounding, and rejects fractional or reversed readings', () => {
   const input = value => ({value, events: {}, addEventListener(name, fn) { this.events[name] = fn; }, setCustomValidity(message) { this.error = message; }});
   const start = input('12000'), end = input('12250'), total = {};
