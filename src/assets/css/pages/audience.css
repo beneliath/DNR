@@ -655,15 +655,6 @@ html.dark-mode .danger-text{color:#ffaaa0}
 .audience-brand>.audience-logo-wrap{display:flex;align-items:center;color:#fff;background:transparent;padding:4px;text-decoration:none}
 .audience-brand .audience-logo{width:43px;height:43px;display:block}
 html.dark-mode .audience-brand>.audience-logo-wrap{background:transparent}
-html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo{
-  box-sizing:content-box;
-  padding:4px;
-  margin:-4px;
-  border-radius:50%;
-  background:#171d27;
-}
-html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo>.audience-logo-outline{display:none}
-html:not(.dark-mode) .audience-app [data-audience-logo]>.audience-logo>g:not(.audience-logo-outline)>path{fill:#f3f6fb}
 .audience-create{border-radius:7px;border-color:var(--audience-control-border);padding:5px 12px;min-height:36px;gap:12px;font-size:calc(17px * var(--audience-font-scale, 1));font-weight:400}
 .audience-create svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .audience-create:is(:hover,:focus){text-decoration:none;background:var(--audience-hover);color:var(--audience-text);border-color:var(--audience-control-border)}

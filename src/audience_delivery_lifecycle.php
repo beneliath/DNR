@@ -59,7 +59,7 @@ function processAudienceServiceMail(mysqli $db,int $limit=5,?callable $deliver=n
                     || audienceDeletedEmailSuppressed($db,1,(int)$job['contact_id'],$hash);
                 if(!$person||$blocked)throw new DomainException('Subscription notice is no longer eligible.');
             }
-            if($job['kind']==='audience-alert'){require_once __DIR__.'/audience_notification_runtime.php';audienceChangeAlertReady($db,$message);}
+            if($job['kind']==='audience-alert'){require_once __DIR__.'/audience_notification_runtime.php';$message=audienceChangeAlertReady($db,$message);}
             if(in_array($job['kind'],['inbox','inbox-alert','inbox-forward'],true)){
                 require_once __DIR__.'/audience_inbox_runtime.php';
                 if($job['kind']!=='inbox-alert'){$candidate='mm-inbox-1-'.(int)($message['inbox_thread_id']??0);if((int)$db->execute_query('SELECT GET_LOCK(?,0) acquired',[$candidate])->fetch_assoc()['acquired']!==1)throw new MailBudgetDeferredException(gmdate('Y-m-d H:i:s',time()+5),'This Inbox conversation is busy.');$inboxLock=$candidate;}

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/audience_store.php';
+require_once __DIR__.'/audience_daily_summary.php';
 
 /** Queue staff alerts only. Sending remains in the existing SES service worker. */
 function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
@@ -21,14 +22,14 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
             // to recipients or bell preferences. Never skip or repeat that day.
         }
         $ses=$store->one('SELECT * FROM marketing_ses_settings WHERE audience_id=1');$users=$store->audienceNotificationUsers();$queued=0;
-        $queue=function(string $kind,string $key,string $text,?int $contact=null)use($store,$prefs,$ses,$users,$now,&$queued):bool{
+        $queue=function(string $kind,string $key,string $text,?int $contact=null,array $report=[])use($store,$prefs,$ses,$users,$now,&$queued):bool{
             if(!$ses||!$ses['enabled'])return false;
             $handled=false;
             foreach($users as$user){
                 if(!in_array(strtolower($user['email']),$prefs[$kind.'_emails']??[],true))continue;
                 $operation=hash('sha256','audience:'.$prefs['generation'].':'.$key.':'.$user['id']);
                 $messageId='<audience-alert-'.$operation.'@message-monkey.invalid>';
-                $message=['email'=>$user['email'],'from_email'=>$ses['from_email'],'from_name'=>'MessageMonkey','subject'=>match($kind){'signup'=>'New audience subscription','unsubscribe'=>'Audience unsubscribe',default=>'Daily audience summary'},'text'=>$text,'html'=>null,'message_id'=>$messageId,'ses_binding'=>audienceSesBinding($ses),'audience_notice'=>['kind'=>$kind,'generation'=>$prefs['generation'],'user'=>(int)$user['id'],'contact'=>$contact]];
+                $message=['email'=>$user['email'],'from_email'=>$ses['from_email'],'from_name'=>'MessageMonkey','subject'=>match($kind){'signup'=>'New audience subscription','unsubscribe'=>'Audience unsubscribe',default=>'Daily audience summary'},'text'=>$text,'html'=>null,'message_id'=>$messageId,'ses_binding'=>audienceSesBinding($ses),'audience_notice'=>['kind'=>$kind,'generation'=>$prefs['generation'],'user'=>(int)$user['id'],'contact'=>$contact]+$report];
                 $payload=\Dnr\Security\ApplicationKey::seal(json_encode(['message'=>$message],JSON_THROW_ON_ERROR));
                 $store->write("INSERT IGNORE INTO marketing_service_mail(audience_id,contact_id,kind,actor_id,actor_label,operation_key,payload_ciphertext,message_id,next_attempt_at,expires_at) VALUES (1,?,'audience-alert',?,'Audience notifications',?,?,?,?,?)",[$contact,$user['id'],$operation,$payload,$messageId,gmdate('Y-m-d H:i:s',$now),gmdate('Y-m-d H:i:s',$now+86400)]);$queued+=$store->db->affected_rows;$handled=true;
             }
@@ -44,27 +45,37 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
         if($state['digest_day']<$today){
             if(empty($prefs['digest_emails']))$state['digest_day']=$today;
             else{
-                $counts=audienceNotificationDigest($store->db,1,$prefs,$due);
-                $text=$audience['name']."\nAudience changes for ".gmdate('Y-m-d',$due-86400).' (UTC): '.$counts['signup'].' subscriptions, '.$counts['unsubscribe']." unsubscribes.\n";
-                if(!array_sum($counts))$text.="No subscriptions or unsubscribes were recorded.\n";
-                $text.=rtrim(currentAccountPublicUrl(),'/').'/audience.php?view=analytics&section=audience';
+                // Store the reporting window. Resolve names and links after the recipient
+                // check at delivery, so a subsequently deleted profile stays out of the email.
+                $report=['day'=>gmdate('Y-m-d',$due-86400),'start_event'=>(int)($prefs['digest_start_event']??$prefs['start_event'])];
                 // Keep the day due while SES is disabled or no configured staff
                 // recipient is eligible, so a later worker pass can try again.
-                if($queue('digest','digest:'.$today,$text))$state['digest_day']=$today;
+                if($queue('digest','digest:'.$today,'',null,$report))$state['digest_day']=$today;
             }
         }
         $store->write('UPDATE marketing_audience_notification_state SET generation=?,event_cursor=?,digest_day=? WHERE audience_id=1',[$state['generation'],$state['event_cursor'],$state['digest_day']]);return $queued;
     });
 }
 
-function audienceChangeAlertReady(mysqli $db,array $message):void
+function audienceChangeAlertReady(mysqli $db,array $message):array
 {
     $notice=$message['audience_notice']??[];
-    $row=$db->query('SELECT settings_json FROM marketing_audiences WHERE id=1')->fetch_assoc();$prefs=audienceJson($row['settings_json'])['subscriber_notifications']??[];
+    $row=$db->query('SELECT name,settings_json FROM marketing_audiences WHERE id=1')->fetch_assoc();$prefs=audienceJson($row['settings_json'])['subscriber_notifications']??[];
     $kind=$notice['kind']??'';
     $user=$db->execute_query("SELECT email FROM users WHERE id=? AND role IN ('admin','editor') AND account_status='active' AND email_verified_at IS NOT NULL",[(int)($notice['user']??0)])->fetch_assoc();
     // A prepared daily report remains valid after unrelated preference edits.
     // Its recipient must still be verified and selected at delivery time.
     if(!in_array($kind,['signup','unsubscribe','digest'],true)||!$user||($kind!=='digest'&&($prefs['generation']??'')!==($notice['generation']??null))||strtolower($user['email'])!==strtolower($message['email'])||!in_array(strtolower($user['email']),$prefs[$kind.'_emails']??[],true))throw new DomainException('This audience notification is no longer eligible.');
     if(!empty($notice['contact'])&&!$db->execute_query('SELECT id FROM marketing_contacts WHERE audience_id=1 AND id=? AND deleted_at IS NULL',[$notice['contact']])->fetch_assoc())throw new DomainException('This connection is unavailable.');
+    if($kind==='digest'){
+        $day=$notice['day']??null;
+        // Older queued summaries stored the reporting date in their plain-text heading.
+        if($day===null&&preg_match('/^Audience changes for (\d{4}-\d{2}-\d{2}) \(UTC\): \d+ subscriptions, \d+ unsubscribes\.$/m',$message['text'],$match))$day=$match[1];
+        if($day===null)return $message;
+        $store=new AudienceStore($db,1,0,'Audience notifications');
+        $startEvent=(int)($notice['start_event']??$prefs['digest_start_event']??$prefs['start_event']??0);
+        $groups=audienceDailySummaryRows($store,$day,$startEvent);
+        $message=array_replace($message,audienceDailySummaryEmail($row['name'],$day,$groups));
+    }
+    return $message;
 }

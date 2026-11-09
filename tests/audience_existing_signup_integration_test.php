@@ -41,6 +41,8 @@ try{
         $form=$makeForm($kind,$mode);$forms[]=$form;[$id,$email]=$newPerson($kind.'-'.$mode);
         [$result,$input]=$submit($form,$email,$details);
         $person=$store->person($id);$expect($result['confirmed']===true&&$person['email_status']==='subscribed','Every signup kind and mode requests confirmation without interrupting an existing subscription');
+        $receipt=$store->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission' ORDER BY id DESC LIMIT 1",[$id]);
+        $expect(audienceJson($receipt['details_json'])['prior_status']==='subscribed','The form records that this interaction came from an existing subscriber');
         $expect($person['last_name']===''&&($person['custom'][$address]??'')==='','Existing profile additions stay pending before ownership proof');
         [$mail,$message,$token]=$latest($id);
         $expect($mail['state']==='queued'&&!$store->confirmSubscription($token),'Queued confirmations cannot apply pending profile additions');

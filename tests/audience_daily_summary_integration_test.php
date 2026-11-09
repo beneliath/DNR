@@ -34,9 +34,17 @@ try{
     $checkpoint=static fn()=>$store->one('SELECT digest_day FROM marketing_audience_notification_state WHERE audience_id=1')['digest_day'];
     $expect(queueAudienceChangeAlerts($db,100,$before)===0&&$jobs()===[],'No daily summary before 23:11');
     $expect(queueAudienceChangeAlerts($db,100,$first)===1,'A quiet day queues a summary at 23:11');
-    $quiet=$last();$quietMessage=$message($quiet);
-    $expect(str_contains($quietMessage['text'],'0 subscriptions, 0 unsubscribes.')&&str_contains($quietMessage['text'],'No subscriptions or unsubscribes were recorded.'),'Quiet-day email explicitly reports no changes');
+    $quiet=$last();$quietMessage=audienceChangeAlertReady($db,$message($quiet));
+    $expect(str_contains($quietMessage['text'],'0 subscriptions · 0 pending sign-ups · 0 unsubscribes')&&str_contains($quietMessage['html'],'No pending sign-ups.'),'Quiet-day email explicitly reports all three empty categories');
     $expect(str_contains($quietMessage['text'],'Audience changes for '.$day.' (UTC)'),'The summary covers the previous complete UTC day');
+    $header=new DOMDocument();@$header->loadHTML($quietMessage['html']);
+    $logos=$header->getElementsByTagName('img');
+    $expect($logos->length===2&&$logos->item(0)->getAttribute('alt')==='MessageMonkey'
+        &&str_ends_with($logos->item(0)->getAttribute('src'),'/assets/audience-logo-email.png')
+        &&$logos->item(1)->getAttribute('src')===emailBrandLogoUrl(),'The guide artwork appears left of the MOED masthead logo');
+    $legacy=$message($quiet);unset($legacy['audience_notice']['day'],$legacy['audience_notice']['start_event']);
+    $legacy['text']="Former audience\nAudience changes for ".$day." (UTC): 0 subscriptions, 0 unsubscribes.\n";
+    $expect(audienceChangeAlertReady($db,$legacy)['html']===$quietMessage['html'],'A summary queued before this update uses the same renderer for its original reporting day');
     $expect(queueAudienceChangeAlerts($db,100,$first+60)===0&&count($jobs())===1,'Repeated passes do not duplicate a daily email');
     $changed=$input;$changed['in_app_signup']='1';$prefs=$save($changed);
     audienceChangeAlertReady($db,$quietMessage);$expect(true,'An unrelated preference edit does not invalidate a prepared daily summary');
@@ -44,22 +52,58 @@ try{
     // Exercise the real service-mail worker with a controlled callback, never SES.
     $store->write('UPDATE marketing_service_mail SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$quiet['id']]);$delivered=[];
     processAudienceServiceMail($db,5,static function(array $outgoing,string $kind)use(&$delivered,$email):string{if($kind!=='audience-alert'||$outgoing['email']!==$email)throw new RuntimeException('Unexpected outgoing fixture.');$delivered[]=$outgoing;return 'accepted';});
-    $expect(count($delivered)===1&&$store->one('SELECT state FROM marketing_service_mail WHERE id=?',[$quiet['id']])['state']==='accepted','The worker prepares and accepts a zero-change summary');
-    $person=$store->savePerson(['email'=>'summary-contact-'.$suffix.'@example.test','email_status'=>'non-subscribed']);
-    $eventDate=gmdate('Y-m-d',$first).' 12:00:00';
-    foreach([['subscription_changed',['from'=>'pending','to'=>'subscribed']],['subscription_changed',['from'=>'subscribed','to'=>'unsubscribed']],['contact_added',['status'=>'subscribed','origin'=>'Import']],['subscription-confirmed',['from'=>'subscribed','to'=>'subscribed']]]as[$type,$details])$store->write('INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,?,?,?,?)',[$person,$type,json_encode($details,JSON_THROW_ON_ERROR),'Summary fixture',$eventDate]);
+    $expect(count($delivered)===1&&$delivered[0]['html']===$quietMessage['html']&&$store->one('SELECT state FROM marketing_service_mail WHERE id=?',[$quiet['id']])['state']==='accepted','The worker delivers the rendered HTML summary');
+    $addressField=$store->saveField(['label'=>'Summary address','merge_tag'=>'ADDR'.strtoupper($suffix),'field_type'=>'address'],0,0);
+    $person=$store->savePerson(['email'=>'summary-contact-'.$suffix.'@example.test','first_name'=>'Avery','last_name'=>'O\'Neil & Lee','email_status'=>'non-subscribed',
+        'custom'=>[$addressField=>['address1'=>'Private Street','city'=>'Evanston','region'=>'IL']]]);
+    $unnamed=$store->savePerson(['email'=>'unnamed-'.$suffix.'@example.test','first_name'=>'private@example.test','email_status'=>'non-subscribed']);
+    $eventDay=gmdate('Y-m-d',$first);
+    $event=static function(int $id,string $type,array $detail,string $time)use($store,$eventDay):void{
+        $store->write('INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,?,?,?,?)',[$id,$type,json_encode($detail,JSON_THROW_ON_ERROR),'Summary fixture',$eventDay.' '.$time]);
+    };
+    $event($person,'signup-permission',['opt_in'=>'double','interaction_location'=>['country_code'=>'CA','city'=>'Toronto']], '08:01:02');
+    $event($person,'subscription-confirmed',['from'=>'pending','to'=>'subscribed','interaction_location'=>['country_code'=>'US','region'=>'Wisconsin','city'=>'Madison']], '10:02:03');
+    $event($person,'collection-converted',['method'=>'double'], '10:02:03');
+    $event($person,'signup-permission',['opt_in'=>'double'], '11:00:00');
+    $event($person,'status',['from'=>'subscribed','to'=>'unsubscribed','interaction_location'=>['country_code'=>'GB']], '14:03:04');
+    $event($unnamed,'signup-permission',['opt_in'=>'single','prior_status'=>null,'interaction_location'=>['ip_address'=>'192.0.2.42']], '23:59:59');
+    $event($person,'contact_added',['status'=>'subscribed','origin'=>'Import'], '15:00:00');
+    $event($person,'subscription-confirmed',['from'=>'subscribed','to'=>'subscribed'], '15:00:01');
+    $event($person,'signup-permission',['opt_in'=>'double','prior_status'=>'subscribed'], '15:00:02');
+    $store->write("INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,'contact_added',JSON_OBJECT('status','pending'),'Summary fixture',DATE_ADD(?, INTERVAL 1 DAY))",[$person,$eventDay]);
     $changed['in_app_unsubscribe']='1';$prefs=$save($changed);
     $expect($prefs['digest_start_event']===$baseline&&$prefs['start_event']>$baseline,'Preference edits retain the summary baseline while renewing individual alerts');
     $second=(new DateTimeImmutable($day.' 23:11:00',new DateTimeZone('America/Chicago')))->modify('+1 day')->getTimestamp();
-    $expect(queueAudienceChangeAlerts($db,100,$second)===1,'Next daily email is queued after preference edits');$changes=$message($last());
-    $expect(str_contains($changes['text'],'1 subscriptions, 1 unsubscribes.'),'Earlier changes survive a later preference save; imports and repeat confirmations are excluded');
-    $expect(!str_contains($changes['text'],'summary-contact-'),'The summary does not expose contact email addresses');
+    $expect(queueAudienceChangeAlerts($db,100,$second)===1,'Next daily email is queued after preference edits');$queued=$message($last());
+    $changes=audienceChangeAlertReady($db,$queued);
+    $expect(str_contains($changes['text'],'2 subscriptions · 1 pending sign-up · 1 unsubscribe'),'Single opt-ins, confirmations and pending requests count once, excluding imports, repeated confirmations and existing-subscriber form submissions');
+    $contactUrl=applicationPublicUrl('audience.php',['view'=>'contact','id'=>$person]);
+    $analyticsUrl=applicationPublicUrl('audience.php',['view'=>'analytics','section'=>'audience']);
+    $expect(substr_count($changes['text'],$contactUrl)===3&&substr_count($changes['html'],'href="'.htmlspecialchars($contactUrl,ENT_QUOTES).'"')===3,'Each interaction row opens the same specific account contact in both alternatives');
+    $expect(str_contains($changes['text'],$analyticsUrl)&&str_contains($changes['html'],'href="'.htmlspecialchars($analyticsUrl,ENT_QUOTES).'"'),'Both alternatives link to account audience analytics');
+    foreach(['text','html'] as $part){
+        $body=html_entity_decode(strip_tags($changes[$part]),ENT_QUOTES,'UTF-8');
+        $expect(!preg_match('/[\w.+-]+@[\w.-]+/',$body)&&!str_contains($body,'Private Street')&&!str_contains($body,'192.0.2.42'),'Email addresses, street addresses and IPs are absent from '.$part);
+        $expect(substr_count($body,'Evanston, IL')===2&&str_contains($body,"Avery O'Neil & Lee")&&str_contains($body,'Connection #'.$unnamed),'Only subscriptions and pending sign-ups carry the mailing locality, with a safe unnamed fallback in '.$part);
+        foreach(['Subscription location · Madison, Wisconsin','Sign-up location · Toronto, Canada','Unsubscribe location · United Kingdom','Subscription location · Not recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
+    }
+    foreach ([
+        ['123 Example Street, St. Louis, MO 63101 US', ['St. Louis','MO']],
+        ['PO Box 937 Dallas, TX 75201', ['Dallas','TX']],
+        ['Example Street, IL 60601', ['','IL']],
+        ['Unstructured text', ['','']],
+    ] as [$legacy,$expected]) $expect(audienceSummaryAddress($legacy)===$expected,'Legacy mailing lines return only a recognizable locality');
+    $expect(str_contains($changes['html'],'O&#039;Neil &amp; Lee'),'Contact names are HTML escaped');
+    $store->write('UPDATE marketing_contacts SET deleted_at=UTC_TIMESTAMP() WHERE id=?',[$unnamed]);
+    $redacted=audienceChangeAlertReady($db,$queued);
+    $expect(!str_contains($redacted['text'],'Connection #'.$unnamed)&&!str_contains($redacted['html'],'Connection #'.$unnamed),'Profiles removed after queueing are omitted at delivery');
     $third=(new DateTimeImmutable('@'.$second))->setTimezone(new DateTimeZone('America/Chicago'))->modify('+1 day')->getTimestamp();
     $store->write('UPDATE marketing_ses_settings SET enabled=0 WHERE audience_id=1');$priorDay=$checkpoint();
     $expect(queueAudienceChangeAlerts($db,100,$third)===0&&$checkpoint()===$priorDay,'Disabled sending does not silently consume a summary day');
     $store->write('UPDATE marketing_ses_settings SET enabled=1 WHERE audience_id=1');
     $expect(queueAudienceChangeAlerts($db,100,$third+30)===1&&queueAudienceChangeAlerts($db,100,$third+60)===0,'Sending recovery queues the due summary exactly once');
-    $expect(str_contains($message($last())['text'],'No subscriptions or unsubscribes were recorded.'),'A subsequent quiet day also produces a no-change report');
+    $next=audienceChangeAlertReady($db,$message($last()));
+    $expect(str_contains($next['text'],'0 subscriptions · 1 pending sign-up · 0 unsubscribes'),'Midnight UTC belongs to the following summary');
     $fourth=(new DateTimeImmutable('@'.$third))->setTimezone(new DateTimeZone('America/Chicago'))->modify('+1 day')->getTimestamp();
     $store->write('UPDATE users SET email_verified_at=NULL WHERE id=?',[$actor]);$priorDay=$checkpoint();
     $expect(queueAudienceChangeAlerts($db,100,$fourth)===0&&$checkpoint()===$priorDay,'Ineligible recipients do not silently consume a due summary');
