@@ -329,6 +329,7 @@ export function initializeConnectionsWorkspace(config, show) {
     const descriptions = {
         archive: 'Archive connections to exclude them from campaigns while retaining their profiles and permission history.',
         restore: 'Unarchive connections. Their existing email subscription status is preserved.',
+        subscribe: 'Cleaned addresses require a corrected email address before subscription.',
         unsubscribe: 'Stop audience email for these connections. Cleaned addresses remain suppressed.',
         delete: 'Permanently remove personal data and prevent these addresses from being imported again. This cannot be undone.',
         tag: 'Add this tag without changing other tags.', untag: 'Remove this tag. Connections and their other tags will be kept.',
@@ -342,6 +343,8 @@ export function initializeConnectionsWorkspace(config, show) {
         $('#bulk-selection-tag').required = ['tag', 'untag'].includes(action);
         $('[data-bulk-group]').hidden = !['group', 'ungroup'].includes(action);
         $('#bulk-selection-group').required = ['group', 'ungroup'].includes(action);
+        $('[data-bulk-consent]').hidden = action !== 'subscribe';
+        $('#bulk-consent-note').required = action === 'subscribe';
         $('[data-bulk-delete]').hidden = action !== 'delete';
         $('#bulk-delete-word').required = action === 'delete';
         $('[data-bulk-description]').textContent = descriptions[action];
