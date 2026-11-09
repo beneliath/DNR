@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-function audienceSubscriptionChange(string $type,array $details):?string
+function audienceSubscriptionChange(string $type,array $details,bool $includePending=false):?string
 {
     if(($details['origin']??'')==='Import')return null;
     $to=$type==='contact_added'?($details['status']??null):($details['to']??null);
     if(!in_array($type,['contact_added','subscription_changed','subscription-confirmed','status'],true)||($details['from']??null)===$to)return null;
-    return match($to){'subscribed'=>'signup','unsubscribed'=>'unsubscribe',default=>null};
+    return match($to){'subscribed'=>'signup','unsubscribed'=>'unsubscribe','pending'=>$includePending?'pending':null,default=>null};
 }
 
 function audienceNotificationPreferences(array $input,array $users):array

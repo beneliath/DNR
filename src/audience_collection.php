@@ -529,7 +529,15 @@ trait AudienceCollection
                 foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
             }
             // Existing profiles remain unchanged until the owner confirms this submission.
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','signup-permission',?)",[$person['id'],json_encode(['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'source'=>$r['kind'],'permission'=>$d['permission'],'choices'=>$permissions,'opt_in'=>$confirmation?'double':'single','email_format'=>$newPerson?$format:null,'at'=>gmdate(DATE_ATOM)]+($interactionLocation?['interaction_location'=>$interactionLocation]:[]),JSON_THROW_ON_ERROR)]);
+            $receipt = [
+                'resource_id'=>(int)$r['id'], 'revision_id'=>(int)$r['published_revision'],
+                'source'=>$r['kind'], 'permission'=>$d['permission'], 'choices'=>$permissions,
+                'opt_in'=>$confirmation ? 'double' : 'single', 'prior_status'=>$newPerson ? null : $person['email_status'],
+                'email_format'=>$newPerson ? $format : null, 'at'=>gmdate(DATE_ATOM),
+            ];
+            if ($interactionLocation) $receipt['interaction_location'] = $interactionLocation;
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json)
+                VALUES (?,NULL,'Signup form','recipient','signup-permission',?)", [$person['id'],json_encode($receipt,JSON_THROW_ON_ERROR)]);
             if ($confirmation) {
                 $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
                 if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];

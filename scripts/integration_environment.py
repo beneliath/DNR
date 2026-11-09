@@ -204,7 +204,8 @@ def main():
             if sys.argv[1:] in (['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data'], ['event-tasks']):
                 suites = {'event-tasks': ('optional_presentations_integration_test.php', 'standard_task_generation_integration_test.php',
                                           'standard_task_generation_http_integration_test.php', 'uiux_workflow_http_integration_test.php'),
-                          'audience-minor-fixes': ('audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
+                          'audience-minor-fixes': ('audience_daily_summary_integration_test.php', 'audience_existing_signup_integration_test.php',
+                                                   'audience_subscription_notice_integration_test.php', 'audience_tag_unlock_http_integration_test.php'),
                           'audience-presend': ('audience_http_integration_test.php',),
                           'user-timezone': ('user_timezone_http_integration_test.php', 'admin_user_profile_http_integration_test.php'),
                           'audience-planner': ('audience_planner_lifecycle_http_integration_test.php',),

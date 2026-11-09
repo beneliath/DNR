@@ -702,16 +702,24 @@ html.dark-mode .app-sidebar .nav-link.active {
   stroke-linejoin: round;
 }
 
+.nav-link .message-monkey-nav-logo-light {
+  display: block;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+}
+
 .nav-link .message-monkey-nav-icon {
+  display: none;
   box-sizing: content-box;
-  padding: 3px;
-  margin: -3px;
-  border-radius: 50%;
-  background: #171d27;
-  color: #f3f6fb;
+}
+
+html.dark-mode .nav-link .message-monkey-nav-logo-light {
+  display: none;
 }
 
 html.dark-mode .nav-link .message-monkey-nav-icon {
+  display: block;
   padding: 0;
   margin: 0;
   border-radius: 0;

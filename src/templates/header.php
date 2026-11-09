@@ -303,6 +303,7 @@ if (!empty($_SESSION['user_id'])) {
 
             <nav class="utility-navigation" aria-label="Account and Application">
                 <a href="audience.php?view=home" class="nav-link">
+                    <img class="message-monkey-nav-logo-light" src="<?php echo htmlspecialchars(assetUrl('assets/audience-logo-transparent.svg'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="21" height="21">
                     <?php readfile(__DIR__ . '/../assets/icons/message-monkey.svg'); ?><span>MessageMonkey</span>
                 </a>
                 <?php if (accountMattermostAccessAllowed()): ?>

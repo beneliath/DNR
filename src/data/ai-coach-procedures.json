@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7f1ba88a7867ba359ab0b7a9ff9ea7740ba9368bc1f1839b5c5a27b1b83e2ed0",
-        "templates/header.php": "39d0fd3f0a66fbf18e65bcca1770a3430d9e85ae7dac653af16926d4f55ed719",
+        "templates/header.php": "4592ceb5bdad6da385f439d9dbde914aadbb14a1c0955b94e5ad7c6de36807a6",
         "templates/deployment-notice.php": "985aee2d55a646d05733893b93cc3e6e4d4782955568730128191e8ac9b0e6cc"
       },
       "subjects": [
