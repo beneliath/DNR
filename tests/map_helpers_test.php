@@ -31,6 +31,20 @@ expectMapHelper(engagementMapGeocodeQueries($inverness) === [
     '960 S. US 41, Inverness, FL 34450, US',
 ], 'fallback searches must preserve street number, south direction, city, region, and postcode.');
 expectMapHelper(engagementMapGeocodeQueries($address) === [$address], 'do not discard suite details or repeat an identical lookup.');
+$conferenceVenue = 'Sheraton DFW Airport Hotel, 4440 W. John Carpenter Fwy, Irving, TX 75063, US';
+expectMapHelper(engagementMapGeocodeQueries($conferenceVenue) === [
+    $conferenceVenue,
+    'Sheraton DFW Airport Hotel, 4440 W. John Carpenter Freeway, Irving, TX 75063, US',
+    '4440 W. John Carpenter Fwy, Irving, TX 75063, US',
+    '4440 W. John Carpenter Freeway, Irving, TX 75063, US',
+], 'try the full US freeway suffix with the venue name before dropping the venue.');
+expectMapHelper(engagementMapGeocodeQueries('12 East Fwy., Unit 4, Irving, TX 75063, US') === [
+    '12 East Fwy., Unit 4, Irving, TX 75063, US',
+    '12 East Freeway, Unit 4, Irving, TX 75063, US',
+], 'expanding a period-ended freeway suffix should retain unit details and avoid duplicate queries.');
+$canadianAddress = '12 East Fwy, Windsor, ON, CA';
+expectMapHelper(engagementMapGeocodeQueries($canadianAddress) === [$canadianAddress],
+    'the US freeway fallback should only run for US addresses.');
 $cityOnly = ['lat' => '28.8358176', 'lon' => '-82.3303715', 'place_rank' => 16,
     'address' => ['village' => 'Inverness', 'postcode' => '34450']];
 $exactHouse = ['lat' => '28.8364987', 'lon' => '-82.3404196', 'place_rank' => 30,
@@ -62,9 +76,12 @@ expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($german), 'Unter den L
 $german['results'][0]['housenumber'] = '78';
 expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($german), 'Unter den Linden 77, 10117 Berlin, DE') === null,
     'international matches must still preserve the requested house number.');
-$geoapify['results'][0]['rank']['confidence'] = 0.7;
+$geoapify['results'][0]['rank']['confidence'] = 0.85;
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) !== null,
+    'a matching building at the automatic pin threshold should qualify.');
+$geoapify['results'][0]['rank']['confidence'] = 0.8499;
 expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
-    'uncertain matches must not silently become venue pins.');
+    'a score just below the threshold must not produce an automatic pin.');
 $geoapify['results'][0]['rank']['confidence'] = 1;
 $geoapify['results'][0]['result_type'] = 'city';
 expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
@@ -73,6 +90,15 @@ $geoapify['results'][0]['result_type'] = 'building';
 $geoapify['results'][0]['country_code'] = 'us';
 expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
     'a candidate in a different explicitly requested country must be rejected.');
+$conferenceAddress = '4440 W John Carpenter Freeway, Irving, TX 75063, US';
+$conferenceBuilding = [
+    'lat' => 32.913136, 'lon' => -97.006582, 'housenumber' => '4440', 'country_code' => 'us',
+    'result_type' => 'building', 'rank' => ['confidence' => 0.90, 'match_type' => 'full_match'],
+];
+$conferencePin = parseGeoapifyGeocoderResponse(json_encode(['results' => [$conferenceBuilding]]), $conferenceAddress);
+expectMapHelper($conferencePin !== null && $conferencePin['latitude'] === $conferenceBuilding['lat']
+    && $conferencePin['longitude'] === $conferenceBuilding['lon'] && $conferencePin['confidence'] === 0.90,
+    'the 2026 Pre-Trib Conference building returned by Geoapify should produce an automatic pin.');
 try {
     parseGeoapifyGeocoderResponse('{"message":"unauthorized"}', $internationalAddress);
     expectMapHelper(false, 'provider errors must not be cached as an address miss.');

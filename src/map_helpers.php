@@ -648,10 +648,18 @@ function engagementMapGeocodeQueries(string $address): array
         // Remove a venue-name prefix, but retain the street number, direction,
         // unit, city, region, postal code, and country.
         $street_address = implode(', ', array_slice($parts, $index));
-        $queries[] = $street_address;
+        $street_queries = [$street_address];
         if (preg_match('/,\s*(?:US|USA|United States(?: of America)?)$/i', $address) === 1) {
-            $queries[] = (string) preg_replace('/\bU\.?S\.?\s+(?:Highway|Hwy|Route)\s+(?=\d)/i', 'US ', $street_address);
+            $expanded_street = (string) preg_replace('/\bFwy\.?$/i', 'Freeway', $part);
+            if ($expanded_street !== $part) {
+                $parts[$index] = $expanded_street;
+                // Prefer the named venue before trying the street address alone.
+                $queries[] = implode(', ', $parts);
+                $street_queries[] = implode(', ', array_slice($parts, $index));
+            }
+            $street_queries[] = (string) preg_replace('/\bU\.?S\.?\s+(?:Highway|Hwy|Route)\s+(?=\d)/i', 'US ', $street_address);
         }
+        array_push($queries, ...$street_queries);
         break;
     }
     return array_values(array_unique($queries));
@@ -774,7 +782,7 @@ function parseGeoapifyGeocoderResponse(string $response, string $requested_addre
         }
         $rank = is_array($candidate['rank'] ?? null) ? $candidate['rank'] : [];
         $confidence = $rank['confidence'] ?? null;
-        if (!is_numeric($confidence) || (float) $confidence < 0.95 || (float) $confidence > 1
+        if (!is_numeric($confidence) || (float) $confidence < 0.85 || (float) $confidence > 1
             || !in_array($candidate['result_type'] ?? '', ['building', 'amenity'], true)
             || ($house !== '' && strcasecmp($house, trim((string) ($candidate['housenumber'] ?? ''))) !== 0)
         ) {
