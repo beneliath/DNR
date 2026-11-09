@@ -1082,12 +1082,13 @@ restrictions for the worker's outgoing IP if desired; browser referrer-only
 restrictions do not work for background requests.
 
 Lookups retain provider, confidence, match type, and matched-address metadata.
-Automatic Geoapify pins require a building or amenity result with at least 0.95
+Automatic Geoapify pins require a building or amenity result with at least 0.85
 provider confidence, matching the requested house number and explicit country
 code when present. Confidence is a provider score, not a guarantee of accuracy.
 Broad or uncertain results remain unresolved instead of placing a city-center
-pin. Searches preserve street directions and the stored address; bounded
-fallbacks remove a venue prefix or normalize US highway wording. Provider
+pin. Searches preserve street directions and the stored address. US lookups
+can expand a street suffix of `Fwy` to `Freeway` while keeping the venue name.
+Other fallbacks remove a venue prefix or normalize US highway wording. Provider
 errors are retried by the worker and never cached as address misses.
 
 **Show missing addresses** filters for records needing address details;
