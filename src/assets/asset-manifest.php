@@ -241,7 +241,7 @@ return [
     "assets/js/audience-flows.js" => "599d9ab0b1b8",
     "assets/js/audience-flows.min.js" => "f3f5fe59221b",
     "assets/js/audience-head.js" => "52691320ccd7",
-    "assets/js/audience-head.min.js" => "13b1b53cfb4d",
+    "assets/js/audience-head.min.js" => "cfdc6e93c393",
     "assets/js/audience-image-crop.mjs" => "969bbd00052f",
     "assets/js/audience-image-upload.mjs" => "524ad1944dd8",
     "assets/js/audience-import.js" => "bf3effe01346",
