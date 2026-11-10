@@ -72,8 +72,14 @@ class BaselineRefreshTest(unittest.TestCase):
 
     def test_reviewed_inbox_dependencies_are_accepted(self):
         links='marketing_inbox_inbound_parts\tinbound_email_messages\nmarketing_inbox_route_receipts\tinbound_email_messages'
-        with patch('test_account_baseline_refresh.query',return_value=links):
+        with patch('test_account_baseline_refresh.query',side_effect=[links,'1','CASCADE']):
             check_external_references()
+        with patch('test_account_baseline_refresh.query',side_effect=[links,'0']):
+            check_external_references()
+        for rule in ['NO ACTION','']:
+            with self.subTest(rule=rule), patch('test_account_baseline_refresh.query',side_effect=[links,'1',rule]):
+                with self.assertRaisesRegex(RuntimeError,'attachments must cascade'):
+                    check_external_references()
 
     def test_unknown_business_dependency_still_blocks_refresh(self):
         with patch('test_account_baseline_refresh.query',return_value='future_inbox_records\tinbound_email_messages'):
