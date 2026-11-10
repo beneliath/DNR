@@ -162,6 +162,8 @@ function processDocumentScan(mysqli $conn): bool
 }
 
 /** Fetch once in the page controller, not once per upload pane. */
+const DOCUMENT_SCAN_PENDING_MESSAGE = 'The new document is awaiting a security scan. Any previously approved file remains available. Reload to check its status.';
+
 function documentScanMessages(mysqli $conn, int $engagement): array
 {
     $rows=$conn->execute_query('SELECT j.presentation_id,j.speaker_id,j.asset_kind,j.state FROM document_scan_jobs j
@@ -169,7 +171,7 @@ function documentScanMessages(mysqli $conn, int $engagement): array
     $messages=[];
     foreach ($rows as $row) {
         $messages[$row['presentation_id'].':'.$row['speaker_id'].':'.$row['asset_kind']]=match($row['state']) {
-            'queued','scanning'=>'The new document is awaiting a security scan. Any previously approved file remains available. Reload to check its status.',
+            'queued','scanning'=>DOCUMENT_SCAN_PENDING_MESSAGE,
             'rejected'=>'The new document did not pass the security scan and was not published. Any previously approved file remains available.',
             'superseded'=>'The document changed while the scan was running. Upload it again if this is still the version you want to publish.',
             default=>''

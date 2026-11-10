@@ -4,6 +4,21 @@ require_once __DIR__.'/../src/audience_store.php';
 require_once __DIR__.'/../src/audience_flow_presentation.php';
 $checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
 $reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArgumentException){$expect(true,'Invalid flow rejected');return;}throw new RuntimeException('Expected a flow validation error.');};
+foreach ([
+    ['completed', '', 'completed'],
+    ['exited', 'Exit step', 'completed'],
+    ['exited', 'Connection archived', 'completed'],
+    ['exited', 'Exit conditions met', 'exited'],
+    ['exited', 'Removed manually', 'exited'],
+    ['exited', 'Flow removed', 'exited'],
+    ['exited', '', 'exited'],
+    ['exited', 'exit step', 'exited'],
+    ['active', '', 'active'],
+    ['failed', 'Connection archived', 'failed'],
+] as [$state, $reason, $outcome]) {
+    $expect(audienceFlowRunOutcome(['state'=>$state,'error_message'=>$reason]) === $outcome,
+        'Historical outcome follows the recorded state and ending reason: '.$state.' / '.$reason);
+}
 foreach(audienceFlowTemplates()as$key=>$template){$d=audienceFlowDocument(audienceFlowDefault($key));$expect($d['trigger']['type']===$template['trigger']&&count($d['nodes'])===count($template['steps']),'Every flow starter has a valid native graph');}
 foreach(audienceFlowTemplates()as$key=>$template){
     $graph=audienceFlowPreviewGraph(audienceFlowDefault($key));$cards=array_column($graph['cards'],null,'id');

@@ -14,6 +14,36 @@ const AUDIENCE_FLOW_NODES = [
     'archive'=>'Archive connection','exit'=>'Exit flow',
 ];
 
+const AUDIENCE_FLOW_RUN_LABELS = [
+    'completed' => 'Finished',
+    'exited' => 'Exited early',
+    'active' => 'In progress',
+    'failed' => 'Needs attention',
+];
+const AUDIENCE_FLOW_FINISHED_EXIT_REASONS = ['Exit step', 'Connection archived'];
+const AUDIENCE_FLOW_RUN_DESCRIPTIONS = [
+    'started' => 'Total flow entries, including runs that have already ended',
+    'completed' => 'Finished runs reached the end or completed an Exit flow or Archive connection step.',
+    'exited' => 'Runs stopped by exit conditions, a time limit, manual removal, or flow removal',
+    'active' => 'Runs processing a step or waiting for their next step',
+    'failed' => 'Runs with a failed step that requires review',
+];
+
+/** Recorded ending reasons keep historical results independent of later flow edits. */
+function audienceFlowRunOutcome(array $run): string
+{
+    $state = (string) $run['state'];
+    return $state === 'exited' && in_array($run['error_message'] ?? '', AUDIENCE_FLOW_FINISHED_EXIT_REASONS, true)
+        ? 'completed' : $state;
+}
+
+/** Shared by outcome counts and report/export filters; r is the scoped run table alias. */
+function audienceFlowRunOutcomeSql(): string
+{
+    $reasons = implode(',', array_map(static fn(string $reason): string => "'".str_replace("'", "''", $reason)."'", AUDIENCE_FLOW_FINISHED_EXIT_REASONS));
+    return "CASE WHEN r.state='exited' AND BINARY r.error_message IN ($reasons) THEN 'completed' ELSE r.state END";
+}
+
 function audienceFlowsInstalled(mysqli $db): bool
 {
     return (int)$db->query("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_flows'")->fetch_assoc()['n']===1;

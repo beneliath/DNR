@@ -3852,12 +3852,32 @@ textarea::placeholder {
   min-width: 0;
 }
 
-.presentation-entry-heading {
+.presentation-entry-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.presentation-entry-banner,
+.presentation-item > .presentation-entry-heading {
   margin: 0 0 20px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-strong);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--primary-subtle);
+}
+
+.presentation-entry-banner > .presentation-entry-heading,
+.presentation-entry-banner > button {
+  margin: 0;
+}
+
+.presentation-entry-banner > button {
+  justify-self: end;
+}
+
+.presentation-entry-heading {
   font-size: 1.15rem;
   overflow-wrap: anywhere;
 }

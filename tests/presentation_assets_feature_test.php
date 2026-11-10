@@ -276,4 +276,19 @@ expectPresentationAssetFeature(
     'asset delivery should validate stable metadata and 304 responses before reading BLOB bytes, with range support.'
 );
 
+// Upload references belong to the current submission, whether the source file was staged or uploaded normally.
+$rows = [['_form_key'=>'2', 'id'=>null], ['_form_key'=>'5', 'id'=>null]];
+$upload = ['filename'=>'session.pdf', 'size'=>30, 'path'=>'/example/staged'];
+$form = [2=>[], 5=>['upload_from'=>['speaker_notes'=>'2']]];
+$staged = [2=>['speaker_notes'=>$upload]];
+$changes = attachPresentationAssetChanges($rows, $form, [], $staged);
+expectPresentationAssetFeature($changes[1]['asset_changes']['speaker_notes'] === ['action'=>'replace', 'asset'=>$upload],
+    'the copy receives the same validated file from a single upload');
+foreach ([['ppt_slidedeck'=>'2'], ['speaker_notes'=>'99'], ['speaker_notes'=>['2']]] as $invalidSource) {
+    try {
+        attachPresentationAssetChanges($rows, [5=>['upload_from'=>$invalidSource]], [], $staged);
+        throw new RuntimeException('Unmatched duplicate file reference accepted');
+    } catch (InvalidArgumentException) {}
+}
+
 echo "Presentation asset feature tests passed.\n";

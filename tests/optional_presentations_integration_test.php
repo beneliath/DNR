@@ -173,6 +173,91 @@ try {
         'editing must fill the original row with normalized presentation details.'
     );
 
+    $conn->query('SAVEPOINT before_duplicate');
+    $sourceSpeaker = (int) $completeRow['speaker_id'];
+    $customKey = '0123456789abcdef';
+    $conn->execute_query('UPDATE speakers SET website_url=?, custom_links=? WHERE id=?', [
+        'https://example.test/speaker', json_encode([['key'=>$customKey, 'label'=>'Resources', 'url'=>'https://example.test/resources']]), $sourceSpeaker,
+    ]);
+    // Existing accounts can still have an inline PDF. Slidedecks use immutable storage references.
+    $pdf = "%PDF-1.4\nOriginal notes";
+    $conn->execute_query('INSERT INTO presentation_notes (presentation_id,speaker_id,pdf,filename,size,sha256,uploaded_by)
+        VALUES (?,?,?,\'notes.pdf\',?,UNHEX(?),?)', [$presentationId,$sourceSpeaker,$pdf,strlen($pdf),hash('sha256',$pdf),$actor]);
+    $deckMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    $deckBytes = 'Existing deck fixture';
+    $deckKey = storePersistentFile($conn, $deckBytes, 'slides.pptx', $deckMime);
+    $conn->execute_query('INSERT INTO presentation_slidedecks
+        (presentation_id,speaker_id,storage_key,filename,mime_type,size,sha256,uploaded_by)
+        VALUES (?,?,?,\'slides.pptx\',?,?,UNHEX(?),?)', [$presentationId,$sourceSpeaker,$deckKey,$deckMime,strlen($deckBytes),hash('sha256',$deckBytes),$actor]);
+    $pendingKey = storePersistentFile($conn, 'Pending replacement deck', 'replacement.pptx', $deckMime);
+    $conn->execute_query("INSERT INTO document_scan_jobs (presentation_id,speaker_id,asset_kind,storage_key,uploaded_by,base_version,state)
+        SELECT presentation_id,speaker_id,'slidedeck',?,uploaded_by,updated_at,'scanning' FROM presentation_slidedecks WHERE presentation_id=?",
+        [$pendingKey,$presentationId]);
+    ensurePresentationShortLinks($conn, $presentationId);
+    $sourceLinks = array_column(fetchPresentationShortLinks($conn, $presentationId), null, 'link_type');
+    updateShortLink($conn, (int)$sourceLinks['website']['id'], (int)$sourceLinks['website']['version'], 'https://example.test/this-session', false);
+    $conn->execute_query("UPDATE speakers SET custom_links=JSON_ARRAY() WHERE id=?", [$sourceSpeaker]);
+    $conn->execute_query("INSERT INTO short_link_stats (link_id,visit_hour,browser,os,country,referrer,visits)
+        VALUES (?,UTC_DATE(),'Firefox','Linux','US','',7)", [$sourceLinks['website']['id']]);
+
+    $duplicate = $completeRow;
+    unset($duplicate['id']);
+    $duplicate['duplicate_from_id'] = (string)$presentationId;
+    $duplicate['presentation_time'] = '4:30 PM';
+    $duplicateForm = [1=>$completeRow, 2=>$duplicate];
+    syncEngagementPresentations($conn, $engagementId, attachPresentationAssetChanges($normalize($duplicateForm), $duplicateForm, []), $actor);
+    $copies = fetchOptionalPresentationsIntegration($conn, $engagementId);
+    expectOptionalPresentationsIntegration(count($copies) === 2 && (int)$copies[0]['id'] === $presentationId
+        && $copies[0]['presentation_time'] === '15:30:00' && $copies[1]['presentation_time'] === '16:30:00'
+        && $copies[1]['topic_title'] === $copies[0]['topic_title'], 'a duplicate saves as a separate editable session in the same engagement');
+    $copyId = (int)$copies[1]['id'];
+    $sourceLinks = array_column(fetchPresentationShortLinks($conn, $presentationId), null, 'link_type');
+    $copyLinks = array_column(fetchPresentationShortLinks($conn, $copyId), null, 'link_type');
+    foreach (['website','custom','notes','slidedeck'] as $type) {
+        $original = $sourceLinks[$type];
+        $copy = $copyLinks[$type];
+        expectOptionalPresentationsIntegration($copy['id'] !== $original['id'] && $copy['code'] !== $original['code']
+            && $copy['qr_png'] !== $original['qr_png'] && $copy['qr_url'] === shortLinkUrl($copy['code'])
+            && $copy['target_url'] === $original['target_url'] && $copy['custom_label'] === $original['custom_label']
+            && $copy['is_enabled'] === $original['is_enabled'] && (int)$copy['tracked_visits'] === 0, 'fresh independent QR and destination for '.$type);
+    }
+    expectOptionalPresentationsIntegration((int)$sourceLinks['website']['tracked_visits'] === 7, 'original QR statistics survive duplication');
+    $copiedNotes = $conn->execute_query('SELECT pdf, uploaded_by FROM presentation_notes WHERE presentation_id=?', [$copyId])->fetch_assoc();
+    expectOptionalPresentationsIntegration($copiedNotes['pdf'] === $pdf && (int)$copiedNotes['uploaded_by'] === $actor
+        && $conn->execute_query('SELECT storage_key FROM presentation_slidedecks WHERE presentation_id=?', [$copyId])->fetch_row()[0] === $deckKey,
+        'both published files and upload attribution carry over without reuploading');
+    $copyScan = $conn->execute_query('SELECT storage_key,state,claim_token FROM document_scan_jobs WHERE presentation_id=?', [$copyId])->fetch_assoc();
+    expectOptionalPresentationsIntegration($copyScan === ['storage_key'=>$pendingKey, 'state'=>'queued', 'claim_token'=>null],
+        'a pending replacement has its own scan and cannot replace the approved file before that scan');
+    $conn->query('SAVEPOINT pending_first_upload');
+    require_once $sourceDirectory.'/presentation_slidedeck_helpers.php';
+    applyPresentationSlidedeckChange($conn, $presentationId, $engagementId, ['action'=>'remove'], $actor);
+    queueDocumentScan($conn, $presentationId, $sourceSpeaker, 'slidedeck',
+        ['data'=>'Pending replacement deck', 'filename'=>'replacement.pptx', 'mime_type'=>$deckMime], $actor);
+    $savedCopy = array_replace($completeRow, ['id'=>$copyId]);
+    syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow, $savedCopy, $duplicate]), $actor);
+    $pendingCopyId = (int)$conn->execute_query('SELECT MAX(id) FROM presentations WHERE engagement_id=?', [$engagementId])->fetch_row()[0];
+    $pendingLink = array_column(fetchPresentationShortLinks($conn, $pendingCopyId), null, 'link_type')['slidedeck'];
+    expectOptionalPresentationsIntegration(!(bool)$pendingLink['has_slidedeck'] && $pendingLink['code'] !== $copyLinks['slidedeck']['code']
+        && $pendingLink['qr_url'] === shortLinkUrl($pendingLink['code']), 'the pending copy has its own code ready for scan approval without publishing the file');
+    $conn->query('ROLLBACK TO SAVEPOINT pending_first_upload');
+    applyPresentationNotesChange($conn, $copyId, $engagementId, ['action'=>'remove'], $actor);
+    expectOptionalPresentationsIntegration($conn->execute_query('SELECT pdf FROM presentation_notes WHERE presentation_id=?', [$presentationId])->fetch_row()[0] === $pdf,
+        'removing a copied file leaves the original available');
+    $conn->execute_query('UPDATE presentations SET is_archived=1 WHERE id=?', [$copyId]);
+    $invalidCopy = array_replace($duplicate, ['duplicate_from_id'=>(string)$copyId]);
+    try {
+        syncEngagementPresentations($conn, $engagementId, $normalize([$completeRow, $invalidCopy]), $actor);
+        throw new RuntimeException('Archived source accepted');
+    } catch (InvalidArgumentException) {}
+    $conn->execute_query("INSERT INTO engagements (organization_id,event_title,event_start_date,event_end_date,event_type,confirmation_status)
+        VALUES (?,'Other engagement',?,?,'conference','under_review')", [$organizationId,$startDate,$endDate]);
+    try {
+        syncEngagementPresentations($conn, (int)$conn->insert_id, $normalize([$duplicate]), $actor);
+        throw new RuntimeException('Foreign engagement source accepted');
+    } catch (InvalidArgumentException) {}
+    $conn->query('ROLLBACK TO SAVEPOINT before_duplicate');
+
     $clearedRow = array_replace($untouchedRow, [
         'id' => (string) $presentationId,
         'duration_minutes' => '',

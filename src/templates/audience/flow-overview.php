@@ -16,7 +16,19 @@ $listUrl=static function(array $extra=[])use($url,$listBase):string{return $url(
 <section class="flow-overview-results" aria-label="<?= $trash?'Archived flows':($classic?'Converted classic automations':'Automation flows') ?>"><ul class="flow-overview-list">
 <?php foreach($flows as$r): $flowRecord=$h(json_encode(array_intersect_key($r,array_flip(['id','name','version'])),JSON_THROW_ON_ERROR)); ?>
 <li class="flow-overview-row"><div class="flow-overview-identity"><h2><?php if(!$trash): ?><a href="<?= $h($url(['view'=>'flow','id'=>$r['id']])) ?>"><?= $h($r['name']) ?></a><?php else: ?><?= $h($r['name']) ?><?php endif; ?></h2><p><span class="flow-status-badge state-<?= $h($r['state']) ?>"><?= $r['state']==='running'?'Active':$h(ucfirst($r['state'])) ?></span><time datetime="<?= $h(str_replace(' ','T',substr($r['created_at'],0,19)).'Z') ?>" title="<?= $h(formatUserTimestamp($r['created_at'],'Y-m-d H:i:s')) ?>">Created <?= $h(formatUserTimestamp($r['created_at'],'M j, Y, g:i A')) ?></time><time datetime="<?= $h(str_replace(' ','T',substr($r['updated_at'],0,19)).'Z') ?>" title="<?= $h(formatUserTimestamp($r['updated_at'],'Y-m-d H:i:s')) ?>">Updated <?= $h(formatUserTimestamp($r['updated_at'],'M j, Y, g:i A')) ?></time></p></div>
-<div class="flow-overview-run-summary"><?php if(!$r['published_revision']&&!(int)$r['started']): ?><p>Not activated yet</p><?php else: ?><dl><?php foreach(['started'=>'Started','active'=>'In progress','completed'=>'Completed']as$key=>$label): ?><div><dt><?= $label ?></dt><dd><?= number_format((int)$r[$key]) ?></dd></div><?php endforeach; ?></dl><?php endif; ?></div>
+<div class="flow-overview-run-summary">
+    <?php if (!$r['published_revision'] && !(int) $r['started']): ?><p>Not activated yet</p>
+    <?php else: ?><dl>
+        <?php foreach (['started'=>'Started'] + AUDIENCE_FLOW_RUN_LABELS as $key=>$label):
+            $count = (int) ($r[$key] ?? 0);
+            $outcomeLink = $url(['view'=>'flow-report','id'=>$r['id']] + ($key === 'started' ? [] : ['state'=>$key])); ?>
+        <div data-outcome="<?= $h($key) ?>"<?= $count ? ' class="has-runs"' : '' ?>>
+            <dt><?= $label ?></dt>
+            <dd><a href="<?= $h($outcomeLink) ?>" title="<?= $h(AUDIENCE_FLOW_RUN_DESCRIPTIONS[$key]) ?>" aria-label="<?= $h($label.' — '.number_format($count).' runs') ?>"><?= number_format($count) ?></a></dd>
+        </div>
+        <?php endforeach; ?>
+    </dl><?php endif; ?>
+</div>
 <div class="flow-overview-row-actions">
 <?php if($trash): ?>
     <a class="action-icon-button" href="<?= $h($url(['view'=>'flow-report','id'=>$r['id']])) ?>" aria-label="View report for <?= $h($r['name']) ?>" data-tooltip="Report"><?= actionIconSvg('results') ?></a>
@@ -37,6 +49,7 @@ $listUrl=static function(array $extra=[])use($url,$listBase):string{return $url(
 <?php if(!$flows): ?><li class="flow-overview-empty"><h2><?= $trash?'No archived flows':($classic&&$q===''&&$state===''?'No converted classic automations yet':'No flows match these filters') ?></h2><p><?= $trash?'Archived flows can be restored here as drafts.':'Try another name or status, or start a new flow from a template.' ?></p></li><?php endif; ?>
 </ul></section>
 <?php audiencePagination(['total'=>$flowTotal,'page'=>$flowPage,'size'=>$flowSize??25,'label'=>'Flow pages','url'=>$listUrl]); ?>
+<?php if ($flows): ?><p class="flow-outcome-help"><?= $h(AUDIENCE_FLOW_RUN_DESCRIPTIONS['completed']) ?></p><?php endif; ?>
 </div>
 <?php if(!$classic&&!$trash): ?><aside class="flow-overview-help" aria-label="Automation help"><?php if($flowSetupTasks): ?><details class="flow-setup-access"><summary>Get started with automation flows</summary><?php require __DIR__.'/flow-overview-setup.php'; ?></details><?php endif; ?><?php require __DIR__.'/flow-overview-learning.php'; ?></aside><?php endif; ?>
 </div>

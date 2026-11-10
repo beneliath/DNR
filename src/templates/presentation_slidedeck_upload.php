@@ -2,20 +2,23 @@
 $deck_key = 'ppt_slidedeck';
 $deck_label = 'PPT Slidedeck';
 $deck_input_id = $deck_key . '_' . $presentation_dom_id;
-$has_deck = $is_saved_presentation && !empty($presentation['has_' . $deck_key]);
-$scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':slidedeck'] ?? '';
+$deck_source_id = (int) ($presentation['id'] ?? $presentation['duplicate_from_id'] ?? 0);
+$has_deck = $deck_source_id && !empty($presentation['has_' . $deck_key]);
+$scan_message = $document_scan_messages[$deck_source_id . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':slidedeck'] ?? '';
 ?>
 <div class="presentation-notes-card" data-ppt-slidedeck-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $deck_label; ?></div>
     <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>
-    <?php if ($scan_message !== ''): ?>
-        <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
-        <?php if (!$has_deck): ?><label><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1"> Cancel Pending Upload</label><?php endif; ?>
+    <?php if ($scan_message !== '' && ($is_saved_presentation || $scan_message === DOCUMENT_SCAN_PENDING_MESSAGE)): ?>
+        <div<?php if ($scan_message === DOCUMENT_SCAN_PENDING_MESSAGE) echo ' data-presentation-pending-upload'; ?>>
+            <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (!$has_deck): ?><label class="presentation-asset-remove"><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1"<?php echo ($presentation['remove_' . $deck_key] ?? '') === '1' ? ' checked' : ''; ?>> Cancel Pending Upload</label><?php endif; ?>
+        </div>
     <?php endif; ?>
     <?php if ($has_deck): ?>
         <?php
-        $deck_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slidedeck';
+        $deck_url = 'presentation_asset.php?id=' . $deck_source_id . '&type=slidedeck';
         $deck_filename = (string) ($presentation[$deck_key . '_filename'] ?? 'slidedeck.pptx');
         $deck_uploaded_at = $presentation[$deck_key . '_updated_at'] ?? null;
         $deck_uploaded_by = trim((string) ($presentation[$deck_key . '_uploaded_by_username'] ?? ''));
@@ -32,7 +35,7 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
                 <span><?php echo htmlspecialchars(number_format(((int) $presentation[$deck_key . '_size']) / 1048576, 1)); ?> MB</span>
             <?php endif; ?>
             <label class="presentation-asset-remove">
-                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1" aria-describedby="<?php echo $deck_input_id; ?>_save_notice">
+                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1" aria-describedby="<?php echo $deck_input_id; ?>_save_notice"<?php echo ($presentation['remove_' . $deck_key] ?? '') === '1' ? ' checked' : ''; ?>>
                 Remove Current PPT
             </label>
         </div>

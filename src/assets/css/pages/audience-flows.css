@@ -310,3 +310,29 @@
 
 /* Let titles wrap before they can push action columns past the row edge. */
 .flow-overview-identity{min-width:0}
+
+/* Keep every run outcome visible and each compact label on one line. */
+.flow-overview-row{grid-template-columns:minmax(0,1fr) 430px max-content}
+.flow-overview-run-summary dl{grid-template-columns:repeat(5,minmax(max-content,1fr));gap:12px}
+.flow-overview-run-summary dt,.flow-report-totals h2{white-space:nowrap}
+.flow-overview-run-summary dd a{display:inline-block;min-width:28px;padding:2px 6px;border:1px solid transparent;border-radius:4px;color:var(--audience-muted);font-variant-numeric:tabular-nums}
+.flow-overview-run-summary .has-runs dd a{color:var(--audience-text)}
+.flow-overview-run-summary .has-runs[data-outcome=completed] dd a,.flow-report-totals .has-runs[data-outcome=completed],.flow-run-state[data-state=completed]{background:var(--audience-success);border-color:var(--audience-success-border)}
+.flow-overview-run-summary .has-runs[data-outcome=failed] dd a,.flow-report-totals .has-runs[data-outcome=failed],.flow-run-state[data-state=failed]{background:var(--audience-error);border-color:var(--audience-error-border)}
+.flow-overview-run-summary .has-runs[data-outcome=active] dd a{background:var(--audience-selected);border-color:var(--audience-border)}
+.flow-report-totals article:not(.has-runs) strong{color:var(--audience-muted)}
+.flow-run-state{border:1px solid transparent}
+.flow-outcome-help{margin:12px 0 0;color:var(--audience-muted);font-size:calc(13px * var(--audience-font-scale,1));line-height:1.5}
+.flow-report>.flow-outcome-help{margin:0}
+@media(max-width:1250px){
+ .flow-overview-row{grid-template-columns:minmax(0,1fr) max-content}
+ .flow-overview-run-summary{grid-row:2;grid-column:1}
+ .flow-overview-row-actions{grid-row:1/span 2;grid-column:2}
+}
+@media(max-width:700px){
+ .flow-overview-row{grid-template-columns:minmax(0,1fr)}
+ .flow-overview-run-summary{grid-row:auto;grid-column:1}
+ .flow-overview-run-summary dl{grid-template-columns:repeat(3,minmax(max-content,1fr))}
+ .flow-overview-row-actions{grid-row:auto;grid-column:1}
+}
+@media(max-width:360px){.flow-overview-run-summary dl{grid-template-columns:repeat(2,minmax(max-content,1fr))}}

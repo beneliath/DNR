@@ -98,6 +98,44 @@ async function verifyForm(page, width) {
     await page.locator('[data-remove-presentation="2"]').click();
     await expectDirty(false);
 
+    const source = page.locator('#presentation-1');
+    const duplicate = source.getByRole('button', {name: 'Duplicate Presentation 1', exact: true});
+    const bannerLayout = await duplicate.evaluate(button => {
+        const banner = button.closest('.presentation-entry-banner');
+        const strip = banner.getBoundingClientRect();
+        const control = button.getBoundingClientRect();
+        const heading = banner.querySelector('h3').getBoundingClientRect();
+        const style = getComputedStyle(banner);
+        return {background: style.backgroundColor, rightGap: strip.right - control.right,
+            padding: parseFloat(style.paddingRight), inside: control.top >= strip.top && control.bottom <= strip.bottom,
+            sameRow: heading.right <= control.left && heading.bottom >= control.top && heading.top <= control.bottom};
+    });
+    assert.notEqual(bannerLayout.background, 'rgba(0, 0, 0, 0)');
+    assert.ok(bannerLayout.inside && bannerLayout.sameRow && Math.abs(bannerLayout.rightGap - bannerLayout.padding) < 1,
+        'Duplicate is on the right inside the colored banner at this viewport');
+    await pdf.setInputFiles({name: 'shared-notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-')});
+    await duplicate.click();
+    const copy = page.locator('#presentation-3');
+    assert.equal(await copy.locator('[name$="[topic_title]"]').inputValue(), 'Opening session');
+    assert.equal(await copy.locator('[name$="[presentation_time]"]').inputValue(), '06:00 PM');
+    assert.equal(await copy.locator('input[name$="[id]"]').count(), 0);
+    assert.equal(await copy.locator('input[type=file]').first().evaluate(el => el.files[0].name), 'shared-notes.pdf');
+    await copy.locator('[name$="[topic_title]"]').fill('Afternoon session');
+    await copy.getByRole('button', {name: 'Duplicate Presentation 2'}).click();
+    assert.equal(await page.locator('#presentation_topic_4').inputValue(), 'Afternoon session');
+    assert.equal(await page.locator('#presentation_topic_1').inputValue(), 'Opening session');
+    const uploads = await page.locator('#engagement-edit-form').evaluate(form => {
+        form.dispatchEvent(new Event('submit', {cancelable: true}));
+        const data = new FormData(form);
+        return [data.get('presentations[1][speaker_notes]').name, data.has('presentations[3][speaker_notes]'),
+            data.get('presentations[3][upload_from][speaker_notes]'), data.get('presentations[4][upload_from][speaker_notes]')];
+    });
+    assert.deepEqual(uploads, ['shared-notes.pdf', false, '1', '1']);
+    await page.locator('[data-remove-presentation="4"]').click();
+    await page.locator('[data-remove-presentation="3"]').click();
+    await pdf.setInputFiles([]);
+    await expectDirty(false);
+
     const time = page.locator('#presentation_time_1');
     await time.click();
     await page.keyboard.press('Tab');

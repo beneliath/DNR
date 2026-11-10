@@ -56,6 +56,7 @@ audienceHttpExpect((int)$fs->one("SELECT COUNT(*) n FROM marketing_contact_event
 audienceHttpExpect($enroll($basic)===null,'Default repeat policy prevents another entry');
 $blocked=false;try{$fs->saveFlow('Illegal live edit',$d,(int)$basic['id'],(int)$basic['version']);}catch(InvalidArgumentException){$blocked=true;}audienceHttpExpect($blocked,'Running flows must pause before editing');$stop((int)$basic['id']);
 $blocked=false;try{$fs->saveFlow('Stale flow',$d,(int)$basic['id'],1);}catch(InvalidArgumentException){$blocked=true;}audienceHttpExpect($blocked,'Stale map versions cannot overwrite current settings');
+require __DIR__.'/audience_flow_outcomes_http.php';
 foreach(['automations','flow-templates','flow','flow-report']as$v){$page=$editor('audience.php?view='.$v.($v==='flow'||$v==='flow-report'?'&id='.$basic['id']:''));audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Flow HTTP surface renders '.$v);}
 $nav=$editor('audience.php?view=automations');audienceHttpExpect(str_contains($nav['body'],'href="audience.php?view=automations"')&&!str_contains($nav['body'],'aria-disabled="true" tabindex="0" data-audience-tooltip="Map out'),'Automations is an available sidebar destination');
 audienceHttpExpect(str_contains($nav['body'],'data-flow-onboarding')&&str_contains($nav['body'],'Get started with automation flows')&&str_contains($nav['body'],'data-flow-task="delivery"'),'Upper-level Automations includes the native five-task setup guide');

@@ -133,12 +133,30 @@ trait AudienceFlows
         [$where,$params]=$this->where(audienceListFilters(['archived'=>'all']),$rules);
         return (bool)$this->one('SELECT c.id FROM marketing_contacts c WHERE '.$where.' AND c.id=?',[...$params,$person]);
     }
+    /** Read outcomes for the visible flows together, including every terminal state. */
+    public function flowRunTotals(array $ids): array
+    {
+        if (!$ids) return [];
+        $totals = [];
+        foreach ($ids as $id) $totals[(int) $id] = ['started'=>0] + array_fill_keys(array_keys(AUDIENCE_FLOW_RUN_LABELS), 0);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $outcome = audienceFlowRunOutcomeSql();
+        $rows = $this->all("SELECT r.flow_id,$outcome outcome,COUNT(*) n
+            FROM marketing_flow_runs r WHERE r.audience_id=? AND r.flow_id IN ($placeholders)
+            GROUP BY r.flow_id,$outcome", [$this->audienceId, ...$ids]);
+        foreach ($rows as $row) {
+            $totals[(int) $row['flow_id']][$row['outcome']] = (int) $row['n'];
+            $totals[(int) $row['flow_id']]['started'] += (int) $row['n'];
+        }
+        return $totals;
+    }
+
     /** One consistent export, independent of screen pagination and concurrent enrolment. */
     public function flowExportRuns(int $id,array $input=[]): Generator
     {
         $node=audienceText($input,'node',40);$state=audienceText($input,'state',20);
         $where='r.audience_id=? AND r.flow_id=?';$params=[$this->audienceId,$id];
-        if(in_array($state,['active','completed','exited','failed'],true)){$where.=' AND r.state=?';$params[]=$state;}
+        if(isset(AUDIENCE_FLOW_RUN_LABELS[$state])){$where.=' AND ('.audienceFlowRunOutcomeSql().')=?';$params[]=$state;}
         if($node!==''){$where.=' AND EXISTS(SELECT 1 FROM marketing_flow_steps s WHERE s.run_id=r.id AND s.audience_id=r.audience_id AND s.node_key=?)';$params[]=$node;}
         $this->db->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
         $this->db->begin_transaction(MYSQLI_TRANS_START_READ_ONLY | MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT);
@@ -148,7 +166,7 @@ trait AudienceFlows
             $first=true;
             do{
                 $comparison=$first?'<=':'<';$first=false;
-                $batch=$this->all('SELECT r.id,r.state,r.node_key,r.started_at,r.ended_at,c.email,c.deleted_at
+                $batch=$this->all('SELECT r.id,r.state,r.error_message,r.node_key,r.started_at,r.ended_at,c.email,c.deleted_at
                     FROM marketing_flow_runs r JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id
                     WHERE '.$where.' AND r.id'.$comparison.'? ORDER BY r.id DESC LIMIT 200',[...$params,$last]);
                 foreach($batch as$row){$last=(string)$row['id'];yield $row;}
@@ -160,12 +178,15 @@ trait AudienceFlows
     {
         $size=audiencePageSize($input);$this->flow($id,false,true);$node=audienceText($input,'node',40);$state=audienceText($input,'state',20);$page=max(1,(int)($input['page']??1));
         $where='r.audience_id=? AND r.flow_id=?';$params=[$this->audienceId,$id];
-        if(in_array($state,['active','completed','exited','failed'],true)){$where.=' AND r.state=?';$params[]=$state;}
+        if(isset(AUDIENCE_FLOW_RUN_LABELS[$state])){$where.=' AND ('.audienceFlowRunOutcomeSql().')=?';$params[]=$state;}
         if($node!==''){$where.=' AND EXISTS(SELECT 1 FROM marketing_flow_steps s WHERE s.run_id=r.id AND s.node_key=?)';$params[]=$node;}
         $total=(int)$this->one('SELECT COUNT(*) n FROM marketing_flow_runs r WHERE '.$where,$params)['n'];$page=min($page,max(1,(int)ceil($total/$size)));
         $runs=$this->all('SELECT r.*,c.email,c.first_name,c.last_name,c.deleted_at FROM marketing_flow_runs r JOIN marketing_contacts c ON c.id=r.contact_id WHERE '.$where.' ORDER BY r.id DESC LIMIT ? OFFSET ?',[...$params,$size,($page-1)*$size]);
         foreach($runs as&$run)$run['steps']=$this->all('SELECT node_key,state,result_json,created_at,completed_at FROM marketing_flow_steps WHERE audience_id=? AND run_id=? ORDER BY id',[$this->audienceId,$run['id']]);unset($run);
-        return ['totals'=>$this->all('SELECT state,COUNT(*) n FROM marketing_flow_runs WHERE audience_id=? AND flow_id=? GROUP BY state',[$this->audienceId,$id]),
+        $counts = $this->flowRunTotals([$id])[$id];
+        $totals = [];
+        foreach (array_keys(AUDIENCE_FLOW_RUN_LABELS) as $outcome) $totals[] = ['state'=>$outcome, 'n'=>$counts[$outcome]];
+        return ['totals'=>$totals,
             'nodes'=>$this->all('SELECT s.node_key,s.state,COUNT(*) n FROM marketing_flow_steps s JOIN marketing_flow_runs r ON r.id=s.run_id WHERE r.audience_id=? AND r.flow_id=? GROUP BY s.node_key,s.state',[$this->audienceId,$id]),'runs'=>$runs,'total'=>$total,'page'=>$page,'per_page'=>$size,'pages'=>max(1,(int)ceil($total/$size))];
     }
 }

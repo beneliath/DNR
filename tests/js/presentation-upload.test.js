@@ -64,7 +64,7 @@ function uploadPage() {
     }
     const csrf = { name: 'csrf_token', value: 'csrf', disabled: false };
     const file = fakeFile(12 * 1024 * 1024); file.name = 'talk.pptx';
-    const input = { name: 'presentations[7][ppt_slidedeck]', type: 'file', files: [file], disabled: false };
+    const input = { name: 'presentations[7][ppt_slidedeck]', type: 'file', files: [file], dataset: {}, disabled: false };
     const button = { name: 'save_engagement', value: '1', disabled: false };
     const form = element('form');
     form.dataset = { chunkEngagement: '2' };
