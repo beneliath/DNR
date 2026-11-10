@@ -151,7 +151,9 @@ trait AudienceAnalyticsReports
             $matches.=" AND $unsubscribed";
             $params[]=$w['until'];
         }elseif($activity!=='accepted'){
-            $matches="SELECT r.id,$columns $recipients $events WHERE $scope GROUP BY r.id HAVING $activity=1";
+            // Only the selected flag is needed to rank matches; compute full metrics for the visible page.
+            $matchColumns=audienceEngagementColumns($w['bots'],[$activity]);
+            $matches="SELECT r.id,$matchColumns $recipients $events WHERE $scope GROUP BY r.id HAVING $activity=1";
             array_unshift($params,$w['until']);
         }
         // Rank only matching IDs. For Sent, event history and encrypted receipts are read only for the visible page.
@@ -376,21 +378,37 @@ trait AudienceAnalyticsReports
     {
         $scopeWindow=array_replace($w,['from'=>min($w['from'],$w['previous_from']),'until'=>max($w['until'],$w['previous_until'])]);
         [$scope,$params]=$this->analyticsRecipientScope($scopeWindow);$subjects=[];
-        // Each delivery has one saved subject, regardless of how many recipients match the report.
-        $deliveries = $this->db->prepare("SELECT d.campaign_id,d.snapshot_ciphertext
+        // Fingerprint content in MySQL so cached subjects do not transfer/decrypt entire newsletters.
+        // A changed snapshot (including key rotation) is a cache miss; receipt totals stay live.
+        $deliveries = $this->all("SELECT d.id,d.campaign_id,SHA2(d.snapshot_ciphertext,256) fingerprint
             FROM marketing_campaign_deliveries d
             WHERE d.audience_id=? AND EXISTS (
                 SELECT 1 FROM marketing_campaign_recipients r
                 WHERE r.audience_id=d.audience_id AND r.delivery_id=d.id AND $scope
-            )");
-        $deliveries->execute([$this->audienceId, ...$params]);
-        foreach (\Dnr\Infrastructure\StatementRows::stream($deliveries) as $delivery) {
-            try {
-                $subject = audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']))['draft']['subject'] ?? null;
-                if (is_string($subject)) $subjects[$delivery['campaign_id']][$subject] = $subject;
-            } catch (Throwable) { /* Missing immutable content stays unknown. */ }
+            )", [$this->audienceId, ...$params]);
+        $cache = new \Dnr\MessageMonkey\DeliverySubjectCache();
+        $missing = [];
+        foreach ($deliveries as $delivery) {
+            $subject = $cache->get($delivery['fingerprint']);
+            if ($subject === null) $missing[] = (int)$delivery['id'];
+            else $subjects[$delivery['campaign_id']][$subject] = $subject;
         }
-        $deliveries->close();
+        // Stream each missing snapshot once, with a bounded ID list and no recipient fan-out.
+        foreach (array_chunk($missing, 100) as $ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $statement = $this->db->prepare("SELECT d.campaign_id,d.snapshot_ciphertext
+                FROM marketing_campaign_deliveries d WHERE d.audience_id=? AND d.id IN ($placeholders)");
+            $statement->execute([$this->audienceId, ...$ids]);
+            foreach (\Dnr\Infrastructure\StatementRows::stream($statement) as $delivery) {
+                try {
+                    $subject = audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']))['draft']['subject'] ?? null;
+                    if (!is_string($subject)) continue;
+                    $subjects[$delivery['campaign_id']][$subject] = $subject;
+                    $cache->put(hash('sha256', $delivery['snapshot_ciphertext']), $subject);
+                } catch (Throwable) { /* Missing immutable content stays unknown; cache failures are harmless. */ }
+            }
+            $statement->close();
+        }
         $buckets=[];$prior=[];
         foreach(['cohorts','previous_cohorts']as$period){$grouped=[];
             foreach($overview[$period]as$row){$choices=array_values($subjects[$row['campaign_id']]??[]);$length=count($choices)===1?mb_strlen($choices[0]):null;

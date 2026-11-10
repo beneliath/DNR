@@ -16,7 +16,7 @@
             .replace(/\b\w/g, letter => letter.toUpperCase());
         function fieldLabel(el) {
             const group = el.closest('.presentation-entry, fieldset');
-            const context = cleanText(group?.querySelector(':scope > legend, :scope > .presentation-entry-heading')?.textContent);
+            const context = cleanText(group?.querySelector(':scope > legend, .presentation-entry-heading')?.textContent);
             const label = el.type === 'radio'
                 ? cleanText(el.closest('fieldset')?.querySelector(':scope > legend')?.textContent) || readableName(el.name)
                 : cleanText(Array.from(el.labels || []).map(label => label.textContent).join(' '))

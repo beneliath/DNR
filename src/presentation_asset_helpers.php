@@ -296,6 +296,7 @@ function attachPresentationAssetChanges(
     $submitted_presentations = is_array($submitted_presentations) ? $submitted_presentations : [];
     $upload_map = presentationAssetUploadMap($files);
     $definitions = presentationAssetDefinitions();
+    $validated_uploads = [];
 
     foreach ($presentations as &$presentation) {
         $form_key = (string) ($presentation['_form_key'] ?? '');
@@ -333,9 +334,27 @@ function attachPresentationAssetChanges(
             } elseif ($remove) {
                 $changes[$asset_key] = ['action' => 'remove'];
             }
+            if (($changes[$asset_key]['action'] ?? '') === 'replace') {
+                $validated_uploads[$form_key][$asset_key] = $changes[$asset_key];
+            }
         }
 
         $presentation['asset_changes'] = $changes;
+    }
+    unset($presentation);
+    // Only a validated upload in this same submission can supply a new copy's file.
+    foreach ($presentations as &$presentation) {
+        $sources = $submitted_presentations[$presentation['_form_key']]['upload_from'] ?? [];
+        if (!is_array($sources)) throw new InvalidArgumentException('Invalid duplicated presentation upload.');
+        foreach ($sources as $kind => $source_row) {
+            if ($presentation['id'] !== null || !in_array($kind, ['speaker_notes', 'ppt_slidedeck'], true)
+                || (!is_string($source_row) && !is_int($source_row)) || !ctype_digit((string) $source_row)
+                || !isset($validated_uploads[$source_row][$kind])
+                || isset($presentation['asset_changes'][$kind])) {
+                throw new InvalidArgumentException('Choose the file again for the duplicated presentation.');
+            }
+            $presentation['asset_changes'][$kind] = $validated_uploads[(string) $source_row][$kind];
+        }
     }
     unset($presentation);
     return $presentations;
@@ -426,6 +445,26 @@ function applyPresentationAssetChanges(
     return true;
 }
 
+/** The caller holds the active source presentation lock and has inserted the new row in the same engagement. */
+function copyPresentationFiles(mysqli $conn, int $sourceId, int $sourceSpeaker, int $copyId, int $copySpeaker): void
+{
+    $params = [$copyId, $copySpeaker, $sourceId, $sourceSpeaker];
+    $conn->execute_query('INSERT INTO presentation_notes
+        (presentation_id, speaker_id, pdf, storage_key, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
+        SELECT ?, ?, pdf, storage_key, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot
+        FROM presentation_notes WHERE presentation_id = ? AND speaker_id = ?', $params);
+    $conn->execute_query('INSERT INTO presentation_slidedecks
+        (presentation_id, speaker_id, storage_key, filename, mime_type, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
+        SELECT ?, ?, storage_key, filename, mime_type, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot
+        FROM presentation_slidedecks WHERE presentation_id = ? AND speaker_id = ?', $params);
+    // Keep an upload awaiting approval private. The copy's scanner job has its own claim and
+    // checks the copied asset version before publishing, including for a previously removed file.
+    $conn->execute_query("INSERT INTO document_scan_jobs
+        (presentation_id, speaker_id, asset_kind, storage_key, uploaded_by, base_version)
+        SELECT ?, ?, asset_kind, storage_key, uploaded_by, base_version FROM document_scan_jobs
+        WHERE presentation_id = ? AND speaker_id = ? AND state IN ('queued', 'scanning')", $params);
+}
+
 function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stored_presentations): array
 {
     $stored_by_id = [];
@@ -436,10 +475,11 @@ function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stor
     }
 
     foreach ($submitted_rows as &$submitted_row) {
-        if (!is_array($submitted_row) || empty($submitted_row['id'])) {
+        if (!is_array($submitted_row)) {
             continue;
         }
-        $stored = $stored_by_id[(int) $submitted_row['id']] ?? null;
+        $source_id = $submitted_row['id'] ?? $submitted_row['duplicate_from_id'] ?? 0;
+        $stored = is_scalar($source_id) ? ($stored_by_id[(int) $source_id] ?? null) : null;
         if (!$stored) {
             continue;
         }

@@ -5,6 +5,12 @@ audienceHttpExpect($activityResult['total']===36&&count($activityResult['rows'])
 audienceHttpExpect($as->analyticsActivity($window,'opens')['total']===19,'Recipient open drilldown reconciles with the headline after repeated observations');
 audienceHttpExpect($as->analyticsActivity($window,'clicks')['total']===3,'Recipient clicks obey the dashboard bot filter');
 audienceHttpExpect($as->analyticsActivity(array_replace($window,['bots'=>'all']),'clicks')['total']===6,'Unfiltered recipient activity consistently includes detected bots');
+$activityTotals=$as->analyticsOverview($window)['totals'];
+foreach(['accepted','delivered','opens','clicks','bounced','complaints','unsubscribed']as$flag){
+    $matching=$as->analyticsActivity($window,$flag,1,500);
+    audienceHttpExpect($matching['total']===$activityTotals[$flag]&&count($matching['rows'])===$matching['total'], 'Recipient activity matches the full report cohort for '.$flag);
+    if($flag!=='accepted')audienceHttpExpect(array_sum(array_column($matching['rows'],$flag))===$matching['total'], 'Visible recipient rows retain the complete selected '.$flag.' metric');
+}
 $last=$as->analyticsActivity($window,'accepted',2);audienceHttpExpect(count($last['rows'])===11&&!array_intersect(array_column($last['rows'],'id'),array_column($activityResult['rows'],'id')),'Recipient pagination has neither duplicates nor omissions');
 audienceHttpExpect($as->analyticsActivity($window,'accepted',999)===$last,'An out-of-range recipient page returns the exact last page');
 $emptyActivity=$as->analyticsActivity(array_replace($window,['messages_mode'=>'selected','messages'=>[]]),'opens',999);
@@ -99,6 +105,17 @@ $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($windo
         $db->query('SET SESSION max_execution_time=5000');
         $rows = $store->analyticsContentPatterns($scope, $overview);
         audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 characters' && $rows[0]['accepted']===7212, 'A 7,200-recipient newsletter renders within the query budget and preserves its exact cohort');
+        $before = (int)$db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1];
+        $cached = $store->analyticsContentPatterns($scope, $overview);
+        $queries = (int)$db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1] - $before;
+        audienceHttpExpect($cached === $rows && $queries === 1, 'Warm content patterns preserve both periods and read only content fingerprints, without fetching newsletter snapshots');
+        $snapshot['draft']['subject'] = str_repeat('Long subject ', 8);
+        $store->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?', [Dnr\Security\ApplicationKey::seal(json_encode($snapshot, JSON_THROW_ON_ERROR)), $delivery['id']]);
+        $changed = $store->analyticsContentPatterns($scope, $overview);
+        audienceHttpExpect($changed[0]['label']==='Over 70 characters' && $changed[0]['accepted']===7212, 'Replacing immutable content invalidates its cached subject without caching receipt totals');
+        $store->write("UPDATE marketing_campaign_deliveries SET snapshot_ciphertext='unreadable' WHERE id=?", [$delivery['id']]);
+        $unknown = $store->analyticsContentPatterns($scope, $overview);
+        audienceHttpExpect($unknown[0]['label']==='Subject unavailable' && $unknown[0]['accepted']===7212, 'Unreadable content must not reuse a cached subject or lose its accepted cohort');
     } finally {
         $db->rollback();
         $db->query('SET SESSION max_execution_time='.$originalLimit);

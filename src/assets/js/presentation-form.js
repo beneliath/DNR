@@ -17,6 +17,8 @@
             if (heading) {
                 heading.textContent = "Presentation " + (index + 1);
             }
+            var duplicate = entry.querySelector("[data-duplicate-presentation]");
+            if (duplicate) duplicate.setAttribute("aria-label", "Duplicate Presentation " + (index + 1));
         });
     }
 
@@ -188,7 +190,7 @@
     }
 
     function presentationEntryHasContent(entry) {
-        if (entry.querySelector('input[name$="[id]"]')) {
+        if (entry.querySelector('input[name$="[id]"]') || entry.querySelector('input[name$="[duplicate_from_id]"]')) {
             return true;
         }
         var id = presentationId(entry);
@@ -626,7 +628,10 @@
 
     function presentationMarkup(id) {
         return [
-            '<h3 class="presentation-entry-heading">Presentation</h3>',
+            '<div class="presentation-entry-banner">',
+            '  <h3 class="presentation-entry-heading">Presentation</h3>',
+            '  <button type="button" class="button-secondary" data-duplicate-presentation>Duplicate Presentation</button>',
+            '</div>',
             '<div class="presentation-fields">',
             '  <div class="presentation-primary-fields">',
             '    <div class="form-field">',
@@ -675,9 +680,69 @@
         ].join("");
     }
 
-    window.addPresentation = function () {
+    function copyPresentationFields(source, copy) {
+        var sourceId = presentationId(source);
+        var copyId = presentationId(copy);
+        for (var field of ["presentation_topic", "speaker_id", "presentation_date", "presentation_time",
+            "duration_minutes", "expected_attendance", "actual_attendance"]) {
+            document.getElementById(field + "_" + copyId).value = document.getElementById(field + "_" + sourceId).value;
+        }
+        var period = source.querySelector('input[type="radio"]:checked');
+        if (period) copy.querySelector('input[type="radio"][value="' + period.value + '"]').checked = true;
+        updatePresentationTime(copyId);
+
+        // Carry the saved source only as provenance. The copy never submits an existing presentation ID.
+        var saved = source.querySelector('input[name$="[id]"], input[name$="[duplicate_from_id]"]');
+        if (saved) {
+            var origin = document.createElement("input");
+            origin.type = "hidden";
+            origin.name = "presentations[" + copyId + "][duplicate_from_id]";
+            origin.value = saved.value;
+            copy.appendChild(origin);
+        }
+        for (var asset of ["speaker_notes", "ppt_slidedeck"]) {
+            var originalInput = document.getElementById(asset + "_" + sourceId);
+            var newInput = document.getElementById(asset + "_" + copyId);
+            if (originalInput.files.length) newInput.files = originalInput.files;
+            var originalCard = originalInput.closest(".presentation-notes-card");
+            var newCard = newInput.closest(".presentation-notes-card");
+            for (var detail of originalCard.querySelectorAll("[data-presentation-pending-upload], .presentation-existing-asset")) {
+                var metadata = detail.cloneNode(true);
+                var remove = metadata.querySelector('input[type="checkbox"]');
+                if (remove) {
+                    remove.name = "presentations[" + copyId + "][remove_" + asset + "]";
+                    remove.checked = detail.querySelector('input[type="checkbox"]').checked;
+                    remove.setAttribute("aria-describedby", newInput.id + "_save_notice");
+                }
+                newCard.querySelector(".presentation-pdf-picker-row").before(metadata);
+            }
+            newCard.querySelector(".presentation-file-picker").textContent = originalCard.querySelector(".presentation-file-picker").textContent;
+            newCard.querySelector("[data-selected-file-name]").dataset.emptyFileLabel = originalCard.querySelector("[data-selected-file-name]").dataset.emptyFileLabel;
+        }
+    }
+
+    // Copies can share a selected File until one of the inputs changes. Send the bytes once,
+    // including when the original draft row was removed and a copy is now the first owner.
+    function identifySharedUploads(form) {
+        var sources = new Map();
+        for (var input of form.querySelectorAll("input[data-presentation-file-name]")) {
+            delete input.dataset.sharedUploadRow;
+            var file = input.files[0];
+            if (!file) continue;
+            var entry = input.closest(".presentation-entry");
+            var asset = input.name.endsWith("[speaker_notes]") ? "speaker_notes" : "ppt_slidedeck";
+            var first = sources.get(file);
+            if (first && first.asset === asset && !entry.querySelector('input[name$="[id]"]')) {
+                input.dataset.sharedUploadRow = first.row;
+            } else {
+                sources.set(file, {row: presentationId(entry), asset: asset});
+            }
+        }
+    }
+
+    window.addPresentation = function (source) {
         updateAllPresentationTimes();
-        var entries = presentationEntries();
+        var entries = source ? [source] : presentationEntries();
         var startInput = document.getElementById("event_start_date");
         var endInput = document.getElementById("event_end_date");
         for (var existingEntry of entries) {
@@ -691,7 +756,8 @@
         entry.className = "presentation-entry";
         entry.id = "presentation-" + id;
         entry.innerHTML = presentationMarkup(id);
-        presentationContainer().appendChild(entry);
+        if (source) source.after(entry);
+        else presentationContainer().appendChild(entry);
         updatePresentationHeadings();
         var speakerSelect = document.getElementById("speaker_id_" + id);
         var sourceSelect = document.getElementById("presentations-container").querySelector('select[name$="[speaker_id]"]');
@@ -699,6 +765,7 @@
             speakerSelect.appendChild(option.cloneNode(true));
         });
         speakerSelect.value = defaultSpeaker();
+        if (source) copyPresentationFields(source, entry);
         wirePresentationEntry(entry);
         applyPresentationDateConstraints();
         updateConfirmedAvailability();
@@ -759,9 +826,25 @@
             status.addEventListener("change", updateConfirmedAvailability);
         }
         document.querySelectorAll(".engagement-form").forEach(function (form) {
-            form.addEventListener("submit", updateAllPresentationTimes);
+            form.addEventListener("submit", function () {
+                updateAllPresentationTimes();
+                identifySharedUploads(form);
+            });
+            form.addEventListener("formdata", function (event) {
+                for (var input of form.querySelectorAll("[data-shared-upload-row]")) {
+                    var match = input.name.match(/^presentations\[(\d+)\]\[(speaker_notes|ppt_slidedeck)\]$/);
+                    if (!match) continue;
+                    event.formData.delete(input.name);
+                    event.formData.set("presentations[" + match[1] + "][upload_from][" + match[2] + "]", input.dataset.sharedUploadRow);
+                }
+            });
         });
         document.addEventListener("click", function (event) {
+            var duplicateButton = event.target.closest("[data-duplicate-presentation]");
+            if (duplicateButton) {
+                window.addPresentation(duplicateButton.closest(".presentation-entry"));
+                return;
+            }
             var addButton = event.target.closest("[data-add-presentation]");
             if (addButton) {
                 window.addPresentation();

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged. November 6, 2026: reimbursement photo reduction, email-size review, progress forms, and request filters reviewed; original uploads remain unchanged. November 7, 2026: pending-change reminders, task record search dialog, and initial layouts reviewed; existing workflow actions remain the same.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged. November 6, 2026: reimbursement photo reduction, email-size review, progress forms, and request filters reviewed; original uploads remain unchanged. November 7, 2026: pending-change reminders, task record search dialog, and initial layouts reviewed; existing workflow actions remain the same. November 10, 2026: presentation banner duplication and unique QR codes reviewed; existing file removal, attendance, and saved-presentation deletion controls remain accurate.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -800,7 +800,7 @@
       },
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
+        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
       },
       "subjects": [
@@ -833,7 +833,7 @@
       },
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
+        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
       },
       "subjects": [
@@ -1331,8 +1331,8 @@
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
-        "presentation_helpers.php": "b7f8e68aaa92931884d169419cfe816168f4540506c16bd724fdcf41f802eb6e",
+        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
+        "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
         "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
         "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
@@ -1372,8 +1372,8 @@
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "93c295b66c5e75aba2a298e83de2f3fb5ee33994a90cb048a00045f6cd1b0748",
-        "presentation_helpers.php": "b7f8e68aaa92931884d169419cfe816168f4540506c16bd724fdcf41f802eb6e",
+        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
+        "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
         "templates/footer.php": "ec54451daa45fa8e561bc21a2fac82cc0580916afaddc21ab48454390a4453d3",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",

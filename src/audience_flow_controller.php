@@ -79,7 +79,21 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
     if($recover&&$flow){try{$flow['document']=audienceFlowDocument(json_decode($recover['document'],true,48,JSON_THROW_ON_ERROR));$flow['version']=(int)$recover['version'];$flow['name']=audienceText($recover,'name',100);}catch(Throwable){}}
     try{$listOptions=audienceFlowListOptions($view==='automations'?$_GET:[]);}catch(InvalidArgumentException $e){http_response_code(400);$error=$e->getMessage();$listOptions=audienceFlowListOptions([]);}
     $q=$view==='flow-templates'?audienceText($_GET,'q',100):$listOptions['q'];$state=$listOptions['state'];$flowSort=$listOptions['sort'];$flowOrder=match($flowSort){'updated'=>'f.updated_at DESC,f.id DESC','oldest'=>'f.created_at ASC,f.id ASC',default=>'f.created_at DESC,f.id DESC'};$classic=($_GET['tab']??'')==='classic';$trash=($_GET['trash']??'')==='1';$flows=[];$flowSize=audiencePageSize($_GET);$flowPage=max(1,(int)($_GET['page']??1));$flowTotal=0;
-    if($available&&$view==='automations'){$where='f.audience_id=? AND f.deleted_at IS '.($trash?'NOT NULL':'NULL');$params=[$audienceId];if($q!==''){$where.=' AND LOCATE(?,f.name)>0';$params[]=$q;}if(in_array($state,['draft','running','paused'],true)){$where.=' AND f.state=?';$params[]=$state;}$where.=" AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic?'true':'false')."'";$flowTotal=(int)$store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where,$params)['n'];$flowPage=min($flowPage,max(1,(int)ceil($flowTotal/$flowSize)));$flows=$store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id) started,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'active\') active,(SELECT COUNT(*) FROM marketing_flow_runs r WHERE r.flow_id=f.id AND r.state=\'completed\') completed FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT ? OFFSET ?',[...$params,$flowSize,($flowPage-1)*$flowSize]);}
+    if ($available && $view === 'automations') {
+        $where = 'f.audience_id=? AND f.deleted_at IS '.($trash ? 'NOT NULL' : 'NULL');
+        $params = [$audienceId];
+        if ($q !== '') { $where .= ' AND LOCATE(?,f.name)>0'; $params[] = $q; }
+        if (in_array($state, ['draft','running','paused'], true)) { $where .= ' AND f.state=?'; $params[] = $state; }
+        $where .= " AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.draft_json,'$.classic')),'false')='".($classic ? 'true' : 'false')."'";
+        $flowTotal = (int) $store->one('SELECT COUNT(*) n FROM marketing_flows f WHERE '.$where, $params)['n'];
+        $flowPage = min($flowPage, max(1, (int) ceil($flowTotal / $flowSize)));
+        $flows = $store->all('SELECT f.id,f.name,f.state,f.version,f.created_at,f.updated_at,f.deleted_at,f.published_revision
+            FROM marketing_flows f WHERE '.$where.' ORDER BY '.$flowOrder.' LIMIT ? OFFSET ?',
+            [...$params, $flowSize, ($flowPage - 1) * $flowSize]);
+        $runTotals = $store->flowRunTotals(array_column($flows, 'id'));
+        foreach ($flows as &$listedFlow) $listedFlow += $runTotals[(int) $listedFlow['id']];
+        unset($listedFlow);
+    }
     $setup=$view==='automations'&&$available&&!$classic&&!$trash;
     $editing=$view==='flow';
     $tags=($setup||$editing)?$store->tags(withCounts:false):[];
@@ -115,10 +129,11 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
         // Finish staging before emitting CSV headers, so a query/disk failure cannot masquerade as a complete export.
         $out=tmpfile();if($out===false)throw new RuntimeException('Unable to stage the flow export.');
         try{
-            if(fputcsv($out,['Execution','Connection','State','Step','Started','Finished'],',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
+            if(fputcsv($out,['Execution','Connection','State','Step','Started','Finished','Outcome'],',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
             $exported=0;
             foreach($store->flowExportRuns($id,$_GET)as$r){
-                if(fputcsv($out,array_map('audienceCsvCell',[(string)$r['id'],$r['deleted_at']?'Removed connection':$r['email'],$r['state'],$r['node_key'],$r['started_at'],$r['ended_at']??'']),',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
+                $outcome = audienceFlowRunOutcome($r);
+                if(fputcsv($out,array_map('audienceCsvCell',[(string)$r['id'],$r['deleted_at']?'Removed connection':$r['email'],$r['state'],$r['node_key'],$r['started_at'],$r['ended_at']??'',AUDIENCE_FLOW_RUN_LABELS[$outcome]??$outcome]),',','"','')===false)throw new RuntimeException('Unable to write the flow export.');
                 $exported++;
             }
             $bytes=ftell($out);if($bytes===false||!rewind($out))throw new RuntimeException('Unable to read the flow export.');

@@ -149,7 +149,16 @@ function normalizeEngagementPresentations(
         }
 
         $has_nondefault_speaker = $speaker_id !== '' && $speaker_id !== (string) $default_speaker_id;
+        $duplicate_from_id = null;
+        if (array_key_exists('duplicate_from_id', $submitted_presentation)) {
+            $duplicate_from_id = \Dnr\Http\RequestInput::positiveInt($submitted_presentation, 'duplicate_from_id');
+            if (!$allow_existing_ids || $presentation_id !== null || $duplicate_from_id === null) {
+                throw new InvalidArgumentException('Choose a saved presentation from this engagement to duplicate.');
+            }
+        }
         $has_presentation_content = $presentation_id !== null
+            || $duplicate_from_id !== null
+            || !empty($submitted_presentation['upload_from'])
             || $topic_title !== ''
             || $presentation_date !== ''
             || $presentation_time !== ''
@@ -210,7 +219,7 @@ function normalizeEngagementPresentations(
             }
         }
 
-        $normalized_presentations[] = [
+        $normalized_presentation = [
             '_form_key' => (string) $presentation_form_key,
             'id' => $presentation_id,
             'topic_title' => $topic_title,
@@ -221,6 +230,8 @@ function normalizeEngagementPresentations(
             'expected_attendance' => $expected_attendance,
             'actual_attendance' => $actual_attendance,
         ];
+        if ($duplicate_from_id !== null) $normalized_presentation['duplicate_from_id'] = $duplicate_from_id;
+        $normalized_presentations[] = $normalized_presentation;
     }
 
     return $normalized_presentations;
@@ -355,8 +366,14 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
     $current_stmt->close();
 
     $submitted_ids = [];
+    $new_presentations = [];
+    $saved_presentations = [];
     foreach ($presentations as $presentation) {
         if ($presentation['id'] === null) {
+            if (isset($presentation['duplicate_from_id']) && !isset($current_presentations[$presentation['duplicate_from_id']])) {
+                throw new InvalidArgumentException('The presentation to duplicate is no longer active in this engagement.');
+            }
+            $new_presentations[] = $presentation;
             continue;
         }
         $presentation_id = (int) $presentation['id'];
@@ -366,6 +383,7 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             throw new InvalidArgumentException('Invalid presentation submission.');
         }
         $submitted_ids[$presentation_id] = true;
+        $saved_presentations[] = $presentation;
     }
 
     $missing_ids = array_diff(array_keys($current_presentations), array_keys($submitted_ids));
@@ -381,7 +399,9 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
 
     $update_stmt = null;
     $insert_stmt = null;
-    foreach ($presentations as $presentation) {
+    // Copies inherit the saved materials shown in the editor, even when the same save replaces
+    // or removes the original's files. Each row then applies its own pending changes.
+    foreach (array_merge($new_presentations, $saved_presentations) as $presentation) {
         if ($presentation['id'] !== null) {
             $presentation_id = (int) $presentation['id'];
             $core_changed = !engagementPresentationMatches(
@@ -460,6 +480,13 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             throw new RuntimeException('Unable to add a presentation.');
         }
         $presentation_id = (int) $conn->insert_id;
+        $source_id = $presentation['duplicate_from_id'] ?? null;
+        $link_source_id = null;
+        if ($source_id !== null) {
+            $source_speaker = (int) $current_presentations[$source_id]['speaker_id'];
+            copyPresentationFiles($conn, $source_id, $source_speaker, $presentation_id, $presentation['speaker_id']);
+            if ($source_speaker === $presentation['speaker_id']) $link_source_id = $source_id;
+        }
         applyPresentationAssetChanges(
             $conn,
             (int) $engagement_id,
@@ -467,7 +494,7 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             is_array($presentation['asset_changes'] ?? null) ? $presentation['asset_changes'] : [],
             $uploaded_by
         );
-        ensurePresentationShortLinks($conn, $presentation_id);
+        ensurePresentationShortLinks($conn, $presentation_id, copyFromId: $link_source_id);
         $presentations_changed = true;
     }
 

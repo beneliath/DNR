@@ -2,20 +2,23 @@
 $pdf_key = 'speaker_notes';
 $pdf_label = 'PDF Speaker Notes';
 $pdf_input_id = $pdf_key . '_' . $presentation_dom_id;
-$has_pdf = $is_saved_presentation && !empty($presentation['has_' . $pdf_key]);
-$scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':notes'] ?? '';
+$pdf_source_id = (int) ($presentation['id'] ?? $presentation['duplicate_from_id'] ?? 0);
+$has_pdf = $pdf_source_id && !empty($presentation['has_' . $pdf_key]);
+$scan_message = $document_scan_messages[$pdf_source_id . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':notes'] ?? '';
 ?>
 <div class="presentation-notes-card" data-pdf-speaker-notes-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $pdf_label; ?></div>
     <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>
-    <?php if ($scan_message !== ''): ?>
-        <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
-        <?php if (!$has_pdf): ?><label><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $pdf_key; ?>]" value="1"> Cancel Pending Upload</label><?php endif; ?>
+    <?php if ($scan_message !== '' && ($is_saved_presentation || $scan_message === DOCUMENT_SCAN_PENDING_MESSAGE)): ?>
+        <div<?php if ($scan_message === DOCUMENT_SCAN_PENDING_MESSAGE) echo ' data-presentation-pending-upload'; ?>>
+            <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if (!$has_pdf): ?><label class="presentation-asset-remove"><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $pdf_key; ?>]" value="1"<?php echo ($presentation['remove_' . $pdf_key] ?? '') === '1' ? ' checked' : ''; ?>> Cancel Pending Upload</label><?php endif; ?>
+        </div>
     <?php endif; ?>
     <?php if ($has_pdf): ?>
         <?php
-        $pdf_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=notes';
+        $pdf_url = 'presentation_asset.php?id=' . $pdf_source_id . '&type=notes';
         $pdf_filename = (string) ($presentation[$pdf_key . '_filename'] ?? 'speaker-notes.pdf');
         $pdf_uploaded_at = $presentation[$pdf_key . '_updated_at'] ?? null;
         $pdf_uploaded_by = trim((string) ($presentation[$pdf_key . '_uploaded_by_username'] ?? ''));
@@ -32,7 +35,7 @@ $scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':'
                 <span><?php echo htmlspecialchars(number_format(((int) $presentation[$pdf_key . '_size']) / 1048576, 1)); ?> MB</span>
             <?php endif; ?>
             <label class="presentation-asset-remove">
-                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $pdf_key; ?>]" value="1" aria-describedby="<?php echo $pdf_input_id; ?>_save_notice">
+                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $pdf_key; ?>]" value="1" aria-describedby="<?php echo $pdf_input_id; ?>_save_notice"<?php echo ($presentation['remove_' . $pdf_key] ?? '') === '1' ? ' checked' : ''; ?>>
                 Remove Current PDF
             </label>
         </div>

@@ -99,7 +99,8 @@
             }
             if (busy) { event.preventDefault(); return; }
             const inputs = Array.from(form.elements).filter(function (input) {
-                return input.type === 'file' && !input.disabled && /\[(ppt_slidedeck|speaker_notes)\]$/.test(input.name) && input.files.length;
+                return input.type === 'file' && !input.disabled && !input.dataset.sharedUploadRow
+                    && /\[(ppt_slidedeck|speaker_notes)\]$/.test(input.name) && input.files.length;
             });
             if (!inputs.length) return;
             event.preventDefault();
