@@ -8,6 +8,30 @@ const {chromium} = require(process.env.DNR_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '../..');
 const fixture = (...args) => execFileSync('php', [path.join(__dirname, 'edit-engagement-fixture.php'), ...args], {encoding: 'utf8'});
 const html = fixture();
+const draftHtml = fixture('draft');
+
+async function verifyPresentationDraft(page) {
+    await page.goto('https://engagement.test/edit_engagement.php?draft');
+    const time = page.locator('#presentation_time_1');
+    const duplicate = page.getByRole('button', {name: 'Duplicate Presentation 1', exact: true});
+    await time.fill('07:30');
+    await duplicate.click();
+    await page.locator('#presentation_time_2').fill('08:45');
+    await page.locator('[name=presentation_ampm_2][value=AM]').check();
+    await page.getByRole('button', {name: 'Save Draft', exact: true}).click();
+
+    await page.reload();
+    assert.equal(await time.inputValue(), '06:00');
+    await duplicate.click(); // Recreate the unsaved row before restoring its fields.
+    await page.getByRole('button', {name: 'Restore Draft', exact: true}).click();
+    assert.equal(await time.inputValue(), '07:30');
+    assert.equal(await page.locator('#presentation_time_2').inputValue(), '08:45');
+    const times = await page.locator('#engagement-edit-form').evaluate(form => {
+        const data = new FormData(form);
+        return [1, 2].map(id => data.get('presentations[' + id + '][presentation_time]'));
+    });
+    assert.deepEqual(times, ['07:30 PM', '08:45 AM']);
+}
 
 async function verifyForm(page, width) {
     await page.setViewportSize({width, height: 800});
@@ -171,11 +195,13 @@ async function verifyForm(page, width) {
             const page = await browser.newPage();
             await page.route('https://engagement.test/**', route => {
                 const pathname = new URL(route.request().url()).pathname;
-                if (pathname === '/edit_engagement.php') return route.fulfill({contentType: 'text/html', body: html});
+                if (pathname === '/edit_engagement.php') return route.fulfill({contentType: 'text/html',
+                    body: new URL(route.request().url()).search === '?draft' ? draftHtml : html});
                 const asset = path.join(root, 'src', pathname);
                 return pathname.startsWith('/assets/') && fs.existsSync(asset) ? route.fulfill({path: asset}) : route.abort();
             });
             await verifyForm(page, width);
+            await verifyPresentationDraft(page);
             await page.close();
         }
         console.log('Edit Engagement desktop and mobile browser checks passed.');

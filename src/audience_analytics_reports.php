@@ -376,48 +376,74 @@ trait AudienceAnalyticsReports
 
     public function analyticsContentPatterns(array $w,array $overview):array
     {
-        $scopeWindow=array_replace($w,['from'=>min($w['from'],$w['previous_from']),'until'=>max($w['until'],$w['previous_until'])]);
-        [$scope,$params]=$this->analyticsRecipientScope($scopeWindow);$subjects=[];
-        // Fingerprint content in MySQL so cached subjects do not transfer/decrypt entire newsletters.
-        // A changed snapshot (including key rotation) is a cache miss; receipt totals stay live.
-        $deliveries = $this->all("SELECT d.id,d.campaign_id,SHA2(d.snapshot_ciphertext,256) fingerprint
-            FROM marketing_campaign_deliveries d
-            WHERE d.audience_id=? AND EXISTS (
-                SELECT 1 FROM marketing_campaign_recipients r
-                WHERE r.audience_id=d.audience_id AND r.delivery_id=d.id AND $scope
-            )", [$this->audienceId, ...$params]);
+        $windows = ['cohorts'=>$w];
+        if ($w['compare'] !== 'none') {
+            $windows['previous_cohorts'] = array_replace($w, ['from'=>$w['previous_from'], 'until'=>$w['previous_until']]);
+        }
+        $queries = $params = [];
+        foreach ($windows as $period => $window) {
+            [$scope, $values] = $this->analyticsRecipientScope($window);
+            $queries[] = "SELECT ? AS period_key,d.id,d.campaign_id,SHA2(d.snapshot_ciphertext,256) fingerprint
+                FROM marketing_campaign_deliveries d
+                WHERE d.audience_id=? AND EXISTS (
+                    SELECT 1 FROM marketing_campaign_recipients r
+                    WHERE r.audience_id=d.audience_id AND r.delivery_id=d.id AND $scope
+                )";
+            array_push($params, $period, $this->audienceId, ...$values);
+        }
+        $deliveries = $this->all(implode(' UNION ALL ', $queries), $params);
+        // A delivery may have accepted recipients in both periods. Read its subject only once.
         $cache = new \Dnr\MessageMonkey\DeliverySubjectCache();
-        $missing = [];
-        foreach ($deliveries as $delivery) {
-            $subject = $cache->get($delivery['fingerprint']);
-            if ($subject === null) $missing[] = (int)$delivery['id'];
-            else $subjects[$delivery['campaign_id']][$subject] = $subject;
+        $missing = $subjectsByDelivery = [];
+        foreach (array_column($deliveries, 'fingerprint', 'id') as $id => $fingerprint) {
+            $subject = $cache->get($fingerprint);
+            if ($subject === null) $missing[] = $id;
+            else $subjectsByDelivery[$id] = $subject;
         }
         // Stream each missing snapshot once, with a bounded ID list and no recipient fan-out.
         foreach (array_chunk($missing, 100) as $ids) {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            $statement = $this->db->prepare("SELECT d.campaign_id,d.snapshot_ciphertext
+            $statement = $this->db->prepare("SELECT d.id,d.snapshot_ciphertext
                 FROM marketing_campaign_deliveries d WHERE d.audience_id=? AND d.id IN ($placeholders)");
             $statement->execute([$this->audienceId, ...$ids]);
             foreach (\Dnr\Infrastructure\StatementRows::stream($statement) as $delivery) {
                 try {
                     $subject = audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']))['draft']['subject'] ?? null;
                     if (!is_string($subject)) continue;
-                    $subjects[$delivery['campaign_id']][$subject] = $subject;
+                    $subjectsByDelivery[$delivery['id']] = $subject;
                     $cache->put(hash('sha256', $delivery['snapshot_ciphertext']), $subject);
                 } catch (Throwable) { /* Missing immutable content stays unknown; cache failures are harmless. */ }
             }
             $statement->close();
         }
-        $buckets=[];$prior=[];
-        foreach(['cohorts','previous_cohorts']as$period){$grouped=[];
-            foreach($overview[$period]as$row){$choices=array_values($subjects[$row['campaign_id']]??[]);$length=count($choices)===1?mb_strlen($choices[0]):null;
-                $label=count($choices)>1?'Multiple subjects':($length===null?'Subject unavailable':($length<=40?'Up to 40 characters':($length<=70?'41–70 characters':'Over 70 characters')));$grouped[$label][]=$row;
-            }
-            $out=[];foreach($grouped as$label=>$rows)$out[$label]=['label'=>$label]+$this->analyticsTotals($rows);
-            if($period==='cohorts')$buckets=$out;else$prior=$out;
+        $subjects = [];
+        foreach ($deliveries as $delivery) {
+            $subject = $subjectsByDelivery[$delivery['id']] ?? null;
+            if ($subject !== null) $subjects[$delivery['period_key']][$delivery['campaign_id']][$subject] = $subject;
         }
-        foreach($buckets as$key=>&$row)$row['previous']=$prior[$key]??null;unset($row);return array_values($buckets);
+        $groups = [];
+        foreach (array_keys($windows) as $period) {
+            foreach ($overview[$period] as $row) {
+                $choices = $subjects[$period][$row['campaign_id']] ?? [];
+                $length = count($choices) === 1 ? mb_strlen(reset($choices)) : null;
+                $label = match (true) {
+                    count($choices) > 1 => 'Multiple subjects',
+                    $length === null => 'Subject unavailable',
+                    $length <= 40 => 'Up to 40 characters',
+                    $length <= 70 => '41–70 characters',
+                    default => 'Over 70 characters',
+                };
+                $groups[$label][$period][] = $row;
+            }
+        }
+        $rows = [];
+        foreach ($groups as $label => $periods) {
+            $row = ['label'=>$label] + $this->analyticsTotals($periods['cohorts'] ?? []);
+            $row['previous'] = isset($periods['previous_cohorts'])
+                ? ['label'=>$label] + $this->analyticsTotals($periods['previous_cohorts']) : null;
+            $rows[] = $row;
+        }
+        return $rows;
     }
 
     public function analyticsClickMap(array $w,int $delivery=0):array

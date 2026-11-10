@@ -651,7 +651,7 @@
             '    <div class="form-field presentation-time-field">',
             '      <label for="presentation_time_' + id + '">Time</label>',
             '      <div class="time-input-container">',
-            '        <input type="text" id="presentation_time_' + id + '" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530">',
+            '        <input type="text" name="presentation_time_' + id + '" id="presentation_time_' + id + '" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530">',
             '        <div class="ampm-radio">',
             '          <label><input type="radio" name="presentation_ampm_' + id + '" value="AM" checked> AM</label>',
             '          <label><input type="radio" name="presentation_ampm_' + id + '" value="PM"> PM</label>',

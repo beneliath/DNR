@@ -84,6 +84,48 @@ audienceHttpExpect($conversion['totals']===$fullOverview['totals']&&$conversion[
 audienceHttpExpect($conversion['forms']===$as->analyticsReportRows($window,['dataset'=>'forms'])&&$conversion['flows']===$flowRows,'Both conversion tables preserve their current and previous period results');
 $timing=$as->analyticsTimingEvidence();audienceHttpExpect(!$timing['ready']&&$timing['contacts']<100,'Small native history exposes the selected-time fallback');
 $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($window));audienceHttpExpect(array_sum(array_column($patternRows,'accepted'))===36,'Content patterns reconcile with the same accepted cohort');
+// One campaign sent in both Octobers and in the gap between them.
+(static function (AudienceStore $store, array $campaigns): void {
+    $store->db->begin_transaction();
+    try {
+        $campaign = $campaigns[0];
+        $windows = audienceAnalyticsWindow(['start'=>'2026-10-01','end'=>'2026-10-31','compare'=>'year',
+            'messages_mode'=>'selected','messages'=>[$campaign]], new DateTimeImmutable('2026-11-10'));
+        $deliveries = [];
+        foreach (['2026-10-09','2025-10-09','2026-06-09'] as $index => $date) {
+            $id = $store->one('SELECT id FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=?',
+                [$store->audienceId, $campaigns[$index]])['id'];
+            $deliveries[] = $id;
+            $subject = $index === 2 ? 'June update' : 'October update';
+            $store->write('UPDATE marketing_campaign_deliveries SET campaign_id=?,confirmed_version=?,snapshot_ciphertext=? WHERE id=?',
+                [$campaign, $index + 1, Dnr\Security\ApplicationKey::seal(json_encode(['draft'=>['subject'=>$subject]], JSON_THROW_ON_ERROR)), $id]);
+            $store->write('UPDATE marketing_campaign_recipients SET accepted_at=? WHERE delivery_id=?', [$date, $id]);
+        }
+        $overview = $store->analyticsOverview($windows);
+        $rows = $store->analyticsContentPatterns($windows, $overview);
+        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 characters'
+            && $rows[0]['accepted']===12 && $rows[0]['previous']['accepted']===12,
+            'A different subject in June cannot change either October cohort');
+
+        $store->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?',
+            [Dnr\Security\ApplicationKey::seal(json_encode(['draft'=>['subject'=>str_repeat('x', 71)]], JSON_THROW_ON_ERROR)), $deliveries[1]]);
+        $rows = array_column($store->analyticsContentPatterns($windows, $overview), null, 'label');
+        audienceHttpExpect(count($rows)===2 && $rows['Up to 40 characters']['accepted']===12
+            && $rows['Up to 40 characters']['previous']===null && $rows['Over 70 characters']['accepted']===0
+            && $rows['Over 70 characters']['previous']['accepted']===12, 'Each period retains its own subject length and counts');
+        $currentOnly = $store->analyticsContentPatterns(array_replace($windows, ['compare'=>'none']), $overview);
+        audienceHttpExpect(count($currentOnly)===1 && $currentOnly[0]['label']==='Up to 40 characters'
+            && $currentOnly[0]['previous']===null, 'Turning comparison off shows only current subjects');
+
+        $store->write('UPDATE marketing_campaign_recipients SET accepted_at=? WHERE delivery_id=? ORDER BY id LIMIT 1',
+            ['2025-10-01', $deliveries[0]]);
+        $rows = array_column($store->analyticsContentPatterns($windows, $store->analyticsOverview($windows)), null, 'label');
+        audienceHttpExpect($rows['Up to 40 characters']['accepted']===11 && $rows['Multiple subjects']['previous']['accepted']===13,
+            'A delivery with recipients accepted in both windows contributes its subject to both');
+    } finally {
+        $store->db->rollback();
+    }
+})($as, $samples['campaigns']);
 // A large delivery must not multiply the saved newsletter by its recipient count to find its subject.
 (static function (AudienceStore $store, array $window, int $campaign): void {
     $db = $store->db;

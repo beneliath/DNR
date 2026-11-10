@@ -76,7 +76,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                             <div class="form-field presentation-time-field">
                                 <label for="presentation_time_<?php echo $presentation_dom_id; ?>">Time</label>
                                 <div class="time-input-container">
-                                    <input type="text" id="presentation_time_<?php echo $presentation_dom_id; ?>" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530" value="<?php echo htmlspecialchars($presentation_time_value, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="text" name="presentation_time_<?php echo $presentation_dom_id; ?>" id="presentation_time_<?php echo $presentation_dom_id; ?>" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530" value="<?php echo htmlspecialchars($presentation_time_value, ENT_QUOTES, 'UTF-8'); ?>">
                                     <div class="ampm-radio">
                                         <label><input type="radio" name="presentation_ampm_<?php echo $presentation_dom_id; ?>" value="AM" <?php echo $presentation_ampm === 'AM' ? 'checked' : ''; ?>> AM</label>
                                         <label><input type="radio" name="presentation_ampm_<?php echo $presentation_dom_id; ?>" value="PM" <?php echo $presentation_ampm === 'PM' ? 'checked' : ''; ?>> PM</label>

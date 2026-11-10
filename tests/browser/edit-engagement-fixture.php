@@ -12,7 +12,8 @@ $selected_cancellation_reason = '';
 $reschedule_candidates = [];
 $default_speaker_id = 1;
 $speaker_options = [['id' => 1, 'name' => 'Sample Speaker', 'email' => 'speaker@example.test']];
-$rejectedSave = isset($argv[1]);
+$withDraft = ($argv[1] ?? '') === 'draft';
+$rejectedSave = isset($argv[1]) && !$withDraft;
 $presentation_form_rows = [['topic_title' => $rejectedSave ? 'Submitted edit' : 'Opening session', 'presentation_time' => '18:00']];
 ?>
 <!doctype html>
@@ -22,12 +23,13 @@ $presentation_form_rows = [['topic_title' => $rejectedSave ? 'Submitted edit' : 
     'assets/css/pages/edit_engagement.min.css', 'assets/css/pages/engagement_lifecycle.min.css',
 ]]); ?>
 <body class="edit-engagement-body">
+<?php if ($withDraft): ?><aside hidden id="app-sidebar" data-nav-preference-user="draft-fixture"></aside><?php endif; ?>
 <?php renderScript('assets/js/edit-engagement.min.js', false); ?>
 <div class="account-identity-banner">Fixture Account</div>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <main class="container edit-engagement-page">
-    <form class="engagement-form" id="engagement-edit-form">
-        <input type="hidden" name="edit_baseline" value="<?= htmlspecialchars($argv[1] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+    <form class="engagement-form" id="engagement-edit-form"<?= $withDraft ? ' data-recoverable-draft="edit_engagement.php:1"' : '' ?>>
+        <input type="hidden" name="edit_baseline" value="<?= htmlspecialchars($rejectedSave ? $argv[1] : '', ENT_QUOTES, 'UTF-8') ?>">
         <?php include __DIR__ . '/../../src/templates/engagement_lifecycle_form.php'; ?>
         <section class="form-section engagement-event-details-section">
             <h2>Event Details &amp; Schedule</h2>

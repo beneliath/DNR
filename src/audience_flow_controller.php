@@ -122,7 +122,6 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
         if($store->sesAvailable()){$ses=$store->sesSettings();$readiness=$store->sendingReadiness($ses['from_email']??'',audienceJson($audience['settings_json']));$ready=$readiness['ready'];}
         $flowSetupTasks=audienceFlowSetupTasks(['welcome'=>(bool)$welcome,'form'=>(bool)$hosted,'organize'=>(bool)($tags||$groups),'delivery'=>$ready],$canDelete);
     }
-    $report=$flow?$store->flowReport($id,$_GET):null;$validation=$flow?$store->flowValidate($flow['document']):[];
     if($view==='flow-report'&&($_GET['download']??'')==='csv'){
         if(!$canManage){http_response_code(403);exit('Export requires an editor or administrator.');}
         releaseApplicationSessionLock();
@@ -143,6 +142,12 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
         }finally{fclose($out);}
         return;
     }
+    $report = match ($view) {
+        'flow' => ['nodes'=>$store->flowNodeCounts($id)],
+        'flow-report' => $store->flowReport($id, $_GET),
+        default => null,
+    };
+    $validation=$flow?$store->flowValidate($flow['document']):[];
     $flowPreview=$view==='flow-templates'&&isset(audienceFlowTemplates()[$_GET['preview']??''])?audienceText($_GET,'preview',30):null;
     $pageTitle=$flow?$flow['name']:($view==='flow-templates'?($flowPreview?'Flow template':'Flow templates'):'Automations');$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
