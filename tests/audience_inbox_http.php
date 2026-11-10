@@ -124,7 +124,9 @@ audienceHttpExpect($ib->inboxList(['status'=>'review','q'=>'Held campaign reply'
 // MIME bytes survive ingestion only through the private, validated attachment path.
 $png=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=');
 $multipart=str_replace(['gateway-inbox@example.test',"Content-Type: text/plain; charset=UTF-8\r\n\r\nAuthenticated gateway message"],['gateway-attachment@example.test',"MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=stage6\r\n\r\n--stage6\r\nContent-Type: text/plain\r\n\r\nAttachment message\r\n--stage6\r\nContent-Type: image/png\r\nContent-Disposition: attachment; filename=pixel.png\r\nContent-Transfer-Encoding: base64\r\n\r\n".base64_encode($png)."\r\n--stage6--\r\n"],$raw);
-$parsed=parseInboundEmail($multipart);$stored=storeInboundEmailMessage($conn,'file','inbox-attachment',$parsed,inboundEmailGatewayAddress());audienceHttpExpect(processInboundEmailMessage($conn,$stored['id'])==='processed','Multipart Inbox message routes normally');
+$parsed=parseInboundEmail($multipart);
+$attachmentSource=storeInboundEmailMessage($conn,'file','inbox-attachment',$parsed,inboundEmailGatewayAddress());
+audienceHttpExpect(processInboundEmailMessage($conn,$attachmentSource['id'])==='processed','Multipart Inbox message routes normally');
 $attachment=$ib->one("SELECT a.id,a.content,m.thread_id FROM marketing_inbox_attachments a JOIN marketing_inbox_messages m ON m.id=a.message_id WHERE m.rfc_message_id='<gateway-attachment@example.test>'");audienceHttpExpect($attachment&&hash_equals($png,$attachment['content']),'Validated attachment retains exact bytes');
 audienceHttpExpect($reviewer($inboxPath.'&attachment='.$attachment['id'])['status']===403,'Attachment download checks Inbox role');$download=$editor($inboxPath.'&attachment='.$attachment['id']);audienceHttpExpect($download['status']===200&&str_contains($download['headers'],'Content-Disposition: attachment;')&&hash_equals($png,$download['body']),'Authorized attachment download is forced as a file');
 // Hosted forms never create newsletter consent or match a typed identity.
@@ -192,6 +194,20 @@ audienceHttpExpect($editor($inboxPath.'&status=trash',array_replace($bulkPurge,[
 $lockedPurge=$admin($inboxPath.'&status=trash',$bulkPurge);
 audienceHttpExpect($lockedPurge['status']===302&&str_contains($lockedPurge['headers'],'admin_elevation.php')&&$ib->inboxThread($purgeOne),'Bulk purge requires a fresh Admin Unlock');
 session_name($adminSessionName);session_id($adminSessionId);startSecureSession();$_SESSION['_admin_elevated_at']=time();unset($_SESSION['_admin_elevation_expires_at']);session_write_close();
+$sourceId = $attachmentSource['id'];
+$sourcePart = $ib->one('SELECT content FROM marketing_inbox_inbound_parts WHERE inbound_id=?', [$sourceId]);
+audienceHttpExpect($sourcePart && hash_equals($png, $sourcePart['content']), 'Retained source has its own copy of the PNG before purge');
+$sourcePurge = $admin('inbound_mail.php', [
+    'csrf_token' => $adminInboxCsrf, 'action' => 'purge', 'message_id' => $sourceId, 'status' => 'all',
+]);
+audienceHttpExpect($sourcePurge['status'] === 302
+    && str_contains($admin('inbound_mail.php?status=all')['body'], 'The inbound mail entry was purged.')
+    && !$ib->one('SELECT id FROM inbound_email_messages WHERE id=?', [$sourceId])
+    && !$ib->one('SELECT part_number FROM marketing_inbox_inbound_parts WHERE inbound_id=?', [$sourceId]),
+    'Unlocked Inbox purge removes the retained email and its stored parts');
+$filedDownload = $editor($inboxPath.'&attachment='.$attachment['id']);
+audienceHttpExpect($filedDownload['status'] === 200 && hash_equals($png, $filedDownload['body']),
+    'The filed MessageMonkey attachment remains downloadable after purging its source');
 $activePurge=$admin($inboxPath.'&status=trash',['csrf_token'=>$adminInboxCsrf,'format'=>'json','action'=>'inbox_thread','thread_id'=>$tid,'version'=>$ib->inboxThread($tid)['version'],'operation'=>'purge']);
 audienceHttpExpect($activePurge['status']===422&&$ib->inboxThread($tid),'Purge rejects conversations outside Trash');
 $staleBulk=$admin($inboxPath.'&status=trash',array_replace($bulkPurge,['format'=>'json','threads'=>[$purgeOne.':'.$purgeOneVersion,$purgeTwo.':'.($purgeTwoVersion-1)]]));

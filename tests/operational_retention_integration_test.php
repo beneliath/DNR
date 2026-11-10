@@ -55,7 +55,7 @@ try {
              body_text, attachment_names, raw_headers, status, processed_at)
          VALUES ('file', ?, ?, 'gateway@example.test', 'sender@example.test',
                  JSON_ARRAY(), JSON_ARRAY(), ?, '2020-01-01 00:00:00', '',
-                 JSON_ARRAY(), '', 'processed', '2020-01-01 00:00:00')"
+                 JSON_ARRAY('reply.pdf'), '', 'processed', '2020-01-01 00:00:00')"
     );
     foreach (['pending', 'delivered'] as $kind) {
         $transportKey = 'retention-' . $kind . '-' . $suffix;
@@ -70,6 +70,11 @@ try {
         }
     }
     $insertMessage->close();
+    $conn->execute_query(
+        "INSERT INTO marketing_inbox_inbound_parts (inbound_id, part_number, filename, content)
+         VALUES (?, 0, 'reply.pdf', ?), (?, 0, 'reply.pdf', ?)",
+        [$pendingMessageId, 'pending attachment', $deliveredMessageId, 'delivered attachment']
+    );
 
     $insertNotification = $conn->prepare(
         "INSERT INTO mattermost_reply_notifications
@@ -127,6 +132,10 @@ try {
          FROM mattermost_reply_notifications
          WHERE inbound_email_message_id IN ({$pendingMessageId}, {$deliveredMessageId})"
     )->fetch_all(MYSQLI_ASSOC);
+    $remainingParts = $conn->execute_query(
+        'SELECT inbound_id, content FROM marketing_inbox_inbound_parts WHERE inbound_id IN (?, ?)',
+        [$pendingMessageId, $deliveredMessageId]
+    )->fetch_all(MYSQLI_ASSOC);
 
     expectOperationalRetentionIntegration(
         is_array($outcome) && (int) ($outcome['inbound_message_count'] ?? 0) >= 1,
@@ -136,6 +145,12 @@ try {
         count($remainingMessages) === 1
             && (int) $remainingMessages[0]['id'] === $pendingMessageId,
         'an inbound message with an undelivered Mattermost reply must survive pruning.'
+    );
+    expectOperationalRetentionIntegration(
+        count($remainingParts) === 1
+            && (int) $remainingParts[0]['inbound_id'] === $pendingMessageId
+            && $remainingParts[0]['content'] === 'pending attachment',
+        'retention must remove the pruned source’s attachment and keep the pending reply’s attachment intact.'
     );
     expectOperationalRetentionIntegration(
         count($remainingNotifications) === 1
@@ -153,6 +168,7 @@ try {
     if ($pendingMessageId > 0 || $deliveredMessageId > 0) {
         $ids = implode(',', array_filter([$pendingMessageId, $deliveredMessageId]));
         $conn->query("DELETE FROM mattermost_reply_notifications WHERE inbound_email_message_id IN ({$ids})");
+        $conn->query("DELETE FROM marketing_inbox_inbound_parts WHERE inbound_id IN ({$ids})");
         $conn->query("DELETE FROM inbound_email_messages WHERE id IN ({$ids})");
     }
     if ($engagementId > 0) {

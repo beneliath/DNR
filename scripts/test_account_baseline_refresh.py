@@ -42,9 +42,10 @@ mattermost_post_reaction_notifications mattermost_reply_notifications
 record_creation_operations record_merge_journal notes_cache_purge_queue
 inbound_email_quarantine inbound_mail_reconciliation notification_outbox'''.split()
 CLEAR_TABLES += ['marketing_ses_alert_outbox']
-# These inbox records are scoped to inbound mail that the refresh replaces. They
-# must not retain stale references or make old mail look newly received/routed.
-CLEAR_TABLES += ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
+# Bulk replacement disables foreign key checks, so clear these explicitly even
+# though individual source deletions cascade to their attachment parts and receipts.
+INBOUND_SOURCE_METADATA = ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']
+CLEAR_TABLES += INBOUND_SOURCE_METADATA
 # Forward recipients link discarded messages to their operational mail receipts.
 CLEAR_TABLES += ['marketing_inbox_forwards']
 # Dismissals refer to discarded notification identities; never carry them into
@@ -101,6 +102,11 @@ def check_external_references(db=DB):
  reset_tables=set(TABLES+CLEAR_TABLES)
  unexpected=[line for line in links.splitlines() if line.split('\t')[1] in reset_tables and line.split('\t')[0] not in reset_tables]
  require(not unexpected,'Review new business references before refresh: '+str(unexpected))
+ if query(db,"SELECT COUNT(*) FROM dnr.schema_migrations WHERE migration_name='20261110_cascade_inbound_attachment_parts.sql' AND state='applied'")=='1':
+  rule=query(db,"""SELECT DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS
+   WHERE CONSTRAINT_SCHEMA='dnr' AND TABLE_NAME='marketing_inbox_inbound_parts'
+     AND REFERENCED_TABLE_NAME='inbound_email_messages'""")
+  require(rule=='CASCADE','Stored inbound attachments must cascade when their source email is deleted')
 
 MIGRATIONS_SQL='SELECT migration_name,checksum,state FROM dnr.schema_migrations ORDER BY migration_name'
 SCHEMA_COLUMNS_SQL="""SELECT TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,COLUMN_TYPE,IS_NULLABLE,
@@ -285,6 +291,8 @@ def validate_message_monkey(db,anchor):
  return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2,brand_logos=2,interaction_locations=41)
 
 def validate(db,anchor):
+ for table in INBOUND_SOURCE_METADATA:
+  require(query(db,'SELECT COUNT(*) FROM dnr.`'+table+'`')=='0','Stale inbox receive/routing metadata remains: '+table)
  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]
  assert query(db,"SELECT MIN(event_start_date),MAX(event_end_date) FROM dnr.engagements")=='\t'.join(window),'Date coverage failed'
  assert query(db,"SELECT COUNT(DISTINCT DATE_FORMAT(event_start_date,'%Y-%m')) FROM dnr.engagements")=='13','Missing month'
@@ -437,8 +445,6 @@ def refresh(args):
      subprocess.run(root_command(DB,'mysql','-uroot','dnr'),input=final,check=True,stdout=subprocess.DEVNULL)
      assert protected_before==table_state(DB,PRESERVE),'Protected live tables changed'
      require(query(DB,MIGRATIONS_SQL)==current_ledger and query(DB,SCHEMA_COLUMNS_SQL)==current_columns,'Refresh changed the live schema or migration ledger')
-     for table in ['marketing_inbox_inbound_parts','marketing_inbox_route_receipts']:
-      require(query(DB,'SELECT COUNT(*) FROM dnr.`'+table+'`')=='0','Stale inbox receive/routing metadata remains: '+table)
      owners=validate(DB,anchor)
      validate_message_monkey(DB,anchor)
      require(table_state(DB,MESSAGE_MONKEY_TABLES)==marketing_state,'MessageMonkey staged/live data mismatch')
