@@ -59,10 +59,10 @@
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations. Duplicate Presentation is inside the intended presentation’s colored banner. It adds an editable copy below that presentation within the same engagement; review its details and Save Changes to generate its own unique QR codes.",
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
+        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
         "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
-        "assets/js/presentation-form.js": "39a7267a2e9795316fe48758224aa097667d870ed9cdc2c34402986bca58cd70"
+        "assets/js/presentation-form.js": "172e461b50e1908390bc3cb2adb8fd3975918c1eaad7b77568960687e47cfefb"
       },
       "controls": {
         "presentations-tab": {
@@ -535,7 +535,7 @@
       "source_files": {
         "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
         "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "75f2a112a1790ca84bd835a8b64efd31617565a905d917f01ce07f1093032fef",
+        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
         "templates/footer.php": "ec54451daa45fa8e561bc21a2fac82cc0580916afaddc21ab48454390a4453d3",
         "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"

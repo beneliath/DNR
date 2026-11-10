@@ -12,13 +12,34 @@ $outcomeCases = [
     ['active', '', 'active'],
     ['failed', 'Synthetic action failure', 'failed'],
 ];
+$outcomeRuns = [];
 foreach ($outcomeCases as $index=>[$rawState, $reason, $outcome]) {
     $fs->write('INSERT INTO marketing_flow_runs
         (audience_id,flow_id,revision_id,contact_id,entry_key,node_key,state,due_at,ended_at,error_message)
         VALUES (?,?,?,?,?,?,?,?,?,?)', [1, $outcomeFlowId, $outcomeFlow['published_revision'], $flowPerson,
             'outcome-'.$index, 'tag', $rawState, gmdate('Y-m-d H:i:s', $clock),
             in_array($rawState, ['completed','exited'], true) ? gmdate('Y-m-d H:i:s', $clock) : null, $reason]);
+    $outcomeRuns[] = (int)$conn->insert_id;
 }
+$fs->write("INSERT INTO marketing_flow_steps(audience_id,run_id,node_key,state,result_json)
+    VALUES (1,?,'tag','completed',JSON_OBJECT()), (1,?,'tag','completed',JSON_OBJECT()), (1,?,'exit','completed',JSON_OBJECT())",
+    [$outcomeRuns[0], $outcomeRuns[1], $outcomeRuns[0]]);
+$flowSelects = static fn(): int => (int)$conn->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1];
+$beforeFlowReads = $flowSelects();
+$nodeCounts = $fs->flowNodeCounts($outcomeFlowId);
+audienceHttpExpect($flowSelects() - $beforeFlowReads === 1 && (int)array_column($nodeCounts, 'n', 'node_key')['tag'] === 2,
+    'Map step counts use one aggregate query');
+$beforeFlowReads = $flowSelects();
+$fs->flowReport($outcomeFlowId, ['state'=>'failed']);
+$oneRunReads = $flowSelects() - $beforeFlowReads;
+$beforeFlowReads = $flowSelects();
+$fullReport = $fs->flowReport($outcomeFlowId);
+audienceHttpExpect($flowSelects() - $beforeFlowReads === $oneRunReads && $fullReport['nodes'] === $nodeCounts,
+    'Loading histories for seven runs uses the same query count as one and preserves map counts');
+$stepsByRun = array_column($fullReport['runs'], 'steps', 'id');
+audienceHttpExpect(array_column($stepsByRun[$outcomeRuns[0]], 'node_key') === ['tag','exit']
+    && array_column($stepsByRun[$outcomeRuns[1]], 'node_key') === ['tag'] && $stepsByRun[$outcomeRuns[2]] === [],
+    'The report keeps each run’s steps in execution order and includes empty histories');
 $outcomeExpected = ['started'=>7,'completed'=>3,'exited'=>2,'active'=>1,'failed'=>1];
 audienceHttpExpect($fs->flowRunTotals([$outcomeFlowId])[$outcomeFlowId] === $outcomeExpected,
     'Every entry belongs to exactly one outcome, including historical successful exits');
