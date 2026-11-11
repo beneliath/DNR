@@ -62,8 +62,8 @@ $maintenanceNonce ??= function_exists('contentSecurityPolicyNonce') ? contentSec
     <?php if ($deploying): ?>
         <p>Updates are underway. This page reopens automatically.</p>
         <?php if ($remaining !== null): ?>
-            <div class="timer<?= $remaining === 0 ? ' timer-expired' : '' ?>" role="timer" aria-label="<?= $remaining === 0 ? 'Estimated return time has passed' : 'Estimated time until service returns' ?>" data-maintenance-timer data-remaining-seconds="<?= $remaining ?>"><?= sprintf('%d:%02d:%02d', intdiv($remaining, 3600), intdiv($remaining % 3600, 60), $remaining % 60) ?></div>
-            <p class="detail" data-maintenance-estimate><?= $remaining === 0 ? 'The estimate has passed. Please check back soon.' : 'Estimated return: ' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') ?></p>
+            <div class="timer<?= $remaining === 0 ? ' timer-expired' : '' ?>" role="timer" aria-label="<?= $remaining === 0 ? 'Estimated Return Time Has Passed' : 'Estimated Time Until Service Returns' ?>" data-maintenance-timer data-remaining-seconds="<?= $remaining ?>"><?= sprintf('%d:%02d:%02d', intdiv($remaining, 3600), intdiv($remaining % 3600, 60), $remaining % 60) ?></div>
+            <p class="detail" data-maintenance-estimate><?= $remaining === 0 ? 'The estimate has passed. Please check back soon.' : 'Estimated Return: ' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') ?></p>
         <?php else: ?>
             <p class="detail">The estimate has passed. Please check back soon.</p>
         <?php endif; ?>

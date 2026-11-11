@@ -138,7 +138,7 @@ echo '<!doctype html><h1>Requested content</h1><input name="username"><input nam
                     for path in paths:
                         code, headers, body = request(origin + path)
                         samples.append(code)
-                        if code != 503 or 'Temporarily unavailable' not in body:
+                        if code != 503 or 'Temporarily Unavailable' not in body:
                             errors.append((path, code))
                     time.sleep(.02)
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
