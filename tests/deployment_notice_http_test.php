@@ -60,8 +60,8 @@ foreach (['/login.php', '/a/test-account/engagement.php', '/direct/content.pdf']
     [$body, $headers] = noticeHttp('GET', $path);
     $headerText = strtolower(implode("\n", $headers));
     checkNoticeHttp(str_contains($headers[0] ?? '', '503'), 'Unavailable pages must return HTTP 503: ' . ($headers[0] ?? '') . ' ' . substr((string) $body, 0, 200));
-    checkNoticeHttp(str_contains($body, 'Temporarily Unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
-        && !str_contains($body, 'aria-label="MOED logo"') && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
+    checkNoticeHttp(str_contains($body, 'Temporarily Unavailable') && str_contains($body, 'aria-label="Clock and Workspace Illustration"') && str_contains($body, 'Estimated Return: ')
+        && stripos($body, 'aria-label="MOED logo"') === false && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
     checkNoticeHttp(!str_contains($body, 'http-equiv="refresh"')
         && str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')
         && str_contains($body, 'data-status-url="/deployment_status.php"') && str_contains($body, 'data-wait-for-deployment="true"')
@@ -86,6 +86,7 @@ $state['expected_back_at'] = $now - 30;
 file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
 [$body] = noticeHttp('GET', '/login.php');
 checkNoticeHttp(str_contains((string) $body, 'class="timer timer-expired"')
+    && str_contains((string) $body, 'aria-label="Estimated Return Time Has Passed"')
     && str_contains((string) $body, 'data-remaining-seconds="0"')
     && str_contains((string) $body, '>0:00:00</div>')
     && str_contains((string) $body, 'The estimate has passed. Please check back soon.')
@@ -94,7 +95,7 @@ checkNoticeHttp(str_contains((string) $body, 'class="timer timer-expired"')
 $state['phase'] = 'failed';
 file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
 [$body] = noticeHttp('GET', '/login.php');
-checkNoticeHttp(str_contains($body, 'taking longer than expected') && !str_contains($body, 'Estimated return'), 'Failed deployments must not promise an ETA.');
+checkNoticeHttp(str_contains($body, 'Maintenance Is Taking Longer Than Expected') && !str_contains($body, 'Estimated Return: '), 'Failed deployments must not promise an ETA.');
 checkNoticeHttp(str_contains($body, 'data-wait-for-deployment="true"') && str_contains($body, '/assets/js/maintenance-timer.js?v=')
     && !str_contains($body, 'http-equiv="refresh"'), 'Failed deployments must poll safely even without a countdown.');
 unlink('/run/dnr/deployment/notice.json');
