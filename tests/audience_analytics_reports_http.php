@@ -199,7 +199,7 @@ foreach(['reports','custom','activity','links','devices','insights','audience','
     $response=$editor('audience.php?view=analytics&section='.$section);
     audienceHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body'])&&str_ends_with(trim($response['body']),'</html>'),'Extended report route renders a complete shell: '.$section);
     if ($section==='insights') {
-        foreach (['Native historical benchmarks','Content performance patterns','Send-time insights'] as $heading) {
+        foreach (['Native Historical Benchmarks','Content Performance Patterns','Send-Time Insights'] as $heading) {
             audienceHttpExpect(str_contains($response['body'],'<h2>'.$heading.'</h2>'), 'Benchmarks and timing renders '.$heading);
         }
     }
@@ -230,15 +230,15 @@ audienceHttpExpect($editor('audience.php?view=analytics&section=activity&activit
     };
     $before=$campaignStore->analyticsSavedReport($httpId,true);
     $activePage=$editor($list)['body'];
-    audienceHttpExpect(str_contains($activePage,'aria-label="Custom report lists"')&&str_contains($activePage,'Archive report '.$name)
+    audienceHttpExpect(str_contains($activePage,'aria-label="Custom Report Lists"')&&str_contains($activePage,'Archive Report '.$name)
         &&!str_contains($activePage,'name="report_action" value="purge"'),'Active list offers archiving to the owner and never permanent deletion');
     $unlock(time());
     try{
         audienceHttpExpect($send($admin,'purge',1)['status']===400,'An unlocked admin cannot purge an active report');
         audienceHttpExpect($send($clients['queue-editor'],'archive',1)['status']===403&&$send($reviewer,'archive',1)['status']===403,'Other editors and reviewers cannot archive a private report');
-        audienceHttpExpect($send($editor,'archive',1)['status']===303&&!str_contains($editor($list)['body'],'Archive report '.$name),'Archiving removes the report from Active');
+        audienceHttpExpect($send($editor,'archive',1)['status']===303&&!str_contains($editor($list)['body'],'Archive Report '.$name),'Archiving removes the report from Active');
         $editorArchive=$editor($archive)['body'];$adminArchive=$admin($archive)['body'];
-        audienceHttpExpect(str_contains($editorArchive,'Restore report '.$name)&&!str_contains($editorArchive,'Permanently Delete Report '.$name)
+        audienceHttpExpect(str_contains($editorArchive,'Restore Report '.$name)&&!str_contains($editorArchive,'Permanently Delete Report '.$name)
             &&str_contains($adminArchive,'data-audience-protected-form data-admin-unlock-required')&&str_contains($adminArchive,'Permanently Delete Report '.$name),'Archive offers restore to owners and confirmed Admin Unlock deletion only to administrators');
         audienceHttpExpect($send($editor,'restore',2)['status']===303&&$campaignStore->analyticsSavedReport($httpId,true)['definition']===$before['definition'],'Restore returns the same report and definition to Active');
         $send($editor,'archive',3);
@@ -267,8 +267,8 @@ audienceHttpExpect($editor('audience.php?view=analytics&section=activity&activit
         $campaignStore->analyticsSaveReport(['report'=>$key,'report_version'=>1,'report_action'=>'delete'],true);
     }
     $page=$admin($archive.'&report_search=Archive+page+fixture&list_size=10&list_page=99')['body'];
-    audienceHttpExpect(str_contains($page,'11–11 of 11')&&str_contains($page,'Restore report Archive page fixture 11')
-        &&!str_contains($page,'Restore report Archive page fixture 10'),'Legacy removed reports open in Archive and filtered pagination clamps to its last page');
+    audienceHttpExpect(str_contains($page,'11–11 of 11')&&str_contains($page,'Restore Report Archive page fixture 11')
+        &&!str_contains($page,'Restore Report Archive page fixture 10'),'Legacy removed reports open in Archive and filtered pagination clamps to its last page');
     $empty=$admin($archive.'&report_search=Archive+page+fixture&favorites=1')['body'];
     audienceHttpExpect(str_contains($empty,'No reports match these filters.')&&str_contains($empty,'0 of 0'),'Favorites filter and empty state apply within the selected report list');
 })();

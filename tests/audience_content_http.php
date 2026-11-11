@@ -135,6 +135,10 @@ $campaignStore->saveBrand($coFontInput+['font_license'=>'1'],$coSettingsVersion(
 $coTemplateNow=$campaignStore->emailTemplate($coTemplate);$coRevisions=count($campaignStore->designRevisions('template',$coTemplate));
 audienceHttpExpect($editor($coBrand,['csrf_token'=>$token,'action'=>'brand_apply','template_id'=>$coTemplate,'version'=>$coTemplateNow['version'],'include_logo'=>'1'])['status']===302,'Brand applies explicitly to owned template');
 $coBranded=$campaignStore->emailTemplate($coTemplate)['design'];audienceHttpExpect($coBranded['rows'][0]['name']==='Brand Logo'&&$coBranded['styles']['font']==='Georgia'&&$coBranded['styles']['webFont']===$coFont,'Brand applied to template styles and logo');
+$legacyBranded=$coBranded;
+$legacyBranded['rows'][0]['name']='Brand logo';
+$rebranded=$campaignStore->brandedDesign($legacyBranded,$campaignStore->contentSettings()['settings']['brand'],true);
+audienceHttpExpect(array_column($rebranded['rows'],'name')===array_column($coBranded['rows'],'name'),'Reapplying the Brand Kit replaces the legacy logo row in place');
 audienceHttpExpect(count($campaignStore->designRevisions('template',$coTemplate))===$coRevisions+1,'Brand apply retains revision history');
 audienceHttpExpect(str_contains(audienceDesignHtml($coBranded),'@font-face')&&str_contains(audienceDesignHtml($coBranded),'MOEDBrandFont'),'Email HTML embeds controlled font with fallback');
 audienceHttpExpect($editor($coBrand,['csrf_token'=>$token,'action'=>'brand_apply','template_id'=>$foreignTemplate,'version'=>1])['status']===200,'Foreign template cannot receive Brand Kit');

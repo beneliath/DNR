@@ -41,7 +41,7 @@ audienceHttpExpect((int)$ib->inboxList(['label'=>$label])['total']===1,'Label fi
 $filteredInbox=$inboxPath.'&source=direct&label='.$label;
 $workspace=$editor($filteredInbox);
 audienceHttpExpect($workspace['status']===200&&str_contains($workspace['body'],'"thread":0')&&!str_contains($workspace['body'],'data-inbox-inline')&&str_contains($workspace['body'],'Choose a Conversation'),'Filtered Inbox leaves conversations unselected until the user chooses one');
-$openedWorkspace=$editor($filteredInbox.'&thread='.$tid);audienceHttpExpect(str_contains($openedWorkspace['body'],'data-inbox-inline')&&str_contains($openedWorkspace['body'],'Mark as unread'),'An explicitly chosen conversation opens with reply and unread controls');
+$openedWorkspace=$editor($filteredInbox.'&thread='.$tid);audienceHttpExpect(str_contains($openedWorkspace['body'],'data-inbox-inline')&&str_contains($openedWorkspace['body'],'Mark as Unread'),'An explicitly chosen conversation opens with reply and unread controls');
 audienceHttpExpect(str_contains($workspace['body'],'inbox-label-tag">Stage6 label')&&str_contains($workspace['body'],'data-inbox-time="short"'),'Conversation list shows assigned labels and machine-readable message times');
 $thread=$ib->inboxThread($tid);$completed=$editor($filteredInbox,['csrf_token'=>$inboxCsrf,'action'=>'inbox_thread','thread_id'=>$tid,'version'=>$thread['version'],'operation'=>'done']);
 audienceHttpExpect($completed['status']===302&&str_contains($completed['headers'],'source=direct')&&str_contains($completed['headers'],'label='.$label)&&!str_contains($completed['headers'],'thread='),'Completing a conversation returns to its filtered queue');

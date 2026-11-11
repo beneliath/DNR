@@ -32,6 +32,25 @@ $res=$editor($templatePath,['csrf_token'=>$token,'action'=>'design_test','versio
 audienceHttpExpect($res['status']===200&&(json_decode($res['body'],true)['queued']??0)===1,'Reusable template supports test delivery');
 $testPayload=audienceJson(\Dnr\Security\ApplicationKey::open($campaignStore->one("SELECT payload_ciphertext FROM marketing_service_mail WHERE audience_id=1 AND kind='test' AND state='queued' ORDER BY id DESC LIMIT 1")['payload_ciphertext']));
 audienceHttpExpect(str_contains($testPayload['message']['html'],'Review &lt;b&gt;this test&lt;/b&gt;.')&&str_contains($testPayload['message']['html'],"<br />\nSecond line.")&&str_starts_with($testPayload['message']['text'],"Review <b>this test</b>.\nSecond line."),'Template test queues the personal message in both HTML and plain-text alternatives');
+$subjectCampaign=$campaignStore->createCampaign(['name'=>'Missing-subject test fixture','campaign_type'=>'regular']);
+$subjectDraft=['design'=>audienceDesignStarters()['newsletter']['design'],'from_name'=>'Fixture','from_email'=>'sender@dispatch.example','preview_text'=>'Keep this preview'];
+$campaignStore->write('UPDATE marketing_campaigns SET draft_json=? WHERE audience_id=1 AND id=?',[json_encode($subjectDraft,JSON_THROW_ON_ERROR),$subjectCampaign]);
+$subjectPath='audience.php?view=designer&id='.$subjectCampaign;
+$subjectScreen=$editor($subjectPath);
+audienceHttpExpect($subjectScreen['status']===200&&str_contains($subjectScreen['body'],'name="test_subject"')&&str_contains($subjectScreen['body'],'Changes to the subject are saved to this campaign'),'Campaign test dialog exposes the missing subject and explains saving');
+$subjectTest=['csrf_token'=>$token,'action'=>'design_test','version'=>1,'request_key'=>str_repeat('f',64),'test_recipients'=>'subject-fixture@example.test'];
+$missingSubject=$editor($subjectPath,$subjectTest);
+audienceHttpExpect($missingSubject['status']===422&&str_contains($missingSubject['body'],'Add a subject line')&&!str_contains($missingSubject['body'],'email content'),'Missing subject is identified independently of existing email content');
+$subjectSave=['csrf_token'=>$token,'action'=>'design_subject','version'=>1,'subject'=>'Review & approve'];
+audienceHttpExpect($editor($subjectPath,array_replace($subjectSave,['subject'=>'  ']))['status']===422&&$campaignStore->campaign($subjectCampaign)['version']==1,'An empty subject leaves the draft unchanged');
+audienceHttpExpect($reviewer($subjectPath,array_replace($subjectSave,['csrf_token'=>$reviewToken]))['status']===403&&$editor($subjectPath,array_replace($subjectSave,['csrf_token'=>'invalid']))['status']===400,'Saving a test subject retains editor and CSRF requirements');
+$subjectSaved=$editor($subjectPath,$subjectSave);$subjectRow=$campaignStore->campaign($subjectCampaign);
+audienceHttpExpect($subjectSaved['status']===200&&(json_decode($subjectSaved['body'],true)['version']??0)===2&&$subjectRow['draft']['subject']==='Review & approve'&&$subjectRow['draft']['preview_text']==='Keep this preview'&&$subjectRow['draft']['design']==$subjectDraft['design'],'Test subject is saved with a new version while preserving preview text and design');
+audienceHttpExpect($editor($subjectPath,$subjectSave)['status']===422&&$editor($templatePath,$subjectSave)['status']===422&&$editor('audience.php?view=designer&id='.$foreignCampaign,$subjectSave)['status']===422,'Stale, template and foreign campaign subject writes are rejected');
+$subjectQueued=$editor($subjectPath,array_replace($subjectTest,['version'=>2]));
+audienceHttpExpect($subjectQueued['status']===200&&(json_decode($subjectQueued['body'],true)['queued']??0)===1,'An initially missing subject can be saved in the designer and used for a test');
+$subjectPayload=audienceJson(\Dnr\Security\ApplicationKey::open($campaignStore->one("SELECT payload_ciphertext FROM marketing_service_mail WHERE audience_id=1 AND kind='test' ORDER BY id DESC LIMIT 1")['payload_ciphertext']));
+audienceHttpExpect($subjectPayload['message']['email']==='subject-fixture@example.test'&&$subjectPayload['message']['subject']==='[Test] Review & approve','Queued test uses the explicitly saved campaign subject');
 $conn->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR) WHERE audience_id=1");
 audienceHttpExpect(str_contains($editor($templatePath)['body'],'<option>sender@dispatch.example</option>'),'Expired SES verification does not hide the previously verified template sender');
 audienceHttpExpect(!$campaignStore->sendingReadiness('sender@dispatch.example',audienceJson($dispatchAudience['settings_json']))['ready'],'Ordinary campaign approval still requires fresh SES verification');
@@ -64,7 +83,7 @@ $runtimeCenters=$campaignStore->all("SELECT id FROM marketing_collection_resourc
 try{
 foreach($runtimeCenters as$center)$campaignStore->write("UPDATE marketing_collection_resources SET state='draft' WHERE id=?",[$center['id']]);
 $prefs='audience_subscription.php?token='.$ctx['token'].'&preferences=1';$prefsPage=$editor($prefs);$prefsCsrf=audienceHttpCsrf($prefsPage);$person=$campaignStore->person((int)$rr['contact_id']);$tagsBefore=$person['tag_ids'];
-audienceHttpExpect($prefsPage['status']===200&&str_contains($prefsPage['body'],'Update your preferences')&&!preg_match('/Warning:|Fatal error:/',$prefsPage['body']),'Private preferences renders');
+audienceHttpExpect($prefsPage['status']===200&&str_contains($prefsPage['body'],'Update Your Preferences')&&!preg_match('/Warning:|Fatal error:/',$prefsPage['body']),'Private preferences renders');
 audienceHttpExpect($editor($prefs,['csrf_token'=>'bad','preference_action'=>'save','version'=>$person['version']])['status']===400,'Preferences require CSRF');
 $res=$editor($prefs,['csrf_token'=>$prefsCsrf,'preference_action'=>'save','version'=>$person['version'],'first_name'=>'Updated by recipient','last_name'=>'Test','timezone'=>'Asia/Tokyo','email'=>'attacker@example.test','email_status'=>'cleaned','tag_ids'=>[]]);$person=$campaignStore->person((int)$rr['contact_id']);
 audienceHttpExpect($res['status']===200&&$person['first_name']==='Updated by recipient'&&$person['email']===$ctx['context']['EMAIL']&&$person['email_status']==='subscribed'&&$person['tag_ids']===$tagsBefore,'Preferences preserve email, consent and private tags');
@@ -87,7 +106,7 @@ audienceHttpExpect((audienceJson($confirmationEvent['details_json']??'')['intera
 $unsubReport=$campaignStore->deliveryReport($runtimeJob);audienceHttpExpect((int)$unsubReport[0]['unsubscribed']===1,'Report attributes unsubscribe to the message capability used');
 $campaignStore->recordDeliveryEvent((int)$rr['id'],'complaint',hash('sha256','older-than-fresh-consent'),'provider',gmdate('Y-m-d H:i:s',time()-3600));audienceHttpExpect($campaignStore->person((int)$rr['contact_id'])['email_status']==='subscribed','An older provider event cannot override freshly confirmed consent');
 require __DIR__.'/audience_ses_events_http.php';
-$report=$editor('audience.php?view=campaign-delivery&id='.$runtimeId);audienceHttpExpect($report['status']===200&&str_contains($report['body'],'Email report')&&!preg_match('/Warning:|Fatal error:/',$report['body']),'Observed metrics and receipts render');
+$report=$editor('audience.php?view=campaign-delivery&id='.$runtimeId);audienceHttpExpect($report['status']===200&&str_contains($report['body'],'Email Report')&&!preg_match('/Warning:|Fatal error:/',$report['body']),'Observed metrics and receipts render');
 // Experimental dispatch is disabled; ordinary non-clicker resend remains independent.
 $disabledId=$makeRuntime(['experiment'=>['kind'=>'ab','variables'=>['subject'=>['One','Two']],'percent'=>50,'hours'=>1,'winner'=>'manual']]);
 $blocked=false;try{$confirmRuntime($disabledId);}catch(InvalidArgumentException){$blocked=true;}audienceHttpExpect($blocked&&!$campaignStore->campaignDelivery($disabledId),'Experimental draft cannot enter dispatch');

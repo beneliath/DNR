@@ -71,6 +71,10 @@ function renderAudienceDesignWorkspace(AudienceStore $store,array $audience,stri
                 if(isRestrictedDemoSession()||!accountSecurityAccessAllowed())$respond(['error'=>'Sending requires an unrestricted editor or administrator.'],403);
                 if(!$store->deliveryRuntimeAvailable())throw new InvalidArgumentException('The delivery upgrade is not installed yet.');
                 $n=$store->queueCampaignTest($id,$version,$_POST,$audience,currentAccountPublicUrl(),$kind,$variant);$respond(['queued'=>$n]);
+            }elseif($action==='design_subject'){
+                if($kind!=='campaign')throw new InvalidArgumentException('Only campaigns have a saved subject line.');
+                $store->saveCampaignSection($id,$version,'subject',['subject'=>audienceText($_POST,'subject',200),'preview_text'=>$owner['draft']['preview_text']??'']);
+                $respond(['version'=>$version+1]);
             }elseif($action==='design_save'){
                 $design=audienceDesign(audienceJson(audienceDesignPayload($_POST['design']??'')));
                 $version=$store->saveEmailDesign($kind,$id,$version,$design,$variant);

@@ -7,6 +7,7 @@ $reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArg
 foreach ([
     ['completed', '', 'completed'],
     ['exited', 'Exit step', 'completed'],
+    ['exited', 'Connection archived', 'completed'],
     ['exited', 'Connection Archived', 'completed'],
     ['exited', 'Exit conditions met', 'exited'],
     ['exited', 'Removed manually', 'exited'],

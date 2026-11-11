@@ -44,7 +44,7 @@ function audienceCampaignListThumbnail(array $draft):?string
 
 function audienceCampaignGoals():array
 {
-    return ['Advertise a sale or promotion','Educate or inform','Sell products','Gather sign-ups','Make an Announcement','Promote an event','Sell a service/get bookings','Other'];
+    return ['Advertise a sale or promotion','Educate or inform','Sell products','Gather sign-ups','Make an announcement','Promote an event','Sell a service/get bookings','Other'];
 }
 function audienceCampaignTracking(array $input):array
 {
@@ -166,7 +166,9 @@ trait AudienceCampaignAdvanced
     }
     public function saveCampaignPlan(array $input,int $id,int $version):int
     {
-        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a campaign goal.');
+        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);
+        if($goal==='Make an Announcement')$goal='Make an announcement';
+        if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a campaign goal.');
         $data=['goal'=>$goal,'start'=>audienceCampaignDate(audienceText($input,'start')),'end'=>audienceCampaignDate(audienceText($input,'end')),'notes'=>audienceText($input,'notes',4000),'tracking'=>audienceCampaignTracking($input)];if($data['end']<$data['start'])throw new InvalidArgumentException('End date must follow start date.');
         return $this->transaction(function()use($id,$version,$name,$data){if($id){$old=$this->campaignPlan($id,true);if((int)$old['version']!==$version)throw new InvalidArgumentException('This plan changed. Reload before saving.');$this->write('UPDATE marketing_campaign_plans SET name=?,data_json=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel,$this->audienceId,$id]);}else{$this->write('INSERT INTO marketing_campaign_plans(audience_id,name,data_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;});
     }

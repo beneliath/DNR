@@ -669,24 +669,46 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
     if(!original&&image.length>933000){error('The cropped image is too large. Use a smaller image.');return;}
     mutate(()=>{cropTarget.image=image;if(original)delete cropTarget.originalImage;else cropTarget.originalImage=cropOriginal;});$('#design-crop-dialog').close();
   };
-  const topMenus=$$('.designer-top-actions .designer-save-menu');topMenus.forEach(menu=>{menu.name='designer-top-menu';menu.addEventListener('toggle',()=>{if(menu.open)topMenus.forEach(other=>{if(other!==menu)other.open=false;});});});
+  const topMenus=$$('.designer-top-actions .designer-save-menu');
+  topMenus.forEach(menu=>{
+    let closeTimer;
+    menu.name='designer-top-menu';
+    menu.addEventListener('pointerenter',event=>{
+      if(event.pointerType!=='mouse'||event.buttons||!window.matchMedia('(hover: hover)').matches)return;
+      clearTimeout(closeTimer);
+      topMenus.forEach(other=>{other.open=other===menu;});
+    });
+    menu.addEventListener('pointerleave',event=>{
+      if(event.pointerType!=='mouse')return;
+      clearTimeout(closeTimer);
+      closeTimer=setTimeout(()=>{if(!menu.contains(document.activeElement))menu.open=false;},120);
+    });
+    menu.addEventListener('focusout',()=>{
+      queueMicrotask(()=>{if(!menu.matches(':hover')&&!menu.contains(document.activeElement))menu.open=false;});
+    });
+    menu.addEventListener('toggle',()=>{if(menu.open)topMenus.forEach(other=>{if(other!==menu)other.open=false;});});
+  });
   function closeMenus(){$$('.designer-save-menu').forEach(menu=>menu.open=false);}
   document.addEventListener('click',event=>{
     if(!topMenus.some(menu=>menu.contains(event.target)))closeMenus();
   },true);
   $('#design-undo').onclick=()=>travel(undo,redo);$('#design-redo').onclick=()=>travel(redo,undo);
-  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.target.matches('input,textarea,[contenteditable]')){e.preventDefault();e.shiftKey?travel(redo,undo):travel(undo,redo);}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.target.matches('input,textarea,[contenteditable]')){e.preventDefault();e.shiftKey?travel(redo,undo):travel(undo,redo);}});
   $$('.designer-rail [data-panel]').forEach(b=>b.onclick=()=>{panel=b.dataset.panel;if(panel==='styles'){styleArea='';styleDraft=null;}selectedRow=null;if(panel!=='comments')selected=null;render();});$$('[data-device]').forEach(b=>b.onclick=()=>setDevice(b.dataset.device));
   $('#design-save').onclick=()=>save(true);$('#design-save-only').onclick=()=>{closeMenus();save(false);};$('#design-preview').onclick=openPreview;$('#design-links').onclick=openLinks;$('#design-plain').onclick=openPlain;$('#design-history').onclick=openHistory;$('#design-code').onclick=openCode;$('#design-comments').onclick=()=>{panel='comments';renderTools();};$('#design-test').onclick=()=>{closeMenus();$('#design-test-dialog').showModal();};
-  let testRequestKey='';
+  let testRequestKey='',testSubject=$('#design-test-form [name=test_subject]').value;
   $('#design-test').onclick=()=>{closeMenus();testRequestKey=[...crypto.getRandomValues(new Uint8Array(32))].map(n=>n.toString(16).padStart(2,'0')).join('');$('#design-test-status').textContent='';$('#design-test-dialog').showModal();};
   $('#design-test-form').onsubmit=run(async e=>{
     e.preventDefault();const submit=$('button.primary',e.target),notice=$('#design-test-status');submit.disabled=true;notice.textContent='';
     try{
       if(dirty&&!(await save(false)))return;
+      const subject=e.target.elements.test_subject.value.trim();
+      if(config.kind==='campaign'&&subject!==testSubject){
+        const saved=await request('design_subject',{subject});version=saved.version;testSubject=subject;e.target.elements.test_subject.value=subject;
+      }
       const data=await request('design_test',{...Object.fromEntries(new FormData(e.target)),request_key:testRequestKey});
       const emailLabel=data.queued===1?'test email':'test emails';
-      $('#design-test-result-title').textContent=data.queued===1?'Test Email Queued':'Test emails queued';
+      $('#design-test-result-title').textContent=data.queued===1?'Test Email Queued':'Test Emails Queued';
       $('#design-test-result-text').textContent=`${data.queued} ${emailLabel} queued. Check Email delivery → Activity for the relay receipt.`;
       $('#design-test-dialog').close();
       $('#design-test-result-dialog').showModal();

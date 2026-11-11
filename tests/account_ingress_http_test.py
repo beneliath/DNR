@@ -38,7 +38,8 @@ def main():
         for asset in ['js/button-feedback.min.js', 'css/style.min.css', 'css/modern.min.css']:
             (root/'assets'/Path(asset).name).write_bytes((repository/'src/assets'/asset).read_bytes())
         (root/'download_feedback_helpers.php').write_bytes((repository/'src/download_feedback_helpers.php').read_bytes())
-        for helper in ['pagination_helpers.php','audience_pagination.php']:
+        for helper in ['pagination_helpers.php','audience_pagination.php','app/Domain/ReferenceData.php']:
+            (root/helper).parent.mkdir(parents=True,exist_ok=True)
             (root/helper).write_bytes((repository/'src'/helper).read_bytes())
         (root/'assets/browser-check.js').write_text('''
 document.addEventListener('DOMContentLoaded', () => {

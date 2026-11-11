@@ -59,7 +59,7 @@ $blocked=false;try{$fs->saveFlow('Stale flow',$d,(int)$basic['id'],1);}catch(Inv
 require __DIR__.'/audience_flow_outcomes_http.php';
 foreach(['automations','flow-templates','flow','flow-report']as$v){$page=$editor('audience.php?view='.$v.($v==='flow'||$v==='flow-report'?'&id='.$basic['id']:''));audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Flow HTTP surface renders '.$v);}
 $nav=$editor('audience.php?view=automations');audienceHttpExpect(str_contains($nav['body'],'href="audience.php?view=automations"')&&!str_contains($nav['body'],'aria-disabled="true" tabindex="0" data-audience-tooltip="Map out'),'Automations is an available sidebar destination');
-audienceHttpExpect(str_contains($nav['body'],'data-flow-onboarding')&&str_contains($nav['body'],'Get started with automation flows')&&str_contains($nav['body'],'data-flow-task="delivery"'),'Upper-level Automations includes the native five-task setup guide');
+audienceHttpExpect(str_contains($nav['body'],'data-flow-onboarding')&&str_contains($nav['body'],'Get Started with Automation Flows')&&str_contains($nav['body'],'data-flow-task="delivery"'),'Upper-level Automations includes the native five-task setup guide');
 audienceHttpExpect(!str_contains($nav['body'],'view=transactional'),'Transactional is removed from MessageMonkey navigation');
 $overviewIds=[];foreach(['Overview older','Overview newer','Overview classic']as$name){$copy=$d;$copy['classic']=$name==='Overview classic';$overviewIds[]=$fs->saveFlow($name,$copy);}
 $fs->write("UPDATE marketing_flows SET created_at='2026-01-01 00:00:00' WHERE id=?",[$overviewIds[0]]);$fs->write("UPDATE marketing_flows SET created_at='2026-02-01 00:00:00' WHERE id=?",[$overviewIds[1]]);

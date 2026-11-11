@@ -167,12 +167,11 @@ if($view==='campaigns'){
         $campaignRowIds=array_column($campaignPageNames,'id');
         $campaignRowsById=[];
         if($campaignRowIds){
-            // A list row needs labels and an image hint, not the newsletter document or its embedded artwork.
+            // List rows use type icons and only need campaign labels, without embedded artwork.
             $rows=$store->all("SELECT c.id,c.name,c.version,c.status,c.campaign_type,c.folder_id,c.actor_label,c.created_at,c.updated_at,c.sent_at $dispatchColumns,
                 f.name folder_name,JSON_OBJECT('subject',c.draft_json->'$.subject','target',c.draft_json->'$.target','include',c.draft_json->'$.include',
                     'exclude',c.draft_json->'$.exclude','exclude_tag',c.draft_json->'$.exclude_tag','recipients_saved',c.draft_json->'$.recipients_saved',
-                    'recipient_rules',c.draft_json->'$.recipient_rules','experiment',JSON_OBJECT('kind',c.draft_json->'$.experiment.kind')) draft_json,
-                JSON_SEARCH(c.draft_json,'one','image',NULL,'$.design.rows[*].columns[*][*].type') IS NOT NULL has_thumbnail
+                    'recipient_rules',c.draft_json->'$.recipient_rules','experiment',JSON_OBJECT('kind',c.draft_json->'$.experiment.kind')) draft_json
                 FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id
                 WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds]);
             $campaignRowsById=array_column($rows,null,'id');

@@ -161,7 +161,7 @@ function audienceDesignPreviewHtml(array $design,string $nonce,?array $context=n
     // Account identity can resolve without treating an unselected recipient as
     // an empty recipient and hiding their conditional content.
     if($context===null&&$identity){$tags=[];foreach(['LIST:COMPANY','LIST:ADDRESS','LIST:ADDRESSLINE','LIST:NAME','CURRENT_YEAR','MC:SUBJECT','MC_PREVIEW_TEXT']as$key)if(array_key_exists($key,$identity))$tags['*|'.$key.'|*']=htmlspecialchars((string)$identity[$key],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$preview=strtr($preview,$tags);}
-    if($dark){$logoRules='';foreach($document['rows']as$row)if($row['name']==='Brand Logo'||str_starts_with($row['id'],'brand-row-')){$background=$row['styles']['background']??$document['regions'][$row['region']]['background']??$document['styles']['body'];$logoRules.='.'. $row['id'].',.'. $row['id'].' .email-block{background-color:'.$background.'!important}';}if($logoRules!=='')$preview=str_replace('</head>','<style nonce="'.$nonce.'">'.$logoRules.'</style></head>',$preview);}
+    if($dark){$logoRules='';foreach($document['rows']as$row)if(in_array($row['name'],['Brand Logo','Brand logo'],true)||str_starts_with($row['id'],'brand-row-')){$background=$row['styles']['background']??$document['regions'][$row['region']]['background']??$document['styles']['body'];$logoRules.='.'. $row['id'].',.'. $row['id'].' .email-block{background-color:'.$background.'!important}';}if($logoRules!=='')$preview=str_replace('</head>','<style nonce="'.$nonce.'">'.$logoRules.'</style></head>',$preview);}
     return $preview;
 }
 function audienceDesignPreviewSource(string $html,string $nonce,bool $dark=false):string

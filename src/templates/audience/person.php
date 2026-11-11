@@ -35,7 +35,7 @@
             <p class="audience-help">Approximate locations from the request's IP address. Tracked email opens and clicks, and one-click unsubscribes, may come from email services. Earlier actions are not backfilled.</p>
             <?php $locationLabels=['signup'=>'Signup Submitted','confirmed'=>'Subscription Confirmed','preferences'=>'Preferences Updated','unsubscribe'=>'Unsubscribed','survey'=>'Survey Submitted']; ?>
             <?php $foundLocation=false; foreach($locationLabels as$key=>$label): if(!isset($interactionHistory[$key]))continue; $foundLocation=true; $entry=$interactionHistory[$key]; $place=audienceInteractionPlace($entry['location']); ?>
-            <div class="person-interaction-entry"><strong><?= $h($label) ?></strong><p class="audience-help"><?= $h(audienceProfileDate($entry['at'])) ?></p><p><?= $h($place!==''?$place:'Location unavailable') ?></p><?php if($canManage): ?><p class="audience-help">IP address: <?= $h($entry['location']['ip_address']) ?></p><?php endif; ?></div>
+            <div class="person-interaction-entry"><strong><?= $h($label) ?></strong><p class="audience-help"><?= $h(audienceProfileDate($entry['at'])) ?></p><p><?= $h($place!==''?$place:'Location unavailable') ?></p><?php if($canManage): ?><p class="audience-help">IP Address: <?= $h($entry['location']['ip_address']) ?></p><?php endif; ?></div>
             <?php endforeach; if(!$foundLocation): ?><p>No recorded interaction locations yet.</p><?php endif; ?>
         </section>
     </aside>
@@ -55,7 +55,7 @@
                         };
                         $forwardGroups[$label][]=$recipient['email'];
                     }
-                    $eventTitle=count($forwardGroups)===1 && isset($forwardGroups['Forwarded To'])?'Email forwarded':'Email forward';
+                    $eventTitle=count($forwardGroups)===1 && isset($forwardGroups['Forwarded To'])?'Email Forwarded':'Email Forward';
                 } ?>
                 <article><span class="activity-symbol" aria-hidden="true">○</span><div>
                     <time><?= $h(audienceProfileDate($event['created_at'])) ?></time><h3><?= $h($eventTitle) ?></h3>

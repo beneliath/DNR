@@ -20,7 +20,7 @@ const AUDIENCE_FLOW_RUN_LABELS = [
     'active' => 'In Progress',
     'failed' => 'Needs Attention',
 ];
-const AUDIENCE_FLOW_FINISHED_EXIT_REASONS = ['Exit step', 'Connection Archived'];
+const AUDIENCE_FLOW_FINISHED_EXIT_REASONS = ['Exit step', 'Connection archived', 'Connection Archived'];
 const AUDIENCE_FLOW_RUN_DESCRIPTIONS = [
     'started' => 'Total Flow Entries, Including Runs That Have Already Ended',
     'completed' => 'Finished runs reached the end or completed an Exit flow or Archive connection step.',

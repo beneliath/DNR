@@ -94,12 +94,12 @@ try{
     };
     $adminClient=$makeClient($adminUsername,$adminPassword);
     $adminProfile=$adminClient('audience.php?view=contact&id='.$contact['id']);
-    $expect($adminProfile['status']===200&&str_contains($adminProfile['body'],'Interaction Locations')&&str_contains($adminProfile['body'],'Signup Submitted')&&str_contains($adminProfile['body'],'Survey Submitted')&&str_contains($adminProfile['body'],'Preferences Updated')&&str_contains($adminProfile['body'],'Tracked email activity may reflect a mail service or scanner')&&str_contains($adminProfile['body'],'IP address: 127.0.0.1'),'Editors and administrators can review verified addresses on the connection profile');
+    $expect($adminProfile['status']===200&&str_contains($adminProfile['body'],'Interaction Locations')&&str_contains($adminProfile['body'],'Signup Submitted')&&str_contains($adminProfile['body'],'Survey Submitted')&&str_contains($adminProfile['body'],'Preferences Updated')&&str_contains($adminProfile['body'],'Tracked email activity may reflect a mail service or scanner')&&str_contains($adminProfile['body'],'IP Address: 127.0.0.1'),'Editors and administrators can review verified addresses on the connection profile');
     $reviewerUsername='public-security-reviewer-'.bin2hex(random_bytes(6));$reviewerPassword=bin2hex(random_bytes(16));
     $db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$reviewerUsername,password_hash($reviewerPassword,PASSWORD_DEFAULT),'reviewer']);
     $reviewerClient=$makeClient($reviewerUsername,$reviewerPassword);
     $reviewerProfile=$reviewerClient('audience.php?view=contact&id='.$contact['id']);
-    $expect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction Locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers do not see raw IP addresses');
+    $expect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction Locations')&&!str_contains($reviewerProfile['body'],'IP Address: 127.0.0.1'),'Read-only reviewers do not see raw IP addresses');
     $preferencesDraft=$preferencesResource['draft'];$preferencesDraft['title']='Unpublished preferences draft';
     $store->saveCollection(['name'=>$preferencesResource['name'],'document'=>$preferencesDraft],$preferences,(int)$preferencesResource['version']);
     $previewPath='audience.php?view=form&id='.$preferences.'&preview=published';
@@ -130,7 +130,7 @@ try{
     $store->collectionOperation($unpublished,1,'publish');$store->collectionOperation($unpublished,2,'pause');
     $expect($adminClient($unpublishedPreview)['status']===404,'Paused preferences cannot be previewed as published');
     $hostedEditor=$adminClient('audience.php?view=form&id='.$id);
-    $expect(str_contains($hostedEditor['body'],'id="collection-public-url"')&&str_contains($hostedEditor['body'],'Open published page'),'Hosted signup forms keep their working public sharing links');
+    $expect(str_contains($hostedEditor['body'],'id="collection-public-url"')&&str_contains($hostedEditor['body'],'Open Published Page'),'Hosted signup forms keep their working public sharing links');
     $person=$store->person((int)$contact['id']);
     $store->mutatePerson((int)$contact['id'],(int)$person['version'],'delete');
     $redacted=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='signup-permission' LIMIT 1",[$contact['id']])->fetch_assoc();

@@ -58,6 +58,8 @@ audienceHttpExpect($reviewer($c2review,['csrf_token'=>$reviewToken,'action'=>'ca
 $c2manager='audience.php?view=campaign-manager';
 $c2planInput=['csrf_token'=>$token,'action'=>'campaign_plan_save','id'=>0,'version'=>0,'name'=>'Completion plan','goal'=>'Make an Announcement','start'=>'2026-10-01','end'=>'2026-10-31','notes'=>'Campaign notes','opens'=>'1','clicks'=>'1'];
 $c2planResponse=$editor($c2manager,$c2planInput);audienceHttpExpect($c2planResponse['status']===302,'Campaign Manager plan creates');preg_match('/id=(\d+)/',$c2planResponse['headers'],$m);$c2planId=(int)$m[1];$c2planUrl='audience.php?view=campaign-plan&id='.$c2planId;
+audienceHttpExpect($campaignStore->campaignPlan($c2planId)['data']['goal']==='Make an announcement'
+    &&str_contains($editor($c2planUrl)['body'],'value="Make an announcement" selected>Make an Announcement</option>'),'The saved campaign goal stays selected when its display label is title cased');
 audienceHttpExpect($reviewer($c2manager,array_replace($c2planInput,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot create plan');
 $c2foreignPlan=$otherStore->saveCampaignPlan(['name'=>'Foreign plan','goal'=>'Other','start'=>'2026-10-01','end'=>'2026-10-31'],0,0);
 audienceHttpExpect($editor('audience.php?view=campaign-plan&id='.$c2foreignPlan)['status']===404,'Foreign plan inaccessible');
@@ -89,11 +91,22 @@ $photoDraft=$campaignStore->campaign($photoCampaign)['draft'];$photoDraft['desig
 $campaignStore->write('UPDATE marketing_campaigns SET draft_json=? WHERE audience_id=? AND id=?',[json_encode($photoDraft,JSON_THROW_ON_ERROR),$campaignStore->audienceId,$photoCampaign]);
 $cardPage=$reviewer('audience.php?view=campaigns&search=Thumbnail+qualification');
 $thumbPath='audience.php?view=campaigns&api=campaign_thumbnail&id=';$thumb=$reviewer($thumbPath.$photoCampaign);$info=getimagesizefromstring($thumb['body']);
-audienceHttpExpect($cardPage['status']===200&&str_contains($cardPage['body'],'Thumbnail subject')&&str_contains($cardPage['body'],'Selected subscribers')&&str_contains($cardPage['body'],'api=campaign_thumbnail')&&!str_contains($cardPage['body'],'data:image/jpeg;base64,'),'List sends the subject and targeting label without the original newsletter image');
+audienceHttpExpect($cardPage['status']===200&&str_contains($cardPage['body'],'Thumbnail subject')&&str_contains($cardPage['body'],'Selected Subscribers')&&!str_contains($cardPage['body'],'api=campaign_thumbnail')&&!str_contains($cardPage['body'],'data:image/jpeg;base64,'),'Campaign rows use type icons without loading email-image thumbnails');
 audienceHttpExpect($thumb['status']===200&&$info&&[$info[0],$info[1],$info['mime']] === [88,128,'image/png']&&str_contains(strtolower($thumb['headers']),'cache-control: no-store'),'A signed-in reviewer can load just the small raster preview');
 audienceHttpExpect($c2anon($thumbPath.$photoCampaign)['status']===302&&$reviewer($thumbPath.$foreignCampaign)['status']===404,'Campaign thumbnails require login and stay in the current audience');
 $campaignStore->campaignOperation('archive',[$photoCampaign],[$photoCampaign=>1]);
-audienceHttpExpect($reviewer($thumbPath.$photoCampaign)['status']===200,'The archived campaign list keeps its thumbnail');
+foreach ([$c2id => 'search=Completion+regular+fixture', $photoCampaign => 'trash=1&search=Thumbnail+qualification'] as $reportId => $query) {
+    $list=$reviewer('audience.php?view=campaigns&'.$query);
+    $doc=new DOMDocument();
+    @$doc->loadHTML($list['body']);
+    $link=(new DOMXPath($doc))->query('//a[@data-campaign-action="report"]')->item(0);
+    $target=[];
+    if ($link instanceof DOMElement) {
+        parse_str((string)parse_url($link->getAttribute('href'),PHP_URL_QUERY),$target);
+    }
+    audienceHttpExpect($list['status']===200&&($target['view']??'')==='campaign-delivery'&&(int)($target['id']??0)===$reportId,'The report action opens the delivery report for the matching sent or archived campaign');
+}
+audienceHttpExpect($reviewer($thumbPath.$photoCampaign)['status']===200,'The thumbnail endpoint remains available for archived campaigns');
 $campaignStore->campaignOperation('delete',[$photoCampaign],[$photoCampaign=>2]);
 audienceHttpExpect($reviewer($thumbPath.$photoCampaign)['status']===404,'Permanently removed campaigns cannot serve thumbnails');
 

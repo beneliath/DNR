@@ -32,13 +32,13 @@
                 <?php if($canManage): ?><td><div class="row-actions">
                     <?php if($canChange): $reportAction=$reportsArchived?'restore':'archive'; $verb=ucfirst($reportAction); ?>
                         <form method="post"><?= $csrf ?><?php audienceInputs($reportFields+['report_action'=>$reportAction]); ?>
-                            <button type="submit" class="action-icon-button" aria-label="<?= $h($verb.' report '.$r['name']) ?>" data-tooltip="<?= $verb ?>"><?= actionIconSvg($reportAction) ?></button>
+                            <button type="submit" class="action-icon-button" aria-label="<?= $h($verb.' Report '.$r['name']) ?>" data-tooltip="<?= $verb ?>"><?= actionIconSvg($reportAction) ?></button>
                         </form>
                     <?php endif; ?>
                     <?php if($canDelete&&$reportsArchived): ?>
                         <form method="post" data-audience-protected-form data-admin-unlock-required data-confirm="<?= $h('Permanently delete “'.$r['name'].'”? This cannot be undone.') ?>">
                             <?= $csrf ?><?php audienceInputs($reportFields+['report_action'=>'purge']); ?>
-                            <button type="submit" class="action-icon-button" data-admin-unlock-required aria-label="<?= $h('Permanently delete report '.$r['name']) ?>" data-tooltip="Permanently Delete (Admin Unlock Required)"><?= actionIconSvg('delete') ?></button>
+                            <button type="submit" class="action-icon-button" data-admin-unlock-required aria-label="<?= $h('Permanently Delete Report '.$r['name']) ?>" data-tooltip="Permanently Delete (Admin Unlock Required)"><?= actionIconSvg('delete') ?></button>
                         </form>
                     <?php endif; ?>
                 </div></td><?php endif; ?>

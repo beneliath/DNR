@@ -51,6 +51,6 @@ $oldPolicy=$campaignStore->deliveryPolicy();
 $conn->query('UPDATE marketing_delivery_policy SET bulk_approved=0,hourly_budget=0,daily_budget=0 WHERE audience_id=1');
 audienceHttpExpect($campaignStore->sendingReadiness('sender@community.example',['mailing_address'=>'123 Fixture Road'])['ready'],'SES campaigns use verified AWS readiness without legacy SMTP approval or budgets');
 $limits=$admin($s3path.'&tab=limits')['body'];
-audienceHttpExpect(str_contains($limits,'Recipients Per Rolling 24 Hours')&&str_contains($limits,'Recipients per second')&&!str_contains($limits,'name="hourly_budget"')&&!str_contains($limits,'Campaign approval and budgets'),'SES limits display AWS quotas without separate budget controls');
+audienceHttpExpect(str_contains($limits,'Recipients Per Rolling 24 Hours')&&str_contains($limits,'Recipients Per Second')&&!str_contains($limits,'name="hourly_budget"')&&!str_contains($limits,'Campaign approval and budgets'),'SES limits display AWS quotas without separate budget controls');
 $conn->execute_query('UPDATE marketing_delivery_policy SET bulk_approved=?,hourly_budget=?,daily_budget=? WHERE audience_id=1',array_map(static fn($k)=>$oldPolicy[$k],['bulk_approved','hourly_budget','daily_budget']));
 echo 'SES setup HTTP: '.($checks-$s3start)." checks passed.\n";
