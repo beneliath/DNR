@@ -39,12 +39,30 @@ function maintainApplicationData(mysqli $conn, int $batch = 1000): array
     $conn->execute_query("DELETE FROM document_scan_jobs WHERE state IN ('clean','rejected','superseded')
         AND updated_at < UTC_TIMESTAMP(6) - INTERVAL 30 DAY ORDER BY updated_at,id LIMIT ?",[$batch]);
     $result['scan_history_pruned'] = $conn->affected_rows;
+    $result['collection_limits_pruned'] = pruneExpiredCollectionLimits($conn, $batch);
     $result['ai_retention_days'] = $days;
     $result['statistics_archived'] = archiveShortLinkStatistics($conn, min(1000, $batch));
     $conn->execute_query('UPDATE record_merge_journal SET snapshot_ciphertext=NULL WHERE expires_at<UTC_TIMESTAMP(6) AND snapshot_ciphertext IS NOT NULL ORDER BY expires_at,id LIMIT ?',[$batch]);
     $result['merge_snapshots_expired']=$conn->affected_rows;
     $result['consistency_refreshed']=refreshApplicationDataConsistency($conn);
     return $result;
+}
+
+/** Select without locks, then delete only expired primary keys. A range delete can lock current signup buckets. */
+function pruneExpiredCollectionLimits(mysqli $conn, int $batch): int
+{
+    $keys = $conn->execute_query('SELECT audience_id, bucket_hash, hour_start FROM marketing_collection_limits
+        WHERE hour_start < UTC_TIMESTAMP() - INTERVAL 48 HOUR
+        ORDER BY audience_id, hour_start, bucket_hash LIMIT ?', [$batch])->fetch_all(MYSQLI_NUM);
+    if (!$keys) return 0;
+
+    $delete = $conn->prepare('DELETE FROM marketing_collection_limits WHERE audience_id=? AND bucket_hash=? AND hour_start=?');
+    $removed = 0;
+    foreach ($keys as $key) {
+        $delete->execute($key);
+        $removed += $delete->affected_rows;
+    }
+    return $removed;
 }
 
 /** Retain exact hourly/link totals, while retiring old high-cardinality dimensions. */

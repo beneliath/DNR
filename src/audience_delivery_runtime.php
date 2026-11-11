@@ -209,6 +209,8 @@ trait AudienceDeliveryRuntime
     }
     public function requestSubscriptionConfirmation(int $personId,string $base,array $collection=[]):void
     {
+        // The contact row serializes its confirmations. READ COMMITTED lets other contacts
+        // insert challenges while this transaction retires the previous token for this contact.
         $this->transaction(function()use($personId,$base,$collection){
             $ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('Configure SES in Email delivery before requesting a confirmation.');
             $person=$this->person($personId,true);$context=$collection?$this->collectionConversionContext($collection):[];if(($person['is_archived']&&!$context)||$person['email_status']==='cleaned')throw new InvalidArgumentException('This address is not eligible for a subscription confirmation.');
@@ -228,7 +230,7 @@ trait AudienceDeliveryRuntime
                 if(isset($collection['profile']))$context['profile_ciphertext']=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'contact'=>$personId,'challenge'=>$challengeId,'email_hash'=>audienceDispatchEmailHash($person['email']),'profile'=>$collection['profile']],JSON_THROW_ON_ERROR));
                 $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','collection-confirmation',?)",[$personId,json_encode($context,JSON_THROW_ON_ERROR)]);
             }
-        });
+        }, readCommitted: true);
     }
     public function confirmSubscription(string $token,array $interactionLocation=[]):bool
     {

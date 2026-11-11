@@ -50,10 +50,16 @@ final class AudienceStore
     public function all(string $sql, array $params = []): array { return $this->db->execute_query($sql, $params)->fetch_all(MYSQLI_ASSOC); }
     public function one(string $sql, array $params = []): ?array { return $this->db->execute_query($sql, $params)->fetch_assoc(); }
     public function write(string $sql, array $params = []): void { $this->db->execute_query($sql, $params); }
-    public function transaction(callable $operation): mixed
+    public function transaction(callable $operation, bool $readCommitted = false): mixed
     {
-        $depth = $this->transactionDepth++;
-        if ($depth === 0) $this->db->begin_transaction(); else $this->db->query('SAVEPOINT audience_' . $depth);
+        $depth = $this->transactionDepth;
+        if ($depth === 0) {
+            if ($readCommitted) $this->db->query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            $this->db->begin_transaction();
+        } else {
+            $this->db->query('SAVEPOINT audience_' . $depth);
+        }
+        ++$this->transactionDepth;
         try {
             $result = $operation();
             if ($depth === 0) $this->db->commit(); else $this->db->query('RELEASE SAVEPOINT audience_' . $depth);

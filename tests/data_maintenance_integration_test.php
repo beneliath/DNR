@@ -10,6 +10,7 @@ require_once $src . '/config.php';
 require_once $src . '/data_maintenance_helpers.php';
 $original = getenv('DNR_AI_HISTORY_RETENTION_DAYS');
 $ids = [];
+$bucket = hash('sha256', random_bytes(32));
 function maintenanceExpect(bool $condition, string $message): void {
     if (!$condition) throw new RuntimeException($message);
 }
@@ -30,7 +31,12 @@ try {
     }
     // A completed job payload should disappear with the expired ordinary request.
     $conn->execute_query("INSERT INTO ai_coach_jobs (request_id, request_json, state, deadline_at) VALUES (?, JSON_OBJECT(), 'complete', UTC_TIMESTAMP())", [$ids['expired']]);
-    maintainApplicationData($conn);
+    $conn->execute_query("INSERT INTO marketing_collection_limits (audience_id,bucket_hash,hour_start,attempts)
+        VALUES (1,?,UTC_DATE()-INTERVAL 3 DAY,7),(1,?,UTC_DATE(),9)", [$bucket,$bucket]);
+    $state = maintainApplicationData($conn);
+    $remaining = $conn->execute_query('SELECT attempts FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=?', [$bucket])->fetch_all(MYSQLI_NUM);
+    maintenanceExpect($state['collection_limits_pruned'] >= 1 && count($remaining) === 1 && (int)$remaining[0][0] === 9,
+        'Maintenance should remove the expired bucket and preserve the current allowance for the same identifier');
     foreach ($ids as $kind => $id) {
         $exists = $conn->execute_query('SELECT id FROM ai_coach_requests WHERE id=?', [$id])->num_rows > 0;
         maintenanceExpect($exists === ($kind !== 'expired'), 'Unexpected retention result for ' . $kind);
@@ -42,6 +48,7 @@ try {
     maintenanceExpect($conn->execute_query('SELECT id FROM ai_coach_requests WHERE id=?', [$ids['recent']])->num_rows === 1, 'Disabled retention deleted history');
     echo "Data maintenance retention integration tests passed.\n";
 } finally {
+    $conn->execute_query('DELETE FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=?', [$bucket]);
     foreach ($ids as $id) $conn->execute_query('DELETE FROM ai_coach_requests WHERE id=?', [$id]);
     putenv($original === false ? 'DNR_AI_HISTORY_RETENTION_DAYS' : 'DNR_AI_HISTORY_RETENTION_DAYS=' . $original);
 }
