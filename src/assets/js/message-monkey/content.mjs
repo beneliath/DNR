@@ -171,7 +171,7 @@ export function initializeContentWorkspace(show) {
             const usage = $('[data-content-usage]', contentEditor);
             if (usage) usage.hidden = true;
             fileDirtyStates.get(contentEditor).reset();
-            $('#content-edit-title').textContent = 'Upload file'; contentStatus(contentEditor, ''); show('content-edit');
+            $('#content-edit-title').textContent = 'Upload File'; contentStatus(contentEditor, ''); show('content-edit');
         });
         const editImage = rotate => {
             const image = new Image(); image.onerror = () => contentStatus(contentEditor, 'Upload an image first.');
@@ -240,7 +240,7 @@ export function initializeContentWorkspace(show) {
             usage.textContent = 'Existing campaign or template snapshots keep their inserted copies when this file is replaced or deleted.';
             usage.hidden = false;
         }
-        $('#content-edit-title').textContent = 'Edit file';
+        $('#content-edit-title').textContent = 'Edit File';
         contentStatus(contentEditor, '');
         fileDirtyStates.get(contentEditor).reset();
         show('content-edit');
@@ -282,7 +282,7 @@ export function initializeContentWorkspace(show) {
     const contentSelection = $('[data-content-selection]');
     if (contentSelection) {
         const all = $('[data-content-all]',contentSelection), items = $$('[data-content-select]',contentSelection);
-        const update = () => { const count=items.filter(input=>input.checked).length; if (all) { all.checked=count>0&&count===items.length; all.indeterminate=count>0&&count<items.length; } const label=$('[data-content-count]',contentSelection);if(label)label.textContent=`${count} selected`; $$('button[name=operation]',contentSelection).forEach(button=>button.disabled=!count); };
+        const update = () => { const count=items.filter(input=>input.checked).length; if (all) { all.checked=count>0&&count===items.length; all.indeterminate=count>0&&count<items.length; } const label=$('[data-content-count]',contentSelection);if(label)label.textContent=`${count} Selected`; $$('button[name=operation]',contentSelection).forEach(button=>button.disabled=!count); };
         all?.addEventListener('change',()=>{items.forEach(input=>input.checked=all.checked);update();});items.forEach(input=>input.addEventListener('change',update));update();
         let trashApproved = false, checkingTrash = false;
         contentSelection.addEventListener('submit', async event => {

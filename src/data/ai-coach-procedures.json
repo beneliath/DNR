@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged. November 6, 2026: reimbursement photo reduction, email-size review, progress forms, and request filters reviewed; original uploads remain unchanged. November 7, 2026: pending-change reminders, task record search dialog, and initial layouts reviewed; existing workflow actions remain the same. November 10, 2026: presentation banner duplication and unique QR codes reviewed; existing file removal, attendance, and saved-presentation deletion controls remain accurate.",
+  "verified_against": "October 10, 2026: affected reimbursement and profile workflows reviewed against source; general note wording updated; unrelated procedures retain their hashes. October 13, 2026: Account Security sidebar navigation rechecked after the Tasks badge count change; its procedure and manual topic are unchanged. October 16, 2026: Account Security navigation rechecked after adding Audience below Speakers; password instructions are unchanged. November 6, 2026: reimbursement photo reduction, email-size review, progress forms, and request filters reviewed; original uploads remain unchanged. November 7, 2026: pending-change reminders, task record search dialog, and initial layouts reviewed; existing workflow actions remain the same. November 10, 2026: presentation banner duplication and unique QR codes reviewed; existing file removal, attendance, and saved-presentation deletion controls remain accurate. November 11, 2026: reviewed optional presentations, confirmation, and the collapsed presentation editor. November 11, 2026: reviewed Title Case interface labels, status pills, and accessible control labels.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -23,8 +23,8 @@
         "edit_engagement.php": "You are already in Edit Engagement. Change Start and End in the event fields."
       },
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a"
       },
       "subjects": [
         "event",
@@ -120,7 +120,7 @@
           "event-dates-start": {
             "message": "Open Engagements and choose the existing event whose dates need changing.",
             "href": "engagements.php",
-            "label": "open engagements"
+            "label": "Open Engagements"
           },
           "event-dates-record": {
             "message": "Open the intended event from Engagements; do not create another event to change the dates."
@@ -128,28 +128,28 @@
           "event-dates-open": {
             "message": "Select Edit Engagement to open this event’s form.",
             "target": "edit-event",
-            "label": "show edit engagement"
+            "label": "Show Edit Engagement"
           },
           "event-dates-review": {
             "message": "Update Start and End in the event form. Keep End on or after Start, and keep every presentation within that range. Review those dates, then select i have reviewed the details.",
             "target": "event-start-date",
-            "label": "show start",
+            "label": "Show Start",
             "acknowledge": true
           },
           "event-dates-order": {
             "message": "End is earlier than Start. Correct the date range before saving.",
             "target": "event-end-date",
-            "label": "show end"
+            "label": "Show End"
           },
           "event-dates-save": {
             "message": "Select Save Changes in the persistent bottom bar, then check the saved event dates and confirmation.",
             "target": "save-engagement",
-            "label": "show save changes"
+            "label": "Show Save Changes"
           },
           "event-dates-errors": {
             "message": "Read the validation message and correct the date or presentation fields before saving again.",
             "target": "form-errors",
-            "label": "show validation message"
+            "label": "Show Validation Message"
           },
           "event-dates-check": {
             "message": "Check the event’s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
@@ -157,12 +157,12 @@
           "event-dates-start-required": {
             "message": "Start is required. Choose the event’s start date before reviewing the form.",
             "target": "event-start-date",
-            "label": "show start"
+            "label": "Show Start"
           },
           "event-dates-end-required": {
             "message": "End is required. Choose the event’s end date before reviewing the form.",
             "target": "event-end-date",
-            "label": "show end"
+            "label": "Show End"
           }
         }
       },
@@ -200,7 +200,7 @@
         "edit_task.php": "You are already in Edit Task. Find Assigned To in the form."
       },
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b",
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64",
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "templates/follow_up_task_form.php": "7f677bb2a8884419b47c48d9460faf390a93a19abd5bcff7a457dce588310219"
       },
@@ -268,7 +268,7 @@
           "task-assign-start": {
             "message": "Open Tasks and find the existing task. Use its Edit Task action to change the owner. The green check-mark completes work; it does not assign it.",
             "href": "tasks.php",
-            "label": "open tasks"
+            "label": "Open Tasks"
           },
           "task-assign-record": {
             "message": "Find the intended task and select Edit Task. Do not use the green completion check-mark to assign it."
@@ -276,18 +276,18 @@
           "task-assign-owner": {
             "message": "In Assigned To, choose the intended user, or Unassigned if nobody should own it. Review your selection, then select i have reviewed the details here.",
             "target": "task-assignee",
-            "label": "show assigned to",
+            "label": "Show Assigned To",
             "acknowledge": true
           },
           "task-assign-save": {
             "message": "Review the task and select Save Changes. Check the saved owner afterward; selecting a user alone has not saved the change.",
             "target": "save-task",
-            "label": "show save changes"
+            "label": "Show Save Changes"
           },
           "task-assign-errors": {
             "message": "Read the validation message before saving again.",
             "target": "form-errors",
-            "label": "show validation message"
+            "label": "Show Validation Message"
           },
           "task-assign-check": {
             "message": "Check the application confirmation and the task’s owner. A page change alone does not prove the reassignment succeeded."
@@ -320,8 +320,8 @@
         "add_task.php": "You are already in the task form. Start with Title and verify Related Record."
       },
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b",
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64",
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "add_task.php": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
         "templates/follow_up_task_form.php": "7f677bb2a8884419b47c48d9460faf390a93a19abd5bcff7a457dce588310219"
       },
@@ -415,38 +415,38 @@
           "task-create-start": {
             "message": "Open Tasks (Tasks) and select + New Task. To attach work to an event, open that event and use its Tasks tab.",
             "href": "tasks.php",
-            "label": "open tasks"
+            "label": "Open Tasks"
           },
           "task-create-list": {
             "message": "Select + New Task to open the task form. You choose whether this is general work or belongs to a record.",
             "target": "new-task",
-            "label": "show new task"
+            "label": "Show New Task"
           },
           "task-create-event": {
             "message": "Select the Tasks tab first. Add Task is inside that panel.",
             "target": "tasks-tab",
-            "label": "show tasks"
+            "label": "Show Tasks"
           },
           "task-create-title": {
             "message": "Enter Title to describe the task. Notes can hold the details; the coach does not read either field.",
             "target": "task-title",
-            "label": "show title"
+            "label": "Show Title"
           },
           "task-create-review": {
             "message": "Review Related Record. To change it, use Change Record, type at least three characters in Find a Related Record, then select the matching result. Review Assigned To, Due Date, Priority, Status, and Notes. Select i have reviewed the details when ready.",
             "target": "task-related",
-            "label": "show related record",
+            "label": "Show Related Record",
             "acknowledge": true
           },
           "task-create-save": {
             "message": "Select Add task when ready. Check the application confirmation and that the new task belongs to the intended record. The coach has not saved it.",
             "target": "save-task",
-            "label": "show add task"
+            "label": "Show Add Task"
           },
           "task-create-errors": {
             "message": "Read the validation message and correct the form before trying Add task again.",
             "target": "form-errors",
-            "label": "show validation message"
+            "label": "Show Validation Message"
           },
           "task-create-check": {
             "message": "Check the application confirmation and find the new task on the intended record or in Tasks. Navigation alone does not confirm it was saved."
@@ -454,7 +454,7 @@
           "task-create-event-add": {
             "message": "Select Add Task inside Tasks. The event is carried into the task form as its Related Record.",
             "target": "event-add-task",
-            "label": "show add task"
+            "label": "Show Add Task"
           }
         }
       },
@@ -494,7 +494,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b"
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64"
       },
       "subjects": [
         "task"
@@ -520,7 +520,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b"
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64"
       },
       "subjects": [
         "task"
@@ -546,7 +546,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b"
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64"
       },
       "subjects": [
         "task"
@@ -647,33 +647,33 @@
           "calendar-start": {
             "message": "Open Calendar and find Create Subscription. This creates a personal private link for your calendar application.",
             "href": "view_calendar.php",
-            "label": "open calendar"
+            "label": "Open Calendar"
           },
           "calendar-name": {
             "message": "Under Create Subscription, enter Device or Service, such as Personal phone.",
             "target": "calendar-device",
-            "label": "show device or service"
+            "label": "Show Device or Service"
           },
           "calendar-content": {
             "message": "Choose one or more content options under Include in This Subscription. Review what you want to share with your calendar app, then select i have reviewed the details.",
             "target": "calendar-content",
-            "label": "show content options",
+            "label": "Show Content Options",
             "acknowledge": true
           },
           "calendar-create-link": {
             "message": "Select Create Private Link when ready. Save This New Link appears only after creation. The coach will not create the link for you.",
             "target": "calendar-create",
-            "label": "show create private link"
+            "label": "Show Create Private Link"
           },
           "calendar-copy-link": {
             "message": "Save This New Link is available. Use Copy Calendar URL, then add it as a subscribed calendar in your calendar app. Keep the URL private and do not paste it into the coach.",
             "target": "calendar-copy",
-            "label": "show copy calendar url"
+            "label": "Show Copy Calendar Url"
           },
           "calendar-errors": {
             "message": "Read the validation message and check the device label and content selection.",
             "target": "form-errors",
-            "label": "show validation message"
+            "label": "Show Validation Message"
           }
         }
       }
@@ -696,8 +696,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_inquiry.php": "1b36e3b1c996b2e6c09c47710447fde54618719bea0cfb08289150794552dc28",
-        "convert_inquiry.php": "5b6c84d188654ca430deb4b09e1ef2885f7169a956d788a731e7b3af3fd8c038"
+        "view_inquiry.php": "e1a46d10923bb5a2ead8b2b8d6d0cf3f9c8a1ea4646270813432ab6be02faff5",
+        "convert_inquiry.php": "cad20c634d2717362987da0e065748185fa953558facb806a33f997ad9884c4d"
       },
       "subjects": [
         "inquiry"
@@ -746,7 +746,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "83a8a4b1073017d3a1811ab541f023558e36923f63cf0d32b9061cca5e260dd2"
+        "contacts.php": "112ed20800ee606865fc9faf92a6b2682ae44e5c2dfa8cc330c28e9bd2c6d54d"
       },
       "subjects": [
         "contact"
@@ -771,7 +771,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "engagements.php": "a34c7db795ef981278c502864382091e75734381df3b3c7194bb510f2e1e8dca"
+        "engagements.php": "439b25a0585a8319b1d1fcdcf7c7b3497631289e1f84119907480e4308169aee"
       },
       "subjects": [
         "event",
@@ -799,9 +799,9 @@
         "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a"
       },
       "subjects": [
         "powerpoint",
@@ -832,9 +832,9 @@
         "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a"
       },
       "subjects": [
         "speaker notes",
@@ -863,7 +863,7 @@
       "on_pages": {},
       "source_files": {
         "organizations.php": "8690869b08d8a721522969f2b6bd959603ed590bb20b09ed8b94d612e5076523",
-        "add_organization.php": "e5d4794f05b269430137a3e7fe671276d615ca7ca13517e545f201d6ea377500"
+        "add_organization.php": "6e90f65b26762be3062a726ad32cf1c769a77d75571ab3e884f6bbf275b5ecdc"
       },
       "subjects": [
         "organization"
@@ -888,8 +888,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "83a8a4b1073017d3a1811ab541f023558e36923f63cf0d32b9061cca5e260dd2",
-        "add_contact.php": "87d4cd05d8b56acfb8235014cd6ee44157d07041d4d6f695a6bb00584b9f4627"
+        "contacts.php": "112ed20800ee606865fc9faf92a6b2682ae44e5c2dfa8cc330c28e9bd2c6d54d",
+        "add_contact.php": "31fccd2d6d352a3ee264f0a88992fe1ddccf791e4bafd297d5c0b88ccd4d3569"
       },
       "subjects": [
         "contact"
@@ -915,7 +915,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef"
       },
       "subjects": [
         "event",
@@ -941,7 +941,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7f1ba88a7867ba359ab0b7a9ff9ea7740ba9368bc1f1839b5c5a27b1b83e2ed0",
-        "templates/header.php": "4592ceb5bdad6da385f439d9dbde914aadbb14a1c0955b94e5ad7c6de36807a6",
+        "templates/header.php": "d755047beb66f1ad976a127f8b4ea1cc9f4d7e3733c831a7fcb627c99edab583",
         "templates/deployment-notice.php": "985aee2d55a646d05733893b93cc3e6e4d4782955568730128191e8ac9b0e6cc"
       },
       "subjects": [
@@ -1040,7 +1040,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "60f49a716f7c2ded6cd85ace1078f051e8e7f1f1da4860bf7d12d041e201f458"
+        "reimbursement_expense.php": "b361b4a128fbcec0fca817ce24d389c10e90c7c327bbd447a740ff73aa01fb40"
       },
       "subjects": [
         "reimbursement",
@@ -1069,7 +1069,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_expense.php": "60f49a716f7c2ded6cd85ace1078f051e8e7f1f1da4860bf7d12d041e201f458",
+        "reimbursement_expense.php": "b361b4a128fbcec0fca817ce24d389c10e90c7c327bbd447a740ff73aa01fb40",
         "assets/js/reimbursements.js": "4f3d74e1e70270d5b084fa6722c22d840cb2a91013c57974f8e7b71c02466a49"
       },
       "subjects": [
@@ -1101,8 +1101,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursements.php": "772f30b5d4b06898ab67225b7acef96b4f2e985bcd9fa0c4636fc65a99f5afe2",
-        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90"
+        "reimbursements.php": "0b6e0247a3eb86957d98c6d3527b2ab1535b90240625d6f38d8027ae8692c12c",
+        "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b"
       },
       "subjects": [
         "reimbursement",
@@ -1133,12 +1133,12 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
+        "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
         "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
         "reimbursement_email_helpers.php": "04515a01f172e3f10d6c302a5d2ee71d50ca75b9d58335922a1b0aae3439520e",
         "email_helpers.php": "5c317c86b63b97607e619500dfc9437984f28d6cd9ed7f30e495840ff879ce3f",
-        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90",
-        "reimbursement_requests.php": "35d7543e0b6915d4fbc6b1499545d199cd8ce12b4eb1ee93d840058f57f56ed0",
+        "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
+        "reimbursement_requests.php": "62ca11c4ca648da8d1aeafb4cc35bb07d79a2fd8345021de7855ac028a6a9a37",
         "restore_security_helpers.php": "3237f9df32d0f624922bbb6332993b240bb3fa68b4f1855c815665070067dcc6",
         "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
@@ -1232,7 +1232,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "profile.php": "e49a2a1f7ffae48c83e81b6f95e8093ece776f69e371af2189565f9eb50b4c31"
+        "profile.php": "c89b958bb301be1a07b83dbb24f529a6b181a312a4df3ea080e30932689281af"
       },
       "subjects": [
         "reviewer",
@@ -1258,7 +1258,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "templates/reimbursement_delivery_history.php": "727a1f30e5e820ef6ea33307007a7c819bae28af98806efcbb3677cba740e3fd",
+        "templates/reimbursement_delivery_history.php": "5c29f128a5eff8db9d927ca9d72de35b4dd182c4546838c8a7c82e250524350e",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "subjects": [
@@ -1287,7 +1287,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "templates/reimbursement_delivery_history.php": "727a1f30e5e820ef6ea33307007a7c819bae28af98806efcbb3677cba740e3fd",
+        "templates/reimbursement_delivery_history.php": "5c29f128a5eff8db9d927ca9d72de35b4dd182c4546838c8a7c82e250524350e",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "subjects": [
@@ -1329,10 +1329,10 @@
       ],
       "forms": [],
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
         "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
         "shared/audit.php": "34d611625881a3ad143480b14f96654485f423f93cda1c4b3aef610bc4fe7ac3",
@@ -1370,13 +1370,13 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
-        "templates/footer.php": "ec54451daa45fa8e561bc21a2fac82cc0580916afaddc21ab48454390a4453d3",
-        "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
+        "templates/footer.php": "8f5b3d34b3094ebd3206f3a2f6218b6d6f116b1f0f6a8e1201a2efb7dd303a01",
+        "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
         "ai_coach_guidance_helpers.php": "a01283579213f7ce89f8827004b307547dddcf796e77680fa5875fcc2cb17fbe",
         "shared/addresses.php": "2658b9a5e9a25f6a726ba3448d71a9ed383f7d73c3de920c4723e3987b299a74",
@@ -1549,7 +1549,7 @@
             "message": "Read the application error or validation message. Do not assume the presentation was removed. Check the current record and administrator access before trying again."
           },
           "presentation-delete-check": {
-            "message": "Check the application confirmation and that the intended presentation is absent. A page change alone does not prove deletion succeeded. If the last active presentation was removed from a confirmed active event, its confirmation returns to Under Review. Permanent deletion cannot be undone; an archived presentation can be restored."
+            "message": "Check the application confirmation and that the intended presentation is absent. A page change alone does not prove deletion succeeded. If the event requires a presentation and its last active presentation was removed, a confirmed active event returns to Under Review. Permanent deletion cannot be undone; an archived presentation can be restored."
           }
         }
       },

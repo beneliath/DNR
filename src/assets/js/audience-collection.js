@@ -59,8 +59,8 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         const input = document.getElementById('collection-public-url');
         const status = document.querySelector('[data-collection-copy-status]');
         if (!input || !status) return;
-        try { await navigator.clipboard.writeText(input.value); status.textContent = 'Link copied'; }
-        catch { input.focus(); input.select(); status.textContent = 'Select and copy this link'; }
+        try { await navigator.clipboard.writeText(input.value); status.textContent = 'Link Copied'; }
+        catch { input.focus(); input.select(); status.textContent = 'Select and Copy This Link'; }
     });
     const create = document.getElementById('collection-create');
     const defaultKinds = create ? Array.from(create.querySelectorAll('[data-collection-kind]')).filter(label => !label.hidden).map(label => label.dataset.collectionKind) : [];
@@ -79,7 +79,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const configNode = document.getElementById('collection-config');
     if (!form || !configNode) return;
     const config = JSON.parse(configNode.textContent);
-    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[],sampleSources:()=>colorSampleSources(null,[{label:'Form logo',image:form.querySelector('[data-doc=logo]')?.value},...Object.values(config.brandLogos||{})])}));
+    form.querySelectorAll('input[type=color]').forEach(input => enhanceColorInput(input,{palette:config.brandColors||[],sampleSources:()=>colorSampleSources(null,[{label:'Form Logo',image:form.querySelector('[data-doc=logo]')?.value},...Object.values(config.brandLogos||{})])}));
     let model = structuredClone(config.document);
     model.variants = [];
     const brandLogo = form.querySelector('[data-collection-brand-logo]');
@@ -297,7 +297,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
     const selectTab = tab => {
         selectedTab = tab;
         form.scrollTop = 0;
-        if(config.kind === 'survey'){const title=document.querySelector('.audience-page-heading h1');if(title)title.textContent=({questions:'Add questions',design:'Design survey',setup:'Survey details',publish:'Share your survey'})[tab]||'Survey';const next=document.querySelector('[data-survey-next]'), publish=document.querySelector('[data-survey-publish]');if(next){next.hidden=tab==='publish';next.textContent=tab==='questions'?'Continue to design':tab==='design'?'Continue to details':'Continue to share';}if(publish)publish.hidden=tab!=='publish';}
+        if(config.kind === 'survey'){const title=document.querySelector('.audience-page-heading h1');if(title)title.textContent=({questions:'Add Questions',design:'Design Survey',setup:'Survey Details',publish:'Share Your Survey'})[tab]||'Survey';const next=document.querySelector('[data-survey-next]'), publish=document.querySelector('[data-survey-publish]');if(next){next.hidden=tab==='publish';next.textContent=tab==='questions'?'Continue to Design':tab==='design'?'Continue to Details':'Continue to Share';}if(publish)publish.hidden=tab!=='publish';}
         const railTab = tab;
         document.querySelector('[data-collection-builder]').classList.toggle('survey-questions-active', config.kind === 'survey' && tab === 'questions');
         if (tab === 'outline') tab = 'design';
@@ -324,7 +324,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         form.classList.toggle('preview-hidden', enabled);
         previewPanel.classList.toggle('preview-focus', enabled);
         if (previewButton) {
-            previewButton.textContent = enabled ? 'Back to editing' : 'Preview';
+            previewButton.textContent = enabled ? 'Back to Editing' : 'Preview';
             previewButton.setAttribute('aria-pressed', String(enabled));
         }
         if (previewReturn) previewReturn.hidden = !enabled || Boolean(previewButton);
@@ -412,7 +412,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             const list = imageDialog.querySelector('[data-collection-image-list]'); list.replaceChildren();
             const previews = result.items.map(item => {
                 const button = el('button', '', 'collection-image-card'); button.type = 'button'; button.setAttribute('aria-label', item.name);
-                const preview = el('span', 'Loading preview…', 'collection-image-preview');
+                const preview = el('span', 'Loading Preview…', 'collection-image-preview');
                 button.append(preview, el('span', item.name, 'collection-image-name'));
                 button.addEventListener('click', async () => {
                     button.disabled = true;
@@ -427,24 +427,24 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                         const image = await api('collection_library_image', {image_id:item.id});
                         if (!button.isConnected) return;
                         const thumbnail = el('img'); thumbnail.alt = ''; thumbnail.decoding = 'async';
-                        thumbnail.addEventListener('error', () => { preview.textContent = 'Preview unavailable'; }, {once:true});
+                        thumbnail.addEventListener('error', () => { preview.textContent = 'Preview Unavailable'; }, {once:true});
                         thumbnail.src = image.image; preview.replaceChildren(thumbnail);
-                    } catch { if (button.isConnected) preview.textContent = 'Preview unavailable'; }
+                    } catch { if (button.isConnected) preview.textContent = 'Preview Unavailable'; }
                 };
             });
             const loadPreviews = async () => {
                 for (let index = 0; index < previews.length; index += 4) await Promise.all(previews.slice(index, index + 4).map(load => load()));
             };
             loadPreviews(); feedback.textContent = result.items.length ? '' : 'No images found.';
-            renderAudiencePagination(imageDialog.querySelector('[data-collection-image-pages]'), {total:result.total,page:imagePage,pageSize:imageSize,label:'Image library pages',onChange:({page,pageSize})=>{imagePage=page;imageSize=pageSize;loadImages();}});
+            renderAudiencePagination(imageDialog.querySelector('[data-collection-image-pages]'), {total:result.total,page:imagePage,pageSize:imageSize,label:'Image Library Pages',onChange:({page,pageSize})=>{imagePage=page;imageSize=pageSize;loadImages();}});
         } catch (error) { if (current === imageLoad) feedback.textContent = error.message || 'Images are unavailable.'; }
     };
     imageDialog.querySelector('[data-collection-image-find]').addEventListener('click', () => { imagePage = 1; loadImages(); });
     imageDialog.querySelector('[data-collection-image-clear]').addEventListener('click', event => { event.preventDefault();imagePage = 1;loadImages(); });
     const imageButtons = (card, apply) => {
-        const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse images'); browse.type = 'button';
+        const row = el('div', '', 'collection-image-buttons'); const browse = el('button', 'Browse Images'); browse.type = 'button';
         browse.addEventListener('click', () => { chooseImage = apply; imagePage = 1; imageDialog.showModal(); loadImages(); });
-        const uploadLabel = el('label', 'Upload image'); const upload = el('input'); upload.type = 'file'; upload.accept = 'image/png,image/jpeg,image/webp';upload.dataset.fileMaxBytes='1000000';
+        const uploadLabel = el('label', 'Upload Image'); const upload = el('input'); upload.type = 'file'; upload.accept = 'image/png,image/jpeg,image/webp';upload.dataset.fileMaxBytes='1000000';
         upload.addEventListener('change', async () => {
             if (!upload.files?.[0]) return; status.textContent = 'Uploading…';
             try { const result = await api('collection_image', {}, upload.files[0]); apply(result.image); status.textContent = ''; } catch (error) { status.textContent = error.message || 'Unable to upload this image.'; }
@@ -458,7 +458,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             card.addEventListener('dragstart', event => { event.dataTransfer.setData('text/plain', key + ':' + index); event.dataTransfer.effectAllowed = 'move'; });
             card.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; });
             card.addEventListener('drop', event => { event.preventDefault(); const [source, from] = event.dataTransfer.getData('text/plain').split(':'); const n = Number(from); if (source !== key || !Number.isInteger(n) || n < 0 || n >= model[key].length) return; const [item] = model[key].splice(n, 1); model[key].splice(index, 0, item); renderList(key); changed(); });
-            head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz choice'} ${index + 1}`));
+            head.append(el('strong', `${key === 'questions' ? 'Question' : key === 'sections' ? 'Section' : key === 'variants' ? 'Variation' : 'Quiz Choice'} ${index + 1}`));
             const handle = createReorderHandle(`Reorder ${key === 'questions' ? 'question' : key === 'sections' ? 'section' : 'quiz choice'} ${index + 1}`);
             wireReorderHandle({handle,item:card,list,onMove:(from,to)=>{
                 const [moved] = model[key].splice(from,1);model[key].splice(to,0,moved);renderList(key);changed();
@@ -472,42 +472,42 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                 card.classList.add('collection-question');
                 const main = el('div', '', 'collection-question-main'), inspector = el('aside', '', 'collection-question-settings');card.append(main, inspector);
                 control(main, 'What would you like to ask?', item.label, value => { item.label = value; }).required = true;
-                control(inspector, 'Section type', item.type, value => { item.type = value; renderList(key); }, 'select', [['radio','Radio buttons'],['checkboxes','Checkboxes'],['text','Open text'],['range','Range (1–10)'],['dropdown','Dropdown'],['email','Email'],['contact','Contact information'],['content','Content block']]);
+                control(inspector, 'Section Type', item.type, value => { item.type = value; renderList(key); }, 'select', [['radio','Radio Buttons'],['checkboxes','Checkboxes'],['text','Open text'],['range','Range (1–10)'],['dropdown','Dropdown'],['email','Email'],['contact','Contact information'],['content','Content block']]);
                 control(inspector, 'Required', item.required, value => { item.required = value; }, 'checkbox');
                 if (['radio','checkboxes','dropdown'].includes(item.type)) {
-                    control(inspector, 'Allow an “Other” answer', item.other, value => { item.other = value; }, 'checkbox');
+                    control(inspector, 'Allow an “Other” Answer', item.other, value => { item.other = value; }, 'checkbox');
                     const options = el('div', '', 'collection-answer-options');main.append(options);
                     item.options.forEach((option, optionIndex) => {
                         const row = el('div', '', 'collection-answer-option');options.append(row);
-                        const input = control(row, 'Option value', option, value => { const previous=item.options[optionIndex];item.options[optionIndex]=value;if(item.answer_tags?.[previous]){item.answer_tags[value]=item.answer_tags[previous];delete item.answer_tags[previous];} });
+                        const input = control(row, 'Option Value', option, value => { const previous=item.options[optionIndex];item.options[optionIndex]=value;if(item.answer_tags?.[previous]){item.answer_tags[value]=item.answer_tags[previous];delete item.answer_tags[previous];} });
                         const add = () => { if(item.options.length>=30)return;item.options.splice(optionIndex+1,0,'New option');renderList(key);changed();lists.questions.children[index].querySelectorAll('.collection-answer-option input')[optionIndex+1]?.focus(); };
                         const remove = () => { if(item.options.length<=2)return;delete item.answer_tags?.[item.options[optionIndex]];item.options.splice(optionIndex,1);renderList(key);changed(); };
                         for(const [text,label,action] of [['−','Remove question option',remove],['＋','Add question option',add]]){const button=el('button',text);button.type='button';button.setAttribute('aria-label',label);button.addEventListener('click',action);row.append(button);}
                         input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();add();}else if(event.key==='Backspace'&&!input.value&&item.options.length>2){event.preventDefault();remove();}});
                     });
                     main.append(el('p','Tip: Add or remove options using Enter and Backspace.','audience-help'));
-                    if(config.tags?.length){const tagging=el('details');tagging.append(el('summary','Manage tagging'));inspector.append(tagging);item.options.forEach(option=>{const label=el('label',option), select=el('select');select.multiple=true;select.setAttribute('aria-label',`Tags for ${option}`);config.tags.forEach(tag=>{const choice=el('option',tag.name);choice.value=String(tag.id);choice.selected=(item.answer_tags?.[option]||[]).includes(Number(tag.id));select.append(choice);});select.addEventListener('change',()=>{item.answer_tags||={};item.answer_tags[option]=[...select.selectedOptions].map(o=>Number(o.value));changed();});label.append(select);tagging.append(label);});tagging.append(el('p','Tags apply only to verified recipients using their private email link.','audience-help'));}
+                    if(config.tags?.length){const tagging=el('details');tagging.append(el('summary','Manage Tagging'));inspector.append(tagging);item.options.forEach(option=>{const label=el('label',option), select=el('select');select.multiple=true;select.setAttribute('aria-label',`Tags for ${option}`);config.tags.forEach(tag=>{const choice=el('option',tag.name);choice.value=String(tag.id);choice.selected=(item.answer_tags?.[option]||[]).includes(Number(tag.id));select.append(choice);});select.addEventListener('change',()=>{item.answer_tags||={};item.answer_tags[option]=[...select.selectedOptions].map(o=>Number(o.value));changed();});label.append(select);tagging.append(label);});tagging.append(el('p','Tags apply only to verified recipients using their private email link.','audience-help'));}
                 }
-                const duplicate=el('button','Duplicate question');duplicate.type='button';duplicate.addEventListener('click',()=>{if(model.questions.length>=30)return;const copy=structuredClone(item);copy.id='q'+crypto.randomUUID().replaceAll('-','').slice(0,20);model.questions.splice(index+1,0,copy);renderList(key);changed();});inspector.append(duplicate);
-                const remove=el('button','Delete question','danger-text');remove.type='button';remove.addEventListener('click',()=>{model.questions.splice(index,1);renderList(key);changed();});inspector.append(remove);
+                const duplicate=el('button','Duplicate Question');duplicate.type='button';duplicate.addEventListener('click',()=>{if(model.questions.length>=30)return;const copy=structuredClone(item);copy.id='q'+crypto.randomUUID().replaceAll('-','').slice(0,20);model.questions.splice(index+1,0,copy);renderList(key);changed();});inspector.append(duplicate);
+                const remove=el('button','Delete Question','danger-text');remove.type='button';remove.addEventListener('click',()=>{model.questions.splice(index,1);renderList(key);changed();});inspector.append(remove);
             } else if (key === 'sections') {
-                control(card, 'Section type', item.type, value => { item.type = value; renderList(key); }, 'select', [['heading','Heading'],['text','Text'],['image','Image'],['button','Button'],['divider','Divider']]);
-                if (item.type !== 'divider') control(card, item.type === 'image' ? 'Alternative text' : 'Text', item.text, value => { item.text = value; }, 'textarea');
+                control(card, 'Section Type', item.type, value => { item.type = value; renderList(key); }, 'select', [['heading','Heading'],['text','Text'],['image','Image'],['button','Button'],['divider','Divider']]);
+                if (item.type !== 'divider') control(card, item.type === 'image' ? 'Alternative Text' : 'Text', item.text, value => { item.text = value; }, 'textarea');
                 if (['image','button'].includes(item.type)) {
-                    const urlInput = control(card, 'HTTPS address', item.url, value => { item.url = value; }, 'url');
+                    const urlInput = control(card, 'HTTPS Address', item.url, value => { item.url = value; }, 'url');
                     if (item.type === 'image') {
                         imageButtons(card, value => { item.url = value; urlInput.value = value; changed(); });
-                        const width = control(card, 'Image width (pixels)', item.width ?? '', value => {
+                        const width = control(card, 'Image Width (Pixels)', item.width ?? '', value => {
                             if (value === '') delete item.width; else item.width = Number(value);
                         }, 'number');
                         width.min = '40'; width.max = '1200'; width.step = '1'; width.placeholder = 'Automatic';
                     }
                 }
             } else if (key === 'variants') {
-                ['title','intro','button'].forEach(prop => control(card, prop === 'title' ? 'Heading' : prop === 'intro' ? 'Introduction' : 'Button label', item[prop], value => { item[prop] = value; }));
+                ['title','intro','button'].forEach(prop => control(card, prop === 'title' ? 'Heading' : prop === 'intro' ? 'Introduction' : 'Button Label', item[prop], value => { item[prop] = value; }));
             } else {
                 control(card, 'Choice', item.label, value => { item.label = value; });
-                control(card, 'Outcome message', item.outcome, value => { item.outcome = value; }, 'textarea');
+                control(card, 'Outcome Message', item.outcome, value => { item.outcome = value; }, 'textarea');
             }
             list.append(card);
         });
@@ -521,10 +521,10 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
         removeLogoButton.addEventListener('click', () => setLogo('')); style.querySelector('.collection-image-buttons').append(removeLogoButton);
         form.querySelectorAll('[data-collection-insert-logo]').forEach(button => button.addEventListener('click', () => setLogo(config.brandLogos[button.dataset.collectionInsertLogo].image)));
     }
-    form.querySelector('[data-add-question]')?.addEventListener('click', () => { if (model.questions.length >= 30) return; model.questions.push({id:'q'+Date.now().toString(36),type:'radio',label:'New question',required:false,options:['Option 1','Option 2']}); renderList('questions'); changed(); });
+    form.querySelector('[data-add-question]')?.addEventListener('click', () => { if (model.questions.length >= 30) return; model.questions.push({id:'q'+Date.now().toString(36),type:'radio',label:'New Question',required:false,options:['Option 1','Option 2']}); renderList('questions'); changed(); });
     form.querySelector('[data-add-section]')?.addEventListener('click', () => { if (model.sections.length >= 30) return; model.sections.push({type:'text',text:'Add your message here.',url:''}); renderList('sections'); changed(); });
     form.querySelector('[data-add-variant]')?.addEventListener('click', () => { if (model.variants.length >= 2) return; model.variants.push({title:model.title,intro:model.intro,button:model.button}); renderList('variants'); changed(); });
-    form.querySelector('[data-add-quiz]')?.addEventListener('click', () => { if (model.quiz.length >= 10) return; model.quiz.push({label:'New choice',outcome:'Thank you for sharing your interest.'}); renderList('quiz'); changed(); });
+    form.querySelector('[data-add-quiz]')?.addEventListener('click', () => { if (model.quiz.length >= 10) return; model.quiz.push({label:'New Choice',outcome:'Thank you for sharing your interest.'}); renderList('quiz'); changed(); });
     form.querySelectorAll('[data-add-field]').forEach(button => button.addEventListener('click', () => {
         const row = form.querySelector(`[data-field="${button.dataset.addField}"]`); if (!row) return;
         row.querySelector('[data-field-visible]').checked = true; selectTab('design'); row.scrollIntoView({block:'center'}); changed();

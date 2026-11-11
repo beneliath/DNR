@@ -18,7 +18,7 @@ $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],
 $available=true;$resource=null;$creationKind='hosted';$trash=$tab==='archived';$q='';$type='';$kinds=match($view){'surveys'=>['survey'],'landing-pages'=>['landing'],'preferences'=>['preferences'],'form-settings'=>['hosted','preferences'],default=>['hosted','embedded','popup','landing']};
 $collectionDirection='desc';$collectionPerPage=100;$collectionPage=1;$collectionPages=1;$blockedSignupIds=[];
 $listQuery=['view'=>$view,'q'=>$q,'type'=>$type,'trash'=>$trash?'1':'0','per_page'=>100,'direction'=>'desc'];
-$resources=[];foreach(array_slice($kinds,0,2)as$i=>$kind)$resources[]=['id'=>7+$i,'name'=>($kind==='popup'?'Website popup':'Newsletter signup'),'kind'=>$kind,'version'=>3,'state'=>$trash?'paused':'draft','deleted_at'=>$trash?'2026-10-22 12:00:00':null,'updated_at'=>'2026-10-22 12:00:00'];
+$resources=[];foreach(array_slice($kinds,0,2)as$i=>$kind)$resources[]=['id'=>7+$i,'name'=>($kind==='popup'?'Website popup':'Newsletter Signup'),'kind'=>$kind,'version'=>3,'state'=>$trash?'paused':'draft','deleted_at'=>$trash?'2026-10-22 12:00:00':null,'updated_at'=>'2026-10-22 12:00:00'];
 echo '<!doctype html><html>';
 renderPageHead('Form lifecycle fixture',['styles'=>['assets/css/pages/audience.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-collection.min.js']]);
 require __DIR__.'/../../src/templates/audience/workspace.php';echo '</html>';

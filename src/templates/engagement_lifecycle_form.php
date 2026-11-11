@@ -1,4 +1,4 @@
-<section class="engagement-lifecycle-section" aria-label="Event lifecycle"
+<section class="engagement-lifecycle-section" aria-label="Event Lifecycle"
          data-engagement-lifecycle
          data-reschedule-options-url="engagement_reschedule_options.php"
          data-engagement-id="<?php echo (int) ($current_engagement_id ?? 0); ?>">

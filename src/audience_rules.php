@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-const AUDIENCE_FIELD_TYPES = ['text' => 'Text', 'number' => 'Number', 'date' => 'Date', 'birthday' => 'Birthday', 'address' => 'Address', 'phone' => 'Phone', 'url' => 'Website', 'dropdown' => 'Dropdown', 'radio' => 'Radio buttons', 'checkboxes' => 'Checkboxes'];
+const AUDIENCE_FIELD_TYPES = ['text' => 'Text', 'number' => 'Number', 'date' => 'Date', 'birthday' => 'Birthday', 'address' => 'Address', 'phone' => 'Phone', 'url' => 'Website', 'dropdown' => 'Dropdown', 'radio' => 'Radio Buttons', 'checkboxes' => 'Checkboxes'];
 
 function audienceJson(string $json): array
 {
@@ -79,25 +79,25 @@ function audienceValidDate(string $date): bool
 function audienceRuleCatalog(array $fields, array $tags, array $groups,array $campaigns=[],array $links=[]): array
 {
     $catalog = [];
-    foreach (['email' => 'Email address', 'first_name' => 'First name', 'last_name' => 'Last name', 'source' => 'Signup source', 'language' => 'Language', 'timezone' => 'Time zone'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'text', 'section' => 'Connection information'];
-    $catalog['full_name']=['label'=>'Full name','kind'=>'text','section'=>'Connection information'];
+    foreach (['email' => 'Email Address', 'first_name' => 'First Name', 'last_name' => 'Last Name', 'source' => 'Signup Source', 'language' => 'Language', 'timezone' => 'Time Zone'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'text', 'section' => 'Connection Information'];
+    $catalog['full_name']=['label'=>'Full Name','kind'=>'text','section'=>'Connection Information'];
     $catalog['source']['label']='Signup source detail';
-    $catalog['signup_source']=['label'=>'Signup source','kind'=>'choice','options'=>audienceSignupSourceLabels(),'section'=>'How your connections were acquired'];
-    $catalog['email_status'] = ['label' => 'Email subscription status', 'kind' => 'choice', 'options' => array_combine(AUDIENCE_STATUSES, AUDIENCE_STATUSES), 'section' => 'Email'];
-    $catalog['is_archived'] = ['label' => 'Archived', 'kind' => 'choice', 'options' => ['1' => 'Archived', '0' => 'Active'], 'section' => 'Connection information'];
-    foreach (['created_at' => 'Date added', 'updated_at' => 'Information changed'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'date', 'section' => 'How your connections were acquired'];
+    $catalog['signup_source']=['label'=>'Signup Source','kind'=>'choice','options'=>audienceSignupSourceLabels(),'section'=>'How Your Connections Were Acquired'];
+    $catalog['email_status'] = ['label' => 'Email Subscription Status', 'kind' => 'choice', 'options' => array_combine(AUDIENCE_STATUSES, AUDIENCE_STATUSES), 'section' => 'Email'];
+    $catalog['is_archived'] = ['label' => 'Archived', 'kind' => 'choice', 'options' => ['1' => 'Archived', '0' => 'Active'], 'section' => 'Connection Information'];
+    foreach (['created_at' => 'Date Added', 'updated_at' => 'Information Changed'] as $key => $label) $catalog[$key] = ['label' => $label, 'kind' => 'date', 'section' => 'How Your Connections Were Acquired'];
     $tagOptions=[];$archivedTags=[];foreach($tags as$tag){$tagOptions[$tag['id']]=$tag['name'];if(!empty($tag['archived_at']))$archivedTags[]=(int)$tag['id'];}
-    $catalog['tags'] = ['label' => 'Tags', 'kind' => 'membership', 'options' => $tagOptions, 'archived_options'=>$archivedTags, 'section' => 'Tags and groups'];
+    $catalog['tags'] = ['label' => 'Tags', 'kind' => 'membership', 'options' => $tagOptions, 'archived_options'=>$archivedTags, 'section' => 'Tags and Groups'];
     $opts = [];$archivedGroups=[];
     foreach ($groups as $group) foreach ($group['options'] as $option){$opts[$option['id']] = $group['name'] . ': ' . $option['name'];if(!empty($group['archived_at']))$archivedGroups[]=(int)$option['id'];}
-    $catalog['groups'] = ['label' => 'Group membership', 'kind' => 'membership', 'options' => $opts, 'archived_options'=>$archivedGroups, 'section' => 'Tags and groups'];
+    $catalog['groups'] = ['label' => 'Group Membership', 'kind' => 'membership', 'options' => $opts, 'archived_options'=>$archivedGroups, 'section' => 'Tags and Groups'];
     foreach ($fields as $field) {
         $catalog['custom:' . $field['id']] = ['label' => $field['label'], 'field_type' => $field['field_type'],
-            'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience fields'];
+            'kind' => match ($field['field_type']) {'number' => 'number', 'date' => 'date', 'checkboxes' => 'set', default => 'text'}, 'section' => 'Audience Fields'];
     }
-    $events = ['contact_added' => 'Connection added', 'contact_updated' => 'Information updated', 'subscription_changed' => 'Subscription changed', 'tags_changed' => 'Tags changed', 'groups_changed' => 'Groups changed', 'contact_archived' => 'Connection archived', 'contact_restored' => 'Connection restored', 'note_added' => 'Note added', 'imported' => 'Imported'];
-    foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection activity'];
-    foreach(['sent'=>'Email sent (accepted)','open'=>'Email opened','click'=>'Email link clicked']as$key=>$label)$catalog['engagement:'.$key]=['label'=>$label,'kind'=>'engagement','section'=>'Email engagement','campaigns'=>$campaigns,'links'=>$key==='click'?$links:[]];
+    $events = ['contact_added' => 'Connection Added', 'contact_updated' => 'Information Updated', 'subscription_changed' => 'Subscription Changed', 'tags_changed' => 'Tags Changed', 'groups_changed' => 'Groups Changed', 'contact_archived' => 'Connection Archived', 'contact_restored' => 'Connection Restored', 'note_added' => 'Note Added', 'imported' => 'Imported'];
+    foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection Activity'];
+    foreach(['sent'=>'Email Sent (Accepted)','open'=>'Email Opened','click'=>'Email Link Clicked']as$key=>$label)$catalog['engagement:'.$key]=['label'=>$label,'kind'=>'engagement','section'=>'Email Engagement','campaigns'=>$campaigns,'links'=>$key==='click'?$links:[]];
     return $catalog;
 }
 
@@ -226,7 +226,7 @@ function audienceListFilters(array $input): array
 
 function audienceSignupSourceLabels(): array
 {
-    return ['api'=>'API','manual'=>'Manual entry','embed'=>'Embedded form','hosted'=>'Hosted signup form','import'=>'Import','landing'=>'Landing page','popup'=>'Popup form','survey'=>'Survey','mobile'=>'Mobile app','other'=>'Other','unknown'=>'Unknown'];
+    return ['api'=>'API','manual'=>'Manual Entry','embed'=>'Embedded Form','hosted'=>'Hosted Signup Form','import'=>'Import','landing'=>'Landing Page','popup'=>'Popup Form','survey'=>'Survey','mobile'=>'Mobile App','other'=>'Other','unknown'=>'Unknown'];
 }
 
 /** Classify actual stored provenance without replacing its original detail. */

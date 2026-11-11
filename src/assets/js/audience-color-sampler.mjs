@@ -3,7 +3,7 @@ const MAX_PIXELS=16000000;
 const imageSource=src=>typeof src==='string'&&/^(?:data:image\/(?:png|jpeg|webp|gif|svg\+xml);base64,|blob:|https?:\/\/)/i.test(src);
 export function colorSampleSources(preview,extras=[]) {
   const sources=[],seen=new Set();
-  if(preview?.isConnected)sources.push({label:'Email preview',element:preview});
+  if(preview?.isConnected)sources.push({label:'Email Preview',element:preview});
   const images=[...(preview?.querySelectorAll('img')||[]),...extras];
   for(const image of images){
     const src=typeof image==='string'?image:image.currentSrc||image.src||image.image;

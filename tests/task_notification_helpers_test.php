@@ -116,7 +116,7 @@ $digest['dashboard'] = [
         'event_start_date' => '2026-08-25',
         'event_end_date' => '2026-08-27',
         'confirmation_status' => 'under_review',
-        'readiness_issues' => ['Venue address missing'],
+        'readiness_issues' => ['Venue Address Missing'],
     ]],
     'task_summary' => ['active' => 4, 'overdue' => 1, 'today' => 1],
     'my_tasks' => array_merge(
@@ -129,7 +129,7 @@ $digest['dashboard'] = [
         'id' => 11,
         'event_title' => 'Summer Conference',
         'organization_name' => 'Example Church',
-        'readiness_issues' => ['Venue address missing', 'No presentations'],
+        'readiness_issues' => ['Venue Address Missing', 'No Presentations'],
     ]],
     'financial_closeout_count' => 1,
     'financial_closeouts' => $digest['closeouts'],
@@ -147,15 +147,15 @@ expectTaskNotificationHelper(
     $message['recipient'] === 'editor@example.test'
         && str_contains($message['body'], 'Good day, Mary.')
         && !str_contains($message['body'], 'Mary Jones')
-        && str_contains($message['body'], 'DASHBOARD SUMMARY')
-        && str_contains($message['body'], 'UPCOMING ENGAGEMENTS (1)')
-        && str_contains($message['body'], 'MY WORK (4)')
-        && str_contains($message['body'], 'EVENT READINESS (1)')
-        && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (1)')
-        && str_contains($message['body'], 'Waiting on: the event coordinator')
+        && str_contains($message['body'], 'Dashboard Summary')
+        && str_contains($message['body'], 'Upcoming Engagements (1)')
+        && str_contains($message['body'], 'My Work (4)')
+        && str_contains($message['body'], 'Event Readiness (1)')
+        && str_contains($message['body'], 'Financial Closeouts (1)')
+        && str_contains($message['body'], 'Waiting On: the event coordinator')
         && str_contains($message['body'], 'Call <the> host & confirm — Overdue · 2026-08-22')
         && str_contains($message['body'], 'Pack materials — Due Tomorrow')
-        && str_contains($message['body'], 'Mail For Review: 2')
+        && str_contains($message['body'], 'Mail for Review: 2')
         && str_contains($message['body'], 'https://moed.example.test/tasks.php?view=my')
         && str_contains($message['body'], 'https://moed.example.test/dashboard.php')
         && str_contains($message['body'], 'Manage delivery settings in My Profile > Notification Preferences.')
@@ -219,7 +219,7 @@ $reviewerMessage = dailyTaskDigestMessage([
     'role' => 'reviewer',
 ], $digest, '2026-08-23');
 expectTaskNotificationHelper(
-    str_contains($reviewerMessage['body'], 'FINANCIAL CLOSEOUTS (1)')
+    str_contains($reviewerMessage['body'], 'Financial Closeouts (1)')
         && str_contains(
             $reviewerMessage['body'],
             'Open: https://moed.example.test/view_engagement.php?id=11'

@@ -274,7 +274,7 @@ $task_digest_day_options = [
         </section>
         <section class="form-section profile-picture-card" aria-labelledby="profile-picture-heading">
             <div class="profile-picture-preview">
-                <img src="profile_picture.php?id=<?php echo (int) $user['id']; ?>&amp;size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
+                <img src="profile_picture.php?id=<?php echo (int) $user['id']; ?>&amp;size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current Profile Picture" data-profile-picture-preview>
             </div>
             <div class="profile-picture-controls">
                 <h2 id="profile-picture-heading">Profile Picture</h2>

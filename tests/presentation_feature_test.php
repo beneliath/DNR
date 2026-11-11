@@ -133,6 +133,7 @@ try {
 requirePresentationForConfirmedEngagement('under_review', []);
 requirePresentationForConfirmedEngagement('confirmed', $presentations);
 requirePresentationForConfirmedEngagement('confirmed', [], 'canceled');
+requirePresentationForConfirmedEngagement('confirmed', [], 'active', true);
 expectPresentationFeature(
     presentationRemovalRequiresReview('confirmed', 1),
     'removing the last presentation from a confirmed engagement should require review.'
@@ -140,6 +141,7 @@ expectPresentationFeature(
 expectPresentationFeature(
     !presentationRemovalRequiresReview('confirmed', 2)
         && !presentationRemovalRequiresReview('under_review', 1)
+        && !presentationRemovalRequiresReview('confirmed', 1, 'active', true)
         && !presentationRemovalRequiresReview('confirmed', 1, 'completed'),
     'presentation removal should preserve status when the confirmed invariant remains satisfied.'
 );
@@ -222,9 +224,7 @@ expectPresentationFeature(
     'presentation duration and actual attendance should be captured and constrained throughout the form and schema.'
 );
 expectPresentationFeature(
-    str_contains($presentation_script, 'confirmedOption.disabled = !hasPresentation()')
-        && str_contains($presentation_script, 'status.value === "confirmed" && !hasPresentation()')
-        && !str_contains($presentation_template, 'data-require-presentation-on-save')
+    !str_contains($presentation_template, 'data-require-presentation-on-save')
         && !str_contains($presentation_script, 'requiresPresentationOnSave')
         && !str_contains($presentation_script, 'Enter a date for this presentation.')
         && !str_contains($presentation_script, 'Enter a time for this presentation.')

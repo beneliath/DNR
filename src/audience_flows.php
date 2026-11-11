@@ -2,31 +2,31 @@
 declare(strict_types=1);
 
 const AUDIENCE_FLOW_TRIGGERS = [
-    'signup'=>'Signs up','profile'=>'Audience field changes','tag'=>'Tag added','untag'=>'Tag removed',
-    'group'=>'Joins group','ungroup'=>'Leaves group','date'=>'Date','birthday'=>'Birthday',
-    'anniversary'=>'Signup anniversary','open'=>'Opens email','click'=>'Clicks email',
-    'survey'=>'Responds to survey','flow'=>'Completes flow','status'=>'Email subscription status changes','manual'=>'Added manually',
+    'signup'=>'Signs Up','profile'=>'Audience Field Changes','tag'=>'Tag Added','untag'=>'Tag Removed',
+    'group'=>'Joins Group','ungroup'=>'Leaves Group','date'=>'Date','birthday'=>'Birthday',
+    'anniversary'=>'Signup Anniversary','open'=>'Opens Email','click'=>'Clicks Email',
+    'survey'=>'Responds to Survey','flow'=>'Completes Flow','status'=>'Email Subscription Status Changes','manual'=>'Added Manually',
 ];
 const AUDIENCE_FLOW_NODES = [
-    'email'=>'Send email','delay'=>'Time delay','wait'=>'Wait for trigger','until'=>'Wait until',
-    'condition'=>'Conditional split','split'=>'Percentage split','tag'=>'Tag/Untag',
-    'group'=>'Group/Ungroup','update'=>'Update connection','unsubscribe'=>'Unsubscribe',
-    'archive'=>'Archive connection','exit'=>'Exit flow',
+    'email'=>'Send Email','delay'=>'Time Delay','wait'=>'Wait for Trigger','until'=>'Wait Until',
+    'condition'=>'Conditional Split','split'=>'Percentage Split','tag'=>'Tag/Untag',
+    'group'=>'Group/Ungroup','update'=>'Update Connection','unsubscribe'=>'Unsubscribe',
+    'archive'=>'Archive Connection','exit'=>'Exit Flow',
 ];
 
 const AUDIENCE_FLOW_RUN_LABELS = [
     'completed' => 'Finished',
-    'exited' => 'Exited early',
-    'active' => 'In progress',
-    'failed' => 'Needs attention',
+    'exited' => 'Exited Early',
+    'active' => 'In Progress',
+    'failed' => 'Needs Attention',
 ];
-const AUDIENCE_FLOW_FINISHED_EXIT_REASONS = ['Exit step', 'Connection archived'];
+const AUDIENCE_FLOW_FINISHED_EXIT_REASONS = ['Exit step', 'Connection Archived'];
 const AUDIENCE_FLOW_RUN_DESCRIPTIONS = [
-    'started' => 'Total flow entries, including runs that have already ended',
+    'started' => 'Total Flow Entries, Including Runs That Have Already Ended',
     'completed' => 'Finished runs reached the end or completed an Exit flow or Archive connection step.',
-    'exited' => 'Runs stopped by exit conditions, a time limit, manual removal, or flow removal',
-    'active' => 'Runs processing a step or waiting for their next step',
-    'failed' => 'Runs with a failed step that requires review',
+    'exited' => 'Runs Stopped by Exit Conditions, a Time Limit, Manual Removal, or Flow Removal',
+    'active' => 'Runs Processing a Step or Waiting for Their Next Step',
+    'failed' => 'Runs with a Failed Step That Requires Review',
 ];
 
 /** Recorded ending reasons keep historical results independent of later flow edits. */
@@ -53,7 +53,7 @@ function audienceFlowTemplates(): array
 {
     $make=static function(string $name,string $description,string $trigger,array $steps,string $family,string $topic,array $extra=[]):array{
         return array_replace(['name'=>$name,'description'=>$description,'trigger'=>$trigger,'steps'=>$steps,'family'=>$family,'topic'=>$topic,
-            'objective'=>match($family){'welcome'=>'Welcome new connections','nurture'=>'Nurture relationships','reengage'=>'Re-engage connections',default=>'Manage connections'},
+            'objective'=>match($family){'welcome'=>'Welcome New Connections','nurture'=>'Nurture Relationships','reengage'=>'Re-Engage Connections',default=>'Manage Connections'},
             'integrations'=>in_array($trigger,['signup','survey'],true)?['audience','forms']:['audience'],
             'recommended'=>false,'requirements'=>array_merge(match($trigger){
                 'tag','untag'=>['Choose the audience tag that starts this flow.'],
@@ -71,11 +71,11 @@ function audienceFlowTemplates(): array
             'summary'=>array_map(static fn($step)=>AUDIENCE_FLOW_NODES[$step],$steps)],$extra);
     };
     return [
-        'welcome'=>$make('Welcome new connections','Increase engagement from new subscribers with a personal hello.','signup',['email'],'welcome','General',[
-            'recommended'=>true,'summary'=>['Start only after a connection becomes subscribed.','Send an introductory welcome email.'],'node_settings'=>[['label'=>'Welcome email']]]),
+        'welcome'=>$make('Welcome New Connections','Increase engagement from new subscribers with a personal hello.','signup',['email'],'welcome','General',[
+            'recommended'=>true,'summary'=>['Start only after a connection becomes subscribed.','Send an introductory welcome email.'],'node_settings'=>[['label'=>'Welcome Email']]]),
         'series'=>$make('Welcome series','Introduce your community with a sequence of useful, well-spaced emails.','signup',['email','delay','email','delay','email'],'welcome','General',[
             'summary'=>['Welcome a new subscriber.','Wait one day before sharing your story.','Wait three more days before inviting the next step.'],
-            'node_settings'=>[['label'=>'Welcome to our community'],['seconds'=>86400],['label'=>'Our story'],['seconds'=>259200],['label'=>'Your next step']]]),
+            'node_settings'=>[['label'=>'Welcome to Our Community'],['seconds'=>86400],['label'=>'Our Story'],['seconds'=>259200],['label'=>'Your Next Step']]]),
         'tagged'=>$make('Email tagged connections','Send a relevant follow-up when a selected tag is added.','tag',['email'],'nurture','Contact management',[
             'recommended'=>true,'summary'=>['Listen for a newly added tag.','Send the email associated with that interest.']]),
         'birthday'=>$make('Celebrate a birthday','Send a thoughtful message on each connection’s birthday.','birthday',['email'],'nurture','Special dates',[
@@ -88,7 +88,7 @@ function audienceFlowTemplates(): array
             'summary'=>['Listen for a tracked click, excluding recognized bots.','Add the engagement tag you choose.']]),
         'split'=>$make('Guide connections with If/Else conditions','Send different follow-ups according to audience information.','tag',['condition','email','email'],'nurture','Contact management',[
             'summary'=>['Start when a selected tag is added.','Check your audience conditions.','Send the matching Yes or No email, then exit.'],
-            'node_settings'=>[['label'=>'Meets your audience conditions','yes'=>'step2','no'=>'step3'],['label'=>'Yes-path email','next'=>''],['label'=>'No-path email']]]),
+            'node_settings'=>[['label'=>'Meets Your Audience Conditions','yes'=>'step2','no'=>'step3'],['label'=>'Yes-Path Email','next'=>''],['label'=>'No-Path Email']]]),
         'group-welcome'=>$make('Welcome new group members','Acknowledge a connection joining an audience group.','group',['email'],'welcome','General',[
             'summary'=>['Listen for a connection joining the selected group.','Send a welcome relevant to that group.']]),
         'welcome-tag'=>$make('Organize new subscribers','Apply a welcome tag before introducing your community.','signup',['tag','email'],'welcome','Contact management',[
@@ -101,7 +101,7 @@ function audienceFlowTemplates(): array
         'followup'=>$make('Follow up when a welcome email gets no click','Give new subscribers a second chance to engage without emailing those who already responded.','signup',['email','wait','email'],'reengage','General',[
             'summary'=>['Send the welcome email.','Wait up to three days for a tracked click.','Exit on a click; otherwise send one reminder.'],
             'requirements'=>['Choose the welcome email and the same email in the click-wait step.','Choose a reminder email and qualify delivery.'],
-            'node_settings'=>[['label'=>'Welcome email'],['label'=>'Wait for a welcome-email click','trigger'=>['type'=>'click','id'=>0],'timeout'=>259200,'yes'=>'','no'=>'step3'],['label'=>'Welcome reminder']]]),
+            'node_settings'=>[['label'=>'Welcome Email'],['label'=>'Wait for a Welcome-Email Click','trigger'=>['type'=>'click','id'=>0],'timeout'=>259200,'yes'=>'','no'=>'step3'],['label'=>'Welcome Reminder']]]),
         'group-feedback'=>$make('Ask why a connection left a group','Invite feedback from connections who leave an interest group while retaining email permission.','ungroup',['email'],'reengage','Feedback',[
             'summary'=>['Listen for removal from the selected group.','Ask for feedback only if email permission is still present.']]),
         'flow-followup'=>$make('Continue after another flow','Connect your onboarding or follow-up journeys using native flow completion.','flow',['delay','email'],'reengage','General',[

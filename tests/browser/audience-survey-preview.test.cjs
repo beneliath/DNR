@@ -34,15 +34,15 @@ try{for(const role of ['admin','reviewer'])for(const width of [390,1600]){
     await page.waitForFunction(()=>document.querySelector('[data-collection-preview]').contentDocument?.querySelector('form'));
     const mobileWidth=await frame.evaluate(el=>el.getBoundingClientRect().width);assert(mobileWidth>200&&mobileWidth<=390);checks++;
     if(role==='admin')await page.frameLocator('[data-collection-preview]').getByText('Updated question before preview',{exact:false}).waitFor();
-    const back=page.getByRole('button',{name:'Back to editing',exact:true});assert(await back.isVisible());checks++;
+    const back=page.getByRole('button',{name:'Back to Editing',exact:true});assert(await back.isVisible());checks++;
     await desktop.click();assert(await panel.isVisible());assert(await form.isHidden());assert.equal(await desktop.getAttribute('aria-pressed'),'true');assert.equal(await mobile.getAttribute('aria-pressed'),'false');checks+=4;
     const desktopWidth=await frame.evaluate(el=>el.getBoundingClientRect().width);assert(desktopWidth>=mobileWidth);if(width===1600)assert(desktopWidth>600);checks++;
     await back.click();assert(await form.isVisible());assert(await panel.isHidden());assert.equal(await page.locator('[data-collection-document]').inputValue(),before);checks+=3;
-    await desktop.click();assert(await panel.isVisible());assert(await form.isHidden());await page.getByRole('button',{name:'Back to editing',exact:true}).click();assert(await form.isVisible());assert(await panel.isHidden());checks+=4;
+    await desktop.click();assert(await panel.isVisible());assert(await form.isHidden());await page.getByRole('button',{name:'Back to Editing',exact:true}).click();assert(await form.isVisible());assert(await panel.isHidden());checks+=4;
     if(role==='admin'){
         assert.equal(await page.getByLabel('What would you like to ask?',{exact:true}).inputValue(),'Updated question before preview');
         assert.equal(await page.locator('.collection-save-unsaved').count(),2);checks+=2;
-        await page.getByRole('button',{name:'Preview',exact:true}).click();assert(await panel.isVisible());await page.getByRole('button',{name:'Back to editing',exact:true}).click();assert(await form.isVisible());checks+=2;
+        await page.getByRole('button',{name:'Preview',exact:true}).click();assert(await panel.isVisible());await page.getByRole('button',{name:'Back to Editing',exact:true}).click();assert(await form.isVisible());checks+=2;
         await page.locator('[data-collection-tab="design"]').click();assert(await panel.isVisible());
         await mobile.click();assert(await form.isVisible());assert(await panel.isVisible());checks+=3;
         await desktop.click();assert(await form.isVisible());checks++;

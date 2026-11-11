@@ -8,7 +8,7 @@ final class AudienceStore
     public array $reports=[];
     public array $overview=['includes_samples'=>false];
     public ?array $reportRows=null;
-    public function fields():array{return [['id'=>5,'label'=>'Gift amount','field_type'=>'number'],['id'=>6,'label'=>'City','field_type'=>'text'],['id'=>9,'label'=>'Mailing address','field_type'=>'address'],['id'=>10,'label'=>'Telephone','field_type'=>'phone']];}
+    public function fields():array{return [['id'=>5,'label'=>'Gift amount','field_type'=>'number'],['id'=>6,'label'=>'City','field_type'=>'text'],['id'=>9,'label'=>'Mailing Address','field_type'=>'address'],['id'=>10,'label'=>'Telephone','field_type'=>'phone']];}
     public function one(string $sql,array $params=[]):?array{$this->reads[]=[$sql,$params];return ['n'=>2];}
     public function all(string $sql,array $params=[]):array{
         $this->reads[]=[$sql,$params];
@@ -48,7 +48,7 @@ $expect($tools->clarificationConditions([['field'=>'email_status','operator'=>'e
 foreach(['first_name','last_name','custom:6']as$field){
     $result=$tools->execute(['queries'=>[array_replace($base,['field'=>$field])]]);
     $expect(count($result['facts'])===3&&$result['facts'][0]['value']===10&&$result['facts'][1]['value']===10,'One generic frequency query preserves ties for '.$field);
-    $expect(!str_contains(json_encode($result['facts']),'Connections added'),'Frequency results exclude growth and campaign metrics.');
+    $expect(!str_contains(json_encode($result['facts']),'Connections Added'),'Frequency results exclude growth and campaign metrics.');
 }
 $expect(isset($tools->catalog()['custom:6'])&&!str_contains(json_encode($tools->catalog()),'sql'),'The planner receives field metadata without SQL.');
 $nativePlan=$tools->nativeQuery(['function'=>['name'=>'recent_email_campaign_report','arguments'=>['count'=>1,'dimension'=>'campaign','metrics'=>['open_rate','click_rate'],'limit'=>100]]]);
@@ -137,7 +137,7 @@ $expect($sourcePage['id']==='query_0_result'&&$sourcePage['total']===2
 $reject(static fn()=>audienceAiContactPage($tools,$countSource,'query_9_result',0),'A count source cannot select a fact outside its saved evidence.');
 $reject(static fn()=>audienceAiContactPage($tools,$contacts,'query_0_result',0),'A contact table cannot be misrepresented as a scalar count source.');
 $report=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','metrics'=>['accepted'],'limit'=>5])]]);
-$expect(count($report['facts'])===1&&str_contains($report['facts'][0]['label'],'Total sends'),'Report queries return only requested metrics.');
+$expect(count($report['facts'])===1&&str_contains($report['facts'][0]['label'],'Total Sends'),'Report queries return only requested metrics.');
 $expect(str_contains($report['scope_description'],'Email reports exclude test emails'),'Report scope visibly distinguishes campaign-recipient data from test activity.');
 $expect(str_contains(implode(' ',$report['limitations']),'acceptance is not confirmed delivery'),'Email evidence distinguishes provider acceptance from receipt-confirmed delivery.');
 $growthScope=$tools->execute(['queries'=>[['tool'=>'report','dataset'=>'audience','dimension'=>'day','metrics'=>['added'],'limit'=>5]]]);
@@ -154,7 +154,7 @@ $expect($days[0]['last_days']===30&&$days[0]['recent_campaigns']===0,'Calendar d
 $expect(count($tools->validate(['queries'=>[$reportPlan,$reportPlan]]))===1,'Duplicate planned queries run and display only once.');
 $reject(static fn()=>$tools->validate(['queries'=>[array_replace($reportPlan,['period'=>['kind'=>'selected','days'=>30]])]]),'Conflicting period arguments are rejected.');
 $tracking=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','dimension'=>'country']),array_replace($base,['tool'=>'report','field'=>'','dimension'=>'device'])]]);
-$expect(count($tracking['facts'])===2&&!str_contains(json_encode($tracking['facts']),'Total sends'),'Geographic and device results exclude unrelated campaign metrics.');
+$expect(count($tracking['facts'])===2&&!str_contains(json_encode($tracking['facts']),'Total Sends'),'Geographic and device results exclude unrelated campaign metrics.');
 $store->overview+=['totals'=>['accepted'=>100],'previous'=>['accepted'=>80]];
 $store->reportRows=array_map(static fn($day)=>['label'=>'Day '.$day,'accepted'=>5],range(1,20));
 $totals=$tools->execute(['queries'=>[array_replace($base,['tool'=>'report','field'=>'','dimension'=>'day','metrics'=>['accepted'],'limit'=>3])]]);

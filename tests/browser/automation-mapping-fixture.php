@@ -11,7 +11,7 @@ if($kind!=='builder-save')echo '<div class="audience-page-body">';
 if($kind==='catalog')require __DIR__.'/../../src/templates/audience/flow-catalog.php';
 elseif(in_array($kind,['builder','builder-save'],true)){
     $view='flow';$available=true;$id=1;$csrf='';$canManage=$kind==='builder-save';$themeKey='synthetic';$tags=[];$groups=[];$fields=[];$campaignOptions=[];$surveyOptions=[];$flowOptions=[];$validation=[];$report=['nodes'=>[]];
-    $catalog=['email'=>['kind'=>'text','label'=>'Email'],'email_status'=>['kind'=>'choice','label'=>'Email status','options'=>array_combine(AUDIENCE_STATUSES,AUDIENCE_STATUSES)]];
+    $catalog=['email'=>['kind'=>'text','label'=>'Email'],'email_status'=>['kind'=>'choice','label'=>'Email Status','options'=>array_combine(AUDIENCE_STATUSES,AUDIENCE_STATUSES)]];
     $flow=['id'=>1,'version'=>1,'name'=>'Cleanup fixture','state'=>'draft','document'=>audienceFlowDocument(audienceFlowDefault('cleanup')),'paused_nodes'=>[]];
     if($canManage)echo '<div class="audience-page-heading"><h1>Cleanup fixture</h1><div class="audience-actions"><button type="button" data-flow-save>Save</button></div></div>';
     if($kind==='builder-save')echo '<div class="audience-page-body">';

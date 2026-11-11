@@ -24,7 +24,7 @@ export function enhanceColorInput(input,{label,tile=false,palette,sampleSources,
   trigger.addEventListener('click',()=>{
     if(input.matches(':disabled')||trigger.getAttribute('aria-expanded')==='true')return;
     trigger.setAttribute('aria-expanded','true');
-    openColorStudio({label,value:input.value,palette:palette??formPalette,scope:wrap,previewStyle,automaticValue:input.defaultValue||null,automaticLabel:'Reset color',sampleSources:sampleSources||(()=>colorSampleSources(null,[...(input.form?.querySelectorAll('img[data-content-preview],img[data-collection-image]')||[])])),onApply:value=>{
+    openColorStudio({label,value:input.value,palette:palette??formPalette,scope:wrap,previewStyle,automaticValue:input.defaultValue||null,automaticLabel:'Reset Color',sampleSources:sampleSources||(()=>colorSampleSources(null,[...(input.form?.querySelectorAll('img[data-content-preview],img[data-collection-image]')||[])])),onApply:value=>{
       if(!wrap.isConnected||input.matches(':disabled'))return;
       input.value=value;sync();input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));
     },onClose:()=>{trigger.setAttribute('aria-expanded','false');if(trigger.isConnected)trigger.focus({preventScroll:true});}});

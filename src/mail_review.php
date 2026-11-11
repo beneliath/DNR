@@ -89,11 +89,11 @@ function mailReviewSubject(string $subject): string {
 }
 function mailReviewReasonLabel(string $reason): string {
     return match (true) {
-        str_contains($reason, 'No valid') => 'Missing routing token',
+        str_contains($reason, 'No valid') => 'Missing Routing Token',
         str_contains($reason, 'more than one') => 'Conflicting Accounts',
-        str_contains($reason, 'invalid, incomplete') => 'Invalid or incomplete token',
-        str_contains($reason, 'manual destination') => 'Destination unavailable',
-        default => 'Delivery needs attention',
+        str_contains($reason, 'invalid, incomplete') => 'Invalid or Incomplete Token',
+        str_contains($reason, 'manual destination') => 'Destination Unavailable',
+        default => 'Delivery Needs Attention',
     };
 }
 ?>
@@ -107,13 +107,13 @@ function mailReviewReasonLabel(string $reason): string {
 </header>
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= mailReviewH($error) ?></p><?php endif; ?>
 <?php if ($notice !== '' && $error === ''): ?><p class="success" role="status"><?= mailReviewH($notice) ?></p><?php endif; ?>
-<nav class="mail-review-filters" aria-label="Mail status">
+<nav class="mail-review-filters" aria-label="Mail Status">
 <?php foreach ($mailReviewStatusLabels as $mailReviewStatus=>$mailReviewLabel): ?>
     <a class="mail-review-filter<?= $status===$mailReviewStatus?' is-active':'' ?>" href="mail_review.php?status=<?= $mailReviewStatus ?>"<?= $status===$mailReviewStatus?' aria-current="page"':'' ?>><?= $mailReviewLabel ?><span><?= $mailReviewCounts[$mailReviewStatus] ?></span></a>
 <?php endforeach; ?>
 </nav>
 <div class="mail-review-workspace">
-<section class="mail-review-queue" aria-label="Shared mail queue">
+<section class="mail-review-queue" aria-label="Shared Mail Queue">
     <header class="mail-review-queue-heading"><h2><?= $mailReviewStatusLabels[$status] ?></h2><span>Newest first · UTC</span></header>
     <div class="mail-review-message-list">
     <?php if ($rows === []): ?>
@@ -130,17 +130,17 @@ function mailReviewReasonLabel(string $reason): string {
         <?php if ($mailReviewPageCount>1): ?><div><?php if ($page>1): ?><a class="button-secondary" href="mail_review.php?status=<?= $status ?>&amp;page=<?= $page-1 ?>">Previous</a><?php endif; ?><?php if ($page<$mailReviewPageCount): ?><a class="button-secondary" href="mail_review.php?status=<?= $status ?>&amp;page=<?= $page+1 ?>">Next</a><?php endif; ?></div><?php endif; ?>
     </footer>
 </section>
-<section class="mail-review-detail" id="mail-review-detail" aria-label="Message for review">
+<section class="mail-review-detail" id="mail-review-detail" aria-label="Message for Review">
 <?php if ($selected): $selectedPayload=json_decode($selected['payload'],true,16,JSON_THROW_ON_ERROR); $message=$selectedPayload['message']; ?>
     <header class="mail-review-message-heading">
         <div class="mail-review-detail-meta"><span class="mail-review-badge mail-review-badge-<?= mailReviewH($selected['status']) ?>"><?= $mailReviewStatusLabels[$selected['status']] ?></span><span>Message #<?= (int)$selected['id'] ?></span></div>
         <h2><?= mailReviewH(mailReviewSubject($message['subject'])) ?></h2>
         <p class="mail-review-sender"><?= mailReviewH($message['sender_address']) ?></p>
-        <details class="mail-review-envelope"><summary>Message details</summary><dl>
+        <details class="mail-review-envelope"><summary>Message Details</summary><dl>
             <div><dt>To</dt><dd><?= mailReviewH(implode(', ', $message['to_addresses'])) ?></dd></div>
             <?php if ($message['cc_addresses'] !== []): ?><div><dt>Cc</dt><dd><?= mailReviewH(implode(', ', $message['cc_addresses'])) ?></dd></div><?php endif; ?>
             <div><dt>Received</dt><dd><?= mailReviewH(formatUserTimestamp($selected['received_at'],'Y-m-d H:i:s')) ?></dd></div>
-            <div><dt>Original subject</dt><dd><?= mailReviewH($message['subject'] ?: '(No subject)') ?></dd></div>
+            <div><dt>Original Subject</dt><dd><?= mailReviewH($message['subject'] ?: '(No subject)') ?></dd></div>
         </dl></details>
     </header>
     <?php if ($selected['status']==='review'): ?><div class="mail-review-reason"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg><div><strong><?= mailReviewH(mailReviewReasonLabel($selected['review_reason'])) ?></strong><p><?= mailReviewH($selected['review_reason']) ?> This message is visible only to SuperAdmins until routed.</p></div></div><?php endif; ?>
@@ -166,7 +166,7 @@ function mailReviewReasonLabel(string $reason): string {
     <?php else: ?><div class="mail-review-rejected-note"><div><strong>Rejected</strong><p>No further delivery attempts will be made. You can permanently delete this message.</p></div>
         <form method="post" data-admin-unlock-required data-confirm="Permanently delete this rejected message? Its contents cannot be recovered from Mail Review. A fingerprint is retained to prevent reimporting the same email.">
             <?= csrfInput() ?><input type="hidden" name="id" value="<?= (int)$selected['id'] ?>"><input type="hidden" name="action" value="delete">
-            <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete rejected message" title="Delete rejected message" data-tooltip="Delete rejected message"><?= actionIconSvg('delete') ?></button>
+            <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Rejected Message" title="Delete Rejected Message" data-tooltip="Delete Rejected Message"><?= actionIconSvg('delete') ?></button>
         </form></div><?php endif; ?>
 <?php else: ?><div class="mail-review-empty mail-review-empty-reader"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg><h2><?= $rows===[]?'Nothing to Review':'Select a Message' ?></h2><p><?= $rows===[]?'Messages will appear here when they need your attention.':'Choose a message from the queue to read it and select an Account.' ?></p></div><?php endif; ?>
 </section>

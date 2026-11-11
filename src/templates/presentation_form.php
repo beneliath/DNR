@@ -17,9 +17,6 @@ foreach ($presentation_form_rows as $presentation_form_row) {
          data-default-speaker="<?php echo (int) $default_speaker_id; ?>">
     <div class="chron-log-heading">
         <h2>Presentation(s)</h2>
-        <?php if (!empty($archived_presentation_count) && !empty($engagement_id)): ?>
-            <a href="restore_presentations.php?engagement_id=<?php echo (int) $engagement_id; ?>" class="restore-button">Restore Archived Presentations (<?php echo (int) $archived_presentation_count; ?>)</a>
-        <?php endif; ?>
     </div>
     <?php if (!empty($presentation_action_message)): ?>
         <div class="success"><?php echo htmlspecialchars($presentation_action_message); ?></div>
@@ -27,9 +24,17 @@ foreach ($presentation_form_rows as $presentation_form_row) {
     <?php if (!empty($presentation_action_error)): ?>
         <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
     <?php endif; ?>
-    <p class="field-help">Presentation details are optional and can be filled in after the event is created. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
-    <p class="field-help"><a href="speakers.php" target="_blank" rel="noopener">View or Manage Speakers (Opens in a New Tab)</a></p>
-    <div class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>">
+    <label class="checkbox-label" for="presentation_not_required">
+        <input type="checkbox" id="presentation_not_required" name="presentation_not_required" value="1" aria-controls="presentation-details"<?php echo !empty($presentation_not_required) ? ' checked' : ''; ?>>
+        No Presentation Required
+    </label>
+    <p class="field-help">Select this to confirm the event without adding a presentation.</p>
+    <fieldset id="presentation-details" aria-label="Presentation Details" class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>"<?php echo !empty($presentation_not_required) ? ' hidden disabled' : ''; ?>>
+        <p class="field-help">Presentation details can be filled in later, and actual attendance can be recorded after the event.</p>
+        <p class="field-help"><a href="speakers.php" target="_blank" rel="noopener">View or Manage Speakers (Opens in a New Tab)</a></p>
+        <?php if (!empty($archived_presentation_count) && !empty($engagement_id)): ?>
+            <a href="restore_presentations.php?engagement_id=<?php echo (int) $engagement_id; ?>" class="restore-button">Restore Archived Presentations (<?php echo (int) $archived_presentation_count; ?>)</a>
+        <?php endif; ?>
         <div class="presentations-inner-container">
             <?php foreach ($presentation_form_rows as $presentation_index => $presentation): ?>
                 <?php
@@ -140,5 +145,5 @@ foreach ($presentation_form_rows as $presentation_form_row) {
             <?php endforeach; ?>
         </div>
         <button type="button" data-add-presentation class="add-presentation-btn">Add Presentation</button>
-    </div>
+    </fieldset>
 </section>

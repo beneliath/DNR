@@ -57,7 +57,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             <div class="form-group">
                 <label for="event_type">Likely Event Type</label>
                 <select id="event_type" name="event_type">
-                    <?php foreach ($inquiry_event_types as $event_type): ?><option value="<?php echo htmlspecialchars($event_type, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $value('event_type', 'conference') === $event_type ? ' selected' : ''; ?>><?php echo htmlspecialchars(ucwords($event_type), ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?>
+                    <?php foreach ($inquiry_event_types as $event_type): ?><option value="<?php echo htmlspecialchars($event_type, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $value('event_type', 'conference') === $event_type ? ' selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($event_type), ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group" id="other_event_type_div"<?php echo $value('event_type', 'conference') === 'other' ? '' : ' hidden'; ?>>

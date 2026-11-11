@@ -19,7 +19,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
                 const done=task.dataset.flowTaskComplete==='1'||(task.dataset.flowTask==='library'&&setupState.library), skipped=!done&&setupState.dismissed.includes(task.dataset.flowTask);
                 completed+=Number(done);dismissed+=Number(skipped);task.dataset.resolved=String(done||skipped);
                 task.classList.toggle('completed',done);task.classList.toggle('dismissed',skipped);
-                $('[data-flow-task-state]',task).textContent=done?'Completed':skipped?'Dismissed':'To do';
+                $('[data-flow-task-state]',task).textContent=done?'Completed':skipped?'Dismissed':'To Do';
                 $('[data-flow-task-dismiss]',task).hidden=done||skipped;$('[data-flow-task-restore]',task).hidden=!skipped;
             });
             const next=tasks.find(task=>task.dataset.resolved==='false')||tasks[0];
@@ -98,11 +98,11 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
     let personSearchSequence=0;
     $('[data-flow-person-find]')?.addEventListener('click', async event => {
         const trigger=event.currentTarget, query=$('[data-flow-person-search]').value.trim(), select=$('[data-flow-person-choice]'), status=$('[data-flow-person-status]');
-        if(!query){status.textContent='Enter a name or email address';return;}const sequence=++personSearchSequence;trigger.disabled=true;status.textContent='Searching…';select.replaceChildren(new Option('Choose a connection',''));
+        if(!query){status.textContent='Enter a name or email address';return;}const sequence=++personSearchSequence;trigger.disabled=true;status.textContent='Searching…';select.replaceChildren(new Option('Choose a Connection',''));
         try{const response=await fetch('audience.php?api=workspace_search&category=connections&q='+encodeURIComponent(query),{headers:{Accept:'application/json'},cache:'no-store'});if(!response.ok||!response.headers.get('Content-Type')?.includes('application/json'))throw new Error('Search is unavailable');const data=await response.json();if(sequence!==personSearchSequence)return;const people=data.groups.find(group=>group.key==='connections')?.items||[];people.forEach(person=>{const id=new URL(person.href,location.href).searchParams.get('id');if(/^[1-9][0-9]*$/.test(id||''))select.append(new Option(person.title+' · '+person.description,id));});status.textContent=people.length?`${people.length} matching connections`:'No connections match this search';}
         catch(_){if(sequence===personSearchSequence)status.textContent='Search is unavailable. Try again.';}finally{if(sequence===personSearchSequence)trigger.disabled=false;}
     });
-    $('[data-flow-person-clear]')?.addEventListener('click',event=>{event.preventDefault();personSearchSequence++;$('[data-flow-person-find]').disabled=false;$('[data-flow-person-choice]').replaceChildren(new Option('Choose a connection',''));$('[data-flow-person-status]').textContent='';});
+    $('[data-flow-person-clear]')?.addEventListener('click',event=>{event.preventDefault();personSearchSequence++;$('[data-flow-person-find]').disabled=false;$('[data-flow-person-choice]').replaceChildren(new Option('Choose a Connection',''));$('[data-flow-person-status]').textContent='';});
     const configNode = $('#flow-config'); if (!configNode) return;
     const config = JSON.parse(configNode.textContent), clone = value => JSON.parse(JSON.stringify(value));
     let doc = clone(config.document), version = config.version, name = config.name, selected = 'trigger', zoom = 1, dirty = false, timer, saving = null, sequence = 0;
@@ -140,7 +140,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
     const showError = message => { error.textContent = message; error.hidden = !message; };
     const checkpoint = () => { undo.push(clone({doc,name})); if (undo.length > 30) undo.shift(); redo.length = 0; };
     const remember = () => { try { localStorage.setItem(storageKey, JSON.stringify({version,doc,name})); } catch (_) { /* Saving does not depend on browser storage. */ } };
-    const changed = (render = true) => { dirty = true; sequence++; status.textContent = 'Unsaved changes'; if (!manualSaving) { clearTimeout(feedbackTimer); if (saveNotice) saveNotice.hidden = true; if (saveButton) saveButton.textContent = 'Save'; } remember(); clearTimeout(timer); timer = setTimeout(() => save(), 1200); if (render) renderMap(); };
+    const changed = (render = true) => { dirty = true; sequence++; status.textContent = 'Unsaved Changes'; if (!manualSaving) { clearTimeout(feedbackTimer); if (saveNotice) saveNotice.hidden = true; if (saveButton) saveButton.textContent = 'Save'; } remember(); clearTimeout(timer); timer = setTimeout(() => save(), 1200); if (render) renderMap(); };
     const edit = (target, key, value, redraw = true) => { if (!config.editable) return; checkpoint(); target[key] = value; changed(redraw); };
     const post = async values => {
         const response = await fetch('audience.php?view=flow', {method:'POST',headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({csrf_token:config.csrf,id:config.id,format:'json',...values}),cache:'no-store'});
@@ -157,9 +157,9 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
                 document.title = `${name} - MOED`;
                 $$('form input[name=version]').forEach(control => { control.value = version; });
                 if (turn === sequence) { dirty = false; status.textContent = 'Saved'; try { localStorage.removeItem(storageKey); } catch (_) {} }
-                else { remember(); status.textContent = 'Unsaved changes'; }
+                else { remember(); status.textContent = 'Unsaved Changes'; }
                 renderValidation(data.errors); return true;
-            } catch (e) { status.textContent = 'Not saved'; showError(e.message); return false; }
+            } catch (e) { status.textContent = 'Not Saved'; showError(e.message); return false; }
         })();
         const result = await saving; saving = null; return result;
     }
@@ -184,14 +184,14 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
         }
     }
     function renderValidation(errors = []) {
-        const panel = $('[data-flow-validation]'); panel.replaceChildren(el('h2', {}, 'Review your flow'));
+        const panel = $('[data-flow-validation]'); panel.replaceChildren(el('h2', {}, 'Review Your Flow'));
         if (errors.length) { const list = el('ul'); errors.forEach(message => list.append(el('li', {}, message))); panel.append(list); }
         else panel.append(el('p', {}, 'Your trigger and steps are ready for review'));
         const dialog = $('#flow-turn-on'); if (dialog) { const submit = $('button.primary', dialog); submit.disabled = errors.length > 0; const old = $('ul', dialog); old?.remove(); if (errors.length) { const list = el('ul'); errors.forEach(message => list.append(el('li', {}, message))); $('form', dialog).insertBefore(list, $('.dialog-actions', dialog)); } }
     }
-    const campaignChoices = () => Object.fromEntries([['0','Choose an email'], ...config.campaigns.map(c => [c.id,c.name])]);
-    const tagChoices = () => Object.fromEntries([['0','Choose a tag'], ...config.tags.map(t => [t.id,t.name])]);
-    const groupChoices = () => Object.fromEntries([['0','Choose a group'], ...config.groups.flatMap(g => g.options.map(o => [o.id,`${g.name}: ${o.name}`]))]);
+    const campaignChoices = () => Object.fromEntries([['0','Choose an Email'], ...config.campaigns.map(c => [c.id,c.name])]);
+    const tagChoices = () => Object.fromEntries([['0','Choose a Tag'], ...config.tags.map(t => [t.id,t.name])]);
+    const groupChoices = () => Object.fromEntries([['0','Choose a Group'], ...config.groups.flatMap(g => g.options.map(o => [o.id,`${g.name}: ${o.name}`]))]);
     const membershipDetail = (type, id) => type === 'tag'
         ? tagChoices()[id || 0] || 'Unavailable tag'
         : groupChoices()[id || 0] || 'Unavailable group';
@@ -201,7 +201,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
     const nodeDetail = node => {
         if (['tag','group'].includes(node.type)) return `${node.remove ? 'Remove' : 'Add'}: ${membershipDetail(node.type, node.type === 'tag' ? node.tag_id : node.option_id)}`;
         if (node.type === 'wait') return triggerDetail(node.trigger || {}) || config.types[node.type];
-        if (node.type === 'email') return config.campaigns.find(c => Number(c.id) === Number(node.campaign_id))?.name || 'Choose an email';
+        if (node.type === 'email') return config.campaigns.find(c => Number(c.id) === Number(node.campaign_id))?.name || 'Choose an Email';
         if (node.type === 'delay') return `${Math.round(node.seconds/60)} ${Math.round(node.seconds/60) === 1 ? 'minute' : 'minutes'}`;
         if (node.type === 'split') return `${node.percent}% / ${100-node.percent}%`;
         return node.type === 'until' ? node.time : config.types[node.type];
@@ -211,24 +211,24 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
         let choices;
         if (['tag','untag'].includes(trigger.type)) choices = tagChoices();
         if (['group','ungroup'].includes(trigger.type)) choices = groupChoices();
-        if (['open','click'].includes(trigger.type)) choices = {'0':'Any email', ...Object.fromEntries(config.campaigns.map(c => [c.id,c.name]))};
-        if (trigger.type === 'survey') choices = {'0':'Any survey', ...Object.fromEntries(config.surveys.map(s => [s.id,s.name]))};
-        if (trigger.type === 'flow') choices = {'0':'Choose a flow', ...Object.fromEntries(config.flows.filter(f => f.id !== config.id).map(f => [f.id,f.name]))};
+        if (['open','click'].includes(trigger.type)) choices = {'0':'Any Email', ...Object.fromEntries(config.campaigns.map(c => [c.id,c.name]))};
+        if (trigger.type === 'survey') choices = {'0':'Any Survey', ...Object.fromEntries(config.surveys.map(s => [s.id,s.name]))};
+        if (trigger.type === 'flow') choices = {'0':'Choose a Flow', ...Object.fromEntries(config.flows.filter(f => f.id !== config.id).map(f => [f.id,f.name]))};
         if (choices) field(parent, 'Choose', options(choices,trigger.id || 0,value => edit(trigger,'id',Number(value))));
-        if (trigger.type === 'status') field(parent,'New email status',options({'':'Any email status',subscribed:'Subscribed',unsubscribed:'Unsubscribed','non-subscribed':'Non-subscribed',cleaned:'Cleaned',pending:'Pending confirmation'},trigger.value || '',value=>edit(trigger,'value',value)));
+        if (trigger.type === 'status') field(parent,'New Email Status',options({'':'Any Email Status',subscribed:'Subscribed',unsubscribed:'Unsubscribed','non-subscribed':'Non-subscribed',cleaned:'Cleaned',pending:'Pending Confirmation'},trigger.value || '',value=>edit(trigger,'value',value)));
         if (['date','birthday','profile'].includes(trigger.type)) {
             const available = config.fields.filter(f => trigger.type === 'profile' || ['date','birthday'].includes(f.field_type));
-            const fields = trigger.type === 'profile' ? {'':'Any profile change',first_name:'First name',last_name:'Last name',language:'Language',timezone:'Time zone'} : {'':'Choose an audience field'};
+            const fields = trigger.type === 'profile' ? {'':'Any profile change',first_name:'First Name',last_name:'Last Name',language:'Language',timezone:'Time Zone'} : {'':'Choose an audience field'};
             available.forEach(f => { fields[f.id] = f.label; });
-            field(parent,'Audience field',options(fields,trigger.field || '',value => edit(trigger,'field',value)));
+            field(parent,'Audience Field',options(fields,trigger.field || '',value => edit(trigger,'field',value)));
         }
-        if (['date','birthday','anniversary'].includes(trigger.type)) { field(parent,'Days before (−) or after (+)',input('number',trigger.offset || 0,value => edit(trigger,'offset',value),{min:-365,max:365})); field(parent,'Time',input('time',trigger.time || '09:00',value => edit(trigger,'time',value))); }
+        if (['date','birthday','anniversary'].includes(trigger.type)) { field(parent,'Days Before (−) or After (+)',input('number',trigger.offset || 0,value => edit(trigger,'offset',value),{min:-365,max:365})); field(parent,'Time',input('time',trigger.time || '09:00',value => edit(trigger,'time',value))); }
         if (['open','click'].includes(trigger.type)) parent.append(el('p', {class:'audience-help'}, 'Uses observed activity with recognized bots excluded. Privacy tools can affect opens and clicks.'));
         if (trigger.type === 'survey') parent.append(el('p', {class:'audience-help'}, 'Only responses tied to a verified recipient can trigger a flow.'));
     }
     function ruleGroup(parent, group, depth = 0) {
         const box = el('fieldset', {class:'flow-rule-group'}), legend = el('legend', {}, 'Match');
-        legend.append(options({all:'All conditions',any:'Any condition'},group.match,value => edit(group,'match',value))); box.append(legend);
+        legend.append(options({all:'All Conditions',any:'Any Condition'},group.match,value => edit(group,'match',value))); box.append(legend);
         group.rules.forEach((rule, index) => {
             const row = el('div', {class:'flow-rule-row'});
             if (rule.rules) ruleGroup(row,rule,depth + 1);
@@ -241,32 +241,32 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
                     if (definition.options) row.append(options(definition.options,rule.value,value => edit(rule,'value',value),definition.kind === 'membership'));
                     else {
                         const attrs = ruleValueAttributes(definition, rule.operator);
-                        row.append(input(attrs.type, rule.value ?? '', value => edit(rule, 'value', value), {...attrs, 'aria-label':'Condition value'}));
+                        row.append(input(attrs.type, rule.value ?? '', value => edit(rule, 'value', value), {...attrs, 'aria-label':'Condition Value'}));
                     }
                 }
                 if (definition.kind === 'engagement') {
-                    row.append(options({'0':'Any campaign',...definition.campaigns},rule.campaign_id || '0',value => edit(rule,'campaign_id',value)));
-                    row.append(options({filtered:'Known bots excluded',all:'Include all observations'},rule.bots || 'filtered',value => edit(rule,'bots',value)));
+                    row.append(options({'0':'Any Campaign',...definition.campaigns},rule.campaign_id || '0',value => edit(rule,'campaign_id',value)));
+                    row.append(options({filtered:'Known Bots Excluded',all:'Include All Observations'},rule.bots || 'filtered',value => edit(rule,'bots',value)));
                     if(rule.field === 'engagement:click') row.append(options({'':'Any tracked link',...definition.links},rule.link_hash || '',value => edit(rule,'link_hash',value)));
                 }
             }
-            row.append(button('×',() => { checkpoint(); group.rules.splice(index,1); changed(); renderInspector(); renderSettings(); },{'aria-label':'Remove condition',disabled:!config.editable})); box.append(row);
+            row.append(button('×',() => { checkpoint(); group.rules.splice(index,1); changed(); renderInspector(); renderSettings(); },{'aria-label':'Remove Condition',disabled:!config.editable})); box.append(row);
         });
-        box.append(button('Add condition',() => { checkpoint(); group.rules.push({field:'email',operator:'contains',value:''}); changed(); renderInspector(); renderSettings(); },{disabled:!config.editable}));
-        if (depth < 4) box.append(button('Add group',() => { checkpoint(); group.rules.push({match:'all',rules:[{field:'email',operator:'contains',value:''}]}); changed(); renderInspector(); renderSettings(); },{disabled:!config.editable}));
+        box.append(button('Add Condition',() => { checkpoint(); group.rules.push({field:'email',operator:'contains',value:''}); changed(); renderInspector(); renderSettings(); },{disabled:!config.editable}));
+        if (depth < 4) box.append(button('Add Group',() => { checkpoint(); group.rules.push({match:'all',rules:[{field:'email',operator:'contains',value:''}]}); changed(); renderInspector(); renderSettings(); },{disabled:!config.editable}));
         parent.append(box);
     }
     function renderSettings() {
         const parent = $('[data-flow-settings]'); parent.replaceChildren(); const fieldset = el('fieldset', {disabled:!config.editable}), settingsFields = el('div', {class:'flow-settings-fields'}); parent.append(fieldset);
-        fieldset.append(el('h2', {}, 'Flow settings'), settingsFields);
-        field(settingsFields,'Flow name',input('text',name,value => { if (!config.editable) return; checkpoint(); name = value; changed(false); },{maxlength:100,required:true})).parentElement.classList.add('flow-setting-wide');
-        field(settingsFields,'Allow connections to repeat the flow',input('checkbox',doc.settings.repeat,value => edit(doc.settings,'repeat',value))).parentElement.classList.add('flow-setting-wide');
+        fieldset.append(el('h2', {}, 'Flow Settings'), settingsFields);
+        field(settingsFields,'Flow Name',input('text',name,value => { if (!config.editable) return; checkpoint(); name = value; changed(false); },{maxlength:100,required:true})).parentElement.classList.add('flow-setting-wide');
+        field(settingsFields,'Allow Connections to Repeat the Flow',input('checkbox',doc.settings.repeat,value => edit(doc.settings,'repeat',value))).parentElement.classList.add('flow-setting-wide');
         const timingSettings = el('div', {class:'flow-timing-settings'}); settingsFields.append(timingSettings);
-        field(timingSettings,'Minimum days before reentry',input('number',doc.settings.cooldown,value => edit(doc.settings,'cooldown',value),{min:0,max:365}));
-        field(timingSettings,'Exit after (days)',input('number',doc.settings.max_days,value => edit(doc.settings,'max_days',value),{min:1,max:365}));
-        field(timingSettings,'Time zone',input('text',doc.settings.timezone,value => edit(doc.settings,'timezone',value),{list:'flow-timezones'}));
+        field(timingSettings,'Minimum Days Before Reentry',input('number',doc.settings.cooldown,value => edit(doc.settings,'cooldown',value),{min:0,max:365}));
+        field(timingSettings,'Exit After (Days)',input('number',doc.settings.max_days,value => edit(doc.settings,'max_days',value),{min:1,max:365}));
+        field(timingSettings,'Time Zone',input('text',doc.settings.timezone,value => edit(doc.settings,'timezone',value),{list:'flow-timezones'}));
         if (!$('#flow-timezones')) { const list = el('datalist', {id:'flow-timezones'}); Intl.supportedValuesOf('timeZone').forEach(zone => list.append(el('option', {value:zone}))); document.body.append(list); }
-        field(settingsFields,'Use each connection’s time zone when available',input('checkbox',doc.settings.recipient_timezone,value => edit(doc.settings,'recipient_timezone',value))).parentElement.classList.add('flow-setting-wide');
+        field(settingsFields,'Use Each Connection’s Time Zone When Available',input('checkbox',doc.settings.recipient_timezone,value => edit(doc.settings,'recipient_timezone',value))).parentElement.classList.add('flow-setting-wide');
         const deliveryDays = el('fieldset', {class:'flow-weekdays'}), dayChoices = el('div', {class:'flow-weekday-options'}), dayPresets = el('div', {class:'flow-weekday-presets'}), presetChecks = [];
         const syncDeliveryDays = () => {
             const selectedDays = doc.settings.weekdays.map(Number);
@@ -277,7 +277,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
                 control.indeterminate = count > 0 && count < days.length;
             });
         };
-        deliveryDays.append(el('legend', {}, 'Email delivery days'), dayPresets, dayChoices);
+        deliveryDays.append(el('legend', {}, 'Email Delivery Days'), dayPresets, dayChoices);
         for (const [label, days] of [['Weekdays',[1,2,3,4,5]],['Weekends',[6,7]],['All',[1,2,3,4,5,6,7]]]) {
             const choice = el('label'), control = input('checkbox',false,checked => {
                 const selectedDays = new Set(doc.settings.weekdays.map(Number));
@@ -295,57 +295,57 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
         }
         syncDeliveryDays();
         settingsFields.append(deliveryDays);
-        field(settingsFields,'Send after',input('time',doc.settings.after,value => edit(doc.settings,'after',value)));
-        field(settingsFields,'Send before',input('time',doc.settings.before,value => edit(doc.settings,'before',value)));
-        fieldset.append(el('h3', {}, 'Entry filters')); ruleGroup(fieldset,doc.entry);
-        fieldset.append(el('h3', {}, 'Exit conditions')); fieldset.append(el('p', {class:'audience-help'}, 'No exit conditions means connections finish their path normally. Archived and removed connections always exit.')); ruleGroup(fieldset,doc.exit);
+        field(settingsFields,'Send After',input('time',doc.settings.after,value => edit(doc.settings,'after',value)));
+        field(settingsFields,'Send Before',input('time',doc.settings.before,value => edit(doc.settings,'before',value)));
+        fieldset.append(el('h3', {}, 'Entry Filters')); ruleGroup(fieldset,doc.entry);
+        fieldset.append(el('h3', {}, 'Exit Conditions')); fieldset.append(el('p', {class:'audience-help'}, 'No exit conditions means connections finish their path normally. Archived and removed connections always exit.')); ruleGroup(fieldset,doc.exit);
         parent.append(el('p', {class:'audience-help'}, 'Changes apply to new entries after activation. Connections already in progress keep their revision. Delays continue to count while paused.'));
     }
     function edgeChoices(currentId) {
         // Exclude ancestors so an inspector cannot create a loop accidentally.
         const ancestors = new Set([currentId]); let more = true;
         while (more) { more = false; doc.nodes.forEach(n => { if (!ancestors.has(n.id) && ['next','yes','no'].some(key => ancestors.has(n[key]))) { ancestors.add(n.id); more = true; } }); }
-        return {'':'Exit flow', ...Object.fromEntries(doc.nodes.filter(n => !ancestors.has(n.id)).map(n => [n.id,n.label]))};
+        return {'':'Exit Flow', ...Object.fromEntries(doc.nodes.filter(n => !ancestors.has(n.id)).map(n => [n.id,n.label]))};
     }
     function renderInspector() {
         inspector.replaceChildren(); const node = doc.nodes.find(n => n.id === selected), form = el('fieldset', {disabled:!config.editable}); inspector.append(form);
         if (!node) {
-            form.append(el('h2', {}, 'Starting point'));
+            form.append(el('h2', {}, 'Starting Point'));
             const triggers = el('div', {class:'flow-trigger-list'});
             [doc.trigger,...(doc.additional_triggers || [])].forEach((trigger,index) => {
                 const headingId = `flow-trigger-heading-${index+1}`, group = el('div', {class:'flow-trigger-card',role:'group','aria-labelledby':headingId}), heading = el('div', {class:'flow-trigger-heading'}), fields = el('div', {class:'flow-trigger-fields'});
                 heading.append(el('strong', {id:headingId}, `Trigger ${index+1}`));
-                if(index)heading.append(button('Remove trigger',()=>{checkpoint();doc.additional_triggers.splice(index-1,1);changed();renderInspector();},{disabled:!config.editable}));
+                if(index)heading.append(button('Remove Trigger',()=>{checkpoint();doc.additional_triggers.splice(index-1,1);changed();renderInspector();},{disabled:!config.editable}));
                 triggerFields(fields,trigger); group.append(heading,fields); triggers.append(group);
             });
             form.append(triggers,el('p',{class:'audience-help'},'Any starting trigger can add a connection. Entry filters and repeat settings apply to every trigger.'));
             const footer = el('div', {class:'flow-trigger-footer'});
-            field(footer,'First step',options({'':'Choose a step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value)));
-            if((doc.additional_triggers || []).length<2)footer.append(button('Add starting trigger',()=>{checkpoint();doc.additional_triggers ||= [];doc.additional_triggers.push({type:Object.keys(config.triggers).find(type=>![doc.trigger,...doc.additional_triggers].some(t=>t.type===type)) || 'manual',id:0,field:'',value:'',offset:0,time:'09:00'});changed();renderInspector();},{disabled:!config.editable}));
+            field(footer,'First Step',options({'':'Choose a Step',...Object.fromEntries(doc.nodes.map(n => [n.id,n.label]))},doc.start,value => edit(doc,'start',value)));
+            if((doc.additional_triggers || []).length<2)footer.append(button('Add Starting Trigger',()=>{checkpoint();doc.additional_triggers ||= [];doc.additional_triggers.push({type:Object.keys(config.triggers).find(type=>![doc.trigger,...doc.additional_triggers].some(t=>t.type===type)) || 'manual',id:0,field:'',value:'',offset:0,time:'09:00'});changed();renderInspector();},{disabled:!config.editable}));
             form.append(footer); return;
         }
-        form.append(el('h2', {}, config.types[node.type])); field(form,'Step name',input('text',node.label,value => edit(node,'label',value),{maxlength:100}));
+        form.append(el('h2', {}, config.types[node.type])); field(form,'Step Name',input('text',node.label,value => edit(node,'label',value),{maxlength:100}));
         if (node.type === 'email') {
             field(form,'Email',options(campaignChoices(),node.campaign_id,value => { edit(node,'campaign_id',Number(value)); renderInspector(); }));
-            if (node.campaign_id) { const actions = el('div', {class:'audience-actions'}); actions.append(el('a', {href:`audience.php?view=campaign&id=${node.campaign_id}`,target:'_blank',rel:'noopener'},'Edit email settings'),el('a',{href:`audience.php?view=designer&kind=campaign&id=${node.campaign_id}`,target:'_blank',rel:'noopener'},'Design email')); form.append(actions); }
-            form.append(el('a',{href:'audience.php?view=campaigns&create=1',target:'_blank',rel:'noopener'},'Create an email')); form.append(el('p',{class:'audience-help'},'The activated flow keeps a copy of the email design, sender, subject and tracking settings.'));
+            if (node.campaign_id) { const actions = el('div', {class:'audience-actions'}); actions.append(el('a', {href:`audience.php?view=campaign&id=${node.campaign_id}`,target:'_blank',rel:'noopener'},'Edit email settings'),el('a',{href:`audience.php?view=designer&kind=campaign&id=${node.campaign_id}`,target:'_blank',rel:'noopener'},'Design Email')); form.append(actions); }
+            form.append(el('a',{href:'audience.php?view=campaigns&create=1',target:'_blank',rel:'noopener'},'Create an Email')); form.append(el('p',{class:'audience-help'},'The activated flow keeps a copy of the email design, sender, subject and tracking settings.'));
         }
-        if (node.type === 'delay') field(form,'Delay in minutes',input('number',(node.seconds || 0) / 60,value => edit(node,'seconds',Math.round(value * 60)),{min:0,max:527040}));
-        if (node.type === 'until') field(form,'Wait until local time',input('time',node.time || '09:00',value => edit(node,'time',value)));
-        if (node.type === 'wait') { if (!node.trigger) node.trigger = {type:'click',id:0}; triggerFields(form,node.trigger,true); field(form,'Timeout in minutes',input('number',(node.timeout || 86400) / 60,value => edit(node,'timeout',Math.round(value * 60)),{min:1,max:527040})); }
+        if (node.type === 'delay') field(form,'Delay in Minutes',input('number',(node.seconds || 0) / 60,value => edit(node,'seconds',Math.round(value * 60)),{min:0,max:527040}));
+        if (node.type === 'until') field(form,'Wait Until Local Time',input('time',node.time || '09:00',value => edit(node,'time',value)));
+        if (node.type === 'wait') { if (!node.trigger) node.trigger = {type:'click',id:0}; triggerFields(form,node.trigger,true); field(form,'Timeout in Minutes',input('number',(node.timeout || 86400) / 60,value => edit(node,'timeout',Math.round(value * 60)),{min:1,max:527040})); }
         if (node.type === 'split') form.append(el('p',{class:'audience-help'},'This legacy percentage step cannot be activated. Replace it with an If/Else condition.'));
         if (node.type === 'condition') ruleGroup(form,node.rules);
         if (['tag','group'].includes(node.type)) { field(form,'Action',options({add:'Add',remove:'Remove'},node.remove?'remove':'add',value => edit(node,'remove',value==='remove'))); field(form,node.type==='tag'?'Tag':'Group',options(node.type==='tag'?tagChoices():groupChoices(),node.type==='tag'?node.tag_id:node.option_id,value => edit(node,node.type==='tag'?'tag_id':'option_id',Number(value)))); }
         if (node.type === 'update') {
-            field(form,'Audience field',options({first_name:'First name',last_name:'Last name',language:'Language',timezone:'Time zone',...Object.fromEntries(config.fields.map(f => [f.id,f.label]))},node.field || 'first_name',value => edit(node,'field',value)));
-            field(form,'New value',input('text',node.value || '',value => edit(node,'value',value),{maxlength:1000}));
+            field(form,'Audience Field',options({first_name:'First Name',last_name:'Last Name',language:'Language',timezone:'Time Zone',...Object.fromEntries(config.fields.map(f => [f.id,f.label]))},node.field || 'first_name',value => edit(node,'field',value)));
+            field(form,'New Value',input('text',node.value || '',value => edit(node,'value',value),{maxlength:1000}));
         }
         if (['unsubscribe','archive'].includes(node.type)) form.append(el('p',{class:'audience-help'},node.type==='unsubscribe'?'This step removes email permission. A flow cannot subscribe or resubscribe a connection.':'This step archives the connection and ends their participation.'));
         const edges = ['condition','split','wait'].includes(node.type) ? ['yes','no'] : node.type === 'exit' ? [] : ['next'];
-        edges.forEach(edge => field(form,edge==='next'?'Next step':edge==='yes'?'Yes path':'No path',options(edgeChoices(node.id),node[edge],value => edit(node,edge,value))));
+        edges.forEach(edge => field(form,edge==='next'?'Next Step':edge==='yes'?'Yes Path':'No Path',options(edgeChoices(node.id),node[edge],value => edit(node,edge,value))));
         const actions = el('div',{class:'audience-actions'});
-        actions.append(button('Duplicate',() => { if(doc.nodes.length>=200){showError('Use at most 200 steps in a flow.');return;} checkpoint(); const copy=clone(node); copy.id=newId(); copy.label+= ' (copy)'; copy.next=''; copy.yes=''; copy.no=''; doc.nodes.push(copy); selected=copy.id; changed(); renderInspector(); },{disabled:!config.editable}),button('Delete step',() => { if (!config.editable) return; checkpoint(); const replacement=['condition','split','wait'].includes(node.type)?'':node.next; doc.nodes.forEach(n => ['next','yes','no'].forEach(edge => { if(n[edge]===node.id)n[edge]=replacement; })); if(doc.start===node.id)doc.start=replacement; doc.nodes=doc.nodes.filter(n=>n.id!==node.id); selected='trigger'; changed(); renderInspector(); },{disabled:!config.editable})); form.append(actions);
-        if(config.canManage){const paused=config.pausedNodes.includes(node.id);inspector.append(button(paused?'Resume step':'Pause step',async()=>{if(!await save())return;try{const data=await post({action:'flow_operation',version,operation:paused?'resume_node':'pause_node',node:node.id});window.location.assign(data.redirect);}catch(e){showError(e.message);}}));}
+        actions.append(button('Duplicate',() => { if(doc.nodes.length>=200){showError('Use at most 200 steps in a flow.');return;} checkpoint(); const copy=clone(node); copy.id=newId(); copy.label+= ' (copy)'; copy.next=''; copy.yes=''; copy.no=''; doc.nodes.push(copy); selected=copy.id; changed(); renderInspector(); },{disabled:!config.editable}),button('Delete Step',() => { if (!config.editable) return; checkpoint(); const replacement=['condition','split','wait'].includes(node.type)?'':node.next; doc.nodes.forEach(n => ['next','yes','no'].forEach(edge => { if(n[edge]===node.id)n[edge]=replacement; })); if(doc.start===node.id)doc.start=replacement; doc.nodes=doc.nodes.filter(n=>n.id!==node.id); selected='trigger'; changed(); renderInspector(); },{disabled:!config.editable})); form.append(actions);
+        if(config.canManage){const paused=config.pausedNodes.includes(node.id);inspector.append(button(paused?'Resume step':'Pause Step',async()=>{if(!await save())return;try{const data=await post({action:'flow_operation',version,operation:paused?'resume_node':'pause_node',node:node.id});window.location.assign(data.redirect);}catch(e){showError(e.message);}}));}
     }
     const newId = () => 'step' + crypto.randomUUID().replaceAll('-','').slice(0,20);
     let insertion = null;
@@ -376,7 +376,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
             const a=positions.get(from),b=positions.get(to);if(!a)return;const start={x:a.x+130,y:a.y+110},end=b?{x:b.x+130,y:b.y}:{x:a.x+130+(edge==='yes'?-75:edge==='no'?75:0),y:a.y+155};
             const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',`M${start.x},${start.y} V${start.y+30} H${end.x} V${end.y}`);svg.append(path);
             const origin=from.startsWith('__trigger-')?'trigger':from;
-            const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderMap();renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a step ${origin==='trigger'?'after trigger':`on ${edge} path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
+            const plus=button('+',()=>{insertion={id:origin,edge};selected=origin;renderMap();renderInspector();$('.flow-step-palette button:not(:disabled)')?.focus();},{class:'flow-insert','aria-label':`Add a Step ${origin==='trigger'?'After Trigger':`on ${edge === 'yes' ? 'Yes' : 'No'} Path`}`,disabled:!config.editable});plus.style.left=`${end.x-14}px`;plus.style.top=`${end.y-42}px`;
             plus.addEventListener('dragover',e=>{if(config.editable)e.preventDefault();});plus.addEventListener('drop',e=>{e.preventDefault();const type=e.dataTransfer.getData('text/plain');if(config.types[type]&&type!=='split')add(type,{id:origin,edge});});map.append(plus);
             if(edge==='yes'||edge==='no'){
                 const label=el('span',{class:'flow-branch-label'},edge==='yes'?'Yes':'No');
@@ -396,7 +396,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
             if(config.pausedNodes.includes(id))item.append(el('span',{class:'flow-node-paused'},'Paused'));
             const counts=config.counts.filter(c=>c.node_key===id);if(counts.length)item.append(el('small',{},counts.map(c=>`${c.n} ${c.state}`).join(' · ')));map.append(item);
         };
-        triggers.forEach((t,i)=>card(`__trigger-${i}`,t.type==='status'&&t.value?`Changes to ${t.value}`:config.triggers[t.type] || 'Choose a trigger',triggerDetail(t) || 'Entry filters and repeat rules apply','Starting point','trigger'));
+        triggers.forEach((t,i)=>card(`__trigger-${i}`,t.type==='status'&&t.value?`Changes to ${t.value}`:config.triggers[t.type] || 'Choose a trigger',triggerDetail(t) || 'Entry filters and repeat rules apply','Starting Point','trigger'));
         nodes.forEach(n=>card(n.id,n.label,nodeDetail(n),config.types[n.type],n.type));
         $('[data-flow-zoom-label]').textContent=`${Math.round(zoom*100)}%`;
     }
@@ -410,7 +410,7 @@ import {ruleValueAttributes} from './message-monkey/rule-value.mjs';
     $('[data-flow-undo]')?.addEventListener('click',()=>restoreHistory(true));$('[data-flow-redo]')?.addEventListener('click',()=>restoreHistory(false));
     document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveWithFeedback();}});
     window.addEventListener('beforeunload',event=>{if(dirty||saving){remember();event.preventDefault();event.returnValue='';}});
-    try{const recovered=JSON.parse(localStorage.getItem(storageKey)||'null');if(recovered&&config.editable){const banner=el('div',{class:'audience-notice flow-recovery'},'A recovered flow draft is available ');banner.append(button('Recover draft',()=>{checkpoint();doc=recovered.doc;name=recovered.name;changed();renderInspector();renderSettings();banner.remove();}),button('Discard',()=>{localStorage.removeItem(storageKey);banner.remove();}));if(recovered.version!==version)banner.prepend(el('strong',{},'The saved flow changed since this draft was kept. Review differences before saving. '));$('.flow-editor').prepend(banner);}}catch(_){/* Storage is optional. */}
+    try{const recovered=JSON.parse(localStorage.getItem(storageKey)||'null');if(recovered&&config.editable){const banner=el('div',{class:'audience-notice flow-recovery'},'A recovered flow draft is available ');banner.append(button('Recover Draft',()=>{checkpoint();doc=recovered.doc;name=recovered.name;changed();renderInspector();renderSettings();banner.remove();}),button('Discard',()=>{localStorage.removeItem(storageKey);banner.remove();}));if(recovered.version!==version)banner.prepend(el('strong',{},'The saved flow changed since this draft was kept. Review differences before saving. '));$('.flow-editor').prepend(banner);}}catch(_){/* Storage is optional. */}
     const scroll = $('.flow-map-scroll'), plane = el('div', {class:'flow-map-plane'});
     map.before(plane); plane.append(map);
     let pan = null, paddingX = 0, paddingY = 0;

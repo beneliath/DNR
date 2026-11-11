@@ -52,7 +52,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .engagement-email-form {
@@ -441,7 +441,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .outbound-message-summary dd {

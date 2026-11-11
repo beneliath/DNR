@@ -12,6 +12,8 @@ import {Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl} from 'mapli
     const valid = (lat, lon) => Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
     const hasCoordinates = valid(payload.latitude, payload.longitude);
     const map = new MapLibreMap({container: mapElement,
+        locale: {'NavigationControl.ZoomIn': 'Zoom In', 'NavigationControl.ZoomOut': 'Zoom Out',
+            'AttributionControl.ToggleAttribution': 'Toggle Attribution', 'Popup.Close': 'Close Popup', 'Marker.Title': 'Map Marker'},
         style: payload.styleUrl || {version: 8, sources: {base: {type: 'raster', tiles: [payload.tileUrl], tileSize: 256,
             attribution: '&copy; <a href="' + payload.attributionUrl + '">' + payload.attributionText + '</a>'}},
         layers: [{id: 'base-map', type: 'raster', source: 'base'}]},

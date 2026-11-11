@@ -121,7 +121,7 @@ expectChronFeature(
         && !str_contains($engagement_search_helpers, 'e.confirmation_status,')
         && str_contains(
             $engagement_list,
-            'placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user"'
+            'placeholder="Title, Organization, Contact, Chron Log Text, &quot;and&quot;/or User"'
         ),
     'Engagement search should include titles, organizations, active contacts, published Chron text, and Chron creators.'
 );

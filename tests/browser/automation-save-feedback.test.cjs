@@ -42,7 +42,7 @@ const fixture=execFileSync('php',['tests/browser/automation-mapping-fixture.php'
             assert.equal(requests.length,0,'A clean draft confirms its saved state without a redundant write');
 
             await page.getByRole('button',{name:'Settings',exact:true}).click();
-            const name=page.locator('[data-flow-panel-body="settings"]').getByLabel('Flow name',{exact:true});
+            const name=page.locator('[data-flow-panel-body="settings"]').getByLabel('Flow Name',{exact:true});
             await name.fill('Updated cleanup');await save.click();await waitForCount(1);
             assert.equal(await save.isDisabled(),true);assert.equal(await save.getAttribute('aria-busy'),'true');
             await notice('Saving draft');
@@ -54,7 +54,7 @@ const fixture=execFileSync('php',['tests/browser/automation-mapping-fixture.php'
             await name.fill('Autosave draft');await waitForCount(3);await save.click();
             await respond(2,'The draft changed on the server. Reload before saving.');
             await notice('Draft was not saved. The draft changed on the server. Reload before saving.');
-            assert.equal(await page.locator('[data-flow-save-status]').textContent(),'Not saved');
+            assert.equal(await page.locator('[data-flow-save-status]').textContent(),'Not Saved');
             await page.waitForTimeout(100);
             assert.equal(requests.length,3,'Waiting on a failed autosave must not retry silently or announce success');
             assert.ok(await page.evaluate(()=>Object.values(localStorage).some(value=>value.includes('Autosave draft'))),'Failed draft stays recoverable');

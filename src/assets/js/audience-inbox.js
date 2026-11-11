@@ -1,11 +1,11 @@
 (() => {
   'use strict';
   function inboxNotificationPermissionState(scope, permission = scope.Notification?.permission, attempted = false) {
-    if (scope.isSecureContext === false) return {state:'insecure',label:'Secure connection required',disabled:true,message:'Open Inbox over HTTPS or localhost to use browser notifications.'};
-    if (!scope.Notification || typeof scope.Notification.requestPermission !== 'function') return {state:'unsupported',label:'Browser alerts unavailable',disabled:true,message:'This browser does not support desktop notifications. Open Inbox in a supported browser to enable alerts.'};
-    if (permission === 'granted') return {state:'granted',label:'Browser alerts allowed',disabled:true,message:'Browser permission is allowed. Turn on Browser notifications and save your preferences to receive alerts while Inbox is open.'};
-    if (permission === 'denied') return {state:'denied',label:'Check permission',disabled:false,message:'Notifications are blocked for this site. Allow notifications in your browser’s site settings, then click Check permission. If this browser has no notification settings, open Inbox in your regular browser.'};
-    return {state:'default',label:'Allow browser alerts',disabled:false,message:attempted?'Permission was not granted. If no prompt appeared, open Inbox in your regular browser and try again.':'Browser permission has not been granted yet. Choose Allow browser alerts to request it.'};
+    if (scope.isSecureContext === false) return {state:'insecure',label:'Secure Connection Required',disabled:true,message:'Open Inbox over HTTPS or localhost to use browser notifications.'};
+    if (!scope.Notification || typeof scope.Notification.requestPermission !== 'function') return {state:'unsupported',label:'Browser Alerts Unavailable',disabled:true,message:'This browser does not support desktop notifications. Open Inbox in a supported browser to enable alerts.'};
+    if (permission === 'granted') return {state:'granted',label:'Browser Alerts Allowed',disabled:true,message:'Browser permission is allowed. Turn on Browser notifications and save your preferences to receive alerts while Inbox is open.'};
+    if (permission === 'denied') return {state:'denied',label:'Check Permission',disabled:false,message:'Notifications are blocked for this site. Allow notifications in your browser’s site settings, then click Check permission. If this browser has no notification settings, open Inbox in your regular browser.'};
+    return {state:'default',label:'Allow Browser Alerts',disabled:false,message:attempted?'Permission was not granted. If no prompt appeared, open Inbox in your regular browser and try again.':'Browser permission has not been granted yet. Choose Allow browser alerts to request it.'};
   }
   async function requestInboxNotificationPermission(scope) {
     const state = inboxNotificationPermissionState(scope);
@@ -99,7 +99,7 @@
     const submit = trashBulk.querySelector('[data-inbox-trash-delete]');
     const update = () => {
       const chosen = selections.filter(input => input.checked).length;
-      count.textContent = `${chosen} selected`;
+      count.textContent = `${chosen} Selected`;
       submit.disabled = chosen === 0;
       selectAll.checked = chosen === selections.length;
       selectAll.indeterminate = chosen > 0 && chosen < selections.length;
@@ -166,7 +166,7 @@
       if (button.dataset.format === 'createLink') {
         const selection = window.getSelection();
         const range = selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
-        value = await ask('Add a link','Enter the destination for the selected text.',true); if (!value) return;
+        value = await ask('Add a Link','Enter the destination for the selected text.',true); if (!value) return;
         editor.focus(); if (range) { selection.removeAllRanges(); selection.addRange(range); }
       }
       document.execCommand(button.dataset.format,false,value); input.value = editor.innerHTML;
@@ -180,7 +180,7 @@
     if (approvedForms.has(form)) { approvedForms.delete(form); return; }
     event.preventDefault(); const submitter = event.submitter;
     if (form.hasAttribute('data-admin-unlock-required') && !await window.DnrAdminUnlock?.request()) return;
-    if (await ask('Confirm action',form.dataset.confirm,false,form.id === 'inbox-trash-bulk')) { approvedForms.add(form); form.requestSubmit(submitter || undefined); approvedForms.delete(form); }
+    if (await ask('Confirm Action',form.dataset.confirm,false,form.id === 'inbox-trash-bulk')) { approvedForms.add(form); form.requestSubmit(submitter || undefined); approvedForms.delete(form); }
   },true));
   const compose = document.querySelector('[data-inbox-compose]');
   let dirty = false, saving = false, lastTyped = 0;
@@ -211,7 +211,7 @@
     });
     compose.querySelector('[data-inbox-send]').addEventListener('click',async event => {
       const button = event.currentTarget; button.disabled = true;
-      if (!await ask('Send message','Send this message to the displayed connection?')) { button.disabled = false; return; }
+      if (!await ask('Send Message','Send this message to the displayed connection?')) { button.disabled = false; return; }
       try { await save(); const result = await post('inbox_send',{draft_id:config.draft,version:config.draftVersion}); location.assign(result.redirect); }
       catch(error) { announce(error.message); button.disabled = false; }
     });
@@ -219,7 +219,7 @@
     compose.querySelector('[data-inbox-template]').addEventListener('change',async event => {
       const select = event.currentTarget;
       const template = templates.find(t => String(t.id) === event.target.value); if (!template) { selectedTemplate = select.value; return; }
-      if (dirty && !await ask('Replace message','Replace the subject and body with this message template?')) { select.value = selectedTemplate; return; }
+      if (dirty && !await ask('Replace Message','Replace the subject and body with this message template?')) { select.value = selectedTemplate; return; }
       selectedTemplate = select.value;
       compose.querySelector('[name="subject"]').value = template.subject;
       // Template HTML is sanitized by the same server allowlist on every save and read.
@@ -268,7 +268,7 @@
   if (permissionButton) {
     renderPermission(inboxNotificationPermissionState(window));
     permissionButton.addEventListener('click',async () => {
-      renderPermission({state:'pending',label:'Waiting for browser…',disabled:true,message:'Respond to your browser’s notification prompt. If no prompt appears, open Inbox in your regular browser to allow notifications.'});
+      renderPermission({state:'pending',label:'Waiting for Browser…',disabled:true,message:'Respond to your browser’s notification prompt. If no prompt appears, open Inbox in your regular browser to allow notifications.'});
       const state = await requestInboxNotificationPermission(window); renderPermission(state);
       if (state.state === 'granted') {
         const checkbox = document.querySelector('.inbox-settings [name="browser_alerts"]'); if (checkbox) checkbox.checked = true;
@@ -287,7 +287,7 @@
         const state = result.forward_states[marker.dataset.forwardThread];
         if (state === 'forwarded') {
           marker.dataset.forwardState = state;
-          marker.title = 'Contains a forwarded email';
+          marker.title = 'Contains a Forwarded Email';
           marker.setAttribute('aria-label', marker.title);
         } else if (!state) marker.remove();
       }

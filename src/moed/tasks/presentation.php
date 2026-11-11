@@ -98,7 +98,7 @@ function followUpTaskDuePresentation($due_date, $status, $today = null, bool $ar
     $active = !$archived && in_array($status, followUpTaskActiveStatuses(), true);
     $detail = match (true) {
         !$active => $archived ? 'Archived' : (followUpTaskStatuses()[$status] ?? ''),
-        $days_overdue > 0 => $days_overdue . ' day' . ($days_overdue === 1 ? '' : 's') . ' overdue',
+        $days_overdue > 0 => $days_overdue . ' Day' . ($days_overdue === 1 ? '' : 's') . ' Overdue',
         $due_date === $today => 'Due Today',
         $date == $business_day->modify('+1 day') => 'Due Tomorrow',
         default => 'Upcoming',

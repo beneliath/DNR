@@ -145,7 +145,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
             const item = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.setAttribute('aria-label', `${row.label}: ${format.format(row.total)} visits, ${(row.total / data.total * 100).toFixed(1)}%`);
+            button.setAttribute('aria-label', `${row.label}: ${format.format(row.total)} Visits, ${(row.total / data.total * 100).toFixed(1)}%`);
             const swatch = document.createElement('span');
             swatch.className = `stats-swatch stats-swatch-${index}`;
             swatch.setAttribute('aria-hidden', 'true');
@@ -182,12 +182,12 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
             path.setAttribute('d', country.path);
             path.dataset.country = country.code;
             path.dataset.level = count ? String(Math.max(1, Math.ceil(5 * count / largest))) : '0';
-            path.setAttribute('aria-label', `${countryName(country.code)}: ${format.format(count)} visits`);
+            path.setAttribute('aria-label', `${countryName(country.code)}: ${format.format(count)} Visits`);
             // Countries with traffic participate in keyboard navigation; all countries support pointer inspection.
             path.setAttribute('tabindex', count ? '0' : '-1');
             function show(event) {
                 hide(); active = path; path.setAttribute('data-active', 'true');
-                tooltip.textContent = `${countryName(country.code)}: ${format.format(count)} visits`;
+                tooltip.textContent = `${countryName(country.code)}: ${format.format(count)} Visits`;
                 tooltip.hidden = false;
                 const bounds = wrapper.getBoundingClientRect();
                 const shape = path.getBoundingClientRect();

@@ -51,7 +51,7 @@ $tree=['match'=>'all','rules'=>[['match'=>'any','rules'=>[['field'=>'custom:'.$f
 [$where,$params]=$a->where(audienceListFilters([]),$tree);stageExpect(count($a->all("SELECT c.id FROM marketing_contacts c WHERE $where",$params))===1,'Nested typed segments and group/tag membership');
 $segment=$a->saveSegment('Engaged connections',$tree,0,0);stageReject(fn()=>$b->saveSegment('bad',$tree,0,0));
 $a->saveNote($id,'First attributed note',0,0);$person=$a->person($id);stageExpect((int)$person['version']===2,'Notes invalidate stale profile edits');
-$a->savePerson(array_replace($base,['source'=>'Forged origin','email_status'=>'subscribed','consent_note'=>'Paper signup today']),$id,2);stageExpect($a->person($id)['source']==='Manual entry','Acquisition source is immutable');
+$a->savePerson(array_replace($base,['source'=>'Forged origin','email_status'=>'subscribed','consent_note'=>'Paper signup today']),$id,2);stageExpect($a->person($id)['source']==='Manual Entry','Acquisition source is immutable');
 $a->mutatePerson($id,3,'unsubscribe');
 $csv=audienceParseImport("Email,Name,Score,Tags\nsame@example.com,Updated,12,Imported\nnew@example.com,New,20,Imported\nbad-email,Wrong,7,Imported\n");$job=$a->createImport($csv,'Fixture import');
 $settings=['mapping'=>['email','first_name','custom:'.$fieldId,'tags'],'import_status'=>'subscribed','consent_note'=>'Signed signup forms','permission_confirmed'=>'1','update_existing'=>'1'];

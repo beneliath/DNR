@@ -149,10 +149,10 @@ if (!empty($_SESSION['user_id'])) {
             <span class="visually-hidden">Open Navigation</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <a href="dashboard.php" class="mobile-brand" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
+        <a href="dashboard.php" class="mobile-brand" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' Home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="mobile-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=mobile-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="180" height="31">
         </a>
-        <a href="search.php" class="mobile-search-link" aria-label="Search all records">Search</a>
+        <a href="search.php" class="mobile-search-link" aria-label="Search All Records">Search</a>
         <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to Dark Theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
@@ -167,14 +167,14 @@ if (!empty($_SESSION['user_id'])) {
 
     <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars($nav_preference_user, ENT_QUOTES, 'UTF-8'); ?>" data-nav-preference-cookie="<?php echo htmlspecialchars($nav_preference_cookie, ENT_QUOTES, 'UTF-8'); ?>">
         <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close Navigation</button>
-        <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
+        <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' Home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
-        <form class="shell-search" action="search.php" method="get" role="search" aria-label="Search all records">
+        <form class="shell-search" action="search.php" method="get" role="search" aria-label="Search All Records">
             <label for="shell-query" class="visually-hidden">Search All Records</label>
-            <input id="shell-query" type="search" name="q" placeholder="Search records" minlength="2" maxlength="100" required>
-            <button type="submit" class="button-secondary" aria-label="Search all records" data-pending-reminder="shell-search"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
+            <input id="shell-query" type="search" name="q" placeholder="Search Records" minlength="2" maxlength="100" required>
+            <button type="submit" class="button-secondary" aria-label="Search All Records" data-pending-reminder="shell-search"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
         </form>
         <div class="sidebar-scroll-area">
             <nav class="site-navigation" aria-label="Primary">
@@ -329,7 +329,7 @@ if (!empty($_SESSION['user_id'])) {
         <div class="sidebar-account">
             <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open Profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
                 <img class="account-avatar" src="profile_picture.php?v=<?php echo $profile_picture_version; ?>" alt="">
-                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? (accountsEnabled() ? accountRoleLabel(['role' => $user_role, 'is_superadmin' => isSuperAdmin()]) : ucfirst($user_role)) : $role_preview_label . ' preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
+                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? (accountsEnabled() ? accountRoleLabel(['role' => $user_role, 'is_superadmin' => isSuperAdmin()]) : ucfirst($user_role)) : $role_preview_label . ' Preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
             </a>
             <form method="post" action="logout.php" id="logout-form" class="sidebar-logout-form">
                 <?php echo csrfInput(); ?>

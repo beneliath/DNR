@@ -51,7 +51,7 @@ async function pointerMove(page,handle,target,{touch=false,cancel=false}={}){
  const rows=page.locator('#email-canvas>.designer-row'),order=()=>rows.evaluateAll(nodes=>nodes.map(n=>n.dataset.sectionId));
  const blockOrder=()=>page.locator('#email-canvas .designer-block').evaluateAll(nodes=>nodes.map(n=>n.dataset.blockId));
  assert.deepEqual(await order(),['section-0','section-1','section-2']);checks++;
- await page.getByText('More blocks and tools',{exact:true}).click();await page.getByRole('button',{name:'Manage email sections',exact:true}).click();const sections=page.locator('.designer-section-list');
+ await page.getByText('More Blocks and Tools',{exact:true}).click();await page.getByRole('button',{name:'Manage Email Sections',exact:true}).click();const sections=page.locator('.designer-section-list');
  await sections.locator('.mm-reorder-handle').first().press('End');assert.deepEqual(await order(),['section-1','section-2','section-0']);checks++;
  await page.locator('#design-undo').evaluate(n=>n.click());assert.deepEqual(await order(),['section-0','section-1','section-2']);checks++;
  await pointerMove(page,sections.locator('.mm-reorder-handle').first(),sections.locator('.designer-section-row').last(),{touch:true});assert.deepEqual(await order(),['section-1','section-2','section-0']);checks++;

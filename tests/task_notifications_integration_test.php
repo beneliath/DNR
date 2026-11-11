@@ -168,14 +168,14 @@ try {
     $message = decryptQueuedNotificationEmail((string) $claimed['payload_ciphertext']);
     expectTaskNotificationIntegration(
         $message['recipient'] === $email
-            && str_contains($message['body'], 'DASHBOARD SUMMARY')
+            && str_contains($message['body'], 'Dashboard Summary')
             && str_contains($message['body'], '- My Active Work: 6')
             && str_contains($message['body'], '- My Overdue Work: 1')
             && str_contains($message['body'], '- Due Today: 1')
-            && str_contains($message['body'], 'UPCOMING ENGAGEMENTS (')
-            && str_contains($message['body'], 'MY WORK (6)')
-            && str_contains($message['body'], 'EVENT READINESS (')
-            && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (')
+            && str_contains($message['body'], 'Upcoming Engagements (')
+            && str_contains($message['body'], 'My Work (6)')
+            && str_contains($message['body'], 'Event Readiness (')
+            && str_contains($message['body'], 'Financial Closeouts (')
             && str_contains($message['body'], $eventTitle)
             && str_contains($message['body'], 'Digest far future')
             && str_contains($message['body'], 'Digest undated')

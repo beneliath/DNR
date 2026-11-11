@@ -84,7 +84,7 @@ const root = path.resolve(__dirname, '../..');
             await page.locator('[data-definition-item]').first().check();
             const selection = page.locator('#definition-selection');
             assert.equal(await selection.locator('[data-definition-count]').textContent(), '1 Selected');
-            const confirm = page.getByRole('dialog', {name: 'Confirm action', exact: true});
+            const confirm = page.getByRole('dialog', {name: 'Confirm Action', exact: true});
             await selection.locator('button[type=submit]').click();
             await page.waitForFunction(() => window.unlockCalls === 1);
             assert.equal(await confirm.isVisible(), false);

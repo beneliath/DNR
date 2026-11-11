@@ -31,7 +31,7 @@ $collectStore->collectionOperation($blockedForm,2,'publish');
 $priorCheckState=$collectStore->sesSettings()['check_state'];$conn->query("UPDATE marketing_ses_settings SET check_state='attention' WHERE audience_id=1");
 $blockedIndex=$editor($collectPath);
 $conn->execute_query('UPDATE marketing_ses_settings SET check_state=? WHERE audience_id=1',[$priorCheckState]);
-audienceHttpExpect(str_contains($blockedIndex['body'],'Signup unavailable')&&str_contains($blockedIndex['body'],'Review email delivery'),'Forms list shows confirmation-delivery blocker for published double opt-in forms');
+audienceHttpExpect(str_contains($blockedIndex['body'],'Signup unavailable')&&str_contains($blockedIndex['body'],'Review Email Delivery'),'Forms list shows confirmation-delivery blocker for published double opt-in forms');
 $draft=$collect['draft'];$draft['opt_in']='single';$draft['title']='Published <script>alert(1)</script>';
 $collectStore->saveCollection(['name'=>$collect['name'],'document'=>$draft],$collectId,1);
 $collectStore->collectionOperation($collectId,2,'publish');$collect=$collectStore->collectionResource($collectId);
@@ -124,7 +124,7 @@ audienceHttpExpect($prefSaved['status']===200&&$afterPerson['first_name']==='Upd
 $preferenceEvent=$collectStore->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='preferences' ORDER BY id DESC LIMIT 1",[$person['id']]);
 audienceHttpExpect((audienceJson($preferenceEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Published preferences record the verified visitor address');
 $interactionProfile=$editor('audience.php?view=contact&id='.$person['id']);
-audienceHttpExpect($interactionProfile['status']===200&&str_contains($interactionProfile['body'],'Interaction locations')&&str_contains($interactionProfile['body'],'Signup submitted')&&str_contains($interactionProfile['body'],'Preferences updated')&&str_contains($interactionProfile['body'],'Survey submitted')&&str_contains($interactionProfile['body'],'IP address: 127.0.0.1'),'Connection profile shows self-service location history to editors');
+audienceHttpExpect($interactionProfile['status']===200&&str_contains($interactionProfile['body'],'Interaction locations')&&str_contains($interactionProfile['body'],'Signup Submitted')&&str_contains($interactionProfile['body'],'Preferences Updated')&&str_contains($interactionProfile['body'],'Survey Submitted')&&str_contains($interactionProfile['body'],'IP address: 127.0.0.1'),'Connection profile shows self-service location history to editors');
 $reviewerProfile=$reviewer('audience.php?view=contact&id='.$person['id']);
 audienceHttpExpect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers see approximate places without raw IP addresses');
 audienceHttpExpect($public('audience_subscription.php?token='.$privateToken.'&preferences=1')['status']===302,'Native email preferences route to the published center');

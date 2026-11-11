@@ -9,13 +9,13 @@ function audienceAnalyticsPresets(?DateTimeImmutable $now=null):array
     $today=($now??new DateTimeImmutable('now',new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('UTC'))->setTime(0,0);
     $presets=[];
     foreach ([7,30,90,365] as $days) {
-        $presets[$days]=['label'=>"Last $days days",'start'=>$today->modify('-'.($days-1).' days')->format('Y-m-d'),'end'=>$today->format('Y-m-d')];
+        $presets[$days]=['label'=>"Last $days Days",'start'=>$today->modify('-'.($days-1).' days')->format('Y-m-d'),'end'=>$today->format('Y-m-d')];
     }
     $sunday=$today->modify('-'.$today->format('w').' days');$month=$today->modify('first day of this month');
     $quarter=$today->setDate((int)$today->format('Y'),1+3*intdiv((int)$today->format('n')-1,3),1);
-    foreach(['week'=>['Last week',$sunday->modify('-7 days'),$sunday->modify('-1 day')],
-        'month'=>['Last month',$month->modify('-1 month'),$month->modify('-1 day')],
-        'quarter'=>['Last quarter',$quarter->modify('-3 months'),$quarter->modify('-1 day')],
+    foreach(['week'=>['Last Week',$sunday->modify('-7 days'),$sunday->modify('-1 day')],
+        'month'=>['Last Month',$month->modify('-1 month'),$month->modify('-1 day')],
+        'quarter'=>['Last Quarter',$quarter->modify('-3 months'),$quarter->modify('-1 day')],
         'qtd'=>['Quarter-to-date',$quarter,$today->modify('-1 day')],
         'ytd'=>['Year-to-date',$today->setDate((int)$today->format('Y'),1,1),$today->modify('-1 day')]]as$key=>[$label,$start,$finish]){
         if($start<=$finish)$presets[$key]=['label'=>$label,'start'=>$start->format('Y-m-d'),'end'=>$finish->format('Y-m-d')];
@@ -71,14 +71,14 @@ function audienceAnalyticsRate(int $numerator, int $denominator): ?float
 
 function audienceAnalyticsTrend(int|float|null $current,int|float|null $previous,string $metric,bool $enabled=true):string
 {
-    if(!$enabled||$current===null||$previous===null||$previous==0)return '<span class="analytics-trend steady" title="No comparable data">—</span>';
+    if(!$enabled||$current===null||$previous===null||$previous==0)return '<span class="analytics-trend steady" title="No Comparable Data">—</span>';
     $change=100*($current-$previous)/$previous;
     if(abs($change)<0.05)return '<span class="analytics-trend steady">—</span>';
     $better=in_array($metric,['unsubscribe_rate','unsubscribed','bounce_rate','bounced'],true)?$change<0:$change>0;
     $tone=$better?'improved':($metric==='open_rate'?'muted':'declined');
     $label=($change>0?'Up ':'Down ').number_format(abs($change),1).'%';
     $path=$change>0?'M11 3 21 20H1Z':'M1 2h20L11 20Z';
-    return '<span class="analytics-trend '.$tone.'" title="Relative change versus comparison period" aria-label="'.$label.'"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="'.$path.'"/></svg><span>'.rtrim(rtrim(number_format(abs($change),1),'0'),'.').'%</span></span>';
+    return '<span class="analytics-trend '.$tone.'" title="Relative Change Versus Comparison Period" aria-label="'.$label.'"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="'.$path.'"/></svg><span>'.rtrim(rtrim(number_format(abs($change),1),'0'),'.').'%</span></span>';
 }
 
 trait AudienceAnalytics

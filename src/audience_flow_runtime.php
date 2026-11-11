@@ -143,7 +143,7 @@ function audienceFlowAdvance(AudienceStore $store,array $flow,array $run,array $
     }
     if($waiting)$state='waiting';$previous=$step?audienceJson($step['result_json']):[];$history=$previous['history']??[];if(!$history||$history[count($history)-1]['state']!==$state)$history[]=['state'=>$state,'at'=>gmdate(DATE_ATOM,$now)];$result['history']=$history;$encoded=json_encode($result,JSON_THROW_ON_ERROR);
     $store->write('INSERT INTO marketing_flow_steps(audience_id,run_id,node_key,state,result_json,completed_at) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE state=VALUES(state),result_json=VALUES(result_json),completed_at=VALUES(completed_at)',[$store->audienceId,$run['id'],$node['id'],$state,$encoded,$waiting?null:gmdate('Y-m-d H:i:s',$now)]);
-    if($node['type']==='archive'){audienceFlowFinish($store,$run,'exited','Connection archived',$now);return;}
+    if($node['type']==='archive'){audienceFlowFinish($store,$run,'exited','Connection Archived',$now);return;}
     if($node['type']==='exit'||$state==='failed')return;
     if($waiting){$due=in_array($node['type'],['wait','email'],true)?$now+30:(int)$result['until'];$store->write('UPDATE marketing_flow_runs SET due_at=? WHERE id=?',[gmdate('Y-m-d H:i:s',$due),$run['id']]);return;}
     $store->write('UPDATE marketing_flow_runs SET node_key=?,due_at=?,error_message=\'\' WHERE id=?',[$next,gmdate('Y-m-d H:i:s',$now),$run['id']]);if($next==='')audienceFlowFinish($store,$run,'completed','',$now);

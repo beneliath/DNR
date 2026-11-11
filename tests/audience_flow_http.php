@@ -75,7 +75,7 @@ audienceHttpExpect($archivedRename['status']===422&&$fs->flow($overviewIds[2],fa
 audienceHttpExpect($editor('audience.php?view=automations&sort=unknown')['status']===400,'Overview rejects unknown SQL sort choices');
 audienceHttpExpect($editor('audience.php?view=flow-templates&sort=name')['status']===200,'Catalog sorting remains independent from overview sorting');
 $flowIds=[...$flowIds,...$overviewIds];
-$catalog=$editor('audience.php?view=flow-templates');audienceHttpExpect(str_contains($catalog['body'],'data-flow-template-integration')&&str_contains($catalog['body'],'data-flow-template-sort')&&str_contains($catalog['body'],'Re-engage connections'),'Catalog includes native integrations, sorting and categorized templates');
+$catalog=$editor('audience.php?view=flow-templates');audienceHttpExpect(str_contains($catalog['body'],'data-flow-template-integration')&&str_contains($catalog['body'],'data-flow-template-sort')&&str_contains($catalog['body'],'Re-Engage Connections'),'Catalog includes native integrations, sorting and categorized templates');
 foreach(['split','followup','cleanup']as$preview){$page=$editor('audience.php?view=flow-templates&preview='.$preview);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'flow-preview-connector')&&str_contains($page['body'],'Use this flow')&&!preg_match('/(?:Warning|Fatal error):/',$page['body']),'Real graph preview renders '.$preview);}
 audienceHttpExpect(!str_contains($editor('audience.php?view=flow&id='.$basic['id'])['body'],'data-flow-add="split"'),'Step palette does not offer percentage testing');
 $cleanup=$newFlow(audienceFlowDefault('cleanup'),'Status cleanup fixture');$cleanupPeople=[];$serviceBefore=(int)$fs->one('SELECT COUNT(*) n FROM marketing_service_mail')['n'];

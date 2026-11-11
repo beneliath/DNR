@@ -83,7 +83,7 @@
             for (const input of tags.filter(input => input.checked)) {
                 const name = input.parentElement.querySelector('span').textContent;
                 const button = doc.createElement('button'), label = doc.createElement('span'), icon = doc.createElement('span');
-                button.type = 'button';button.className = 'import-selected-tag';button.setAttribute('aria-label', `Remove ${name} tag`);
+                button.type = 'button';button.className = 'import-selected-tag';button.setAttribute('aria-label', `Remove ${name} Tag`);
                 label.textContent = name;icon.textContent = '×';icon.setAttribute('aria-hidden', 'true');button.append(label, icon);
                 button.addEventListener('click', () => {
                     input.checked = false;input.dispatchEvent(new Event('change', {bubbles: true}));
@@ -92,7 +92,7 @@
                 selected.append(button);
             }
             if (!selected.childElementCount) {
-                const empty = doc.createElement('span');empty.className = 'import-selection-empty';empty.textContent = 'No tags selected';selected.append(empty);
+                const empty = doc.createElement('span');empty.className = 'import-selection-empty';empty.textContent = 'No Tags Selected';selected.append(empty);
             }
         };
         const filter = () => {

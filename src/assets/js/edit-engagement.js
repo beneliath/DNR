@@ -46,7 +46,7 @@
                     : current !== baseline;
                 if (currentRevision !== revision) return;
                 save.toggleAttribute('data-unsaved-changes', changed);
-                if (changed) save.setAttribute('aria-description', 'Unsaved changes');
+                if (changed) save.setAttribute('aria-description', 'Unsaved Changes');
                 else save.removeAttribute('aria-description');
             });
         }

@@ -59,8 +59,8 @@ export function wireAudienceMobile() {
             }
             if (group.children.length > 2) {
                 remember(group, 'data-mm-action-disclosure', '');
-                const button = makeButton('More actions', 'mm-mobile-action-toggle');
-                disclosure(button, group, 'Fewer actions', 'More actions');
+                const button = makeButton('More Actions', 'mm-mobile-action-toggle');
+                disclosure(button, group, 'Fewer Actions', 'More Actions');
                 group.append(button);
             }
         }
@@ -87,10 +87,10 @@ export function wireAudienceMobile() {
                 table.before(tools); cleanups.push(() => tools.remove());
                 const selectPage = $('thead input[type=checkbox]', table);
                 if (selectPage) {
-                    const select = makeButton('Select page', 'mm-mobile-select-page');
+                    const select = makeButton('Select Page', 'mm-mobile-select-page');
                     const sync = () => {
                         select.setAttribute('aria-pressed', String(selectPage.checked));
-                        select.textContent = selectPage.checked ? 'Deselect page' : 'Select page';
+                        select.textContent = selectPage.checked ? 'Deselect Page' : 'Select Page';
                         select.disabled = selectPage.disabled;
                     };
                     select.addEventListener('click', () => { selectPage.click(); sync(); });
@@ -102,7 +102,7 @@ export function wireAudienceMobile() {
                 if (sorts.length) {
                     const label = document.createElement('label'); label.textContent = 'Sort';
                     const select = document.createElement('select');
-                    select.add(new Option('Choose sorting', ''));
+                    select.add(new Option('Choose Sorting', ''));
                     sorts.forEach((control, index) => select.add(new Option(control.textContent.trim(), String(index))));
                     select.addEventListener('change', () => {
                         if (select.value !== '') sorts[Number(select.value)].click();
@@ -155,7 +155,7 @@ export function wireAudienceMobile() {
                     const title = primary.textContent.trim().replace(/\s+/g, ' ').slice(0, 100);
                     const button = makeButton('Details', 'mm-mobile-details-toggle');
                     button.setAttribute('aria-label', `Details for ${title}`);
-                    disclosure(button, row, 'Hide details', 'Details');
+                    disclosure(button, row, 'Hide Details', 'Details');
                     primary.append(button);
                 }
             }
@@ -173,8 +173,8 @@ export function wireAudienceMobile() {
                 const search = child.matches('input[type=search],[data-mm-search-text],.filter-search-submit') || (input && !input.closest('[popover],dialog') && !child.matches('.campaign-filter-row'));
                 remember(child, 'data-mm-filter', search ? 'search' : 'secondary');
             }
-            const button = makeButton('Filters & sort', 'mm-mobile-filter-toggle');
-            disclosure(button, bar, 'Close filters', 'Filters & sort'); bar.append(button);
+            const button = makeButton('Filters & Sort', 'mm-mobile-filter-toggle');
+            disclosure(button, bar, 'Close Filters', 'Filters & Sort'); bar.append(button);
         }
         const heading = $('.audience-page-heading>.audience-actions');
         if (heading && !heading.hasAttribute('data-mm-heading-actions')) {
@@ -183,15 +183,15 @@ export function wireAudienceMobile() {
                 remember(heading, 'data-mm-heading-actions', '');
                 const primary = children.find(child => child.matches('.primary') || $('.primary', child)) || children[0];
                 remember(primary, 'data-mm-heading-primary', '');
-                const button = makeButton('More actions', 'mm-mobile-heading-toggle');
-                disclosure(button, heading, 'Fewer actions', 'More actions'); heading.append(button);
+                const button = makeButton('More Actions', 'mm-mobile-heading-toggle');
+                disclosure(button, heading, 'Fewer Actions', 'More Actions'); heading.append(button);
             }
         }
         const counts = $('.audience-counts');
         if (counts && !counts.hasAttribute('data-mm-counts')) {
             remember(counts, 'data-mm-counts', '');
-            const button = makeButton('Audience breakdown', 'mm-mobile-counts-toggle');
-            disclosure(button, counts, 'Hide breakdown', 'Audience breakdown'); counts.prepend(button);
+            const button = makeButton('Audience Breakdown', 'mm-mobile-counts-toggle');
+            disclosure(button, counts, 'Hide Breakdown', 'Audience Breakdown'); counts.prepend(button);
         }
     }
 
@@ -199,14 +199,14 @@ export function wireAudienceMobile() {
         for (const [selector, first, second, initial] of [
             ['.designer-workspace', 'Email', 'Editing tools', 'first'],
             ['.collection-builder', 'Editing tools', 'Preview', 'first'],
-            ['.flow-builder', 'Editing tools', 'Flow map', 'second'],
+            ['.flow-builder', 'Editing tools', 'Flow Map', 'second'],
         ]) {
             const workspace = $(selector);
             if (!workspace || workspace.hasAttribute('data-mm-editor')) continue;
             remember(workspace, 'data-mm-editor', initial);
             const nav = document.createElement('nav');
             nav.className = 'mm-mobile-only mm-mobile-editor-switch';
-            nav.setAttribute('aria-label', 'Editor workspace');
+            nav.setAttribute('aria-label', 'Editor Workspace');
             const buttons = [makeButton(first, ''), makeButton(second, '')];
             const select = value => {
                 workspace.setAttribute('data-mm-editor', value);
@@ -240,8 +240,8 @@ export function wireAudienceMobile() {
                 if(date && /^\d{4}-\d{2}-\d{2}$/.test(date))remember(time,'data-mm-date',new Date(date+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
                 if($('a,.campaign-touchpoint-chip,.campaign-holiday',cell))remember(cell,'data-mm-calendar-event','');
             }
-            const button=makeButton('Show empty days','mm-mobile-calendar-toggle');
-            disclosure(button,table,'Hide empty days','Show empty days');table.before(button);
+            const button=makeButton('Show Empty Days','mm-mobile-calendar-toggle');
+            disclosure(button,table,'Hide Empty Days','Show Empty Days');table.before(button);
             if(!$('[data-mm-calendar-event]',table)){
                 const empty=document.createElement('p');empty.className='mm-mobile-only';empty.textContent='Nothing scheduled in this date range';table.before(empty);cleanups.push(()=>empty.remove());
             }
@@ -252,8 +252,8 @@ export function wireAudienceMobile() {
         const workspace=$('.analytics-ai-chat');
         if(!workspace || workspace.hasAttribute('data-mm-assistant'))return;
         remember(workspace,'data-mm-assistant','');
-        const button=makeButton('Recent requests','mm-mobile-history-toggle');
-        disclosure(button,workspace,'Hide recent requests','Recent requests');workspace.before(button);
+        const button=makeButton('Recent Requests','mm-mobile-history-toggle');
+        disclosure(button,workspace,'Hide Recent Requests','Recent Requests');workspace.before(button);
     }
 
     function previews() {
@@ -261,13 +261,13 @@ export function wireAudienceMobile() {
             const source = $('iframe', thumbnail);
             if (!source || thumbnail.hasAttribute('data-mm-preview')) continue;
             remember(thumbnail, 'data-mm-preview', '');
-            const button = makeButton('Preview email', 'mm-mobile-preview-button');
+            const button = makeButton('Preview Email', 'mm-mobile-preview-button');
             button.setAttribute('aria-haspopup','dialog');
             button.addEventListener('click', () => {
                 const dialog = document.createElement('dialog'); dialog.className = 'mm-mobile-email-preview';
                 const header = document.createElement('header');
                 const title = document.createElement('h2'); title.id = `mm-mobile-preview-${++serial}`;
-                title.textContent = $('h3', thumbnail.closest('.template-card'))?.textContent || 'Email preview';
+                title.textContent = $('h3', thumbnail.closest('.template-card'))?.textContent || 'Email Preview';
                 dialog.setAttribute('aria-labelledby',title.id);
                 const close = document.createElement('button');close.type='button';close.textContent='Close';close.addEventListener('click',()=>dialog.close());
                 const frame = document.createElement('iframe');frame.title=title.textContent;frame.setAttribute('sandbox','allow-same-origin');frame.referrerPolicy='no-referrer';
@@ -282,8 +282,8 @@ export function wireAudienceMobile() {
         for (const copy of $$('.analytics-explanation')) {
             if (copy.hasAttribute('data-mm-explanation') || copy.textContent.length < 160) continue;
             remember(copy,'data-mm-explanation','');
-            const button=makeButton('About these metrics','mm-mobile-explanation-toggle');
-            disclosure(button,copy,'Hide explanation','About these metrics');copy.before(button);
+            const button=makeButton('About These Metrics','mm-mobile-explanation-toggle');
+            disclosure(button,copy,'Hide Explanation','About These Metrics');copy.before(button);
         }
     }
 

@@ -539,13 +539,13 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                         $event_label = $entry['event_type'];
                         if ($entry_category === 'login') {
                             $event_label = $login_event_labels[$entry['event_type']]
-                                ?? ucwords(str_replace('_', ' ', $entry['event_type']));
+                                ?? \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $entry['event_type']));
                         } elseif ($entry_category === 'database_change') {
                             $event_label = $database_action_labels[$entry['event_type']] ?? ucfirst($entry['event_type']);
                         } elseif (isset($security_event_labels[$entry['event_type']])) {
                             $event_label = $security_event_labels[$entry['event_type']];
                         } else {
-                            $event_label = ucwords(str_replace('_', ' ', $entry['event_type']));
+                            $event_label = \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $entry['event_type']));
                         }
 
                         $record = '—';

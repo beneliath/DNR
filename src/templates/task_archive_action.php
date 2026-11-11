@@ -1,6 +1,6 @@
 <?php
 $task_archive_action = !empty($archive_task['is_archived']) ? 'restore' : 'archive';
-$task_archive_label = $task_archive_action === 'restore' ? 'Restore task' : 'Archive task';
+$task_archive_label = $task_archive_action === 'restore' ? 'Restore Task' : 'Archive task';
 ?>
 <form method="post" action="tasks.php">
     <?php echo csrfInput(); ?>

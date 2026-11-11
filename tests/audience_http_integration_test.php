@@ -17,7 +17,7 @@ try{
         $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
-    $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced filters'),'Connections renders');
+    $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced Filters'),'Connections renders');
     audienceHttpExpect(str_contains($page['body'],'<span>MOED MessageMonkey</span></div>'),'Brand Audience is plain text');audienceHttpExpect(!str_contains($page['body'],'aria-label="Return to MOED"'),'Logo is not linked');
     audienceHttpExpect(!str_contains($page['body'],'audience-switch')&&!str_contains($page['body'],'create-audience'),'No audience selection or creation UI');
     $before=(int)$conn->query('SELECT COUNT(*) n FROM marketing_audiences')->fetch_assoc()['n'];

@@ -57,9 +57,9 @@ async function checkMobileCalendar(page, width, dark) {
         await busyDay.scrollIntoViewIfNeeded();
         await page.screenshot({path: path.join(output, `calendar-${width}-${dark ? 'dark' : 'light'}.png`)});
     }
-    await page.getByRole('button', {name: 'Show empty days', exact: true}).tap();
+    await page.getByRole('button', {name: 'Show Empty Days', exact: true}).tap();
     assert.equal(await emptyDays.filter({visible: true}).count(), emptyCount);
-    await page.getByRole('button', {name: 'Hide empty days', exact: true}).tap();
+    await page.getByRole('button', {name: 'Hide Empty Days', exact: true}).tap();
     assert.equal(await emptyDays.filter({visible: true}).count(), 0);
     await checkPageWidth(page, width);
 

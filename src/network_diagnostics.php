@@ -82,7 +82,7 @@ unset($_SESSION['_network_statistics_reset']);
             <label for="network-window-days">Data Window:</label>
             <select id="network-window-days" name="days">
                 <?php for ($days = 1; $days <= 7; $days++): ?>
-                    <option value="<?php echo $days; ?>"<?php echo $windowDays === $days ? ' selected' : ''; ?>><?php echo $days; ?> day<?php echo $days === 1 ? '' : 's'; ?></option>
+                    <option value="<?php echo $days; ?>"<?php echo $windowDays === $days ? ' selected' : ''; ?>><?php echo $days; ?> Day<?php echo $days === 1 ? '' : 's'; ?></option>
                 <?php endfor; ?>
             </select>
             <button type="submit" class="button-secondary" data-pending-reminder="network-window">Apply</button>

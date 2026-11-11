@@ -13,7 +13,7 @@
             if (list.children.length > 4) {
                 list.classList.add('dashboard-row-window');
                 list.tabIndex = 0;
-                list.setAttribute('aria-label', `${panel.querySelector('h2, h3').textContent}; scroll to see more items`);
+                list.setAttribute('aria-label', `${panel.querySelector('h2, h3').textContent}; Scroll to See More Items`);
             }
             return { panel, list, rows: Array.from(list.children) };
         }).filter(Boolean)).filter(entries => entries.length);

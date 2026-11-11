@@ -56,7 +56,7 @@ audienceHttpExpect($editor($c2review,['csrf_token'=>$token,'action'=>'campaign_c
 audienceHttpExpect(str_contains($reviewer($c2review)['body'],'Please review this fixture.'),'Reviewer can preview draft and comments');
 audienceHttpExpect($reviewer($c2review,['csrf_token'=>$reviewToken,'action'=>'campaign_comment','id'=>$c2id,'body'=>'Denied'])['status']===403,'Read-only reviewer cannot add comments');
 $c2manager='audience.php?view=campaign-manager';
-$c2planInput=['csrf_token'=>$token,'action'=>'campaign_plan_save','id'=>0,'version'=>0,'name'=>'Completion plan','goal'=>'Make an announcement','start'=>'2026-10-01','end'=>'2026-10-31','notes'=>'Campaign notes','opens'=>'1','clicks'=>'1'];
+$c2planInput=['csrf_token'=>$token,'action'=>'campaign_plan_save','id'=>0,'version'=>0,'name'=>'Completion plan','goal'=>'Make an Announcement','start'=>'2026-10-01','end'=>'2026-10-31','notes'=>'Campaign notes','opens'=>'1','clicks'=>'1'];
 $c2planResponse=$editor($c2manager,$c2planInput);audienceHttpExpect($c2planResponse['status']===302,'Campaign Manager plan creates');preg_match('/id=(\d+)/',$c2planResponse['headers'],$m);$c2planId=(int)$m[1];$c2planUrl='audience.php?view=campaign-plan&id='.$c2planId;
 audienceHttpExpect($reviewer($c2manager,array_replace($c2planInput,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot create plan');
 $c2foreignPlan=$otherStore->saveCampaignPlan(['name'=>'Foreign plan','goal'=>'Other','start'=>'2026-10-01','end'=>'2026-10-31'],0,0);

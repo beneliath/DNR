@@ -278,7 +278,7 @@ $map_payload = [
             </div>
             <button type="button" id="fit-map-pins" class="button-secondary"<?php echo $cached_pin_count === 0 ? ' disabled' : ''; ?>>Fit Visible Pins</button>
         </div>
-        <div class="map-legend" aria-label="Pin colors show confirmation; pin outlines show lifecycle">
+        <div class="map-legend" aria-label="Pin Colors Show Confirmation; Pin Outlines Show Lifecycle">
             <span><i class="map-legend-dot status-work-in-progress-pin" aria-hidden="true"></i>Work in progress</span>
             <span><i class="map-legend-dot status-under-review-pin" aria-hidden="true"></i>Under review</span>
             <span><i class="map-legend-dot status-confirmed-pin" aria-hidden="true"></i>Confirmed</span>
@@ -289,7 +289,7 @@ $map_payload = [
             <p id="map-empty-description"><?php echo htmlspecialchars($empty_description, ENT_QUOTES, 'UTF-8'); ?></p>
             <?php if ($location_filter !== 'all'): ?><a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>">Show All Locations</a><?php elseif ($map_events === []): ?><a class="button-secondary" href="map.php">Reset Filters</a><?php endif; ?>
         </div>
-        <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
+        <div id="engagement-map" class="engagement-map" aria-label="Interactive Engagement Map. Use the Controls to Zoom and Drag the Map to Pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
     </section>
 
@@ -316,7 +316,7 @@ $map_payload = [
                 <a class="map-location-focus" href="#engagement-map" data-map-location="<?php echo $event['id']; ?>"<?php echo $event['locationState'] === 'found' ? '' : ' hidden'; ?>>On Map</a>
                 <span class="map-location-help" data-location-help><?php echo htmlspecialchars(['found' => $event['locationNote'], 'needs_address' => 'Enter an event address to add a pin.', 'pending' => 'The location lookup is queued or in progress.', 'not_found' => 'The mapping service could not confidently match this address. Retry or set the pin yourself.', 'failed' => 'The location service could not complete this lookup. Try again.'][$event['locationState']], ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php if ($can_edit_map): ?><button type="button" class="button-secondary" data-retry-location="<?php echo $event['id']; ?>"<?php echo in_array($event['locationState'], ['not_found', 'failed'], true) ? '' : ' hidden'; ?>>Retry Lookup</button><?php endif; ?>
-                <?php if ($can_edit_map && $event['address'] !== ''): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map_pin.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $event['provider'] === 'manual' ? 'Adjust confirmed pin' : 'Set map pin'; ?></a><?php endif; ?>
+                <?php if ($can_edit_map && $event['address'] !== ''): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map_pin.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $event['provider'] === 'manual' ? 'Adjust Confirmed Pin' : 'Set Map Pin'; ?></a><?php endif; ?>
                 <?php if ($can_edit_map): ?><a class="button-secondary" href="<?php echo htmlspecialchars('edit_engagement.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>">Edit Location</a><?php endif; ?></div>
             </li>
             <?php endforeach; ?>

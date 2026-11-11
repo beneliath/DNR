@@ -5,7 +5,7 @@
     if (!strip || !button) return;
     button.hidden = strip.scrollWidth <= strip.clientWidth + 1;
     const end = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
-    button.textContent = end ? '‹' : '›'; button.setAttribute('aria-label', end ? 'Scroll metrics left' : 'Scroll metrics right');
+    button.textContent = end ? '‹' : '›'; button.setAttribute('aria-label', end ? 'Scroll Metrics Left' : 'Scroll Metrics Right');
   });
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-analytics-scroll]');
@@ -137,7 +137,7 @@
         const aiTools = document.querySelector('.analytics-ai-tools');
         const updatedAiTools = parsed.querySelector('.analytics-ai-tools');
         if (aiTools && updatedAiTools) aiTools.replaceChildren(...updatedAiTools.childNodes);
-        document.getElementById('analytics-message-trigger').firstChild.textContent = all.checked ? 'All messages ' : `${choices.filter(input => input.checked).length} messages selected `;
+        document.getElementById('analytics-message-trigger').firstChild.textContent = all.checked ? 'All Messages ' : `${choices.filter(input => input.checked).length} Messages Selected `;
         document.querySelectorAll('.analytics-reference-filters form').forEach(form => {
           if (form === messageForm) return;
           form.querySelectorAll('input[type="hidden"]').forEach(input => { if (['messages[]', 'messages_mode'].includes(input.name)) input.remove(); });

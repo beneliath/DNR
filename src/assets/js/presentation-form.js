@@ -218,10 +218,17 @@
         );
     }
 
-    function hasPresentation() {
-        return presentationEntries().some(function (entry) {
-            return presentationEntryHasContent(entry);
-        });
+    function presentationNotRequired() {
+        return document.getElementById("presentation_not_required")?.checked === true;
+    }
+
+    function syncPresentationDetails() {
+        var details = document.getElementById("presentation-details");
+        if (details) {
+            details.hidden = presentationNotRequired();
+            details.disabled = details.hidden;
+        }
+        updateConfirmedAvailability();
     }
 
     function updateConfirmedAvailability() {
@@ -231,7 +238,7 @@
         }
         var confirmedOption = status.querySelector('option[value="confirmed"]');
         if (confirmedOption) {
-            confirmedOption.disabled = !hasPresentation();
+            confirmedOption.disabled = !presentationNotRequired() && !presentationEntries().some(presentationEntryHasContent);
         }
         status.setCustomValidity("");
     }
@@ -409,11 +416,11 @@
             '  <p>' + description + '</p>',
             '  <button type="button" class="presentation-qr-preview" data-qr-preview-button data-copy-qr-url="" aria-label="Copy ' + label + '" hidden>',
             '    <img data-qr-preview alt="' + label + '">',
-            '    <span>Click QR code to copy</span>',
+            '    <span>Click QR Code to Copy</span>',
             '  </button>',
             '  <div class="presentation-qr-actions">',
-            '    <button type="button" class="presentation-paste-button" data-paste-qr aria-describedby="' + statusId + '">Paste QR code</button>',
-            '    <label class="presentation-file-picker" for="' + inputId + '">Choose image</label>',
+            '    <button type="button" class="presentation-paste-button" data-paste-qr aria-describedby="' + statusId + '">Paste QR Code</button>',
+            '    <label class="presentation-file-picker" for="' + inputId + '">Choose Image</label>',
             '  </div>',
             '  <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="image/jpeg,image/png,image/webp" data-qr-file>',
             '  <span class="presentation-qr-status" id="' + statusId + '" data-copy-status role="status" aria-live="polite"></span>',
@@ -438,8 +445,8 @@
             '    <div class="presentation-file-drop" data-file-drop>',
             '      <button type="button" class="presentation-file-drop-button" data-file-drop-button>',
             '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
-            '        <strong>Drop PDF here</strong>',
-            '        <span>or click to choose · .pdf · up to 100 MB</span>',
+            '        <strong>Drop PDF Here</strong>',
+            '        <span>Or Click to Choose · .pdf · Up to 100 MB</span>',
             '      </button>',
             '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
             '      <p id="' + inputId + '_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PDF" role="status" hidden></p>',
@@ -465,8 +472,8 @@
             '    <div class="presentation-file-drop" data-file-drop>',
             '      <button type="button" class="presentation-file-drop-button" data-file-drop-button>',
             '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
-            '        <strong>Drop PowerPoint here</strong>',
-            '        <span>or click to choose · .ppt or .pptx · up to 500 MB</span>',
+            '        <strong>Drop PowerPoint Here</strong>',
+            '        <span>Or Click to Choose · .ppt or .pptx · Up to 500 MB</span>',
             '      </button>',
             '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
             '      <p id="' + inputId + '_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PPT" role="status" hidden></p>',
@@ -783,6 +790,7 @@
     };
 
     window.validateEngagementPresentations = function () {
+        if (presentationNotRequired()) return true;
         updateAllPresentationTimes();
         var startInput = document.getElementById("event_start_date");
         var endInput = document.getElementById("event_end_date");
@@ -794,8 +802,8 @@
             }
         }
 
-        if (status && status.value === "confirmed" && !hasPresentation()) {
-            status.setCustomValidity("Add at least one presentation before confirming this engagement.");
+        if (status && status.value === "confirmed" && !presentationEntries().some(presentationEntryHasContent)) {
+            status.setCustomValidity("Add at least one presentation or select “No Presentation Required” before confirming this engagement.");
             status.reportValidity();
             status.focus();
             return false;
@@ -816,6 +824,10 @@
         var startInput = document.getElementById("event_start_date");
         var endInput = document.getElementById("event_end_date");
         var status = document.getElementById("confirmation_status");
+        var requirementCheckbox = document.getElementById("presentation_not_required");
+        if (requirementCheckbox) {
+            requirementCheckbox.addEventListener("change", syncPresentationDetails);
+        }
         if (startInput) {
             startInput.addEventListener("change", applyPresentationDateConstraints);
         }
@@ -827,10 +839,12 @@
         }
         document.querySelectorAll(".engagement-form").forEach(function (form) {
             form.addEventListener("submit", function () {
+                if (presentationNotRequired()) return;
                 updateAllPresentationTimes();
                 identifySharedUploads(form);
             });
             form.addEventListener("formdata", function (event) {
+                if (presentationNotRequired()) return;
                 for (var input of form.querySelectorAll("[data-shared-upload-row]")) {
                     var match = input.name.match(/^presentations\[(\d+)\]\[(speaker_notes|ppt_slidedeck)\]$/);
                     if (!match) continue;
@@ -863,6 +877,6 @@
             document.querySelectorAll("[data-qr-uploader]").forEach(releaseQrPreview);
         });
         applyPresentationDateConstraints();
-        updateConfirmedAvailability();
+        syncPresentationDetails();
     });
 })();

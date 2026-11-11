@@ -101,27 +101,27 @@ function audienceDesignStarters(?string $onlyKey=null,bool $includeBanners=true)
     $block=static fn($type,$text,$extra=[])=>['type'=>$type,'text'=>$text,'inherit'=>array_values(array_diff(['color','size','font','lineHeight','letterSpacing','paragraphSpacing','background','radius','dividerWidth','dividerHeight'],array_keys($extra)))]+$extra;
     $intro=[$block('heading','Share something great.',['align'=>'center']),$block('text',"Hello *|FNAME|*,\n\nUse this space to share your news, tell your story, and connect with your connections."),$block('button','Learn more',['align'=>'center','url'=>'https://example.com'])];
     $starters=[
-        'blank'=>['name'=>'Start from scratch','category'=>'All','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('text','Start writing your email here.')]]]]])],
-        'newsletter'=>['name'=>'Simple newsletter','category'=>'Newsletter','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[$intro]],['columns'=>[[$block('divider',''),$block('heading','In this edition'),$block('text','Add your latest updates and a clear next step for your readers.')]]]]])],
-        'welcome'=>['name'=>'A warm welcome','category'=>'Welcome','design'=>audienceDesign(['schema'=>1,'styles'=>['background'=>'#e9eee8','button'=>'#315b48'],'rows'=>[['columns'=>[[$block('heading','Welcome to our community.',['align'=>'center']),$block('text','We are glad you are here. Let us introduce ourselves and help you get started.'),$block('button','Explore more',['align'=>'center','url'=>'https://example.com'])]]]]])],
-        'event'=>['name'=>'You are invited','category'=>'Invite to an event','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Let’s get together.',['align'=>'center']),$block('text','Join us for an upcoming event. Share the date, time, location, and what to expect.')]]],['columns'=>[[$block('heading','When',['size'=>24]),$block('text','Add date and time')],[$block('heading','Where',['size'=>24]),$block('text','Add event location')]]],['columns'=>[[$block('button','Reserve your place',['align'=>'center','url'=>'https://example.com'])]]]]])],
-        'announcement'=>['name'=>'Make an announcement','category'=>'Announce','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Something new is here.'),$block('text','Introduce your big news. Keep it clear, personal, and useful.'),$block('button','Find out more',['url'=>'https://example.com'])]]]]])],
-        'thanks'=>['name'=>'A heartfelt thank you','category'=>'Thank you','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Thank you.',['align'=>'center','size'=>48]),$block('text','Your support makes a difference. Let your connections know what they helped make possible.')]]]]])],
+        'blank'=>['name'=>'Start from Scratch','category'=>'All','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('text','Start writing your email here.')]]]]])],
+        'newsletter'=>['name'=>'Simple Newsletter','category'=>'Newsletter','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[$intro]],['columns'=>[[$block('divider',''),$block('heading','In this edition'),$block('text','Add your latest updates and a clear next step for your readers.')]]]]])],
+        'welcome'=>['name'=>'A Warm Welcome','category'=>'Welcome','design'=>audienceDesign(['schema'=>1,'styles'=>['background'=>'#e9eee8','button'=>'#315b48'],'rows'=>[['columns'=>[[$block('heading','Welcome to our community.',['align'=>'center']),$block('text','We are glad you are here. Let us introduce ourselves and help you get started.'),$block('button','Explore more',['align'=>'center','url'=>'https://example.com'])]]]]])],
+        'event'=>['name'=>'You Are Invited','category'=>'Invite to an Event','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Let’s get together.',['align'=>'center']),$block('text','Join us for an upcoming event. Share the date, time, location, and what to expect.')]]],['columns'=>[[$block('heading','When',['size'=>24]),$block('text','Add date and time')],[$block('heading','Where',['size'=>24]),$block('text','Add event location')]]],['columns'=>[[$block('button','Reserve your place',['align'=>'center','url'=>'https://example.com'])]]]]])],
+        'announcement'=>['name'=>'Make an Announcement','category'=>'Announce','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Something new is here.'),$block('text','Introduce your big news. Keep it clear, personal, and useful.'),$block('button','Find out more',['url'=>'https://example.com'])]]]]])],
+        'thanks'=>['name'=>'A Heartfelt Thank You','category'=>'Thank You','design'=>audienceDesign(['schema'=>1,'rows'=>[['columns'=>[[$block('heading','Thank you.',['align'=>'center','size'=>48]),$block('text','Your support makes a difference. Let your connections know what they helped make possible.')]]]]])],
     ];
     $layouts=[
         'news-roundup'=>['News roundup','Newsletter',2,'The latest from our community.'],
         'monthly-digest'=>['Monthly digest','Newsletter',3,'A month of ideas and updates.'],
         'editorial'=>['Editorial letter','Newsletter',1,'A note from our team.'],
-        'save-the-date'=>['Save the date','Invite to an event',1,'Mark your calendar.'],
-        'event-agenda'=>['Event agenda','Invite to an event',2,'A day worth sharing.'],
+        'save-the-date'=>['Save the date','Invite to an Event',1,'Mark your calendar.'],
+        'event-agenda'=>['Event agenda','Invite to an Event',2,'A day worth sharing.'],
         'new-chapter'=>['A new chapter','Announce',2,'See what is coming next.'],
         'important-update'=>['Important update','Announce',1,'An update for our community.'],
-        'gratitude'=>['You made a difference','Thank you',2,'Look what we accomplished together.'],
-        'getting-started'=>['Getting started','Welcome',3,'Your first steps start here.'],
+        'gratitude'=>['You made a difference','Thank You',2,'Look what we accomplished together.'],
+        'getting-started'=>['Getting Started','Welcome',3,'Your first steps start here.'],
     ];
     foreach($layouts as$key=>[$name,$category,$columns,$headline]){
         $features=[];for($i=1;$i<=$columns;$i++)$features[]=[ $block('heading','Highlight '.$i,['headingLevel'=>2]),$block('text','Share a useful detail, a new idea, or a story that matters to your readers.'),$block('button','Explore more',['url'=>'https://example.com']) ];
-        $starters[$key]=['name'=>$name,'category'=>$category,'design'=>audienceDesign(['schema'=>1,'rows'=>[['name'=>'Header','columns'=>[[$block('heading',$headline,['align'=>'center']),$block('text','Hello *|FNAME|*, make this message your own.')]]],['name'=>'Featured content','columns'=>$features]]])];
+        $starters[$key]=['name'=>$name,'category'=>$category,'design'=>audienceDesign(['schema'=>1,'rows'=>[['name'=>'Header','columns'=>[[$block('heading',$headline,['align'=>'center']),$block('text','Hello *|FNAME|*, make this message your own.')]]],['name'=>'Featured Content','columns'=>$features]]])];
     }
     if($onlyKey!==null)$starters=array_intersect_key($starters,[$onlyKey=>true]);
     if(!$includeBanners)return $starters;
@@ -161,7 +161,7 @@ function audienceDesignPreviewHtml(array $design,string $nonce,?array $context=n
     // Account identity can resolve without treating an unselected recipient as
     // an empty recipient and hiding their conditional content.
     if($context===null&&$identity){$tags=[];foreach(['LIST:COMPANY','LIST:ADDRESS','LIST:ADDRESSLINE','LIST:NAME','CURRENT_YEAR','MC:SUBJECT','MC_PREVIEW_TEXT']as$key)if(array_key_exists($key,$identity))$tags['*|'.$key.'|*']=htmlspecialchars((string)$identity[$key],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$preview=strtr($preview,$tags);}
-    if($dark){$logoRules='';foreach($document['rows']as$row)if($row['name']==='Brand logo'||str_starts_with($row['id'],'brand-row-')){$background=$row['styles']['background']??$document['regions'][$row['region']]['background']??$document['styles']['body'];$logoRules.='.'. $row['id'].',.'. $row['id'].' .email-block{background-color:'.$background.'!important}';}if($logoRules!=='')$preview=str_replace('</head>','<style nonce="'.$nonce.'">'.$logoRules.'</style></head>',$preview);}
+    if($dark){$logoRules='';foreach($document['rows']as$row)if($row['name']==='Brand Logo'||str_starts_with($row['id'],'brand-row-')){$background=$row['styles']['background']??$document['regions'][$row['region']]['background']??$document['styles']['body'];$logoRules.='.'. $row['id'].',.'. $row['id'].' .email-block{background-color:'.$background.'!important}';}if($logoRules!=='')$preview=str_replace('</head>','<style nonce="'.$nonce.'">'.$logoRules.'</style></head>',$preview);}
     return $preview;
 }
 function audienceDesignPreviewSource(string $html,string $nonce,bool $dark=false):string

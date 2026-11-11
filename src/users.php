@@ -157,9 +157,9 @@ $task_digest_day_options = [
             if (empty($user['task_digest_enabled'])) {
                 $digest_status = 'Off';
             } elseif ($user['account_status'] !== 'active') {
-                $digest_status = 'Paused · Account not active';
+                $digest_status = 'Paused · Account Not Active';
             } elseif ($display_email === '' || empty($user['email_verified_at'])) {
-                $digest_status = 'Paused · Verified email required';
+                $digest_status = 'Paused · Verified Email Required';
             }
             $digest_delivery_days = $digest_status === '' ? (int) $user['task_digest_days'] : 0;
             $picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
@@ -265,7 +265,7 @@ $task_digest_day_options = [
                                 <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending Invitation&hellip;">Resend Invitation</button>
                                 <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
                                     <span class="invitation-submit-spinner" aria-hidden="true"></span>
-                                    Emailing a new activation link&hellip;
+                                    Emailing a New Activation Link&hellip;
                                 </span>
                             </form>
                         <?php elseif ($user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>

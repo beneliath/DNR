@@ -30,8 +30,8 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
     // Search stays in the combobox while arrows move its active option.
     const fieldPicker = (value, select, focusKey) => {
         const wrap = el('div', {class: 'rule-field-picker'}), listId = `rule-fields-${++pickerNumber}`;
-        const input = el('input', {type: 'text', role: 'combobox', 'aria-label': 'Filter field', 'aria-autocomplete': 'list', 'aria-controls': listId, 'aria-expanded': 'false', autocomplete: 'off', 'data-rule-focus': focusKey, placeholder: 'Select or search a filter', value: config.catalog[value]?.label || ''});
-        const list = el('div', {id: listId, role: 'listbox', class: 'rule-field-options', 'aria-label': 'Filter fields', hidden: true});
+        const input = el('input', {type: 'text', role: 'combobox', 'aria-label': 'Filter Field', 'aria-autocomplete': 'list', 'aria-controls': listId, 'aria-expanded': 'false', autocomplete: 'off', 'data-rule-focus': focusKey, placeholder: 'Select or Search a Filter', value: config.catalog[value]?.label || ''});
+        const list = el('div', {id: listId, role: 'listbox', class: 'rule-field-options', 'aria-label': 'Filter Fields', hidden: true});
         let active = -1, options = [];
         const close = () => { list.hidden = true; if (activeFieldPicker?.list === list) activeFieldPicker = null; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); input.value = config.catalog[value]?.label || ''; };
         const position = () => {
@@ -63,7 +63,7 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                 option.addEventListener('click', () => select(key)); option.dataset.field = key;
                 options.push(option); sections[entry.section].append(option);
             }
-            if (!options.length) list.append(el('p', {role: 'status'}, 'No matching filters'));
+            if (!options.length) list.append(el('p', {role: 'status'}, 'No Matching Filters'));
             if (activeFieldPicker?.list !== list) activeFieldPicker?.close();
             list.hidden = false; input.setAttribute('aria-expanded', 'true');
             activeFieldPicker = {list, close}; position();
@@ -85,13 +85,13 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
         if (!ruleRoot) return;
         clearPreview(); ruleRoot.replaceChildren();
         const renderGroup = (group, depth, parent, index, path = 'root') => {
-            const box = el('section', {class: 'segment-rule-group', 'aria-label': depth ? 'Nested condition group' : 'Segment conditions'});
+            const box = el('section', {class: 'segment-rule-group', 'aria-label': depth ? 'Nested Condition Group' : 'Segment Conditions'});
             const header = el('div', {class: 'rule-group-heading'});
-            const match = el('select', {'aria-label': 'Match conditions', 'data-rule-focus': `${path}-match`});
+            const match = el('select', {'aria-label': 'Match Conditions', 'data-rule-focus': `${path}-match`});
             match.append(el('option', {value: 'all'}, 'all'), el('option', {value: 'any'}, 'any')); match.value = group.match;
             match.addEventListener('change', () => { group.match = match.value; renderRules(`${path}-match`); });
             header.append(el('span', {}, 'Match'), match, el('span', {}, 'of the following conditions'));
-            if (parent) header.append(button('Remove group', () => { parent.rules.splice(index, 1); renderRules(`${path.substring(0, path.lastIndexOf('-'))}-match`); }));
+            if (parent) header.append(button('Remove Group', () => { parent.rules.splice(index, 1); renderRules(`${path.substring(0, path.lastIndexOf('-'))}-match`); }));
             box.append(header);
             group.rules.forEach((rule, i) => {
                 if (i) box.append(el('span', {class: 'rule-join'}, group.match === 'all' ? 'AND' : 'OR'));
@@ -104,7 +104,7 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                     renderRules(`${rulePath}-operator`);
                 }, `${rulePath}-field`);
                 const definition = config.catalog[rule.field] || {kind: 'text'};
-                const operator = el('select', {'aria-label': 'Condition operator', 'data-rule-focus': `${rulePath}-operator`});
+                const operator = el('select', {'aria-label': 'Condition Operator', 'data-rule-focus': `${rulePath}-operator`});
                 for (const [key, label] of Object.entries(config.operators[definition.kind] || {})) operator.append(el('option', {value: key}, label));
                 operator.value = rule.operator;
                 operator.addEventListener('change', () => { rule.operator = operator.value; if (definition.kind === 'membership' && !Array.isArray(rule.value)) rule.value = []; else if (definition.kind !== 'membership' && Array.isArray(rule.value)) rule.value = ''; renderRules(`${rulePath}-operator`); });
@@ -112,30 +112,30 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                 if (!['empty', 'not_empty', 'ever', 'never'].includes(rule.operator)) {
                     if (definition.kind === 'membership') {
                         const picker = el('details', {class: 'rule-membership'}), checked = Array.isArray(rule.value) ? rule.value.map(String) : [];
-                        const summary = el('summary', {}, checked.length ? `${checked.length} selected` : 'Choose values'); const list = el('div', {class: 'rule-membership-options'});
+                        const summary = el('summary', {}, checked.length ? `${checked.length} Selected` : 'Choose Values'); const list = el('div', {class: 'rule-membership-options'});
                         for (const [key, label] of Object.entries(definition.options || {})) {
                             const archived = (definition.archived_options || []).includes(Number(key));
                             const choice = el('input', {type: 'checkbox', value: key, checked: checked.includes(key), disabled: archived && !checked.includes(key)});
-                            choice.addEventListener('change', () => { rule.value = $$('input:checked', list).map(input => Number(input.value)); summary.textContent = rule.value.length ? `${rule.value.length} selected` : 'Choose values'; clearPreview(); });
+                            choice.addEventListener('change', () => { rule.value = $$('input:checked', list).map(input => Number(input.value)); summary.textContent = rule.value.length ? `${rule.value.length} Selected` : 'Choose Values'; clearPreview(); });
                             const labelNode = el('label', {class: 'audience-check'}); labelNode.append(choice, document.createTextNode(label + (archived ? ' (Archived)' : ''))); list.append(labelNode);
                         }
                         if (!list.children.length) list.append(el('p', {}, 'No values available. Create a tag or group first.'));
                         picker.append(summary, list); row.append(picker);
                     } else if (definition.kind === 'choice') {
-                        const value = el('select', {'aria-label': 'Condition value'});
+                        const value = el('select', {'aria-label': 'Condition Value'});
                         for (const [key, label] of Object.entries(definition.options || {})) value.append(el('option', {value: key}, label));
                         value.value = String(rule.value ?? ''); value.addEventListener('change', () => { rule.value = value.value; clearPreview(); }); row.append(value);
                     } else {
                         const value = el('input', {...ruleValueAttributes(definition, rule.operator),
-                            value: rule.value ?? '', 'aria-label': 'Condition value', required: true});
+                            value: rule.value ?? '', 'aria-label': 'Condition Value', required: true});
                         value.addEventListener('input', () => { rule.value = value.value; clearPreview(); }); row.append(value);
                     }
                 }
                 if (definition.kind === 'engagement') {
                     for (const [property, label, options] of [
-                        ['campaign_id', 'Campaign', {'0': 'Any campaign', ...definition.campaigns}],
-                        ['bots', 'Engagement data', {filtered: 'Exclude known bots', all: 'Include detected bots'}],
-                        ...(rule.field === 'engagement:click' ? [['link_hash', 'Tracked link', {'': 'Any link', ...definition.links}]] : [])
+                        ['campaign_id', 'Campaign', {'0': 'Any Campaign', ...definition.campaigns}],
+                        ['bots', 'Engagement Data', {filtered: 'Exclude Known Bots', all: 'Include Detected Bots'}],
+                        ...(rule.field === 'engagement:click' ? [['link_hash', 'Tracked Link', {'': 'Any link', ...definition.links}]] : [])
                     ]) {
                         const picker = el('select', {'aria-label': label});
                         for (const [key, text] of Object.entries(options)) picker.append(el('option', {value: key}, text));
@@ -156,7 +156,7 @@ export function initializeSegmentBuilder(config, show, currentFiltersReady, filt
                 else if (depth + ruleDepth(group) < 5) { const previous = clone(group); group.match = join; group.rules = [previous, defaultRule()]; renderRules(`${path}-1-field`); }
                 else { const notice = $('[data-segment-error]'); notice.textContent = 'This group has reached the nesting limit. Change its match logic or add a condition within an existing group.'; notice.hidden = false; }
             }));
-            if (depth < 4) actions.append(button('＋ Add group', () => { group.rules.push({match: 'any', rules: [defaultRule()]}); renderRules(`${path}-${group.rules.length - 1}-0-field`); }));
+            if (depth < 4) actions.append(button('＋ Add Group', () => { group.rules.push({match: 'any', rules: [defaultRule()]}); renderRules(`${path}-${group.rules.length - 1}-0-field`); }));
             box.append(actions); return box;
         };
         ruleRoot.append(renderGroup(tree, 0));

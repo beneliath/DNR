@@ -19,7 +19,7 @@ test('validation summary uses visible labels before accessible fallbacks', () =>
     const label = { cloneNode() { return { textContent: 'Event dates *', querySelectorAll() { return []; } }; } };
     assert.equal(fieldLabel(field({ 'aria-label': 'Fallback' }, [label])), 'Event dates');
     assert.equal(fieldLabel(field({ 'aria-label': 'Country' })), 'Country');
-    assert.equal(fieldLabel(field()), 'This field');
+    assert.equal(fieldLabel(field()), 'This Field');
 });
 
 test('linked validation focuses the first affected control through its reveal link', () => {

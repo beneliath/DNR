@@ -47,7 +47,7 @@ for(const kind of ['hosted','popup','landing','embedded','preferences'])for(cons
     await page.goto('https://collection.test/audience.php?view=form&id=7');
     if(width===390){
         await page.locator('[data-collection-device="mobile"]').click();
-        await page.getByRole('navigation',{name:'Editor workspace'}).getByRole('button',{name:'Preview',exact:true}).click();
+        await page.getByRole('navigation',{name:'Editor Workspace'}).getByRole('button',{name:'Preview',exact:true}).click();
     }
     await exercise(page.frameLocator('[data-collection-preview]'));
     // A fresh preview document gets the same shared behavior after edits.

@@ -31,7 +31,7 @@
         <label for="engagement-contact-search">Find a Contact</label>
         <div class="engagement-contact-search-controls">
             <input type="search" id="engagement-contact-search" data-contact-search maxlength="100"
-                   placeholder="Enter at least 2 characters" aria-describedby="engagement-contact-search-help" autocomplete="off">
+                   placeholder="Enter at Least 2 Characters" aria-describedby="engagement-contact-search-help" autocomplete="off">
             <button type="button" class="button-secondary" data-contact-search-button>Search Contacts</button>
         </div>
         <p class="field-help" data-contact-search-status role="status" aria-live="polite"></p>

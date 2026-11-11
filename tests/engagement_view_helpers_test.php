@@ -78,6 +78,11 @@ expectEngagementView(
         === [true, true, true, true, true],
     'a partial presentation is enough for the informational presentation indicator.'
 );
+$noPresentation = engagementViewReadiness($complete_details + ['presentation_not_required' => 1], [], [])[3];
+expectEngagementView(
+    $noPresentation['ready'] && $noPresentation['label'] === 'No Presentation Required',
+    'the readiness card should explain why an event is ready without a presentation.'
+);
 expectEngagementView(
     array_column(engagementViewReadiness(['event_country' => 'US'], [], []), 'ready')
         === [false, false, false, false, false],

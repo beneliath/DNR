@@ -121,7 +121,7 @@ test('QR selection opens with available codes and submits only checked resources
     f.open(0);
     assert.equal(f.dialog.open, true);
     assert.equal(f.nodes['presentation-qr-pdf-context'].textContent, 'Presentation 1');
-    assert.equal(f.nodes['qr-pdf-selection-count'].textContent, '2 of 2 selected');
+    assert.equal(f.nodes['qr-pdf-selection-count'].textContent, '2 of 2 Selected');
     assert.equal(f.focused(), f.nodes['qr-pdf-select-all']);
     f.options.inputs[0].checked = false;
     f.options.change();
@@ -217,7 +217,7 @@ test('a checked code can move above and below unchecked rows while PDF numbering
     f.drag(0, 5);
     assert.deepEqual(f.options.inputs.map(input => input.value), ['31', '32', '34', '35', '36', '33']);
     assert.deepEqual(f.options.rows.map(row => row.position.textContent), ['', '', '1', '2', '', '3']);
-    assert.equal(f.nodes['qr-pdf-selection-count'].textContent, '3 of 6 selected');
+    assert.equal(f.nodes['qr-pdf-selection-count'].textContent, '3 of 6 Selected');
     assert.deepEqual(f.submit().ids, ['34', '35', '33']);
 });
 

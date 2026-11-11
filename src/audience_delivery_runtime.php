@@ -111,7 +111,7 @@ function audienceServiceMailStatus(array $mail,array $events):array
             'cancelled'=>'This email request was cancelled.',
             default=>'No delivery details are recorded.',
         };
-        return ['label'=>ucfirst($mail['state']),'event_at'=>null,'detail'=>$detail];
+        return ['label'=>\Dnr\Domain\ReferenceData::label($mail['state']),'event_at'=>null,'detail'=>$detail];
     }
     $detail=match($chosen['event_type']){
         'send'=>'SES accepted the email; delivery is not yet confirmed.',

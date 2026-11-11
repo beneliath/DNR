@@ -6,7 +6,7 @@ export function mountTextColor({host,label,highlight=false,makeElement:el,makeBu
     if(signal.aborted)return;remember();
     const initial=getValue?.()||selected;
     trigger.setAttribute('aria-expanded','true');
-    openColorStudio({label,value:initial,palette,scope:wrap,signal,highlight,automaticValue:highlight?'transparent':'inherit',automaticLabel:highlight?'No color':'Automatic',previewText:window.getSelection()?.toString()||undefined,previewStyle:getTextStyle,sampleSources,onApply:value=>{
+    openColorStudio({label,value:initial,palette,scope:wrap,signal,highlight,automaticValue:highlight?'transparent':'inherit',automaticLabel:highlight?'No Color':'Automatic',previewText:window.getSelection()?.toString()||undefined,previewStyle:getTextStyle,sampleSources,onApply:value=>{
       selected=normalizeColor(value)||selected;letter.style.setProperty('--selected-color',value==='inherit'?'currentColor':value);apply(value,{focus:true,rememberSelection:false});
     },onClose:applied=>{trigger.setAttribute('aria-expanded','false');if(!applied&&trigger.isConnected)trigger.focus({preventScroll:true});}});
   });

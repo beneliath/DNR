@@ -57,8 +57,8 @@ $maintenanceNonce ??= function_exists('contentSecurityPolicyNonce') ? contentSec
       data-status-url="<?= htmlspecialchars($assetPrefix . '/deployment_status.php', ENT_QUOTES, 'UTF-8') ?>"
       data-ready-url="<?= htmlspecialchars($assetPrefix . '/ready.php', ENT_QUOTES, 'UTF-8') ?>"
       data-wait-for-deployment="<?= $deploying || $failed ? 'true' : 'false' ?>">
-    <div class="maintenance-banner" role="img" aria-label="Clock and workspace illustration"><?= $illustration ?></div>
-    <h1 id="heading"><?= $failed ? 'Maintenance is taking longer than expected' : 'Temporarily unavailable' ?></h1>
+    <div class="maintenance-banner" role="img" aria-label="Clock and Workspace Illustration"><?= $illustration ?></div>
+    <h1 id="heading"><?= $failed ? 'Maintenance Is Taking Longer Than Expected' : 'Temporarily Unavailable' ?></h1>
     <?php if ($deploying): ?>
         <p>Updates are underway. This page reopens automatically.</p>
         <?php if ($remaining !== null): ?>

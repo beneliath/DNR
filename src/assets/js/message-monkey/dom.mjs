@@ -1,6 +1,16 @@
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 export const clone = value => JSON.parse(JSON.stringify(value));
+export function referenceLabel(value) {
+    const label = String(value ?? '').replaceAll('_', ' ').replace(
+        /(^|[\s-])([a-z])/g,
+        (_, prefix, letter) => prefix + letter.toUpperCase()
+    );
+    return label.replace(
+        /(\S\s)(a|an|and|as|at|by|for|from|in|into|of|on|or|the|to|with)(?=\s\S)/gi,
+        (_, prefix, word) => prefix + word.toLowerCase()
+    );
+}
 export const el = (tag, attrs = {}, text) => {
     const node = document.createElement(tag);
     if (['form', 'input', 'textarea'].includes(tag)) node.setAttribute('autocomplete', 'off');

@@ -25,8 +25,8 @@ if ($screen === 'home') {
     $showDrafts = false;
     $rangeKey = 'last30';
     $presets = [
-        'last30'=>['label'=>'Last 30 days', 'start'=>'2024-02-01', 'end'=>'2024-03-01'],
-        'last7'=>['label'=>'Last 7 days', 'start'=>'2024-02-24', 'end'=>'2024-03-01'],
+        'last30'=>['label'=>'Last 30 Days', 'start'=>'2024-02-01', 'end'=>'2024-03-01'],
+        'last7'=>['label'=>'Last 7 Days', 'start'=>'2024-02-24', 'end'=>'2024-03-01'],
     ];
     $window = $presets[$rangeKey] + ['bots'=>'filtered'];
     $h = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');

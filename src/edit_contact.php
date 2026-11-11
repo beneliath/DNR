@@ -551,7 +551,7 @@ try {
                 <div class="contact-form-organization-selector">
                     <div class="form-group">
                         <label for="primary-organization-search">Find an Organization</label>
-                        <input type="search" id="primary-organization-search" placeholder="Find an organization" aria-label="Find an organization for Primary Organization" data-relationship-search-input>
+                        <input type="search" id="primary-organization-search" placeholder="Find an Organization" aria-label="Find an Organization for Primary Organization" data-relationship-search-input>
                     </div>
                     <div class="form-group contact-form-primary-organization">
                         <label for="organization_id">Primary Organization</label>

@@ -92,6 +92,7 @@
         // Runs after the form's existing date/presentation validation listeners.
         document.addEventListener('submit', async function (event) {
             if (event.target !== form || event.defaultPrevented) return;
+            if (form.elements.namedItem('presentation_not_required')?.checked) return;
             if (ready) {
                 if (finalEvent) event.preventDefault();
                 else finalEvent = event;

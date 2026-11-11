@@ -22,7 +22,7 @@
     popover.setAttribute('aria-describedby', 'calendar-day-popover-summary');
     popover.innerHTML = '<div class="calendar-day-popover-heading"><div>'
         + '<h3 id="calendar-day-popover-title"></h3><p id="calendar-day-popover-summary"></p>'
-        + '</div><button type="button" class="calendar-day-popover-close" aria-label="Close expanded day">Close</button></div>'
+        + '</div><button type="button" class="calendar-day-popover-close" aria-label="Close Expanded Day">Close</button></div>'
         + '<div class="calendar-day-popover-items"></div>';
     document.body.appendChild(popover);
     const popoverItems = popover.querySelector('.calendar-day-popover-items');
@@ -50,7 +50,7 @@
             popoverItems.replaceChildren(...Array.from(items.children, item => item.cloneNode(true)));
             popoverItems.scrollTop = 0;
             popover.querySelector('h3').textContent = trigger.querySelector('time').getAttribute('aria-label');
-            popover.querySelector('p').textContent = `${items.children.length} ${items.children.length === 1 ? 'item' : 'items'}`;
+            popover.querySelector('p').textContent = `${items.children.length} ${items.children.length === 1 ? 'Item' : 'Items'}`;
             trigger.setAttribute('aria-expanded', 'true');
             popover.hidden = false;
             const anchor = trigger.getBoundingClientRect();
@@ -105,7 +105,7 @@
                 trigger.appendChild(indicator);
             }
             const count = items.children.length;
-            const label = `View ${count} ${count === 1 ? 'item' : 'items'} for ${trigger.querySelector('time').getAttribute('aria-label')}`;
+            const label = `View ${count} ${count === 1 ? 'Item' : 'Items'} for ${trigger.querySelector('time').getAttribute('aria-label')}`;
             trigger.setAttribute('aria-label', label);
         });
     }
@@ -192,7 +192,7 @@
         const info = months.get(month);
         viewer.querySelector('#calendar-month-title').textContent = info.title;
         viewer.querySelector('.calendar-month-heading-copy .calendar-month-summary').textContent = info.summary;
-        viewport.setAttribute('aria-label', `${info.title} calendar; scroll to explore adjacent weeks`);
+        viewport.setAttribute('aria-label', `${info.title} Calendar; Scroll to Explore Adjacent Weeks`);
         viewport.querySelector('caption').textContent = `${info.title} and surrounding weeks`;
         const links = viewer.querySelectorAll('.calendar-desktop-navigation a');
         [ [links[0], adjacentMonth(month, -1)], [links[2], adjacentMonth(month, 1)] ].forEach(([link, target]) => {
@@ -221,12 +221,12 @@
             url.searchParams.set('show', viewer.dataset.mode);
             url.searchParams.set('fragment', 'calendar');
             const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
-            if (!response.ok || response.redirected) throw new Error('Calendar unavailable');
+            if (!response.ok || response.redirected) throw new Error('Calendar Unavailable');
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             const source = page.getElementById('event-calendar');
-            if (!source || source.dataset.month !== month || !source.querySelector('tbody')) throw new Error('Calendar unavailable');
+            if (!source || source.dataset.month !== month || !source.querySelector('tbody')) throw new Error('Calendar Unavailable');
             const rows = Array.from(source.querySelectorAll('.calendar-month-table tbody tr[data-week]'));
-            if (!rows.length) throw new Error('Calendar unavailable');
+            if (!rows.length) throw new Error('Calendar Unavailable');
             const existing = new Map(Array.from(body.rows, row => [row.dataset.week, row]));
             const top = viewport.getBoundingClientRect().top + viewport.querySelector('thead').getBoundingClientRect().height;
             const anchor = Array.from(body.rows).find(row => row.getBoundingClientRect().bottom > top + 12) || body.firstElementChild;

@@ -246,7 +246,7 @@ $task_status_labels = followUpTaskStatuses();
                                 <span><?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars(dashboardDateRangeLabel($engagement['event_start_date'], $engagement['event_end_date']), ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                             <div class="dashboard-record-meta">
-                                <?php if ($issues !== []): ?><span class="dashboard-issue-count"><?php echo count($issues); ?> detail<?php echo count($issues) === 1 ? '' : 's'; ?> needed</span><?php endif; ?>
+                                <?php if ($issues !== []): ?><span class="dashboard-issue-count"><?php echo count($issues); ?> Detail<?php echo count($issues) === 1 ? '' : 's'; ?> Needed</span><?php endif; ?>
                                 <span class="dashboard-status dashboard-status-<?php echo htmlspecialchars($status_class, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(dashboardConfirmationStatusLabel($engagement['confirmation_status']), ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                         </li>
@@ -311,7 +311,7 @@ $task_status_labels = followUpTaskStatuses();
         </section>
     </div>
     <details class="dashboard-pipeline-disclosure">
-        <summary>Booking Pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
+        <summary>Booking Pipeline <span><?php echo $booking_inquiry_count; ?> Active Inquiries · <?php echo $booking_pipeline_health['overdue']; ?> Overdue Next Actions</span></summary>
     <div class="dashboard-inquiry-grid">
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">

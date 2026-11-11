@@ -29,7 +29,7 @@ function bookingInquiryDateLabel(array $inquiry): string
     return $startDate->format('M j, Y') . '–' . $endDate->format('M j, Y');
 }
 
-function bookingInquirySingleDateLabel(mixed $value, string $fallback = 'Not set'): string
+function bookingInquirySingleDateLabel(mixed $value, string $fallback = 'Not Set'): string
 {
     $dateValue = trim((string) $value);
     $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateValue);

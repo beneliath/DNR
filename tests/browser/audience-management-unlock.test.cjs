@@ -36,7 +36,7 @@ const views=process.argv.slice(2);if(views.some(view=>!Object.hasOwn(actions,vie
    for(const role of ['editor','reviewer']){
     await page.goto(`https://management.test/audience.php?view=content&role=${role}`);assert.equal(await page.locator('#content-folder [value=delete]').count(),0);checks++;
     if(role==='editor'){
-     await page.getByRole('button',{name:'Manage folders',exact:true}).click();assert.equal(await folders.getByRole('button',{name:'Create folder',exact:true}).isVisible(),true);await folders.locator('[name=new_name]').fill('Renamed photos');
+     await page.getByRole('button',{name:'Manage folders',exact:true}).click();assert.equal(await folders.getByRole('button',{name:'Create Folder',exact:true}).isVisible(),true);await folders.locator('[name=new_name]').fill('Renamed photos');
      unlocked=false;await folders.getByRole('button',{name:'Rename',exact:true}).click();await page.getByText('Protected fixture submitted',{exact:true}).waitFor();assert.equal(posts.at(-1).operation,'rename');assert.equal(posts.at(-1).new_name,'Renamed photos');checks+=3;
     }
    }
@@ -57,7 +57,7 @@ const views=process.argv.slice(2);if(views.some(view=>!Object.hasOwn(actions,vie
    await edit.click();const editor=page.locator('#field-editor');await editor.waitFor({state:'visible'});assert.equal(await editor.locator('[name=label]').inputValue(),'Interest');await editor.getByRole('button',{name:'Cancel',exact:true}).click();checks+=5;
   }
   const triggerRemove=async()=>{await remove().click();};
-  const unlock=page.locator('#admin-unlock-dialog'),confirmation=page.getByRole('dialog',{name:'Confirm action',exact:true});
+  const unlock=page.locator('#admin-unlock-dialog'),confirmation=page.getByRole('dialog',{name:'Confirm Action',exact:true});
   const authenticate=async()=>{await unlock.locator('[name=admin_password]').fill('fixture-password');await unlock.locator('[name=admin_code]').fill('123456');await unlock.locator('[data-unlock-submit]').click();};
   await triggerRemove();await unlock.waitFor({state:'visible'});assert.equal(posts.length,0);await unlock.locator('[data-unlock-cancel]').click();checks++;
   await triggerRemove();await authenticate();await confirmation.waitFor({state:'visible'});unlocked=false;await confirmation.getByRole('button',{name:'Continue',exact:true}).click();await unlock.waitFor({state:'visible'});assert.equal(posts.length,0);await unlock.locator('[data-unlock-cancel]').click();checks++;
@@ -65,7 +65,7 @@ const views=process.argv.slice(2);if(views.some(view=>!Object.hasOwn(actions,vie
   if(view==='groups'){
    for(const role of ['editor','reviewer']){await page.goto(`https://management.test/audience.php?view=groups&role=${role}`);assert.equal(await page.locator('[data-audience-protected-form]').count(),0);assert.equal(await page.locator('.audience-group-grid [data-group-edit]').count(),role==='editor'?3:0);checks++;}
    await page.goto('https://management.test/audience.php?view=tags');await page.locator('#unsubscribe-emails').evaluate(el=>el.showModal());
-   assert.equal(await page.locator('#unsubscribe-emails [name=action]').inputValue(),'unsubscribe_emails');assert.equal(await page.locator('#unsubscribe-emails [name=emails]').count(),1);assert.equal(await page.getByRole('button',{name:'Unsubscribe',exact:true}).isVisible(),true);checks++;
+   assert.equal(await page.locator('#unsubscribe-emails [name=action]').inputValue(),'unsubscribe_emails');assert.equal(await page.locator('#unsubscribe-emails [name=emails]').count(),1);assert.equal(await page.getByRole('button',{name:'unsubscribe',exact:true}).isVisible(),true);checks++;
    await page.goto('https://management.test/audience.php?view=add-person');await page.locator('#add-person').evaluate(el=>el.showModal());await page.locator('.additional-person-details>summary').click();
    const tags=page.locator('.audience-contact-tags');await tags.scrollIntoViewIfNeeded();const tagBoxes=await tags.locator('label').evaluateAll(nodes=>nodes.slice(0,2).map(n=>({x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y})));assert.equal(tagBoxes[0].x===tagBoxes[1].x,width===390);assert.equal(await tags.evaluate(el=>el.scrollWidth>el.clientWidth),false);await tags.locator('input').first().check();assert.equal(await tags.locator('input').first().isChecked(),true);checks+=3;
    if(process.env.DNR_REVIEW_OUTPUT)await page.screenshot({path:path.join(process.env.DNR_REVIEW_OUTPUT,`connection-tags-${width}-${dark?'dark':'light'}.png`)});

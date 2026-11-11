@@ -94,7 +94,7 @@ try{
     };
     $adminClient=$makeClient($adminUsername,$adminPassword);
     $adminProfile=$adminClient('audience.php?view=contact&id='.$contact['id']);
-    $expect($adminProfile['status']===200&&str_contains($adminProfile['body'],'Interaction locations')&&str_contains($adminProfile['body'],'Signup submitted')&&str_contains($adminProfile['body'],'Survey submitted')&&str_contains($adminProfile['body'],'Preferences updated')&&str_contains($adminProfile['body'],'Tracked email activity may reflect a mail service or scanner')&&str_contains($adminProfile['body'],'IP address: 127.0.0.1'),'Editors and administrators can review verified addresses on the connection profile');
+    $expect($adminProfile['status']===200&&str_contains($adminProfile['body'],'Interaction locations')&&str_contains($adminProfile['body'],'Signup Submitted')&&str_contains($adminProfile['body'],'Survey Submitted')&&str_contains($adminProfile['body'],'Preferences Updated')&&str_contains($adminProfile['body'],'Tracked email activity may reflect a mail service or scanner')&&str_contains($adminProfile['body'],'IP address: 127.0.0.1'),'Editors and administrators can review verified addresses on the connection profile');
     $reviewerUsername='public-security-reviewer-'.bin2hex(random_bytes(6));$reviewerPassword=bin2hex(random_bytes(16));
     $db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$reviewerUsername,password_hash($reviewerPassword,PASSWORD_DEFAULT),'reviewer']);
     $reviewerClient=$makeClient($reviewerUsername,$reviewerPassword);

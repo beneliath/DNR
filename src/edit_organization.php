@@ -334,14 +334,14 @@ try {
             <div class="form-group">
                 <label for="phone">Phone</label>
                 <div class="phone-input-group" data-phone-input-group>
-                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
+                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization Phone Country Code'); ?>
                     <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                 </div>
             </div>
             <div class="form-group">
                 <label for="fax">Fax</label>
                 <div class="phone-input-group" data-phone-input-group>
-                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
+                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization Fax Country Code'); ?>
                     <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
                 </div>
             </div>

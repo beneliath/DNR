@@ -71,7 +71,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 <label for="question">Question (Remove Names and Private Record Details)</label><textarea id="question" name="question" rows="3" maxlength="1200" required><?php echo $escape($record['question']); ?></textarea>
 <div class="coach-improvement-fields">
 <?php foreach (['category'=>aiCoachImprovementCategories(),'user_role'=>['admin'=>'Administrator','editor'=>'Editor','reviewer'=>'Reviewer'],'page_path'=>aiCoachPages(),'guided_step'=>[''=>'No Active Walkthrough']+aiCoachSteps(),'expected_workflow'=>[''=>'No Required Walkthrough']+array_map(static fn($w)=>$w['title'],aiCoachWorkflows()),'status'=>['draft'=>'Draft','approved'=>'Approved']] as $key=>$options): ?>
-<div><label for="<?php echo $key; ?>"><?php echo $escape(ucfirst(str_replace('_',' ',$key))); ?></label><select id="<?php echo $key; ?>" name="<?php echo $key; ?>"><?php foreach ($options as $value=>$label): ?><option value="<?php echo $escape($value); ?>"<?php echo $record[$key]===$value ? ' selected' : ''; ?>><?php echo $escape(is_array($label) ? ($label['title'] ?? $value) : $label); ?></option><?php endforeach; ?></select></div>
+<div><label for="<?php echo $key; ?>"><?php echo $escape(\Dnr\Domain\ReferenceData::label(str_replace('_',' ',$key))); ?></label><select id="<?php echo $key; ?>" name="<?php echo $key; ?>"><?php foreach ($options as $value=>$label): ?><option value="<?php echo $escape($value); ?>"<?php echo $record[$key]===$value ? ' selected' : ''; ?>><?php echo $escape(is_array($label) ? ($label['title'] ?? $value) : $label); ?></option><?php endforeach; ?></select></div>
 <?php endforeach; ?>
 </div>
 <label for="expected_guidance">Verified Expected Guidance</label><textarea id="expected_guidance" name="expected_guidance" rows="6" maxlength="2000" required><?php echo $escape($record['expected_guidance']); ?></textarea>
@@ -80,8 +80,8 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 <label for="<?php echo $key; ?>"><?php echo $label; ?></label><textarea id="<?php echo $key; ?>" name="<?php echo $key; ?>" rows="3" maxlength="3000"><?php echo $escape(implode("\n", json_decode($record[$key],true) ?: [])); ?></textarea>
 <?php endforeach; ?>
 <details><summary>Find Current Comprehensive Manual Topic IDs</summary><ul class="coach-topic-list"><?php foreach (aiCoachManualTopics() as $topic): ?><li><a href="<?php echo $escape('assets/docs/moed-comprehensive-user-manual.pdf#page=' . (int)$topic['page']); ?>"><?php echo $escape($topic['title']); ?></a> <code><?php echo $escape($topic['id']); ?></code></li><?php endforeach; ?></ul></details>
-<label class="coach-check"><input type="checkbox" name="verified" value="1"> I checked this guidance against the current application and manual</label>
-<label class="coach-check"><input type="checkbox" name="redacted" value="1"> This case contains no private names, record details, credentials, or personal data</label>
+<label class="coach-check"><input type="checkbox" name="verified" value="1"> I Checked This Guidance Against the Current Application and Manual</label>
+<label class="coach-check"><input type="checkbox" name="redacted" value="1"> This Case Contains No Private Names, Record Details, Credentials, or Personal Data</label>
 <button class="button-primary" type="submit" data-pending-reminder="coach-improvement">Save Improvement</button> <a class="button-secondary" href="ai_coach_improvements.php">All Improvements</a>
 </form></section>
 <?php else: ?>
@@ -103,7 +103,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 <h2>Verified Guidance Cases</h2>
 <p><a class="button-primary" href="ai_coach_improvements.php?new=1">New Improvement</a> <a class="button-secondary" href="ai_coach_improvements.php?export=1">Export Approved Test Cases</a></p>
 <div class="data-table-scroll coach-request-table-wrapper"><table class="data-table coach-request-table"><thead><tr><th scope="col">Question</th><th scope="col">Issue</th><th scope="col">Status</th></tr></thead><tbody>
-<?php foreach ($rows as $row): ?><tr><td><a class="coach-request-question" href="ai_coach_improvements.php?id=<?php echo (int)$row['id']; ?>"><?php echo $escape($row['question']); ?></a></td><td><?php echo $escape(aiCoachImprovementCategories()[$row['category']] ?? $row['category']); ?></td><td><?php echo $escape($row['status']==='approved' && $row['guidance_revision']!==aiCoachGuidanceRevision() ? 'Needs revalidation' : ucfirst($row['status'])); ?></td></tr><?php endforeach; ?>
+<?php foreach ($rows as $row): ?><tr><td><a class="coach-request-question" href="ai_coach_improvements.php?id=<?php echo (int)$row['id']; ?>"><?php echo $escape($row['question']); ?></a></td><td><?php echo $escape(aiCoachImprovementCategories()[$row['category']] ?? $row['category']); ?></td><td><?php echo $escape($row['status']==='approved' && $row['guidance_revision']!==aiCoachGuidanceRevision() ? 'Needs revalidation' : \Dnr\Domain\ReferenceData::label($row['status'])); ?></td></tr><?php endforeach; ?>
 <?php if (!$rows): ?><tr><td colspan="3" class="coach-request-empty">No improvements yet. Start from a problem response in the request log or create a new case.</td></tr><?php endif; ?>
 </tbody></table></div>
 <?php endif; ?></main><?php include 'templates/footer.php'; ?></body></html>

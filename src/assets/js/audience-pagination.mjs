@@ -18,7 +18,7 @@ export function wireAudiencePagination(root = document) {
   });
 }
 
-export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, onChange, label = 'Results pages'}) {
+export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, onChange, label = 'Results Pages'}) {
   const key = preferenceKey(label);
   if (key && host.dataset.mmPageSizePreference !== key) {
     host.dataset.mmPageSizePreference = key;
@@ -35,7 +35,7 @@ export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, 
   };
   host.replaceChildren();host.classList.add('mm-pagination');host.dataset.mmPagination = '';
   host.setAttribute('role', 'navigation');host.setAttribute('aria-label', label);
-  const size = node('div', undefined, 'mm-pagination-size'), sizeLabel = node('label', 'Items per page '), select = node('select');
+  const size = node('div', undefined, 'mm-pagination-size'), sizeLabel = node('label', 'Items Per Page '), select = node('select');
   [...new Set([...audiencePageSizes, pageSize])].sort((a,b)=>a-b).forEach(value => {
     const option = node('option', String(value));option.value = value;option.selected = value === pageSize;select.append(option);
   });
@@ -49,8 +49,8 @@ export function renderAudiencePagination(host, {total, page = 1, pageSize = 25, 
   const range = node('span', `${total ? format((page-1)*pageSize+1)+'–'+format(Math.min(page*pageSize,total)) : '0'} of ${format(total)}`, 'mm-pagination-range');
   range.setAttribute('aria-live', 'polite');
   const controls = node('div', undefined, 'mm-pagination-controls');
-  for (const [name, iconPath, target, enabled] of [['Previous page','M20 12H4m7-7-7 7 7 7',page-1,page>1],['Next page','M4 12h16m-7-7 7 7-7 7',page+1,page<pages]]) {
-    if (name === 'Next page') controls.append(node('span', `${page} / ${pages}`, 'mm-pagination-page'));
+  for (const [name, iconPath, target, enabled] of [['Previous Page','M20 12H4m7-7-7 7 7 7',page-1,page>1],['Next Page','M4 12h16m-7-7 7 7-7 7',page+1,page<pages]]) {
+    if (name === 'Next Page') controls.append(node('span', `${page} / ${pages}`, 'mm-pagination-page'));
     const button = node('button', undefined, 'mm-pagination-arrow');button.type = 'button';button.disabled = !enabled;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');svg.setAttribute('aria-hidden', 'true');svg.setAttribute('focusable', 'false');

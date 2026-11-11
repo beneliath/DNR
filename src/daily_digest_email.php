@@ -129,7 +129,7 @@ function renderDailyTaskDigestText(
         'Here is your ' . $brandName . ' operations view for '
             . digestDisplayDate($businessDate) . '.',
         '',
-        'DASHBOARD SUMMARY',
+        'Dashboard Summary',
         '- Engagements, Next ' . $dashboardDays . ' Days: ' . $upcomingCount,
         '- My Active Work: ' . (int) ($taskSummary['active'] ?? 0),
         '- My Overdue Work: ' . (int) ($taskSummary['overdue'] ?? 0),
@@ -137,11 +137,11 @@ function renderDailyTaskDigestText(
         '- Financial Closeouts: ' . $closeoutCount,
     ];
     if ($canManage) {
-        $lines[] = '- Mail For Review: ' . $inboundCount;
+        $lines[] = '- Mail for Review: ' . $inboundCount;
     }
 
     $lines[] = '';
-    $lines[] = 'UPCOMING ENGAGEMENTS (' . $upcomingCount . ')';
+    $lines[] = 'Upcoming Engagements (' . $upcomingCount . ')';
     if ($upcoming === []) {
         $lines[] = '- No upcoming engagements.';
     } else {
@@ -162,7 +162,7 @@ function renderDailyTaskDigestText(
     }
 
     $lines[] = '';
-    $lines[] = 'MY WORK (' . (int) ($taskSummary['active'] ?? 0) . ')';
+    $lines[] = 'My Work (' . (int) ($taskSummary['active'] ?? 0) . ')';
     if ($myTasks === []) {
         $lines[] = '- No active assigned work. You are caught up.';
     } else {
@@ -172,12 +172,12 @@ function renderDailyTaskDigestText(
             $status = (string) ($task['status'] ?? 'open');
             $priority = (string) ($task['priority'] ?? 'normal');
             $lines[] = '- [' . ($priorityLabels[$priority] ?? ucfirst($priority))
-                . ' · ' . ($statusLabels[$status] ?? ucfirst($status)) . '] '
+                . ' · ' . ($statusLabels[$status] ?? \Dnr\Domain\ReferenceData::label($status)) . '] '
                 . trim((string) ($task['title'] ?? 'Task')) . ' — '
                 . $dueState['label'];
             $waitingOn = trim((string) ($task['waiting_on'] ?? ''));
             if ($waitingOn !== '') {
-                $lines[] = '  Waiting on: ' . $waitingOn;
+                $lines[] = '  Waiting On: ' . $waitingOn;
             }
             $lines[] = '  Related: ' . (string) ($subject['label'] ?? applicationGeneralWorkLabel())
                 . ' — ' . applicationPublicUrl((string) ($subject['url'] ?? 'tasks.php'));
@@ -195,7 +195,7 @@ function renderDailyTaskDigestText(
     }
 
     $lines[] = '';
-    $lines[] = 'EVENT READINESS (' . count($readiness) . ')';
+    $lines[] = 'Event Readiness (' . count($readiness) . ')';
     if ($readiness === []) {
         $lines[] = '- Upcoming records are ready.';
     } else {
@@ -213,7 +213,7 @@ function renderDailyTaskDigestText(
     }
 
     $lines[] = '';
-    $lines[] = 'FINANCIAL CLOSEOUTS (' . $closeoutCount . ')';
+    $lines[] = 'Financial Closeouts (' . $closeoutCount . ')';
     if ($closeouts === []) {
         $lines[] = '- Closeouts are current.';
     } else {
@@ -416,7 +416,7 @@ function renderDailyTaskDigestHtml(
                                         <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;text-decoration:none;">
                                             <img class="masthead-logo" src="<?php echo $mastheadLogoUrl; ?>" alt="<?php echo dailyTaskDigestHtmlEscape(applicationBrandLabel()); ?>" width="227" height="39" border="0" style="display:block;width:227px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
                                         </a>
-                                        <div style="margin-top:7px;color:#8992a3;font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;">Daily operations</div>
+                                        <div style="margin-top:7px;color:#8992a3;font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:none;">Daily Operations</div>
                                     </td>
                                     <td align="right" class="masthead-action" style="vertical-align:middle;">
                                         <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;padding:9px 13px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:12px;font-weight:700;">Open Dashboard</a>
@@ -631,7 +631,7 @@ function renderDailyTaskDigestHtml(
                                         <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Upcoming records and completed events that still need an operational decision.</p>
                                     </td>
                                     <?php if ($canManage && $inboundReviewCount > 0): ?>
-                                        <td align="right" class="hide-mobile" style="padding-left:12px;"><a href="<?php echo $inboundUrl; ?>" style="<?php echo $compactPillStyle; ?>border:1px solid #d7b36a;background:#fff3d8;color:#843600;line-height:14px;"><?php echo $inboundReviewCount; ?> message<?php echo $inboundReviewCount === 1 ? '' : 's'; ?> awaiting review</a></td>
+                                        <td align="right" class="hide-mobile" style="padding-left:12px;"><a href="<?php echo $inboundUrl; ?>" style="<?php echo $compactPillStyle; ?>border:1px solid #d7b36a;background:#fff3d8;color:#843600;line-height:14px;"><?php echo $inboundReviewCount; ?> Message<?php echo $inboundReviewCount === 1 ? '' : 's'; ?> Awaiting Review</a></td>
                                     <?php endif; ?>
                                 </tr>
                             </table>

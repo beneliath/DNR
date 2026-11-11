@@ -103,24 +103,24 @@ $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($windo
         }
         $overview = $store->analyticsOverview($windows);
         $rows = $store->analyticsContentPatterns($windows, $overview);
-        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 characters'
+        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 Characters'
             && $rows[0]['accepted']===12 && $rows[0]['previous']['accepted']===12,
             'A different subject in June cannot change either October cohort');
 
         $store->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?',
             [Dnr\Security\ApplicationKey::seal(json_encode(['draft'=>['subject'=>str_repeat('x', 71)]], JSON_THROW_ON_ERROR)), $deliveries[1]]);
         $rows = array_column($store->analyticsContentPatterns($windows, $overview), null, 'label');
-        audienceHttpExpect(count($rows)===2 && $rows['Up to 40 characters']['accepted']===12
-            && $rows['Up to 40 characters']['previous']===null && $rows['Over 70 characters']['accepted']===0
-            && $rows['Over 70 characters']['previous']['accepted']===12, 'Each period retains its own subject length and counts');
+        audienceHttpExpect(count($rows)===2 && $rows['Up to 40 Characters']['accepted']===12
+            && $rows['Up to 40 Characters']['previous']===null && $rows['Over 70 Characters']['accepted']===0
+            && $rows['Over 70 Characters']['previous']['accepted']===12, 'Each period retains its own subject length and counts');
         $currentOnly = $store->analyticsContentPatterns(array_replace($windows, ['compare'=>'none']), $overview);
-        audienceHttpExpect(count($currentOnly)===1 && $currentOnly[0]['label']==='Up to 40 characters'
+        audienceHttpExpect(count($currentOnly)===1 && $currentOnly[0]['label']==='Up to 40 Characters'
             && $currentOnly[0]['previous']===null, 'Turning comparison off shows only current subjects');
 
         $store->write('UPDATE marketing_campaign_recipients SET accepted_at=? WHERE delivery_id=? ORDER BY id LIMIT 1',
             ['2025-10-01', $deliveries[0]]);
         $rows = array_column($store->analyticsContentPatterns($windows, $store->analyticsOverview($windows)), null, 'label');
-        audienceHttpExpect($rows['Up to 40 characters']['accepted']===11 && $rows['Multiple subjects']['previous']['accepted']===13,
+        audienceHttpExpect($rows['Up to 40 Characters']['accepted']===11 && $rows['Multiple Subjects']['previous']['accepted']===13,
             'A delivery with recipients accepted in both windows contributes its subject to both');
     } finally {
         $store->db->rollback();
@@ -146,7 +146,7 @@ $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($windo
         $overview = $store->analyticsOverview($scope);
         $db->query('SET SESSION max_execution_time=5000');
         $rows = $store->analyticsContentPatterns($scope, $overview);
-        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 characters' && $rows[0]['accepted']===7212, 'A 7,200-recipient newsletter renders within the query budget and preserves its exact cohort');
+        audienceHttpExpect(count($rows)===1 && $rows[0]['label']==='Up to 40 Characters' && $rows[0]['accepted']===7212, 'A 7,200-recipient newsletter renders within the query budget and preserves its exact cohort');
         $before = (int)$db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1];
         $cached = $store->analyticsContentPatterns($scope, $overview);
         $queries = (int)$db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch_row()[1] - $before;
@@ -154,10 +154,10 @@ $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($windo
         $snapshot['draft']['subject'] = str_repeat('Long subject ', 8);
         $store->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?', [Dnr\Security\ApplicationKey::seal(json_encode($snapshot, JSON_THROW_ON_ERROR)), $delivery['id']]);
         $changed = $store->analyticsContentPatterns($scope, $overview);
-        audienceHttpExpect($changed[0]['label']==='Over 70 characters' && $changed[0]['accepted']===7212, 'Replacing immutable content invalidates its cached subject without caching receipt totals');
+        audienceHttpExpect($changed[0]['label']==='Over 70 Characters' && $changed[0]['accepted']===7212, 'Replacing immutable content invalidates its cached subject without caching receipt totals');
         $store->write("UPDATE marketing_campaign_deliveries SET snapshot_ciphertext='unreadable' WHERE id=?", [$delivery['id']]);
         $unknown = $store->analyticsContentPatterns($scope, $overview);
-        audienceHttpExpect($unknown[0]['label']==='Subject unavailable' && $unknown[0]['accepted']===7212, 'Unreadable content must not reuse a cached subject or lose its accepted cohort');
+        audienceHttpExpect($unknown[0]['label']==='Subject Unavailable' && $unknown[0]['accepted']===7212, 'Unreadable content must not reuse a cached subject or lose its accepted cohort');
     } finally {
         $db->rollback();
         $db->query('SET SESSION max_execution_time='.$originalLimit);
@@ -238,8 +238,8 @@ audienceHttpExpect($editor('audience.php?view=analytics&section=activity&activit
         audienceHttpExpect($send($clients['queue-editor'],'archive',1)['status']===403&&$send($reviewer,'archive',1)['status']===403,'Other editors and reviewers cannot archive a private report');
         audienceHttpExpect($send($editor,'archive',1)['status']===303&&!str_contains($editor($list)['body'],'Archive report '.$name),'Archiving removes the report from Active');
         $editorArchive=$editor($archive)['body'];$adminArchive=$admin($archive)['body'];
-        audienceHttpExpect(str_contains($editorArchive,'Restore report '.$name)&&!str_contains($editorArchive,'Permanently delete report '.$name)
-            &&str_contains($adminArchive,'data-audience-protected-form data-admin-unlock-required')&&str_contains($adminArchive,'Permanently delete report '.$name),'Archive offers restore to owners and confirmed Admin Unlock deletion only to administrators');
+        audienceHttpExpect(str_contains($editorArchive,'Restore report '.$name)&&!str_contains($editorArchive,'Permanently Delete Report '.$name)
+            &&str_contains($adminArchive,'data-audience-protected-form data-admin-unlock-required')&&str_contains($adminArchive,'Permanently Delete Report '.$name),'Archive offers restore to owners and confirmed Admin Unlock deletion only to administrators');
         audienceHttpExpect($send($editor,'restore',2)['status']===303&&$campaignStore->analyticsSavedReport($httpId,true)['definition']===$before['definition'],'Restore returns the same report and definition to Active');
         $send($editor,'archive',3);
         audienceHttpExpect($send($editor,'purge',4)['status']===403&&$send($reviewer,'purge',4)['status']===403,'Direct permanent deletion is administrator-only');

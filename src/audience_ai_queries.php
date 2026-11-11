@@ -23,17 +23,17 @@ final class AudienceAiQueries
     public function __construct(private readonly AudienceStore $store,private readonly array $window)
     {
         $this->fields=[
-            'first_name'=>['label'=>'First name','type'=>'text','sql'=>'c.first_name'],
-            'last_name'=>['label'=>'Last name','type'=>'text','sql'=>'c.last_name'],
-            'full_name'=>['label'=>'Full name','type'=>'text','sql'=>"TRIM(CONCAT(c.first_name,' ',c.last_name))"],
-            'email'=>['label'=>'Email address','type'=>'text','sql'=>'c.email'],
-            'email_domain'=>['label'=>'Email domain','type'=>'text','sql'=>"SUBSTRING_INDEX(c.email,'@',-1)"],
-            'email_status'=>['label'=>'Email subscription status','type'=>'choice','enum'=>AUDIENCE_STATUSES,'sql'=>'c.email_status'],
-            'source'=>['label'=>'Signup source','type'=>'text','sql'=>'c.source'],
+            'first_name'=>['label'=>'First Name','type'=>'text','sql'=>'c.first_name'],
+            'last_name'=>['label'=>'Last Name','type'=>'text','sql'=>'c.last_name'],
+            'full_name'=>['label'=>'Full Name','type'=>'text','sql'=>"TRIM(CONCAT(c.first_name,' ',c.last_name))"],
+            'email'=>['label'=>'Email Address','type'=>'text','sql'=>'c.email'],
+            'email_domain'=>['label'=>'Email Domain','type'=>'text','sql'=>"SUBSTRING_INDEX(c.email,'@',-1)"],
+            'email_status'=>['label'=>'Email Subscription Status','type'=>'choice','enum'=>AUDIENCE_STATUSES,'sql'=>'c.email_status'],
+            'source'=>['label'=>'Signup Source','type'=>'text','sql'=>'c.source'],
             'language'=>['label'=>'Language','type'=>'text','sql'=>'c.language'],
-            'timezone'=>['label'=>'Time zone','type'=>'text','sql'=>'c.timezone'],
-            'created_at'=>['label'=>'Date added','type'=>'date','sql'=>'DATE(c.created_at)'],
-            'updated_at'=>['label'=>'Last changed','type'=>'date','sql'=>'DATE(c.updated_at)'],
+            'timezone'=>['label'=>'Time Zone','type'=>'text','sql'=>'c.timezone'],
+            'created_at'=>['label'=>'Date Added','type'=>'date','sql'=>'DATE(c.created_at)'],
+            'updated_at'=>['label'=>'Last Changed','type'=>'date','sql'=>'DATE(c.updated_at)'],
         ];
         foreach($store->fields()as$field){
             if(!in_array($field['field_type'],['text','number','date','birthday','address','phone','url','dropdown','radio'],true))continue;
@@ -99,7 +99,7 @@ final class AudienceAiQueries
         $reports['email']['dimensions']=[...$reports['email']['dimensions'],'country','device','links'];
         $reports['email']['scope']=self::EMAIL_REPORT_SCOPE;
         foreach(['email'=>'Email campaign sending, delivery, opens and clicks.','audience'=>'Contact list growth, additions, subscriptions and unsubscribes.','forms'=>'Signup form visits, submissions and confirmed subscriptions.','flows'=>'Automation flow runs and completion.']as$dataset=>$description)$reports[$dataset]['description']=$description;
-        $reports['email']['tracking_dimensions']=['country'=>'Geographic distribution of observed email engagement','device'=>'Observed email engagement by device category','links'=>'Messages with observed clicks by tracked link'];
+        $reports['email']['tracking_dimensions']=['country'=>'Geographic Distribution of Observed Email Engagement','device'=>'Observed Email Engagement by Device Category','links'=>'Messages with Observed Clicks by Tracked Link'];
         $shapes[]=$shape(array_replace($reportProperties,['dataset'=>['type'=>'string','enum'=>['email']],'dimension'=>['type'=>'string','enum'=>['country','device','links']],'metrics'=>['type'=>'array','maxItems'=>0,'items'=>['type'=>'string']]]));
         return ['shapes'=>$shapes,'reports'=>$reports];
     }
@@ -356,7 +356,7 @@ final class AudienceAiQueries
             [$where,$params]=$this->scope($query);
             if($query['tool']==='contacts'){
                 $table=$this->contactPage($query,0);$table['id']=$prefix.'contacts';
-                $evidence['facts'][]=self::fact($prefix.'matches','Matching audience records',$table['total']);
+                $evidence['facts'][]=self::fact($prefix.'matches','Matching Audience Records',$table['total']);
                 $evidence['tables'][]=$table;
                 if($table['total']>1)$evidence['limitations'][]='Multiple contacts match. Show the saved matches; never choose an email address arbitrarily when identifying a person.';
                 if($table['truncated'])$evidence['limitations'][]='More matching records are available using the table’s pagination control.';
@@ -405,14 +405,14 @@ final class AudienceAiQueries
         [$where,$params]=$this->scope($query);
         $total=(int)$this->store->one("SELECT /*+ MAX_EXECUTION_TIME(1500) */ COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
         if($offset>=$total)$offset=max(0,(int)ceil($total/$query['limit'])-1)*$query['limit'];
-        $columns=[['key'=>'first_name','label'=>'First name'],['key'=>'last_name','label'=>'Last name'],['key'=>'email','label'=>'Email address']];
+        $columns=[['key'=>'first_name','label'=>'First Name'],['key'=>'last_name','label'=>'Last Name'],['key'=>'email','label'=>'Email Address']];
         $selection='c.id,c.first_name,c.last_name,c.email';
         $original=$this->fields[$query['field']]['original_field']??null;
         if($original){$selection.=',('.$this->fields[$original]['sql'].') original_value';$columns[]=['key'=>'original_value','label'=>$this->fields[$original]['label']];}
         if($query['field']!==''&&!in_array($query['field'],['first_name','last_name','email'],true)){$selection.=',('.$this->fields[$query['field']]['sql'].') requested_value';$columns[]=['key'=>'requested_value','label'=>$this->fields[$query['field']]['label']];}
         $limit=$query['limit'];$rows=$this->store->all("SELECT /*+ MAX_EXECUTION_TIME(1500) */ $selection FROM marketing_contacts c WHERE $where ORDER BY c.last_name,c.first_name,c.id LIMIT $limit OFFSET $offset",$params);
         $next=$offset+count($rows);
-        return ['title'=>'Matching audience records','columns'=>$columns,'rows'=>$rows,'total'=>$total,'shown'=>count($rows),'offset'=>$offset,'truncated'=>$next<$total,'next_offset'=>$next<$total&&$rows?$next:null];
+        return ['title'=>'Matching Audience Records','columns'=>$columns,'rows'=>$rows,'total'=>$total,'shown'=>count($rows),'offset'=>$offset,'truncated'=>$next<$total,'next_offset'=>$next<$total&&$rows?$next:null];
     }
 
     private function report(array $query,string $prefix,array &$evidence):void

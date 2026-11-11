@@ -433,9 +433,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
     <section class="engagement-card engagement-compact-overview" id="engagement-overview" aria-label="Engagement Overview">
         <dl class="engagement-overview-facts">
             <div><dt>Event Dates</dt><dd><?php echo htmlspecialchars(engagementViewDateRange($engagement['event_start_date'], $engagement['event_end_date'])); ?></dd></div>
-            <div><dt>Event Type</dt><dd><?php echo htmlspecialchars(ucwords($event_type_label)); ?></dd></div>
-            <div><dt>Event Contacts</dt><dd><a href="#engagement-contacts"><?php echo count($contacts); ?> assigned</a></dd></div>
-            <div><dt>Presentations</dt><dd><a href="#engagement-presentations"><?php echo count($presentations); ?> added</a></dd></div>
+            <div><dt>Event Type</dt><dd><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($event_type_label)); ?></dd></div>
+            <div><dt>Event Contacts</dt><dd><a href="#engagement-contacts"><?php echo count($contacts); ?> Assigned</a></dd></div>
+            <div><dt>Presentations</dt><dd><a href="#engagement-presentations"><?php echo !$presentations && !empty($engagement['presentation_not_required']) ? 'Not required' : count($presentations) . ' added'; ?></a></dd></div>
         </dl>
         <?php if (!empty($engagement['event_description'])): ?>
         <div class="engagement-description"><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></div>
@@ -633,7 +633,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             </div>
             <?php endforeach; ?>
             <?php if (!$presentations): ?>
-                <p class="engagement-card-empty">No presentations added yet. Details can be filled in later.</p>
+                <p class="engagement-card-empty"><?php echo !empty($engagement['presentation_not_required']) ? 'No presentation required for this event.' : 'No presentations added yet. Details can be filled in later.'; ?></p>
             <?php endif; ?>
             <?php if ($archived_presentation_count > 0): ?>
                 <div class="form-row">
@@ -736,7 +736,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div><small>Giving Received</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
                 <div><small>Lodging received</small><strong><?php echo formatFinancialAmount($financial_report['lodging_received']); ?></strong></div>
                 <div><small>Travel received</small><strong><?php echo formatFinancialAmount($financial_report['travel_received']); ?></strong></div>
-                <div><small>Book Table Received</small><strong><?php echo $financial_report['book_table_received'] === null ? 'Not recorded' : formatFinancialAmount($financial_report['book_table_received']); ?></strong></div>
+                <div><small>Book Table Received</small><strong><?php echo $financial_report['book_table_received'] === null ? 'Not Recorded' : formatFinancialAmount($financial_report['book_table_received']); ?></strong></div>
                 <div class="financial-total"><small>Total Received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
             </div>
             <?php
@@ -762,7 +762,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <table class="data-table"><thead><tr><th>Date / Actor</th><th>Giving</th><th>Lodging</th><th>Travel</th><th>Book Table</th><th>Reason</th></tr></thead><tbody>
                 <?php foreach ($financial_revisions as $revision): ?><tr>
                 <td><?php echo htmlspecialchars(formatUserTimestamp($revision['recorded_at'],'Y-m-d H:i T').' · '.($revision['actor_name'] ?? 'Former user'),ENT_QUOTES,'UTF-8'); ?></td>
-                <?php foreach (['giving_income_received','lodging_received','travel_received','book_table_received'] as $amount): ?><td><?php echo $revision[$amount] === null ? 'Not recorded' : formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
+                <?php foreach (['giving_income_received','lodging_received','travel_received','book_table_received'] as $amount): ?><td><?php echo $revision[$amount] === null ? 'Not Recorded' : formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
                 <td><?php echo htmlspecialchars($revision['correction_reason'],ENT_QUOTES,'UTF-8'); ?></td></tr><?php endforeach; ?>
                 </tbody></table><p>Most recent 100 revisions.</p></details>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>

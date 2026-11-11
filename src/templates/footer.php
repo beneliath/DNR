@@ -1,5 +1,5 @@
 <?php if (in_array($_SESSION['role'] ?? '', ['admin', 'editor'], true) && !empty($_SESSION['task_completion_undo']) && ($_SESSION['task_completion_undo']['expires'] ?? 0) >= time()): ?>
-<aside class="task-undo-notice" aria-label="Recent task completion">
+<aside class="task-undo-notice" aria-label="Recent Task Completion">
     <span role="status">Completed: <?php echo htmlspecialchars($_SESSION['task_completion_undo']['title'], ENT_QUOTES, 'UTF-8'); ?></span>
     <form action="tasks.php" method="post">
         <?php echo csrfInput(); ?>
@@ -8,7 +8,7 @@
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($_SESSION['task_completion_undo']['return_to'], ENT_QUOTES, 'UTF-8'); ?>">
         <button type="submit" class="button-secondary">Undo</button>
     </form>
-    <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss completion notice">Dismiss</button>
+    <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss Completion Notice">Dismiss</button>
 </aside>
 <?php endif; ?>
 <?php include __DIR__ . '/app-footer.php'; ?>
@@ -61,7 +61,7 @@
     <h2 id="qr-code-preview-title">QR Code Preview</h2>
     <p id="qr-code-preview-message" class="dialog-supporting-text">Clipboard image access is unavailable. Use this preview to scan or save the QR code.</p>
     <div class="qr-code-preview-frame">
-        <img id="qr-code-preview-image" alt="QR code preview">
+        <img id="qr-code-preview-image" alt="QR Code Preview">
     </div>
     <div class="confirmation-dialog-actions">
         <button type="button" id="close-qr-code-preview" class="button-secondary" autofocus>Close</button>

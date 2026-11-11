@@ -22,7 +22,7 @@ echo '<!doctype html><html lang="en">';renderPageHead('Import connections — la
 <nav class="audience-import-steps" aria-label="Import progress"><?php foreach(['Choose Method','Organize','Tag','Match','Subscribe','Complete']as$step): ?><span<?= $step==='Tag'?' aria-current="step"':'' ?>><?= $step ?></span><?php endforeach; ?></nav>
 <form class="audience-import-wizard">
 <?php require __DIR__.'/../../src/templates/audience/import-tagging.php'; ?>
-<div class="form-actions"><button class="primary">Continue</button><a href="#" class="button">Back</a><a href="#" class="text-link">Finish later</a></div>
+<div class="form-actions"><button class="primary">Continue</button><a href="#" class="button">Back</a><a href="#" class="text-link">Finish Later</a></div>
 </form>
 </main>
 <script>document.querySelector('form').addEventListener('submit',event=>{event.preventDefault();window.fixtureSubmittedData=Array.from(new FormData(event.target));});</script>

@@ -9,5 +9,5 @@ test('Hue slider covers all primary and secondary colors including its wraparoun
   for(const [h,color] of [[0,'#ff0000'],[60,'#ffff00'],[120,'#00ff00'],[180,'#00ffff'],[240,'#0000ff'],[300,'#ff00ff'],[360,'#ff0000']])assert.equal(hsvToHex(h,1,1),color);
 });
 test('Brand Kit colors preserve their role labels without duplicate white swatches',()=>{
-  assert.deepEqual(colorPalette([{label:'Content background',value:'#ffffff'},{label:'Button text',value:'#FFFFFF'},{label:'Link color',value:'#3261b5'}]),[{label:'Content background / Button text',value:'#ffffff'},{label:'Link color',value:'#3261b5'}]);
+  assert.deepEqual(colorPalette([{label:'Content Background',value:'#ffffff'},{label:'Button Text',value:'#FFFFFF'},{label:'Link Color',value:'#3261b5'}]),[{label:'Content Background / Button Text',value:'#ffffff'},{label:'Link Color',value:'#3261b5'}]);
 });

@@ -4,7 +4,7 @@ require_once __DIR__ . '/follow_up_task_helpers.php';
 
 class DnrEngagementPdf extends \setasign\Fpdi\Tcpdf\Fpdi {
     private $engagement_title = 'Engagement';
-    private $document_label = 'ENGAGEMENT';
+    private $document_label = 'Engagement';
     private $document_label_suffix = ' BRIEF';
     private $generated_date = '';
     private $brand_logo_path = '';
@@ -263,7 +263,7 @@ function buildEngagementPdfTaskSection(
         $fields = [
             [
                 'label' => 'Status',
-                'value' => $status_labels[$status] ?? ucwords(str_replace('_', ' ', $status)),
+                'value' => $status_labels[$status] ?? \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $status)),
             ],
             [
                 'label' => 'Due',
@@ -364,7 +364,7 @@ function engagementPdfTaskEntryLayout(DnrEngagementPdf $pdf, array $entry) {
     $available_width = engagementPdfAvailableWidth($pdf);
     $status = engagementPdfEntryFieldValue($entry, 'Status', 'Open');
     $pdf->SetFont('dejavusans', 'B', 7);
-    $status_width = min(38, max(20, $pdf->GetStringWidth(mb_strtoupper($status, 'UTF-8')) + 8));
+    $status_width = min(38, max(20, $pdf->GetStringWidth($status) + 8));
     $title_width = max(45, $available_width - $status_width - 14);
     $pdf->SetFont('dejavusans', 'B', 9.5);
     $title_height = max(5.5, $pdf->getStringHeight(
@@ -445,7 +445,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
     $pdf->Cell(
         $layout['status_width'],
         5.2,
-        mb_strtoupper($layout['status'], 'UTF-8'),
+        $layout['status'],
         0,
         0,
         'C'
@@ -535,7 +535,7 @@ function engagementPdfDisplayValue($label, $value) {
     }
 
     if (in_array($label, ['Event Type', 'Status', 'Confirmation', 'Lifecycle'], true)) {
-        return ucwords(str_replace('_', ' ', $value));
+        return \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $value));
     }
 
     return $value;
@@ -583,7 +583,7 @@ function addEngagementPdfSummaryGrid(DnrEngagementPdf $pdf, array $fields) {
             $pdf->SetDrawColor(223, 228, 236);
             $pdf->RoundedRect($card_x, $row_y, $column_width, $row_height, 2, '1111', 'DF');
 
-            $label = mb_strtoupper(engagementPdfText($field['label'] ?? ''), 'UTF-8');
+            $label = engagementPdfText($field['label'] ?? '');
             $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
             $pdf->SetFont('dejavusans', 'B', 7);
             $pdf->SetTextColor(102, 112, 133);
@@ -625,7 +625,7 @@ function engagementPdfFieldIsNarrative($label, $value) {
 }
 
 function addEngagementPdfNarrativeField(DnrEngagementPdf $pdf, array $field) {
-    $label = mb_strtoupper(engagementPdfText($field['label'] ?? ''), 'UTF-8');
+    $label = engagementPdfText($field['label'] ?? '');
     $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
     $available_width = engagementPdfAvailableWidth($pdf);
     $pdf->SetFont('dejavusans', '', 9);
@@ -727,7 +727,7 @@ function addEngagementPdfEntryTitle(DnrEngagementPdf $pdf, $title) {
 
 function addEngagementPdfSectionHeading(DnrEngagementPdf $pdf, $heading) {
     ensureEngagementPdfSpace($pdf, 18);
-    $heading = mb_strtoupper(engagementPdfText($heading), 'UTF-8');
+    $heading = engagementPdfText($heading);
     $heading_x = $pdf->GetX();
     $heading_y = $pdf->GetY();
     $pdf->SetFont('dejavusans', 'B', 9);
@@ -998,7 +998,7 @@ function renderEngagementPdf(
     $tasks_truncated = false
 ) {
     $is_presentation = ($export['kind'] ?? '') === 'presentation';
-    $document_label = $is_presentation ? 'PRESENTATION' : 'ENGAGEMENT';
+    $document_label = $is_presentation ? 'Presentation' : 'Engagement';
     $title = (string) ($export['title'] ?? 'Engagement');
     $business_date = $business_date ?: applicationBusinessDate();
     $generated_date = $generated_date ?: engagementPdfDateLabel($business_date);

@@ -27,7 +27,7 @@ export function createWorkspaceDialogs() {
         // Keep the live banners and toolbar inside the full-screen modal's focus scope.
         if (dialog === campaignCreate && mainToolbar) {
             campaignShell.forEach(node => {
-                const anchor = document.createComment('Campaign shell');
+                const anchor = document.createComment('Campaign Shell');
                 node.before(anchor); shellAnchors.set(node, anchor);
             });
             dialog.prepend(...campaignShell);
@@ -58,7 +58,7 @@ export function createFormConfirmations() {
     const confirmationForm = el('form', {method: 'dialog'}), confirmationMessage = el('p', {id: 'audience-confirm-message'});
     const confirmationActions = el('div', {class: 'form-actions'});
     confirmationActions.append(el('button', {value: 'cancel', autofocus: true}, 'Cancel'), el('button', {value: 'continue', class: 'primary'}, 'Continue'));
-    confirmationForm.append(el('h2', {id: 'audience-confirm-title'}, 'Confirm action'), confirmationMessage, confirmationActions);
+    confirmationForm.append(el('h2', {id: 'audience-confirm-title'}, 'Confirm Action'), confirmationMessage, confirmationActions);
     confirmation.append(confirmationForm); document.body.append(confirmation);
     let pendingConfirmation = null;
     confirmation.addEventListener('close', () => {

@@ -290,7 +290,15 @@ def validate_message_monkey(db,anchor):
  require(query(db,"SELECT COUNT(*) FROM dnr.marketing_contacts c WHERE c.audience_id=1 AND c.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM dnr.marketing_contact_events e WHERE e.contact_id=c.id AND "+location_where+" AND JSON_CONTAINS_PATH(e.details_json,'all','$.interaction_location.ip_address','$.interaction_location.country_code'))")=='0','Demo connection without a sample location')
  return dict(expected,outgoing_jobs=0,ses_unconfigured=True,saved_reports=2,brand_logos=2,interaction_locations=41)
 
+def check_baseline_presentation_requirement(db):
+ # The approved engagements predate the checkbox. Their full-row import carries
+ # the migrated default; the new column adds no dependent records to clear.
+ if query(db,"SELECT COUNT(*) FROM dnr.schema_migrations WHERE migration_name='20261111_add_engagement_presentation_not_required.sql' AND state='applied'")=='1':
+  require(query(db,'SELECT COUNT(*) FROM dnr.engagements WHERE presentation_not_required <> 0')=='0',
+          'Restored baseline engagements must retain the default presentation requirement')
+
 def validate(db,anchor):
+ check_baseline_presentation_requirement(db)
  for table in INBOUND_SOURCE_METADATA:
   require(query(db,'SELECT COUNT(*) FROM dnr.`'+table+'`')=='0','Stale inbox receive/routing metadata remains: '+table)
  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]

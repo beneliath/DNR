@@ -132,7 +132,7 @@ try {
     bulkHttp('bulk_delete.php', $admin, ['csrf_token' => $admin[1], 'action' => 'delete', 'selection' => $selection]);
     expectBulkHttp($exists('speakers', $linked) && !$exists('speakers', $unused) && $exists('presentations', $presentation), 'Linked history remains; unused speakers can be deleted.');
     $feedback = bulkHttp('speakers.php', $admin)['body'];
-    expectBulkHttp(str_contains($feedback, '1 of 2 selected speakers permanently deleted.') && str_contains($feedback, 'could not be deleted'), 'Partial failures have accurate feedback.');
+    expectBulkHttp(str_contains($feedback, '1 of 2 Selected speakers permanently deleted.') && str_contains($feedback, 'could not be deleted'), 'Partial failures have accurate feedback.');
     expectBulkHttp($conn->query("SELECT id FROM security_audit_log WHERE entity_type = 'speakers' AND entity_id = {$unused} AND event_type = 'database_delete'")->num_rows === 1, 'Speaker deletion is audited.');
 
     $inactive = [];

@@ -17,7 +17,7 @@ $coach_key = aiCoachStorageKey();
     <div class="coach-context"><span data-coach-context>User Manual</span></div>
     <div class="coach-scroll">
         <section class="coach-welcome" data-coach-welcome>
-            <h3>What would you like to learn?</h3>
+            <h3>What Would You Like to Learn?</h3>
             <p>Ask about MOED or start a walkthrough. You stay in control of every change.</p>
             <div class="coach-starters">
                 <?php foreach (aiCoachWorkflows() as $id => $workflow): ?>

@@ -14,7 +14,7 @@
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.13em;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .invite-user-body .app-footer {

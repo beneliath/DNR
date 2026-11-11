@@ -15,7 +15,7 @@ export function initializeRecentCampaigns(config) {
                 const result = await request(config.url, {method:'POST', body:data});
                 frame.addEventListener('load', () => { status.hidden = true; }, {once:true});
                 frame.srcdoc = result.html;
-            } catch (_) { status.textContent = 'Preview unavailable'; }
+            } catch (_) { status.textContent = 'Preview Unavailable'; }
         };
         // Preserve the email's desktop layout while fitting its thumbnail to the card.
         const fit = () => {
@@ -81,7 +81,7 @@ export function initializeCampaignWorkspace(show, confirmations) {
     $$('[data-campaign-folder]').forEach(button => button.addEventListener('click', () => {
         const folder = JSON.parse(button.dataset.campaignFolder), form = $('#campaign-folder form');
         ['id', 'version', 'name'].forEach(key => setValue(form, key, folder[key]));
-        $('#campaign-folder-title').textContent = folder.id ? 'Edit folder' : 'Create folder';
+        $('#campaign-folder-title').textContent = folder.id ? 'Edit Folder' : 'Create Folder';
         hideCampaignPopovers(); show('campaign-folder');
     }));
     $$('[data-campaign-folder-delete]').forEach(button => button.addEventListener('click', () => {
@@ -97,7 +97,7 @@ export function initializeCampaignWorkspace(show, confirmations) {
         const allResults = campaignSelection?.elements.selection_scope.value === 'all';
         if (campaignAll) { campaignAll.checked = chosen.length > 0 && chosen.length === campaignItems.length; campaignAll.indeterminate = chosen.length > 0 && chosen.length < campaignItems.length; }
         if ($('[data-campaign-bulk]')) $('[data-campaign-bulk]').hidden = !chosen.length;
-        if ($('[data-campaign-selection-count]')) $('[data-campaign-selection-count]').textContent = allResults ? 'All matching campaigns selected' : `${chosen.length} selected`;
+        if ($('[data-campaign-selection-count]')) $('[data-campaign-selection-count]').textContent = allResults ? 'All Matching Campaigns Selected' : `${chosen.length} Selected`;
     };
     campaignItems.forEach(item => item.addEventListener('change', () => { setValue(campaignSelection, 'selection_scope', 'page'); updateCampaignSelection(); }));
     campaignAll?.addEventListener('change', () => { campaignItems.forEach(item => { item.checked = campaignAll.checked; }); setValue(campaignSelection, 'selection_scope', 'page'); updateCampaignSelection(); });
@@ -222,7 +222,7 @@ export function initializeCampaignWorkspace(show, confirmations) {
             output.textContent = status.textContent = `${Number(result.count).toLocaleString()} eligible email subscribers`;
             if (result.people.length) {
                 const table = el('table'), head = el('tr'), rows = el('tbody');
-                head.append(el('th', {scope:'col'}, 'Name'), el('th', {scope:'col'}, 'Email address'));
+                head.append(el('th', {scope:'col'}, 'Name'), el('th', {scope:'col'}, 'Email Address'));
                 const heading = el('thead'); heading.append(head); table.append(heading, rows);
                 result.people.forEach(person => {
                     const row = el('tr'), name = [person.first_name, person.last_name].filter(Boolean).join(' ').trim();
@@ -294,7 +294,7 @@ export function initializeCampaignWorkspace(show, confirmations) {
             for (const key of ['id','version','plan_id','campaign_id','touchpoint_type','name','state']) if (model[key] != null) setValue(touchpointForm, key, model[key]);
             for (const key of ['notes','event_type']) setValue(touchpointForm, key, data[key] || ''); if (touchpointForm.elements.use_plan_tracking) touchpointForm.elements.use_plan_tracking.checked = !!data.use_plan_tracking;
             for (const key of ['start_at','end_at']) setValue(touchpointForm, key, model[key] ? model[key].replace(' ','T').slice(0,16) : `${day || new Date().toISOString().slice(0,10)}T09:00`);
-            $('#campaign-touchpoint-title').textContent = model.id ? 'Edit touchpoint' : 'Add touchpoint';
+            $('#campaign-touchpoint-title').textContent = model.id ? 'Edit Touchpoint' : 'Add Touchpoint';
             const actions = $('[data-touchpoint-actions]'); actions.hidden = !model.id;
             if (model.id) ['id','version','plan_id'].forEach(key => setValue(actions, key, model[key] || 0));
             fields(); show('campaign-touchpoint-editor');

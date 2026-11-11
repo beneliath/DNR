@@ -125,7 +125,7 @@ trait AudienceInbox
     public function removeInboxNamed(string $kind,int $id,int $version):void
     {
         if($kind==='template'){$this->inboxTemplateOperation($id,$version,'delete');return;}
-        $table=match($kind){'label'=>'marketing_inbox_labels','template'=>'marketing_inbox_templates',default=>throw new InvalidArgumentException('Invalid Inbox item.')};
+        $table=match($kind){'label'=>'Marketing_Inbox_Labels','template'=>'marketing_inbox_templates',default=>throw new InvalidArgumentException('Invalid Inbox item.')};
         $this->write("UPDATE $table SET deleted_at=UTC_TIMESTAMP(),version=version+1 WHERE audience_id=? AND id=? AND version=? AND deleted_at IS NULL",[$this->audienceId,$id,$version]);if($this->db->affected_rows!==1)throw new InvalidArgumentException('This item changed. Reload before removing it.');
     }
     public function inboxList(array $input,bool $continuous=false):array

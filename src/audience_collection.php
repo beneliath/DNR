@@ -74,10 +74,10 @@ require_once __DIR__.'/audience_collection_embed.php';
 const AUDIENCE_COLLECTION_KINDS = ['hosted','embedded','popup','landing','survey','preferences'];
 const AUDIENCE_COLLECTION_QUESTIONS = ['radio','checkboxes','range','text','dropdown','email','contact','content'];
 const AUDIENCE_SURVEY_STARTERS = [
-    'event-scale'=>['Satisfaction','Post-event (1-10 scale) survey','Post-event satisfaction survey on a 1–10 scale. Includes an intro and 2 questions.'],
-    'growth'=>['Growth strategy','Growth opportunities','A five-question survey to engage your audience and identify opportunities for growth.'],
-    'channels'=>['Effectiveness','Where did you hear about us?','A simple one-question survey to learn which channels reach your audience.'],
-    'event-emojis'=>['Satisfaction','Post-event emojis survey','Post-event satisfaction using emojis. Includes an intro and 2 questions.'],
+    'event-scale'=>['Satisfaction','Post-Event (1-10 Scale) Survey','Post-event satisfaction survey on a 1–10 scale. Includes an intro and 2 questions.'],
+    'growth'=>['Growth Strategy','Growth Opportunities','A five-question survey to engage your audience and identify opportunities for growth.'],
+    'channels'=>['Effectiveness','Where Did You Hear About Us?','A simple one-question survey to learn which channels reach your audience.'],
+    'event-emojis'=>['Satisfaction','Post-Event Emojis Survey','Post-event satisfaction using emojis. Includes an intro and 2 questions.'],
 ];
 
 function audienceCollectionStarter(string $kind,string $starter,string $name): array
@@ -87,7 +87,7 @@ function audienceCollectionStarter(string $kind,string $starter,string $name): a
         $q=static fn($id,$type,$label,$options=[])=>['id'=>$id,'type'=>$type,'label'=>$label,'required'=>true,'options'=>$options];
         if($starter==='channels')$d['questions']=[$q('q1','radio','Where did you hear about us?',['Our website','Social media','A friend','An event','Other'])];
         elseif($starter==='growth')$d['questions']=[$q('q1','text','What do you value most about our work?'),$q('q2','text','What would you like to see more of?'),$q('q3','text','What could we improve?'),$q('q4','range','How likely are you to recommend us?'),$q('q5','text','Is there anything else you would like to share?')];
-        else{$label=str_starts_with($starter,'event')?'How was your experience at our event?':'How was your experience?';$d['questions']=[$q('q1',str_ends_with($starter,'emojis')?'radio':'range',$label,str_ends_with($starter,'emojis')?['😃 Great','🙂 Good','😐 Neutral','🙁 Could be better']:[]),$q('q2','text','What would you like us to know?')];$d['questions'][1]['required']=false;}
+        else{$label=str_starts_with($starter,'event')?'How was your experience at our event?':'How Was Your Experience?';$d['questions']=[$q('q1',str_ends_with($starter,'emojis')?'radio':'range',$label,str_ends_with($starter,'emojis')?['😃 Great','🙂 Good','😐 Neutral','🙁 Could be better']:[]),$q('q2','text','What would you like us to know?')];$d['questions'][1]['required']=false;}
     }elseif($kind==='landing'){
         if(!in_array($starter,['blank','grow','announcement'],true))$starter='grow';
         if($starter==='grow'){$d['title']='Join our community';$d['sections']=[['type'=>'heading','text'=>'Be the first to know','url'=>''],['type'=>'text','text'=>'Get our latest stories and updates delivered to your inbox.','url'=>'']];}
@@ -112,9 +112,9 @@ function audienceCollectionDefaults(string $kind, string $name = ''): array
         'required'=>['email'], 'group_ids'=>[], 'tag_ids'=>[], 'permissions'=>[],
         'color'=>$kind==='embedded'?'#111111':'#007c89', 'background'=>$kind==='embedded'?'#ffffff':'#f6f6f4', 'text_color'=>'#241c15',
         'font'=>'Arial', 'web_font'=>'', 'web_font_name'=>'', 'width'=>$kind==='embedded'?600:640, 'logo'=>'', 'logo_width'=>240, 'logo_resized'=>false, 'description'=>'', 'favicon'=>'',
-        'labels'=>['email'=>'Email address','first_name'=>'First name','last_name'=>'Last name','phone'=>'Phone number'],
-        'system'=>['unsubscribe_title'=>'Unsubscribe from emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm your subscription','confirm_intro'=>'Confirm that you want to receive emails from *|LIST:COMPANY|*.','confirm_button'=>'Yes, subscribe me','confirm_done'=>'Your email subscription is confirmed.'],
-        'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How was your experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
+        'labels'=>['email'=>'Email Address','first_name'=>'First Name','last_name'=>'Last Name','phone'=>'Phone Number'],
+        'system'=>['unsubscribe_title'=>'Unsubscribe from Emails?','unsubscribe_intro'=>'You can stop emails from this audience at any time.','unsubscribe_button'=>'Unsubscribe','unsubscribe_done'=>'You will no longer receive emails from this audience.','confirm_title'=>'Confirm Your Subscription','confirm_intro'=>'Confirm that you want to receive emails from *|LIST:COMPANY|*.','confirm_button'=>'Yes, Subscribe Me','confirm_done'=>'Your email subscription is confirmed.'],
+        'sections'=>[], 'questions'=>$kind==='survey'?[['id'=>'q1','type'=>'radio','label'=>'How Was Your Experience?','required'=>true,'options'=>['Great','Good','Could be better']]]:[],
         'origins'=>[], 'popup'=>['delay'=>5,'trigger'=>'delay','frequency'=>7,'device'=>'all','paths'=>[],'exclude_paths'=>[],'countries'=>[]],
         'variants'=>[], 'quiz'=>[],
     ];
@@ -295,7 +295,7 @@ trait AudienceCollection
                 $doc=audienceCollectionBrandFontDefaults($doc,$settings['brand']??[]);
                 foreach (['opt_in','permission','language'] as $key) if (isset($settings['collection'][$key])) $doc[$key]=$settings['collection'][$key];
                 foreach ($this->groups() as $group) if ($group['display_type']!=='hidden') $doc['group_ids'][]=(int)$group['id'];
-                if ($kind==='preferences') { $doc['title']='Update your preferences';$doc['intro']='Choose the information and interests you share with us.';$doc['button']='Save preferences';$doc['thanks']='Your preferences have been saved.'; }
+                if ($kind==='preferences') { $doc['title']='Update Your Preferences';$doc['intro']='Choose the information and interests you share with us.';$doc['button']='Save Preferences';$doc['thanks']='Your preferences have been saved.'; }
             }
             $doc=audienceCollectionDocument($doc,$kind,$this->fields(),$this->groups(),$this->tags());
             if ($old) $this->write('UPDATE marketing_collection_resources SET name=?,draft_json=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($doc,JSON_THROW_ON_ERROR),$this->audienceId,$id]);
@@ -523,7 +523,7 @@ trait AudienceCollection
             $confirmation=$confirmation || $optout || (bool)$person;
             if($confirmation){$ses=$this->sesSettings();if(audienceSesReasons($ses,$ses['from_email']??''))throw new InvalidArgumentException('This signup form is temporarily unavailable. Please try again later.');}
             if (!$person) {
-                $this->write("INSERT INTO marketing_contacts(audience_id,email,first_name,last_name,email_status,custom_json,source,notes) VALUES (?,?,?,?,?,?,?, '')",[$this->audienceId,$email,$values['first_name'],$values['last_name'],$confirmation?'pending':'subscribed',json_encode((object)$custom,JSON_THROW_ON_ERROR),'Signup form']);
+                $this->write("INSERT INTO marketing_contacts(audience_id,email,first_name,last_name,email_status,custom_json,source,notes) VALUES (?,?,?,?,?,?,?, '')",[$this->audienceId,$email,$values['first_name'],$values['last_name'],$confirmation?'pending':'subscribed',json_encode((object)$custom,JSON_THROW_ON_ERROR),'Signup Form']);
                 $person=$this->person((int)$this->db->insert_id);
                 foreach ($d['tag_ids'] as $tag) if ($this->one('SELECT id FROM marketing_tags WHERE audience_id=? AND id=?',[$this->audienceId,$tag])) $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$person['id'],$tag]);
                 foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
@@ -537,7 +537,7 @@ trait AudienceCollection
             ];
             if ($interactionLocation) $receipt['interaction_location'] = $interactionLocation;
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json)
-                VALUES (?,NULL,'Signup form','recipient','signup-permission',?)", [$person['id'],json_encode($receipt,JSON_THROW_ON_ERROR)]);
+                VALUES (?,NULL,'Signup Form','recipient','signup-permission',?)", [$person['id'],json_encode($receipt,JSON_THROW_ON_ERROR)]);
             if ($confirmation) {
                 $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
                 if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];

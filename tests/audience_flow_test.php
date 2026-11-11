@@ -7,14 +7,14 @@ $reject=static function(callable $f)use($expect):void{try{$f();}catch(InvalidArg
 foreach ([
     ['completed', '', 'completed'],
     ['exited', 'Exit step', 'completed'],
-    ['exited', 'Connection archived', 'completed'],
+    ['exited', 'Connection Archived', 'completed'],
     ['exited', 'Exit conditions met', 'exited'],
     ['exited', 'Removed manually', 'exited'],
     ['exited', 'Flow removed', 'exited'],
     ['exited', '', 'exited'],
     ['exited', 'exit step', 'exited'],
     ['active', '', 'active'],
-    ['failed', 'Connection archived', 'failed'],
+    ['failed', 'Connection Archived', 'failed'],
 ] as [$state, $reason, $outcome]) {
     $expect(audienceFlowRunOutcome(['state'=>$state,'error_message'=>$reason]) === $outcome,
         'Historical outcome follows the recorded state and ending reason: '.$state.' / '.$reason);

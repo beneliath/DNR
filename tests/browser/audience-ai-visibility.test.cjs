@@ -8,12 +8,12 @@ const engines = require(process.env.DNR_PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '../..');
 const markup = execFileSync('php', ['tests/browser/audience-mobile-workspace-fixture.php', 'view=assistant&ai_enabled=1'], {cwd: root, encoding: 'utf8'});
 const analyticsMarkup = execFileSync('php', ['tests/browser/audience-mobile-workspace-fixture.php', 'view=assistant&mode=analytics&ai_enabled=1'], {cwd: root, encoding: 'utf8'});
-const checks = {facts: [{label: 'Word count', value: 12, note: 'Counted from the supplied text'}], findings: [], note: 'Text checks only'};
+const checks = {facts: [{label: 'Word Count', value: 12, note: 'Counted from the supplied text'}], findings: [], note: 'Text checks only'};
 const reply = {purpose: 'audience-ai', mode: 'content', reason: '', headline: 'A community update', text: 'Thank you for being part of our community.',
     subjects: ['Community news', 'An update for you', 'Staying connected'], recommendations: ['Review the facts'], checks};
 const savedRequestId = 'saved-invitation';
 const savedReply = {...reply, headline: 'An invitation', text: 'Please join our next community gathering.',
-    checks: {...checks, facts: [{label: 'Word count', value: 7, note: 'Counted from the supplied text'}]}};
+    checks: {...checks, facts: [{label: 'Word Count', value: 7, note: 'Counted from the supplied text'}]}};
 const analyticsReply = {purpose: 'audience-ai', mode: 'analytics', reason: '', interpretation: 'information', summary: 'Saved report details. '.repeat(120), recommendations: []};
 const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => page.waitForFunction(({selector, paneSelector}) => {
     const element = document.querySelector(selector), pane = document.querySelector(paneSelector);

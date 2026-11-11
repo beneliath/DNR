@@ -22,7 +22,7 @@
         status.hidden = false;
         (message || status).textContent = text;
         if (stage) stage.textContent = state === 'success' ? 'Backup ready'
-            : state === 'warning' ? 'Check your downloads' : 'Creating your backup';
+            : state === 'warning' ? 'Check your downloads' : 'Creating Your Backup';
         if (progress) {
             progress.hidden = state === 'warning';
             if (state === 'success') progress.setAttribute('aria-valuenow', '100');

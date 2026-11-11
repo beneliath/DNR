@@ -26,7 +26,7 @@ const root=path.resolve(__dirname,'../..');
   if(large)assert.match(await page.locator('.campaign-send-review').innerText(),/120\.0 KB.*102 KB/s);
   assert(await page.locator('.campaign-send-review').evaluate(node=>node.scrollWidth<=node.clientWidth+1),'Size notice fits the review pane');
   const url=page.url();
-  const recipientLink=page.getByRole('link',{name:'Preview your recipients'}),recipientDialog=page.getByRole('dialog',{name:'Preview your recipients'});
+  const recipientLink=page.getByRole('link',{name:'Preview Your Recipients'}),recipientDialog=page.getByRole('dialog',{name:'Preview Your Recipients'});
   await recipientLink.click();await recipientDialog.waitFor({state:'visible'});assert.equal(page.url(),url);
   assert.equal(await recipientDialog.locator('tbody tr').count(),2);
   assert.match(await recipientDialog.innerText(),/Ada Example/);
@@ -34,7 +34,7 @@ const root=path.resolve(__dirname,'../..');
   assert.equal(await recipientDialog.locator('script').count(),0);
   await recipientDialog.getByRole('button',{name:'Close',exact:true}).click();await recipientDialog.waitFor({state:'hidden'});
   assert.equal(await recipientLink.evaluate(node=>node===document.activeElement),true);
-  const link=page.getByRole('link',{name:'Preview your email'}),dialog=page.getByRole('dialog',{name:'Email preview',exact:true});
+  const link=page.getByRole('link',{name:'Preview Your Email'}),dialog=page.getByRole('dialog',{name:'Email Preview',exact:true});
   await link.click();await dialog.waitFor({state:'visible'});assert.equal(page.url(),url);
   if(mode.startsWith('send-html')){
    const frame=dialog.locator('iframe');assert.equal(await frame.getAttribute('sandbox'),'');

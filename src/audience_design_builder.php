@@ -5,7 +5,7 @@ declare(strict_types=1);
 function audienceBrandColorPalette(array $brand):array
 {
     $palette=[];
-    foreach(['link'=>'Link color','button'=>'Button background','text'=>'Default text','body'=>'Content background','buttonText'=>'Button text','background'=>'Page background']as$key=>$label)if(isset($brand['styles'][$key]))$palette[]=['label'=>$label,'value'=>audienceDesignColor($brand['styles'][$key])];
+    foreach(['link'=>'Link Color','button'=>'Button Background','text'=>'Default text','body'=>'Content Background','buttonText'=>'Button Text','background'=>'Page Background']as$key=>$label)if(isset($brand['styles'][$key]))$palette[]=['label'=>$label,'value'=>audienceDesignColor($brand['styles'][$key])];
     return $palette;
 }
 

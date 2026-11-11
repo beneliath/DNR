@@ -8,6 +8,7 @@
     flex-direction: column;
     gap: 24px;
     padding-inline: var(--app-content-padding);
+    container: dashboard / inline-size;
 }
 
 html.dark-mode .dashboard-page {
@@ -644,6 +645,10 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 .dashboard-pipeline-disclosure[open] > summary { border-bottom: 1px solid var(--border); }
 .dashboard-pipeline-disclosure .dashboard-inquiry-grid { padding: 16px; }
 @media (max-width: 1200px) { .dashboard-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container dashboard (max-width: 56rem) {
+ .dashboard-heading { align-items: stretch; flex-direction: column; gap: 16px; }
+ .dashboard-heading .page-heading-actions { justify-content: flex-start; }
+}
 @media (max-width: 600px) {
  .dashboard-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .dashboard-summary-card .summary-icon { display: none; }
@@ -651,4 +656,13 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 }
 @media (max-width: 480px) {
  .dashboard-summary-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container dashboard (max-width: 52rem) {
+    .dashboard-inquiry-grid, .dashboard-primary-grid, .dashboard-attention-grid { grid-template-columns: minmax(0, 1fr); }
+    .dashboard-inquiry-grid > #booking-inquiries, .dashboard-inquiry-grid > .dashboard-pipeline-health { grid-column: 1; }
+}
+
+@container dashboard (min-width: 40rem) and (max-width: 64rem) {
+    .dashboard-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

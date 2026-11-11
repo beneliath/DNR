@@ -1644,7 +1644,7 @@ html:not(.has-js) .contact-photo-paste-controls,
   font-size: .74rem;
   font-weight: 750;
   letter-spacing: .09em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .calendar-viewer-heading h2 {
@@ -1839,7 +1839,7 @@ html body .calendar-month-today {
   font-weight: 720;
   letter-spacing: .035em;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .calendar-month-table td {
@@ -2860,7 +2860,7 @@ html body .chron-restore-page-actions a:focus-visible {
   color: var(--text-muted) !important;
   font-weight: 700;
   letter-spacing: 0.025em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .task-table tr:last-child td {
@@ -2988,7 +2988,7 @@ html body .chron-restore-page-actions a:focus-visible {
   color: var(--text-muted);
   font-size: 0.78rem;
   letter-spacing: 0.025em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .standard-task-detail-wide {
@@ -4538,7 +4538,7 @@ input[type="radio"] {
   color: var(--text-muted) !important;
   font-weight: 700 !important;
   letter-spacing: 0.025em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .engagement-table tbody tr:last-child td,
@@ -4906,7 +4906,7 @@ html body .register-button[disabled] {
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.025em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .detail-value {
@@ -5744,7 +5744,7 @@ html.dark-mode .login-secondary-link a {
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.02em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .engagement-table td:nth-child(1)::before { content: "Event"; }
@@ -6621,7 +6621,7 @@ html body .app-sidebar .nav-group-heading {
   line-height: 1.3;
   font-weight: 700;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .app-sidebar .app-brand { margin-bottom: 24px; }
 html body .app-sidebar .nav-group-disclosure > summary {
@@ -6837,6 +6837,21 @@ html body :is(.inbound-status-filters, .map-list-filters) {
     opacity: 0.45;
 }
 
+@container (max-width: 64rem) {
+    .pagination.numbered-pagination {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px !important;
+    }
+    .numbered-pagination :is(.page-size-selector, .pagination-bar, .pagination-status) {
+        grid-column: 1;
+        grid-row: auto;
+        justify-self: start;
+    }
+    .numbered-pagination .page-size-selector {
+        flex-wrap: wrap;
+    }
+}
+
 @media (max-width: 480px) {
     .numbered-pagination .page-direction-label { display: none; }
     .numbered-pagination .page-control { min-width: 32px; padding-inline: 7px; }
@@ -7005,6 +7020,111 @@ html body .shell-search button { flex-shrink: 0; padding: 8px; font-size: .78rem
 html body .unified-list-filter { gap: 10px; align-items: center; }
 html body .unified-list-filter input[type="search"] { min-height: 42px; }
 html body .unified-list-filter > button { min-height: 42px; }
+
+/* Record lists adapt to the space available beside the application sidebar. */
+:is(.organizations-page, .contacts-page, .tasks-page, .standard-tasks-page, .email-templates-page) {
+  container: record-list / inline-size;
+}
+@container (max-width: 80rem) {
+  .list-controls:not(.engagement-controls) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: start !important;
+    gap: 16px !important;
+  }
+  .list-controls:not(.engagement-controls) > .list-filter-summary {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+  .list-filter-summary .clear-filters {
+    margin-left: 0;
+  }
+  .list-controls:not(.engagement-controls) > .control-group {
+    min-width: 0;
+    justify-content: flex-start;
+  }
+  .list-controls:not(.engagement-controls) > .control-group:has(> .sort-buttons) {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    align-items: start !important;
+    width: 100%;
+  }
+  .list-controls:not(.engagement-controls) > .control-group:has(> .sort-buttons) > .control-label {
+    padding-block: 12px;
+  }
+  .list-controls .sort-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .list-controls:not(.engagement-controls) > .list-search-form,
+  .reimbursement-search-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+  }
+  :is(.list-controls:not(.engagement-controls) > .list-search-form, .reimbursement-search-form) > input[type="search"] {
+    grid-area: 1 / 1;
+    min-width: 0;
+    min-height: 44px;
+  }
+  :is(.list-controls:not(.engagement-controls) > .list-search-form, .reimbursement-search-form) > button {
+    grid-area: 1 / 2;
+    min-height: 44px;
+    margin: 0;
+  }
+  :is(.list-controls:not(.engagement-controls) > .list-search-form, .reimbursement-search-form) > .clear-search {
+    position: static;
+    grid-area: 1 / 1;
+    justify-self: end;
+    margin-right: 12px;
+    z-index: 1;
+  }
+}
+@container (max-width: 52rem) {
+  .list-controls:not(.engagement-controls) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .list-controls > .control-group {
+    width: 100%;
+  }
+}
+@container (max-width: 40rem) {
+  .container > .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .page-heading-actions {
+    justify-content: flex-start;
+  }
+  .list-controls:not(.engagement-controls) > .control-group:has(> .sort-buttons) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px !important;
+  }
+  .list-controls:not(.engagement-controls) > .control-group:has(> .sort-buttons) > .control-label {
+    padding: 0;
+  }
+  .list-controls .sort-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 40rem) {
+  .bulk-delete-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .bulk-delete-toolbar > :is([data-bulk-count], .bulk-delete-help) {
+    grid-column: 1 / -1;
+  }
+}
 .task-undo-notice { position: fixed; z-index: 1100; bottom: 20px; left: max(20px, calc(var(--sidebar-width, 260px) + 24px)); right: 24px; display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface); color: var(--text); border: 1px solid var(--primary); border-radius: var(--radius-md); box-shadow: 0 6px 28px #0002; }
 .task-undo-notice > span { flex: 1; overflow-wrap: anywhere; }
 .task-undo-notice form { margin: 0; }

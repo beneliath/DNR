@@ -34,7 +34,7 @@ if(process.env.DNR_EXPORT_AUTOMATION_FIXTURES){fs.writeFileSync(process.env.DNR_
                     await page.locator('[data-flow-template-clear]:visible').click();
                     await page.getByRole('combobox',{name:'Channels:',exact:true}).selectOption('data');assert.equal(await page.locator('[data-flow-template-count]').textContent(),'3 flow templates',label+': data-only channel');
                     await page.locator('[data-flow-template-clear]:visible').click();
-                    await page.getByRole('searchbox',{name:'Search templates'}).fill('MOED forms');assert.equal(await page.locator('[data-flow-template-count]').textContent(),'5 flow templates',label+': search by visible integration name');
+                    await page.getByRole('searchbox',{name:'Search templates'}).fill('MOED Forms');assert.equal(await page.locator('[data-flow-template-count]').textContent(),'5 flow templates',label+': search by visible integration name');
                     await page.locator('[data-flow-template-clear]:visible').click();
                     await page.getByRole('searchbox',{name:'Search templates'}).fill('If/Else');assert.equal(await page.locator('[data-flow-template-count]').textContent(),'1 flow template',label+': search');
                     assert.match(await page.getByRole('link',{name:'Guide connections with If/Else conditions'}).getAttribute('href'),/q=If/);assert.match(page.url(),/q=If/);
@@ -79,7 +79,7 @@ if(process.env.DNR_EXPORT_AUTOMATION_FIXTURES){fs.writeFileSync(process.env.DNR_
                     assert.equal(await page.locator('.flow-node>.flow-symbol').count(),3,label+': builder shares native step artwork');
                     assert.equal(await page.locator('[data-flow-add="split"]').count(),0,label+': testing is excluded');
                     await page.locator('.flow-node.kind-trigger').first().click();
-                    assert.equal(await page.getByRole('combobox',{name:'New email status',exact:true}).count(),2,label+': both status triggers can be reviewed');
+                    assert.equal(await page.getByRole('combobox',{name:'New Email Status',exact:true}).count(),2,label+': both status triggers can be reviewed');
                 }else{
                     const graph=page.locator('.flow-preview-graph');assert.equal(await graph.count(),1,label+': real vector graph');
                     assert.ok(await graph.locator('.flow-preview-connector').count()>0,label+': connected steps');

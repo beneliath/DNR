@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </select>
 <?php elseif ($key === 'DNR_DEFAULT_SPEAKER'): ?>
 <select id="<?php echo $key; ?>" name="<?php echo $key; ?>"<?php echo $speakerOptions ? ' required' : ''; ?>>
-<?php if (!$speakerOptions): ?><option value="">No speakers available</option><?php endif; ?>
+<?php if (!$speakerOptions): ?><option value="">No Speakers Available</option><?php endif; ?>
 <?php foreach ($speakerOptions as $speaker): ?>
 <option value="<?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo (isset($error) ? $speaker['name'] === $value : (int) $speaker['id'] === $selectedSpeakerId) ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></option>
 <?php endforeach; ?>

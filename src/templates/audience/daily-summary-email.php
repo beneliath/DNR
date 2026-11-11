@@ -41,7 +41,7 @@
                     </td>
                 </tr><tr>
                     <td></td>
-                    <td style="padding-top:7px;color:#667085;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase">MessageMonkey</td>
+                    <td style="padding-top:7px;color:#667085;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:none">MessageMonkey</td>
                 </tr></table>
             </td></tr>
             <tr><td style="padding:26px 2px 18px">

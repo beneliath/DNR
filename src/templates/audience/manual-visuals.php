@@ -40,7 +40,7 @@ $manualVisuals = [
         ['chart','Review results','Distinguish visits, submissions, and signups.'],
     ]],
     'inbox'=>['A conversation’s working path',[
-        ['list','To do','Read the message and decide on follow-up.'],
+        ['list','To Do','Read the message and decide on follow-up.'],
         ['rename','Draft or reply','Save unfinished work or send a response.'],
         ['testing','Done','Mark the conversation complete.'],
     ]],

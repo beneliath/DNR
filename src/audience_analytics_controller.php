@@ -117,9 +117,9 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         };
         if($download==='csv'){$csv(['UTC day','Accepted messages','Observed unique opens','Observed unique clicks','Bot filter']);foreach($overview['daily']as$day=>$row)$csv([$day,$row['accepted'],$row['opens'],$row['clicks'],$window['bots']]);}
         elseif($download==='recipients'){
-            $csv(['Recipient receipt','Email at sending','Campaign','Accepted UTC','Delivered','Opened','Clicked','Bounced','Complained','Unsubscribed']);
+            $csv(['Recipient receipt','Email at Sending','Campaign','Accepted UTC','Delivered','Opened','Clicked','Bounced','Complained','Unsubscribed']);
             for($n=1;;$n++){$batch=$store->analyticsActivity($window,$activity,$n,500,$linkHash);foreach($batch['rows']as$r)$csv([$r['id'],$r['destination'],$r['campaign'],$r['accepted_at'],$r['delivered'],$r['opens'],$r['clicks'],$r['bounced'],$r['complaints'],$r['unsubscribed']]);if($n*500>=$batch['total'])break;}
-        }elseif($download==='links'){$csv(['Link hash','Destination without query','Unique messages','Observations']);foreach(($evidence['links']??$store->analyticsEvidence($window,'links')['links'])as$r)$csv([$r['link_hash'],$r['label']??'Unavailable',$r['messages'],$r['observations']]);}
+        }elseif($download==='links'){$csv(['Link hash','Destination without query','Unique Messages','Observations']);foreach(($evidence['links']??$store->analyticsEvidence($window,'links')['links'])as$r)$csv([$r['link_hash'],$r['label']??'Unavailable',$r['messages'],$r['observations']]);}
         else{
             $exportDefinition=$download==='custom'?($definition??audienceAnalyticsReportDefinition($reportInput)):audienceAnalyticsReportDefinition(['dataset'=>$download==='audience'?'audience':$download,'source'=>$source]);
             $exportRows=$download==='custom'&&$definition?$customRows:$store->analyticsReportRows($window,$exportDefinition);$labels=audienceAnalyticsMetricLabels();
@@ -129,7 +129,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         fclose($out);return;
     }
     $catalog=[];$rules=['match'=>'all','rules'=>[]];$filters=audienceListFilters([]);$segment=null;$job=null;
-    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience analytics','conversions'=>'Conversion insights','reports','custom'=>'Custom reports','activity'=>'Recipient activity','links'=>'Link performance','devices'=>'Locations and clients','insights'=>'Benchmarks and timing','locations'=>'Interaction Locations',default=>'Email dashboard'};
+    $pageTitle=$view==='home'?'Home':match($section){'audience'=>'Audience Analytics','conversions'=>'Conversion Insights','reports','custom'=>'Custom Reports','activity'=>'Recipient Activity','links'=>'Link Performance','devices'=>'Locations and Clients','insights'=>'Benchmarks and Timing','locations'=>'Interaction Locations',default=>'Email Dashboard'};
     $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     $styles=['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'];
     if($section==='locations')$styles[]='assets/css/map.min.css';

@@ -14,7 +14,7 @@ $render_affiliation_row = static function (array $row, string $index) use ($cont
     <div class="contact-affiliation-row" data-contact-affiliation-row>
         <div class="form-group">
             <label for="additional-organization-<?php echo $index; ?>">Additional Organization</label>
-            <input type="search" placeholder="Find an organization" aria-label="Find an organization for Additional Organization" data-relationship-search-input>
+            <input type="search" placeholder="Find an Organization" aria-label="Find an Organization for Additional Organization" data-relationship-search-input>
             <select data-organization-search id="additional-organization-<?php echo $index; ?>" name="additional_organizations[<?php echo $index; ?>][organization_id]" data-affiliation-organization>
                 <option value="">Select an Organization</option>
                 <?php foreach ($contact_organization_options as $option): ?>

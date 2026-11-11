@@ -16,7 +16,7 @@
                 content.remove();
             });
             return textOnly.textContent.replace(/\s+/g, ' ').trim().replace(/[\s*:]+$/, '');
-        }).filter(Boolean).join(' ') || field.getAttribute('aria-label') || 'This field';
+        }).filter(Boolean).join(' ') || field.getAttribute('aria-label') || 'This Field';
     }
 
     function fieldValidationMessage(field) {
@@ -27,7 +27,7 @@
             if (!field.multiple && prompt && prompt.length <= 80 && /^(choose|select)\b/i.test(prompt)) {
                 return prompt.replace(/[.!…]+$/, '');
             }
-            return field.multiple ? 'Choose at least one option' : 'Choose an option';
+            return field.multiple ? 'Choose at least one option' : 'Choose an Option';
         }
         return field.validationMessage;
     }

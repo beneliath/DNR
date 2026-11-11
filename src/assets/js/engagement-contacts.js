@@ -173,7 +173,7 @@
         }
         const currentRequest = new AbortController();
         request = currentRequest;
-        status.textContent = 'Loading contacts';
+        status.textContent = 'Loading Contacts';
         list.setAttribute('aria-busy', 'true');
         // Old organization contacts must never be submitted for the newly selected organization.
         list.replaceChildren();
@@ -208,7 +208,7 @@
         }
         const currentRequest = new AbortController();
         searchRequest = currentRequest;
-        searchStatus.textContent = 'Searching contacts';
+        searchStatus.textContent = 'Searching Contacts';
         try {
             const payload = await contactOptions(currentRequest.signal, query);
             if (currentRequest.signal.aborted) return;
@@ -221,7 +221,7 @@
                 button.type = 'button';
                 button.className = 'button-secondary';
                 button.textContent = 'Add to Event';
-                button.setAttribute('aria-label', 'Add ' + String(contact.name || 'contact') + ' to event');
+                button.setAttribute('aria-label', 'Add ' + String(contact.name || 'Contact') + ' to Event');
                 button.addEventListener('click', function () {
                     let card = existingCard(contact.id);
                     if (!card) {

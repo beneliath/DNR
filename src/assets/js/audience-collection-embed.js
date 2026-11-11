@@ -11,7 +11,7 @@ if (!/^[a-f0-9]{64}$/.test(visitor)) {
     try { localStorage.setItem(storageKey + ':visitor', visitor); } catch (_) {}
 }
 const frame = document.createElement('iframe');
-frame.title = 'Newsletter signup';
+frame.title = 'Newsletter Signup';
 frame.referrerPolicy = 'origin';
 frame.src = config.url + '&visitor=' + encodeURIComponent(visitor);
 frame.setAttribute('sandbox', 'allow-forms allow-same-origin allow-popups' + (config.kind === 'embedded' && config.javascript ? ' allow-scripts' : ''));
@@ -34,11 +34,11 @@ const show = () => {
     if (document.querySelector('dialog[data-message-monkey-popup]')) return;
     opened = true;
     const dialog = document.createElement('dialog');
-    dialog.setAttribute('aria-label', 'Newsletter signup');
+    dialog.setAttribute('aria-label', 'Newsletter Signup');
     dialog.setAttribute('data-message-monkey-popup', config.key);
     dialog.style.cssText = 'padding:0;width:min(640px,calc(100vw - 32px));max-height:90vh;border:0;border-radius:12px;';
     const close = document.createElement('button');
-    close.textContent = '×'; close.setAttribute('aria-label', 'Close signup form');
+    close.textContent = '×'; close.setAttribute('aria-label', 'Close Signup Form');
     close.style.cssText = 'position:absolute;right:12px;top:8px;width:36px;height:36px;font-size:28px;background:white;color:#241c15;border:0;border-radius:50%;cursor:pointer;';
     close.addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => { try { localStorage.setItem(storageKey + ':dismissed', String(Date.now())); } catch (_) {} dialog.remove(); });

@@ -15,8 +15,8 @@
             ? select.nextElementSibling : null;
         const input = existingInput || document.createElement('input');
         input.type = 'search';
-        input.placeholder = kind === 'contact' ? 'Find a contact…' : 'Find an organization…';
-        input.setAttribute('aria-label', 'Find a ' + kind + ' for ' + (select.labels?.[0]?.textContent || 'this field'));
+        input.placeholder = kind === 'contact' ? 'Find a contact…' : 'Find an Organization…';
+        input.setAttribute('aria-label', 'Find a ' + kind.charAt(0).toUpperCase() + kind.slice(1) + ' for ' + (select.labels?.[0]?.textContent || 'This Field'));
         input.setAttribute('data-relationship-search-input', '');
         const status = existingStatus || document.createElement('p');
         status.className = 'field-help';

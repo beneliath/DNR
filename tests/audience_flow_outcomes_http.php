@@ -6,7 +6,7 @@ $stop($outcomeFlowId);
 $outcomeCases = [
     ['completed', '', 'completed'],
     ['exited', 'Exit step', 'completed'],
-    ['exited', 'Connection archived', 'completed'],
+    ['exited', 'Connection Archived', 'completed'],
     ['exited', 'Exit conditions met', 'exited'],
     ['exited', 'Removed manually', 'exited'],
     ['active', '', 'active'],

@@ -80,7 +80,7 @@ function audienceAiChecks(string $text,string $subject=''):array
     $plain=trim(html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8'));
     preg_match_all('/[\p{L}\p{N}]+(?:[’\x27-][\p{L}\p{N}]+)*/u',$plain,$words);
     preg_match_all('~https?://[^\s<>]+~i',$plain,$links);
-    $count=count($words[0]);$checks=[['label'=>'Word count','value'=>$count,'note'=>'Counted from the supplied text'],['label'=>'Estimated reading time','value'=>max(1,(int)ceil($count/200)).' min','note'=>'Estimated at 200 words per minute'],['label'=>'Subject length','value'=>mb_strlen($subject),'note'=>'Characters, including spaces']];
+    $count=count($words[0]);$checks=[['label'=>'Word Count','value'=>$count,'note'=>'Counted from the supplied text'],['label'=>'Estimated Reading Time','value'=>max(1,(int)ceil($count/200)).' min','note'=>'Estimated at 200 words per minute'],['label'=>'Subject Length','value'=>mb_strlen($subject),'note'=>'Characters, including spaces']];
     $findings=[];
     if($count>500)$findings[]='This is longer than the preferred 500-word newsletter length.';
     if(mb_strlen($subject)>60)$findings[]='The subject may be shortened or clipped in some inboxes.';
@@ -92,14 +92,14 @@ function audienceAiChecks(string $text,string $subject=''):array
 /** Legacy aggregate report payload; authorized contact lookups use the query tools. */
 function audienceAiEvidence(array $overview,array $window):array
 {
-    $facts=[];$labels=['accepted'=>'Total sends','delivery_rate'=>'Delivery rate','open_rate'=>'Open rate','click_rate'=>'Click rate','bounce_rate'=>'Bounce rate','unsubscribe_rate'=>'Unsubscribe rate'];
+    $facts=[];$labels=['accepted'=>'Total Sends','delivery_rate'=>'Delivery Rate','open_rate'=>'Open Rate','click_rate'=>'Click Rate','bounce_rate'=>'Bounce Rate','unsubscribe_rate'=>'Unsubscribe Rate'];
     foreach($labels as$key=>$label){
         $current=$overview['totals'][$key]??null;$previous=$overview['previous'][$key]??null;
         $facts[]=['id'=>$key,'label'=>$label,'value'=>$current,'previous'=>$window['compare']==='none'?null:$previous,'unit'=>str_contains($key,'rate')?'%':'messages','change'=>$window['compare']!=='none'&&$previous!==null&&(float)$previous!==0.0&&$current!==null?round(((float)$current-(float)$previous)/abs((float)$previous)*100,2):null];
     }
     $series=[];foreach($overview['daily']as$day=>$values)$series[]=['day'=>$day,'accepted'=>(int)$values['accepted'],'clicks'=>(int)$values['clicks']];
     if(count($series)>120){$bucket=(int)ceil(count($series)/120);$series=array_map(static fn($rows)=>['day'=>$rows[0]['day'],'until'=>$rows[count($rows)-1]['day'],'accepted'=>array_sum(array_column($rows,'accepted')),'clicks'=>array_sum(array_column($rows,'clicks'))],array_chunk($series,$bucket));}
-    return ['window'=>array_intersect_key($window,array_flip(['start','end','previous_from','previous_until','compare','bots','channel','messages_mode','messages','segment'])),'facts'=>$facts,'series'=>$series,'includes_samples'=>(bool)$overview['includes_samples'],'calculations'=>['accepted'=>'SES-accepted messages in the selected UTC range','delivery_rate'=>'Delivered / accepted × 100','open_rate'=>'Unique opened messages (including clicks) / (accepted − recorded failed deliveries) × 100','click_rate'=>'Unique clicked messages / (accepted − recorded failed deliveries) × 100','bounce_rate'=>'Bounced / accepted × 100','unsubscribe_rate'=>'Unsubscribed / (accepted − recorded failed deliveries) × 100','change'=>'(Current − previous) / |previous| × 100; unavailable for a zero baseline'],'limitations'=>['Rates are provisional while delivery receipts are pending. Known-bot filtering does not identify all privacy proxies or automation. Observations do not prove a person read an email.','Bot filtering and selected message/segment filters affect the results.','Long ranges use summed time buckets of consecutive days to keep the trend series bounded. Exact period totals remain unchanged.','Subscription or revenue causation cannot be established from these aggregate observations.']];
+    return ['window'=>array_intersect_key($window,array_flip(['start','end','previous_from','previous_until','compare','bots','channel','messages_mode','messages','segment'])),'facts'=>$facts,'series'=>$series,'includes_samples'=>(bool)$overview['includes_samples'],'calculations'=>['accepted'=>'SES-Accepted Messages in the Selected UTC Range','delivery_rate'=>'Delivered / accepted × 100','open_rate'=>'Unique opened messages (including clicks) / (accepted − recorded failed deliveries) × 100','click_rate'=>'Unique clicked messages / (accepted − recorded failed deliveries) × 100','bounce_rate'=>'Bounced / accepted × 100','unsubscribe_rate'=>'Unsubscribed / (accepted − recorded failed deliveries) × 100','change'=>'(Current − previous) / |previous| × 100; unavailable for a zero baseline'],'limitations'=>['Rates are provisional while delivery receipts are pending. Known-bot filtering does not identify all privacy proxies or automation. Observations do not prove a person read an email.','Bot filtering and selected message/segment filters affect the results.','Long ranges use summed time buckets of consecutive days to keep the trend series bounded. Exact period totals remain unchanged.','Subscription or revenue causation cannot be established from these aggregate observations.']];
 }
 
 function audienceAiReportWindow(array $input):array
@@ -265,7 +265,7 @@ function audienceAiMergeQueryEvidence(?array $before,array $next):array
 
 function audienceAiClarificationReply(string $question,array $scope,array $metrics,int $calls):array
 {
-    return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'clarification','summary'=>$question,'observations'=>[],'recommendations'=>[],'evidence'=>['window'=>audienceAiReportWindow($scope),'facts'=>[],'tables'=>[],'series'=>[],'queries'=>[],'includes_samples'=>false,'calculations'=>[],'limitations'=>[],'scope_description'=>'Current account'],'reason'=>'','message'=>'Clarification requested','telemetry'=>$metrics+['route'=>'audience-ai','model_calls'=>$calls]];
+    return ['purpose'=>'audience-ai','mode'=>'analytics','operation'=>'analyze','interpretation'=>'clarification','summary'=>$question,'observations'=>[],'recommendations'=>[],'evidence'=>['window'=>audienceAiReportWindow($scope),'facts'=>[],'tables'=>[],'series'=>[],'queries'=>[],'includes_samples'=>false,'calculations'=>[],'limitations'=>[],'scope_description'=>'Current Account'],'reason'=>'','message'=>'Clarification requested','telemetry'=>$metrics+['route'=>'audience-ai','model_calls'=>$calls]];
 }
 
 /** Informational replies contain application-owned facts, never model prose. */
@@ -274,7 +274,7 @@ function audienceAiInformationReply(string $kind,array $scope,string $timezone='
     try{$zone=new DateTimeZone($timezone);}catch(Exception){$zone=new DateTimeZone('UTC');}
     $summary=match($kind){
         'greeting'=>'Hello! I can help you explore your contacts and communication performance. What would you like to know?',
-        'current_date'=>'Today is '.($now??new DateTimeImmutable('now'))->setTimezone($zone)->format('l, F j, Y').' ('.$zone->getName().').',
+        'current_date'=>'Today Is '.($now??new DateTimeImmutable('now'))->setTimezone($zone)->format('l, F j, Y').' ('.$zone->getName().').',
         'help'=>'I can look up saved contacts and analyze audience growth, email campaigns, signup forms, and automations. Ask a question about your records; use Write with AI to draft or revise text.',
         'unsupported'=>'I can help with your saved contacts and communication analytics. Ask about your account data, or use Write with AI for drafting and rewriting.',
         default=>throw new InvalidArgumentException('Unsupported information classification.'),

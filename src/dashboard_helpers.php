@@ -13,17 +13,17 @@ function dashboardEngagementReadinessIssues(array $engagement): array
 {
     $issues = [];
     if (($engagement['confirmation_status'] ?? '') !== 'confirmed') {
-        $issues[] = 'Not confirmed';
+        $issues[] = 'Not Confirmed';
     }
 
     if (!engagementHasVenueLocation($engagement)) {
-        $issues[] = 'Venue address missing';
+        $issues[] = 'Venue Address Missing';
     }
-    if ((int) ($engagement['active_presentation_count'] ?? 0) < 1) {
-        $issues[] = 'No presentations';
+    if (empty($engagement['presentation_not_required']) && (int) ($engagement['active_presentation_count'] ?? 0) < 1) {
+        $issues[] = 'No Presentations';
     }
     if ((int) ($engagement['assigned_contact_count'] ?? 0) < 1) {
-        $issues[] = 'No event contacts assigned';
+        $issues[] = 'No Event Contacts Assigned';
     }
 
     return $issues;
@@ -68,7 +68,7 @@ function dashboardDateRangeLabel(mixed $start_date, mixed $end_date): string
     $end = DateTimeImmutable::createFromFormat('!Y-m-d', $end_value);
 
     if (!$start instanceof DateTimeImmutable) {
-        return $start_value !== '' ? $start_value : 'Date not set';
+        return $start_value !== '' ? $start_value : 'Date Not Set';
     }
     if (!$end instanceof DateTimeImmutable || $end < $start) {
         $end = $start;
@@ -103,7 +103,7 @@ function fetchDashboardUpcomingEngagements(
     $limit = max(1, min(100, $limit));
     $stmt = $conn->prepare(
         "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
-                e.confirmation_status,
+                e.confirmation_status, e.presentation_not_required,
                 e.event_address_line_1, e.event_address_line_2,
                 e.event_city, e.event_state, e.event_zipcode, e.event_country,
                 o.organization_name,

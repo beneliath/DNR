@@ -14,5 +14,5 @@ $interactionLocation=audienceInteractionLocation($_SERVER);
 $evidence=audienceAnalyticsClientEvidence($agent,$interactionLocation['country_code']??null,$url);
 $details=['bot'=>$bot,'link_hash'=>$open?'':hash('sha256',$url)]+$evidence;
 if($interactionLocation)$details['interaction_location']=$interactionLocation;
-$store=new AudienceStore($db,1,0,'Email link');$store->recordDeliveryEvent((int)$recipient['id'],$open?'open':'click',$key,'browser',gmdate('Y-m-d H:i:s'),$details);
+$store=new AudienceStore($db,1,0,'Email Link');$store->recordDeliveryEvent((int)$recipient['id'],$open?'open':'click',$key,'browser',gmdate('Y-m-d H:i:s'),$details);
 if($open){header('Content-Type: image/gif');echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');}else{header('Location: '.$url,true,302);}

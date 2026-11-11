@@ -11,7 +11,7 @@ $design=audienceDesign(['schema'=>1,'rows'=>[['id'=>'image-row','columns'=>[[['i
 if(($argv[1]??'')==='editor')$design=audienceDesign(json_decode(stream_get_contents(STDIN),true,64,JSON_THROW_ON_ERROR));
 $kind='template';$record=['name'=>'Synthetic image editing','version'=>1];$themeKey='image-editing-fixture';$csrf=csrfInput();$aiConfig=['enabled'=>false];
 $secondary='data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="120" viewBox="0 0 80 120"><rect width="80" height="120" fill="#007c89"/><circle cx="40" cy="40" r="20" fill="white"/></svg>');
-$brandLogos=['logo'=>['label'=>'Primary logo','image'=>$source],'secondary_logo'=>['label'=>'Secondary logo','image'=>audienceDesignImage($secondary,2000000,true)]];
+$brandLogos=['logo'=>['label'=>'Primary Logo','image'=>$source],'secondary_logo'=>['label'=>'Secondary Logo','image'=>audienceDesignImage($secondary,2000000,true)]];
 if(($argv[1]??'')==='no-logos')$brandLogos=[];elseif(($argv[1]??'')==='secondary-only')unset($brandLogos['logo']);
 $designerConfig=['brandLogos'=>(object)$brandLogos,'brandColors'=>audienceBrandColorPalette(['styles'=>['link'=>'#3261b5','button'=>'#c10304','text'=>'#24292d','body'=>'#ffffff','buttonText'=>'#ffffff','background'=>'#f4f4f4']]),'kind'=>$kind,'design'=>$design,'version'=>1,'nonce'=>contentSecurityPolicyNonce(),'endpoint'=>'audience.php?view=designer','exit'=>'audience.php?view=templates','mergeTags'=>[],'dynamicFields'=>[],'recoveryKey'=>'synthetic-image-editing','canSend'=>false,'senders'=>[]];
 if(in_array($argv[1]??'',['template-switcher','template-choice'],true)){

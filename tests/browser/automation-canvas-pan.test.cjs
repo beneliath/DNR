@@ -44,7 +44,7 @@ const frame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame((
             await page.mouse.move(origin.x,origin.y);await page.mouse.down();await page.mouse.move(origin.x-70,origin.y-60,{steps:4});await page.mouse.up();
             const reverse=await node.boundingBox();assert.ok(Math.abs(reverse.x-initial.x+70)<2&&Math.abs(reverse.y-initial.y+60)<2,'Panning works in the opposite direction');
             await page.getByRole('button',{name:'Reset view',exact:true}).click();await frame(page);
-            await node.click();assert.equal(await page.getByRole('heading',{name:'Starting point',exact:true}).count(),1,'Node clicks still open the inspector');
+            await node.click();assert.equal(await page.getByRole('heading',{name:'Starting Point',exact:true}).count(),1,'Node clicks still open the inspector');
             if(editable){
                 await page.getByRole('button',{name:'Add a step after trigger',exact:true}).last().click();
                 assert.equal(await page.locator('[data-flow-add="email"]').evaluate(element=>element===document.activeElement),true,'Add-step controls still focus the palette');

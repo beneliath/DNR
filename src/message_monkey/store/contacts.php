@@ -90,7 +90,7 @@ trait AudienceContacts
         return [$sql,$params];
     }
 
-    public function savePerson(array $input, int $id = 0, int $version = 0, string $origin = 'Manual entry'): int
+    public function savePerson(array $input, int $id = 0, int $version = 0, string $origin = 'Manual Entry'): int
     {
         return $this->transaction(function () use ($input,$id,$version,$origin) {
             $previous = $id ? $this->person($id,true) : null;

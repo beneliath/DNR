@@ -3,6 +3,7 @@
             max-width: var(--app-content-max);
             margin: 0 auto;
             padding: 44px var(--app-content-padding) 36px;
+            container: engagement-record / inline-size;
         }
 
 .view-engagement-page .engagement-card.engagement-compact-overview { margin-bottom: 24px; }
@@ -1200,4 +1201,13 @@ html body #engagement-workspace .engagement-tab-list button:focus-visible {
     .engagement-routing-card { width: 100%; }
     .engagement-planning-summary { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .engagement-planning-summary .engagement-readiness-card ul { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container engagement-record (max-width: 60rem) {
+    .engagement-detail-layout { grid-template-columns: minmax(0, 1fr); }
+    .engagement-detail-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container engagement-record (max-width: 44rem) {
+    .engagement-detail-sidebar { grid-template-columns: minmax(0, 1fr); }
 }

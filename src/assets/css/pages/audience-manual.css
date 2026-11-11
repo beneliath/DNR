@@ -58,7 +58,7 @@ html.dark-mode .manual-intro{background:radial-gradient(circle at 92% 12%,color-
 .manual-intro::before{top:-80px;right:10%;width:240px;height:240px;border:1px solid color-mix(in srgb,var(--audience-link) 18%,transparent)}
 .manual-intro::after{right:-72px;bottom:-112px;width:300px;height:300px;border:54px solid color-mix(in srgb,var(--audience-link) 7%,transparent)}
 .manual-intro-copy,.manual-role,.manual-search,.manual-quick-links{position:relative;z-index:1}
-.audience-manual .manual-eyebrow,.manual-toc h2,.manual-role>span{margin:0;color:var(--audience-link);font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.audience-manual .manual-eyebrow,.manual-toc h2,.manual-role>span{margin:0;color:var(--audience-link);font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:none}
 .manual-brand-lockup{display:flex;align-items:center;gap:14px;margin-bottom:24px}
 .manual-brand-lockup img{display:block;width:116px;height:116px;flex:none;object-fit:contain}
 .manual-intro h1{margin:0;font-size:clamp(2.65rem,6vw,5.4rem);font-weight:780;letter-spacing:-.065em;line-height:.94}

@@ -12,7 +12,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
    const file=path.join(root,'src',url.pathname);return fs.existsSync(file)?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'image/svg+xml'}):route.fulfill({status:404,body:''});
   });
   const go=async(expand=true)=>{await page.goto('http://tags.test/audience.php?view=tags');if(expand)await expandRowActions(page.locator('.audience-tag-actions').first());};await go(false);
-  if(role==='admin'){assert.equal(await page.locator('#definition-selection .audience-check').evaluate(n=>getComputedStyle(n).fontWeight),'400');if(width===1600){const boxes=await Promise.all([page.getByLabel('Search tags',{exact:true}),page.locator('#definition-selection'),page.locator('#tag-sort')].map(n=>n.boundingBox()));assert.ok(Math.max(...boxes.map(b=>b.y+b.height/2))-Math.min(...boxes.map(b=>b.y+b.height/2))<2,'Search, selection and sorting share a toolbar row');}}
+  if(role==='admin'){assert.equal(await page.locator('#definition-selection .audience-check').evaluate(n=>getComputedStyle(n).fontWeight),'400');if(width===1600){const boxes=await Promise.all([page.getByLabel('Search Tags',{exact:true}),page.locator('#definition-selection'),page.locator('#tag-sort')].map(n=>n.boundingBox()));assert.ok(Math.max(...boxes.map(b=>b.y+b.height/2))-Math.min(...boxes.map(b=>b.y+b.height/2))<2,'Search, selection and sorting share a toolbar row');}}
   const deletion=page.locator('.audience-tag-actions [data-tag-delete-form]');assert.equal(await deletion.count(),role==='admin'?2:0);assert.equal(await page.locator('[data-definition-item]').count(),role==='admin'?2:0);
   const rowActions=page.locator('.audience-tag-actions').first(),icons=rowActions.locator('.action-icon-button');
   assert.equal(await page.locator('.audience-tag-list tbody tr').count(),2);assert.equal(await icons.count(),role==='admin'?5:role==='editor'?4:0);const mobile=width<861;await expandRowActions(rowActions,true);assert.equal(await icons.filter({visible:true}).count(),await icons.count());await assertActionGeometry(page,icons,mobile);assert.match(await page.locator('.audience-tag-list tbody .tag-count').first().textContent(),/128/);
@@ -29,7 +29,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
    await rowActions.locator('[data-tooltip="Export as ZIP"]').click();await page.getByText('Fixture deletion submitted').waitFor();assert.equal(posts.at(-1).action,'queue_export');assert.equal(posts.at(-1)['tags[0]'],'7');posts.length=0;await go();
   }
   if(role==='admin'){
-   const unlock=page.locator('#admin-unlock-dialog'),confirm=page.getByRole('dialog',{name:'Confirm action'}),remove=deletion.first().locator('button');
+   const unlock=page.locator('#admin-unlock-dialog'),confirm=page.getByRole('dialog',{name:'Confirm Action'}),remove=deletion.first().locator('button');
    const removeTag=()=>remove.click();
    await removeTag();await unlock.waitFor({state:'visible'});assert.equal(await confirm.isVisible(),false);await unlock.locator('[data-unlock-cancel]').click();assert.equal(posts.length,0);
    // The initial access check sets focus; finish it before entering credentials.

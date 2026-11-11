@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function audienceCampaignDatePresets(): array
 {
-    return [''=>'All dates','last7'=>'Last 7 days','last30'=>'Last 30 days','last90'=>'Last 90 days','last365'=>'Last 365 days','week'=>'Last week','month'=>'Last month','quarter'=>'Last quarter','qtd'=>'Quarter-to-date','ytd'=>'Year-to-date','custom'=>'Custom dates'];
+    return [''=>'All Dates','last7'=>'Last 7 Days','last30'=>'Last 30 Days','last90'=>'Last 90 Days','last365'=>'Last 365 Days','week'=>'Last Week','month'=>'Last Month','quarter'=>'Last Quarter','qtd'=>'Quarter-to-date','ytd'=>'Year-to-date','custom'=>'Custom Dates'];
 }
 function audienceCampaignDateRange(string $preset, ?DateTimeImmutable $today=null): array
 {
@@ -44,7 +44,7 @@ function audienceCampaignListThumbnail(array $draft):?string
 
 function audienceCampaignGoals():array
 {
-    return ['Advertise a sale or promotion','Educate or inform','Sell products','Gather sign-ups','Make an announcement','Promote an event','Sell a service/get bookings','Other'];
+    return ['Advertise a sale or promotion','Educate or inform','Sell products','Gather sign-ups','Make an Announcement','Promote an event','Sell a service/get bookings','Other'];
 }
 function audienceCampaignTracking(array $input):array
 {

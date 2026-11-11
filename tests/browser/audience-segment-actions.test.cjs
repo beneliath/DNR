@@ -29,7 +29,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
    await rowActions.locator('[data-tooltip="Export as ZIP"]').click();await page.getByText('Fixture deletion submitted').waitFor();assert.equal(posts.at(-1).action,'queue_export');assert.equal(JSON.parse(posts.at(-1).rules).rules[0].value,'subscribed');posts.length=0;await go();
   }
   if(role==='admin'){
-   const unlock=page.locator('#admin-unlock-dialog'),confirm=page.getByRole('dialog',{name:'Confirm action'}),remove=deletion.first().locator('button');
+   const unlock=page.locator('#admin-unlock-dialog'),confirm=page.getByRole('dialog',{name:'Confirm Action'}),remove=deletion.first().locator('button');
    const removeTag=()=>remove.click();
    await removeTag();await unlock.waitFor({state:'visible'});assert.equal(await confirm.isVisible(),false);await unlock.locator('[data-unlock-cancel]').click();assert.equal(posts.length,0);
    // The initial access check sets focus; finish it before entering credentials.

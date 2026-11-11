@@ -42,9 +42,9 @@ foreach(['','Mozilla/5.0','unidentified-client/1.0',str_repeat(' ',2048).$window
     $expect(audienceAnalyticsClientEvidence($agent,null)===['device'=>'Unknown','client'=>'Unknown','os'=>'Unknown','country'=>'Unknown'],'Missing, unknown and oversized agents cannot invent a desktop or expose the detector sentinel');
 }
 foreach([
-    [$windows.$chrome.' (via ggpht.com GoogleImageProxy)','Gmail image proxy'],
-    [$windows.$chrome.' YahooMailProxy','Yahoo Mail image proxy'],
-    [$windows.$chrome.' ImageProxy/1.0','Image proxy'],
+    [$windows.$chrome.' (via ggpht.com GoogleImageProxy)','Gmail Image Proxy'],
+    [$windows.$chrome.' YahooMailProxy','Yahoo Mail Image Proxy'],
+    [$windows.$chrome.' ImageProxy/1.0','Image Proxy'],
 ]as[$agent,$client]){
     $actual=audienceAnalyticsClientEvidence($agent,'US');
     $expect($actual['client']===$client&&$actual['device']==='Unknown'&&$actual['os']==='Unknown','Proxy identifiers override misleading browser/OS tokens');

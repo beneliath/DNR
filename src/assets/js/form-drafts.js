@@ -105,10 +105,10 @@
                 const row = document.createElement('tr');
                 const label = document.createElement('th'); label.scope = 'row';
                 label.textContent = el ? fieldLabel(el) : field.label || readableName(field.name);
-                const currentCell = document.createElement('td'); currentCell.dataset.field = 'Current value';
+                const currentCell = document.createElement('td'); currentCell.dataset.field = 'Current Value';
                 currentCell.textContent = current ? displayValue(current, current)
                     : field.type === 'radio' && el ? 'Empty' : 'Field no longer available';
-                const draftCell = document.createElement('td'); draftCell.dataset.field = 'Saved draft';
+                const draftCell = document.createElement('td'); draftCell.dataset.field = 'Saved Draft';
                 const draftEl = draft && matchingControl(draft, elements, new Set());
                 draftCell.textContent = draft ? displayValue(draft, draftEl) : 'Empty';
                 const actions = document.createElement('td'); actions.className = 'form-draft-actions';
@@ -153,10 +153,10 @@
             recovery.hidden = rows.length === 0;
             if (rows.length) {
                 const table = document.createElement('table');
-                table.setAttribute('aria-label', 'Draft values that differ from the current form');
+                table.setAttribute('aria-label', 'Draft Values That Differ from the Current Form');
                 const head = document.createElement('thead');
                 const heading = document.createElement('tr');
-                for (const title of ['Field', 'Current value', 'Saved draft', 'Actions']) {
+                for (const title of ['Field', 'Current Value', 'Saved Draft', 'Actions']) {
                     const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = title;
                     heading.append(cell);
                 }

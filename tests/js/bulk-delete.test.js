@@ -21,13 +21,13 @@ test('individual selection, mixed select-all, and clear keep the selected count 
     assert.equal(controls.submit.disabled, true);
     items[1].checked = true;
     items[1].events.change();
-    assert.equal(controls.count.textContent, '1 selected');
+    assert.equal(controls.count.textContent, '1 Selected');
     assert.equal(controls['select-all'].disabled, false);
-    assert.equal(controls.submit.textContent, 'Delete selected (1)');
+    assert.equal(controls.submit.textContent, 'Delete Selected (1)');
     controls['select-all'].events.click();
     assert.equal(items.every(item => item.checked), true);
     assert.equal(controls['select-all'].disabled, true);
-    assert.equal(controls.count.textContent, '3 selected');
+    assert.equal(controls.count.textContent, '3 Selected');
     controls.clear.events.click();
     assert.equal(items.some(item => item.checked), false);
     assert.equal(controls.submit.disabled, true);
@@ -43,5 +43,5 @@ test('empty lists cannot select all or submit, and a browser-restored selection 
     restored.items[0].checked = true;
     restored.events.pageshow();
     assert.equal(restored.controls.submit.disabled, false);
-    assert.equal(restored.controls.count.textContent, '1 selected');
+    assert.equal(restored.controls.count.textContent, '1 Selected');
 });

@@ -117,7 +117,7 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
         $place = is_array($location) ? audienceSummaryLabel(audienceInteractionPlace($location)) : '';
         $groups[$kind][] = [
             'contact_id'=>(int) $event['contact_id'], 'name'=>$name, 'address'=>$address,
-            'location'=>$place !== '' ? $place : 'Not recorded',
+            'location'=>$place !== '' ? $place : 'Not Recorded',
             'time'=>(new DateTimeImmutable($event['created_at'], $utc))->format('M j, Y · g:i:s A T'),
         ];
     }
@@ -128,9 +128,9 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
 function audienceDailySummaryEmail(string $audienceName, string $day, array $groups): array
 {
     $sections = [
-        'signup'=>['title'=>'Subscriptions', 'action'=>'Subscribed', 'place'=>'Subscription location', 'empty'=>'No subscriptions.', 'color'=>'#137a55', 'tint'=>'#e7f6ef'],
-        'pending'=>['title'=>'Pending sign-ups', 'action'=>'Signed up', 'place'=>'Sign-up location', 'empty'=>'No pending sign-ups.', 'color'=>'#843600', 'tint'=>'#fff3d8'],
-        'unsubscribe'=>['title'=>'Unsubscribes', 'action'=>'Unsubscribed', 'place'=>'Unsubscribe location', 'empty'=>'No unsubscribes.', 'color'=>'#b42318', 'tint'=>'#fff0ee'],
+        'signup'=>['title'=>'Subscriptions', 'action'=>'Subscribed', 'place'=>'Subscription Location', 'empty'=>'No subscriptions.', 'color'=>'#137a55', 'tint'=>'#e7f6ef'],
+        'pending'=>['title'=>'Pending Sign-Ups', 'action'=>'Signed Up', 'place'=>'Sign-Up Location', 'empty'=>'No pending sign-ups.', 'color'=>'#843600', 'tint'=>'#fff3d8'],
+        'unsubscribe'=>['title'=>'Unsubscribes', 'action'=>'Unsubscribed', 'place'=>'Unsubscribe Location', 'empty'=>'No unsubscribes.', 'color'=>'#b42318', 'tint'=>'#fff0ee'],
     ];
     $audienceName = audienceSummaryLabel($audienceName) ?: 'Audience';
     $analyticsUrl = applicationPublicUrl('audience.php', ['view'=>'analytics', 'section'=>'audience']);

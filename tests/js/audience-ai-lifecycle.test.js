@@ -166,10 +166,10 @@ test('a prior prompt can be copied without changing the current draft',async()=>
   const firstQuestion=p.find('[data-ai-chat-transcript]').children[0];
   const copy=firstQuestion.children.find(child=>child.tagName==='button');
   assert.equal(copy.children[0].tagName,'svg');
-  assert.match(copy.attributes['aria-label'],/^Copy prompt:/);
+  assert.match(copy.attributes['aria-label'],/^Copy Prompt:/);
   await copy.listeners.click();
   assert.deepEqual(copied,['How many connections are in Florida?']);
-  assert.equal(copy.attributes['aria-label'],'Prompt copied');
+  assert.equal(copy.attributes['aria-label'],'Prompt Copied');
   assert.equal(p.find('[data-ai-form]').elements.prompt.value,'Unsaved draft');
 });
 
@@ -187,12 +187,12 @@ test('a saved count source opens its matching connections instead of linking bac
   const response={...analyticsReply,summary:'Two contacts match.',observations:[{evidence_id:'query_0_result',text:'Two contacts match.'}],
     evidence:{...analyticsReply.evidence,facts:[{id:'query_0_result',label:'Contacts with an address in California',value:2,previous:null,change:null,unit:'count'}],
       queries:[{tool:'count',field:'',search:'',filters:[{field:'custom:9:us_state',operator:'eq',value:'CA'}],limit:5}]}};
-  const p=page(url=>url.includes('action=contacts')?{table:{id:'query_0_result',title:'Matching audience records',columns:[{key:'first_name',label:'First name'},{key:'email',label:'Email address'}],rows:[{first_name:'John',email:'john@example.test'},{first_name:'Jane',email:'jane@example.test'}],total:2,next_offset:null}}:{state:'complete',response},'analytics',{chat:true,window:reportWindow});
+  const p=page(url=>url.includes('action=contacts')?{table:{id:'query_0_result',title:'Matching Audience Records',columns:[{key:'first_name',label:'First Name'},{key:'email',label:'Email Address'}],rows:[{first_name:'John',email:'john@example.test'},{first_name:'Jane',email:'jane@example.test'}],total:2,next_offset:null}}:{state:'complete',response},'analytics',{chat:true,window:reportWindow});
   await p.submit();
   const answer=p.find('[data-ai-chat-transcript]').children[1];
   const citation=answer.children.find(child=>child.tagName==='p'&&child.children.some(item=>item.tagName==='a'));
   const link=citation.children.find(child=>child.tagName==='a');
-  assert.equal(link.textContent,'View matching connections');
+  assert.equal(link.textContent,'View Matching Connections');
   link.listeners.click({preventDefault(){}});await tick();
   const panel=answer.children.find(child=>child.tagName==='section'&&child.className==='analytics-ai-source-contacts');
   assert.equal(panel.hidden,false);
@@ -322,14 +322,14 @@ test('reload recovery restores the question and permits opening another history 
   let finish;
   const options={chat:true,window:reportWindow,pending:{uuid:'recovering',mode:'analytics',started:Date.now()},historyItems:[
     {client_request_id:'recovering',question:'Restored request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:00:00',outcome:'pending'},
-    {client_request_id:'saved',question:'Saved request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
+    {client_request_id:'saved',question:'Saved Request',manual_topic:'audience-ai:analytics',created_at:'2026-01-01 12:01:00',outcome:'complete'}
   ]};
   const p=page(url=>url.endsWith('recovering')?new Promise(resolve=>{finish=resolve;}):{state:'complete',response:analyticsReply},'analytics',options);await tick();
   assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Restored request'));
   await p.find('[data-ai-history]').children[0].children[0].listeners.click();
   assert.ok(p.find('[data-ai-history]').children[0].children[0].className.includes('is-current'));
   await p.find('[data-ai-history]').children[1].children[0].listeners.click();
-  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Saved request'));
+  assert.ok(textOf(p.find('[data-ai-chat-transcript]')).includes('Saved Request'));
   assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Restored request'),false);
   finish({state:'complete',response:{...analyticsReply,summary:'Late recovered answer'}});await tick();
   assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Late recovered answer'),false);
@@ -385,20 +385,20 @@ test('writing cancellation stays a terminal status without exposing output',asyn
 });
 
 test('saved replies display cited cards, and query results display returned contact data',async()=>{
-  const legacy={...analyticsReply,evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'unrelated',label:'Audience growth',value:123,previous:null,change:null,unit:'count'}]}};
+  const legacy={...analyticsReply,evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'unrelated',label:'Audience Growth',value:123,previous:null,change:null,unit:'count'}]}};
   const p=page(()=>({state:'complete',response:legacy}),'analytics',{chat:true,window:reportWindow});await p.submit();
-  assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Audience growth'),false);
-  const queryReply={...analyticsReply,observations:[{evidence_id:'query_0_contacts',text:'John Smith has the saved address john@example.test.'}],evidence:{...analyticsReply.evidence,queries:[{tool:'contacts'}],facts:[],tables:[{id:'query_0_contacts',title:'Matching audience records',total:8,shown:1,truncated:true,columns:[{key:'name',label:'Name'},{key:'email',label:'Email address'}],rows:[{name:'John Smith',email:'john@example.test'}]}]}};
+  assert.equal(textOf(p.find('[data-ai-chat-transcript]')).includes('Audience Growth'),false);
+  const queryReply={...analyticsReply,observations:[{evidence_id:'query_0_contacts',text:'John Smith has the saved address john@example.test.'}],evidence:{...analyticsReply.evidence,queries:[{tool:'contacts'}],facts:[],tables:[{id:'query_0_contacts',title:'Matching Audience Records',total:8,shown:1,truncated:true,columns:[{key:'name',label:'Name'},{key:'email',label:'Email Address'}],rows:[{name:'John Smith',email:'john@example.test'}]}]}};
   const q=page(()=>({state:'complete',response:queryReply}),'analytics',{chat:true,window:reportWindow});await q.submit();
   assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('john@example.test'));
-  assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('Source: Matching audience records'));
+  assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('Source: Matching Audience Records'));
   assert.ok(textOf(q.find('[data-ai-chat-transcript]')).includes('Showing 1 of 8'));
   assert.equal(textOf(q.find('[data-ai-chat-transcript]')).includes('could not be displayed'),false);
 });
 
 test('contact pagination replaces pages without submitting another AI request',async()=>{
   const rows=Array.from({length:30},(_,index)=>({name:`Contact ${index+1}`,email:`person${index+1}@example.test`}));
-  const table={id:'query_0_contacts',title:'Matching audience records',total:30,shown:10,truncated:true,next_offset:10,columns:[{key:'name',label:'Name'},{key:'email',label:'Email'}],rows:rows.slice(0,10)};
+  const table={id:'query_0_contacts',title:'Matching Audience Records',total:30,shown:10,truncated:true,next_offset:10,columns:[{key:'name',label:'Name'},{key:'email',label:'Email'}],rows:rows.slice(0,10)};
   const result={...analyticsReply,observations:[],evidence:{...analyticsReply.evidence,facts:[],tables:[table]}};
   const p=page(url=>url.includes('action=contacts')?{table:{...table,offset:10,rows:rows.slice(10,20),shown:10,truncated:true,next_offset:20}}:{state:'complete',response:result},'analytics',{chat:true,window:reportWindow});
   await p.submit();
@@ -427,7 +427,7 @@ test('calculated comparisons display and link every cited source without unrelat
   const result={...analyticsReply,interpretation:'calculated',summary:'',observations:[{evidence_id:'accepted',evidence_ids:['accepted','previousCampaign'],text:'A is higher than B by 3.'}],evidence:{...analyticsReply.evidence,facts:[...analyticsReply.evidence.facts,{id:'previousCampaign',label:'Second campaign',value:4,previous:null,change:null,unit:'count'},{id:'unrelated',label:'Unrelated metric',value:100,previous:null,change:null,unit:'count'}]}};
   const p=page(()=>({state:'complete',response:result}),'analytics',{chat:true,window:reportWindow});await p.submit();
   const transcript=p.find('[data-ai-chat-transcript]');const text=textOf(transcript);
-  assert.ok(text.includes('Report results'));assert.ok(text.includes('A is higher than B by 3.'));
+  assert.ok(text.includes('Report Results'));assert.ok(text.includes('A is higher than B by 3.'));
   assert.ok(text.includes('Source: Accepted messages'));assert.ok(text.includes('Source: Second campaign'));
   assert.equal(text.includes('Unrelated metric'),false);
   const walk=el=>[el,...el.children.flatMap(walk)];const elements=walk(transcript);

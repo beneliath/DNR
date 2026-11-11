@@ -4,7 +4,7 @@ $flowStep = (int) ($flowStep ?? 1);
 $flowRequestId = (int) ($flowRequestId ?? 0);
 $flowSubmitted = !empty($flowSubmitted);
 ?>
-<nav class="reimbursement-progress" aria-label="Reimbursement progress">
+<nav class="reimbursement-progress" aria-label="Reimbursement Progress">
     <ol>
     <?php foreach ($flowSteps as $index => $label): $number = $index + 1;
         $url = $number === 1 && $flowStep === 1 ? '#reimbursement-create-form'

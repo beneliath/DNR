@@ -38,7 +38,7 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
     $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
     $name = $escape($owner['display_name']);
     $range = $escape($request['start_date'] . ' to ' . $request['end_date']);
-    $status = $escape(ucfirst($request['status']));
+    $status = $escape(\Dnr\Domain\ReferenceData::label($request['status']));
     $bookkeeper = trim($setup['bookkeeper_first_name'] . ' ' . $setup['bookkeeper_last_name']);
     $bookkeeperDetails = array_filter([$bookkeeper, $setup['bookkeeper_email'], formatPhoneNumberForDisplay($setup['bookkeeper_phone'])], static fn($value) => $value !== '');
     $pdf->SetFont('dejavusans', '', 10);
