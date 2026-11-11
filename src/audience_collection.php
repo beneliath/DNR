@@ -72,6 +72,8 @@ require_once __DIR__.'/audience_collection_customization.php';
 require_once __DIR__.'/audience_collection_embed.php';
 
 const AUDIENCE_COLLECTION_KINDS = ['hosted','embedded','popup','landing','survey','preferences'];
+// Allow two 250-person sessions on the same venue Wi-Fi, with room for retries.
+const AUDIENCE_SIGNUP_IP_HOURLY_LIMIT = 600;
 const AUDIENCE_COLLECTION_QUESTIONS = ['radio','checkboxes','range','text','dropdown','email','contact','content'];
 const AUDIENCE_SURVEY_STARTERS = [
     'event-scale'=>['Satisfaction','Post-Event (1-10 Scale) Survey','Post-event satisfaction survey on a 1–10 scale. Includes an intro and 2 questions.'],
@@ -393,7 +395,12 @@ trait AudienceCollection
         catch (Throwable) { throw new InvalidArgumentException('This form expired. Reload the page and try again.'); }
         if (($p['account']??'')!==currentAccountKey() || ($p['audience']??0)!==$this->audienceId || ($p['resource']??0)!==(int)$r['id'] || ($p['revision']??0)!==(int)$r['published_revision'] || ($p['issued']??0)>time()-2 || ($p['issued']??0)<time()-7200 || !preg_match('/^[a-f0-9]{48}$/D',$p['nonce']??'') || !preg_match('/^[a-f0-9]{64}$/D',$p['visitor']??'')) throw new InvalidArgumentException('This form expired. Reload the page and try again.');
         if (audienceText($input,'website',200)!=='') throw new InvalidArgumentException('The response could not be accepted.');
-        $this->collectionRateLimit($ip,60);
+        $signup = in_array($r['kind'], ['hosted','embedded','popup','landing'], true);
+        if ($signup) {
+            $this->collectionRateLimit('signup-ip:'.$ip, AUDIENCE_SIGNUP_IP_HOURLY_LIMIT);
+        } else {
+            $this->collectionRateLimit($ip,60);
+        }
         return $this->transaction(function() use($r,$input,$p,$base,$interactionLocation) {
             $fresh=$this->collectionResource((int)$r['id'],true);
             if ($fresh['state']!=='published' || (int)$fresh['published_revision']!==(int)$p['revision']) throw new InvalidArgumentException('This form has changed. Reload and try again.');
@@ -430,16 +437,19 @@ trait AudienceCollection
                 if($contact)$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Survey recipient','recipient','survey-response',?)",[$contact['id'],json_encode(['resource_id'=>(int)$r['id'],'response_id'=>$response]+($interactionLocation?['interaction_location'=>$interactionLocation]:[]),JSON_THROW_ON_ERROR)]);
             }
             return ['confirmed'=>$confirmation,'duplicate'=>false];
-        });
+        }, readCommitted: $signup);
     }
 
     public function collectionRateLimit(string $identifier, int $limit): void
     {
-        $this->write('DELETE FROM marketing_collection_limits WHERE audience_id=? AND hour_start<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 48 HOUR) LIMIT 100',[$this->audienceId]);
-        $bucket=hash('sha256',currentAccountKey().'|collection|'.$identifier); $hour=gmdate('Y-m-d H:00:00');
-        $this->write('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start) VALUES (?,?,?) ON DUPLICATE KEY UPDATE attempts=attempts+1',[$this->audienceId,$bucket,$hour]);
-        $attempts=(int)$this->one('SELECT attempts FROM marketing_collection_limits WHERE audience_id=? AND bucket_hash=? AND hour_start=?',[$this->audienceId,$bucket,$hour])['attempts'];
-        if ($attempts>$limit) throw new AudienceRateLimitException('rate_limit','Too many attempts. Please try again later.');
+        $bucket = hash('sha256', currentAccountKey().'|collection|'.$identifier);
+        // Each writer learns whether it claimed a slot from its own statement.
+        $this->write('INSERT INTO marketing_collection_limits (audience_id,bucket_hash,hour_start) VALUES (?,?,?)
+            ON DUPLICATE KEY UPDATE attempts=IF(attempts < ?, attempts+1, attempts)',
+            [$this->audienceId, $bucket, gmdate('Y-m-d H:00:00'), $limit]);
+        if ($this->db->affected_rows === 0 || $limit < 1) {
+            throw new AudienceRateLimitException('rate_limit','Too many attempts. Please try again later.');
+        }
     }
 
     /** Bound anonymous analytics writes without blocking form access or consent. */

@@ -5,7 +5,7 @@ const {execFileSync}=require('node:child_process');
 const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');
 const root=path.resolve(__dirname,'../..');
 (async()=>{const browser=await chromium.launch({headless:true,...(process.env.DNR_BROWSER_EXECUTABLE?{executablePath:process.env.DNR_BROWSER_EXECUTABLE}:{})});try{
- for(const mode of ['send-html','send-text','send-html-large'])for(const width of [390,1518]){
+ for(const mode of ['send-html','send-html-scheduled','send-text','send-html-large'])for(const width of [390,1518]){
   const html=execFileSync('php',['tests/browser/audience-campaign-checklist-fixture.php',mode],{cwd:root,encoding:'utf8',maxBuffer:8*1024*1024});
   const page=await browser.newPage({viewport:{width,height:1000}}),errors=[],posts=[];
   let releaseSend;
@@ -51,12 +51,22 @@ const root=path.resolve(__dirname,'../..');
   const confirmation=page.locator('#campaign-send-confirm'),sendButton=confirmation.locator('[data-campaign-dispatch-submit]');
   if(large)assert.equal(await confirmation.locator('[data-campaign-size-warning]').isVisible(),true,'Clipping warning stays visible before confirmation');
   await sendButton.evaluate(button=>{button.click();button.closest('form').requestSubmit();});
-  await page.waitForFunction(()=>document.querySelector('[data-campaign-dispatch-submit]')?.classList.contains('campaign-dispatch-submitting'));
-  assert.equal(await sendButton.innerText(),'Sending…');
+  const scheduled=mode==='send-html-scheduled';
+  const progress=page.getByRole('dialog',{name:scheduled?'Scheduling your campaign':'Preparing to send your campaign',exact:true});
+  await progress.waitFor({state:'visible'});
+  assert.equal(await confirmation.isVisible(),false);
   assert.equal(await sendButton.isDisabled(),true);
-  assert.equal(await confirmation.locator('[data-campaign-dispatch-status]').isVisible(),true);
-  assert.equal(await sendButton.evaluate(button=>getComputedStyle(button,'::before').animationName),'campaign-dispatch-spin');
-  assert(await confirmation.evaluate(node=>node.scrollWidth<=node.clientWidth+1),'Pending send fits the confirmation dialog');
+  assert.match(await progress.innerText(),scheduled?/keep this page open until your schedule is confirmed/i:/keep this page open while MessageMonkey queues your email/i);
+  assert(await progress.evaluate(node=>node.matches(':modal')&&node.scrollWidth<=node.clientWidth+1),'Progress is a modal dialog that fits the viewport');
+  await page.keyboard.press('Escape');
+  assert.equal(await progress.isVisible(),true,'Escape keeps the pending operation visible');
+  if(process.env.DNR_REVIEW_OUTPUT&&(scheduled||mode==='send-html')){
+   const directory=process.env.DNR_REVIEW_OUTPUT;
+   fs.mkdirSync(directory,{recursive:true});
+   const box=await progress.boundingBox(),pad=Math.min(28,Math.floor(box.x));
+   await page.screenshot({path:path.join(directory,(scheduled?'schedule':'send-now')+'-'+(width===390?'mobile':'desktop')+'.png'),
+    clip:{x:Math.floor(box.x)-pad,y:Math.floor(box.y)-pad,width:Math.ceil(box.width)+2*pad,height:Math.ceil(box.height)+2*pad}});
+  }
   await page.waitForTimeout(150);assert.equal(posts.length,1,'One send request is made while progress is visible');
   releaseSend();await page.getByText('Send accepted').waitFor();
   assert.deepEqual(errors,[]);await page.close();

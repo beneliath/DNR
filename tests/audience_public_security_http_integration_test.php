@@ -22,7 +22,11 @@ $resource=$store->collectionResource($id);
 $path='audience_collect_public.php?key='.$resource['public_key'].'&visitor=';
 $count=static fn():int=>(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_visits WHERE resource_id=?',[$id])->fetch_assoc()['n'];
 $bucket=hash('sha256',currentAccountKey().'|collection|visit:127.0.0.1');$hour=gmdate('Y-m-d H:00:00');
-$previous=$db->execute_query('SELECT attempts FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$bucket,$hour])->fetch_assoc();
+$signupBucket=hash('sha256',currentAccountKey().'|collection|signup-ip:127.0.0.1');
+$previous=[];
+foreach ([$bucket,$signupBucket] as $key) {
+    $previous[$key]=$db->execute_query('SELECT attempts FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$key,$hour])->fetch_assoc();
+}
 $authCookies=[];
 try{
     $db->execute_query('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start,attempts) VALUES (1,?,?,299) ON DUPLICATE KEY UPDATE attempts=299',[$bucket,$hour]);
@@ -43,6 +47,9 @@ try{
     $proof=json_decode(\Dnr\Security\ApplicationKey::open(html_entity_decode($proofMatch[1]??'',ENT_QUOTES)),true,12,JSON_THROW_ON_ERROR);$proof['issued']-=5;
     $email='public-security-'.bin2hex(random_bytes(6)).'@example.test';
     $post=['proof'=>\Dnr\Security\ApplicationKey::seal(json_encode($proof,JSON_THROW_ON_ERROR)),'email'=>$email,'first_name'=>'Security','last_name'=>'Fixture','website'=>'','permission'=>'1'];
+    $startingAttempts=AUDIENCE_SIGNUP_IP_HOURLY_LIMIT-2;
+    $db->execute_query('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start,attempts) VALUES (1,?,?,?) ON DUPLICATE KEY UPDATE attempts=?',
+        [$signupBucket,$hour,$startingAttempts,$startingAttempts]);
     $submitted=$request($path.str_repeat('5',64),[],$post);
     $expect($submitted['status']===200&&(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc()['n']===1,'The analytics cap does not block a valid signup');
     $contact=$db->execute_query('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])->fetch_assoc();
@@ -68,6 +75,10 @@ try{
         $payload=json_decode(\Dnr\Security\ApplicationKey::open($sealed),true,12,JSON_THROW_ON_ERROR);$payload['issued']-=5;
         return \Dnr\Security\ApplicationKey::seal(json_encode($payload,JSON_THROW_ON_ERROR));
     };
+    $overLimit=$request('audience_collect_public.php?key='.$otherKey,[],array_replace($post,['proof'=>$privateProof($store->collectionPublished($otherKey))]));
+    $expect($overLimit['status']===422 && str_contains($overLimit['body'],'Too many attempts') &&
+        (int)$store->one('SELECT COUNT(*) n FROM marketing_collection_responses WHERE resource_id=?',[$other])['n']===0,
+        'Both signup forms share the hourly ceiling even with a fresh proof on the second form');
     $survey=$store->saveCollection(['kind'=>'survey','name'=>'Location survey']);$store->collectionOperation($survey,1,'publish');$surveyResource=$store->collectionResource($survey);$surveyActive=$store->collectionPublished($surveyResource['public_key']);
     $surveyResponse=$request('audience_collect_public.php?key='.$surveyResource['public_key'],[],['proof'=>$privateProof($surveyActive),'answers'=>['q1'=>'Great']]);
     $surveyEvent=$store->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='survey-response' ORDER BY id DESC LIMIT 1",[$contact['id']]);
@@ -140,7 +151,9 @@ try{
     $expect($request('audience_collect_public.php?key='.str_repeat('0',64))['status']===404,'Unknown forms remain unavailable');
 }finally{
     foreach($authCookies as $cookie)if(is_file($cookie))unlink($cookie);
-    if($previous)$db->execute_query('UPDATE marketing_collection_limits SET attempts=? WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$previous['attempts'],$bucket,$hour]);
-    else $db->execute_query('DELETE FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$bucket,$hour]);
+    foreach ($previous as $key=>$row) {
+        if($row)$db->execute_query('UPDATE marketing_collection_limits SET attempts=? WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$row['attempts'],$key,$hour]);
+        else $db->execute_query('DELETE FROM marketing_collection_limits WHERE audience_id=1 AND bucket_hash=? AND hour_start=?',[$key,$hour]);
+    }
 }
 echo "Public form analytics admission and continued access: $checks checks passed.\n";

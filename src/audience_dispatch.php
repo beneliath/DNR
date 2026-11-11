@@ -85,6 +85,13 @@ function audienceDispatchRenderer(array $snapshot):Closure
                 $block['image']=$image($block['image']);
                 foreach($block['images']as&$item)$item['image']=$image($item['image']);
                 unset($item);
+                // The rich-text sanitizer emits <img src="…">. Host those bytes before
+                // laying out wrapped images for every recipient. Leave visible text alone.
+                $block['html'] = preg_replace_callback(
+                    '~<img src="(data:image/[^"]+)"~',
+                    static fn(array $match): string => '<img src="'.audienceDispatchHostAssets($match[1], $snapshot).'"',
+                    $block['html']
+                );
             }
             unset($row,$column,$block);
             $designs[$variantKey]=$document;
