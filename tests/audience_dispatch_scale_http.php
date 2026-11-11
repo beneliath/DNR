@@ -33,22 +33,24 @@ try{
     $scaleRow=$campaignStore->campaign($scaleId);$scaleDraft=$scaleRow['draft'];
     $scaleDraft['personalize_to']=true;$scaleDraft['to_merge']='FNAME';
     $scaleDraft['tracking']=['opens'=>true,'clicks'=>true,'plain_clicks'=>true];
-    // Match a real newsletter's ~850 KB embedded font/image workload, not a tiny
-    // plain-text benchmark. The image has a valid PNG text chunk.
+    // A newsletter can carry images inside wrapped rich text as well as image blocks.
+    // The embedded PNG has a valid text chunk and the same order of size as a photo.
     $scalePng=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jF9sAAAAASUVORK5CYII=');
-    $padding='tEXt'."Comment\0".str_repeat('x',220000);
+    $padding='tEXt'."Comment\0".str_repeat('x',295000);
     $chunk=pack('N',strlen($padding)-4).$padding.pack('N',crc32($padding));
     $scaleImage='data:image/png;base64,'.base64_encode(substr($scalePng,0,-12).$chunk.substr($scalePng,-12));
     $scaleFont='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",415000));
     $scaleDraft['design']=audienceDesign(['schema'=>1,'styles'=>['webFont'=>$scaleFont],'rows'=>[
         ['columns'=>[[['type'=>'image','image'=>$scaleImage,'alt'=>'Fixture photo']]]],
         ['columns'=>[[['type'=>'heading','text'=>'Hello *|FNAME|*']]]],
-        ['columns'=>[[['type'=>'text','html'=>'<p>'.str_repeat('Newsletter content with a <a href="https://example.test/article">reader link</a>. ',70).'</p>']]]],
+        ['columns'=>[[['type'=>'text','html'=>'<p><img src="'.$scaleImage.'" width="180" align="left">Hello *|FNAME|*. '
+            .str_repeat('Newsletter content with a <a href="https://example.test/article">reader link</a>. ',70)
+            .'</p><p><a href="https://example.test/photo"><img src="'.$scaleImage.'" width="200" align="right"></a> Read more.</p>']]]],
         ['columns'=>[[['type'=>'share','sharePlatforms'=>['facebook','email']]]]]
     ]]);
     $conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($scaleDraft),$scaleId]);
     $scaleSaved=$campaignStore->campaign($scaleId)['draft_json'];
-    audienceHttpExpect(strlen($scaleSaved)>850000,'Scale newsletter exercises production-sized embedded assets');
+    audienceHttpExpect(strlen($scaleSaved)>1600000,'Scale newsletter exercises production-sized embedded fonts and wrapped images');
     // A failure after 72 successful insert batches must roll back every batch.
     $lastScalePerson=$scalePeople[$scaleCount-1];
     $conn->execute_query("UPDATE marketing_contacts SET first_name=?,version=version+1 WHERE id=?",["Invalid\nHeader",$lastScalePerson]);

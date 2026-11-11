@@ -183,30 +183,25 @@ export function initializeCampaignWorkspace(show, confirmations) {
     const dispatchForm = $('#campaign-send-confirm form');
     if (dispatchForm) {
         const dialog = dispatchForm.closest('dialog'), submit = $('[data-campaign-dispatch-submit]', dispatchForm);
-        const status = $('[data-campaign-dispatch-status]', dispatchForm), closeButtons = $$('[data-close-dialog]', dialog);
-        const originalLabel = submit.textContent, originallyDisabled = submit.disabled;
+        const progress = $('#campaign-dispatch-progress');
+        const originallyDisabled = submit.disabled;
         let pending = false;
         dispatchForm.addEventListener('submit', event => {
             event.preventDefault();
             if (pending) return;
             pending = true;
-            submit.textContent = submit.dataset.pendingLabel;
-            submit.classList.add('campaign-dispatch-submitting');
             submit.disabled = true;
-            closeButtons.forEach(button => { button.disabled = true; });
-            status.hidden = false;
+            dialog.close();
+            progress.showModal();
             // Allow the loading state to paint before the browser starts the request.
             window.setTimeout(() => HTMLFormElement.prototype.submit.call(dispatchForm), 60);
         });
-        dialog.addEventListener('cancel', event => { if (pending) event.preventDefault(); });
+        progress.addEventListener('cancel', event => event.preventDefault());
         window.addEventListener('pageshow', event => {
             if (!event.persisted) return;
             pending = false;
-            submit.textContent = originalLabel;
-            submit.classList.remove('campaign-dispatch-submitting');
             submit.disabled = originallyDisabled;
-            closeButtons.forEach(button => { button.disabled = false; });
-            status.hidden = true;
+            if (progress.open) progress.close();
         });
     }
     $$('[data-campaign-merge]').forEach(select => select.addEventListener('change', () => { const input = document.getElementById(select.dataset.campaignMerge); if (!select.value || !input) return; const start = input.selectionStart ?? input.value.length; input.setRangeText(select.value, start, input.selectionEnd ?? start, 'end'); input.dispatchEvent(new Event('input', {bubbles:true})); input.focus(); select.value = ''; }));
