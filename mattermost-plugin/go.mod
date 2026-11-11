@@ -1,6 +1,6 @@
 module github.com/beneliath/moed-mattermost-plugin
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/mattermost/mattermost/server/public v0.6.0

@@ -30,7 +30,7 @@ def directory(client, current):
     rows = re.findall(r'<li class="account-directory-row(.*?)</li>', body, re.S)
     keys = []
     for row in rows:
-        key = re.search(r'aria-label="Address label">([^<]+)', row)[1]
+        key = re.search(r'aria-label="Address Label">([^<]+)', row)[1]
         keys.append(key)
         assert ('account-directory-current' in row) == (key == current), 'Wrong Account highlighted'
         assert ('aria-current="true"' in row) == (key == current)
