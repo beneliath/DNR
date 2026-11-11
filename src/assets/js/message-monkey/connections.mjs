@@ -354,7 +354,7 @@ export function initializeConnectionsWorkspace(config, show) {
         const action = b.dataset.personOperation, form = $('#person-action form');
         if (action === 'delete' && !(await window.DnrAdminUnlock?.request())) return;
         setValue(form, 'operation', action); setValue(form, 'confirm_text', '');
-        $('[data-person-action-title]').textContent = `${({restore: 'Unarchive', delete: 'Permanently delete'})[action] || action[0].toUpperCase() + action.slice(1)} connection`;
+        $('[data-person-action-title]').textContent = `${({restore: 'Unarchive', delete: 'Permanently Delete'})[action] || action[0].toUpperCase() + action.slice(1)} connection`;
         $('[data-person-action-description]').textContent = descriptions[action];
         $('[data-person-delete-confirm]').hidden = action !== 'delete';
         $('#person-delete-word').required = action === 'delete';
@@ -363,7 +363,7 @@ export function initializeConnectionsWorkspace(config, show) {
     $$('[data-tag-edit]').forEach(b => b.addEventListener('click', () => {
         const data = JSON.parse(b.dataset.tagEdit), form = $('#tag-editor form');
         ['id', 'version', 'name'].forEach(key => setValue(form, key, data[key]));
-        $('[data-tag-heading]').textContent = data.id ? 'Rename tag' : 'Create tag'; show('tag-editor');
+        $('[data-tag-heading]').textContent = data.id ? 'Rename Tag' : 'Create Tag'; show('tag-editor');
     }));
     $$('[data-bulk-tag-id]').forEach(b => b.addEventListener('click', () => { $('#bulk-tag-id').value = b.dataset.bulkTagId; show('bulk-tag'); }));
     const groupOptions = $('[data-group-options]'), groupDialog = $('#group-editor');
@@ -373,7 +373,7 @@ export function initializeConnectionsWorkspace(config, show) {
             $('input[type=hidden]', row).name = `options[${index}][id]`;
             const input = $('input[type=text]', row);
             input.name = `options[${index}][name]`;
-            $('[data-group-drag]', row)?.setAttribute('aria-label', `Reorder ${input.value.trim() || 'group option ' + (index + 1)}`);
+            $('[data-group-drag]', row)?.setAttribute('aria-label', `Reorder ${input.value.trim() || 'Group Option ' + (index + 1)}`);
         });
     };
     const addGroupOption = (option = {}) => {
@@ -381,8 +381,8 @@ export function initializeConnectionsWorkspace(config, show) {
         const handle = el('button', {type:'button', class:'group-option-drag', 'data-group-drag':'', 'aria-describedby':'group-options-reorder-help'});
         const icon = $('[data-group-drag-icon]');
         if (icon) handle.append(icon.content.cloneNode(true)); else handle.textContent = '⋮⋮';
-        row.append(hidden('', option.id || 0), handle, el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group choice name'}));
-        const announce = () => { $('[data-group-order-announcement]').textContent = `${$('input[type=text]', row).value || 'Group option'}, position ${Array.from(groupOptions.children).indexOf(row) + 1}`; };
+        row.append(hidden('', option.id || 0), handle, el('input', {type: 'text', value: option.name || '', maxlength: 100, required: true, 'aria-label': 'Group Choice Name'}));
+        const announce = () => { $('[data-group-order-announcement]').textContent = `${$('input[type=text]', row).value || 'Group Option'}, position ${Array.from(groupOptions.children).indexOf(row) + 1}`; };
         handle.addEventListener('keydown', event => {
             if (!['ArrowUp','ArrowDown'].includes(event.key)) return;
             event.preventDefault();
@@ -428,7 +428,7 @@ export function initializeConnectionsWorkspace(config, show) {
         const remove = button('×', async () => {
             if (option.id && !(await window.DnrAdminUnlock?.request())) return;
             const next = row.nextElementSibling || row.previousElementSibling; row.remove(); renumberOptions(); (next?.querySelector('input[type=text]') || $('[data-add-group-option]')).focus();
-        }, 'Remove group choice');
+        }, 'Remove Group Choice');
         if (option.id) { remove.setAttribute('data-admin-unlock-required', ''); remove.hidden = !config.canDelete; }
         row.append(remove);
         groupOptions.append(row); renumberOptions();
@@ -440,7 +440,7 @@ export function initializeConnectionsWorkspace(config, show) {
         const data = JSON.parse(b.dataset.groupEdit), form = $('#group-editor form');
         ['id', 'version', 'name', 'display_type'].forEach(key => setValue(form, key, data[key]));
         groupOptions.replaceChildren(); (data.options?.length ? data.options : [{}]).forEach(addGroupOption);
-        $('[data-group-heading]').textContent = data.id ? 'Edit group' : 'Create group'; show('group-editor');
+        $('[data-group-heading]').textContent = data.id ? 'Edit Group' : 'Create Group'; show('group-editor');
     }));
     const updateFieldChoices = () => {
         const type = $('#field-type').value;
@@ -479,7 +479,7 @@ export function initializeConnectionsWorkspace(config, show) {
         setValue(form, 'options_text', (typeof data.options_json === 'string' ? JSON.parse(data.options_json) : data.options_json || []).join('\n'));
         ['required', 'is_public'].forEach(key => { form.elements.namedItem(key).checked = Number(data[key]) === 1; });
         lockFieldType(data.id); mergeTagEdited = Number(data.id) > 0;
-        $('[data-field-heading]').textContent = Number(data.id) ? 'Edit field' : 'Create new field';
+        $('[data-field-heading]').textContent = Number(data.id) ? 'Edit field' : 'Create New Field';
         show('field-editor');
     }));
     const importMethods = $$('input[name="import_method"]');
@@ -530,7 +530,7 @@ export function initializeConnectionsWorkspace(config, show) {
                 if (['checkbox', 'radio'].includes(control.type)) control.checked = String(values[control.name]) === control.value;
                 else if (typeof values[control.name] !== 'object') control.value = values[control.name];
             }
-            if (id === 'tag-editor') $('[data-tag-heading]').textContent = Number(values.id) ? 'Rename tag' : 'Create tag';
+            if (id === 'tag-editor') $('[data-tag-heading]').textContent = Number(values.id) ? 'Rename Tag' : 'Create Tag';
             if (id === 'field-editor') { lockFieldType(values.id); updateFieldChoices(); mergeTagEdited = true; }
             const notice = el('p', {class: 'audience-notice error', role: 'alert', tabindex: '-1'}, error);
             form.prepend(notice); show(id); notice.focus();

@@ -116,7 +116,7 @@ expectUserProfile(
         && str_contains($profile_script, 'new FileReader()')
         && str_contains($profile_script, 'reader.readAsDataURL(file)')
         && !str_contains($profile_script, 'URL.createObjectURL(file)')
-        && str_contains($profile_script, 'Preview of selected profile picture')
+        && str_contains($profile_script, 'Preview of Selected Profile Picture')
         && str_contains($profile_script, 'Save changes to apply this picture.')
         && str_contains($profile_script, 'removeCheckbox.checked = false'),
     'selecting a valid picture should immediately replace the on-page preview before saving.'

@@ -28,8 +28,8 @@ try{for(const kind of ['popup','embedded'])for(const dark of [false,true])for(co
     const go=()=>page.goto('https://collection.test/audience.php?view=form&id=7');
     await go();await page.locator('[data-collection-rail="publish"]').click();
     if(kind==='popup'){
-        await page.getByRole('heading',{name:'Install your popup on your website',exact:true}).waitFor();
-        assert.equal(await page.getByText('Your hosted page',{exact:true}).count(),0);
+        await page.getByRole('heading',{name:'Install Your Popup on Your Website',exact:true}).waitFor();
+        assert.equal(await page.getByText('Your Hosted Page',{exact:true}).count(),0);
         assert.equal(await page.locator('#collection-public-url').count(),0);
         assert.match(await page.locator('[data-collection-panel="publish"]').textContent(),/display rules in Setup/);checks+=3;
     }

@@ -15,8 +15,8 @@ if (element && dataElement && feedback && fitButton) {
         const pins = Array.isArray(payload.pins) ? payload.pins : [];
         const provider = payload.mapProvider || {};
         const attribution = provider.attributionUrl
-            ? `&copy; <a href="${provider.attributionUrl}">${provider.attributionText || 'Map contributors'}</a>`
-            : String(provider.attributionText || 'Map contributors');
+            ? `&copy; <a href="${provider.attributionUrl}">${provider.attributionText || 'Map Contributors'}</a>`
+            : String(provider.attributionText || 'Map Contributors');
         const maximumZoom = Number(provider.maximumZoom) || 19;
         const style = provider.styleUrl || {
             version: 8,
@@ -27,7 +27,9 @@ if (element && dataElement && feedback && fitButton) {
             layers: [{id: 'base-map', type: 'raster', source: 'base'}]
         };
         const map = new MapLibreMap({
-            container: element, style, center: [0, 20], zoom: 2, minZoom: 2,
+            container: element,
+        locale: {'NavigationControl.ZoomIn': 'Zoom In', 'NavigationControl.ZoomOut': 'Zoom Out',
+            'AttributionControl.ToggleAttribution': 'Toggle Attribution', 'Popup.Close': 'Close Popup', 'Marker.Title': 'Map Marker'}, style, center: [0, 20], zoom: 2, minZoom: 2,
             maxZoom: maximumZoom, attributionControl: {compact: true}, validateStyle: false
         });
         map.addControl(new NavigationControl({showCompass: false}), 'top-left');
@@ -72,7 +74,7 @@ if (element && dataElement && feedback && fitButton) {
                 popupContent.append(reported);
             }
             const accuracy = document.createElement('small');
-            accuracy.textContent = pin.precision === 'city' ? 'Approximate city position' : 'Approximate country position';
+            accuracy.textContent = pin.precision === 'city' ? 'Approximate City Position' : 'Approximate Country Position';
             popupContent.append(accuracy);
             const popup = new Popup({offset: 18, maxWidth: '320px'}).setDOMContent(popupContent);
             popup.on('open', () => {

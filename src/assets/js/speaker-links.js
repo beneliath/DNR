@@ -16,7 +16,7 @@
                 const required = Boolean(label.value.trim() || url.value.trim() || row.querySelector('[data-custom-link-key]').value);
                 label.required = required;
                 url.required = required;
-                row.querySelector('[data-remove-custom-link]').setAttribute('aria-label', 'Remove ' + (label.value.trim() || 'custom link'));
+                row.querySelector('[data-remove-custom-link]').setAttribute('aria-label', 'Remove ' + (label.value.trim() || 'Custom Link'));
             });
         }
 

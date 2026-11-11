@@ -84,7 +84,7 @@ test('native submission shows progress, preserves posted credentials, and blocks
     assert.equal(f.status.dataset.state, 'pending');
     assert.equal(f.status.hidden, false);
     assert.equal(f.status.scrollOptions.block, 'nearest');
-    assert.equal(f.stage.textContent, 'Creating your backup');
+    assert.equal(f.stage.textContent, 'Creating Your Backup');
     assert.equal(f.progress.hidden, false);
     assert.equal(f.progressAttributes['aria-valuenow'], undefined);
     assert.equal(f.elapsed.textContent, '0:00 elapsed');
@@ -192,7 +192,7 @@ test('elapsed time remains accurate across a slow backup without inventing a com
     f.submit();
     f.tick(50000);
     assert.equal(f.elapsed.textContent, '0:50 elapsed');
-    assert.equal(f.stage.textContent, 'Creating your backup');
+    assert.equal(f.stage.textContent, 'Creating Your Backup');
     assert.equal(f.progressAttributes['aria-valuenow'], undefined);
     assert.equal(f.status.dataset.state, 'pending');
     f.tick(15000);

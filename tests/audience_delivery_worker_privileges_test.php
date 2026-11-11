@@ -74,7 +74,7 @@ if(strlen($incident)!==32)throw new RuntimeException('SES incident identity was 
 $alert=claimQueuedAudienceSesAlert($db);
 if(!$alert)throw new RuntimeException('SES alert could not be claimed.');
 $alertMessage=audienceSesAlertMessage($alert['payload_ciphertext']);
-if(!str_contains($alertMessage['body'],'Email delivery')||!str_contains($alertMessage['body'],rtrim((string)getenv('DNR_PUBLIC_BASE_URL'),'/').'/audience.php?view=delivery'))throw new RuntimeException('SES alert does not link to this account’s delivery page.');
+if(!str_contains($alertMessage['body'],'Email Delivery')||!str_contains($alertMessage['body'],rtrim((string)getenv('DNR_PUBLIC_BASE_URL'),'/').'/audience.php?view=delivery'))throw new RuntimeException('SES alert does not link to this account’s delivery page.');
 failQueuedAudienceSesAlert($db,$alert['id'],$alert['claim_token'],new RuntimeException('SMTP test outage'));
 $retry=$db->execute_query('SELECT status,attempts FROM marketing_ses_alert_outbox WHERE id=?',[$alert['id']])->fetch_assoc();
 if($retry['status']!=='retry'||(int)$retry['attempts']!==1)throw new RuntimeException('SES alert was not retained for SMTP retry.');

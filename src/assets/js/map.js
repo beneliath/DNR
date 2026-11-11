@@ -35,7 +35,7 @@ import {
         ? payload.locationLookup
         : {};
     mapElement.dataset.mapProvider = String(mapProvider.type || 'openstreetmap');
-    const attributionText = String(mapProvider.attributionText || 'Map contributors');
+    const attributionText = String(mapProvider.attributionText || 'Map Contributors');
     const attributionUrl = String(mapProvider.attributionUrl || '');
     const maximumZoom = Number(mapProvider.maximumZoom) || 19;
     const rasterTileUrl = String(mapProvider.rasterTileUrl || '');
@@ -57,6 +57,8 @@ import {
     };
     const map = new MapLibreMap({
         container: mapElement,
+        locale: {'NavigationControl.ZoomIn': 'Zoom In', 'NavigationControl.ZoomOut': 'Zoom Out',
+            'AttributionControl.ToggleAttribution': 'Toggle Attribution', 'Popup.Close': 'Close Popup', 'Marker.Title': 'Map Marker'},
         style: style,
         center: [0, 20],
         zoom: 2,

@@ -166,7 +166,7 @@ $templateLabel = $isInquiryMessage
                         <?php if ($roles !== []): ?><small><?php echo htmlspecialchars(implode(' · ', array_map(static fn(mixed $role): string => match ($role) { 'speaker' => 'Speaker', 'sender' => 'Sender', default => engagementContactRoleLabel($role) }, $roles)), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     </div>
                     <div class="outbound-delivery-state">
-                        <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $delivery['status'])), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label(str_replace('_', ' ', (string) $delivery['status'])), ENT_QUOTES, 'UTF-8'); ?></span>
                         <?php if ($delivery['status'] === 'delivery_uncertain' && !empty($delivery['smtp_message_id'])): ?><small>Provider reference: <?php echo htmlspecialchars($delivery['smtp_message_id'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                         <?php if (!empty($delivery['sent_at'])): ?><small><?php echo htmlspecialchars(formatUserTimestamp($delivery['sent_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                         <?php if (!empty($delivery['last_error'])): ?><small class="delivery-error"><?php echo htmlspecialchars((string) $delivery['last_error'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
@@ -179,7 +179,7 @@ $templateLabel = $isInquiryMessage
             <form method="post" action="outbound_mail.php" class="outbound-retry-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="id" value="<?php echo $messageId; ?>">
-                <label><input type="checkbox" name="reviewed_uncertain" value="1" required> I checked these uncertain deliveries and want to resend them</label>
+                <label><input type="checkbox" name="reviewed_uncertain" value="1" required> I Checked These Uncertain Deliveries and Want to Resend Them</label>
                 <button type="submit" class="button-secondary">Retry Reviewed Deliveries</button>
             </form>
         <?php endif; ?>

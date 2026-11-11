@@ -60,7 +60,7 @@ foreach (['/login.php', '/a/test-account/engagement.php', '/direct/content.pdf']
     [$body, $headers] = noticeHttp('GET', $path);
     $headerText = strtolower(implode("\n", $headers));
     checkNoticeHttp(str_contains($headers[0] ?? '', '503'), 'Unavailable pages must return HTTP 503: ' . ($headers[0] ?? '') . ' ' . substr((string) $body, 0, 200));
-    checkNoticeHttp(str_contains($body, 'Temporarily unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
+    checkNoticeHttp(str_contains($body, 'Temporarily Unavailable') && str_contains($body, 'Clock and workspace illustration') && str_contains($body, 'Estimated return')
         && !str_contains($body, 'aria-label="MOED logo"') && str_contains($body, '<svg'), 'Maintenance page must show the illustration and return estimate without a logo.');
     checkNoticeHttp(!str_contains($body, 'http-equiv="refresh"')
         && str_contains($body, 'data-maintenance-timer') && str_contains($body, 'data-ready-url="/ready.php"')

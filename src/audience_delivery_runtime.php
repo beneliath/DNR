@@ -111,7 +111,7 @@ function audienceServiceMailStatus(array $mail,array $events):array
             'cancelled'=>'This email request was cancelled.',
             default=>'No delivery details are recorded.',
         };
-        return ['label'=>ucfirst($mail['state']),'event_at'=>null,'detail'=>$detail];
+        return ['label'=>\Dnr\Domain\ReferenceData::label($mail['state']),'event_at'=>null,'detail'=>$detail];
     }
     $detail=match($chosen['event_type']){
         'send'=>'SES accepted the email; delivery is not yet confirmed.',
@@ -164,7 +164,8 @@ trait AudienceDeliveryRuntime
             $row=$kind==='template'?$this->emailTemplate($id):$this->campaign($id,true);if($kind!=='template'&&(!empty($row['draft']['experiment'])||!empty($row['draft']['design_variants'])))throw new InvalidArgumentException('A/B testing is not available in MessageMonkey.');if((int)$row['version']!==$version)throw new InvalidArgumentException('This email changed. Reload before sending a test.');
             if(!$this->sesAvailable())throw new InvalidArgumentException('Configure SES in Email delivery first.');
             if($kind==='template'){$draft=['design'=>$row['design'],'subject'=>audienceText($input,'test_subject',200)?:$row['name'],'from_email'=>audienceText($input,'test_from',254),'from_name'=>'MOED MessageMonkey'];$row['campaign_type']='regular';}else{$draft=$row['draft'];if($variant>0)$draft['design']=$this->campaignDesign($row,$variant);}$ready=$this->sendingReadiness($draft['from_email']??'',audienceJson($audience['settings_json']),true);if(!$ready['ready'])throw new InvalidArgumentException(implode(' ',$ready['reasons']));
-            if(empty($draft['subject'])||($row['campaign_type']==='plain-text'?empty($draft['text']):empty($draft['design'])))throw new InvalidArgumentException('Add a subject and email content before sending a test.');
+            if(trim((string)($draft['subject']??''))==='')throw new InvalidArgumentException('Add a subject line before sending a test.');
+            if($row['campaign_type']==='plain-text'?empty($draft['text']):empty($draft['design']))throw new InvalidArgumentException('Add email content before sending a test.');
             $recent=(int)$this->one("SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND actor_id=? AND kind='test' AND created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR)",[$this->audienceId,$this->actorId])['n'];
             $operations=[];foreach($emails as$email)$operations[$email]=hash('sha256',$this->actorId.':'.$kind.':'.$id.':'.$version.':'.$key.':'.$email);$existing=(int)$this->one('SELECT COUNT(*) n FROM marketing_service_mail WHERE audience_id=? AND operation_key IN ('.implode(',',array_fill(0,count($operations),'?')).')',[$this->audienceId,...array_values($operations)])['n'];
             if($recent+count($emails)-$existing>50)throw new InvalidArgumentException('Wait before sending more tests. Each editor can queue 50 test recipients per hour.');

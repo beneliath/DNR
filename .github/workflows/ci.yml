@@ -108,7 +108,29 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --no-progress --prefer-dist
       - name: Install receipt PDF compatibility tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qpdf poppler-utils
+        run: |
+          # Keep this source and package index together, independent of runner/action APT cleanup.
+          pdf_apt_state="$(mktemp -d)"
+          trap 'sudo rm -rf -- "$pdf_apt_state"' EXIT
+          chmod 755 "$pdf_apt_state"
+          cp /etc/apt/sources.list.d/ubuntu.sources "$pdf_apt_state/ubuntu.sources"
+          sed -i \
+            -e 's|mirror+file:/etc/apt/apt-mirrors.txt|https://mirrors.edge.kernel.org/ubuntu|g' \
+            -e 's|mirror+file:/etc/apt/apt-security-mirrors.txt|https://mirrors.edge.kernel.org/ubuntu|g' \
+            -e 's|http://azure.archive.ubuntu.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' \
+            -e 's|https://azure.archive.ubuntu.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' \
+            -e 's|http://archive.ubuntu.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' \
+            -e 's|http://security.ubuntu.com/ubuntu|https://mirrors.edge.kernel.org/ubuntu|g' \
+            "$pdf_apt_state/ubuntu.sources"
+          sudo install -d -m 755 -o _apt "$pdf_apt_state/lists/partial"
+          pdf_apt_options=(
+            -o "Dir::Etc::sourcelist=$pdf_apt_state/ubuntu.sources"
+            -o "Dir::Etc::sourceparts=-"
+            -o "Dir::State::Lists=$pdf_apt_state/lists"
+            -o Acquire::Retries=3
+          )
+          sudo apt-get "${pdf_apt_options[@]}" update
+          sudo apt-get "${pdf_apt_options[@]}" install -y --no-install-recommends qpdf poppler-utils
       - run: composer check
       - name: Check release and runtime metadata
         run: |

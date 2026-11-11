@@ -99,7 +99,7 @@
     50%{box-shadow:0 2px 4px var(--audience-shadow),0 0 0 7px color-mix(in srgb,var(--audience-primary) 25%,transparent)}
 }
 @media(prefers-reduced-motion:reduce){.flow-editor:has([data-flow-panel="steps"][aria-pressed="true"]) .flow-node.editing{animation:none;box-shadow:0 2px 4px var(--audience-shadow),0 0 0 3px var(--audience-primary)}}
-.flow-node-type{font-size:calc(11px * var(--audience-font-scale,1));color:var(--audience-muted);text-transform:uppercase;letter-spacing:.3px}
+.flow-node-type{font-size:calc(11px * var(--audience-font-scale,1));color:var(--audience-muted);text-transform:none;letter-spacing:.3px}
 .flow-node strong{font-size:calc(15px * var(--audience-font-scale,1));font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flow-node-detail,.flow-node small{font-size:calc(12px * var(--audience-font-scale,1));color:var(--audience-muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flow-node-detail{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.35;overflow-wrap:anywhere}

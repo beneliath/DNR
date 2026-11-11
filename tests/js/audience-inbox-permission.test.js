@@ -13,7 +13,7 @@ test('blocked notifications explain site settings and do not repeat a denied pro
     const state = await requestInboxNotificationPermission(scope);
     assert.equal(scope.requests,0);
     assert.equal(state.state,'denied');
-    assert.equal(state.label,'Check permission');
+    assert.equal(state.label,'Check Permission');
     assert.match(state.message,/site settings/);
 });
 

@@ -10,7 +10,7 @@ export function initializeInquiryTabs() {
         pickerLabel.className = 'record-section-picker';
         pickerLabel.textContent = 'Section';
         const picker = document.createElement('select');
-        picker.setAttribute('aria-label', 'Record section');
+        picker.setAttribute('aria-label', 'Record Section');
         tabs.forEach(function (tab, index) {
             picker.add(new Option(tab.textContent.trim().replace(/\s+/g, ' '), String(index)));
         });

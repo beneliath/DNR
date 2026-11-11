@@ -50,7 +50,7 @@ test("QR preview URLs survive bfcache navigation and release on real unload", fu
     assert.equal(shouldReleaseQrPreviews(), true);
 });
 
-function presentationFormFixture(rows = [{}], statusValue = "pending") {
+function presentationFormFixture(rows = [{}], statusValue = "pending", notRequired = false) {
     const nodes = new Map();
     const entries = [];
     const periods = new Map();
@@ -69,6 +69,8 @@ function presentationFormFixture(rows = [{}], statusValue = "pending") {
     const status = input(statusValue);
     status.querySelector = () => confirmedOption;
     nodes.set("confirmation_status", status);
+    nodes.set("presentation_not_required", Object.assign(input("1"), { checked: notRequired }));
+    nodes.set("presentation-details", {});
     nodes.set("event_start_date", input("2026-11-14"));
     nodes.set("event_end_date", input("2026-11-16"));
     nodes.set("presentations-container", { dataset: { defaultSpeaker },
@@ -186,6 +188,38 @@ test("confirmation still requires content beyond a blank row's defaults", functi
         assert.equal(fixture.window.validateEngagementPresentations(), false);
         assert.match(fixture.status.validationMessage, /Add at least one presentation/);
     }
+});
+
+test("no presentation required enables confirmation until the choice is cleared", function () {
+    const fixture = presentationFormFixture([{}], "confirmed");
+    const checkbox = fixture.nodes.get("presentation_not_required");
+    checkbox.checked = true;
+    checkbox.events.change();
+    assert.equal(fixture.confirmedOption.disabled, false);
+    assert.equal(fixture.window.validateEngagementPresentations(), true);
+    checkbox.checked = false;
+    checkbox.events.change();
+    assert.equal(fixture.confirmedOption.disabled, true);
+    assert.equal(fixture.window.validateEngagementPresentations(), false);
+});
+
+test("a saved opt-out collapses the editor and toggling retains the draft", function () {
+    const fixture = presentationFormFixture([{ presentation_topic: "Draft talk", duration_minutes: "0" }], "confirmed", true);
+    const details = fixture.nodes.get("presentation-details");
+    const checkbox = fixture.nodes.get("presentation_not_required");
+    assert.equal(details.hidden, true);
+    assert.equal(details.disabled, true);
+    assert.equal(fixture.window.validateEngagementPresentations(), true);
+    checkbox.checked = false;
+    checkbox.events.change();
+    assert.equal(details.hidden, false);
+    assert.equal(details.disabled, false);
+    assert.equal(fixture.nodes.get("presentation_topic_1").value, "Draft talk");
+    assert.equal(fixture.window.validateEngagementPresentations(), false);
+    checkbox.checked = true;
+    checkbox.events.change();
+    assert.equal(details.hidden, true);
+    assert.equal(fixture.window.validateEngagementPresentations(), true);
 });
 
 test("changing optional attendance, speaker, or duration updates confirmation availability", function () {

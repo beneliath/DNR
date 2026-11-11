@@ -287,7 +287,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                                <?php echo isset($selectedContactIds[$contactId]) && $contactEmailAvailable ? 'checked' : ''; ?>
                                <?php echo !$contactEmailAvailable ? 'disabled' : ''; ?>>
                         <span class="recipient-copy">
-                            <strong><?php echo htmlspecialchars($contactName !== '' ? $contactName : 'Unnamed contact', ENT_QUOTES, 'UTF-8'); ?></strong>
+                            <strong><?php echo htmlspecialchars($contactName !== '' ? $contactName : 'Unnamed Contact', ENT_QUOTES, 'UTF-8'); ?></strong>
                             <small><?php echo htmlspecialchars($contactEmailAvailable ? $contactEmail : 'No Valid Email Address', ENT_QUOTES, 'UTF-8'); ?></small>
                             <span class="recipient-role-list">
                                 <?php foreach ($contactRoles as $role): ?><span><?php echo htmlspecialchars(engagementContactRoleLabel($role), ENT_QUOTES, 'UTF-8'); ?></span><?php endforeach; ?>
@@ -317,7 +317,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                                <?php echo isset($selectedSpeakerIds[$speakerId]) && $speakerEmailAvailable ? 'checked' : ''; ?>
                                <?php echo !$speakerEmailAvailable ? 'disabled' : ''; ?>>
                         <span class="recipient-copy">
-                            <strong><?php echo htmlspecialchars($speakerName !== '' ? $speakerName : 'Unnamed speaker', ENT_QUOTES, 'UTF-8'); ?></strong>
+                            <strong><?php echo htmlspecialchars($speakerName !== '' ? $speakerName : 'Unnamed Speaker', ENT_QUOTES, 'UTF-8'); ?></strong>
                             <small><?php echo htmlspecialchars($speakerEmailAvailable ? $speakerEmail : 'No Valid Email Address', ENT_QUOTES, 'UTF-8'); ?></small>
                             <span class="recipient-role-list"><span>Speaker</span></span>
                         </span>

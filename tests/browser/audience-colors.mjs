@@ -4,7 +4,7 @@ const form=document.querySelector('#brand'),result=document.querySelector('#resu
 const imageCanvas=document.createElement('canvas');imageCanvas.width=4;imageCanvas.height=2;const context=imageCanvas.getContext('2d');context.fillStyle='#c10304';context.fillRect(0,0,2,2);context.fillStyle='#3261b5';context.fillRect(2,0,2,2);
 const image={label:'Fixture image',src:imageCanvas.toDataURL('image/png')};
 const preview=document.createElement('div');preview.style.width='120px';preview.style.height='60px';preview.style.backgroundColor='#c10304';form.append(preview);
-form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true,palette:[{label:'Link',value:'#3261b5'},{label:'Button',value:'#c10304'},{label:'Content',value:'#ffffff'},{label:'Button text',value:'#ffffff'}],sampleSources:()=>colorSampleSources(preview,[image])}));
+form.querySelectorAll('input[type=color]').forEach(input=>enhanceColorInput(input,{tile:true,palette:[{label:'Link',value:'#3261b5'},{label:'Button',value:'#c10304'},{label:'Content',value:'#ffffff'},{label:'Button Text',value:'#ffffff'}],sampleSources:()=>colorSampleSources(preview,[image])}));
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 const wait=async test=>{for(let i=0;i<120;i++){if(test())return;await new Promise(resolve=>setTimeout(resolve,20));}throw Error('Timed out preparing sampler');};
 document.querySelector('#run').onclick=async()=>{

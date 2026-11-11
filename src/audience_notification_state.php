@@ -29,7 +29,7 @@ function audienceBellItems(AudienceStore $store): array
             $item['href']=$row['kind']==='digest'?'audience.php?view=analytics&section=audience':'audience.php?view=contact&id='.(int)$row['contact_id'];
             $item['time']=formatUserTimestamp($row['created_at'],'Y-m-d H:i:s');
         }else{
-            $item['label']=ucfirst($row['job_type']).' '.match($row['state']){'complete'=>'complete','failed'=>'needs attention','processing'=>'in progress','queued'=>'queued',default=>'updated'};
+            $item['label']=\Dnr\Domain\ReferenceData::label($row['job_type']).' '.match($row['state']){'complete'=>'complete','failed'=>'needs attention','processing'=>'in progress','queued'=>'queued',default=>'updated'};
             $item['description']=$row['name'];$item['href']='audience.php?view=job&id='.(int)$row['id'];
             $item['time']=formatUserTimestamp($row['updated_at'],'M j, Y, g:i A').((int)$row['errors']>0?' · '.(int)$row['errors'].' row errors':'');
         }

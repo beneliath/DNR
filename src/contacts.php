@@ -332,7 +332,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                 <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'organization', $last_name_sort, $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button sort-selection<?php echo $sort_column === 'organization' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'organization' ? 'aria-current="true"' : ''; ?>>
-                    Primary organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
+                    Primary Organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
         </div>

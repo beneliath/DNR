@@ -27,7 +27,7 @@ const noticeFixtures=Object.fromEntries(['sent','sent-notice','plain-notice'].ma
    await page.setViewportSize({width,height:1100});
    await page.goto('http://checklist.test/audience.php?view=campaign&id=13');
    const stages=page.locator('.campaign-progress li');
-   assert.deepEqual(await stages.locator('span').allTextContents(),['To','From','Subject','Send time','Content']);
+   assert.deepEqual(await stages.locator('span').allTextContents(),['To','From','Subject','Send Time','Content']);
    assert.equal(await stages.nth(1).getAttribute('aria-label'),'From: Complete');
    assert.equal(await stages.nth(0).getAttribute('aria-label'),'To: Incomplete');
    const row=page.locator('.campaign-checklist-item > summary').first();
@@ -99,13 +99,13 @@ const noticeFixtures=Object.fromEntries(['sent','sent-notice','plain-notice'].ma
    await page.setViewportSize({width,height:1100});await page.goto('http://checklist.test/audience.php?view=campaign&id=13&mode='+mode);
    const url=page.url(),notice=page.getByRole('dialog',{name:'Visual designer unavailable'});
    if(mode==='sent'){
-    await page.locator('.campaign-checklist-item > summary').nth(4).click();await page.getByRole('link',{name:'Edit design',exact:true}).click();
+    await page.locator('.campaign-checklist-item > summary').nth(4).click();await page.getByRole('link',{name:'Edit Design',exact:true}).click();
    }
    await notice.waitFor({state:'visible'});assert.equal(page.url(),url,'Designer warning does not navigate away from the campaign');
    assert.equal(await notice.getByText('Only regular email drafts can use the visual designer.',{exact:true}).isVisible(),true);
    await notice.getByRole('button',{name:'Close',exact:true}).click();await notice.waitFor({state:'hidden'});
    if(mode==='sent'){
-    const link=page.getByRole('link',{name:'Edit design',exact:true});assert.equal(await link.evaluate(node=>node===document.activeElement),true);
+    const link=page.getByRole('link',{name:'Edit Design',exact:true});assert.equal(await link.evaluate(node=>node===document.activeElement),true);
     await page.keyboard.press('Enter');await notice.waitFor({state:'visible'});await page.keyboard.press('Escape');await notice.waitFor({state:'hidden'});
    }
   }

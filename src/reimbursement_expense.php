@@ -140,8 +140,8 @@ $amountValue = isset($expense['amount']) ? (string) $expense['amount'] : ($id ? 
         <button type="button" class="presentation-file-drop-button" data-receipt-drop-button aria-controls="receipt-files">
             <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
             <strong>Drop Receipts Here</strong>
-            <span>or click to choose · JPEG, PNG, WebP, PDF · up to 15 MB each</span>
-            <span>Select Save expense to upload.</span>
+            <span>Or Click to Choose · JPEG, PNG, WebP, PDF · Up to 15 MB Each</span>
+            <span>Select Save Expense to Upload.</span>
         </button>
 
     </div>
@@ -157,7 +157,7 @@ $amountValue = isset($expense['amount']) ? (string) $expense['amount'] : ($id ? 
 </section>
 <?php if (!$isViewing && hasRole(['admin']) && empty($expense['request_id'])): ?><div class="reimbursement-actions"><form method="post" class="reimbursement-expense-delete" data-confirm="Delete this expense and its receipts?" data-confirm-title="Delete Expense?" data-confirm-label="Delete Expense" data-confirm-tone="danger" data-admin-unlock-required><?= csrfInput() ?><input type="hidden" name="action" value="delete_expense"><button class="delete-button" type="submit">Delete Expense</button></form></div><?php endif; ?>
 <?php endif; ?>
-<?php if ($expenseEvents): ?><section class="reimbursement-card"><details><summary>Expense History</summary><ul><?php foreach ($expenseEvents as $event): ?><li><?= reimbursementExpenseH(formatUserTimestamp($event['created_at'],'Y-m-d H:i:s').' · '.($event['username'] ?? 'System').' · '.ucwords(str_replace('_',' ',$event['action']))) ?><?php if ($event['detail'] !== ''): ?> · <small><?= reimbursementExpenseH($event['detail']) ?></small><?php endif; ?></li><?php endforeach; ?></ul></details></section><?php endif; ?>
+<?php if ($expenseEvents): ?><section class="reimbursement-card"><details><summary>Expense History</summary><ul><?php foreach ($expenseEvents as $event): ?><li><?= reimbursementExpenseH(formatUserTimestamp($event['created_at'],'Y-m-d H:i:s').' · '.($event['username'] ?? 'System').' · '.\Dnr\Domain\ReferenceData::label(str_replace('_',' ',$event['action']))) ?><?php if ($event['detail'] !== ''): ?> · <small><?= reimbursementExpenseH($event['detail']) ?></small><?php endif; ?></li><?php endforeach; ?></ul></details></section><?php endif; ?>
 <?php if ($showMileageReminder): ?>
 <dialog class="confirmation-dialog" data-mileage-saved aria-labelledby="mileage-reminder-title" aria-describedby="mileage-reminder-text">
 <h2 id="mileage-reminder-title">Mileage Saved: Fuel Reimbursement Reminder</h2>

@@ -11,6 +11,7 @@ foreach([0,1,70]as$total)foreach([1,2,999]as$page){
  ob_start();audiencePagination(['total'=>$total,'page'=>$page,'size'=>25,'page_key'=>'activity_page','size_key'=>'activity_size','label'=>'Connection activity pages','url'=>static fn(array $p=[])=>'audience.php?'.http_build_query(array_replace($base,$p))]);$html=ob_get_clean();
  $doc=new DOMDocument();@$doc->loadHTML('<?xml encoding="UTF-8">'.$html);$xpath=new DOMXPath($doc);$pages=max(1,(int)ceil($total/25));$current=min($pages,$page);
  paginationExpect($xpath->query('//select/option')->length===4,'One standard size selector');
+ paginationExpect($xpath->query('//nav[@aria-label="Connection Activity Pages"]')->length===1,'Generated pagination labels use Title Case');
  paginationExpect($xpath->query('//input[@name="activity_page"]')->item(0)->getAttribute('value')==='1','Size changes reset the correct page parameter');
  paginationExpect($xpath->query('//input[@name="tags[1]"]')->item(0)->getAttribute('value')==='2','Nested filters are retained');
  paginationExpect(trim($xpath->query('//*[@class="mm-pagination-page"]')->item(0)->textContent)==="$current / $pages",'Page is clamped to the available results');

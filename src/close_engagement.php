@@ -363,7 +363,7 @@ $closed_timestamp = $is_correction
                         'id' => (int) $blocking_task['id'],
                         'return_to' => 'close_engagement.php?id=' . $engagement_id,
                     ]);
-                    $task_status_label = ucfirst(str_replace('_', ' ', (string) $blocking_task['status']));
+                    $task_status_label = \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', (string) $blocking_task['status']));
                     ?>
                     <li>
                         <a href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $blocking_task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
@@ -428,7 +428,7 @@ $closed_timestamp = $is_correction
         <?php if (!$is_correction): ?>
             <label class="final-confirmation">
                 <input type="checkbox" name="confirm_final" value="yes" required>
-                <span>I confirm these are the final received amounts and this event is ready to be financially closed</span>
+                <span>I Confirm These Are the Final Received Amounts and This Event Is Ready to Be Financially Closed</span>
             </label>
         <?php endif; ?>
 

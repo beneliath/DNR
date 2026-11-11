@@ -344,9 +344,9 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <div class="engagement-search-field">
-            <label class="visually-hidden" for="engagement-search">title, organization, contact, chron log text, "and"/or user</label>
+            <label class="visually-hidden" for="engagement-search">Title, Organization, Contact, Chron Log Text, "and"/or User</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
+            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Title, Organization, Contact, Chron Log Text, &quot;and&quot;/or User">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </div>
             <fieldset class="engagement-date-window<?php echo $date_filter_active ? ' has-active-date-filter' : ''; ?>" aria-label="Engagement Dates" data-engagement-date-window>
@@ -368,16 +368,18 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $summary['archived']; ?>)</a>
         </div>
 
-        <div class="control-group" aria-label="Engagement Lifecycle Filter">
+        <div class="control-group engagement-filter-group" aria-label="Engagement Lifecycle Filter">
             <span class="control-label">Lifecycle:</span>
-            <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
-                <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
-                   <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
-            <?php endforeach; ?>
+            <div class="engagement-filter-options">
+                <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
+                    <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+                       class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
+                       <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                <?php endforeach; ?>
+            </div>
         </div>
 
-        <div class="control-group" aria-label="Engagement Sort Order">
+        <div class="control-group engagement-filter-group" aria-label="Engagement Sort Order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
                 <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'org', 'org_sort' => $org_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
@@ -432,7 +434,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                     <td data-field="Confirmation" class="engagement-status"><?php
                         $status = $row['confirmation_status'];
                         $status_class = 'status-' . str_replace('_', '-', $status);
-                        $display_status = str_replace('_', ' ', $status);
+                        $display_status = \Dnr\Domain\ReferenceData::label($status);
                         echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
                     ?></td>
                     <?php $is_financially_closed = !empty($row['financially_closed']); ?>

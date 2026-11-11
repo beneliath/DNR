@@ -48,7 +48,7 @@ export function wireReorderHandle({handle, item, list, getItems = () => [...list
         if (event.button !== 0 || event.isPrimary === false) return;
         event.preventDefault(); event.stopPropagation(); activeDrag?.(true); handle.focus();
         const from = getItems().indexOf(item); if (from < 0) return;
-        const anchor = document.createComment('Reorder origin'); item.before(anchor);
+        const anchor = document.createComment('Reorder Origin'); item.before(anchor);
         const scroller = scrollParent(item), dialog = item.closest('dialog'), pointerId = event.pointerId;
         let y = event.clientY, frame; item.classList.add('mm-reorder-dragging');
         const reorder = () => {

@@ -19,12 +19,25 @@ $missing_everything = dashboardEngagementReadinessIssues([
 ]);
 expectDashboardHelper(
     $missing_everything === [
-        'Not confirmed',
-        'Venue address missing',
-        'No presentations',
-        'No event contacts assigned',
+        'Not Confirmed',
+        'Venue Address Missing',
+        'No Presentations',
+        'No Event Contacts Assigned',
     ],
     'readiness checks should identify every missing operational essential.'
+);
+
+$withoutPresentation = [
+    'presentation_not_required' => '1',
+    'active_presentation_count' => 0,
+    'event_city' => 'Chicago',
+];
+expectDashboardHelper(
+    dashboardEngagementReadinessIssues($withoutPresentation) === ['Not Confirmed', 'No Event Contacts Assigned']
+        && dashboardEngagementReadinessIssues($withoutPresentation + [
+            'confirmation_status' => 'confirmed', 'assigned_contact_count' => 1,
+        ]) === [],
+    'opting out should clear only the presentation warning in the dashboard and digest.'
 );
 
 expectDashboardHelper(
@@ -44,7 +57,7 @@ expectDashboardHelper(
         'event_city' => '  ',
         'active_presentation_count' => 1,
         'assigned_contact_count' => 1,
-    ]) === ['Venue address missing'],
+    ]) === ['Venue Address Missing'],
     'a default country with no venue location must remain an operational gap.'
 );
 
@@ -73,7 +86,7 @@ expectDashboardHelper(
 expectDashboardHelper(
     dashboardDateRangeLabel('2026-08-23', '2026-08-23') === 'Aug 23, 2026'
         && dashboardDateRangeLabel('2026-08-23', '2026-08-25') === 'Aug 23 – Aug 25, 2026'
-        && dashboardDateRangeLabel('', '') === 'Date not set',
+        && dashboardDateRangeLabel('', '') === 'Date Not Set',
     'dashboard date labels should handle single-day, multi-day, and missing dates.'
 );
 

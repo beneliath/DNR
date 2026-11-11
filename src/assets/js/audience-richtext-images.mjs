@@ -10,10 +10,10 @@ export function normalizeRichImage(image) {
 
 export function mountRichImageTools({host,rich,makeElement:el,makeButton:button,edit,history,sync,signal}) {
   const surface=el('div',undefined,'designer-rich-surface');rich.replaceWith(surface);surface.append(rich);
-  const controls=el('div',undefined,'designer-rich-image-tools');controls.setAttribute('role','group');controls.setAttribute('aria-label','Image layout');controls.hidden=true;surface.before(controls);
-  const widthLabel=el('label','Width (px)'),width=el('input');width.type='number';width.min='1';width.max='2400';width.step='1';width.setAttribute('aria-label','Image width (px)');widthLabel.append(width);controls.append(widthLabel);
+  const controls=el('div',undefined,'designer-rich-image-tools');controls.setAttribute('role','group');controls.setAttribute('aria-label','Image Layout');controls.hidden=true;surface.before(controls);
+  const widthLabel=el('label','Width (px)'),width=el('input');width.type='number';width.min='1';width.max='2400';width.step='1';width.setAttribute('aria-label','Image Width (Px)');widthLabel.append(width);controls.append(widthLabel);
   let selected=null,dragged=null,resizing=null;
-  const outline=el('div',undefined,'designer-rich-image-outline'),handle=button('',()=>{});handle.className='designer-rich-image-resize';handle.setAttribute('aria-label','Resize image');handle.title='Drag to resize. Arrow keys adjust width.';outline.hidden=true;outline.append(handle);surface.append(outline);
+  const outline=el('div',undefined,'designer-rich-image-outline'),handle=button('',()=>{});handle.className='designer-rich-image-resize';handle.setAttribute('aria-label','Resize Image');handle.title='Drag to resize. Arrow keys adjust width.';outline.hidden=true;outline.append(handle);surface.append(outline);
   const caret=el('div',undefined,'designer-rich-image-caret');caret.hidden=true;surface.append(caret);
   const buttons=[];
   const valid=()=>selected&&rich.contains(selected)&&!rich.hidden;
@@ -32,9 +32,9 @@ export function mountRichImageTools({host,rich,makeElement:el,makeButton:button,
   const setWidth=value=>{const n=Math.max(1,Math.min(2400,Math.round(value)));selected.width=n;selected.style.width=n+'px';selected.style.height='auto';selected.removeAttribute('height');};
   const applyWidth=()=>{if(valid()&&width.validity.valid&&Number(width.value)>0){const value=Number(width.value);if(Number(selected.getAttribute('width'))!==value)edit(()=>setWidth(value),{focus:false});refresh();}};
   width.addEventListener('input',applyWidth,{signal});width.addEventListener('change',applyWidth,{signal});
-  for(const [label,value]of [['Wrap left','left'],['Inline','none'],['Wrap right','right']]){
+  for(const [label,value]of [['Wrap Left','left'],['Inline','none'],['Wrap Right','right']]){
     const control=button(label,()=>{if(!valid())return;edit(()=>{if(!selected.hasAttribute('width'))setWidth(Math.round(selected.getBoundingClientRect().width));selected.removeAttribute('align');selected.style.cssFloat=value;normalizeRichImage(selected);},{focus:false});refresh();});
-    control.setAttribute('aria-label',label==='Inline'?'Image inline without wrapping':label+' image');control.onmousedown=e=>e.preventDefault();buttons.push([control,value]);controls.append(control);
+    control.setAttribute('aria-label',label==='Inline'?'Image Inline Without Wrapping':label+' Image');control.onmousedown=e=>e.preventDefault();buttons.push([control,value]);controls.append(control);
   }
   controls.append(el('small','Drag the image to move it. Drag its corner to resize.'));
   rich.addEventListener('click',event=>{const image=event.target.closest('img');choose(image&&rich.contains(image)?image:null);},{signal});

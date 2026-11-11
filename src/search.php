@@ -23,8 +23,8 @@ $searchUrl = static fn(array $changes): string => 'search.php?' . http_build_que
 <main class="container global-search-page">
     <div class="page-heading"><div><h1>Search All Records</h1><p class="page-intro">Find engagements, booking inquiries, organizations, contacts, and tasks in one place.</p></div></div>
     <form method="get" action="search.php" class="global-search-form" role="search">
-        <label for="global-query">Search records<input type="search" id="global-query" name="q" value="<?= searchH($query) ?>" placeholder="Name, organization, or task" minlength="2" maxlength="100" required></label>
-        <label for="search-type">Record type<select id="search-type" name="type"><option value="">All records</option><?php foreach (globalSearchDefinitions() as $key => $definition): ?><option value="<?= searchH($key) ?>" <?= $type === $key ? 'selected' : '' ?>><?= searchH($definition['label']) ?></option><?php endforeach; ?></select></label>
+        <label for="global-query">Search Records<input type="search" id="global-query" name="q" value="<?= searchH($query) ?>" placeholder="Name, Organization, or Task" minlength="2" maxlength="100" required></label>
+        <label for="search-type">Record Type<select id="search-type" name="type"><option value="">All Records</option><?php foreach (globalSearchDefinitions() as $key => $definition): ?><option value="<?= searchH($key) ?>" <?= $type === $key ? 'selected' : '' ?>><?= searchH($definition['label']) ?></option><?php endforeach; ?></select></label>
         <button type="submit" class="button-add" data-pending-reminder="global-search">Search</button>
         <?php if ($query !== '' || $type !== ''): ?><a href="search.php" class="button-secondary">Clear Filters</a><?php endif; ?>
     </form>
@@ -47,7 +47,7 @@ $searchUrl = static fn(array $changes): string => 'search.php?' . http_build_que
         </section>
     <?php endforeach; ?>
     </div>
-    <?php if ($type !== ''): ?><nav class="search-pagination" aria-label="Search result pages">
+    <?php if ($type !== ''): ?><nav class="search-pagination" aria-label="Search Result Pages">
         <?php if ($page > 1): ?><a class="button-secondary" href="<?= searchH($searchUrl(['page' => $page - 1])) ?>">Previous</a><?php endif; ?>
         <a href="<?= searchH($searchUrl(['type' => '', 'page' => 1])) ?>">All Record Types</a>
         <?php if (!empty($groups[$type]['more'])): ?><a class="button-secondary" href="<?= searchH($searchUrl(['page' => $page + 1])) ?>">Next</a><?php endif; ?>

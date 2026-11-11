@@ -41,7 +41,7 @@ export function attachDatePicker(source) {
     const trigger = doc.createElement('button');
     trigger.type = 'button';
     trigger.className = 'date-picker-trigger';
-    trigger.setAttribute('aria-label', 'Choose ' + label.toLowerCase());
+    trigger.setAttribute('aria-label', 'Choose ' + label);
     trigger.setAttribute('aria-haspopup', 'dialog');
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-controls', text.id + '-calendar');
@@ -51,7 +51,7 @@ export function attachDatePicker(source) {
     if (time) {
         time.type = 'time';
         time.className = 'date-picker-time';
-        time.setAttribute('aria-label', label + ' time');
+        time.setAttribute('aria-label', label + ' Time');
         if (source.hasAttribute('form')) time.setAttribute('form', source.getAttribute('form'));
     }
 

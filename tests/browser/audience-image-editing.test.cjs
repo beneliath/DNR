@@ -9,21 +9,21 @@ const pixels=canvas=>canvas.evaluate(el=>{const {width:w,height:h}=el,data=el.ge
 try{for(const width of [390,1500]){
  const page=await browser.newPage({viewport:{width,height:1100}});let saved;const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://image.test/**',route=>{const request=route.request(),u=new URL(request.url());if(u.pathname.startsWith('/assets/')){const file=path.join(root,'src',u.pathname);return fs.existsSync(file)?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':'image/svg+xml'}):route.fulfill({status:404,body:''});}if(u.searchParams.has('preview'))return route.fulfill({contentType:'application/json',body:execFileSync('php',['tests/browser/audience-template-lifecycle-fixture.php','admin','saved','locked','tall-images','','preview',u.searchParams.get('preview'),request.headers()['x-audience-preview-nonce']],{cwd:root,encoding:'utf8'})});if(request.method()==='POST'){const body=new URLSearchParams(request.postData());if(body.get('action')==='design_save')saved=JSON.parse(execFileSync('php',['tests/browser/audience-image-editing-fixture.php','normalize'],{cwd:root,input:body.get('design'),encoding:'utf8'}));return route.fulfill({contentType:'application/json',body:'{"version":2}'});}if(u.pathname==='/admin_unlock_status.php')return route.fulfill({contentType:'application/json',body:'{"unlocked":false}'});return route.fulfill({contentType:'text/html',body:u.searchParams.get('view')==='templates'?gallery:saved?execFileSync('php',['tests/browser/audience-image-editing-fixture.php','editor'],{cwd:root,input:JSON.stringify(saved),encoding:'utf8'}):fixture});});
- await page.goto('https://image.test/audience.php?view=designer');await page.locator('[data-block-id=image-block]').click();await page.getByRole('button',{name:'Edit image',exact:true}).click();const dialog=page.locator('#design-crop-dialog'),canvas=page.locator('#design-crop-canvas');await dialog.waitFor({state:'visible'});
+ await page.goto('https://image.test/audience.php?view=designer');await page.locator('[data-block-id=image-block]').click();await page.getByRole('button',{name:'Edit Image',exact:true}).click();const dialog=page.locator('#design-crop-dialog'),canvas=page.locator('#design-crop-canvas');await dialog.waitFor({state:'visible'});
  assert.equal(await page.locator('#crop-zoom').inputValue(),'0');assert.equal(await page.locator('#crop-zoom').getAttribute('aria-valuetext'),'100%');assert.equal(await page.locator('#crop-x').isDisabled(),true);assert.equal(await page.locator('#crop-y').isDisabled(),true);const original=await pixels(canvas);assert.equal(original.left,0);checks+=5;
  const set=async(id,value)=>page.locator(id).evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));},String(value));
  await set('#crop-zoom',-50);const small=await pixels(canvas);assert.deepEqual([small.left,small.top,small.right,small.bottom],[150,100,449,299]);assert.equal(await page.locator('#crop-x').isEnabled(),true);assert.equal(await page.locator('#crop-y').isEnabled(),true);checks+=3;
  await set('#crop-x',0);await set('#crop-y',100);const moved=await pixels(canvas);assert.deepEqual([moved.left,moved.top],[0,200]);checks++;
  await set('#crop-x',50);await set('#crop-y',50);await set('#crop-zoom',50);const large=await pixels(canvas);assert(large.blue>original.blue*3.8,'Right side of zoom slider enlarges image features');checks++;
- await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await page.getByRole('button',{name:'Edit image',exact:true}).click();await dialog.waitFor({state:'visible'});assert.equal(await page.locator('#crop-zoom').inputValue(),'0');assert.equal((await pixels(canvas)).blue,original.blue);checks+=2;
+ await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await page.getByRole('button',{name:'Edit Image',exact:true}).click();await dialog.waitFor({state:'visible'});assert.equal(await page.locator('#crop-zoom').inputValue(),'0');assert.equal((await pixels(canvas)).blue,original.blue);checks+=2;
  await set('#crop-zoom',-50);await page.locator('#crop-apply').click();await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');assert(saved,'Apply is persisted through the existing save path');const image=saved.rows[0].columns[0][0].image;assert(image.startsWith('data:image/png;base64,'));checks+=2;
- await page.getByRole('button',{name:'Edit image',exact:true}).click();await dialog.waitFor({state:'visible'});assert.deepEqual(await pixels(canvas),small,'The applied smaller image survives reopening');await dialog.getByRole('button',{name:'Cancel',exact:true}).click();checks++;
- await page.reload();await page.locator('[data-block-id=image-block]').click();await page.getByRole('button',{name:'Edit image',exact:true}).click();await dialog.waitFor({state:'visible'});await dialog.getByRole('button',{name:'Reset',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#design-crop-canvas').getContext('2d').getImageData(0,0,1,1).data[3]===255);assert.deepEqual(await pixels(canvas),original,'Reset restores the original image after Apply, save, and reload');assert.equal(await page.locator('#crop-zoom').inputValue(),'0');assert.equal(await page.locator('#crop-x').inputValue(),'50');assert.equal(await page.locator('#crop-y').inputValue(),'50');await page.locator('#crop-apply').click();await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');assert.equal(saved.rows[0].columns[0][0].originalImage,undefined);checks+=5;
+ await page.getByRole('button',{name:'Edit Image',exact:true}).click();await dialog.waitFor({state:'visible'});assert.deepEqual(await pixels(canvas),small,'The applied smaller image survives reopening');await dialog.getByRole('button',{name:'Cancel',exact:true}).click();checks++;
+ await page.reload();await page.locator('[data-block-id=image-block]').click();await page.getByRole('button',{name:'Edit Image',exact:true}).click();await dialog.waitFor({state:'visible'});await dialog.getByRole('button',{name:'Reset',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#design-crop-canvas').getContext('2d').getImageData(0,0,1,1).data[3]===255);assert.deepEqual(await pixels(canvas),original,'Reset restores the original image after Apply, save, and reload');assert.equal(await page.locator('#crop-zoom').inputValue(),'0');assert.equal(await page.locator('#crop-x').inputValue(),'50');assert.equal(await page.locator('#crop-y').inputValue(),'50');await page.locator('#crop-apply').click();await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');assert.equal(saved.rows[0].columns[0][0].originalImage,undefined);checks+=5;
  // The video toggle controls visibility independently of the saved caption.
  await page.locator('[data-panel="add"]').click();
  await page.getByRole('button',{name:'Add Video block',exact:true}).click();
- const toggle=page.getByRole('checkbox',{name:'Video caption',exact:true});
- const captionText=page.getByRole('textbox',{name:'Video caption text'});
+ const toggle=page.getByRole('checkbox',{name:'Video Caption',exact:true});
+ const captionText=page.getByRole('textbox',{name:'Video Caption Text'});
  const captionLine=page.locator('#email-canvas .designer-video-caption');
  assert.equal(await toggle.isChecked(),false);
  assert.equal(await captionText.count(),0);
@@ -35,7 +35,7 @@ try{for(const width of [390,1500]){
  assert.equal(await captionLine.textContent(),'Q&A <Part 1>');
  await toggle.uncheck();
  assert.equal(await captionLine.count(),0);
- await page.getByRole('button',{name:'Save & close',exact:true}).click();
+ await page.getByRole('button',{name:'Save & Close',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');
  const video=saved.rows.flatMap(row=>row.columns.flat()).find(block=>block.type==='video');
  assert.equal(video.showCaption,false);
@@ -51,7 +51,7 @@ try{for(const width of [390,1500]){
  assert.equal(await captionLine.count(),0);
  await captionText.fill('0');
  assert.equal(await captionLine.textContent(),'0');
- await page.getByRole('button',{name:'Save & close',exact:true}).click();
+ await page.getByRole('button',{name:'Save & Close',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('#design-status').textContent==='Saved');
  await page.reload();
  await page.locator('[data-block-id="'+video.id+'"]').click();

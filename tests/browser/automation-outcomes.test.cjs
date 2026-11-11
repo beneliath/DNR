@@ -9,7 +9,7 @@ const fixtures = Object.fromEntries(['outcomes','report-outcomes'].map(kind => [
     process.env.DNR_FLOW_OUTCOMES_FIXTURES
         ? fs.readFileSync(path.join(process.env.DNR_FLOW_OUTCOMES_FIXTURES, kind+'.html'), 'utf8')
         : execFileSync('php', ['tests/browser/audience-mobile-flow-fixture.php', kind], {cwd:root, encoding:'utf8'})]));
-const labels = ['Started','Finished','Exited early','In progress','Needs attention'];
+const labels = ['Started','Finished','Exited Early','In Progress','Needs Attention'];
 const keys = ['started','completed','exited','active','failed'];
 
 (async () => {

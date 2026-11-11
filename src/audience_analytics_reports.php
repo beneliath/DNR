@@ -5,7 +5,7 @@ require_once __DIR__.'/application_runtime.php';
 
 function audienceAnalyticsMetricLabels():array
 {
-    return ['accepted'=>'Total sends','delivered'=>'Confirmed deliveries','successful'=>'Rate denominator','awaiting_receipt'=>'Pending receipts','total_opens'=>'Total opens','total_clicks'=>'Total clicks','complaints'=>'Complaints','complaint_rate'=>'Complaint rate','opens'=>'Opened','open_rate'=>'Open rate','clicks'=>'Clicked','click_rate'=>'Click rate','clicks_per_open'=>'Clicks per unique opens','bounced'=>'Bounces','bounce_rate'=>'Bounce rate','unsubscribed'=>'Unsubscribed','unsubscribe_rate'=>'Unsubscribe rate','delivery_rate'=>'Delivery rate','added'=>'Connections added','subscriptions'=>'Observed subscriptions','optouts'=>'Observed unsubscribes','net'=>'Observed net subscription changes','visitors'=>'Daily unique visitors','responses'=>'Submissions','confirmed'=>'Confirmed subscriptions','conversion_rate'=>'Visitor-to-subscription rate','runs'=>'Started','completed'=>'Completed','exited'=>'Exited','failed'=>'Failed','active'=>'Active','completion_rate'=>'Completion rate'];
+    return ['accepted'=>'Total Sends','delivered'=>'Confirmed Deliveries','successful'=>'Rate Denominator','awaiting_receipt'=>'Pending Receipts','total_opens'=>'Total Opens','total_clicks'=>'Total Clicks','complaints'=>'Complaints','complaint_rate'=>'Complaint Rate','opens'=>'Opened','open_rate'=>'Open Rate','clicks'=>'Clicked','click_rate'=>'Click Rate','clicks_per_open'=>'Clicks Per Unique Opens','bounced'=>'Bounces','bounce_rate'=>'Bounce Rate','unsubscribed'=>'Unsubscribed','unsubscribe_rate'=>'Unsubscribe Rate','delivery_rate'=>'Delivery Rate','added'=>'Connections Added','subscriptions'=>'Observed Subscriptions','optouts'=>'Observed Unsubscribes','net'=>'Observed Net Subscription Changes','visitors'=>'Daily Unique Visitors','responses'=>'Submissions','confirmed'=>'Confirmed Subscriptions','conversion_rate'=>'Visitor-To-Subscription Rate','runs'=>'Started','completed'=>'Completed','exited'=>'Exited','failed'=>'Failed','active'=>'Active','completion_rate'=>'Completion Rate'];
 }
 
 function audienceAnalyticsReportCapabilities():array
@@ -52,9 +52,9 @@ function audienceAnalyticsClientEvidence(string $agent,?string $country,string $
     };
     // A proxy's advertised browser/OS describes its fetcher, not the recipient.
     $proxy=match(true){
-        stripos($agent,'GoogleImageProxy')!==false=>'Gmail image proxy',
-        stripos($agent,'YahooMailProxy')!==false=>'Yahoo Mail image proxy',
-        preg_match('/proxy/i',$agent)===1=>'Image proxy',
+        stripos($agent,'GoogleImageProxy')!==false=>'Gmail Image Proxy',
+        stripos($agent,'YahooMailProxy')!==false=>'Yahoo Mail Image Proxy',
+        preg_match('/proxy/i',$agent)===1=>'Image Proxy',
         default=>'',
     };
     if($proxy!=='')$client=$proxy;
@@ -427,11 +427,11 @@ trait AudienceAnalyticsReports
                 $choices = $subjects[$period][$row['campaign_id']] ?? [];
                 $length = count($choices) === 1 ? mb_strlen(reset($choices)) : null;
                 $label = match (true) {
-                    count($choices) > 1 => 'Multiple subjects',
-                    $length === null => 'Subject unavailable',
-                    $length <= 40 => 'Up to 40 characters',
+                    count($choices) > 1 => 'Multiple Subjects',
+                    $length === null => 'Subject Unavailable',
+                    $length <= 40 => 'Up to 40 Characters',
                     $length <= 70 => '41–70 characters',
-                    default => 'Over 70 characters',
+                    default => 'Over 70 Characters',
                 };
                 $groups[$label][$period][] = $row;
             }

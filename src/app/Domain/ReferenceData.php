@@ -56,7 +56,12 @@ final class ReferenceData
 
     public static function label(string $value): string
     {
-        return ucwords(str_replace('_', ' ', $value));
+        $label = ucwords(str_replace('_', ' ', $value), " \t\r\n\f\v-");
+        return preg_replace_callback(
+            '/(?<=\S\s)(a|an|and|as|at|by|for|from|in|into|of|on|or|the|to|with)(?=\s\S)/i',
+            static fn(array $match): string => strtolower($match[0]),
+            $label
+        ) ?? $label;
     }
 
     /** @param list<string> $choices */

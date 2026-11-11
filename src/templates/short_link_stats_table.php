@@ -5,7 +5,7 @@ $periodBand = -1;
 $tableRows = $isTimeline ? $report['timeline_resources'] : $report[$dimension];
 ?>
 <details class="stats-data">
-    <summary><?php echo $h($dimensionTitle); ?> data</summary>
+    <summary><?php echo $h($dimensionTitle); ?> Data</summary>
     <div class="stats-table-scroll" role="region" aria-label="<?php echo $h($dimensionTitle); ?> Data Table" tabindex="0">
         <table class="data-table">
             <caption class="stats-screen-reader"><?php echo $h($dimensionTitle); ?> in the selected period</caption>
@@ -21,7 +21,7 @@ $tableRows = $isTimeline ? $report['timeline_resources'] : $report[$dimension];
                     <?php if ($isTimeline): ?>
                         <td class="stats-context"><?php if (isset($row['link_id'])): ?><a href="view_engagement.php?id=<?php echo (int) $row['engagement_id']; ?>"><?php echo $h($row['event_title'] ?: 'Untitled Event'); ?></a><?php else: ?><?php echo $h($row['summary_label'] ?? '—'); ?><?php endif; ?></td>
                         <td class="stats-context"><?php if (isset($row['link_id'])): ?><a href="view_engagement.php?id=<?php echo (int) $row['engagement_id']; ?>#presentation-<?php echo (int) $row['presentation_id']; ?>"><?php echo $h($row['topic_title'] ?: 'Untitled Presentation'); ?></a><?php else: ?><?php echo $h($row['summary_label'] ?? '—'); ?><?php endif; ?></td>
-                        <td class="stats-context"><?php if (isset($row['link_id'])): ?><a href="short_links.php?<?php echo $h(http_build_query(['id' => (int) $row['link_id'], 'from' => $from, 'to' => $to])); ?>"><?php echo $h(shortLinkLabel($row)); ?> link</a><?php else: ?><?php echo $h($row['summary_label'] ?? '—'); ?><?php endif; ?></td>
+                        <td class="stats-context"><?php if (isset($row['link_id'])): ?><a href="short_links.php?<?php echo $h(http_build_query(['id' => (int) $row['link_id'], 'from' => $from, 'to' => $to])); ?>"><?php echo $h(shortLinkLabel($row)); ?> Link</a><?php else: ?><?php echo $h($row['summary_label'] ?? '—'); ?><?php endif; ?></td>
                     <?php endif; ?>
                     <td><?php echo number_format($row['total']); ?></td><td><?php echo $report['total'] ? number_format(100 * $row['total'] / $report['total'], 1) : '0'; ?>%</td></tr>
             <?php endforeach; ?>

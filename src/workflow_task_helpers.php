@@ -53,7 +53,7 @@ function createEmailFollowUpTask(mysqli $conn, int $messageId, string $type, int
     if (!validIsoDate($due)) throw new InvalidArgumentException('Choose a valid follow-up date.');
     $taskId = insertFollowUpTask($conn, [
         'title'=>'Review reply to email #' . $messageId, 'details'=>'Correspondence: outbound_mail.php?id=' . $messageId,
-        'status'=>'waiting', 'priority'=>'normal', 'due_date'=>$due, 'waiting_on'=>'Email reply',
+        'status'=>'waiting', 'priority'=>'normal', 'due_date'=>$due, 'waiting_on'=>'Email Reply',
         'subject_type'=>$type, 'engagement_id'=>$type==='engagement'?$parentId:null,
         'inquiry_id'=>$type==='inquiry'?$parentId:null, 'organization_id'=>null, 'contact_id'=>null, 'assigned_to'=>$actor,
     ], $actor);

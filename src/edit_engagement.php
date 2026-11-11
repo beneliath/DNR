@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $conn->begin_transaction();
     try {
         $engagement_lock_stmt = $conn->prepare(
-            'SELECT confirmation_status, lifecycle_status
+            'SELECT confirmation_status, lifecycle_status, presentation_not_required
              FROM engagements WHERE id = ? FOR UPDATE'
         );
         if (!$engagement_lock_stmt) {
@@ -128,7 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $presentation_removal_requires_review = presentationRemovalRequiresReview(
                 $locked_engagement['confirmation_status'],
                 $active_count,
-                $locked_engagement['lifecycle_status']
+                $locked_engagement['lifecycle_status'],
+                (bool) $locked_engagement['presentation_not_required']
             );
         }
 
@@ -330,13 +331,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $engagement_input['caller_name'] = $caller_name;
         $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
 
-        $presentation_files = is_array($_FILES['presentations'] ?? null)
+        $submitted_presentations = $presentation_not_required ? null : ($_POST['presentations'] ?? null);
+        $presentation_files = !$presentation_not_required && is_array($_FILES['presentations'] ?? null)
             ? $_FILES['presentations']
             : [];
         $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
-        $staged_assets = stagedPresentationAssets(is_array($_POST['presentations'] ?? null) ? $_POST['presentations'] : [], $engagement_id);
+        $staged_assets = stagedPresentationAssets(is_array($submitted_presentations) ? $submitted_presentations : [], $engagement_id);
         $presentations = normalizeEngagementPresentations(
-            $_POST['presentations'] ?? null,
+            $submitted_presentations,
             $event_start_date,
             $event_end_date,
             $default_speaker_id,
@@ -345,14 +347,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         );
         $presentations = attachPresentationAssetChanges(
             $presentations,
-            $_POST['presentations'] ?? null,
+            $submitted_presentations,
             $presentation_files,
             $staged_assets
         );
         requirePresentationForConfirmedEngagement(
             $confirmation_status,
             $presentations,
-            $lifecycle_status
+            $lifecycle_status,
+            (bool) $presentation_not_required
         );
 
         $submitted_chron_entries = normalizeSubmittedChronLogEntries(
@@ -403,6 +406,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         $engagement_dates_changed = $update_plan['date_range_changed'];
         if ($engagement_dates_changed) {
+            if ($presentation_not_required) {
+                $outside_dates = $conn->execute_query(
+                    'SELECT 1 FROM presentations WHERE engagement_id = ? AND is_archived = 0
+                         AND presentation_date NOT BETWEEN ? AND ? LIMIT 1',
+                    [$engagement_id, $event_start_date, $event_end_date]
+                )->fetch_row();
+                if ($outside_dates) {
+                    throw new InvalidArgumentException('A saved presentation falls outside the new event dates. Clear “No Presentation Required” to adjust its date.');
+                }
+            }
             rescheduleGeneratedEngagementTasks(
                 $conn,
                 $engagement_id,
@@ -416,8 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $canceled_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id);
         }
 
-        $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id);
-        if ($presentations_changed) {
+        if (!$presentation_not_required && syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id)) {
             $touch_engagement_stmt = $conn->prepare(
                 'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?'
             );
@@ -611,6 +623,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $engagement['event_type_other'] = trim((string) ($_POST['event_type_other'] ?? ''));
         $engagement['book_table'] = isset($_POST['book_table']) ? 1 : 0;
         $engagement['brochures'] = isset($_POST['brochures']) ? 1 : 0;
+        $engagement['presentation_not_required'] = ($_POST['presentation_not_required'] ?? '') === '1';
         if (isset($_POST['engagement_version']) && is_scalar($_POST['engagement_version'])) {
             $engagement['updated_at'] = (string) $_POST['engagement_version'];
         }
@@ -793,7 +806,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
         <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
-            <input type="search" placeholder="Find an organization…" aria-label="Find an organization for Organization" data-relationship-search-input>
+            <input type="search" placeholder="Find an Organization…" aria-label="Find an Organization for Organization" data-relationship-search-input>
             <select name="organization_id" id="organization_id" data-organization-search required>
                 <?php foreach ($engagement_organization_options as $organization_option): ?>
                     <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
@@ -865,7 +878,8 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
         <?php include 'templates/engagement_contact_form.php'; ?>
 
         <?php
-        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
+        $presentation_not_required = (bool) $engagement['presentation_not_required'];
+        $presentation_form_rows = !$presentation_not_required && !empty($error_message) && is_array($_POST['presentations'] ?? null)
             ? mergeStoredPresentationAssetMetadata($_POST['presentations'], $presentations)
             : $presentations;
         include 'templates/presentation_form.php';
@@ -1079,7 +1093,7 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
                         <?php endif; ?>
                     </div>
                     <div class="chron-entry-editor">
-                        <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron Log Entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
+                        <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron Log Entry From <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
                         <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="6" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
                         <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
                             <?php echo csrfInput(); ?>

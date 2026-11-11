@@ -36,15 +36,15 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
   }else await mouseDrag(5,0);
   assert.deepEqual(await order(),initial);assert.equal(await dialog.locator('.dragging').count(),0);checks+=2;
   await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await edit.click();assert.deepEqual(await order(),initial);checks++;
-  await dialog.getByRole('button',{name:/Add option/}).click();await rows.last().locator('input[type=text]').fill('New choice');await rows.last().locator('[data-group-drag]').focus();await page.keyboard.press('ArrowUp');
+  await dialog.getByRole('button',{name:/Add option/}).click();await rows.last().locator('input[type=text]').fill('New Choice');await rows.last().locator('[data-group-drag]').focus();await page.keyboard.press('ArrowUp');
   assert.deepEqual(await order(),['30','40','101','102','103','0','104']);checks++;
-  assert.equal(await rows.nth(0).getByRole('button',{name:'Remove group choice',exact:true}).getAttribute('data-admin-unlock-required'),'');assert.equal(await rows.nth(5).getByRole('button',{name:'Remove group choice',exact:true}).getAttribute('data-admin-unlock-required'),null);checks+=2;
+  assert.equal(await rows.nth(0).getByRole('button',{name:'Remove Group Choice',exact:true}).getAttribute('data-admin-unlock-required'),'');assert.equal(await rows.nth(5).getByRole('button',{name:'Remove Group Choice',exact:true}).getAttribute('data-admin-unlock-required'),null);checks+=2;
   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);checks++;
   if(width===1600&&!dark)await dialog.screenshot({path:path.join(root,'output/ui/group-option-drag-handles.png')});
   await dialog.getByRole('button',{name:'Save group',exact:true}).click();await page.getByText('Group fixture saved',{exact:true}).waitFor();
   assert.equal(posts.length,1);assert.equal(posts[0].action,'save_group');assert.equal(posts[0].id,'7');assert.equal(posts[0].version,'1');checks+=4;
   const expected=['30','40','101','102','103','0','104'];for(let i=0;i<expected.length;i++){assert.equal(posts[0][`options[${i}][id]`],expected[i]);checks++;}
-  assert.equal(posts[0]['options[5][name]'],'New choice');assert.deepEqual(errors,[]);checks+=2;await page.close();
+  assert.equal(posts[0]['options[5][name]'],'New Choice');assert.deepEqual(errors,[]);checks+=2;await page.close();
  }
  console.log(`Group option reordering: ${checks} browser checks passed (mouse, touch, keyboard, IDs, save order and removal guards).`);
 }finally{await browser.close();}})().catch(error=>{console.error(error);process.exitCode=1;});

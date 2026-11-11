@@ -22,7 +22,7 @@ function panel(count) {
         for($i=0;$i<${count};$i++) {
             $event=['id'=>$i+1,'event_title'=>'Sample event '.($i+1),'organization_name'=>'Fictional Host',
                 'event_start_date'=>'2026-10-14','event_end_date'=>'2026-10-15','confirmation_status'=>'under_review',
-                'readiness_issues'=>['Not confirmed','Venue address missing','No presentations','No event contacts assigned'],
+                'readiness_issues'=>['Not Confirmed','Venue Address Missing','No Presentations','No Event Contacts Assigned'],
                 'closeout_due_date'=>'2026-10-12','days_overdue'=>$i+1];
             $displayed_upcoming_engagements[]=$event;$readiness_items[]=$event;$financial_closeouts[]=$event;
             $booking_inquiries[]=['id'=>$i+1,'title'=>'Sample inquiry '.($i+1),'next_action'=>'Review the proposed dates and confirm venue details with the host coordinator',

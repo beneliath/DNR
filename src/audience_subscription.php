@@ -50,8 +50,8 @@ if($html===null&&!$preferences&&($system=audienceCollectionSystem($publicStore,'
 ?><!doctype html><html lang="en">
 <?php renderPageHead($done?'Unsubscribed':($html!==null?'Email':($preferences?'Email Preferences':'Unsubscribe')),['styles'=>['assets/css/pages/audience.min.css']]); ?>
 <body class="audience-app campaign-public subscription-public"><main>
-<?php if($html!==null): ?><header><h1>Your email</h1><nav aria-label="Subscription"><a href="?token=<?= $h($token) ?>&amp;preferences=1">Email preferences</a> · <a href="?token=<?= $h($token) ?>">Unsubscribe</a></nav></header><iframe title="Your email" sandbox="" referrerpolicy="no-referrer" srcdoc="<?= $h(audienceDesignPreviewSource($html,contentSecurityPolicyNonce())) ?>"></iframe>
-<?php elseif($done): ?><h1>You’re unsubscribed</h1><p>You will no longer receive emails from this audience.</p>
+<?php if($html!==null): ?><header><h1>Your Email</h1><nav aria-label="Subscription"><a href="?token=<?= $h($token) ?>&amp;preferences=1">Email Preferences</a> · <a href="?token=<?= $h($token) ?>">Unsubscribe</a></nav></header><iframe title="Your Email" sandbox="" referrerpolicy="no-referrer" srcdoc="<?= $h(audienceDesignPreviewSource($html,contentSecurityPolicyNonce())) ?>"></iframe>
+<?php elseif($done): ?><h1>You’re Unsubscribed</h1><p>You will no longer receive emails from this audience.</p>
 <?php elseif($preferences): require __DIR__.'/templates/audience/subscription-preferences.php'; ?>
-<?php else: ?><h1>Unsubscribe from emails?</h1><p>You can stop emails from this audience at any time.</p><form method="post"><input type="hidden" name="unsubscribe" value="1"><button class="primary">Unsubscribe</button></form><p class="audience-help">This change applies to the address that received this email.</p><?php endif; ?>
+<?php else: ?><h1>Unsubscribe from Emails?</h1><p>You can stop emails from this audience at any time.</p><form method="post"><input type="hidden" name="unsubscribe" value="1"><button class="primary">Unsubscribe</button></form><p class="audience-help">This change applies to the address that received this email.</p><?php endif; ?>
 </main></body></html>

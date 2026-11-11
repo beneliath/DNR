@@ -320,8 +320,9 @@ be supplied together.
 The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
 view. It combines active engagements in the configured upcoming window, the signed-in user's active and overdue
 work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
-identify unconfirmed events, missing venue addresses, missing presentations, and organizations
-without an assigned event contact. The greeting uses the signed-in user's first name when it is
+identify unconfirmed events, missing venue addresses, missing required presentations, and events
+without an assigned contact. Select **No Presentation Required** on an engagement to confirm it
+without adding a presentation and clear its presentation warning in the dashboard and Daily Digest. The greeting uses the signed-in user's first name when it is
 available. Administrators and editors also see inbound messages awaiting routing
 review and quick actions for creating engagements and tasks; reviewers receive the same operational
 context without write controls.

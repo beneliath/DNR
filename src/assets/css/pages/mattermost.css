@@ -91,7 +91,7 @@
     color: var(--text-muted);
     font-size: 0.72rem;
     font-weight: 700;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .mattermost-links-table td:nth-child(1)::before { content: "Account"; }

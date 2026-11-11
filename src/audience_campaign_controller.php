@@ -167,12 +167,11 @@ if($view==='campaigns'){
         $campaignRowIds=array_column($campaignPageNames,'id');
         $campaignRowsById=[];
         if($campaignRowIds){
-            // A list row needs labels and an image hint, not the newsletter document or its embedded artwork.
+            // List rows use type icons and only need campaign labels, without embedded artwork.
             $rows=$store->all("SELECT c.id,c.name,c.version,c.status,c.campaign_type,c.folder_id,c.actor_label,c.created_at,c.updated_at,c.sent_at $dispatchColumns,
                 f.name folder_name,JSON_OBJECT('subject',c.draft_json->'$.subject','target',c.draft_json->'$.target','include',c.draft_json->'$.include',
                     'exclude',c.draft_json->'$.exclude','exclude_tag',c.draft_json->'$.exclude_tag','recipients_saved',c.draft_json->'$.recipients_saved',
-                    'recipient_rules',c.draft_json->'$.recipient_rules','experiment',JSON_OBJECT('kind',c.draft_json->'$.experiment.kind')) draft_json,
-                JSON_SEARCH(c.draft_json,'one','image',NULL,'$.design.rows[*].columns[*][*].type') IS NOT NULL has_thumbnail
+                    'recipient_rules',c.draft_json->'$.recipient_rules','experiment',JSON_OBJECT('kind',c.draft_json->'$.experiment.kind')) draft_json
                 FROM marketing_campaigns c LEFT JOIN marketing_campaign_folders f ON f.id=c.folder_id AND f.audience_id=c.audience_id
                 WHERE c.audience_id=? AND c.id IN (".implode(',',array_fill(0,count($campaignRowIds),'?')).')',[$audienceId,...$campaignRowIds]);
             $campaignRowsById=array_column($rows,null,'id');
@@ -270,7 +269,7 @@ $campaignMergeTags=$view==='campaign'?$store->campaignMergeTags():[];
 if(in_array($view,['campaign','campaign-review','campaign-send'],true))$previewIdentity=($deliverySnapshot['identity']??$store->designRecipientContext(0,$audience))+['LIST:NAME'=>$audience['name'],'CURRENT_YEAR'=>gmdate('Y'),'MC:SUBJECT'=>(string)($draft['subject']??''),'MC_PREVIEW_TEXT'=>(string)($draft['preview_text']??'')];
 $sesSettings=$sesInstalled?$store->sesSettings():[];
 $managerUrl=static fn(array $changes=[])=>$url(array_replace(['view'=>$view,'id'=>$plan['id']??0,'month'=>$month->format('Y-m'),'planner_layout'=>$plannerLayout,'scale'=>$plannerScale,'day'=>$plannerDate,'holidays'=>$campaignFilters['holidays'],'plan_search'=>$planSearch??'','plan_sort'=>$planSort??'updated_at','plan_direction'=>$planDirection??'desc','plan_size'=>$planSize??25,'plan_trash'=>!empty($planArchived)?'1':'0','touchpoint_trash'=>!empty($touchpointArchived)?'1':'0'],$changes));
-$pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
+$pageTitle=match($view){'campaign','campaign-review','campaign-send','campaign-delivery'=>$campaign['name'],'campaign-manager'=>'Campaign Manager','campaign-plan'=>$plan['name'],'content'=>'Content','brand'=>'Brand Kit','delivery'=>'Email Delivery',default=>'Campaigns'};$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
 releaseApplicationSessionLock();
 ?>
 <!DOCTYPE html><html lang="en">

@@ -214,7 +214,7 @@ html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
         color: var(--text-muted);
         font-size: 0.72rem;
         font-weight: 700;
-        text-transform: uppercase;
+        text-transform: none;
     }
 
     .calendar-subscription-table td:nth-child(1)::before { content: "Label"; }

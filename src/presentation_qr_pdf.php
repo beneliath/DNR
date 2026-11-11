@@ -149,7 +149,7 @@ function renderPresentationQrPdf(array $context, array $links, ?TCPDF $pdf = nul
             $pdf->SetFont('dejavusans', 'B', 6.5);
             $pdf->SetTextColor(102, 112, 133);
             $pdf->SetXY($fieldX, $fieldY);
-            $pdf->Cell($fieldWidth, 4, strtoupper($label), 0, 0, 'L');
+            $pdf->Cell($fieldWidth, 4, $label, 0, 0, 'L');
             $pdf->SetFont('dejavusans', '', 8);
             $pdf->SetTextColor(23, 32, 51);
             $pdf->MultiCell($fieldWidth - 2, 9, $details[$label], 0, 'L', false, 1,

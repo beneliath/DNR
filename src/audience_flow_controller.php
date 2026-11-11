@@ -149,7 +149,7 @@ function renderAudienceFlowWorkspace(AudienceStore $store,array $audience,string
     };
     $validation=$flow?$store->flowValidate($flow['document']):[];
     $flowPreview=$view==='flow-templates'&&isset(audienceFlowTemplates()[$_GET['preview']??''])?audienceText($_GET,'preview',30):null;
-    $pageTitle=$flow?$flow['name']:($view==='flow-templates'?($flowPreview?'Flow template':'Flow templates'):'Automations');$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
+    $pageTitle=$flow?$flow['name']:($view==='flow-templates'?($flowPreview?'Flow template':'Flow Templates'):'Automations');$csrf=csrfInput();$themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     releaseApplicationSessionLock();
     ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-flows.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-flows.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
 }

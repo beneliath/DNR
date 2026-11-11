@@ -80,7 +80,7 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
                 else await page.locator('#task-due-date').evaluate(input => {
                     input.value = '2024-02-01'; input.dispatchEvent(new Event('input'));
                 });
-                const button = page.getByRole('button', {name: screen === 'home' ? 'Choose start date' : 'Choose due date'});
+                const button = page.getByRole('button', {name: screen === 'home' ? 'Choose Start Date' : 'Choose Due Date'});
                 const icon = await button.evaluate(node => {
                     const svg = node.querySelector('svg');
                     return [getComputedStyle(node).backgroundColor, getComputedStyle(svg).color, svg.getBoundingClientRect().width];
@@ -102,7 +102,7 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
             }
         }
         await page.goto('https://picker.test/task');
-        const trigger = page.getByRole('button', {name: 'Choose due date'});
+        const trigger = page.getByRole('button', {name: 'Choose Due Date'});
         const due = page.getByLabel('Due Date', {exact: true}).filter({visible: true});
         const form = page.locator('.follow-up-task-form');
         await trigger.click();
@@ -146,7 +146,7 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
         assert.equal(await stored(modal.locator('form'), 'when'), '2026-11-03T01:30');
         await modal.locator('input[type=time]').fill('23:45');
         assert.equal(await stored(modal.locator('form'), 'when'), '2026-11-03T23:45');
-        const birthday = modal.getByRole('button', {name: 'Choose birthday'});
+        const birthday = modal.getByRole('button', {name: 'Choose Birthday'});
         await birthday.click();
         assert.equal(await panel.getByLabel('Year', {exact: true}).count(), 0);
         await panel.getByLabel('Month', {exact: true}).selectOption('1');
@@ -201,9 +201,9 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
         assert.equal(await preset.inputValue(), 'last30');
         assert.equal(await stored(range, 'start'), '2024-02-01');
         const max = await range.locator('[name=end]').getAttribute('max');
-        await range.getByLabel('End date', {exact: true}).filter({visible:true}).fill(max);
+        await range.getByLabel('End Date', {exact: true}).filter({visible:true}).fill(max);
         await end.click();
-        assert.equal(await panel.getByRole('button', {name: 'Next month'}).isDisabled(), true);
+        assert.equal(await panel.getByRole('button', {name: 'Next Month'}).isDisabled(), true);
         await page.keyboard.press('Escape');
         assert.equal(await range.isVisible(), true);
 
@@ -213,7 +213,7 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
         const prior = await stored(touchpoint, 'start_at');
         const [startDate, startTime] = prior.split('T');
         assert.equal(await touchpoint.locator('.date-picker-time').first().inputValue(), startTime);
-        await touchpoint.getByRole('button', {name: 'Choose start date and time (utc)'}).click();
+        await touchpoint.getByRole('button', {name: 'Choose Start Date and Time (UTC)'}).click();
         const nextDay = panel.locator('button[data-date]:not(.outside-month):not(.selected)').first();
         const nextISO = await nextDay.getAttribute('data-date');
         assert.notEqual(nextISO, startDate);
@@ -222,7 +222,7 @@ const coachForms = JSON.parse(fs.readFileSync(path.join(root, 'src/data/ai-coach
         assert.equal(await visibleNative(), 0);
 
         await page.goto('https://picker.test/public');
-        const publicBirthday = page.getByRole('button', {name: 'Choose birthday'});
+        const publicBirthday = page.getByRole('button', {name: 'Choose Birthday'});
         await publicBirthday.click();
         await panel.getByLabel('Month', {exact: true}).selectOption('1');
         await panel.getByRole('button', {name:'February 29', exact:true}).click();

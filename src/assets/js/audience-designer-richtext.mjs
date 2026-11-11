@@ -128,14 +128,14 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     if(!formatSelect)return;
     const formats=range&&!range.collapsed?new Set(textNodes(range).map(node=>formatAt(node))):new Set();
     const value=formats.size>1?null:formats.size?[...formats][0]:formatAt(range?.startContainer||rich,range?.startOffset||0);
-    formatSelect.options[0].textContent=value===null?'Mixed styles':'Default Text';formatSelect.value=value||'';
+    formatSelect.options[0].textContent=value===null?'Mixed Styles':'Default Text';formatSelect.value=value||'';
   };
   const syncSize=()=>{
     if(!sizeSelect||!range)return;
     let node=range.startContainer;
     if(node.nodeType===Node.ELEMENT_NODE&&node.childNodes.length)node=node.childNodes[Math.min(range.startOffset,node.childNodes.length-1)];
     const nodes=range.collapsed?[node]:textNodes(range),sizes=new Set(nodes.map(node=>String(parseFloat(getComputedStyle(node.nodeType===Node.ELEMENT_NODE?node:node.parentElement).fontSize))));
-    const value=sizes.size===1?[...sizes][0]:'';sizeSelect.options[0].textContent=sizes.size>1?'Mixed sizes':'Size';
+    const value=sizes.size===1?[...sizes][0]:'';sizeSelect.options[0].textContent=sizes.size>1?'Mixed Sizes':'Size';
     const current=sizeSelect.querySelector('[data-current-size]');if(current&&current.value!==value)current.remove();
     if(value&&![...sizeSelect.options].some(option=>option.value===value)){const option=el('option',value);option.value=value;option.dataset.currentSize='';sizeSelect.append(option);}
     sizeSelect.value=value;
@@ -163,7 +163,7 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   const syncFont=()=>{
     if(!fontSelect)return;
     const family=selectionFont(),value=family===null?'':matchingFontChoice(family,fontChoices);
-    fontSelect.options[0].textContent=family===null?'Mixed fonts':'Font';
+    fontSelect.options[0].textContent=family===null?'Mixed Fonts':'Font';
     const current=fontSelect.querySelector('[data-current-font]');if(current&&current.value!==value)current.remove();
     if(value&&![...fontSelect.options].some(option=>option.value===value)){
       const option=el('option',value);option.value=value;option.dataset.currentFont='';fontSelect.append(option);
@@ -171,7 +171,7 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     fontSelect.value=value;
   };
   const past=[],future=[],stateButtons=[];
-  const source=el('textarea',undefined,'designer-rich-source');source.setAttribute('aria-label','Text HTML source');source.hidden=true;source.spellcheck=false;
+  const source=el('textarea',undefined,'designer-rich-source');source.setAttribute('aria-label','Text HTML Source');source.hidden=true;source.spellcheck=false;
   const remember=()=>{
     const selection=window.getSelection();
     if(!applying&&document.activeElement===rich&&selection?.rangeCount&&rich.contains(selection.anchorNode)&&rich.contains(selection.focusNode)){
@@ -221,7 +221,7 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   document.addEventListener('selectionchange',remember,{signal});
   rich.addEventListener('paste',e=>{e.preventDefault();const html=e.clipboardData.getData('text/html');edit(()=>{document.execCommand(html?'insertHTML':'insertText',false,html?cleanRichHtml(html):e.clipboardData.getData('text/plain'));applyStyles();});},{signal});
 
-  const toolbar=el('div',undefined,'designer-rich-toolbar');toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text formatting');
+  const toolbar=el('div',undefined,'designer-rich-toolbar');toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label','Text Formatting');
   const first=el('div',undefined,'designer-rich-toolbar-row'),second=el('div',undefined,'designer-rich-toolbar-row');toolbar.append(first,second);
   let row=first;
   const tool=(label,text,action,icon)=>{
@@ -229,10 +229,10 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     if(icon){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',iconPaths[icon]);svg.append(path);control.replaceChildren(svg);}
     control.onmousedown=e=>{remember();e.preventDefault();};row.append(control);return control;
   };
-  for(const [name,label,text]of [['bold','Bold selection','B'],['italic','Italic selection','I'],['underline','Underline selection','U']]){const control=tool(label,text,name==='bold'?bold:()=>command(name));control.classList.add('designer-rich-'+name);stateButtons.push([control,name]);}
-  tool('Insert link','',()=>{remember();openLink();},'link');tool('Remove link','',()=>command('unlink'),'unlink');
-  tool('Insert image from content studio','',()=>{remember();openImage(value=>{edit(()=>{const image=document.createElement('img');image.src=value.image;image.alt=value.alt||'';image.width=Math.min(240,Math.max(1,rich.clientWidth-26));normalizeRichImage(image);const target=window.getSelection().getRangeAt(0);target.deleteContents();target.insertNode(image);target.setStartAfter(image);target.collapse(true);imageTools.select(image);});});},'image');
-  for(const [name,label,icon]of [['insertOrderedList','Numbered list','numbered'],['insertUnorderedList','Bulleted list','bulleted']]){const control=tool(label,'',()=>command(name),icon);stateButtons.push([control,name]);}
+  for(const [name,label,text]of [['bold','Bold Selection','B'],['italic','Italic Selection','I'],['underline','Underline selection','U']]){const control=tool(label,text,name==='bold'?bold:()=>command(name));control.classList.add('designer-rich-'+name);stateButtons.push([control,name]);}
+  tool('Insert Link','',()=>{remember();openLink();},'link');tool('Remove Link','',()=>command('unlink'),'unlink');
+  tool('Insert Image from Content Studio','',()=>{remember();openImage(value=>{edit(()=>{const image=document.createElement('img');image.src=value.image;image.alt=value.alt||'';image.width=Math.min(240,Math.max(1,rich.clientWidth-26));normalizeRichImage(image);const target=window.getSelection().getRangeAt(0);target.deleteContents();target.insertNode(image);target.setStartAfter(image);target.collapse(true);imageTools.select(image);});});},'image');
+  for(const [name,label,icon]of [['insertOrderedList','Numbered List','numbered'],['insertUnorderedList','Bulleted List','bulleted']]){const control=tool(label,'',()=>command(name),icon);stateButtons.push([control,name]);}
 
   const dialogs=[];
   const inputDialog=(title,control,help,commit)=>{
@@ -240,14 +240,14 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
     form.onsubmit=e=>{e.preventDefault();dialog.close();if(commit()===false)dialog.showModal();};return dialog;
   };
   const paste=(formatted)=>{
-    remember();const input=el(formatted?'div':'textarea',undefined,formatted?'designer-rich-paste':'');input.setAttribute('aria-label',formatted?'Paste formatted text':'Paste plain text');
+    remember();const input=el(formatted?'div':'textarea',undefined,formatted?'designer-rich-paste':'');input.setAttribute('aria-label',formatted?'Paste Formatted Text':'Paste Plain Text');
     if(formatted){input.contentEditable='true';input.setAttribute('role','textbox');input.addEventListener('paste',e=>{e.preventDefault();const html=e.clipboardData.getData('text/html');document.execCommand(html?'insertHTML':'insertText',false,html?cleanRichHtml(html):e.clipboardData.getData('text/plain'));input.querySelectorAll('[style]').forEach(n=>{const value=n.getAttribute('style');n.removeAttribute('style');n.style.cssText=value;});});}
-    const dialog=inputDialog(formatted?'Paste from Rich Text Editor':'Paste as plain text',input,formatted?'Paste your text here. Formatting is kept; unsupported content is removed.':'Paste your text here to insert it without formatting.',()=>{edit(()=>{document.execCommand(formatted?'insertHTML':'insertText',false,formatted?cleanRichHtml(input.innerHTML):input.value);applyStyles();});});dialog.showModal();input.focus();
+    const dialog=inputDialog(formatted?'Paste from Rich Text Editor':'Paste as Plain Text',input,formatted?'Paste your text here. Formatting is kept; unsupported content is removed.':'Paste your text here to insert it without formatting.',()=>{edit(()=>{document.execCommand(formatted?'insertHTML':'insertText',false,formatted?cleanRichHtml(input.innerHTML):input.value);applyStyles();});});dialog.showModal();input.focus();
   };
-  tool('Paste as plain text','',()=>paste(false),'paste');tool('Paste from Rich Text Editor','',()=>paste(true),'richPaste');
-  const clearStyles=tool('Clear styles','',()=>command('removeFormat'),'clear');
+  tool('Paste as Plain Text','',()=>paste(false),'paste');tool('Paste from Rich Text Editor','',()=>paste(true),'richPaste');
+  const clearStyles=tool('Clear Styles','',()=>command('removeFormat'),'clear');
   clearStyles.classList.add('designer-rich-label-tool');clearStyles.append(el('span','Clear'));
-  const sourceToggle=tool('Edit text HTML source','<>',()=>{
+  const sourceToggle=tool('Edit Text HTML Source','<>',()=>{
     const show=source.hidden;if(show){source.value=rich.innerHTML;remember();}else{history();setRichContent(rich,source.value);range=null;sync();}
     source.hidden=!show;rich.hidden=show;sourceToggle.setAttribute('aria-pressed',String(show));toolbar.querySelectorAll('button,select').forEach(n=>{if(n!==sourceToggle&&n!==collapse)n.disabled=show;});if(!show){undo.disabled=!past.length;redo.disabled=!future.length;}
   });
@@ -255,11 +255,11 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   const select=(label,options,fn)=>{
     const input=el('select');input.setAttribute('aria-label',label);input.title=label;for(const [value,text]of options){const option=el('option',text);option.value=value;input.append(option);}input.onpointerdown=remember;input.onchange=()=>{fn(input.value);};row.append(input);return input;
   };
-  formatSelect=select('Formatting style',[['','Default Text'],['p','Paragraph'],['h1','Heading 1'],['h2','Heading 2'],['h3','Heading 3'],['h4','Heading 4'],['blockquote','Quote']],format);
-  fontSelect=select('Selected text font',[['','Font'],...Object.entries(fontChoices)],value=>value&&edit(()=>{
+  formatSelect=select('Formatting Style',[['','Default Text'],['p','Paragraph'],['h1','Heading 1'],['h2','Heading 2'],['h3','Heading 3'],['h4','Heading 4'],['blockquote','Quote']],format);
+  fontSelect=select('Selected Text Font',[['','Font'],...Object.entries(fontChoices)],value=>value&&edit(()=>{
     onFont(value);document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,value);
   }));
-  sizeSelect=select('Selected text size',[['','Size'],...[8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,35,36,40,44,48,54,60,66,72,80,88,96].map(v=>[String(v),String(v)])],value=>value&&edit(()=>{
+  sizeSelect=select('Selected Text Size',[['','Size'],...[8,9,10,11,12,13,14,16,18,20,22,24,26,28,30,32,35,36,40,44,48,54,60,66,72,80,88,96].map(v=>[String(v),String(v)])],value=>value&&edit(()=>{
     document.execCommand('styleWithCSS',false,true);document.execCommand('fontSize',false,'7');
     applyStyles();
     const selection=window.getSelection().getRangeAt(0);
@@ -277,31 +277,31 @@ export function mountRichText({host,block,makeButton:button,makeElement:el,histo
   const selectedTextStyle=()=>{const node=range?.startContainer;return getComputedStyle(node?(node.nodeType===Node.ELEMENT_NODE?node:node.parentElement):rich);};
   for(const [label,property,highlight]of [['Selected text color','color',false],['Selected text highlight','backgroundColor',true]])mountTextColor({host:row,label,highlight,makeElement:el,makeButton:button,remember,palette,sampleSources:sampleSources||(()=>colorSampleSources(rich)),getTextStyle:selectedTextStyle,getValue:()=>selectedTextStyle()[property],apply:(value,options)=>applyColor(property,value,options),signal});
   row=first;
-  tool('Insert horizontal line','',()=>command('insertHorizontalRule'),'line');
-  tool('Insert anchor','',()=>{
-    remember();const input=el('input');input.setAttribute('aria-label','Anchor name');input.required=true;input.pattern='[a-zA-Z][a-zA-Z0-9_-]{0,79}';input.maxLength=80;
-    const dialog=inputDialog('Insert anchor',input,'Name this position so another link can jump here. Use letters, numbers, hyphens, or underscores.',()=>{if([...rich.querySelectorAll('[id]')].some(n=>n.id===input.value)){input.setCustomValidity('This anchor name is already in use.');input.reportValidity();return false;}edit(()=>{const marker=el('span','\u200b');marker.id=input.value;const selection=window.getSelection().getRangeAt(0);selection.collapse(true);selection.insertNode(marker);selection.setStartAfter(marker);selection.collapse(true);});});input.oninput=()=>input.setCustomValidity('');dialog.showModal();input.focus();
+  tool('Insert Horizontal Line','',()=>command('insertHorizontalRule'),'line');
+  tool('Insert Anchor','',()=>{
+    remember();const input=el('input');input.setAttribute('aria-label','Anchor Name');input.required=true;input.pattern='[a-zA-Z][a-zA-Z0-9_-]{0,79}';input.maxLength=80;
+    const dialog=inputDialog('Insert Anchor',input,'Name this position so another link can jump here. Use letters, numbers, hyphens, or underscores.',()=>{if([...rich.querySelectorAll('[id]')].some(n=>n.id===input.value)){input.setCustomValidity('This anchor name is already in use.');input.reportValidity();return false;}edit(()=>{const marker=el('span','\u200b');marker.id=input.value;const selection=window.getSelection().getRangeAt(0);selection.collapse(true);selection.insertNode(marker);selection.setStartAfter(marker);selection.collapse(true);});});input.oninput=()=>input.setCustomValidity('');dialog.showModal();input.focus();
   },'anchor');
   row=second;
-  const merge=select('Insert merge tag',[['','Merge Tags'],...Object.entries(mergeTags)],value=>{if(value)command('insertText',`*|${value}|*`);merge.value='';});
+  const merge=select('Insert Merge Tag',[['','Merge Tags'],...Object.entries(mergeTags)],value=>{if(value)command('insertText',`*|${value}|*`);merge.value='';});
   const direction=value=>edit(()=>{
     const selection=window.getSelection().getRangeAt(0);let nodes=[...rich.querySelectorAll('p,div,h1,h2,h3,h4,li,blockquote')].filter(n=>selection.intersectsNode(n));
     if(!nodes.length){const wrapper=el('div');wrapper.append(...rich.childNodes);rich.append(wrapper);nodes=[wrapper];}
     nodes.forEach(n=>n.style.direction=value);
   });
-  tool('Left to right text','¶→',()=>direction('ltr'));tool('Right to left text','←¶',()=>direction('rtl'));
-  const alignment=el('div',undefined,'designer-rich-alignment');alignment.setAttribute('role','group');alignment.setAttribute('aria-label','Text alignment');row.append(alignment);row=alignment;
+  tool('Left to Right Text','¶→',()=>direction('ltr'));tool('Right to Left Text','←¶',()=>direction('rtl'));
+  const alignment=el('div',undefined,'designer-rich-alignment');alignment.setAttribute('role','group');alignment.setAttribute('aria-label','Text Alignment');row.append(alignment);row=alignment;
   for(const [name,label,icon]of [['justifyLeft','Align left','left'],['justifyCenter','Align center','center'],['justifyRight','Align right','right'],['justifyFull','Justify text','justify']]){const control=tool(label,'',()=>command(name),icon);stateButtons.push([control,name]);}
   const travel=(from,to)=>{
     if(!from.length)return;history();to.push({html:lastHtml,headingLevel:lastHeadingLevel});const state=from.pop();lastHtml=state.html;lastHeadingLevel=state.headingLevel;if(lastHeadingLevel===undefined)delete block.headingLevel;else block.headingLevel=lastHeadingLevel;setRichContent(rich,lastHtml);range=null;block.html=lastHtml;block.text=rich.innerText;changed();renderCanvas();restore();remember();undo.disabled=!past.length;redo.disabled=!future.length;
   };
   row=first;
-  const undo=tool('Undo text change','',()=>travel(past,future),'undo'),redo=tool('Redo text change','',()=>travel(future,past),'redo');undo.disabled=redo.disabled=true;
+  const undo=tool('Undo Text Change','',()=>travel(past,future),'undo'),redo=tool('Redo Text Change','',()=>travel(future,past),'redo');undo.disabled=redo.disabled=true;
   undo.classList.add('audience-history-action');redo.classList.add('audience-history-action');
-  const historyGroup=el('span',undefined,'designer-rich-history');historyGroup.setAttribute('role','group');historyGroup.setAttribute('aria-label','Text undo and redo');undo.before(historyGroup);historyGroup.append(undo,redo);
+  const historyGroup=el('span',undefined,'designer-rich-history');historyGroup.setAttribute('role','group');historyGroup.setAttribute('aria-label','Text Undo and Redo');undo.before(historyGroup);historyGroup.append(undo,redo);
   undo.title='Undo';redo.title='Redo';
   tool('Strikethrough','S̶',()=>command('strikeThrough'));
-  const collapse=button('▴',()=>{second.hidden=!second.hidden;collapse.textContent=second.hidden?'▾':'▴';collapse.setAttribute('aria-expanded',String(!second.hidden));collapse.setAttribute('aria-label',second.hidden?'Expand text toolbar':'Collapse text toolbar');});collapse.className='designer-rich-collapse';collapse.setAttribute('aria-label','Collapse text toolbar');collapse.setAttribute('aria-expanded','true');first.append(collapse);
+  const collapse=button('▴',()=>{second.hidden=!second.hidden;collapse.textContent=second.hidden?'▾':'▴';collapse.setAttribute('aria-expanded',String(!second.hidden));collapse.setAttribute('aria-label',second.hidden?'Expand Text Toolbar':'Collapse Text Toolbar');});collapse.className='designer-rich-collapse';collapse.setAttribute('aria-label','Collapse Text Toolbar');collapse.setAttribute('aria-expanded','true');first.append(collapse);
   rich.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopPropagation();e.shiftKey?travel(future,past):travel(past,future);}},{signal});
   source.oninput=()=>{history();setRichContent(rich,source.value);range=null;sync();};
   host.append(toolbar,rich,source);

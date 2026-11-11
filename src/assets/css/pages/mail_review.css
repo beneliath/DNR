@@ -3,7 +3,7 @@
 .mail-review-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; background: transparent !important; }
 .mail-review-heading h1 { margin: 4px 0 8px; font-size: clamp(1.9rem, 3vw, 2.5rem); }
 .mail-review-heading p { margin: 0; color: var(--text-muted); }
-.mail-review-heading .mail-review-eyebrow { color: var(--admin-nav); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mail-review-heading .mail-review-eyebrow { color: var(--admin-nav); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: none; }
 .mail-review-page svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .mail-review-refresh { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .mail-review-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }

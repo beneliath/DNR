@@ -31,7 +31,7 @@ $collectStore->collectionOperation($blockedForm,2,'publish');
 $priorCheckState=$collectStore->sesSettings()['check_state'];$conn->query("UPDATE marketing_ses_settings SET check_state='attention' WHERE audience_id=1");
 $blockedIndex=$editor($collectPath);
 $conn->execute_query('UPDATE marketing_ses_settings SET check_state=? WHERE audience_id=1',[$priorCheckState]);
-audienceHttpExpect(str_contains($blockedIndex['body'],'Signup unavailable')&&str_contains($blockedIndex['body'],'Review email delivery'),'Forms list shows confirmation-delivery blocker for published double opt-in forms');
+audienceHttpExpect(str_contains($blockedIndex['body'],'Signup unavailable')&&str_contains($blockedIndex['body'],'Review Email Delivery'),'Forms list shows confirmation-delivery blocker for published double opt-in forms');
 $draft=$collect['draft'];$draft['opt_in']='single';$draft['title']='Published <script>alert(1)</script>';
 $collectStore->saveCollection(['name'=>$collect['name'],'document'=>$draft],$collectId,1);
 $collectStore->collectionOperation($collectId,2,'publish');$collect=$collectStore->collectionResource($collectId);
@@ -124,9 +124,9 @@ audienceHttpExpect($prefSaved['status']===200&&$afterPerson['first_name']==='Upd
 $preferenceEvent=$collectStore->one("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='preferences' ORDER BY id DESC LIMIT 1",[$person['id']]);
 audienceHttpExpect((audienceJson($preferenceEvent['details_json']??'')['interaction_location']['ip_address']??'')==='127.0.0.1','Published preferences record the verified visitor address');
 $interactionProfile=$editor('audience.php?view=contact&id='.$person['id']);
-audienceHttpExpect($interactionProfile['status']===200&&str_contains($interactionProfile['body'],'Interaction locations')&&str_contains($interactionProfile['body'],'Signup submitted')&&str_contains($interactionProfile['body'],'Preferences updated')&&str_contains($interactionProfile['body'],'Survey submitted')&&str_contains($interactionProfile['body'],'IP address: 127.0.0.1'),'Connection profile shows self-service location history to editors');
+audienceHttpExpect($interactionProfile['status']===200&&str_contains($interactionProfile['body'],'Interaction Locations')&&str_contains($interactionProfile['body'],'Signup Submitted')&&str_contains($interactionProfile['body'],'Preferences Updated')&&str_contains($interactionProfile['body'],'Survey Submitted')&&str_contains($interactionProfile['body'],'IP Address: 127.0.0.1'),'Connection profile shows self-service location history to editors');
 $reviewerProfile=$reviewer('audience.php?view=contact&id='.$person['id']);
-audienceHttpExpect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction locations')&&!str_contains($reviewerProfile['body'],'IP address: 127.0.0.1'),'Read-only reviewers see approximate places without raw IP addresses');
+audienceHttpExpect($reviewerProfile['status']===200&&str_contains($reviewerProfile['body'],'Interaction Locations')&&!str_contains($reviewerProfile['body'],'IP Address: 127.0.0.1'),'Read-only reviewers see approximate places without raw IP addresses');
 audienceHttpExpect($public('audience_subscription.php?token='.$privateToken.'&preferences=1')['status']===302,'Native email preferences route to the published center');
 $tagForResponse=(int)$collectStore->ensureTag('Survey qualification tag');
 $linkedReport='audience.php?view=collection-report&id='.$surveyId;
@@ -254,7 +254,7 @@ try{
     $cbInitial=$collectStore->collectionResource($cbId)['draft'];
     audienceHttpExpect($cbInitial['font']==='Tahoma'&&$cbInitial['web_font']===$cbFont&&$cbInitial['web_font_name']==='Example Light','New form drafts use the Brand Kit font by default');
     $cbEditor=$editor($cbPath);audienceHttpExpect($cbEditor['status']===200&&str_contains($cbEditor['body'],'Example Light (Brand Kit)')&&str_contains($cbEditor['body'],'"brandColors":[')&&str_contains($cbEditor['body'],'"value":"#3261b5"'),'Landing page editor exposes the current account Brand Kit font and colors');
-    audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Primary logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary logo</option>'),'Landing page offers both account Brand Kit logos');
+    audienceHttpExpect(str_contains($cbEditor['body'],'<option value="logo">Primary Logo</option>')&&str_contains($cbEditor['body'],'<option value="secondary_logo">Secondary Logo</option>'),'Landing page offers both account Brand Kit logos');
     $cbPreferences=$collectStore->saveCollection(['kind'=>'preferences','name'=>'Brand Kit preferences']);
     $cbPreferencesEditor=$editor('audience.php?view=form&id='.$cbPreferences);
     audienceHttpExpect(str_contains($cbPreferencesEditor['body'],'data-collection-insert-logo="logo"')&&str_contains($cbPreferencesEditor['body'],'data-collection-insert-logo="secondary_logo"')&&str_contains($cbPreferencesEditor['body'],$cbDefaultLogo),'Subscriber preferences offer both account Branding Kit logos');
@@ -280,7 +280,7 @@ try{
     $cbSettings['brand']['styles']['webFont']='data:font/ttf;base64,'.base64_encode("\x00\x01\x00\x00".str_repeat("\0",45));$cbSettings['brand']['web_font_name']='New Brand Font';
     $collectStore->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=?',[json_encode($cbSettings,JSON_THROW_ON_ERROR),1]);
     $cbLive=$public($cbPublic);$cbReopened=$editor($cbPath)['body'];
-    audienceHttpExpect(str_contains($cbLive['body'],$cbFont)&&!str_contains($cbLive['body'],$cbSettings['brand']['styles']['webFont'])&&str_contains($cbReopened,'value="saved-brand" selected>Example Light (saved font)')&&str_contains($cbReopened,'New Brand Font (Brand Kit)'),'Brand Kit changes preserve the published font and offer both saved and current choices');
+    audienceHttpExpect(str_contains($cbLive['body'],$cbFont)&&!str_contains($cbLive['body'],$cbSettings['brand']['styles']['webFont'])&&str_contains($cbReopened,'value="saved-brand" selected>Example Light (Saved Font)')&&str_contains($cbReopened,'New Brand Font (Brand Kit)'),'Brand Kit changes preserve the published font and offer both saved and current choices');
     $cbBad=array_replace($cbDoc,['web_font'=>'https://example.test/font.woff2']);$cbRejected=$editor($cbPath,array_replace($cbSave,['version'=>3,'document_json'=>json_encode($cbBad)]));
     audienceHttpExpect($cbRejected['status']===200&&(int)$collectStore->collectionResource($cbId)['version']===3,'External font sources cannot be saved through a crafted request');
     $cbPlain=array_replace($cbDoc,['font'=>'Verdana','web_font'=>'','web_font_name'=>'']);

@@ -59,7 +59,7 @@ $blocked=false;try{$fs->saveFlow('Stale flow',$d,(int)$basic['id'],1);}catch(Inv
 require __DIR__.'/audience_flow_outcomes_http.php';
 foreach(['automations','flow-templates','flow','flow-report']as$v){$page=$editor('audience.php?view='.$v.($v==='flow'||$v==='flow-report'?'&id='.$basic['id']:''));audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Flow HTTP surface renders '.$v);}
 $nav=$editor('audience.php?view=automations');audienceHttpExpect(str_contains($nav['body'],'href="audience.php?view=automations"')&&!str_contains($nav['body'],'aria-disabled="true" tabindex="0" data-audience-tooltip="Map out'),'Automations is an available sidebar destination');
-audienceHttpExpect(str_contains($nav['body'],'data-flow-onboarding')&&str_contains($nav['body'],'Get started with automation flows')&&str_contains($nav['body'],'data-flow-task="delivery"'),'Upper-level Automations includes the native five-task setup guide');
+audienceHttpExpect(str_contains($nav['body'],'data-flow-onboarding')&&str_contains($nav['body'],'Get Started with Automation Flows')&&str_contains($nav['body'],'data-flow-task="delivery"'),'Upper-level Automations includes the native five-task setup guide');
 audienceHttpExpect(!str_contains($nav['body'],'view=transactional'),'Transactional is removed from MessageMonkey navigation');
 $overviewIds=[];foreach(['Overview older','Overview newer','Overview classic']as$name){$copy=$d;$copy['classic']=$name==='Overview classic';$overviewIds[]=$fs->saveFlow($name,$copy);}
 $fs->write("UPDATE marketing_flows SET created_at='2026-01-01 00:00:00' WHERE id=?",[$overviewIds[0]]);$fs->write("UPDATE marketing_flows SET created_at='2026-02-01 00:00:00' WHERE id=?",[$overviewIds[1]]);
@@ -75,7 +75,7 @@ audienceHttpExpect($archivedRename['status']===422&&$fs->flow($overviewIds[2],fa
 audienceHttpExpect($editor('audience.php?view=automations&sort=unknown')['status']===400,'Overview rejects unknown SQL sort choices');
 audienceHttpExpect($editor('audience.php?view=flow-templates&sort=name')['status']===200,'Catalog sorting remains independent from overview sorting');
 $flowIds=[...$flowIds,...$overviewIds];
-$catalog=$editor('audience.php?view=flow-templates');audienceHttpExpect(str_contains($catalog['body'],'data-flow-template-integration')&&str_contains($catalog['body'],'data-flow-template-sort')&&str_contains($catalog['body'],'Re-engage connections'),'Catalog includes native integrations, sorting and categorized templates');
+$catalog=$editor('audience.php?view=flow-templates');audienceHttpExpect(str_contains($catalog['body'],'data-flow-template-integration')&&str_contains($catalog['body'],'data-flow-template-sort')&&str_contains($catalog['body'],'Re-Engage Connections'),'Catalog includes native integrations, sorting and categorized templates');
 foreach(['split','followup','cleanup']as$preview){$page=$editor('audience.php?view=flow-templates&preview='.$preview);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'flow-preview-connector')&&str_contains($page['body'],'Use this flow')&&!preg_match('/(?:Warning|Fatal error):/',$page['body']),'Real graph preview renders '.$preview);}
 audienceHttpExpect(!str_contains($editor('audience.php?view=flow&id='.$basic['id'])['body'],'data-flow-add="split"'),'Step palette does not offer percentage testing');
 $cleanup=$newFlow(audienceFlowDefault('cleanup'),'Status cleanup fixture');$cleanupPeople=[];$serviceBefore=(int)$fs->one('SELECT COUNT(*) n FROM marketing_service_mail')['n'];

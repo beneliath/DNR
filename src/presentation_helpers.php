@@ -240,15 +240,17 @@ function normalizeEngagementPresentations(
 function requirePresentationForConfirmedEngagement(
     $confirmation_status,
     array $presentations,
-    $lifecycle_status = 'active'
+    $lifecycle_status = 'active',
+    bool $presentation_not_required = false
 )
 {
     if ($confirmation_status === 'confirmed'
         && (string) $lifecycle_status === 'active'
+        && !$presentation_not_required
         && count($presentations) === 0
     ) {
         throw new InvalidArgumentException(
-            'Add at least one presentation before setting the engagement status to confirmed.'
+            'Add at least one presentation or select “No Presentation Required” before confirming this engagement.'
         );
     }
 }
@@ -256,11 +258,13 @@ function requirePresentationForConfirmedEngagement(
 function presentationRemovalRequiresReview(
     $confirmation_status,
     $active_presentation_count,
-    $lifecycle_status = 'active'
+    $lifecycle_status = 'active',
+    bool $presentation_not_required = false
 )
 {
     return (string) $confirmation_status === 'confirmed'
         && (string) $lifecycle_status === 'active'
+        && !$presentation_not_required
         && (int) $active_presentation_count <= 1;
 }
 

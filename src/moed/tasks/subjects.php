@@ -286,7 +286,7 @@ function followUpTaskSubjectOptions(mysqli $conn)
         while ($row = $inquiries->fetch_assoc()) {
             $options['inquiry'][] = [
                 'value' => 'inquiry:' . (int) $row['id'],
-                'label' => $row['title'] . ' · ' . ucwords(str_replace('_', ' ', $row['stage'])),
+                'label' => $row['title'] . ' · ' . \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $row['stage'])),
             ];
         }
     }

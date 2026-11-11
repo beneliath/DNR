@@ -52,8 +52,8 @@ export function initializeMessageMonkeyShell() {
         document.body.classList.toggle('audience-sidebar-collapsed', collapsed && !mobileNavigation.matches);
         if (sidebarToggle) {
             sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
-            sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Minimize navigation');
-            sidebarToggle.title = collapsed ? 'Expand navigation' : 'Minimize navigation';
+            sidebarToggle.setAttribute('aria-label', collapsed ? 'Expand Navigation' : 'Minimize Navigation');
+            sidebarToggle.title = collapsed ? 'Expand Navigation' : 'Minimize Navigation';
         }
         sidebarPosition();
     };
@@ -80,7 +80,7 @@ export function initializeMessageMonkeyShell() {
             suspended.clear();
             document.body.classList.toggle('audience-navigation-open', navigationOpen);
             mobileToggle.setAttribute('aria-expanded', String(navigationOpen));
-            mobileToggle.setAttribute('aria-label', `${navigationOpen ? 'Close' : 'Open'} MessageMonkey navigation`);
+            mobileToggle.setAttribute('aria-label', `${navigationOpen ? 'Close' : 'Open'} MessageMonkey Navigation`);
             navigationBackdrop.hidden = !navigationOpen;
             sidebar.inert = mobileNavigation.matches && !navigationOpen;
             if (navigationOpen) {

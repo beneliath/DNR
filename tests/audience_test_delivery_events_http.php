@@ -43,7 +43,7 @@ audienceHttpExpect($campaignStore->person((int)$unchangedContact['id'])['email_s
 $activityPage=$admin('audience.php?view=delivery&tab=activity');
 foreach([$receiptTests[0]['id']=>'Delivered',$receiptTests[1]['id']=>'Bounced']as$testId=>$label){
     preg_match('/<tr data-service-mail-id="'.$testId.'">(.*?)<\/tr>/s',$activityPage['body'],$activityRow);
-    audienceHttpExpect($activityPage['status']===200&&str_contains($activityRow[1]??'','<td>'.$label.'</td>')&&str_contains($activityRow[1]??'','Delivery history'),'Activity renders the specific test outcome and receipt history');
+    audienceHttpExpect($activityPage['status']===200&&str_contains($activityRow[1]??'','<td>'.$label.'</td>')&&str_contains($activityRow[1]??'','Delivery History'),'Activity renders the specific test outcome and receipt history');
 }
 audienceHttpExpect(str_contains($activityPage['body'],'delivery-one@example.test')&&str_contains($activityPage['body'],'delivery-two@another.example.test')&&!preg_match('/Warning:|Fatal error:/',$activityPage['body']),'Activity identifies each recipient without rendering errors');
 audienceHttpExpect($editor('audience.php?view=delivery&tab=activity')['status']===403,'Delivery activity keeps administrator-only access');

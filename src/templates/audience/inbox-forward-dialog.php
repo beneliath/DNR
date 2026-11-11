@@ -8,12 +8,12 @@ $forwardKey = $forwardFailed && is_string($_POST['forward_key'] ?? null) && preg
 <dialog id="inbox-forward-dialog" aria-labelledby="inbox-forward-title"<?= $forwardFailed?' data-reopen-dialog':'' ?>>
     <form method="post" action="<?= $h($filterUrl(['thread'=>$threadId,'message_page'=>$messagePage,'message_size'=>$messageSize,'before'=>$before])) ?>">
         <?php $form('inbox_forward',['thread_id'=>$threadId,'forward_key'=>$forwardKey]); ?>
-        <div class="dialog-heading"><h2 id="inbox-forward-title">Forward email</h2><button type="button" data-close-dialog aria-label="Close">×</button></div>
+        <div class="dialog-heading"><h2 id="inbox-forward-title">Forward Email</h2><button type="button" data-close-dialog aria-label="Close">×</button></div>
         <?php if(count($forwardMessages)===1): $original=$forwardMessages[0]; ?>
             <input type="hidden" name="message_id" value="<?= (int)$original['id'] ?>">
             <p><strong><?= $h($original['email_subject']) ?></strong><br><?= $h($original['sender_email']) ?> · <?php $time($original['occurred_at']); ?></p>
         <?php else: ?>
-            <label>Email to forward
+            <label>Email to Forward
                 <select name="message_id"><?php foreach($forwardMessages as $original): ?>
                     <option value="<?= (int)$original['id'] ?>"<?= $selectedMessage===(int)$original['id']?' selected':'' ?>><?= $h($original['email_subject'].' · '.audienceProfileDate($original['occurred_at']).' · '.mb_substr($original['body_text'],0,60)) ?></option>
                 <?php endforeach; ?></select>
@@ -32,7 +32,7 @@ $forwardKey = $forwardFailed && is_string($_POST['forward_key'] ?? null) && preg
         <?php if($forwardRequirement!==null): ?><p class="inbox-error"><?= $h($forwardRequirement) ?></p><?php endif; ?>
         <?php if($forwardFailed): ?><p class="inbox-error" role="alert"><?= $h($error) ?></p><?php endif; ?>
         <div class="form-actions"><button type="button" data-close-dialog>Cancel</button>
-            <button type="submit" class="primary"<?= !$forwardUsers||$forwardRequirement!==null?' disabled':' data-forward-submit' ?>><?php $icon('forward'); ?>Forward email</button>
+            <button type="submit" class="primary"<?= !$forwardUsers||$forwardRequirement!==null?' disabled':' data-forward-submit' ?>><?php $icon('forward'); ?>Forward Email</button>
         </div>
     </form>
 </dialog>

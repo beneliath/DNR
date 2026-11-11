@@ -204,7 +204,7 @@ try {
             </form>
             <div id="database-backup-status" class="database-backup-status" hidden>
                 <div class="database-backup-progress-heading">
-                    <strong id="database-backup-stage">Creating your backup</strong>
+                    <strong id="database-backup-stage">Creating Your Backup</strong>
                     <span id="database-backup-elapsed" class="database-backup-elapsed"></span>
                 </div>
                 <div id="database-backup-progress" class="database-backup-progress" role="progressbar"

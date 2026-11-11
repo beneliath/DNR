@@ -11,7 +11,7 @@ function calendarStatusLabel($status) {
         return 'Unspecified';
     }
 
-    return ucwords(str_replace('_', ' ', $status));
+    return \Dnr\Domain\ReferenceData::label(str_replace('_', ' ', $status));
 }
 
 function calendarLifecycleLabel($status) {

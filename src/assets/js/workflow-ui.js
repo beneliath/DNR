@@ -7,7 +7,7 @@
         const operation = taskBulk.querySelector('[data-task-operation]');
         const update = function () {
             const count = items.filter(item => item.checked).length;
-            taskBulk.querySelector('[data-task-selection-count]').textContent = count + (count === 1 ? ' task selected' : ' tasks selected');
+            taskBulk.querySelector('[data-task-selection-count]').textContent = count + (count === 1 ? ' Task Selected' : ' Tasks Selected');
             taskBulk.querySelectorAll('[data-task-bulk-submit]').forEach(button => { button.disabled = !count; });
             all.disabled = items.length === 0 || count === items.length;
             taskBulk.querySelector('[data-task-clear]').hidden = count === 0;

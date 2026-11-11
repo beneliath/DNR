@@ -2,13 +2,13 @@
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
 require_once $source.'/audience_inbox_runtime.php';require_once $source.'/audience_inbox_public.php';require_once $source.'/inbound_email_helpers.php';
 $inboxStart=$checks;$inboxPath='audience.php?view=inbox';$inboxPage=$editor($inboxPath);$inboxCsrf=audienceHttpCsrf($inboxPage);
-audienceHttpExpect($inboxPage['status']===200&&str_contains($inboxPage['body'],'Choose a conversation'),'Standalone Inbox renders without selecting a conversation');
+audienceHttpExpect($inboxPage['status']===200&&str_contains($inboxPage['body'],'Choose a Conversation'),'Standalone Inbox renders without selecting a conversation');
 foreach(['','&panel=sources','&panel=labels','&panel=templates','&panel=compose','&panel=notifications','&inbox_api=notifications','&inbox_api=recipients&q=fixture']as$tail)audienceHttpExpect($reviewer($inboxPath.$tail)['status']===403,'Reviewer cannot access Inbox private surfaces '.$tail);
 foreach(['sources','labels','templates','compose','notifications','drafts']as$panel){$page=$editor($inboxPath.'&panel='.$panel);audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$page['body']),'Inbox panel renders '.$panel);}
 $sourcePanel=$editor($inboxPath.'&panel=sources');
 audienceHttpExpect(!str_contains($sourcePanel['body'],'aria-label="Conversations"')&&str_contains($sourcePanel['body'],'inbox-has-panel'),'Settings use the full work area without a conversation-list column');
 audienceHttpExpect($editor($inboxPath,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_prepare_route'])['status']===403,'Editors cannot prepare receiving addresses');
-$settingsInput=['version'=>1,'title'=>'Contact us','intro'=>'Get in touch','button'=>'Send message','success'=>'Message received','contact_enabled'=>'1','survey_replies'=>'1'];
+$settingsInput=['version'=>1,'title'=>'Contact us','intro'=>'Get in touch','button'=>'Send Message','success'=>'Message received','contact_enabled'=>'1','survey_replies'=>'1'];
 audienceHttpExpect($editor($inboxPath,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_sources']+$settingsInput)['status']===403,'Only administrator configures sources');
 audienceHttpExpect($admin($inboxPath,['csrf_token'=>'invalid','action'=>'inbox_sources']+$settingsInput)['status']===400,'Inbox writes require CSRF');
 $adminInbox=$admin($inboxPath);$adminInboxCsrf=audienceHttpCsrf($adminInbox);$saved=$admin($inboxPath,['csrf_token'=>$adminInboxCsrf,'action'=>'inbox_sources']+$settingsInput);audienceHttpExpect($saved['status']===302,'Administrator connects native contact and survey sources');
@@ -40,8 +40,8 @@ $label=$ib->saveInboxNamed('label',['name'=>'Stage6 label']);$thread=$ib->inboxT
 audienceHttpExpect((int)$ib->inboxList(['label'=>$label])['total']===1,'Label filter uses native assignments');
 $filteredInbox=$inboxPath.'&source=direct&label='.$label;
 $workspace=$editor($filteredInbox);
-audienceHttpExpect($workspace['status']===200&&str_contains($workspace['body'],'"thread":0')&&!str_contains($workspace['body'],'data-inbox-inline')&&str_contains($workspace['body'],'Choose a conversation'),'Filtered Inbox leaves conversations unselected until the user chooses one');
-$openedWorkspace=$editor($filteredInbox.'&thread='.$tid);audienceHttpExpect(str_contains($openedWorkspace['body'],'data-inbox-inline')&&str_contains($openedWorkspace['body'],'Mark as unread'),'An explicitly chosen conversation opens with reply and unread controls');
+audienceHttpExpect($workspace['status']===200&&str_contains($workspace['body'],'"thread":0')&&!str_contains($workspace['body'],'data-inbox-inline')&&str_contains($workspace['body'],'Choose a Conversation'),'Filtered Inbox leaves conversations unselected until the user chooses one');
+$openedWorkspace=$editor($filteredInbox.'&thread='.$tid);audienceHttpExpect(str_contains($openedWorkspace['body'],'data-inbox-inline')&&str_contains($openedWorkspace['body'],'Mark as Unread'),'An explicitly chosen conversation opens with reply and unread controls');
 audienceHttpExpect(str_contains($workspace['body'],'inbox-label-tag">Stage6 label')&&str_contains($workspace['body'],'data-inbox-time="short"'),'Conversation list shows assigned labels and machine-readable message times');
 $thread=$ib->inboxThread($tid);$completed=$editor($filteredInbox,['csrf_token'=>$inboxCsrf,'action'=>'inbox_thread','thread_id'=>$tid,'version'=>$thread['version'],'operation'=>'done']);
 audienceHttpExpect($completed['status']===302&&str_contains($completed['headers'],'source=direct')&&str_contains($completed['headers'],'label='.$label)&&!str_contains($completed['headers'],'thread='),'Completing a conversation returns to its filtered queue');
@@ -49,18 +49,18 @@ $thread=$ib->inboxThread($tid);$ib->inboxThreadOperation($tid,(int)$thread['vers
 $unreadResult=$editor($filteredInbox,['csrf_token'=>$inboxCsrf,'action'=>'inbox_read','thread_id'=>$tid,'read'=>'0']);
 audienceHttpExpect($unreadResult['status']===302&&str_contains($unreadResult['headers'],'selection=none'),'Mark unread clears the reader selection');
 $unselected=$editor($filteredInbox.'&selection=none');
-audienceHttpExpect(str_contains($unselected['body'],'"thread":0')&&str_contains($unselected['body'],'Choose a conversation'),'An explicitly cleared selection does not reopen and reread the conversation');
+audienceHttpExpect(str_contains($unselected['body'],'"thread":0')&&str_contains($unselected['body'],'Choose a Conversation'),'An explicitly cleared selection does not reopen and reread the conversation');
 $thread=$ib->inboxThread($tid);$stale=false;try{$ib->inboxThreadOperation($tid,1,'done');}catch(InvalidArgumentException){$stale=true;}audienceHttpExpect($stale,'Stale status updates are rejected');
 $ib->inboxMarkRead($tid,true);audienceHttpExpect((int)$ib->inboxList(['label'=>$label,'unread'=>'1'])['total']===0,'Read state belongs to current user');$ib->inboxMarkRead($tid,false);
 $owner=new AudienceStore($conn,1,$actor+1,'Other user');$privateDraft=$ib->saveInboxDraft(['contact_id'=>$inboxPerson,'subject'=>'Hello *|FNAME|*','body_html'=>'<p>Personal message</p>','include_optout'=>'1']);$denied=false;try{$owner->inboxDraft($privateDraft);}catch(InvalidArgumentException){$denied=true;}audienceHttpExpect($denied,'Draft privacy applies across users in same account');
 $unknownDraft=$ib->saveInboxDraft(['thread_id'=>$unknown,'subject'=>'Reply to claimed sender','body_html'=>'<p>Unsent</p>']);$unknownPage=$editor($inboxPath.'&panel=compose&draft='.$unknownDraft);audienceHttpExpect($unknownPage['status']===200&&str_contains($unknownPage['body'],'<strong>inbox-person@example.test</strong>'),'Saved draft retains unlinked thread recipient display');
 $draftPage=$editor($inboxPath.'&panel=drafts');$draftDoc=new DOMDocument();@$draftDoc->loadHTML($draftPage['body']);$draftXPath=new DOMXPath($draftDoc);
 audienceHttpExpect(str_contains($draftPage['body'],'aria-label="Conversations"')&&str_contains($draftPage['body'],'inbox-draft-workspace')&&!str_contains($draftPage['body'],'inbox-has-panel'),'Drafts use the shared conversation list and content panes');
-audienceHttpExpect($draftXPath->query('//form[@data-inbox-compose]')->length===0&&str_contains($draftPage['body'],'Choose a draft'),'Drafts wait for an explicit selection and display guidance');
+audienceHttpExpect($draftXPath->query('//form[@data-inbox-compose]')->length===0&&str_contains($draftPage['body'],'Choose a Draft'),'Drafts wait for an explicit selection and display guidance');
 audienceHttpExpect(!in_array($privateDraft,array_map('intval',array_column($owner->inboxDrafts(),'id')),true),'The draft list excludes another user’s private drafts');
 $searchedDrafts=$editor($inboxPath.'&panel=drafts&draft_q=Hello');$searchDoc=new DOMDocument();@$searchDoc->loadHTML($searchedDrafts['body']);$searchXPath=new DOMXPath($searchDoc);
 audienceHttpExpect($searchXPath->query('//a[@data-inbox-draft-id]')->length===1&&(int)$searchXPath->query('//a[@data-inbox-draft-id]')->item(0)->getAttribute('data-inbox-draft-id')===$privateDraft&&$searchXPath->query('//form[@data-inbox-compose]')->length===0,'Draft search filters the list without selecting a draft');
-$emptyDrafts=$editor($inboxPath.'&panel=drafts&draft_q=no-such-draft-fixture');audienceHttpExpect(str_contains($emptyDrafts['body'],'No matching drafts')&&!str_contains($emptyDrafts['body'],'data-inbox-compose'),'Draft search has a safe empty state without opening unrelated content');
+$emptyDrafts=$editor($inboxPath.'&panel=drafts&draft_q=no-such-draft-fixture');audienceHttpExpect(str_contains($emptyDrafts['body'],'No Matching Drafts')&&!str_contains($emptyDrafts['body'],'data-inbox-compose'),'Draft search has a safe empty state without opening unrelated content');
 $savedDraft=$editor($inboxPath.'&panel=drafts&draft='.$unknownDraft,['csrf_token'=>$inboxCsrf,'format'=>'json','action'=>'inbox_draft_save','draft_id'=>$unknownDraft,'version'=>1,'subject'=>'Reply to claimed sender','body_html'=>'<p>Unsent</p>']);$savedDraftData=json_decode($savedDraft['body'],true);
 audienceHttpExpect($savedDraft['status']===200&&str_contains($savedDraftData['redirect']??'','panel=drafts')&&(int)($savedDraftData['draft']['version']??0)===2,'Saving a selected draft keeps the shared Drafts workspace and advances its version');
 $discardDraft=$ib->saveInboxDraft(['contact_id'=>$inboxPerson,'subject'=>'Disposable layout draft','body_html'=>'<p>Unsent draft to discard.</p>']);

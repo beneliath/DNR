@@ -75,7 +75,7 @@
                 const node = document.createElement(tag); node.textContent = text; link.append(node);
             }
             const button = document.createElement('button'); button.type = 'button'; button.className = 'audience-notification-dismiss';
-            button.setAttribute('data-notification-dismiss', ''); button.setAttribute('aria-label', `Clear notification: ${record.label}`); button.title = 'Clear notification';
+            button.setAttribute('data-notification-dismiss', ''); button.setAttribute('aria-label', `Clear Notification: ${record.label}`); button.title = 'Clear Notification';
             button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7m0-7-7 7"/></svg>';
             row.append(link, button); return row;
         });

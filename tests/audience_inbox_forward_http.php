@@ -48,7 +48,7 @@ require_once $source.'/audience_delivery_lifecycle.php';
         audienceHttpExpect(count($jobs)===2&&$ib->inboxForwardStates([$thread])[$thread]==='pending','Two distinct recipients have independent pending receipts');
         $profile='audience.php?view=contact&id='.$person.'&activity_type=inbox_forward';
         $pending=$editor($profile);
-        audienceHttpExpect(str_contains($pending['body'],'Queued for:')&&!str_contains($pending['body'],'<h3>Email forwarded</h3>'),'Queued mail is not shown as forwarded');
+        audienceHttpExpect(str_contains($pending['body'],'Queued For:')&&!str_contains($pending['body'],'<h3>Email Forwarded</h3>'),'Queued mail is not shown as forwarded');
 
         $frozen=json_decode(\Dnr\Security\ApplicationKey::open($jobs[0]['payload_ciphertext']),true)['message'];
         $ib->write('UPDATE users SET email_verified_at=NULL WHERE email=?',[$frozen['email']]);
@@ -65,7 +65,7 @@ require_once $source.'/audience_delivery_lifecycle.php';
         foreach($jobs as $job)$ib->write("UPDATE marketing_service_mail SET state='accepted' WHERE id=?",[$job['id']]);
         $sent=array_slice($addresses,0,2);
         $accepted=$editor($profile);
-        audienceHttpExpect(substr_count($accepted['body'],'<h3>Email forwarded</h3>')===1&&str_contains($accepted['body'],implode(', ',$sent))&&str_contains($accepted['body'],'First subject'),'One connection activity entry lists both forwarded addresses and the selected subject');
+        audienceHttpExpect(substr_count($accepted['body'],'<h3>Email Forwarded</h3>')===1&&str_contains($accepted['body'],implode(', ',$sent))&&str_contains($accepted['body'],'First subject'),'One connection activity entry lists both forwarded addresses and the selected subject');
         audienceHttpExpect(!str_contains($reviewer($profile)['body'],$addresses[0]),'Inbox recipient history stays private to Inbox staff');
         audienceHttpExpect(str_contains($editor($inboxPath)['body'],'data-forward-state="forwarded" data-forward-thread="'.$thread.'"'),'The Conversations row retains its forwarded icon');
 

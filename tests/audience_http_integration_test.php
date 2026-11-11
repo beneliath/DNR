@@ -17,7 +17,7 @@ try{
         $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
-    $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced filters'),'Connections renders');
+    $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced Filters'),'Connections renders');
     audienceHttpExpect(str_contains($page['body'],'<span>MOED MessageMonkey</span></div>'),'Brand Audience is plain text');audienceHttpExpect(!str_contains($page['body'],'aria-label="Return to MOED"'),'Logo is not linked');
     audienceHttpExpect(!str_contains($page['body'],'audience-switch')&&!str_contains($page['body'],'create-audience'),'No audience selection or creation UI');
     $before=(int)$conn->query('SELECT COUNT(*) n FROM marketing_audiences')->fetch_assoc()['n'];
@@ -27,7 +27,7 @@ try{
     $aid=1;$path='audience.php?view=contacts';$form=$editor($path);$token=audienceHttpCsrf($form);
     $stale=$editor($path,['csrf_token'=>$token,'audience'=>2,'action'=>'save_tag','name'=>'Stale scope']);audienceHttpExpect(str_contains($stale['body'],'Audience has been consolidated'),'Stale forms are rejected');
     $save=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'save_person','email'=>'fixture@example.test','first_name'=>'Fixture','email_status'=>'non-subscribed']);audienceHttpExpect($save['status']===302,'Editor adds connection');preg_match('/id=(\d+)/',$save['headers'],$m);$pid=(int)$m[1];
-    $profile=$editor($path.'&view=contact&id='.$pid);audienceHttpExpect($profile['status']===200&&str_contains($profile['body'],'Connection details')&&str_contains($profile['body'],'Insights'),'Profile renders');
+    $profile=$editor($path.'&view=contact&id='.$pid);audienceHttpExpect($profile['status']===200&&str_contains($profile['body'],'Connection Details')&&str_contains($profile['body'],'Insights'),'Profile renders');
     foreach(['tags','groups','fields','settings','segments','import','jobs']as$view){$res=$editor($path.'&view='.$view);audienceHttpExpect($res['status']===200&&str_contains($res['body'],'audience-config'),'Screen '.$view);audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$res['body']),'Screen without PHP warnings '.$view);}
     $review=$reviewer($path);$reviewToken=audienceHttpCsrf($review);audienceHttpExpect(!str_contains($review['body'],'data-segment-current')&&!str_contains($review['body'],'data-person-select'),'Reviewer has read-only Connections');
     audienceHttpExpect($reviewer($path,['csrf_token'=>$reviewToken,'audience'=>$aid,'action'=>'save_tag','name'=>'Forbidden'])['status']===403,'Reviewer writes denied');
@@ -155,11 +155,11 @@ try{
     $note=$conn->execute_query('SELECT id FROM marketing_notes WHERE contact_id=? ORDER BY id DESC LIMIT 1',[$pid])->fetch_assoc();
     $profileStore->saveNote($pid,'Updated note',(int)$note['id'],1);
     $failedNote=$editor($profilePath.'&tab=notes',['csrf_token'=>$token,'action'=>'save_note','id'=>$pid,'note_id'=>$note['id'],'version'=>1,'body'=>'Keep my unsaved note']);
-    audienceHttpExpect(str_contains($failedNote['body'],'<details open><summary>Edit note</summary>')&&str_contains($failedNote['body'],'>Keep my unsaved note</textarea>'),'Stale note editor remains open and retains its draft');
+    audienceHttpExpect(str_contains($failedNote['body'],'<details open><summary>Edit Note</summary>')&&str_contains($failedNote['body'],'>Keep my unsaved note</textarea>'),'Stale note editor remains open and retains its draft');
     audienceHttpExpect($conn->execute_query('SELECT body FROM marketing_notes WHERE id=?',[$note['id']])->fetch_assoc()['body']==='Updated note','Stale note edit does not overwrite current text');
     // Stage 2 campaign management uses the authenticated application routes.
     $campaignPath='audience.php?view=campaigns';
-    $campaignHome=$editor($campaignPath);audienceHttpExpect($campaignHome['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$campaignHome['body'])&&str_contains($campaignHome['body'],'All campaigns'),'Campaign list renders without warnings');
+    $campaignHome=$editor($campaignPath);audienceHttpExpect($campaignHome['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$campaignHome['body'])&&str_contains($campaignHome['body'],'All Campaigns'),'Campaign list renders without warnings');
     $create=['csrf_token'=>$token,'action'=>'campaign_create','name'=>'Campaign fixture','campaign_type'=>'plain-text'];
     audienceHttpExpect($reviewer($campaignPath,array_replace($create,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot create campaigns');
     audienceHttpExpect($editor($campaignPath,array_replace($create,['csrf_token'=>'invalid']))['status']===400,'Campaign mutations require CSRF');
@@ -312,19 +312,19 @@ try{
     $plainReview='audience.php?view=campaign-review&id='.$plain;
     $preview=$editor($plainReview);
     audienceHttpExpect($preview['status']===200&&str_contains($preview['body'],"Plain preview &lt;script&gt;not markup&lt;/script&gt; &amp; line one\nLine two"),'Plain-text Preview renders escaped content and preserves line breaks');
-    audienceHttpExpect(str_contains($preview['body'],'No comments yet.')&&str_contains($preview['body'],'Add a comment'),'Plain-text draft exposes team review');
+    audienceHttpExpect(str_contains($preview['body'],'No comments yet.')&&str_contains($preview['body'],'Add a Comment'),'Plain-text draft exposes team review');
     $plainComment=['csrf_token'=>$token,'action'=>'campaign_comment','id'=>$plain,'body'=>'Plain-text review comment'];
     audienceHttpExpect($editor($plainReview,$plainComment)['status']===302&&str_contains($editor($plainReview)['body'],'Plain-text review comment'),'Plain-text review comment saves and reloads');
     $plainComments=$campaignStore->designComments('campaign',$plain);
     $campaignStore->resolveDesignComment('campaign',$plain,(int)$plainComments[0]['id'],1,true);
     audienceHttpExpect(str_contains($editor($plainReview)['body'],'<small>Resolved</small>'),'Plain-text comments can be resolved');
-    audienceHttpExpect($reviewer($plainReview)['status']===200&&!str_contains($reviewer($plainReview)['body'],'Add a comment'),'Read-only users can view plain-text reviews');
+    audienceHttpExpect($reviewer($plainReview)['status']===200&&!str_contains($reviewer($plainReview)['body'],'Add a Comment'),'Read-only users can view plain-text reviews');
     audienceHttpExpect($reviewer($plainReview,array_replace($plainComment,['csrf_token'=>$reviewToken]))['status']===403,'Read-only users cannot add plain-text comments');
     audienceHttpExpect($editor($plainReview,array_replace($plainComment,['csrf_token'=>'invalid']))['status']===400,'Plain-text comments require CSRF');
     $foreignPlain=$otherStore->createCampaign(['name'=>'Foreign plain review','campaign_type'=>'plain-text']);
     audienceHttpExpect($editor('audience.php?view=campaign-review&id='.$foreignPlain)['status']===404,'Plain-text review remains audience scoped');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$plain]);
-    audienceHttpExpect($editor($plainReview)['status']===200&&!str_contains($editor($plainReview)['body'],'Add a comment'),'Sent plain-text review remains readable without editing controls');
+    audienceHttpExpect($editor($plainReview)['status']===200&&!str_contains($editor($plainReview)['body'],'Add a Comment'),'Sent plain-text review remains readable without editing controls');
     $blockedPlainComment=$editor($plainReview,$plainComment);
     audienceHttpExpect($blockedPlainComment['status']===200&&str_contains($blockedPlainComment['body'],'Only email drafts can be commented on.')&&count($campaignStore->designComments('campaign',$plain))===1,'Sent plain-text campaigns reject new comments');
     $conn->execute_query("UPDATE marketing_campaigns SET status='sent' WHERE id=?",[$designCampaign]);audienceHttpExpect($editor($designPath,array_replace($designPost,['version'=>2]))['status']===422,'Sent designs cannot be overwritten');

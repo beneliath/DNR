@@ -302,7 +302,7 @@
             || event.submitter?.textContent?.trim();
 
         confirmationTitle.textContent = confirmationTarget.dataset.confirmTitle
-            || (destructive ? 'Confirm destructive action' : 'Confirm action');
+            || (destructive ? 'Confirm Destructive Action' : 'Confirm Action');
         confirmationMessage.textContent = String(
             confirmationTarget.dataset.confirm || 'Continue with this action?'
         );
@@ -378,7 +378,7 @@
         pendingSubmitter = event.submitter;
         requiredPhrase = deleting ? 'DELETE USER' : 'RESET 2FA';
         confirmationFieldName = deleting ? 'delete_confirmation' : 'reset_confirmation';
-        confirmationTitle.textContent = deleting ? 'Are you sure you want to delete this user?' : 'Reset two-factor authentication?';
+        confirmationTitle.textContent = deleting ? 'Are you sure you want to delete this user?' : 'Reset Two-Factor Authentication?';
         confirmationMessage.textContent = deleting
             ? 'This user and their retained account history will be permanently deleted. This cannot be undone.'
             : 'The user’s current authenticator and recovery codes will stop working.';
@@ -442,7 +442,7 @@
     });
     preview.addEventListener('close', function () {
         previewImage.removeAttribute('src');
-        previewImage.alt = 'QR code preview';
+        previewImage.alt = 'QR Code Preview';
         previewTitle.textContent = 'QR Code Preview';
     });
 })();

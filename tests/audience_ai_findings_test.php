@@ -6,17 +6,17 @@ $checks=0;
 $expect=static function(bool $ok,string $message)use(&$checks):void{if(!$ok)throw new RuntimeException($message);$checks++;};
 $reject=static function(callable $call,string $message)use($expect):void{try{$call();}catch(Throwable){$expect(true,$message);return;}$expect(false,$message);};
 $fact=static fn(string $id,string $entity,float|int|null $value,?float $previous=null,string $metric='click_rate',string $unit='%'):array=>[
-    'id'=>$id,'label'=>$entity.' · '.($metric==='click_rate'?'Click rate':$metric),'value'=>$value,'previous'=>$previous,'change'=>null,'unit'=>$unit,
-    'measurement'=>['metric'=>$metric,'label'=>$metric==='click_rate'?'Click rate':$metric,'entity'=>$entity,'family'=>'population:'.$metric,'scope'=>'2026-09-01 to 2026-09-30 UTC'],
+    'id'=>$id,'label'=>$entity.' · '.($metric==='click_rate'?'Click Rate':$metric),'value'=>$value,'previous'=>$previous,'change'=>null,'unit'=>$unit,
+    'measurement'=>['metric'=>$metric,'label'=>$metric==='click_rate'?'Click Rate':$metric,'entity'=>$entity,'family'=>'population:'.$metric,'scope'=>'2026-09-01 to 2026-09-30 UTC'],
 ];
 $evidence=['facts'=>[$fact('overall','Selected period overall',13.64),$fact('a','Newsletter',18.18),$fact('b','Invitation',9.09),$fact('c','Third campaign',9.09),$fact('bounce','Newsletter',8.33,null,'bounce_rate')],'tables'=>[],'limitations'=>['Industry benchmarks are unavailable.']];
 $calculate=static fn(array $ids,string $operation='compare',?array $data=null)=>audienceAiCalculateFinding(['operation'=>$operation,'evidence_ids'=>$ids],$data??$evidence);
 $pair=$calculate(['b','a']);
-$expect($pair['text']==='Click rate: Newsletter (18.18%) is higher than Invitation (9.09%) by 9.09 percentage points.','Order comes from the values, and percentage points are not relative percent change.');
+$expect($pair['text']==='Click Rate: Newsletter (18.18%) is higher than Invitation (9.09%) by 9.09 percentage points.','Order comes from the values, and percentage points are not relative percent change.');
 $expect(audienceAiFindingValue(1,'percentage points')==='1 percentage point'&&audienceAiFindingValue(.5,'percentage points')==='0.5 percentage points','Calculated percentage-point findings use singular wording only for one point.');
 $expect($pair['evidence_ids']===['b','a'],'Both compared source cards remain cited.');
 $rank=$calculate(['overall','b','a']);
-$expect($rank['text']==='Click rate, highest to lowest among these results: Newsletter (18.18%); Selected period overall (13.64%); Invitation (9.09%).','The formerly false lower-than-both claim is replaced by the correct computed ranking.');
+$expect($rank['text']==='Click Rate, highest to lowest among these results: Newsletter (18.18%); Selected period overall (13.64%); Invitation (9.09%).','The formerly false lower-than-both claim is replaced by the correct computed ranking.');
 $expect($calculate(['a','b','overall'])['text']===$rank['text'],'Ranking does not depend on model selection order.');
 $expect(str_contains($calculate(['b','c'])['text'],'are equal at 9.09%'),'Equal values produce equality, not an invented winner.');
 $expect(str_contains($calculate(['c','a','b'])['text'],'Invitation and Third campaign (9.09% each; tied)'),'Rankings preserve ties without implying a global rank outside the selected results.');
@@ -29,7 +29,7 @@ foreach([['missing','a'],['a','a'],['a'],[['a'],'b']]as$ids)$reject(static fn()=
 $reject(static fn()=>audienceAiCalculateFinding(['operation'=>'compare','evidence_ids'=>['a','b'],'direction'=>'lower'],$evidence),'The model cannot override a computed relation.');
 $nulls=['facts'=>[$fact('a','Newsletter',null),$fact('b','Invitation',0)]];
 $text=$calculate(['a','b'],'compare',$nulls)['text'];
-$expect(str_contains($text,'insufficient recorded values')&&str_contains($text,'Invitation: 0%')&&str_contains($text,'Newsletter: Click rate is unavailable.'),'Missing data and a true zero have different meanings.');
+$expect(str_contains($text,'insufficient recorded values')&&str_contains($text,'Invitation: 0%')&&str_contains($text,'Newsletter: Click Rate is unavailable.'),'Missing data and a true zero have different meanings.');
 $expect(str_contains($calculate(['a'],'previous')['text'],'previous-period comparison is unavailable'),'Missing previous values never become zero.');
 $zero=['facts'=>[$fact('a','Newsletter',5,0)]];
 $text=$calculate(['a'],'previous',$zero)['text'];

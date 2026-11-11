@@ -10,9 +10,9 @@
     const submit = form.querySelector('[data-bulk-submit]');
     function update() {
         const selected = items.filter(item => item.checked).length;
-        count.textContent = `${selected} selected`;
+        count.textContent = `${selected} Selected`;
         submit.disabled = selected === 0;
-        submit.textContent = selected ? `Delete selected (${selected})` : 'Delete Selected';
+        submit.textContent = selected ? `Delete Selected (${selected})` : 'Delete Selected';
         selectAll.disabled = items.length === 0 || selected === items.length;
         clear.hidden = selected === 0;
     }

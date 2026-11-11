@@ -35,7 +35,7 @@ const list = 'http://automations.test/audience.php?view=automations&tab=flows&so
                 await page.goto(list);
                 const rows = page.locator('.flow-overview-row');
                 const dialog = page.getByRole('dialog', {name:'Rename automation'});
-                const name = dialog.getByLabel('Flow name');
+                const name = dialog.getByLabel('Flow Name');
                 for (const row of await rows.all()) {
                     await expandRowActions(row.locator('.flow-overview-row-actions'));
                     const original = await row.locator('h2').innerText();

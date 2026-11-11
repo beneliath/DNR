@@ -12,8 +12,8 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "fec5634ec8e10fa1c6c82e933b70c6c05c8f9b573a36939bd526af01edd4ec30",
-        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
+        "index.php": "2b07024ecd9f741274db3841810a1c824e6febe06e6775386ba542e5eb8ccbbf",
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "new-organization": {
@@ -56,13 +56,13 @@
         "editor"
       ],
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
-      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations. Duplicate Presentation is inside the intended presentation’s colored banner. It adds an editable copy below that presentation within the same engagement; review its details and Save Changes to generate its own unique QR codes.",
+      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations. Duplicate Presentation is inside the intended presentation’s colored banner. It adds an editable copy below that presentation within the same engagement; review its details and Save Changes to generate its own unique QR codes. Clear No presentation required to show the presentation fields.",
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "presentation_helpers.php": "e9172afcffec99bfa710530ca1962fb54fd02579d34a40e341bb171d5a104df7",
-        "assets/js/presentation-form.js": "172e461b50e1908390bc3cb2adb8fd3975918c1eaad7b77568960687e47cfefb"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
+        "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf"
       },
       "controls": {
         "presentations-tab": {
@@ -111,13 +111,13 @@
         "moed/tasks/generation.php": "837a58aac02d8cf6df76360992e1883ff1e853f2f5d50da5190e5bb7782edc77",
         "moed/tasks/input.php": "52bf58fa9ddd7055545efc30ffdcd5a157494c30b924a8c025a915be1d5f0622",
         "moed/tasks/lifecycle.php": "9f2a415061ae9536e82669a6ec04a7f28000b69b1ff9d583c3426cf28d99619a",
-        "moed/tasks/policy.php": "316dedd3c6aa1cf5e3e4c6e14861e07b333c0a2b51cdbac887c3781c109a73f2",
-        "moed/tasks/presentation.php": "f54b9b86f461bda8a65b32ad8eb86df8a80ff2d2f3a30167d6c1a8e39ae21904",
+        "moed/tasks/policy.php": "84c7eb1225b4ba36eb0de6184cbd94e6a986bf8b260e2e2d80b0c39316d98735",
+        "moed/tasks/presentation.php": "e756281c2c4f4a5a45a7570a5ace68f4a7818f261b0ef407bbf307dd0a4f7368",
         "moed/tasks/repository.php": "29af180c6c168067207e365e54d888df31bb4c6f81416530854f9b9f8d43ed6b",
-        "moed/tasks/subjects.php": "7b0ea616f3d1cf6ca0eb16c9eb326b03d7e2ab6c71d01753ecda748d51f16972",
+        "moed/tasks/subjects.php": "321813d237cefe7f31e6b36cfc151a554d32a46a1ff0b0d861507b304bf6fd6e",
         "moed/tasks/templates.php": "5df81cd25625fe0ede008f248a5de9459628627b1c24cc5c8c3968285fcfc4ff",
         "moed/tasks/activity.php": "6c39d3c67bb433066e27f16ee945ac57318601ab1c39e9557530b16e3488bd07",
-        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "task-title": {
@@ -224,9 +224,9 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "edit-event": {
@@ -305,8 +305,8 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "688ca95d9a8d83e08fabf31ac2f78c30a626bb0d670fbb5732fba3ff591f9a9b",
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3"
+        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64",
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef"
       },
       "controls": {
         "tasks-tab": {
@@ -339,11 +339,11 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "60f49a716f7c2ded6cd85ace1078f051e8e7f1f1da4860bf7d12d041e201f458",
+        "reimbursement_expense.php": "b361b4a128fbcec0fca817ce24d389c10e90c7c327bbd447a740ff73aa01fb40",
         "reimbursement_helpers.php": "66f22a921f124e25989341b654cbf182dfa2dcacd0c1a5a9a1a3b5bd1bf53249",
         "reimbursement_mileage_helpers.php": "29c40b2379741cc4622715b0647b0125fc1fc28412dc4c357d5eab6c0bae9cc3",
         "templates/reimbursement_mileage_fields.php": "e62c022bb2817b8334020f291a607a4c49e4b79d024c6af3f393aada8f89035b",
-        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -412,10 +412,10 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "772f30b5d4b06898ab67225b7acef96b4f2e985bcd9fa0c4636fc65a99f5afe2",
-        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90",
-        "reimbursement_requests.php": "35d7543e0b6915d4fbc6b1499545d199cd8ce12b4eb1ee93d840058f57f56ed0",
-        "assets/js/date-picker.mjs": "bff85fe3078c5dc56a2d7a765742c322400cc0a996d14dec46a88a3df6c64e40"
+        "reimbursements.php": "0b6e0247a3eb86957d98c6d3527b2ab1535b90240625d6f38d8027ae8692c12c",
+        "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
+        "reimbursement_requests.php": "62ca11c4ca648da8d1aeafb4cc35bb07d79a2fd8345021de7855ac028a6a9a37",
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "reimbursement-select-all-available": {
@@ -439,7 +439,7 @@
           "selector": ".reimbursement-date-range-form .date-picker-field:has(> input[name=\"end_date\"]) .date-picker-box > input, .reimbursement-date-range-form input[name=\"end_date\"]"
         },
         "reimbursement-bookkeeper-note": {
-          "label": "Brief note or comment (optional)",
+          "label": "Brief Note or Comment (Optional)",
           "selector": "textarea[name=\"bookkeeper_note\"]"
         },
         "reimbursement-review-submit": {
@@ -463,15 +463,15 @@
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
       "source_files": {
-        "reimbursement_submit.php": "1213135648766444f7f2721200a04e609f437d479a9c293257f898514623f6fc",
+        "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
         "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
-        "reimbursement_request.php": "f41bd570c35341293fff2c0754e717e5e09933e5a4d2edef956d5736a7612f90",
+        "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
         "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
       },
       "controls": {
         "reimbursement-confirm": {
-          "label": "I have reviewed the recipients, email, and package.",
+          "label": "I Have Reviewed the Recipients, Email, and Package.",
           "selector": "input[name=\"confirm_submission\"]"
         },
         "reimbursement-send": {
@@ -533,11 +533,11 @@
       "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
-        "view_engagement.php": "eb5e2c7ef1ee426bc99b0c4f4458092137248e5aa68aa4240b8bdd3c1cd433a3",
-        "edit_engagement.php": "f86eb5315b8315f7ca32187fd0dcdb4e4fe2326654209c9323d5ab5d035b4d07",
-        "templates/presentation_form.php": "9c463956fcaa08a75257ef14409b0977bff1bf986d53c21a6e013716b8ef7df0",
-        "templates/footer.php": "ec54451daa45fa8e561bc21a2fac82cc0580916afaddc21ab48454390a4453d3",
-        "assets/js/footer.js": "2dfc94255b9e3998eb22869bb874a25efeadd2da057423ffa10ec829602c6103",
+        "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
+        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
+        "templates/footer.php": "8f5b3d34b3094ebd3206f3a2f6218b6d6f116b1f0f6a8e1201a2efb7dd303a01",
+        "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"
       },
       "controls": {

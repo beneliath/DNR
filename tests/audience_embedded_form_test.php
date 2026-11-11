@@ -18,11 +18,11 @@ $expect($canonical['width']===0&&$canonical['tag_ids']===[7],'Automatic width an
 $resource=['kind'=>'embedded','document'=>$canonical,'public_key'=>str_repeat('a',64),'archive_url'=>'https://public.example/a/community/audience_campaign_public.php?form='.str_repeat('a',64),'resize_script'=>'https://public.example/a/community/assets/js/audience-collection-resize.js'];
 $html=audienceCollectionHtml($resource,$fields,[],'/native-action','signed-proof',[],'','',null,true);
 $expect(str_contains($html,'class="collection-embedded"')&&str_contains($html,'--collection-width:100%'),'Embedded canvas and automatic sizing reach preview');
-$expect(strpos($html,'Call me')<strpos($html,'Email address'),'Public rendering keeps authored field order');
+$expect(strpos($html,'Call me')<strpos($html,'Email Address'),'Public rendering keeps authored field order');
 $expect(str_contains($html,'&lt;img src=x onerror=bad()&gt;')&&!str_contains($html,'<img src=x'),'Field help is escaped');
 $expect(str_contains($html,'aria-describedby="f-')&&str_contains($html,'collection-field-help'),'Field help is associated with its input');
 $expect(str_contains($html,'name="email_format" value="text"')&&str_contains($html,'collection-referral-dark'),'Format choices and the selected badge style render');
-$expect(str_contains($html,'View previous emails')&&str_contains($html,'signed-proof')&&str_contains($html,'name="permission"'),'Archive, signed proof and explicit permission are retained');
+$expect(str_contains($html,'View Previous Emails')&&str_contains($html,'signed-proof')&&str_contains($html,'name="permission"'),'Archive, signed proof and explicit permission are retained');
 $expect(str_contains($html,'<button disabled>')&&!str_contains($html,'<script'),'Preview stays non-submittable and script free');
 $canonical['embedded']['show_title']=false;$resource['document']=$canonical;
 $expect(!str_contains(audienceCollectionHtml($resource,$fields,[],'',''),'<h1>'),'Title visibility is applied publicly');

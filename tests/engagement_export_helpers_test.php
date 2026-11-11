@@ -310,7 +310,7 @@ $entry_pagination_pdf->SetY(
 addEngagementPdfEntry($entry_pagination_pdf, $entry);
 expectExport(
     ($entry_pagination_pdf->multi_cell_pages[$entry_caption][0] ?? 0) === 2
-        && ($entry_pagination_pdf->multi_cell_pages['ENTRY'][0] ?? 0) === 2,
+        && ($entry_pagination_pdf->multi_cell_pages['Entry'][0] ?? 0) === 2,
     'entry captions move to the next page with their associated content.'
 );
 

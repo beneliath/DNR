@@ -48,7 +48,7 @@ test('delay opens exactly once, keeps a sandboxed frame and focuses the close co
     assert.equal(p.timers[0].ms, 7000); p.timers[0].fn(); p.timers[0].fn();
     assert.equal(p.dialogs.length, 1);
     const [close, frame] = p.dialogs[0].children;
-    assert.equal(close.attrs['aria-label'], 'Close signup form');
+    assert.equal(close.attrs['aria-label'], 'Close Signup Form');
     assert.equal(close.focused, true);
     assert.match(frame.src, /visitor=a{64}$/);
     assert.match(frame.attrs.sandbox, /allow-forms/);

@@ -37,6 +37,7 @@ final class EngagementUpdatePlan
 
         self::addIntegerChange($assignments, $values, $types, $current, $submitted, 'book_table');
         self::addIntegerChange($assignments, $values, $types, $current, $submitted, 'brochures');
+        self::addIntegerChange($assignments, $values, $types, $current, $submitted, 'presentation_not_required');
 
         $submittedCallerId = $submitted['caller_user_id'] === null
             ? null

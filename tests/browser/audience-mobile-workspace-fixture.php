@@ -17,11 +17,11 @@ if(isset($_GET['empty']))$counts=array_fill_keys(array_keys($counts),0);
 $rows=$rowTags=$rowGroups=[];
 if(!isset($_GET['empty'])){
  $id=$filters['archived']==='1'?2:1;
- $rows[]=['id'=>$id,'version'=>1,'email'=>($id===2?'archived':'community-newsletter').'@example.test','first_name'=>'Alexandria','last_name'=>'Montgomery','email_status'=>'subscribed','source'=>'Manual entry','custom_json'=>'{}','created_at'=>'2026-10-24 09:00:00','updated_at'=>'2026-10-25 09:00:00'];
+ $rows[]=['id'=>$id,'version'=>1,'email'=>($id===2?'archived':'community-newsletter').'@example.test','first_name'=>'Alexandria','last_name'=>'Montgomery','email_status'=>'subscribed','source'=>'Manual Entry','custom_json'=>'{}','created_at'=>'2026-10-24 09:00:00','updated_at'=>'2026-10-25 09:00:00'];
  $rowTags[$id]=$rowGroups[$id]=[];
 }
 $total=isset($_GET['empty'])?0:($filters['archived']==='1'&&$filters['q']===''&&$filters['status']===[]&&$filters['tags']===[]?12:count($rows));
-$id=0;$contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'en','timezone'=>'America/Chicago','is_archived'=>0,'consent_note'=>''];
+$id=0;$contact=['id'=>0,'version'=>0,'email'=>'','first_name'=>'','last_name'=>'','email_status'=>'non-subscribed','source'=>'Manual Entry','custom'=>[],'tag_ids'=>[],'group_ids'=>[],'language'=>'en','timezone'=>'America/Chicago','is_archived'=>0,'consent_note'=>''];
 echo '<!doctype html><html lang="en">';
 if($view==='assistant'){
  require_once __DIR__.'/../../src/audience_ai.php';

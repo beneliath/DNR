@@ -58,7 +58,7 @@ $scan_message = $document_scan_messages[$pdf_source_id . ':' . ((int) ($presenta
         <button type="button" class="presentation-file-drop-button" data-file-drop-button>
             <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
             <strong>Drop PDF Here</strong>
-            <span>or click to choose · .pdf · up to 100 MB</span>
+            <span>Or Click to Choose · .pdf · Up to 100 MB</span>
         </button>
         <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>
         <p id="<?php echo $pdf_input_id; ?>_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PDF" role="status" hidden></p>

@@ -8,7 +8,7 @@
     function networkAssessment(families, coverage = {}) {
         if (coverage.truncated) {
             const days = coverage.window_days || 1;
-            return { state: 'warning', status: 'Partial window', title: 'Recent Measurements Only', detail: `More than 5,000 measurements arrived in ${days} day${days === 1 ? '' : 's'}. These results cover only the newest samples; a missing address family may have earlier page-load measurements.` };
+            return { state: 'warning', status: 'Partial Window', title: 'Recent Measurements Only', detail: `More than 5,000 measurements arrived in ${days} day${days === 1 ? '' : 's'}. These results cover only the newest samples; a missing address family may have earlier page-load measurements.` };
         }
         const ipv4 = families.IPv4 || {};
         const ipv6 = families.IPv6 || {};
@@ -16,18 +16,18 @@
             return { state: 'pending', status: 'Waiting', title: 'No Browser Page-Load Measurements', detail: 'Page-load measurements require a signed-in browser using a public client address. Document downloads are shown separately. Missing measurements do not indicate a connectivity failure.' };
         }
         if (!ipv6.sample_count) {
-            return { state: 'warning', status: 'IPv4 page measurements only', title: 'No IPv6 Browser Page-Load Measurements', detail: `${ipv4.sample_count} IPv4 page load${ipv4.sample_count === 1 ? '' : 's'} measured. No signed-in IPv6 browser page-load measurements are available in this window. IPv6 document traffic may still appear below. This does not establish whether IPv6 is healthy.` };
+            return { state: 'warning', status: 'IPv4 Page Measurements Only', title: 'No IPv6 Browser Page-Load Measurements', detail: `${ipv4.sample_count} IPv4 page load${ipv4.sample_count === 1 ? '' : 's'} measured. No signed-in IPv6 browser page-load measurements are available in this window. IPv6 document traffic may still appear below. This does not establish whether IPv6 is healthy.` };
         }
         if (!ipv4.sample_count) {
-            return { state: 'warning', status: 'IPv6 page measurements only', title: 'No IPv4 Browser Page-Load Measurements', detail: `${ipv6.sample_count} IPv6 page load${ipv6.sample_count === 1 ? '' : 's'} measured. No signed-in IPv4 browser page-load measurements are available in this window. IPv4 document traffic may still appear below. Missing measurements do not indicate a connectivity failure.` };
+            return { state: 'warning', status: 'IPv6 Page Measurements Only', title: 'No IPv4 Browser Page-Load Measurements', detail: `${ipv6.sample_count} IPv6 page load${ipv6.sample_count === 1 ? '' : 's'} measured. No signed-in IPv4 browser page-load measurements are available in this window. IPv4 document traffic may still appear below. Missing measurements do not indicate a connectivity failure.` };
         }
         const difference = ipv6.median_load_ms - ipv4.median_load_ms;
         const meaningfulGap = Math.max(250, ipv4.median_load_ms * 0.5);
         if (difference > meaningfulGap) {
-            return { state: 'danger', status: 'IPv6 slower', title: 'Remote IPv6 Page Loads Are Slower', detail: `The median IPv6 page load adds ${formatMilliseconds(difference)} compared with IPv4.` };
+            return { state: 'danger', status: 'IPv6 Slower', title: 'Remote IPv6 Page Loads Are Slower', detail: `The median IPv6 page load adds ${formatMilliseconds(difference)} compared with IPv4.` };
         }
         if (-difference > meaningfulGap) {
-            return { state: 'warning', status: 'IPv4 slower', title: 'Remote IPv4 Page Loads Are Slower', detail: `The median IPv4 page load adds ${formatMilliseconds(-difference)} compared with IPv6.` };
+            return { state: 'warning', status: 'IPv4 Slower', title: 'Remote IPv4 Page Loads Are Slower', detail: `The median IPv4 page load adds ${formatMilliseconds(-difference)} compared with IPv6.` };
         }
         return { state: 'success', status: 'Comparable', title: 'Remote IPv4 and IPv6 Loads Are Comparable', detail: 'No material address-family gap appears in the collected MOED page loads.' };
     }
@@ -50,12 +50,12 @@
         const card = root.querySelector(`[data-network-card="${key}"]`);
         const available = family.sample_count > 0;
         if (card) card.dataset.state = available ? 'available' : 'pending';
-        setText(`[data-network-state="${key}"]`, available ? 'Measured' : 'No page measurements');
+        setText(`[data-network-state="${key}"]`, available ? 'Measured' : 'No Page Measurements');
         setText(`[data-network-load="${key}"]`, available ? String(Math.round(family.median_load_ms)) : '—');
         setText(`[data-network-samples="${key}"]`, String(family.sample_count || 0));
         setText(`[data-network-p75="${key}"]`, formatMilliseconds(family.p75_load_ms));
         setText(`[data-network-ttfb="${key}"]`, formatMilliseconds(family.median_ttfb_ms));
-        setText(`[data-network-colo="${key}"]`, available ? (family.top_colo || 'Direct / unknown') : 'No page measurements');
+        setText(`[data-network-colo="${key}"]`, available ? (family.top_colo || 'Direct / unknown') : 'No Page Measurements');
         setText(`[data-contact-images="${key}"]`, formatMilliseconds(family.median_contact_image_max_ms));
         setText(`[data-contact-samples="${key}"]`, family.contact_sample_count
             ? `${family.contact_sample_count} page${family.contact_sample_count === 1 ? '' : 's'}`

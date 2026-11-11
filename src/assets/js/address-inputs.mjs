@@ -234,7 +234,7 @@ export function initializeAddressInputs(document = globalThis.document) {
             state.label.textContent = choice ? choice.name : configuration.label;
             state.trigger.setAttribute(
                 'aria-label',
-                choice ? `${configuration.label}: ${choice.name}` : `Select ${configuration.label.toLowerCase()}`
+                choice ? `${configuration.label}: ${choice.name}` : `Select ${configuration.label}`
             );
             state.menu.querySelectorAll('[data-address-region-option]').forEach(function (option) {
                 option.setAttribute('aria-selected', String(Boolean(choice && option.dataset.regionCode === choice.code)));
@@ -288,7 +288,7 @@ export function initializeAddressInputs(document = globalThis.document) {
             state.select.value = selected ? selected.code : '';
             state.values[state.currentCountry] = state.select.value;
             state.select.setAttribute('aria-label', configuration.label);
-            state.menu.setAttribute('aria-label', `${configuration.label} options`);
+            state.menu.setAttribute('aria-label', `${configuration.label} Options`);
             updatePickerLabel(state, configuration, selected);
         }
 

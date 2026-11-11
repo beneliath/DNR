@@ -219,7 +219,7 @@ export function initializeQrPdfSelection() {
         });
         selectAll.disabled = checkboxes.length === 0;
         if (clearSelection) clearSelection.hidden = selected === 0;
-        count.textContent = selected + ' of ' + checkboxes.length + ' selected';
+        count.textContent = selected + ' of ' + checkboxes.length + ' Selected';
         prepare.disabled = selected === 0;
         empty.hidden = checkboxes.length > 0;
         error.hidden = selected > 0 || checkboxes.length === 0;

@@ -60,7 +60,7 @@ html:has(body.user-manual-page) {
   font-size: .72rem;
   font-weight: 800;
   letter-spacing: .14em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .manual-eyebrow {
@@ -498,7 +498,7 @@ kbd {
   font-size: .72rem;
   font-weight: 800;
   letter-spacing: .13em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .manual-chapter-heading h2 {
@@ -616,7 +616,7 @@ kbd {
   font-size: .68rem;
   font-weight: 800;
   letter-spacing: .035em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .role-reviewer {
@@ -916,7 +916,7 @@ kbd {
   color: var(--text);
   font-weight: 780;
   letter-spacing: .04em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .manual-table tr:last-child td {
@@ -1009,7 +1009,7 @@ kbd {
   font-size: .67rem;
   font-weight: 760;
   letter-spacing: .06em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .manual-check-list {

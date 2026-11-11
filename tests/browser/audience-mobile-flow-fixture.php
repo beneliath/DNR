@@ -31,7 +31,7 @@ if(in_array($fixtureKind,['targets-active','targets-edit'],true)){
     $flow['state']=$fixtureKind==='targets-active'?'running':'paused';
 }
 $report=['nodes'=>[]];
-$flows=[];foreach(['draft','running','paused']as$i=>$status)$flows[]=['id'=>$i+1,'name'=>['Welcome new connections','Community follow-up','Monthly announcement'][$i],'state'=>$status,'created_at'=>'2026-10-21 09:00:00','updated_at'=>'2026-10-25 09:00:00','published_revision'=>$i,'started'=>$i*3,'active'=>$i,'completed'=>$i*2,'version'=>1];
+$flows=[];foreach(['draft','running','paused']as$i=>$status)$flows[]=['id'=>$i+1,'name'=>['Welcome New Connections','Community follow-up','Monthly announcement'][$i],'state'=>$status,'created_at'=>'2026-10-21 09:00:00','updated_at'=>'2026-10-25 09:00:00','published_revision'=>$i,'started'=>$i*3,'active'=>$i,'completed'=>$i*2,'version'=>1];
 if (in_array($fixtureKind, ['outcomes','report-outcomes'], true)) {
     $flows[1] = array_replace($flows[1], ['name'=>'Tag Interest in Israel Service Trip on self-select preference',
         'started'=>5,'completed'=>5,'exited'=>0,'active'=>0,'failed'=>0]);

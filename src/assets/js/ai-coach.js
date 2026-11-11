@@ -319,7 +319,7 @@
         if (!definition) return null;
         const card = document.createElement('section'); card.className = 'coach-step coach-step-history';
         const title = document.createElement('strong');
-        title.textContent = message.workflow === 'engagement' ? 'Add a new event' : message.workflow === 'notes' ? 'Add speaker notes PDF' : message.workflow === 'presentation' ? 'Add a PowerPoint' : 'Understand Waiting tasks';
+        title.textContent = message.workflow === 'engagement' ? 'Add a New Event' : message.workflow === 'notes' ? 'Add Speaker Notes PDF' : message.workflow === 'presentation' ? 'Add a PowerPoint' : 'Understand Waiting Tasks';
         const copy = document.createElement('p'); copy.textContent = definition.message;
         const resume = document.createElement('button'); resume.type = 'button'; resume.className = 'button-secondary'; resume.textContent = 'Resume Walkthrough';
         resume.addEventListener('click', function () { requestWorkflow(message.workflow); });

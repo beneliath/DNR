@@ -83,7 +83,7 @@ export function enhanceAudienceFileInput(input,{label,help}={}) {
     const original=input.closest('label'),container=document.createElement('div');
     if(original)for(const attribute of original.attributes)if(attribute.name!=='for')container.setAttribute(attribute.name,attribute.value);
     container.classList.add('audience-upload-field');
-    label||=original?.textContent.trim()||input.getAttribute('aria-label')||'Upload file';
+    label||=original?.textContent.trim()||input.getAttribute('aria-label')||'Upload File';
     if(!input.id){let id;do{id=`audience-upload-${++uploadId}`;}while(document.getElementById(id));input.id=id;}
     const caption=document.createElement('label');caption.htmlFor=input.id;caption.textContent=label;
     const zone=document.createElement('div');zone.className='audience-file-drop audience-file-drop-compact';zone.dataset.fileDrop='';zone.setAttribute('role','group');zone.setAttribute('aria-label',label);
@@ -91,7 +91,7 @@ export function enhanceAudienceFileInput(input,{label,help}={}) {
     const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M14 33H11a8 8 0 0 1-1-16 13 13 0 0 1 25-2 9 9 0 0 1 2 18h-3M24 39V22m-7 7 7-7 7 7');icon.append(path);
     const prompt=document.createElement('strong');prompt.textContent='Drag and drop your file here';
     const hint=document.createElement('span');hint.id=input.id+'-drop-help';hint.textContent=help||input.dataset.fileHelp||'Drop a file or browse to choose one.';
-    const browse=document.createElement('button');browse.type='button';browse.dataset.fileBrowse='';browse.textContent='Browse files';
+    const browse=document.createElement('button');browse.type='button';browse.dataset.fileBrowse='';browse.textContent='Browse Files';
     const status=document.createElement('p');status.id=input.id+'-drop-status';status.dataset.fileDropStatus='';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='No file selected.';
     input.setAttribute('aria-describedby',[input.getAttribute('aria-describedby'),hint.id,status.id].filter(Boolean).join(' '));
     if(original)original.replaceWith(container);else input.before(container);

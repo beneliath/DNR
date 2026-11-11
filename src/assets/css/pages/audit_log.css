@@ -60,7 +60,7 @@
             font-size: var(--font-size-small, 0.875rem);
             font-weight: 700;
             letter-spacing: 0.08em;
-            text-transform: uppercase;
+            text-transform: none;
         }
         .audit-retention-unlocked,
         .audit-retention-locked {

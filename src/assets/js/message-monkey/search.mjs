@@ -1,4 +1,4 @@
-import {$, $$, el, button} from './dom.mjs';
+import {$, $$, el, button, referenceLabel} from './dom.mjs';
 
 export function initializeWorkspaceSearch(config) {
     const searchDialog = $('#audience-search'), searchTrigger = $('[data-global-search-open]');
@@ -24,7 +24,7 @@ export function initializeWorkspaceSearch(config) {
         };
         const section = title => { const node = el('section', {class:'audience-search-section'}); node.append(el('h2', {}, title)); results.append(node); return node; };
         const renderHistory = () => {
-            const node = section('Recent searches'), terms = history();
+            const node = section('Recent Searches'), terms = history();
             if (!terms.length) node.append(el('p', {class:'audience-help'}, 'No recent searches yet.'));
             terms.forEach(term => {
                 const row = button(term, () => { input.value = term; remember(); search(); input.focus(); });
@@ -34,11 +34,11 @@ export function initializeWorkspaceSearch(config) {
         const renderItem = item => {
             const row = el('a', {class:'audience-search-row',href:item.href}), copy = el('span', {class:'audience-search-copy'});
             const title = el('span', {class:'audience-search-title'}, item.title);
-            if (item.status) { const labels = {draft:'Draft',sent:'Sent',sending:'Sending',scheduled:'Scheduled',paused:'Paused'}; title.append(el('span', {class:`audience-search-status ${item.status === 'sent' ? 'sent' : ''}`}, labels[item.status] || item.status)); }
+            if (item.status) title.append(el('span', {class:`audience-search-status ${item.status === 'sent' ? 'sent' : ''}`}, referenceLabel(item.status)));
             copy.append(title); let detail = item.description;
-            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last edited ${window.DnrUserTime.format(date, {weekday:'short',month:'long',day:'numeric',year:'numeric'})}`; }
+            if (item.updated_at) { const date = new Date(item.updated_at.replace(' ', 'T') + 'Z'); if (!Number.isNaN(date.getTime())) detail += ` • Last Edited ${window.DnrUserTime.format(date, {weekday:'short',month:'long',day:'numeric',year:'numeric'})}`; }
             copy.append(el('span', {class:'audience-search-detail'}, detail)); row.append(icon(item.icon), copy);
-            if (item.external) { row.target = '_blank'; row.rel = 'noopener noreferrer'; row.setAttribute('aria-label', `${item.title} (opens in a new tab)`); }
+            if (item.external) { row.target = '_blank'; row.rel = 'noopener noreferrer'; row.setAttribute('aria-label', `${item.title} (Opens in a New Tab)`); }
             row.addEventListener('click', remember); return row;
         };
         const search = async () => {
@@ -50,7 +50,7 @@ export function initializeWorkspaceSearch(config) {
             request = new AbortController();
             try {
                 const response = await fetch(endpoint, {signal:request.signal,headers:{Accept:'application/json'},cache:'no-store'});
-                if (!response.ok || response.redirected) throw new Error('Search unavailable');
+                if (!response.ok || response.redirected) throw new Error('Search Unavailable');
                 const data = await response.json(); if (turn !== sequence || !searchDialog.open) return;
                 loading.remove();
                 let count = 0;
@@ -59,7 +59,7 @@ export function initializeWorkspaceSearch(config) {
                     const node = section(group.label); count += group.items.length;
                     group.items.forEach(item => node.append(renderItem(item)));
                     if (!group.items.length) node.append(el('p', {class:'audience-help'}, group.key === 'campaigns' ? 'No recent campaigns yet.' : 'No items are available for your role.'));
-                    if (query && group.more && group.items.length) { const more = el('a', {class:'audience-search-more',href:group.more}, `View all ${group.label.toLocaleLowerCase()}`); more.addEventListener('click', remember); node.append(more); }
+                    if (query && group.more && group.items.length) { const more = el('a', {class:'audience-search-more',href:group.more}, `View All ${group.label}`); more.addEventListener('click', remember); node.append(more); }
                 });
                 if (!count && (query || category === 'connections')) results.append(el('p', {class:'audience-search-empty'}, query ? `No results for “${query}”.` : 'Search connections by name or email address.'));
                 status.textContent = query ? `${count} search results.` : 'Search suggestions loaded.';

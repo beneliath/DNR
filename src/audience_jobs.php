@@ -81,7 +81,7 @@ trait AudienceJobs
     {
         $emails=audienceUnsubscribeAddresses($input);
         $placeholders=implode(',',array_fill(0,count($emails),'?'));
-        return $this->queueSelection('bulk','Unsubscribe emails',[
+        return $this->queueSelection('bulk','Unsubscribe Emails',[
             "c.audience_id=? AND c.deleted_at IS NULL AND c.email_status NOT IN ('unsubscribed','cleaned') AND c.email IN ($placeholders)",
             [$this->audienceId,...$emails],
         ],['action'=>'unsubscribe']);
@@ -170,7 +170,7 @@ trait AudienceJobs
     }
     public function exportPerson(array $person,array $params):array
     {
-        $result=['Email Address'=>$person['email'],'First Name'=>$person['first_name'],'Last Name'=>$person['last_name'],'Status'=>$person['email_status'],'Tags'=>audienceListCell(array_intersect_key($params['tag_names'],array_flip($person['tag_ids']))),'Groups'=>audienceListCell(array_intersect_key($params['group_names'],array_flip($person['group_ids']))),'Language'=>$person['language'],'Time zone'=>$person['timezone'],'Source'=>$person['source'],'Archived'=>$person['is_archived']?'Yes':'No','Date Added'=>$person['created_at'],'Last Changed'=>$person['updated_at']];
+        $result=['Email Address'=>$person['email'],'First Name'=>$person['first_name'],'Last Name'=>$person['last_name'],'Status'=>$person['email_status'],'Tags'=>audienceListCell(array_intersect_key($params['tag_names'],array_flip($person['tag_ids']))),'Groups'=>audienceListCell(array_intersect_key($params['group_names'],array_flip($person['group_ids']))),'Language'=>$person['language'],'Time Zone'=>$person['timezone'],'Source'=>$person['source'],'Archived'=>$person['is_archived']?'Yes':'No','Date Added'=>$person['created_at'],'Last Changed'=>$person['updated_at']];
         foreach($params['fields']as$field){$v=$person['custom'][$field['id']]??'';$result[$field['label'].' ('.$field['merge_tag'].')']=is_array($v)?audienceListCell($v):$v;}return $result;
     }
     public function cancelJob(int $id):void

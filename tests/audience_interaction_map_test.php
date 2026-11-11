@@ -25,8 +25,8 @@ $rows=[
 $result=audienceInteractionMapSummarize($rows);
 $expect($result['observations']===7&&$result['unmapped']===1,'All observations and unmappable locations are counted');
 $expect(count($result['pins'])===3,'City and country locations form separate aggregate pins');
-$expect($result['unmapped_types']===['Survey responses'=>1],'Unmappable observations retain their interaction type for filtered totals');
-$expect($result['pins'][0]['types']['Email opens']===2&&$result['pins'][0]['types']['Email clicks']===1,'Message interactions aggregate by type');
+$expect($result['unmapped_types']===['Survey Responses'=>1],'Unmappable observations retain their interaction type for filtered totals');
+$expect($result['pins'][0]['types']['Email Opens']===2&&$result['pins'][0]['types']['Email Clicks']===1,'Message interactions aggregate by type');
 $expect($result['pins'][1]['precision']==='country'&&$result['pins'][1]['reported_places']!==[],'Country fallback explains the reported place');
 
 $allTypes=[];
@@ -46,10 +46,10 @@ $h=static fn($value):string=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8')
 ob_start();
 include __DIR__.'/../src/templates/audience/analytics-interaction-locations.php';
 $html=ob_get_clean();
-$expect(str_contains($html,'<option value="">All interactions</option>'),'Map filter offers a reset to all interactions');
+$expect(str_contains($html,'<option value="">All Interactions</option>'),'Map filter offers a reset to all interactions');
 foreach(audienceInteractionMapTypes() as$label)$expect(str_contains($html,'<option value="'.$h($label).'">'.$h($label).'</option>'),'Map filter offers '.$label);
 preg_match('/<script type="application\/json" id="interaction-location-map-data">(.*?)<\/script>/s',$html,$payloadMatch);
 $payload=json_decode($payloadMatch[1]??'',true,512,JSON_THROW_ON_ERROR);
-$expect($payload['unmapped']===1&&$payload['unmappedTypes']===['Survey responses'=>1],'Rendered map payload includes per-type unmapped counts');
+$expect($payload['unmapped']===1&&$payload['unmappedTypes']===['Survey Responses'=>1],'Rendered map payload includes per-type unmapped counts');
 
 echo "Audience interaction map: {$checks} checks passed.\n";

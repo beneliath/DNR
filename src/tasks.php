@@ -470,8 +470,8 @@ $active_task_statuses = followUpTaskActiveStatuses();
             $needs_overdue_attention = $row_due_key === 'overdue'
                 && $due_presentation['days_overdue'] > 3;
             $task_due_aria_label = match ($row_due_key) {
-                'overdue' => 'Overdue, due ' . $task['due_date'],
-                'today' => 'Due today, ' . $task['due_date'],
+                'overdue' => 'Overdue, Due ' . $task['due_date'],
+                'today' => 'Due Today, ' . $task['due_date'],
                 'upcoming' => $due_presentation['detail'] . ', due ' . $task['due_date'],
                 default => !empty($task['due_date'])
                     ? 'Due ' . $task['due_date']

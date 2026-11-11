@@ -48,6 +48,7 @@ final class EngagementInput
             'event_type_other' => $event_type_other,
             'book_table' => isset($input['book_table']) ? 1 : 0,
             'brochures' => isset($input['brochures']) ? 1 : 0,
+            'presentation_not_required' => (int) (InputText::value($input, 'presentation_not_required') === '1'),
             'caller_user_id' => max(0, (int) ($input['caller_user_id'] ?? 0)) ?: null,
             'confirmation_status' => ReferenceData::choice(
                 $input['confirmation_status'] ?? '',

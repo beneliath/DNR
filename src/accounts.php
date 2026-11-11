@@ -93,7 +93,7 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="<?php echo $confirmationAction; ?>">
             <input type="hidden" name="account_key" value="<?php echo htmlspecialchars($confirmationAccount['account_key']); ?>">
-            <?php if ($deleting): ?><div class="form-group"><label for="account-delete-confirmation">Type <?php echo htmlspecialchars($confirmationAccount['account_key']); ?> to confirm</label><input type="text" id="account-delete-confirmation" name="confirmation" autocomplete="off" required></div><?php endif; ?>
+            <?php if ($deleting): ?><div class="form-group"><label for="account-delete-confirmation">Type <?php echo htmlspecialchars($confirmationAccount['account_key']); ?> To Confirm</label><input type="text" id="account-delete-confirmation" name="confirmation" autocomplete="off" required></div><?php endif; ?>
             <div class="account-lifecycle-buttons"><a class="button-secondary" href="accounts.php">Cancel</a><button type="submit" data-admin-unlock-required class="<?php echo $deleting ? 'delete-button' : 'save-button'; ?>"><?php echo $actionLabel; ?></button></div>
         </form>
     </section>
@@ -119,7 +119,7 @@ if (accountIsPrimary() && in_array($confirmationAction, ['archive', 'restore', '
                     <span class="account-primary-badge"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8"/></svg>Primary Account</span>
                     <?php endif; ?>
                 </div>
-                <span class="account-directory-address" aria-label="Address label"><?php echo htmlspecialchars($account['account_key']); ?></span>
+                <span class="account-directory-address" aria-label="Address Label"><?php echo htmlspecialchars($account['account_key']); ?></span>
             </div>
             <span class="account-directory-status<?php echo !$isCurrent && !$isReady ? ' account-directory-pending' : ''; ?>"><?php echo $statusLabel; ?></span>
             <div class="account-directory-action">

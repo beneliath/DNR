@@ -158,7 +158,7 @@ def main():
         assert sql('dnr','SELECT status FROM platform_inbound_mail WHERE id='+str(review_id)) == 'rejected'
         rejected_page = primary.request('mail_review.php?status=rejected&id='+str(review_id))
         assert mail_review_badge(rejected_page[2]) == needs_review(), 'Badge must update after routing and rejection, even on another queue tab'
-        assert 'aria-label="Delete rejected message"' in rejected_page[2] and 'data-confirm="Permanently delete' in rejected_page[2]
+        assert 'aria-label="Delete Rejected Message"' in rejected_page[2] and 'data-confirm="Permanently delete' in rejected_page[2]
         assert primary.request('mail_review.php', {'action':'delete','id':review_id})[0] == 400
         deleted = primary.request('mail_review.php', {'action':'delete','id':review_id,'csrf_token':csrf(rejected_page[2])})
         assert deleted[0] == 303

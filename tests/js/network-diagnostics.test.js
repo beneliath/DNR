@@ -10,7 +10,7 @@ test('assessment refuses to infer IPv6 health from IPv4-only traffic', () => {
         IPv4: { sample_count: 3, median_load_ms: 180 },
         IPv6: { sample_count: 0 },
     });
-    assert.equal(ipv4Only.status, 'IPv4 page measurements only');
+    assert.equal(ipv4Only.status, 'IPv4 Page Measurements Only');
     assert.match(ipv4Only.detail, /does not establish whether IPv6 is healthy/);
 });
 
@@ -19,7 +19,7 @@ test('assessment flags a material IPv6 delay and accepts comparable paths', () =
         IPv4: { sample_count: 8, median_load_ms: 400 },
         IPv6: { sample_count: 5, median_load_ms: 1050 },
     });
-    assert.equal(slowIpv6.status, 'IPv6 slower');
+    assert.equal(slowIpv6.status, 'IPv6 Slower');
     assert.equal(slowIpv6.state, 'danger');
 
     const comparable = networkAssessment({
@@ -33,6 +33,6 @@ test('assessment flags a material IPv6 delay and accepts comparable paths', () =
 
 test('partial coverage names the selected data window', () => {
     const assessment = networkAssessment({}, { truncated: true, window_days: 7 });
-    assert.equal(assessment.status, 'Partial window');
+    assert.equal(assessment.status, 'Partial Window');
     assert.match(assessment.detail, /in 7 days/);
 });

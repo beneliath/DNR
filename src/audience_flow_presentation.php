@@ -40,28 +40,28 @@ function audienceFlowListOptions(array $input): array
 function audienceFlowSetupTasks(array $facts,bool $canConfigureDelivery): array
 {
     return [
-        'welcome'=>['title'=>'Create a welcome flow','kind'=>'Email flow','complete'=>!empty($facts['welcome']),
+        'welcome'=>['title'=>'Create a Welcome Flow','kind'=>'Email Flow','complete'=>!empty($facts['welcome']),
             'description'=>'Start with the welcome template, choose an email, and tailor the starting point. The flow stays a draft until you review and turn it on.',
-            'action'=>'Use template','target'=>['view'=>'flow-templates','preview'=>'welcome'],'icon'=>'email'],
-        'delivery'=>['title'=>'Qualify email delivery','kind'=>'Sending readiness','complete'=>!empty($facts['delivery']),
+            'action'=>'Use Template','target'=>['view'=>'flow-templates','preview'=>'welcome'],'icon'=>'email'],
+        'delivery'=>['title'=>'Qualify Email Delivery','kind'=>'Sending Readiness','complete'=>!empty($facts['delivery']),
             'description'=>'Have an administrator review the sender, domain, delivery events and sending approval. Creating drafts does not enable live sending.',
             'action'=>$canConfigureDelivery?'Review email delivery':'Read the sending guide','target'=>$canConfigureDelivery?['view'=>'delivery']:null,'icon'=>'status'],
-        'form'=>['title'=>'Collect connections with a signup page','kind'=>'Signup forms','complete'=>!empty($facts['form']),
+        'form'=>['title'=>'Collect Connections with a Signup Page','kind'=>'Signup Forms','complete'=>!empty($facts['form']),
             'description'=>'Publish a standalone signup page hosted by MOED and share its link. Email confirmation keeps its delivery requirements; a pending signup does not start a subscribed welcome flow.',
-            'action'=>'Explore signup forms','target'=>['view'=>'forms'],'icon'=>'forms'],
-        'organize'=>['title'=>'Organize your audience','kind'=>'Tags and groups','complete'=>!empty($facts['organize']),
+            'action'=>'Explore Signup Forms','target'=>['view'=>'forms'],'icon'=>'forms'],
+        'organize'=>['title'=>'Organize Your Audience','kind'=>'Tags and Groups','complete'=>!empty($facts['organize']),
             'description'=>'Use audience tags or groups to express interests and choose who enters a flow. Existing tags and groups can be reused.',
-            'action'=>'Manage tags','target'=>['view'=>'tags'],'icon'=>'tag'],
-        'library'=>['title'=>'Get inspired by the flow template library','kind'=>'Flow templates','complete'=>false,
+            'action'=>'Manage Tags','target'=>['view'=>'tags'],'icon'=>'tag'],
+        'library'=>['title'=>'Get Inspired by the Flow Template Library','kind'=>'Flow Templates','complete'=>false,
             'description'=>'Explore native starters and their actual maps. Review requirements, then add or remove steps in your own draft.',
-            'action'=>'Go to library','target'=>['view'=>'flow-templates'],'icon'=>'condition'],
+            'action'=>'Go to Library','target'=>['view'=>'flow-templates'],'icon'=>'condition'],
     ];
 }
 
 /** Original native artwork; the preview link opens a real draft-template map. */
 function audienceFlowWelcomeArtwork(): void
 {
-    ?><svg class="flow-overview-illustration" viewBox="0 0 360 220" role="img" aria-label="A subscribed signup leads to a welcome email, then an exit"><rect class="flow-art-backdrop" width="360" height="220" rx="12"/><path class="flow-art-line" d="M180 57v108m-4-4 4 4 4-4"/><rect class="flow-art-card" x="112" y="24" width="136" height="40" rx="3"/><rect class="flow-art-card" x="67" y="97" width="226" height="44" rx="3"/><circle class="flow-art-card" cx="180" cy="181" r="12"/><svg x="125" y="35" width="18" height="18" viewBox="0 0 24 24" class="flow-symbol"><path d="<?= audienceFlowIconPaths()['trigger'] ?>"/></svg><svg x="81" y="109" width="20" height="20" viewBox="0 0 24 24" class="flow-symbol"><path d="<?= audienceFlowIconPaths()['email'] ?>"/></svg><text x="151" y="49">Signs up</text><text x="111" y="124">Send welcome email</text><path class="flow-art-line" d="m175 181 4 4 7-8"/></svg><?php
+    ?><svg class="flow-overview-illustration" viewBox="0 0 360 220" role="img" aria-label="A Subscribed Signup Leads to a Welcome Email, Then an Exit"><rect class="flow-art-backdrop" width="360" height="220" rx="12"/><path class="flow-art-line" d="M180 57v108m-4-4 4 4 4-4"/><rect class="flow-art-card" x="112" y="24" width="136" height="40" rx="3"/><rect class="flow-art-card" x="67" y="97" width="226" height="44" rx="3"/><circle class="flow-art-card" cx="180" cy="181" r="12"/><svg x="125" y="35" width="18" height="18" viewBox="0 0 24 24" class="flow-symbol"><path d="<?= audienceFlowIconPaths()['trigger'] ?>"/></svg><svg x="81" y="109" width="20" height="20" viewBox="0 0 24 24" class="flow-symbol"><path d="<?= audienceFlowIconPaths()['email'] ?>"/></svg><text x="151" y="49">Signs up</text><text x="111" y="124">Send welcome email</text><path class="flow-art-line" d="m175 181 4 4 7-8"/></svg><?php
 }
 
 function audienceFlowTaskArtwork(string $task): void
@@ -83,7 +83,7 @@ function audienceFlowTaskArtwork(string $task): void
 function audienceFlowTriggerLabel(array $trigger): string
 {
     if($trigger['type']==='status'&&($trigger['value']??'')!=='')return 'Changes to '.$trigger['value'];
-    return AUDIENCE_FLOW_TRIGGERS[$trigger['type']]??'Starting point';
+    return AUDIENCE_FLOW_TRIGGERS[$trigger['type']]??'Starting Point';
 }
 
 /** Derive the preview from the same graph that Use this flow creates. */
@@ -91,12 +91,12 @@ function audienceFlowPreviewGraph(array $document): array
 {
     $d=audienceFlowDocument($document);$cards=[];$edges=[];$rank=[];$nodes=array_column($d['nodes'],null,'id');
     $triggers=[$d['trigger'],...$d['additional_triggers']];
-    foreach($triggers as$i=>$trigger){$id='trigger-'.$i;$cards[$id]=['id'=>$id,'kind'=>'trigger','label'=>audienceFlowTriggerLabel($trigger),'category'=>'Starting point'];$rank[$id]=0;$edges[]=['from'=>$id,'to'=>$d['start'],'label'=>''];}
+    foreach($triggers as$i=>$trigger){$id='trigger-'.$i;$cards[$id]=['id'=>$id,'kind'=>'trigger','label'=>audienceFlowTriggerLabel($trigger),'category'=>'Starting Point'];$rank[$id]=0;$edges[]=['from'=>$id,'to'=>$d['start'],'label'=>''];}
     foreach($nodes as$id=>$node){$cards[$id]=['id'=>$id,'kind'=>$node['type'],'label'=>$node['label'],'category'=>AUDIENCE_FLOW_NODES[$node['type']]];$rank[$id]=1;
         if($node['type']==='delay')$cards[$id]['label']=($node['seconds']%86400===0?($node['seconds']/86400).' day'.($node['seconds']===86400?'':'s'):($node['seconds']/60).' minutes').' delay';
         foreach(in_array($node['type'],['condition','split','wait'],true)?['yes','no']:($node['type']==='exit'?[]:['next'])as$edge)$edges[]=['from'=>$id,'to'=>$node[$edge],'label'=>$edge==='next'?'':($node['type']==='wait'?($edge==='yes'?'Trigger matched':'Timed out'):ucfirst($edge))];
     }
-    foreach($edges as$i=>&$edge)if($edge['to']===''){$edge['to']='exit-'.$i;$cards[$edge['to']]=['id'=>$edge['to'],'kind'=>'exit','label'=>'Connection exits','category'=>'End of this path'];$rank[$edge['to']]=1;}unset($edge);
+    foreach($edges as$i=>&$edge)if($edge['to']===''){$edge['to']='exit-'.$i;$cards[$edge['to']]=['id'=>$edge['to'],'kind'=>'exit','label'=>'Connection Exits','category'=>'End of This Path'];$rank[$edge['to']]=1;}unset($edge);
     for($pass=0;$pass<=count($cards);$pass++){$changed=false;foreach($edges as$edge){$next=$rank[$edge['from']]+1;if($rank[$edge['to']]<$next){$rank[$edge['to']]=$next;$changed=true;}}if(!$changed)break;}
     $rows=[];foreach($cards as$id=>$card)$rows[$rank[$id]][]=$id;
     $width=max(900,...array_map(static fn($row)=>count($row)*350+60,$rows));$height=(max($rank)+1)*148+60;
@@ -107,13 +107,13 @@ function audienceFlowPreviewGraph(array $document): array
 function audienceFlowTemplateCard(string $key,array $template,callable $url,bool $featured=false): void
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');$email=in_array('email',$template['steps'],true);
-    $integrationNames=implode(' ',array_map(static fn($key)=>$key==='forms'?'MOED forms':'MessageMonkey audience',$template['integrations']));
+    $integrationNames=implode(' ',array_map(static fn($key)=>$key==='forms'?'MOED Forms':'MessageMonkey Audience',$template['integrations']));
     ?>
     <article class="flow-template-card<?= $featured?' flow-template-featured':'' ?>" data-template-key="<?= $h($key) ?>" data-flow-template="<?= $h(mb_strtolower($template['name'].' '.$template['description'].' '.$template['topic'].' '.$integrationNames)) ?>" data-template-name="<?= $h($template['name']) ?>" data-recommended="<?= (int)$template['recommended'] ?>" data-topic="<?= $h($template['topic']) ?>" data-channel="<?= $email?'email':'data' ?>" data-integrations="<?= $h(implode(' ',$template['integrations'])) ?>">
-        <div class="flow-card-top"><ul class="flow-integration-coins" aria-label="Channels and native integrations">
+        <div class="flow-card-top"><ul class="flow-integration-coins" aria-label="Channels and Native Integrations">
             <?php if($email): ?><li title="Email"><?= audienceFlowIcon('email') ?><span class="sr-only">Email</span></li><?php endif; ?>
-            <li title="MessageMonkey audience"><?= audienceFlowIcon('group') ?><span class="sr-only">MessageMonkey audience</span></li>
-            <?php if(in_array('forms',$template['integrations'],true)): ?><li title="MOED forms"><?= audienceFlowIcon('forms') ?><span class="sr-only">MOED forms</span></li><?php endif; ?>
+            <li title="MessageMonkey Audience"><?= audienceFlowIcon('group') ?><span class="sr-only">MessageMonkey audience</span></li>
+            <?php if(in_array('forms',$template['integrations'],true)): ?><li title="MOED Forms"><?= audienceFlowIcon('forms') ?><span class="sr-only">MOED forms</span></li><?php endif; ?>
         </ul><?php if($template['recommended']): ?><span class="flow-card-badge">Recommended</span><?php endif; ?></div>
         <h3><a href="<?= $h($url(['view'=>'flow-templates','preview'=>$key])) ?>"><?= $h($template['name']) ?></a></h3>
         <?php if($featured): ?><p><?= $h($template['description']) ?></p><?php endif; ?>

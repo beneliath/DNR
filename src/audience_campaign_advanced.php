@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function audienceCampaignDatePresets(): array
 {
-    return [''=>'All dates','last7'=>'Last 7 days','last30'=>'Last 30 days','last90'=>'Last 90 days','last365'=>'Last 365 days','week'=>'Last week','month'=>'Last month','quarter'=>'Last quarter','qtd'=>'Quarter-to-date','ytd'=>'Year-to-date','custom'=>'Custom dates'];
+    return [''=>'All Dates','last7'=>'Last 7 Days','last30'=>'Last 30 Days','last90'=>'Last 90 Days','last365'=>'Last 365 Days','week'=>'Last Week','month'=>'Last Month','quarter'=>'Last Quarter','qtd'=>'Quarter-to-date','ytd'=>'Year-to-date','custom'=>'Custom Dates'];
 }
 function audienceCampaignDateRange(string $preset, ?DateTimeImmutable $today=null): array
 {
@@ -166,7 +166,9 @@ trait AudienceCampaignAdvanced
     }
     public function saveCampaignPlan(array $input,int $id,int $version):int
     {
-        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a campaign goal.');
+        $name=audienceText($input,'name',100);$goal=audienceText($input,'goal',100);
+        if($goal==='Make an Announcement')$goal='Make an announcement';
+        if($name===''||!in_array($goal,audienceCampaignGoals(),true))throw new InvalidArgumentException('Enter a name and choose a campaign goal.');
         $data=['goal'=>$goal,'start'=>audienceCampaignDate(audienceText($input,'start')),'end'=>audienceCampaignDate(audienceText($input,'end')),'notes'=>audienceText($input,'notes',4000),'tracking'=>audienceCampaignTracking($input)];if($data['end']<$data['start'])throw new InvalidArgumentException('End date must follow start date.');
         return $this->transaction(function()use($id,$version,$name,$data){if($id){$old=$this->campaignPlan($id,true);if((int)$old['version']!==$version)throw new InvalidArgumentException('This plan changed. Reload before saving.');$this->write('UPDATE marketing_campaign_plans SET name=?,data_json=?,actor_label=?,version=version+1 WHERE audience_id=? AND id=?',[$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel,$this->audienceId,$id]);}else{$this->write('INSERT INTO marketing_campaign_plans(audience_id,name,data_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,$name,json_encode($data,JSON_THROW_ON_ERROR),$this->actorLabel]);$id=(int)$this->db->insert_id;}return $id;});
     }

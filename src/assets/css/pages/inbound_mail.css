@@ -154,7 +154,7 @@ html body .inbound-queue .page-size-button { min-width: 30px; min-height: 30px !
 .inbound-engagement-route code { color: var(--primary); overflow-wrap: anywhere; }
 .inbound-engagement-route:hover { background: var(--surface-hover); border-color: var(--primary); }
 .inbound-filing-panel { min-width: 0; padding: 24px; border-top: 1px solid var(--border); background: var(--surface-subtle) !important; }
-.inbound-eyebrow { margin: 0 0 5px; color: var(--text-muted); font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.inbound-eyebrow { margin: 0 0 5px; color: var(--text-muted); font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: none; }
 .inbound-review-form { width: 100%; max-width: none; margin: 0; padding: 0; border: 0; box-shadow: none; }
 .inbound-filing-panel h3 { margin: 0 0 8px; font-size: 1.1rem; }
 .inbound-filing-panel .field-help { margin: 8px 0; font-size: .78rem; line-height: 1.6; }

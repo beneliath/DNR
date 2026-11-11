@@ -106,11 +106,15 @@ function engagementViewReadiness(array $engagement, array $contacts, array $pres
     }
 
     return [
-        ['target' => 'organization_id', 'action' => 'Choose organization', 'label' => 'Organization Linked', 'ready' => (int) $organization_id > 0 && $organization_name !== ''],
-        ['target' => 'event_start_date', 'action' => 'Set event dates', 'label' => 'Event Dates Set', 'ready' => $start !== null && $end !== null && $start <= $end],
-        ['target' => 'engagement-contact-selector', 'action' => 'Assign event contacts', 'label' => 'Event Contacts Assigned', 'ready' => $contacts !== []],
-        ['target' => 'presentations-container', 'action' => 'Add presentation', 'label' => 'Presentation Added', 'ready' => $presentations !== []],
-        ['target' => 'event_address_line_1', 'action' => 'Add venue address', 'label' => 'Location Recorded', 'ready' => $location_recorded],
+        ['target' => 'organization_id', 'action' => 'Choose Organization', 'label' => 'Organization Linked', 'ready' => (int) $organization_id > 0 && $organization_name !== ''],
+        ['target' => 'event_start_date', 'action' => 'Set Event Dates', 'label' => 'Event Dates Set', 'ready' => $start !== null && $end !== null && $start <= $end],
+        ['target' => 'engagement-contact-selector', 'action' => 'Assign Event Contacts', 'label' => 'Event Contacts Assigned', 'ready' => $contacts !== []],
+        [
+            'target' => 'presentations-container', 'action' => 'Add Presentation',
+            'label' => !empty($engagement['presentation_not_required']) ? 'No Presentation Required' : 'Presentation Added',
+            'ready' => !empty($engagement['presentation_not_required']) || $presentations !== [],
+        ],
+        ['target' => 'event_address_line_1', 'action' => 'Add Venue Address', 'label' => 'Location Recorded', 'ready' => $location_recorded],
     ];
 }
 

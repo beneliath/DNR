@@ -28,7 +28,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   const announce = text => { status.textContent = text; };
   function copyPromptButton(text, className) {
     const copy = node('button', undefined, className); copy.type = 'button';
-    copy.setAttribute('aria-label', `Copy prompt: ${text}`); copy.dataset.tooltip = 'Copy prompt';
+    copy.setAttribute('aria-label', `Copy Prompt: ${text}`); copy.dataset.tooltip = 'Copy Prompt';
     const namespace = 'http://www.w3.org/2000/svg', icon = document.createElementNS(namespace, 'svg');
     const sheet = document.createElementNS(namespace, 'rect'), back = document.createElementNS(namespace, 'path');
     icon.setAttribute('viewBox', '0 0 24 24'); icon.setAttribute('aria-hidden', 'true');
@@ -38,8 +38,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     copy.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(text);
-        copy.setAttribute('aria-label', 'Prompt copied'); copy.dataset.tooltip = 'Copied'; announce('Prompt copied');
-        setTimeout(() => { copy.setAttribute('aria-label', `Copy prompt: ${text}`); copy.dataset.tooltip = 'Copy prompt'; }, 2000);
+        copy.setAttribute('aria-label', 'Prompt Copied'); copy.dataset.tooltip = 'Copied'; announce('Prompt Copied');
+        setTimeout(() => { copy.setAttribute('aria-label', `Copy Prompt: ${text}`); copy.dataset.tooltip = 'Copy Prompt'; }, 2000);
       } catch { announce('The prompt could not be copied. Select its text and copy it with your keyboard'); }
     });
     return copy;
@@ -77,7 +77,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     announce(message);
     if (!chat) { writingActions(true); if (reveal) status.scrollIntoView({block:'nearest'}); else scrollWithinWorkspace(status); return; }
     if (shownAnswers.has(uuid)) return;
-    question(prompt || questionTexts.get(uuid) || 'Saved request', uuid, reveal);
+    question(prompt || questionTexts.get(uuid) || 'Saved Request', uuid, reveal);
     shownAnswers.add(uuid);
     const answer=node('article',undefined,'analytics-ai-message analytics-ai-answer analytics-ai-error');
     answer.append(node('h3',reason === 'cancelled' ? 'Request stopped' : 'The request could not be completed'),node('p',message));
@@ -126,7 +126,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
   }
   function checks(result, reveal = true) {
     const box = find('[data-ai-check-result]'); box.replaceChildren(); box.hidden = false;
-    box.append(node('h3','Content checks'));
+    box.append(node('h3','Content Checks'));
     const list = node('dl',undefined,'ai-facts');
     result.facts.forEach(fact => { const item = node('div'); item.append(node('dt',fact.label),node('dd',String(fact.value)),node('small',fact.note)); list.append(item); });
     box.append(list);
@@ -140,21 +140,21 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     if (!series.length) return;
     if (!series.some(row => row.accepted)) { box.append(node('p','No accepted email in this report scope')); return; }
     const namespace = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(namespace,'svg'); svg.setAttribute('viewBox','0 0 640 160'); svg.setAttribute('role','img'); svg.setAttribute('aria-label',`Accepted email by period from ${evidence.window.start} to ${evidence.window.end} UTC`);
+    const svg = document.createElementNS(namespace,'svg'); svg.setAttribute('viewBox','0 0 640 160'); svg.setAttribute('role','img'); svg.setAttribute('aria-label',`Accepted Email by Period from ${evidence.window.start} to ${evidence.window.end} UTC`);
     const max = Math.max(...series.map(row => row.accepted),1); const width = 640 / series.length;
     series.forEach((row,index) => { const bar = document.createElementNS(namespace,'rect'); const height = row.accepted/max*140; bar.setAttribute('x',String(index*width)); bar.setAttribute('y',String(150-height)); bar.setAttribute('width',String(Math.max(.5,width-1))); bar.setAttribute('height',String(height)); const title = document.createElementNS(namespace,'title'); title.textContent = `${row.day}${row.until ? ` – ${row.until}` : ''} UTC: ${row.accepted} accepted messages`; bar.append(title); svg.append(bar); });
     const figure = node('figure',undefined,'ai-chart'); figure.append(svg,node('figcaption','Accepted email by period · UTC · application-calculated')); box.append(figure);
   }
   function sourceContactsPanel(uuid, factId) {
     const panel=node('section',undefined,'analytics-ai-source-contacts');panel.id=`ai-source-contacts-${uuid}-${factId}`;panel.hidden=true;
-    panel.setAttribute('aria-label','Matching connections');
-    const caption=node('caption','Matching connections'),table=node('table'),head=node('thead'),body=node('tbody');
+    panel.setAttribute('aria-label','Matching Connections');
+    const caption=node('caption','Matching Connections'),table=node('table'),head=node('thead'),body=node('tbody');
     table.append(caption,head,body);
     const scroll=node('div',undefined,'analytics-ai-table-scroll');scroll.append(table);
     const notice=node('p','These are current matching connections. The saved count may have changed.','ai-scope');
     const status=node('p','');status.setAttribute('role','status');
-    const more=node('button','Load more connections');more.type='button';more.hidden=true;
-    panel.append(node('h4','Matching connections'),notice,scroll,status,more);
+    const more=node('button','Load More Connections');more.type='button';more.hidden=true;
+    panel.append(node('h4','Matching Connections'),notice,scroll,status,more);
     let nextOffset=0,shown=0,total=0,loading=false,loaded=false;
     const load=async()=>{
       if(loading||nextOffset===null)return;loading=true;more.disabled=true;status.textContent='Loading matching connections…';
@@ -163,7 +163,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
         const result=response.table;if(result?.id!==factId||!Array.isArray(result.columns)||!Array.isArray(result.rows))throw new Error('Matching connections could not be loaded.');
         if(shown===0){const row=node('tr');result.columns.forEach(column=>{const cell=node('th',column.label);cell.setAttribute('scope','col');row.append(cell);});head.replaceChildren(row);}
         result.rows.forEach(saved=>{const row=node('tr');result.columns.forEach(column=>row.append(node('td',String(saved[column.key]??''))));body.append(row);});
-        shown+=result.rows.length;total=result.total;nextOffset=result.next_offset;loaded=true;caption.textContent=`Matching connections · Showing ${shown} of ${total}`;
+        shown+=result.rows.length;total=result.total;nextOffset=result.next_offset;loaded=true;caption.textContent=`Matching Connections · Showing ${shown} of ${total}`;
         more.hidden=nextOffset===null;status.textContent=shown?'':'No matching connections remain.';
       }catch(error){status.textContent=error.message;}
       finally{loading=false;more.disabled=false;}
@@ -178,11 +178,11 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     completed = uuid; previous = uuid; output.hidden = chat;
     announce(config.mode === 'analytics' ? '' : 'Suggestion ready for your review');
     const recommendations = chat ? node('section') : find('[data-ai-recommendations]'); recommendations.replaceChildren();
-    if (reply.recommendations.length) { recommendations.append(node('h3','Suggested next steps')); const list = node('ul'); reply.recommendations.forEach(text => list.append(node('li',text))); recommendations.append(list); }
+    if (reply.recommendations.length) { recommendations.append(node('h3','Suggested Next Steps')); const list = node('ul'); reply.recommendations.forEach(text => list.append(node('li',text))); recommendations.append(list); }
     if (reply.mode === 'analytics') {
       question(prompt || form.elements.prompt.value || 'Saved analytics request', uuid, reveal);
       const box = chat ? node('article', undefined, 'analytics-ai-message analytics-ai-answer') : find('[data-ai-analysis]'); box.hidden = false; box.replaceChildren();
-      box.append(node('h3',reply.interpretation === 'information' ? 'Analytics AI' : reply.interpretation === 'clarification' ? 'A quick clarification' : reply.interpretation === 'calculated' ? 'Report results' : reply.interpretation === 'data-only' ? 'Query results' : 'AI interpretation'));
+      box.append(node('h3',reply.interpretation === 'information' ? 'Analytics AI' : reply.interpretation === 'clarification' ? 'A quick clarification' : reply.interpretation === 'calculated' ? 'Report Results' : reply.interpretation === 'data-only' ? 'Query results' : 'AI Interpretation'));
       if (reply.summary) box.append(node('p',reply.summary));
       if (reply.interpretation === 'information') {
         if (chat) { shownAnswers.add(uuid); transcript.append(box); if(reveal)box.scrollIntoView({block:'start'});else scrollWithinWorkspace(box); }
@@ -190,7 +190,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
       }
       const evidence = reply.evidence;
       const cited = new Set(reply.observations.flatMap(item=>item.evidence_ids || [item.evidence_id]));
-      box.append(node('p',evidence.scope_description || `Source report (${evidence.window.dataset || 'email'}): ${evidence.window.start} to ${evidence.window.end} UTC · ${evidence.window.bots==='filtered'?'Known bots excluded':'All observed activity'} · Comparison: ${evidence.window.compare}`,'ai-scope'));
+      box.append(node('p',evidence.scope_description || `Source report (${evidence.window.dataset || 'email'}): ${evidence.window.start} to ${evidence.window.end} UTC · ${evidence.window.bots==='filtered'?'Known Bots Excluded':'All Observed Activity'} · Comparison: ${evidence.window.compare}`,'ai-scope'));
       if(Object.keys(config.window).some(key=>JSON.stringify(config.window[key])!==JSON.stringify(evidence.window[key]))){previous='';announce('Saved analysis opened for its original report scope. Your next question will use the current report filters');}
       if (evidence.includes_samples) box.append(node('p','Local sample data included. These observations include fictional test activity','audience-notice'));
       chart(evidence,box);
@@ -214,7 +214,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
             } catch(error) { notice.textContent=error.message; }
             finally { draw(); }
           };
-          const draw=()=>renderAudiencePagination(pages,{total,page:currentPage,pageSize,label:'Audience result pages',onChange:load});
+          const draw=()=>renderAudiencePagination(pages,{total,page:currentPage,pageSize,label:'Audience Result Pages',onChange:load});
           draw();
           if(loaded<Math.min(pageSize,total))load({page:1,pageSize});
         }
@@ -232,7 +232,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
             const count=source.id.match(/^query_([0-9]+)_result$/);
             const query=count?evidence.queries?.[Number(count[1])]:null;
             const browsable=query?.tool==='count'&&query.field==='';
-            const link = node('a',browsable?'View matching connections':`Source: ${source.label || source.title}`);
+            const link = node('a',browsable?'View Matching Connections':`Source: ${source.label || source.title}`);
             if(browsable){
               const sourceView=sourceContactsPanel(uuid,source.id);sourcePanels.push(sourceView.panel);link.href=`#${sourceView.panel.id}`;
               link.addEventListener('click',event=>{event.preventDefault();sourceView.open();});
@@ -257,8 +257,8 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     } else {
       find('[data-ai-headline]').value = reply.headline;
       find('[data-ai-text]').value = reply.text;
-      const subjects = find('[data-ai-subjects]'); subjects.replaceChildren(node('h3','Subject ideas'));
-      reply.subjects.forEach(text => { const row = node('div'); const use = node('button','Use this subject'); use.type = 'button'; use.addEventListener('click',()=>{form.elements.subject.value=text; announce('Subject selected in this workspace. The campaign is unchanged');}); const copy=node('button','Copy subject');copy.type='button';copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);announce('Subject copied');}catch{announce('Select the subject text to copy it');}}); row.append(node('p',text),use,copy);subjects.append(row); });
+      const subjects = find('[data-ai-subjects]'); subjects.replaceChildren(node('h3','Subject Ideas'));
+      reply.subjects.forEach(text => { const row = node('div'); const use = node('button','Use This Subject'); use.type = 'button'; use.addEventListener('click',()=>{form.elements.subject.value=text; announce('Subject selected in this workspace. The campaign is unchanged');}); const copy=node('button','Copy Subject');copy.type='button';copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);announce('Subject copied');}catch{announce('Select the subject text to copy it');}}); row.append(node('p',text),use,copy);subjects.append(row); });
       checks(reply.checks, false);
       writingActions(false);
       const destination = displayedRequest === uuid ? find('[data-ai-check-result]') : output;
@@ -298,7 +298,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
         });
         li.append(button);
         if (canRemoveHistory) {
-          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete response: ${item.question}`);
+          const remove=node('button',undefined,'ai-history-remove');remove.type='button';remove.title='Delete Permanently';remove.disabled=historyChangePending;remove.setAttribute('aria-label',`Delete Response: ${item.question}`);
           const ns='http://www.w3.org/2000/svg',icon=document.createElementNS(ns,'svg'),circle=document.createElementNS(ns,'circle'),cross=document.createElementNS(ns,'path');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');cross.setAttribute('d','m8 8 8 8M16 8l-8 8');icon.append(circle,cross);remove.append(icon);
           remove.addEventListener('click',()=>changeHistory('delete',async()=>{
             await api({action:'delete',request_id:item.client_request_id,confirmed:true});
@@ -320,7 +320,7 @@ import { audiencePageSizes, renderAudiencePagination } from './audience-paginati
     document.querySelector('[data-ai-history-confirm-message]').textContent=deleting
       ? 'This will permanently delete this AI request, its source text, and its response. This cannot be undone.'
       : 'Reset the recent requests shown in this browser? Saved responses will be retained.';
-    document.querySelector('[data-ai-history-confirm-submit]').textContent=deleting?'Delete permanently':'Reset list';
+    document.querySelector('[data-ai-history-confirm-submit]').textContent=deleting?'Delete Permanently':'Reset List';
     historyConfirmation.returnValue='';
     return new Promise(resolve=>{
       historyConfirmation.addEventListener('close',()=>resolve(historyConfirmation.returnValue==='confirm'),{once:true});

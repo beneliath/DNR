@@ -43,7 +43,7 @@ function followUpTaskQueueViews()
         'my' => 'My Active Work',
         'overdue' => 'Overdue',
         'today' => 'Due Today',
-        'upcoming' => 'Next ' . $upcomingDays . ' days',
+        'upcoming' => 'Next ' . $upcomingDays . ' Days',
         'waiting' => 'Waiting',
         'unassigned' => 'Unassigned',
         'completed' => 'Completed',

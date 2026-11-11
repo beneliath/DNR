@@ -16,7 +16,7 @@ function fixture(clipboard) {
     }
     const input = node({ dataset: { maxBytes: '5242880' }, files: [], value: '',
         setCustomValidity(message) { this.validationMessage = message; }, reportValidity() {} });
-    const preview = node({ src: 'original.png', alt: 'Current profile picture',
+    const preview = node({ src: 'original.png', alt: 'Current Profile Picture',
         getAttribute(name) { return this[name]; } });
     const status = { hidden: true };
     const remove = node({ checked: true });
@@ -65,7 +65,7 @@ test('keyboard paste stages supported profile pictures for normal form upload an
         assert.equal(f.input.files[0].type, type);
         assert.equal(f.input.files[0].size, 123);
         assert.equal(f.preview.src, 'data:' + type + ';base64,fixture');
-        assert.equal(f.preview.alt, 'Preview of selected profile picture');
+        assert.equal(f.preview.alt, 'Preview of Selected Profile Picture');
         assert.equal(f.remove.checked, false);
         assert.equal(f.input.validationMessage, '');
         assert.match(f.status.textContent, /Save changes to apply this picture/);

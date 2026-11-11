@@ -79,7 +79,7 @@ function audienceContactInput(array $input): array
     return [
         'email' => $email, 'first_name' => audienceText($input, 'first_name'),
         'last_name' => audienceText($input, 'last_name'), 'email_status' => $status,
-        'source' => audienceText($input, 'source') ?: 'Manual entry',
+        'source' => audienceText($input, 'source') ?: 'Manual Entry',
         'notes' => audienceText($input, 'notes', 10000), 'tags' => array_values($tags),
         'consent_note' => audienceText($input, 'consent_note', 1000),
     ];
@@ -210,7 +210,7 @@ function audiencePermissionStatus(array $details,string $type):string
 function audienceMarketingDetails(array $person, ?array $permissionEvent, ?array $importEvent): array
 {
     $status=$person['email_status'];
-    $label=match($status){'subscribed'=>'Opt in','unsubscribed'=>'Opt out','cleaned'=>'Cleaned','pending'=>'Requested',default=>'Added'};
+    $label=match($status){'subscribed'=>'Opt In','unsubscribed'=>'Opt Out','cleaned'=>'Cleaned','pending'=>'Requested',default=>'Added'};
     $source=(string)$person['source'];$raw='';$isImport=$importEvent&&(!$permissionEvent||(int)$importEvent['id']>(int)$permissionEvent['id']);
     if($isImport){
         $detail=audienceJson($importEvent['details_json']);$metadata=$detail['source_metadata']??[];
@@ -239,7 +239,7 @@ function audienceProfileDate(string $value): string
 /** Selection values use the same language codes accepted by connection settings. */
 function audienceLanguageOptions(string $current=''):array
 {
-    $languages=[''=>'Not set','ar'=>'Arabic','bg'=>'Bulgarian','ca'=>'Catalan','zh'=>'Chinese','hr'=>'Croatian','cs'=>'Czech','da'=>'Danish','nl'=>'Dutch','en'=>'English','en-US'=>'English (United States)','en-GB'=>'English (United Kingdom)','et'=>'Estonian','fi'=>'Finnish','fr'=>'French','de'=>'German','el'=>'Greek','he'=>'Hebrew','hi'=>'Hindi','hu'=>'Hungarian','id'=>'Indonesian','it'=>'Italian','ja'=>'Japanese','ko'=>'Korean','lv'=>'Latvian','lt'=>'Lithuanian','ms'=>'Malay','no'=>'Norwegian','fa'=>'Persian','pl'=>'Polish','pt'=>'Portuguese','pt-BR'=>'Portuguese (Brazil)','ro'=>'Romanian','ru'=>'Russian','sr'=>'Serbian','sk'=>'Slovak','sl'=>'Slovenian','es'=>'Spanish','sw'=>'Swahili','sv'=>'Swedish','th'=>'Thai','tr'=>'Turkish','uk'=>'Ukrainian','ur'=>'Urdu','vi'=>'Vietnamese'];
+    $languages=[''=>'Not Set','ar'=>'Arabic','bg'=>'Bulgarian','ca'=>'Catalan','zh'=>'Chinese','hr'=>'Croatian','cs'=>'Czech','da'=>'Danish','nl'=>'Dutch','en'=>'English','en-US'=>'English (United States)','en-GB'=>'English (United Kingdom)','et'=>'Estonian','fi'=>'Finnish','fr'=>'French','de'=>'German','el'=>'Greek','he'=>'Hebrew','hi'=>'Hindi','hu'=>'Hungarian','id'=>'Indonesian','it'=>'Italian','ja'=>'Japanese','ko'=>'Korean','lv'=>'Latvian','lt'=>'Lithuanian','ms'=>'Malay','no'=>'Norwegian','fa'=>'Persian','pl'=>'Polish','pt'=>'Portuguese','pt-BR'=>'Portuguese (Brazil)','ro'=>'Romanian','ru'=>'Russian','sr'=>'Serbian','sk'=>'Slovak','sl'=>'Slovenian','es'=>'Spanish','sw'=>'Swahili','sv'=>'Swedish','th'=>'Thai','tr'=>'Turkish','uk'=>'Ukrainian','ur'=>'Urdu','vi'=>'Vietnamese'];
     if($current!==''&&!isset($languages[$current]))$languages[$current]=$current;
     return $languages;
 }

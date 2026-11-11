@@ -44,7 +44,7 @@ async function assertActionGeometry(page, icons, mobile) {
 
 async function openDesignerTools(page) {
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    const workspace = page.getByRole('navigation', {name: 'Editor workspace', exact: true});
+    const workspace = page.getByRole('navigation', {name: 'Editor Workspace', exact: true});
     if (await workspace.isVisible()) {
         const tools = workspace.getByRole('button', {name: 'Editing tools', exact: true});
         await tools.click();

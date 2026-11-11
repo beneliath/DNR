@@ -334,7 +334,7 @@ if (isset($_SESSION['success_message'])) {
             <div class="form-group">
                 <label for="phone">Phone</label>
                 <div class="phone-input-group" data-phone-input-group>
-                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
+                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization Phone Country Code'); ?>
                     <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                 </div>
             </div>
@@ -342,7 +342,7 @@ if (isset($_SESSION['success_message'])) {
             <div class="form-group">
                 <label for="fax">Fax</label>
                 <div class="phone-input-group" data-phone-input-group>
-                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
+                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization Fax Country Code'); ?>
                     <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
                 </div>
             </div>
@@ -468,7 +468,7 @@ if (isset($_SESSION['success_message'])) {
                                 <div class="form-group contact-photo-field">
                                     <div class="contact-photo-upload">
                                         <div class="contact-photo-preview">
-                                            <img src="data:image/svg+xml;base64,<?php echo base64_encode(contactInitialsSvg(['contact_first_name' => $_POST['contact_first_name'] ?? '', 'contact_last_name' => $_POST['contact_last_name'] ?? ''])); ?>" width="96" height="96" alt="Contact photo preview" data-contact-photo-preview>
+                                            <img src="data:image/svg+xml;base64,<?php echo base64_encode(contactInitialsSvg(['contact_first_name' => $_POST['contact_first_name'] ?? '', 'contact_last_name' => $_POST['contact_last_name'] ?? ''])); ?>" width="96" height="96" alt="Contact Photo Preview" data-contact-photo-preview>
                                         </div>
                                         <div>
                                             <label for="contact_photo">Contact Photo</label>
@@ -509,7 +509,7 @@ if (isset($_SESSION['success_message'])) {
                                         <div class="contact-control-pair">
                                             <label for="contact_phone">Phone</label>
                                             <div class="phone-input-group" data-phone-input-group>
-                                                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value, 'Contact phone country code'); ?>
+                                                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value, 'Contact Phone Country Code'); ?>
                                                 <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                                             </div>
                                         </div>
@@ -561,7 +561,7 @@ if (isset($_SESSION['success_message'])) {
                                 <div class="form-group contact-photo-field">
                                     <div class="contact-photo-upload">
                                         <div class="contact-photo-preview">
-                                            <img src="data:image/svg+xml;base64,<?php echo base64_encode(contactInitialsSvg([])); ?>" width="96" height="96" alt="Contact photo preview" data-contact-photo-preview>
+                                            <img src="data:image/svg+xml;base64,<?php echo base64_encode(contactInitialsSvg([])); ?>" width="96" height="96" alt="Contact Photo Preview" data-contact-photo-preview>
                                         </div>
                                         <div>
                                             <label for="additional-__CONTACT_INDEX__-photo">Contact Photo</label>
@@ -602,7 +602,7 @@ if (isset($_SESSION['success_message'])) {
                                         <div class="contact-control-pair">
                                             <label for="additional-__CONTACT_INDEX__-phone">Phone</label>
                                             <div class="phone-input-group" data-phone-input-group>
-                                                <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', applicationDefaultPhoneCountryCode(), 'Contact phone country code'); ?>
+                                                <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', applicationDefaultPhoneCountryCode(), 'Contact Phone Country Code'); ?>
                                                 <input type="tel" id="additional-__CONTACT_INDEX__-phone" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                                             </div>
                                         </div>

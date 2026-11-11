@@ -133,7 +133,7 @@
     if (!input || !preview || !status) return;
 
     const originalSource = preview.getAttribute('src');
-    const originalAlt = preview.getAttribute('alt') || 'Current profile picture';
+    const originalAlt = preview.getAttribute('alt') || 'Current Profile Picture';
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const maximumBytes = Number(input.dataset.maxBytes || 0);
     let selectionVersion = 0;
@@ -191,7 +191,7 @@
             if (currentSelection !== selectionVersion || typeof reader.result !== 'string') return;
             loadingSelectedPicture = true;
             preview.src = reader.result;
-            preview.alt = 'Preview of selected profile picture';
+            preview.alt = 'Preview of Selected Profile Picture';
             status.textContent = 'Preview updated. Save changes to apply this picture.';
         });
 

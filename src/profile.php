@@ -377,7 +377,7 @@ $task_digest_day_options = [
         <input type="hidden" name="action" value="save">
         <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading" data-profile-picture-field>
             <div class="profile-picture-preview">
-                <img src="profile_picture.php?size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
+                <img src="profile_picture.php?size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current Profile Picture" data-profile-picture-preview>
             </div>
             <div class="profile-picture-controls">
                 <h2 id="profile-picture-heading">Profile Picture</h2>
@@ -427,7 +427,7 @@ $task_digest_day_options = [
             <div class="form-group profile-timezone-field">
                 <label for="display_timezone">Display Timezone</label>
                 <select id="display_timezone" name="display_timezone" aria-describedby="display-timezone-help">
-                    <option value="">Not selected — UTC</option>
+                    <option value="">Not Selected — UTC</option>
                     <?php foreach(userTimezoneOptions()as$timezone=>$label): ?>
                     <option value="<?= htmlspecialchars($timezone,ENT_QUOTES,'UTF-8') ?>"<?= ($user['display_timezone']??'')===$timezone?' selected':'' ?>><?= htmlspecialchars($label,ENT_QUOTES,'UTF-8') ?></option>
                     <?php endforeach; ?>

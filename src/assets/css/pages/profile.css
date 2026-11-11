@@ -2,6 +2,7 @@
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);
     padding-inline: var(--app-content-padding);
+    container: profile / inline-size;
 }
 
 .profile-heading h1 {
@@ -119,4 +120,12 @@ html:not(.has-js) .profile-picture-paste-controls,
     .profile-page .profile-save-actions > * {
         width: 100%;
     }
+}
+
+@container profile (max-width: 72rem) {
+    .profile-page .profile-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container profile (max-width: 52rem) {
+    .profile-page .profile-form { grid-template-columns: minmax(0, 1fr); }
 }

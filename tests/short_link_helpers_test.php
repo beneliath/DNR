@@ -29,7 +29,7 @@ $d = shortLinkVisitDimensions($server);
 expectShortLink($d['browser'] === 'Chrome' && $d['os'] === 'Windows' && $d['referrer'] === 'example.com' && $d['country'] === 'ZZ', 'Dimensions and untrusted country header');
 expectShortLink(shortLinkVisitDimensions(array_replace($server, ['REQUEST_METHOD'=>'HEAD'])) === null, 'HEAD excluded');
 expectShortLink(shortLinkVisitDimensions(array_replace($server, ['HTTP_PURPOSE'=>'prefetch'])) === null, 'Prefetch excluded');
-expectShortLink(shortLinkVisitDimensions(array_replace($server, ['HTTP_USER_AGENT'=>'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'])) === null, 'Known bots excluded');
+expectShortLink(shortLinkVisitDimensions(array_replace($server, ['HTTP_USER_AGENT'=>'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'])) === null, 'Known Bots Excluded');
 putenv('DNR_TRUSTED_PROXY_IPS=10.0.0.1'); putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=10.1.0.0/24');
 expectShortLink(shortLinkCountry(array_replace($server, ['REMOTE_ADDR'=>'10.0.0.1','HTTP_X_FORWARDED_FOR'=>'203.0.113.10, 10.1.0.2'])) === 'US', 'Trusted Cloudflare country');
 expectShortLink(shortLinkCountry(array_replace($server, ['REMOTE_ADDR'=>'10.0.0.1','HTTP_X_FORWARDED_FOR'=>'10.1.0.2, 203.0.113.20'])) === 'ZZ', 'Untrusted intervening proxy cannot inject country');
@@ -58,7 +58,7 @@ $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 
 ob_start(); include __DIR__ . '/../src/templates/short_link_stats_table.php'; $html = ob_get_clean();
 expectShortLink(str_contains($html, 'Event Name') && str_contains($html, 'Event Presentation') && str_contains($html, 'Event Resource'), 'Timeline exposes event and resource columns');
 expectShortLink(str_contains($html, 'Event &lt;One&gt;') && str_contains($html, 'Talk &amp; Q&amp;A'), 'Event and presentation titles are escaped');
-expectShortLink(str_contains($html, 'Speaker Notes link') && str_contains($html, 'Reading list link'), 'Built-in and custom resources retain their labels');
+expectShortLink(str_contains($html, 'Speaker Notes Link') && str_contains($html, 'Reading list Link'), 'Built-in and custom resources retain their labels');
 expectShortLink(substr_count($html, 'data-period-band="0"') === 2 && substr_count($html, 'data-period-band="1"') === 1, 'Rows from the same date share a band and the next date alternates');
 expectShortLink(substr_count($html, 'data-stats-period="2026-09-07"') === 2, 'Every resource row identifies its chart period');
 expectShortLink(str_contains($html, '40.0%') && str_contains($html, '60.0%'), 'Resource shares use the selected period total');

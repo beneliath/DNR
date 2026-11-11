@@ -29,10 +29,10 @@ function audienceInteractionMapCoordinate(string $country, string $region, strin
 function audienceInteractionMapTypes(): array
 {
     return [
-        'message:open'=>'Email opens', 'message:click'=>'Email clicks',
-        'contact:signup-permission'=>'Signups', 'contact:subscription-confirmed'=>'Confirmed subscriptions',
-        'contact:preferences'=>'Preference updates', 'contact:status'=>'Unsubscribes',
-        'contact:survey-response'=>'Survey responses',
+        'message:open'=>'Email Opens', 'message:click'=>'Email Clicks',
+        'contact:signup-permission'=>'Signups', 'contact:subscription-confirmed'=>'Confirmed Subscriptions',
+        'contact:preferences'=>'Preference Updates', 'contact:status'=>'Unsubscribes',
+        'contact:survey-response'=>'Survey Responses',
     ];
 }
 

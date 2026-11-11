@@ -126,7 +126,7 @@ expectUserLifecycle(
         && str_contains($register, 'data-invitation-submit-status')
         && str_contains($register, 'aria-live="polite"')
         && str_contains($users, 'data-submitting-label="Resending Invitation&hellip;"')
-        && str_contains($users, 'Emailing a new activation link&hellip;')
+        && str_contains($users, 'Emailing a New Activation Link&hellip;')
         && str_contains($page_actions, 'initializeInvitationSubmission()')
         && str_contains($page_actions, "document.querySelectorAll('[data-invitation-form]')")
         && str_contains($page_actions, "button.dataset.submittingLabel || 'Sending Invitation…'")

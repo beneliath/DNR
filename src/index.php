@@ -62,12 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         $caller = \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
         $caller_user_id = $caller['id'];
         $caller_name = $caller['username'];
-        $presentation_files = is_array($_FILES['presentations'] ?? null)
+        $submitted_presentations = $presentation_not_required ? null : ($_POST['presentations'] ?? null);
+        $presentation_files = !$presentation_not_required && is_array($_FILES['presentations'] ?? null)
             ? $_FILES['presentations']
             : [];
         $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
         $presentations = normalizeEngagementPresentations(
-            $_POST['presentations'] ?? null,
+            $submitted_presentations,
             $event_start_date,
             $event_end_date,
             $default_speaker_id,
@@ -76,13 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         );
         $presentations = attachPresentationAssetChanges(
             $presentations,
-            $_POST['presentations'] ?? null,
+            $submitted_presentations,
             $presentation_files
         );
         requirePresentationForConfirmedEngagement(
             $confirmation_status,
             $presentations,
-            $lifecycle_status
+            $lifecycle_status,
+            (bool) $presentation_not_required
         );
     } catch (Throwable $exception) {
         $presentations = [];
@@ -128,12 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 event_address_line_1, event_address_line_2, event_city, event_state,
                 event_zipcode, event_country,
                 travel_covered, travel_amount, compensation_type, other_compensation,
-                housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                housing_type, other_housing, housing_amount, presentation_not_required
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "issssssiisisssiisssssssssssss",
+                    "issssssiisisssiisssssssssssssi",
                     $organization_id,
                     $event_title,
                     $event_description,
@@ -162,7 +164,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     $other_compensation,
                     $housing_type,
                     $other_housing,
-                    $housing_amount
+                    $housing_amount,
+                    $presentation_not_required
                 );
 
                 if ($stmt->execute()) {
@@ -374,7 +377,7 @@ try {
         <h2>Event Details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
-    <input type="search" placeholder="Find an organization…" aria-label="Find an organization for Organization" data-relationship-search-input>
+    <input type="search" placeholder="Find an Organization…" aria-label="Find an Organization for Organization" data-relationship-search-input>
     <select name="organization_id" id="organization_id" data-organization-search required>
         <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an Organization</option>
         <?php foreach ($engagement_organization_options as $organization_option): ?>
@@ -580,7 +583,8 @@ try {
         </div>
 
         <?php
-        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
+        $presentation_not_required = ($_POST['presentation_not_required'] ?? '') === '1';
+        $presentation_form_rows = !$presentation_not_required && !empty($error_message) && is_array($_POST['presentations'] ?? null)
             ? $_POST['presentations']
             : [[]];
         include 'templates/presentation_form.php';
@@ -596,7 +600,7 @@ try {
         <div class="form-row">
             <div class="form-group create-form-actions create-form-actions-flush">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
-                <input type="submit" name="save_engagement" value="Create engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
+                <input type="submit" name="save_engagement" value="Create Engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
             </div>
         </div>
     </form>

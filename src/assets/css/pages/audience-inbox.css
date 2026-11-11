@@ -48,7 +48,7 @@
 .inbox-sidebar nav a[aria-current] .inbox-icon, .inbox-sidebar nav a[aria-current] small { color: var(--inbox-accent); }
 .inbox-sidebar .inbox-folders a { font-size: var(--inbox-font-body); }
 .inbox-nav-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 11px; margin-bottom: 9px; }
-.inbox-nav-heading h2 { margin: 0; font-size: var(--inbox-font-caption); text-transform: uppercase; letter-spacing: 1.2px; color: var(--inbox-muted); font-weight: 650; }
+.inbox-nav-heading h2 { margin: 0; font-size: var(--inbox-font-caption); text-transform: none; letter-spacing: 1.2px; color: var(--inbox-muted); font-weight: 650; }
 .inbox-nav-heading a { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; min-height: 26px; border-radius: 4px; font-size: calc(20px * var(--audience-font-scale, 1)); color: var(--inbox-muted); }
 .inbox-nav-heading a:hover { background: var(--inbox-tint); color: var(--inbox-accent); }
 .inbox-nav-heading .inbox-icon { width: 16px; height: 16px; }

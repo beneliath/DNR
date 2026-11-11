@@ -262,7 +262,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
                 <div class="form-group contact-photo-field">
                     <div class="contact-photo-upload">
                         <div class="contact-photo-preview">
-                            <img src="<?php echo htmlspecialchars($contact_photo_placeholder, ENT_QUOTES, 'UTF-8'); ?>" width="96" height="96" alt="Contact photo preview" data-contact-photo-preview>
+                            <img src="<?php echo htmlspecialchars($contact_photo_placeholder, ENT_QUOTES, 'UTF-8'); ?>" width="96" height="96" alt="Contact Photo Preview" data-contact-photo-preview>
                         </div>
                         <div>
                             <label for="contact_photo">Contact Photo</label>
@@ -318,7 +318,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
                 <div class="contact-form-organization-selector">
                     <div class="form-group">
                         <label for="primary-organization-search">Find an Organization</label>
-                        <input type="search" id="primary-organization-search" placeholder="Find an organization" aria-label="Find an organization for Primary Organization" data-relationship-search-input>
+                        <input type="search" id="primary-organization-search" placeholder="Find an Organization" aria-label="Find an Organization for Primary Organization" data-relationship-search-input>
                     </div>
                     <div class="form-group contact-form-primary-organization">
                         <label for="organization_id">Primary Organization</label>

@@ -52,7 +52,7 @@ export function openCalendar(trigger, {label, selected, min, max, yearless, choo
     const panel = make('div', undefined, 'date-picker-calendar');
     panel.id = trigger.getAttribute('aria-controls');
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', label + ' calendar');
+    panel.setAttribute('aria-label', label + ' Calendar');
     panel.setAttribute('popover', 'auto');
     const host = trigger.closest('dialog, [popover], [role="dialog"]') || doc.body;
     host.append(panel);
@@ -97,8 +97,8 @@ export function openCalendar(trigger, {label, selected, min, max, yearless, choo
             displayed.setUTCMonth(month + delta);
             render(delta < 0 ? 'previous' : 'next');
         }
-        const prev = button('‹', 'Previous month', 'date-picker-nav', () => move(-1));
-        const next = button('›', 'Next month', 'date-picker-nav', () => move(1));
+        const prev = button('‹', 'Previous Month', 'date-picker-nav', () => move(-1));
+        const next = button('›', 'Next Month', 'date-picker-nav', () => move(1));
         prev.disabled = monthKey <= first.slice(0, 7);
         next.disabled = monthKey >= last.slice(0, 7);
         const monthSelect = make('select');

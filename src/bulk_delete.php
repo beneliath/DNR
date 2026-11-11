@@ -117,7 +117,7 @@ releaseApplicationSessionLock();
         <?php endif; ?>
         <div class="bulk-delete-review-actions">
             <button type="submit" class="button-secondary" form="bulk-delete-cancel-form">Cancel</button>
-            <button type="submit" class="delete-button" data-admin-unlock-required data-confirm-title="Are You Sure?" data-confirm="Permanently delete <?php echo $eligible_count; ?> selected item(s) and the related data described above? This cannot be undone." data-confirm-label="Delete Permanently"<?php echo $eligible_count === 0 ? ' disabled' : ''; ?>>Permanently delete <?php echo $eligible_count; ?> item<?php echo $eligible_count === 1 ? '' : 's'; ?></button>
+            <button type="submit" class="delete-button" data-admin-unlock-required data-confirm-title="Are You Sure?" data-confirm="Permanently delete <?php echo $eligible_count; ?> selected item(s) and the related data described above? This cannot be undone." data-confirm-label="Delete Permanently"<?php echo $eligible_count === 0 ? ' disabled' : ''; ?>>Permanently Delete <?php echo $eligible_count; ?> Item<?php echo $eligible_count === 1 ? '' : 's'; ?></button>
         </div>
     </form>
     <form id="bulk-delete-cancel-form" method="post" action="bulk_delete.php" hidden>

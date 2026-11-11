@@ -3,13 +3,13 @@
         <div class="audience-search-top">
             <form role="search" data-workspace-search>
                 <label for="workspace-search-input" class="sr-only">Search MessageMonkey</label>
-                <input type="search" id="workspace-search-input" name="q" placeholder="What can we help you find today?" maxlength="200" autocomplete="off" autofocus>
+                <input type="search" id="workspace-search-input" name="q" placeholder="What Can We Help You Find Today?" maxlength="200" autocomplete="off" autofocus>
                 <button type="submit" class="primary" aria-label="Search"><?php audienceNavIcon('search'); ?></button>
             </form>
-            <button type="button" class="audience-search-close" data-close-dialog aria-label="Close search">×</button>
+            <button type="button" class="audience-search-close" data-close-dialog aria-label="Close Search">×</button>
         </div>
         <p class="audience-search-filter-label">Filter by</p>
-        <div class="audience-search-filters" role="group" aria-label="Filter search results">
+        <div class="audience-search-filters" role="group" aria-label="Filter Search Results">
             <?php foreach(audienceSearchCategories() as $key=>$label): ?><button type="button" data-search-category="<?= $key ?>" aria-pressed="false"><?= $label ?></button><?php endforeach; ?>
         </div>
     </div>

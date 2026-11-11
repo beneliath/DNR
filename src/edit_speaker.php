@@ -77,7 +77,7 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
         <section class="form-section" aria-label="Speaker Details">
             <div class="speaker-details-row">
                 <div class="form-group contact-photo-field">
-                    <div class="contact-photo-preview"><img src="<?php echo htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8'); ?>" alt="Current speaker photo" data-contact-photo-preview></div>
+                    <div class="contact-photo-preview"><img src="<?php echo htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8'); ?>" alt="Current Speaker Photo" data-contact-photo-preview></div>
                     <div>
                         <label for="speaker_photo">Speaker Photo</label>
                         <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>">

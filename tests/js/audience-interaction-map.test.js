@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 function mapHarness(pins = [
     {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 2, precision: 'city', types: {Signups: 2}},
-    {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 1, precision: 'city', types: {'Email clicks': 1}}
+    {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 1, precision: 'city', types: {'Email Clicks': 1}}
 ], extraPayload = {}) {
     class Element {
         constructor() {
@@ -130,17 +130,17 @@ test('a location row opens its globe-hidden pin on the first click', () => {
 });
 
 const mixedPins = [
-    {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 5, precision: 'city', types: {'Email opens': 3, 'Email clicks': 1, Signups: 1}},
+    {label: 'Chicago', latitude: 41.9, longitude: -87.6, observations: 5, precision: 'city', types: {'Email Opens': 3, 'Email Clicks': 1, Signups: 1}},
     {label: 'Sydney', latitude: -33.9, longitude: 151.2, observations: 2, precision: 'city', types: {Signups: 2}},
     {label: 'Canada', latitude: 60.5, longitude: -101.9, observations: 4, precision: 'country', types: {Unsubscribes: 4}}
 ];
 
 test('filtering recounts mixed pins, popup details, rows, and unmapped interactions, and resets fully', () => {
-    const harness = mapHarness(mixedPins, {unmapped: 3, unmappedTypes: {'Email opens': 2, 'Preference updates': 1}});
+    const harness = mapHarness(mixedPins, {unmapped: 3, unmappedTypes: {'Email Opens': 2, 'Preference Updates': 1}});
     const {elements, table, markers, popups} = harness;
     assert.equal(elements['interaction-map-type'].disabled, false);
     popups[1].addTo();
-    harness.filter('Email opens');
+    harness.filter('Email Opens');
     assert.equal(popups[1].isOpen(), false, 'Changing type closes the old popup');
     assert.equal(table.rows.some(row => row.classList.contains('is-popup-open')), false);
     assert.equal(markers.slice(0, 3).some(marker => marker.onMap), false, 'Previous markers are removed');
@@ -148,12 +148,12 @@ test('filtering recounts mixed pins, popup details, rows, and unmapped interacti
     assert.equal(harness.visibleMarkers().length, 1);
     assert.equal(marker.element.textContent, '3');
     assert.equal(marker.element['aria-label'], 'Chicago: 3 interactions');
-    assert.deepEqual(marker.popup.content.children.map(child => child.textContent), ['Chicago', '3 interactions', 'Email opens: 3', 'Approximate city position']);
+    assert.deepEqual(marker.popup.content.children.map(child => child.textContent), ['Chicago', '3 interactions', 'Email Opens: 3', 'Approximate City Position']);
     assert.deepEqual(table.rows.map(row => row.hidden), [false, true, true]);
     assert.equal(table.rows[0].cells['[data-interaction-observations]'].textContent, '3');
     assert.equal(table.rows[0].cells['[data-interaction-observations]'].dataset.interactionObservations, '3', 'Sorting uses the filtered numeric count');
-    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email opens 3');
-    assert.equal(elements['interaction-map-feedback'].textContent, '1 location · 3 interactions with a mapped location · 2 without a mappable country · Email opens');
+    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email Opens 3');
+    assert.equal(elements['interaction-map-feedback'].textContent, '1 location · 3 interactions with a mapped location · 2 without a mappable country · Email Opens');
     assert.equal(elements['interaction-map-empty'].hidden, true);
     assert.equal(elements['interaction-location-table-empty'].hidden, true);
     assert.equal(elements['fit-interaction-pins'].disabled, false);
@@ -162,7 +162,7 @@ test('filtering recounts mixed pins, popup details, rows, and unmapped interacti
     assert.equal(harness.visibleMarkers().length, 3);
     assert.deepEqual(harness.visibleMarkers().map(pin => pin.element.textContent), ['5', '2', '4']);
     assert.equal(table.rows.every(row => !row.hidden), true);
-    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email opens 3 · Email clicks 1 · Signups 1');
+    assert.equal(table.rows[0].cells['[data-interaction-types]'].textContent, 'Email Opens 3 · Email Clicks 1 · Signups 1');
     assert.equal(elements['interaction-map-feedback'].textContent, '3 locations · 11 interactions with a mapped location · 3 without a mappable country');
 });
 
@@ -182,8 +182,8 @@ test('Fit pins and table selection use only matching locations and their correct
 });
 
 test('a type with no mapped results shows an empty state and recovers when reset', () => {
-    const harness = mapHarness(mixedPins, {unmapped: 1, unmappedTypes: {'Preference updates': 1}});
-    harness.filter('Preference updates');
+    const harness = mapHarness(mixedPins, {unmapped: 1, unmappedTypes: {'Preference Updates': 1}});
+    harness.filter('Preference Updates');
     assert.equal(harness.visibleMarkers().length, 0);
     assert.equal(harness.elements['interaction-map-empty'].hidden, false);
     assert.match(harness.elements['interaction-map-empty'].textContent, /No preference updates/);
@@ -191,7 +191,7 @@ test('a type with no mapped results shows an empty state and recovers when reset
     assert.equal(harness.table.rows.every(row => row.hidden), true);
     assert.equal(harness.elements['fit-interaction-pins'].disabled, true);
     assert.equal(harness.fitCount, 0, 'Empty results never fit empty bounds');
-    assert.equal(harness.elements['interaction-map-feedback'].textContent, '0 locations · 0 interactions with a mapped location · 1 without a mappable country · Preference updates');
+    assert.equal(harness.elements['interaction-map-feedback'].textContent, '0 locations · 0 interactions with a mapped location · 1 without a mappable country · Preference Updates');
     harness.onLoad();
     assert.equal(harness.fitCount, 0);
     harness.filter('');
@@ -204,7 +204,7 @@ test('a type with no mapped results shows an empty state and recovers when reset
 test('empty reports and invalid coordinates never create pins or fit empty bounds', () => {
     for (const pins of [[], [{...mixedPins[0], latitude: 91}]]) {
         const harness = mapHarness(pins);
-        harness.filter('Email clicks');
+        harness.filter('Email Clicks');
         harness.onLoad();
         assert.equal(harness.visibleMarkers().length, 0);
         assert.equal(harness.fitCount, 0);

@@ -7,6 +7,7 @@ $outcomeCases = [
     ['completed', '', 'completed'],
     ['exited', 'Exit step', 'completed'],
     ['exited', 'Connection archived', 'completed'],
+    ['exited', 'Connection Archived', 'completed'],
     ['exited', 'Exit conditions met', 'exited'],
     ['exited', 'Removed manually', 'exited'],
     ['active', '', 'active'],
@@ -35,12 +36,12 @@ $oneRunReads = $flowSelects() - $beforeFlowReads;
 $beforeFlowReads = $flowSelects();
 $fullReport = $fs->flowReport($outcomeFlowId);
 audienceHttpExpect($flowSelects() - $beforeFlowReads === $oneRunReads && $fullReport['nodes'] === $nodeCounts,
-    'Loading histories for seven runs uses the same query count as one and preserves map counts');
+    'Loading all run histories uses the same query count as one and preserves map counts');
 $stepsByRun = array_column($fullReport['runs'], 'steps', 'id');
 audienceHttpExpect(array_column($stepsByRun[$outcomeRuns[0]], 'node_key') === ['tag','exit']
     && array_column($stepsByRun[$outcomeRuns[1]], 'node_key') === ['tag'] && $stepsByRun[$outcomeRuns[2]] === [],
     'The report keeps each run’s steps in execution order and includes empty histories');
-$outcomeExpected = ['started'=>7,'completed'=>3,'exited'=>2,'active'=>1,'failed'=>1];
+$outcomeExpected = ['started'=>8,'completed'=>4,'exited'=>2,'active'=>1,'failed'=>1];
 audienceHttpExpect($fs->flowRunTotals([$outcomeFlowId])[$outcomeFlowId] === $outcomeExpected,
     'Every entry belongs to exactly one outcome, including historical successful exits');
 audienceHttpExpect((new AudienceStore($conn, 2, 1, 'Other audience'))->flowRunTotals([$outcomeFlowId])[$outcomeFlowId]['started'] === 0,
@@ -73,6 +74,7 @@ foreach (['completed','exited','active','failed'] as $outcome) {
 $successfulPage = $editor('audience.php?view=flow-report&id='.$outcomeFlowId.'&state=completed');
 audienceHttpExpect(str_contains($successfulPage['body'], 'class="audience-notice success">Exit step')
     && str_contains($successfulPage['body'], 'class="audience-notice success">Connection archived')
+    && str_contains($successfulPage['body'], 'class="audience-notice success">Connection Archived')
     && !str_contains($successfulPage['body'], 'class="audience-notice error"'),
     'Successful exits are finished results without red error notices');
 // Later map edits cannot reinterpret the historical reason stored with each run.
