@@ -29,6 +29,9 @@ if(str_starts_with($fixtureMode,'send-')){
     $view='campaign-send';$dispatchReview=['count'=>2,'recipients'=>[['id'=>1,'first_name'=>'Ada','last_name'=>'Example','email'=>'ada@example.test'],['id'=>2,'first_name'=>'<script>','last_name'=>'Recipient','email'=>'second@example.test']],'proof'=>'fixture-proof'];$dispatchError='';$audience=['name'=>'Fixture audience'];$campaign['deleted_at']=null;$previewIdentity=[];
     if(str_starts_with($fixtureMode,'send-html'))$campaign['draft']['design']=audienceDesignStarters()['newsletter']['design'];
     else{$campaign['campaign_type']='plain-text';$campaign['draft']['text']="Hello recipient,\n\n".str_repeat('Long preview text ',40)."\n<script>literal text</script>";}
+    if($fixtureMode==='send-html-scheduled'){
+        $campaign['draft']['send_time']=['mode'=>'schedule','local'=>'2026-11-15 06:00','timezone'=>'America/Chicago','utc'=>'2026-11-15 12:00:00'];
+    }
     $dispatchReview['message_size']=audienceDispatchMessageSize(['html'=>$fixtureMode==='send-html-large'?str_repeat('x',120000):($campaign['campaign_type']==='plain-text'?null:'Small HTML'),'text'=>'Sample text']);
 }
 echo '<!doctype html><html lang="en">';

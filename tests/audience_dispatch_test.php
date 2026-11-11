@@ -74,7 +74,7 @@ $personalized['draft']['design']=audienceDesign(['schema'=>1,'styles'=>['webFont
         ['type'=>'toc'],['type'=>'share','sharePlatforms'=>['facebook','email']],
         ['type'=>'image-group','images'=>[['image'=>$gif,'alt'=>'Animation','url'=>'https://example.test/read']]],
         ['type'=>'text','text'=>'Special member copy','condition'=>['rules'=>[['field'=>'group:2','operator'=>'not_empty','value'=>'']]]],
-        ['type'=>'text','html'=>'<p>Inline <img src="'.$gif.'"> photograph.</p>'],
+        ['type'=>'text','html'=>'<p>*|FNAME|* <a href="https://example.test/photo"><img src="'.$gif.'" width="120" align="left" alt="Reading"></a> beside a photo.</p><p><img src="'.$gif.'" width="80" align="right"> Plain-text example: '.$gif.'</p>'],
         ['type'=>'code','code'=>'<p><a href="https://example.test/article">Article for *|FNAME|*</a></p>']
     ]]]
 ]]);
