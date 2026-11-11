@@ -31,9 +31,9 @@ try{
     $archiveRules=['match'=>'all','rules'=>[['field'=>'tags','operator'=>'any','value'=>[$archiveTag]],['field'=>'groups','operator'=>'any','value'=>[$archiveOption]]]];
     $archiveSegment=$store->saveSegment('Archive segment '.$suffix,$archiveRules,0,0);
     $savedFilter=$store->saveSegment('Active saved filter '.$suffix,$archiveRules,0,0);
-    foreach(['tags'=>['Delete tag Archive tag ','Archive tag Archive tag '],'segments'=>['Delete segment Archive segment ','Archive segment Archive segment '],'groups'=>['Delete Archive group ','Archive Archive group ']]as$view=>[$deleteLabel,$archiveLabel]){
+    foreach(['tags'=>['Delete Tag Archive tag ','Archive Tag Archive tag '],'segments'=>['Delete Segment Archive segment ','Archive Segment Archive segment '],'groups'=>['Delete Archive group ','Archive Archive group ']]as$view=>[$deleteLabel,$archiveLabel]){
         $body=$admin('audience.php?view='.$view)['body'];
-        audienceHttpExpect(!str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$archiveLabel.$suffix.'"')&&str_contains($body,'data-tooltip="Archive (Admin Unlock required)"'),ucfirst($view).' Active tab shows gated Archive without Delete');
+        audienceHttpExpect(!str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$archiveLabel.$suffix.'"')&&str_contains($body,'data-tooltip="Archive (Admin Unlock Required)"'),ucfirst($view).' Active tab shows gated Archive without Delete');
         audienceHttpExpect(!str_contains($editor('audience.php?view='.$view)['body'],'aria-label="'.$archiveLabel.$suffix.'"'),ucfirst($view).' Archive control is limited to administrators');
     }
     foreach([['tag',$archiveTag,'marketing_tags'],['segment',$archiveSegment,'marketing_segments'],['group',$archiveGroup,'marketing_group_categories']]as[$kind,$definitionId,$table]){
@@ -51,9 +51,9 @@ try{
     [$archiveWhere,$archiveValues]=$store->where(audienceListFilters([]),$archiveRules);
     audienceHttpExpect((int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $archiveWhere",$archiveValues)['n']===1,'Saved filter keeps matching archived definitions');
     audienceHttpExpect(!in_array($archiveTag,array_map('intval',array_column($store->tags(),'id')),true)&&!in_array($archiveGroup,array_map('intval',array_column($store->groups(),'id')),true),'Archived definitions leave new-use pickers');
-    audienceHttpExpect(str_contains($admin('audience.php?view=tags&definition_status=archived')['body'],'Archive tag '.$suffix)&&!str_contains($admin('audience.php?view=tags')['body'],'Restore tag Archive tag '.$suffix),'Tags separate active and archived views');
+    audienceHttpExpect(str_contains($admin('audience.php?view=tags&definition_status=archived')['body'],'Archive tag '.$suffix)&&!str_contains($admin('audience.php?view=tags')['body'],'Restore Tag Archive tag '.$suffix),'Tags separate active and archived views');
     audienceHttpExpect(str_contains($admin('audience.php?view=segments&definition_status=archived')['body'],'Archive segment '.$suffix)&&str_contains($admin('audience.php?view=groups&definition_status=archived')['body'],'Archive group '.$suffix),'Archived Segments and Groups are restorable');
-    foreach(['tags'=>['Delete tag Archive tag ','Restore tag Archive tag '],'segments'=>['Delete segment Archive segment ','Restore segment Archive segment '],'groups'=>['Delete Archive group ','Restore Archive group ']]as$view=>[$deleteLabel,$restoreLabel]){
+    foreach(['tags'=>['Delete Tag Archive tag ','Restore Tag Archive tag '],'segments'=>['Delete Segment Archive segment ','Restore Segment Archive segment '],'groups'=>['Delete Archive group ','Restore Archive group ']]as$view=>[$deleteLabel,$restoreLabel]){
         $body=$admin('audience.php?view='.$view.'&definition_status=archived')['body'];
         audienceHttpExpect(str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$restoreLabel.$suffix.'"'),ucfirst($view).' Archived tab shows Delete beside Restore');
     }

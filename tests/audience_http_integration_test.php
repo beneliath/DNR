@@ -27,7 +27,7 @@ try{
     $aid=1;$path='audience.php?view=contacts';$form=$editor($path);$token=audienceHttpCsrf($form);
     $stale=$editor($path,['csrf_token'=>$token,'audience'=>2,'action'=>'save_tag','name'=>'Stale scope']);audienceHttpExpect(str_contains($stale['body'],'Audience has been consolidated'),'Stale forms are rejected');
     $save=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'save_person','email'=>'fixture@example.test','first_name'=>'Fixture','email_status'=>'non-subscribed']);audienceHttpExpect($save['status']===302,'Editor adds connection');preg_match('/id=(\d+)/',$save['headers'],$m);$pid=(int)$m[1];
-    $profile=$editor($path.'&view=contact&id='.$pid);audienceHttpExpect($profile['status']===200&&str_contains($profile['body'],'Connection details')&&str_contains($profile['body'],'Insights'),'Profile renders');
+    $profile=$editor($path.'&view=contact&id='.$pid);audienceHttpExpect($profile['status']===200&&str_contains($profile['body'],'Connection Details')&&str_contains($profile['body'],'Insights'),'Profile renders');
     foreach(['tags','groups','fields','settings','segments','import','jobs']as$view){$res=$editor($path.'&view='.$view);audienceHttpExpect($res['status']===200&&str_contains($res['body'],'audience-config'),'Screen '.$view);audienceHttpExpect(!preg_match('/(?:Warning|Deprecated|Fatal error):/',$res['body']),'Screen without PHP warnings '.$view);}
     $review=$reviewer($path);$reviewToken=audienceHttpCsrf($review);audienceHttpExpect(!str_contains($review['body'],'data-segment-current')&&!str_contains($review['body'],'data-person-select'),'Reviewer has read-only Connections');
     audienceHttpExpect($reviewer($path,['csrf_token'=>$reviewToken,'audience'=>$aid,'action'=>'save_tag','name'=>'Forbidden'])['status']===403,'Reviewer writes denied');
@@ -159,7 +159,7 @@ try{
     audienceHttpExpect($conn->execute_query('SELECT body FROM marketing_notes WHERE id=?',[$note['id']])->fetch_assoc()['body']==='Updated note','Stale note edit does not overwrite current text');
     // Stage 2 campaign management uses the authenticated application routes.
     $campaignPath='audience.php?view=campaigns';
-    $campaignHome=$editor($campaignPath);audienceHttpExpect($campaignHome['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$campaignHome['body'])&&str_contains($campaignHome['body'],'All campaigns'),'Campaign list renders without warnings');
+    $campaignHome=$editor($campaignPath);audienceHttpExpect($campaignHome['status']===200&&!preg_match('/(?:Warning|Deprecated|Fatal error):/',$campaignHome['body'])&&str_contains($campaignHome['body'],'All Campaigns'),'Campaign list renders without warnings');
     $create=['csrf_token'=>$token,'action'=>'campaign_create','name'=>'Campaign fixture','campaign_type'=>'plain-text'];
     audienceHttpExpect($reviewer($campaignPath,array_replace($create,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot create campaigns');
     audienceHttpExpect($editor($campaignPath,array_replace($create,['csrf_token'=>'invalid']))['status']===400,'Campaign mutations require CSRF');

@@ -37,14 +37,14 @@ try{
   ['Campaigns',['view'=>'campaigns','search'=>$prefix],'Campaign Pages','page','per_page','//*[@data-campaign-action="edit"]'],
   ['Automations',['view'=>'automations','q'=>$prefix],'Flow Pages','page','per_page','//li[contains(@class,"flow-overview-row")]'],
   ['Surveys',['view'=>'surveys','q'=>$prefix],'Form Pages','page','per_page','//table[@data-mm-paginated-table]/tbody/tr'],
-  ['Tags',['view'=>'tags','list_search'=>$prefix],'Tags pages','list_page','list_size','//table[contains(@class,"audience-tag-list")]/tbody/tr[@data-definition-row]'],
+  ['Tags',['view'=>'tags','list_search'=>$prefix],'Tags Pages','list_page','list_size','//table[contains(@class,"audience-tag-list")]/tbody/tr[@data-definition-row]'],
   ['Segments',['view'=>'segments','list_search'=>$prefix],'Segment Pages','segment_page','segment_size','//table[contains(@class,"audience-segment-table")]/tbody/tr[@data-definition-row]'],
   ['Plans',['view'=>'campaign-manager','planner_layout'=>'list','plan_search'=>$prefix],'Campaign Plan Pages','plan_page','plan_size','//table[@data-mm-paginated-table]/tbody/tr'],
   ['Files',['view'=>'content','search'=>$prefix],'Content Pages','page','per_page',null],
   ['Responses',['view'=>'collection-report','id'=>$form],'Response Pages','page','per_page','//table[@data-mm-paginated-table]/tbody/tr'],
   ['Runs',['view'=>'flow-report','id'=>$flow],'Execution Pages','page','per_page','//*[contains(concat(" ",normalize-space(@class)," ")," flow-run ")]'],
   ['Contact activity',['view'=>'contact','id'=>$person,'activity_type'=>'pagination_fixture','activity_days'=>0],'Connection Activity Pages','activity_page','activity_size',null],
-  ['Export History',['view'=>'jobs','kind'=>'export'],'Export history pages','history_page','history_size',null],
+  ['Export History',['view'=>'jobs','kind'=>'export'],'Export History Pages','history_page','history_size',null],
   ['Conversation messages',['view'=>'inbox','thread'=>$thread],'Conversation Message Pages','message_page','message_size',null],
  ];
  foreach($cases as[$name,$params,$label,$pageKey,$sizeKey,$rows])foreach([10,50]as$size){
@@ -58,21 +58,21 @@ try{
  foreach([['q'=>$prefix,'status'=>['non-subscribed'],'per_page'=>10],['q'=>$prefix,'archived'=>'1','per_page'=>25],['q'=>$prefix,'per_page'=>100],[]]as$filter){
   $response=$client('audience.php?'.http_build_query($filter));paginationHttpExpect($response['status']===200,'Connections filter renders with its remembered page size');
   $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);
-  $selected=$xpath->query('//nav[@aria-label="Connection pages"]//select[@data-mm-page-size]/option[@selected]')->item(0);
+  $selected=$xpath->query('//nav[@aria-label="Connection Pages"]//select[@data-mm-page-size]/option[@selected]')->item(0);
   paginationHttpExpect($selected!==null&&$selected->getAttribute('value')==='50','Connections keeps the selected size across filters, archived views, stale links and return visits');
  }
  $changed=$client('audience.php?'.http_build_query(['q'=>$prefix,'per_page'=>100,'page_size_change'=>'per_page']));
  paginationHttpExpect($changed['status']===200,'A later explicit size selection renders');
  $again=$client('audience.php?'.http_build_query(['q'=>$prefix,'per_page'=>25,'status'=>['non-subscribed']]));
  $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$again['body']);$xpath=new DOMXPath($dom);
- paginationHttpExpect($xpath->query('//nav[@aria-label="Connection pages"]//select[@data-mm-page-size]/option[@selected and @value="100"]')->length===1,'A later selector change replaces the remembered size');
+ paginationHttpExpect($xpath->query('//nav[@aria-label="Connection Pages"]//select[@data-mm-page-size]/option[@selected and @value="100"]')->length===1,'A later selector change replaces the remembered size');
  foreach([10,50]as$size){
   $response=$client('audience.php?'.http_build_query(['view'=>'inbox','q'=>$prefix,'per_page'=>$size,'page'=>2]));
   paginationHttpExpect($response['status']===200&&!preg_match('/(?:Warning|Fatal error|Deprecated):/',$response['body']),'Continuous conversation list renders without runtime errors');
   $dom=new DOMDocument();@$dom->loadHTML('<?xml encoding="UTF-8">'.$response['body']);$xpath=new DOMXPath($dom);
   $rows=$xpath->query('//a[contains(concat(" ",normalize-space(@class)," ")," inbox-thread-item ")]');
   paginationHttpExpect($rows->length===70,'Conversation list includes all 70 matching threads despite stale page and size parameters');
-  paginationHttpExpect($xpath->query('//nav[@data-mm-pagination and @aria-label="Conversation pages"]')->length===0,'Continuous conversation list has no pager');
+  paginationHttpExpect($xpath->query('//nav[@data-mm-pagination and @aria-label="Conversation Pages"]')->length===0,'Continuous conversation list has no pager');
   paginationHttpExpect($xpath->query('//a[contains(concat(" ",normalize-space(@class)," ")," inbox-thread-item ") and @aria-current]')->length===0,'Landing does not select a conversation');
   paginationHttpExpect(str_contains($response['body'],'Choose a Conversation'),'Unselected conversation reader shows selection guidance');
  }
@@ -80,7 +80,7 @@ try{
  require_once __DIR__.'/audience_analytics_fixtures.php';audienceAnalyticsFixture($store,'Pagination analytics');
  $window=audienceAnalyticsWindow([]);$a=$store->analyticsActivity($window,'accepted',1,10);$b=$store->analyticsActivity($window,'accepted',2,10);
  paginationHttpExpect(count($a['rows'])===10&&count($b['rows'])===10&&!array_intersect(array_column($a['rows'],'id'),array_column($b['rows'],'id')),'Recipient activity has disjoint variable-size pages');
- $analytics=$client('audience.php?view=analytics&section=activity&per_page=10&page=2');paginationHttpExpect($analytics['status']===200&&str_contains($analytics['body'],'aria-label="Recipient activity pages"')&&!preg_match('/(?:Warning|Fatal error):/',$analytics['body']),'Recipient report renders the common pager');
+ $analytics=$client('audience.php?view=analytics&section=activity&per_page=10&page=2');paginationHttpExpect($analytics['status']===200&&str_contains($analytics['body'],'aria-label="Recipient Activity Pages"')&&!preg_match('/(?:Warning|Fatal error):/',$analytics['body']),'Recipient report renders the common pager');
  $last=$store->flowReport($flow,['page'=>999,'per_page'=>10]);paginationHttpExpect($last['page']===7&&count($last['runs'])===10,'Reports clamp stale page numbers');
  echo "MessageMonkey pagination HTTP: $checks checks passed.\n";
 }finally{if(is_file($cookie))unlink($cookie);}

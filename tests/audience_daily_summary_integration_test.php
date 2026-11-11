@@ -85,7 +85,7 @@ try{
         $body=html_entity_decode(strip_tags($changes[$part]),ENT_QUOTES,'UTF-8');
         $expect(!preg_match('/[\w.+-]+@[\w.-]+/',$body)&&!str_contains($body,'Private Street')&&!str_contains($body,'192.0.2.42'),'Email addresses, street addresses and IPs are absent from '.$part);
         $expect(substr_count($body,'Evanston, IL')===2&&str_contains($body,"Avery O'Neil & Lee")&&str_contains($body,'Connection #'.$unnamed),'Only subscriptions and pending sign-ups carry the mailing locality, with a safe unnamed fallback in '.$part);
-        foreach(['Subscription location · Madison, Wisconsin','Sign-up location · Toronto, Canada','Unsubscribe location · United Kingdom','Subscription location · Not recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
+        foreach(['Subscription Location · Madison, Wisconsin','Sign-Up Location · Toronto, Canada','Unsubscribe Location · United Kingdom','Subscription Location · Not Recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
     }
     foreach ([
         ['123 Example Street, St. Louis, MO 63101 US', ['St. Louis','MO']],

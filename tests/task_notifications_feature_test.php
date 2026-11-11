@@ -206,6 +206,7 @@ expectTaskNotificationsFeature(
         && str_contains($mailDispatchGrantSection, '.standard_event_tasks TO')
         && str_contains($mailDispatchGrantSection, 'event_start_date, event_end_date')
         && str_contains($mailDispatchGrantSection, 'confirmation_status')
+        && str_contains($mailDispatchGrantSection, 'presentation_not_required')
         && str_contains($mailDispatchGrantSection, 'event_address_line_1')
         && str_contains($mailDispatchGrantSection, 'event_country')
         && str_contains($mailDispatchGrantSection, 'id, title, archived_at')

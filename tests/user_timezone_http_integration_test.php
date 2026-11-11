@@ -31,7 +31,7 @@ try{
     $db->execute_query('UPDATE marketing_contact_events SET created_at=? WHERE contact_id=?',['2026-10-26 12:00:00',$person]);
     $path='audience.php?view=contacts&q='.rawurlencode($email);
     $page=$editor('profile.php');
-    $expect($page['status']===200&&str_contains($page['body'],'name="display_timezone"')&&str_contains($page['body'],'value="America/Chicago"')&&str_contains($page['body'],'Not selected — UTC'),'Profile offers canonical timezone choices and explicit fallback');
+    $expect($page['status']===200&&str_contains($page['body'],'name="display_timezone"')&&str_contains($page['body'],'value="America/Chicago"')&&str_contains($page['body'],'Not Selected — UTC'),'Profile offers canonical timezone choices and explicit fallback');
     $expect(str_contains($page['body'],'name="user-timezone" content="UTC"'),'Unset preference reaches browser configuration as UTC');
     $audience=$editor($path);
     $expect(str_contains($audience['body'],'2026-10-26 12:00 UTC')&&str_contains($audience['body'],'2026-10-26 12:01 UTC'),'Audience Date Added and Last Changed explicitly show UTC by default');

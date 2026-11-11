@@ -411,7 +411,7 @@ GRANT SELECT (template_key, due_anchor, due_offset_days)
     ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, organization_id, event_title, event_start_date, event_end_date,
-    confirmation_status,
+    confirmation_status, presentation_not_required,
     event_address_line_1, event_address_line_2, event_city, event_state,
     event_zipcode, event_country, is_deleted, lifecycle_status
 ) ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_dispatch_user}'@'%';
