@@ -1,5 +1,5 @@
 <?php // Use audiencePagination() so every MessageMonkey list shares this component. ?>
-<nav class="mm-pagination" data-mm-pagination aria-label="<?= $escape($options['label']??'Results pages') ?>">
+<nav class="mm-pagination" data-mm-pagination aria-label="<?= $escape($options['label']??'Results Pages') ?>">
     <form class="mm-pagination-size" method="get" action="<?= $escape(parse_url($base,PHP_URL_PATH)??'') ?>">
         <?php $inputs($params); ?>
         <input type="hidden" name="page_size_change" value="<?= $escape($sizeKey) ?>">

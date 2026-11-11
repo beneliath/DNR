@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/pagination_helpers.php';
+require_once __DIR__.'/app/Domain/ReferenceData.php';
 
 /** Each account, signed-in user, list and pagination parameter owns its preference. */
 function audienceRememberPageSizes(array $input,string $view,int $userId): array
@@ -34,6 +35,7 @@ function audiencePageSize(array $input, string $key='per_page', int $default=25)
 /** Render the Connections pagination, preserving the caller's complete filter URL. */
 function audiencePagination(array $options): void
 {
+    $options['label']=\Dnr\Domain\ReferenceData::label((string)($options['label']??'Results Pages'));
     $total=max(0,(int)$options['total']);
     $size=audiencePageSize(['size'=>$options['size']??25],'size');
     $pages=max(1,(int)ceil($total/$size));

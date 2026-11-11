@@ -104,7 +104,7 @@ try{
     $store->saveCollection(['name'=>$preferencesResource['name'],'document'=>$preferencesDraft],$preferences,(int)$preferencesResource['version']);
     $previewPath='audience.php?view=form&id='.$preferences.'&preview=published';
     $preferencesEditor=$adminClient('audience.php?view=form&id='.$preferences);
-    $expect($preferencesEditor['status']===200&&str_contains($preferencesEditor['body'],'href="'.htmlspecialchars($previewPath,ENT_QUOTES,'UTF-8').'"')&&str_contains($preferencesEditor['body'],'Open published preview'),'Preferences editor opens an authenticated published preview');
+    $expect($preferencesEditor['status']===200&&str_contains($preferencesEditor['body'],'href="'.htmlspecialchars($previewPath,ENT_QUOTES,'UTF-8').'"')&&str_contains($preferencesEditor['body'],'Open Published Preview'),'Preferences editor opens an authenticated published preview');
     $expect(str_contains($preferencesEditor['body'],'Private Subscriber Links')&&str_contains($preferencesEditor['body'],'*|UPDATE_PROFILE|*')&&!str_contains($preferencesEditor['body'],'id="collection-public-url"')&&!str_contains($preferencesEditor['body'],'data-copy-collection-link'),'Preferences sharing explains private email links instead of offering a public page URL');
     $beforePreviewPerson=$store->person((int)$contact['id']);
     $beforePreviewVisits=(int)$db->execute_query('SELECT COUNT(*) n FROM marketing_collection_visits WHERE resource_id=?',[$preferences])->fetch_assoc()['n'];

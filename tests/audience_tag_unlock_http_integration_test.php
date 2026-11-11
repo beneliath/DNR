@@ -188,6 +188,15 @@ try{
     $undoInput=['action'=>'undo_import','id'=>$import];
     $assertProtected('audience.php?view=job&id='.$import,$undoInput,fn()=>(int)$store->person((int)$imported['id'])['is_archived']===0);
     $sendProtected($admin,'audience.php?view=job&id='.$import,$undoInput);audienceHttpExpect((int)$store->person((int)$imported['id'])['is_archived']===1,'Unlocked import undo archives its new connection');
+    // Other suites can leave queued export fixtures in this shared disposable database.
+    // The delete-all success case requires their work to be cancelled first.
+    foreach($store->all("SELECT id FROM marketing_jobs WHERE audience_id=1 AND job_type='export' AND state IN ('queued','processing')")as$pendingExport){
+        try{$store->cancelJob((int)$pendingExport['id']);}
+        catch(InvalidArgumentException $error){
+            $finished=$store->one('SELECT state FROM marketing_jobs WHERE id=?',[$pendingExport['id']]);
+            audienceHttpExpect($finished&&!in_array($finished['state'],['queued','processing'],true),'Existing export fixture finished before cancellation');
+        }
+    }
     foreach(['single','selected','all']as$mode){
         $export=$store->queueSelection('export','Protected export '.$mode,$store->where(audienceListFilters([])));while($store->job($export)['state']!=='complete')$store->processJob($export);
         $exportInput=['action'=>'delete_export_history','export_ids'=>[$export],'delete_all'=>$mode==='all'?'1':'0'];

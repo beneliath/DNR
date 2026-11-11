@@ -155,7 +155,7 @@ try{
     $note=$conn->execute_query('SELECT id FROM marketing_notes WHERE contact_id=? ORDER BY id DESC LIMIT 1',[$pid])->fetch_assoc();
     $profileStore->saveNote($pid,'Updated note',(int)$note['id'],1);
     $failedNote=$editor($profilePath.'&tab=notes',['csrf_token'=>$token,'action'=>'save_note','id'=>$pid,'note_id'=>$note['id'],'version'=>1,'body'=>'Keep my unsaved note']);
-    audienceHttpExpect(str_contains($failedNote['body'],'<details open><summary>Edit note</summary>')&&str_contains($failedNote['body'],'>Keep my unsaved note</textarea>'),'Stale note editor remains open and retains its draft');
+    audienceHttpExpect(str_contains($failedNote['body'],'<details open><summary>Edit Note</summary>')&&str_contains($failedNote['body'],'>Keep my unsaved note</textarea>'),'Stale note editor remains open and retains its draft');
     audienceHttpExpect($conn->execute_query('SELECT body FROM marketing_notes WHERE id=?',[$note['id']])->fetch_assoc()['body']==='Updated note','Stale note edit does not overwrite current text');
     // Stage 2 campaign management uses the authenticated application routes.
     $campaignPath='audience.php?view=campaigns';
