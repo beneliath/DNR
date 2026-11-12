@@ -39,7 +39,39 @@ export function initializeRecentCampaigns(config) {
     });
 }
 
+function initializeCampaignCountdowns() {
+    const countdowns = $$('[data-campaign-countdown]').map(node => ({
+        node,
+        due: Date.parse(node.dataset.campaignCountdown),
+        label: $('[data-campaign-countdown-label]', node),
+        values: $$('[data-campaign-countdown-value]', node),
+    })).filter(({due}) => Number.isFinite(due));
+    if (!countdowns.length) return;
+    const units = ['day', 'hour', 'minute', 'second'];
+    const render = () => {
+        const now = Date.now();
+        let pending = false;
+        countdowns.forEach(({node, due, label, values}) => {
+            const remaining = Math.max(0, Math.ceil((due - now) / 1000));
+            const parts = [Math.floor(remaining / 86400), Math.floor(remaining / 3600) % 24, Math.floor(remaining / 60) % 60, remaining % 60];
+            values.forEach((value, index) => { value.textContent = String(parts[index]).padStart(2, '0'); });
+            label.textContent = remaining ? 'Sends in' : 'Sending soon';
+            node.setAttribute('aria-label', remaining ? `Sends in ${parts.map((part, index) => `${part} ${units[index]}${part === 1 ? '' : 's'}`).join(', ')}` : 'Sending soon');
+            node.hidden = false;
+            pending ||= remaining > 0;
+        });
+        return pending;
+    };
+    if (!render()) return;
+    const interval = window.setInterval(() => {
+        if (!render()) window.clearInterval(interval);
+    }, 1000);
+    // Recalculate from the timestamp after a background tab's timers were throttled.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+}
+
 export function initializeCampaignWorkspace(show, confirmations) {
+    initializeCampaignCountdowns();
     // Campaign actions reuse native dialogs, confirmations and top-layer menus.
     const campaignColumns = $('[data-campaign-columns]');
     if (campaignColumns) {
