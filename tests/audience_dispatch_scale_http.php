@@ -1,8 +1,7 @@
 <?php
 declare(strict_types=1);
 if(getenv('DNR_INTEGRATION_TEST')!=='1'||getenv('DNR_INTEGRATION_TARGET')!=='disposable')exit("Disposable suite required.\n");
-// Exercise the real 30-second HTTP client and confirmation transaction. These
-// fictional recipients are scheduled in the future; no worker or transport runs.
+// Exercise large scheduled campaigns through the real HTTP endpoint and a fake transport.
 $scaleStart=$checks;$scaleCount=7233;
 $conn->query("INSERT INTO marketing_tags(audience_id,name) VALUES (1,'Confirmation scale fixture')");
 $scaleTag=(int)$conn->insert_id;$scaleId=0;
@@ -51,29 +50,33 @@ try{
     $conn->execute_query("UPDATE marketing_campaigns SET campaign_type='regular',draft_json=? WHERE id=?",[json_encode($scaleDraft),$scaleId]);
     $scaleSaved=$campaignStore->campaign($scaleId)['draft_json'];
     audienceHttpExpect(strlen($scaleSaved)>1600000,'Scale newsletter exercises production-sized embedded fonts and wrapped images');
-    // A failure after 72 successful insert batches must roll back every batch.
-    $lastScalePerson=$scalePeople[$scaleCount-1];
-    $conn->execute_query("UPDATE marketing_contacts SET first_name=?,version=version+1 WHERE id=?",["Invalid\nHeader",$lastScalePerson]);
-    $scaleReview=$campaignStore->reviewCampaignDispatch($scaleId,$dispatchAudience,$dispatchBase);
-    $queryCounts=static function()use($conn):array{
-        return array_column($conn->query("SHOW SESSION STATUS WHERE Variable_name IN ('Com_select','Com_insert')")->fetch_all(MYSQLI_ASSOC),'Value','Variable_name');
-    };
-    $beforeCounts=$queryCounts();$rejected=false;
-    try{$campaignStore->confirmCampaignDispatch($scaleId,(int)$scaleRow['version'],$scaleReview['proof'],$dispatchAudience,$dispatchBase);}
-    catch(InvalidArgumentException $error){$rejected=str_contains($error->getMessage(),'invalid characters');}
-    $afterCounts=$queryCounts();
-    $selects=(int)$afterCounts['Com_select']-(int)$beforeCounts['Com_select'];
-    $inserts=(int)$afterCounts['Com_insert']-(int)$beforeCounts['Com_insert'];
-    audienceHttpExpect($rejected&&!$campaignStore->campaignDelivery($scaleId)&&$campaignStore->campaign($scaleId)['status']==='draft','Invalid final recipient rolls back the complete large-campaign confirmation');
-    audienceHttpExpect($selects<100&&$inserts>=73&&$inserts<100,'Confirmation uses bounded batch queries instead of per-recipient reads and inserts');
-    $conn->execute_query("UPDATE marketing_contacts SET first_name='Final reader',version=version+1 WHERE id=?",[$lastScalePerson]);
     $scalePath=$sendPath($scaleId);$scalePage=$editor($scalePath);
     $scaleConfirm=['csrf_token'=>$token,'action'=>'campaign_dispatch_confirm','id'=>$scaleId,'version'=>(int)$scaleRow['version'],'review_proof'=>$proofFrom($scalePage),'confirmed'=>'1'];
     $started=hrtime(true);$response=$editor($scalePath,$scaleConfirm);$seconds=(hrtime(true)-$started)/1e9;
-    audienceHttpExpect($response['status']===302,'All 7,233 recipients confirm through the real HTTP endpoint within its 30-second timeout');
+    audienceHttpExpect($response['status']===302,'Large audience schedules over HTTP within the request timeout');
     $scaleDelivery=$campaignStore->campaignDelivery($scaleId);$scaleDeliveryId=(int)$scaleDelivery['id'];
-    $totals=$campaignStore->one("SELECT COUNT(*) n,COUNT(DISTINCT contact_id) contacts,COUNT(DISTINCT token_hash) tokens,COUNT(DISTINCT message_id) messages,SUM(state='queued' AND attempts=0 AND delivery_started_at IS NULL AND next_attempt_at>UTC_TIMESTAMP()) unsent FROM marketing_campaign_recipients WHERE delivery_id=?",[$scaleDeliveryId]);
-    audienceHttpExpect(count(array_filter($totals,static fn($n)=>(int)$n===$scaleCount))===5&&$scaleDelivery['state']==='scheduled','Every recipient has one unique, frozen, unsent receipt');
+    audienceHttpExpect(!$campaignStore->campaignDeliveryCounts($scaleDeliveryId),'Large schedule creates no recipient receipts before it is due');
+
+    // A failure after 72 successful insert batches must roll back every batch.
+    $lastScalePerson=$scalePeople[$scaleCount-1];
+    $conn->execute_query("UPDATE marketing_contacts SET first_name=?,version=version+1 WHERE id=?",["Invalid\nHeader",$lastScalePerson]);
+    $dueNow($scaleDeliveryId);
+    $queryCounts=static function()use($conn):array{
+        return array_column($conn->query("SHOW SESSION STATUS WHERE Variable_name IN ('Com_select','Com_insert')")->fetch_all(MYSQLI_ASSOC),'Value','Variable_name');
+    };
+    $beforeCounts=$queryCounts();
+    $processed=processAudienceCampaignDelivery($conn,1,static fn()=>throw new RuntimeException('Unexpected delivery during failed audience preparation'));
+    $afterCounts=$queryCounts();
+    $selects=(int)$afterCounts['Com_select']-(int)$beforeCounts['Com_select'];
+    $inserts=(int)$afterCounts['Com_insert']-(int)$beforeCounts['Com_insert'];
+    $paused=$campaignStore->campaignDelivery($scaleId);
+    audienceHttpExpect(!$processed&&$paused['state']==='paused'&&str_contains($paused['error_message'],'invalid characters')&&!$campaignStore->campaignDeliveryCounts($scaleDeliveryId),'Invalid last recipient pauses the scheduled delivery and rolls back all receipts');
+    audienceHttpExpect($selects<100&&$inserts>=72&&$inserts<100,'Send-time preparation uses batch queries');
+    $conn->execute_query("UPDATE marketing_contacts SET first_name='Final reader',version=version+1 WHERE id=?",[$lastScalePerson]);
+    $campaignStore->campaignDeliveryOperation($scaleId,(int)$paused['version'],'resume');
+    audienceHttpExpect(processAudienceCampaignDelivery($conn,1,static fn()=>'accepted')===1,'Corrected schedule prepares every recipient before its first simulated send');
+    $totals=$campaignStore->one("SELECT COUNT(*) n,COUNT(DISTINCT contact_id) contacts,COUNT(DISTINCT token_hash) tokens,COUNT(DISTINCT message_id) messages FROM marketing_campaign_recipients WHERE delivery_id=?",[$scaleDeliveryId]);
+    audienceHttpExpect(count(array_filter($totals,static fn($n)=>(int)$n===$scaleCount))===4,'Every recipient has one unique receipt after retry');
     $frozenIds=array_map('intval',array_column($campaignStore->all('SELECT contact_id FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY contact_id',[$scaleDeliveryId]),'contact_id'));
     audienceHttpExpect($frozenIds===$scalePeople,'The complete recipient set exactly matches the reviewed audience');
     foreach($campaignStore->all('SELECT contact_id,context_ciphertext FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY contact_id LIMIT 4',[$scaleDeliveryId])as$recipient){
@@ -83,8 +86,8 @@ try{
     $scaleSnapshot=json_decode(\Dnr\Security\ApplicationKey::open($scaleDelivery['snapshot_ciphertext']),true);
     audienceHttpExpect($campaignStore->campaign($scaleId)['draft_json']===$scaleSaved&&$scaleSnapshot['draft']['design']===json_decode($scaleSaved,true)['design'],'Large confirmation preserves the complete saved newsletter and frozen design');
     audienceHttpExpect($editor($scalePath,$scaleConfirm)['status']===302&&(int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_campaign_deliveries WHERE campaign_id=?',[$scaleId])['n']===1&&(int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=?',[$scaleDeliveryId])['n']===$scaleCount,'Retrying large confirmation cannot create duplicate deliveries or recipients');
-    $campaignStore->campaignDeliveryOperation($scaleId,(int)$scaleDelivery['version'],'cancel');
-    echo sprintf("Large-campaign no-send rehearsal: %d recipients confirmed over HTTP in %.3f seconds; %d SELECTs / %d INSERTs before late-error rollback; %d checks passed.\n",$scaleCount,$seconds,$selects,$inserts,$checks-$scaleStart);
+    $campaignStore->campaignDeliveryOperation($scaleId,(int)$campaignStore->campaignDelivery($scaleId)['version'],'cancel');
+    echo sprintf("Large scheduled campaign: %d estimated recipients scheduled over HTTP in %.3f seconds; %d SELECTs / %d INSERTs before late-error rollback; %d checks passed.\n",$scaleCount,$seconds,$selects,$inserts,$checks-$scaleStart);
 }finally{
     $conn->rollback();
     if($scaleId){

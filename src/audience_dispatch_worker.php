@@ -38,8 +38,8 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
         $job=$db->query("SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND state IN ('scheduled','sending') AND due_at<=UTC_TIMESTAMP() AND (EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state='queued' AND r.phase<>'hold' AND r.next_attempt_at<=UTC_TIMESTAMP()) OR NOT EXISTS(SELECT 1 FROM marketing_campaign_recipients r WHERE r.delivery_id=marketing_campaign_deliveries.id AND r.state IN ('queued','processing'))) ".$flowClause." ORDER BY due_at,id LIMIT 1")->fetch_assoc();if(!$job)break;
         $flowLock=null;$lock=audienceDispatchLock($db,1,(int)$job['campaign_id']);
         try{
-            $job=$db->execute_query('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND id=?',[$job['id']])->fetch_assoc();
-            if(!in_array($job['state'],['scheduled','sending'],true))continue;
+            $job=$db->execute_query("SELECT * FROM marketing_campaign_deliveries WHERE audience_id=1 AND id=? AND state IN ('scheduled','sending') AND due_at<=UTC_TIMESTAMP()",[$job['id']])->fetch_assoc();
+            if(!$job)continue;
             if(!empty($job['flow_run_id'])){
                 $flowRun=$db->execute_query('SELECT flow_id FROM marketing_flow_runs WHERE audience_id=1 AND id=?',[$job['flow_run_id']])->fetch_assoc();if(!$flowRun)continue;
                 $flowLock='mm-flow-1-'.$flowRun['flow_id'];if((int)$db->execute_query('SELECT GET_LOCK(?,10) acquired',[$flowLock])->fetch_assoc()['acquired']!==1){$flowLock=null;continue;}
@@ -53,6 +53,23 @@ function processAudienceCampaignDelivery(mysqli $db,int $limit=10,?callable $del
             }catch(Throwable){
                 $db->execute_query("UPDATE marketing_campaign_deliveries SET state='paused',error_message='Sender, domain or campaign readiness needs attention. Review Email delivery setup before resuming.',version=version+1 WHERE id=?",[$job['id']]);
                 if(empty($job['flow_run_id']))$db->execute_query("UPDATE marketing_campaigns SET status='paused',version=version+1 WHERE audience_id=1 AND id=?",[$job['campaign_id']]);else $db->execute_query("UPDATE marketing_flow_runs SET state='failed',error_message='Email delivery setup needs attention. Review the existing delivery receipt before restarting.' WHERE audience_id=1 AND id=?",[$job['flow_run_id']]);continue;
+            }
+            if(empty($job['flow_run_id'])&&!$job['completed_at']&&($snapshot['draft']['send_time']['mode']??'')==='schedule'&&empty($snapshot['recipients_resolved'])){
+                $store=new AudienceStore($db,1,0,'Campaign delivery');
+                try{
+                    if(!$store->resolveScheduledRecipients($job,$snapshot))continue;
+                }catch(Throwable $error){
+                    // Allow transient database failures to retry with the entire audience transaction rolled back.
+                    if($error instanceof mysqli_sql_exception&&in_array($error->getCode(),[1205,1213,2006,2013],true))throw $error;
+                    $reason='Review the campaign filters and delivery setup before resuming.';
+                    if($error instanceof InvalidArgumentException)$reason=$error->getMessage();
+                    else applicationLog('error','Unable to prepare scheduled campaign recipients',['delivery_id'=>(int)$job['id'],'exception'=>get_class($error),'code'=>$error->getCode()]);
+                    $store->transaction(function()use($store,$job,$reason){
+                        $store->write("UPDATE marketing_campaign_deliveries SET state='paused',error_message=?,version=version+1 WHERE id=?",[mb_substr('Could not prepare the scheduled audience. '.$reason,0,300),$job['id']]);
+                        $store->write("UPDATE marketing_campaigns SET status='paused',version=version+1 WHERE audience_id=1 AND id=?",[$job['campaign_id']]);
+                    });
+                    continue;
+                }
             }
             $db->begin_transaction();
             try{

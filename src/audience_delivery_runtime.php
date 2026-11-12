@@ -19,15 +19,25 @@ function audienceExperimentVariants(array $draft):array
     foreach($experiment['variables'][$key]as$i=>$value){$copy=$base;switch($key){case 'subject':$copy['subject']=$value;break;case 'from':$copy['from_name']=$value;break;case 'content':$copy['content']=$i;$copy['design']=$i?($draft['design_variants'][$i]??$draft['design']):$draft['design'];break;case 'time':$copy['local']=$value;break;}$variants[]=$copy;}
     return $variants;
 }
+function audienceLocalSendTime(string $local,string $zone):string
+{
+    return (new DateTimeImmutable($local,new DateTimeZone($zone)))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+}
+/** UTC deadlines for the confirmed wall time, including zones with no current subscribers. */
+function audienceTimewarpTimes(array $send):array
+{
+    $times=[];
+    foreach(DateTimeZone::listIdentifiers()as$zone)$times[$zone]=audienceLocalSendTime($send['local'],$zone);
+    return $times;
+}
 function audienceRecipientDue(array $send,string $zone,?int $now=null):string
 {
     if(($send['mode']??'')!=='schedule'||($send['delivery']??'specific')!=='timewarp')return audienceDispatchDue($send,$now);
     $now??=time();if(strtotime(($send['utc']??'').' UTC')<$now+86400)throw new InvalidArgumentException('Schedule Timewarp at least 24 hours ahead.');
-    $copy=$send;$copy['delivery']='specific';if(in_array($zone,DateTimeZone::listIdentifiers(),true))$copy['timezone']=$zone;
     // Per-recipient DST gaps move forward to the first valid local instant; repeated hours use PHP's first occurrence once.
-    $local=new DateTimeImmutable($copy['local'],new DateTimeZone($copy['timezone']));
-    if($local->getTimestamp()<$now+300)throw new InvalidArgumentException('A recipient’s local send time is too soon. Choose a later date.');
-    return $local->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    $due=audienceLocalSendTime($send['local'],in_array($zone,DateTimeZone::listIdentifiers(),true)?$zone:$send['timezone']);
+    if(strtotime($due.' UTC')<$now+300)throw new InvalidArgumentException('A recipient’s local send time is too soon. Choose a later date.');
+    return $due;
 }
 /** Personal instructions belong in both alternatives of a test email. */
 function audienceTestEmailInstructions(array $message,string $instructions):array

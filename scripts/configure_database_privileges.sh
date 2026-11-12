@@ -373,7 +373,7 @@ GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_deliver
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_campaign_recipients TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id,audience_id,name,status,deleted_at,version), UPDATE (status,sent_at,version) ON \`${MYSQL_DATABASE}\`.marketing_campaigns TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE (first_name,last_name,custom_json,language,timezone,email_status,is_archived,version) ON \`${MYSQL_DATABASE}\`.marketing_contacts TO '${mail_dispatch_user}'@'%';
-GRANT SELECT (id,contact_id,event_type,details_json,created_at), INSERT ON \`${MYSQL_DATABASE}\`.marketing_contact_events TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id,contact_id,actor_type,event_type,details_json,created_at), INSERT ON \`${MYSQL_DATABASE}\`.marketing_contact_events TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.marketing_email_optouts TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_deleted_emails TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE (cursor_json) ON \`${MYSQL_DATABASE}\`.marketing_flows TO '${mail_dispatch_user}'@'%';
@@ -382,6 +382,7 @@ GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_flow_runs TO '${
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_flow_steps TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_fields TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_tags TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id,audience_id,filters_json) ON \`${MYSQL_DATABASE}\`.marketing_segments TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.marketing_contact_tags TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_group_categories TO '${mail_dispatch_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_group_options TO '${mail_dispatch_user}'@'%';

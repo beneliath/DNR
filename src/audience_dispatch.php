@@ -153,12 +153,14 @@ trait AudienceDispatch
     {
         return (int)$this->one("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_campaign_deliveries'")['n']===1;
     }
-    private function dispatchCandidates(array $draft):array
+    private function dispatchCandidates(array $draft,bool $previewOnly=false):array
     {
         if(empty($draft['recipients_saved']))throw new InvalidArgumentException('Save your recipients before sending.');
         [$where,$params]=$this->campaignTarget($draft);
         $deletedEmailPolicy=audienceDeletedEmailSuppressionSql();
-        return $this->all("SELECT c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.email_status,c.custom_json,c.timezone FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT 100001",$params);
+        $columns=$previewOnly?'c.id,c.email,c.first_name,c.last_name,COUNT(*) OVER() eligible_count':'c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.email_status,c.custom_json,c.timezone';
+        $limit=$previewOnly?100:100001;
+        return $this->all("SELECT $columns FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT $limit",$params);
     }
     private function dispatchSnapshot(array $row,array $audience,string $base):array
     {
@@ -184,20 +186,29 @@ trait AudienceDispatch
         if($this->collectionAvailable())foreach($this->all("SELECT public_key,kind FROM marketing_collection_resources WHERE audience_id=? AND kind IN ('survey','preferences') AND state='published' AND deleted_at IS NULL",[$this->audienceId])as$r)$collectionLinks[$r['public_key']]=$r['kind'];
         return ['reply_to'=>$this->inboxCampaignReplyTo($draft),'ses'=>audienceSesBinding($this->sesSettings()),'collection_links'=>$collectionLinks,'variants'=>audienceExperimentVariants($draft),'draft'=>$draft,'type'=>$row['campaign_type'],'identity'=>$this->designRecipientContext(0,$audience),'base'=>audienceDispatchBase($base)];
     }
-    /** Proof binds the visible review to content, sender settings and exact recipient identities. */
+    /** Scheduled reviews authorize the audience filters. Send Now also authorizes the exact recipients. */
     public function reviewCampaignDispatch(int $id,array $audience,string $base):array
     {
-        $row=$this->campaign($id);$snapshot=$this->dispatchSnapshot($row,$audience,$base);$candidates=$this->dispatchCandidates($row['draft']);
-        if(!$candidates||count($candidates)>100000)throw new InvalidArgumentException('Choose between 1 and 100,000 eligible subscribers.');
+        $row=$this->campaign($id);$snapshot=$this->dispatchSnapshot($row,$audience,$base);
+        $scheduled=$snapshot['draft']['send_time']['mode']==='schedule';
+        $candidates=$this->dispatchCandidates($row['draft'],$scheduled);
+        $count=$scheduled?(int)($candidates[0]['eligible_count']??0):count($candidates);
+        if($count>100000)throw new InvalidArgumentException('Choose no more than 100,000 eligible subscribers.');
+        if(!$scheduled&&!$candidates)throw new InvalidArgumentException('Choose at least one eligible subscriber.');
         // Render before confirmation to surface unresolved tags and malformed headers.
-        $first=$this->designRecipientContext((int)$candidates[0]['id'],$audience);
+        $fields=$this->fields();
+        if($candidates)$first=$this->designRecipientContext((int)$candidates[0]['id'],$audience);
+        else{
+            $first=['EMAIL'=>'preview@example.invalid','FNAME'=>'Preview','LNAME'=>'Recipient','SOURCE'=>'','EMAIL_STATUS'=>'subscribed'];
+            foreach($fields as$field)$first[$field['merge_tag']]=$field['default_value'];
+        }
         // Measure the delivered HTML even when this sample connection prefers text.
         // Fixed-length keys include the same hosting and tracking overhead as dispatch.
         $message=audienceDispatchMessage($snapshot+['asset_key'=>str_repeat('0',64),'tracking_key'=>str_repeat('0',64)],array_replace($first,['__email_format'=>'html']),str_repeat('0',64),'<review@message-monkey.invalid>');
-        $fingerprint=hash('sha256',json_encode([$snapshot,$candidates,$this->fields(),$this->tags(true),$this->groups(true)],JSON_THROW_ON_ERROR));
+        $fingerprint=hash('sha256',json_encode([$snapshot,$scheduled?[]:$candidates,$fields,$this->tags(true,!$scheduled),$this->groups(true,!$scheduled)],JSON_THROW_ON_ERROR));
         $proof=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'campaign'=>$id,'version'=>(int)$row['version'],'actor'=>$this->actorId,'expires'=>time()+900,'fingerprint'=>$fingerprint],JSON_THROW_ON_ERROR));
         $preview=array_map(static fn(array $person):array=>['id'=>(int)$person['id'],'email'=>$person['email'],'first_name'=>$person['first_name'],'last_name'=>$person['last_name']],array_slice($candidates,0,100));
-        return ['proof'=>$proof,'count'=>count($candidates),'recipients'=>$preview,'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint,'message_size'=>audienceDispatchMessageSize($message)];
+        return ['proof'=>$proof,'count'=>$count,'recipients'=>$preview,'due'=>audienceDispatchDue($snapshot['draft']['send_time']),'snapshot'=>$snapshot,'fingerprint'=>$fingerprint,'message_size'=>audienceDispatchMessageSize($message)];
     }
     public function confirmCampaignDispatch(int $id,int $version,string $proof,array $audience,string $base):int
     {
@@ -212,51 +223,124 @@ trait AudienceDispatch
             $freshAudience=$this->one('SELECT * FROM marketing_audiences WHERE id=? FOR UPDATE',[$this->audienceId]);
             $review=$this->reviewCampaignDispatch($id,$freshAudience,$base);
             if(!hash_equals((string)($receipt['fingerprint']??''),$review['fingerprint']))throw new InvalidArgumentException('Your recipients or sender settings changed. Review the updated email before sending.');
-            $snapshot=$review['snapshot'];$snapshot['asset_key']=bin2hex(random_bytes(32));$snapshot['tracking_key']=bin2hex(random_bytes(32));$draft=$snapshot['draft'];if(!empty($draft['resend']['enabled'])&&!in_array($draft['resend']['segment'],['non-openers','non-clickers'],true)){[$resendWhere,$resendParams]=$this->campaignTarget(['recipients_saved'=>true,'include'=>[$draft['resend']['segment']],'exclude'=>[]]);$snapshot['resend_allowed_ids']=array_map('intval',array_column($this->all("SELECT c.id FROM marketing_contacts c WHERE $resendWhere",$resendParams),'id'));}$due=$review['due'];$state=$draft['send_time']['mode']==='schedule'?'scheduled':'sending';
-            $this->write('INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label) VALUES (?,?,?,?,?,?,?,?,?,?,?)',[$this->audienceId,$id,$version,$state,$due,$draft['send_time']['timezone']??'America/Chicago',\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$snapshot['asset_key'],$review['count'],$this->actorId,$this->actorLabel]);$delivery=(int)$this->db->insert_id;
-            $candidates=$this->dispatchCandidates($draft);$assignments=[];$decision=$due;
-            if(!empty($draft['experiment'])){$ranked=$candidates;usort($ranked,static fn($a,$b)=>strcmp(hash('sha256',$id.':'.$a['id']),hash('sha256',$id.':'.$b['id'])));$n=count($snapshot['variants']);if(count($ranked)<$n)throw new InvalidArgumentException('Choose at least one recipient for each test combination.');$testSize=max($n,(int)ceil(count($ranked)*(int)$draft['experiment']['percent']/100));foreach($ranked as$i=>$r)$assignments[$r['id']]=[$i<$testSize?(string)($i%$n):'0',$i<$testSize?'test':'hold'];$decision=gmdate('Y-m-d H:i:s',strtotime($due.' UTC')+(int)$draft['experiment']['hours']*3600);$this->write('UPDATE marketing_campaign_deliveries SET experiment_due_at=? WHERE id=?',[$decision,$delivery]);}
-            if(!empty($draft['resend']['enabled'])){$zone=new DateTimeZone($draft['send_time']['timezone']??'America/Chicago');$resend=(new DateTimeImmutable($due,new DateTimeZone('UTC')))->setTimezone($zone)->modify('+'.(int)$draft['resend']['days'].' days');$resend=new DateTimeImmutable($resend->format('Y-m-d').' '.$draft['resend']['time'],$zone);$this->write('UPDATE marketing_campaign_deliveries SET resend_due_at=? WHERE id=?',[$resend->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$delivery]);}
-            $fields=$this->fields();$tagIds=array_column($this->tags(true),'id');$groupIds=[];foreach($this->groups(true)as$g)foreach($g['options']as$o)$groupIds[]=$o['id'];
-            $memberships=[];foreach($this->all('SELECT ct.contact_id,ct.tag_id FROM marketing_contact_tags ct JOIN marketing_tags t ON t.id=ct.tag_id WHERE t.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['tag:'.$m['tag_id']]='1';
-            foreach($this->all('SELECT cg.contact_id,cg.option_id FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['group:'.$m['option_id']]='1';
-            // Match collectionEmailFormat's latest valid recipient preference in
-            // one query, instead of fetching the contact and preference per row.
-            $formats=[];
-            foreach($this->all("SELECT e.contact_id,JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.email_format')) format FROM marketing_contact_events e JOIN (
-                SELECT events.contact_id,MAX(events.id) id FROM marketing_contact_events events JOIN marketing_contacts c ON c.id=events.contact_id
-                WHERE c.audience_id=? AND events.actor_type='recipient' AND events.event_type='signup-permission'
-                AND JSON_UNQUOTE(JSON_EXTRACT(events.details_json,'$.email_format')) IN ('html','text') GROUP BY events.contact_id
-            ) latest ON latest.id=e.id",[$this->audienceId])as$preference)$formats[$preference['contact_id']]=$preference['format'];
-            $render=audienceDispatchRenderer($snapshot);$pending=[];$pendingBytes=0;
-            $flush=function()use(&$pending,&$pendingBytes):void{
-                if(!$pending)return;
-                $values=implode(',',array_fill(0,(int)(count($pending)/10),'(?,?,?,?,?,?,?,?,?,?)'));
-                $this->write('INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,next_attempt_at,variant_key,phase) VALUES '.$values,$pending);
-                $pending=[];$pendingBytes=0;
-            };
-            foreach($candidates as$person){
-                $custom=audienceJson($person['custom_json']);
-                $context=['EMAIL'=>$person['email'],'FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
-                foreach($fields as$f){$value=$custom[$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
-                foreach($tagIds as$t)$context['tag:'.$t]=$memberships[$person['id']]['tag:'.$t]??'';foreach($groupIds as$g)$context['group:'.$g]=$memberships[$person['id']]['group:'.$g]??'';
-                $context['__email_format']=$formats[$person['id']]??'html';
-                $token=bin2hex(random_bytes(32));$mid='<mm-'.bin2hex(random_bytes(24)).'@'.parse_url($base,PHP_URL_HOST).'>';
-                [$variantKey,$phase]=$assignments[$person['id']]??['0','main'];$send=$draft['send_time'];$variant=$snapshot['variants'][(int)$variantKey]??[];if(!empty($variant['local'])){$send['local']=str_replace('T',' ',$variant['local']);$send['mode']='schedule';$send['delivery']='specific';}
-                $recipientDue=audienceRecipientDue($send,$person['timezone']);if($phase==='hold')$recipientDue=$decision;
-                $render($context,$token,$mid,$variantKey);
-                $ciphertext=\Dnr\Security\ApplicationKey::seal(json_encode(['context'=>$context,'token'=>$token],JSON_THROW_ON_ERROR));
-                array_push($pending,$this->audienceId,$delivery,$person['id'],audienceDispatchEmailHash($person['email']),$ciphertext,hash('sha256',$token),$mid,$recipientDue,$variantKey,$phase);
-                $pendingBytes+=strlen($ciphertext)+512;
-                if(count($pending)>=1000||$pendingBytes>=524288)$flush();
+            $snapshot=$review['snapshot'];
+            $snapshot['asset_key']=bin2hex(random_bytes(32));
+            $snapshot['tracking_key']=bin2hex(random_bytes(32));
+            $draft=$snapshot['draft'];
+            $send=$draft['send_time'];
+            $scheduled=$send['mode']==='schedule';
+            $state=$scheduled?'scheduled':'sending';
+            $due=$review['due'];
+            if($scheduled)$snapshot['recipients_resolved']=false;
+            else $this->setDispatchResendAudience($snapshot);
+            // Wake at the first possible local send time, including zones of future subscribers.
+            $firstDue=$scheduled&&($send['delivery']??'')==='timewarp'?min(audienceTimewarpTimes($send)):$due;
+            $this->write('INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label) VALUES (?,?,?,?,?,?,?,?,?,?,?)',[$this->audienceId,$id,$version,$state,$firstDue,$send['timezone']??'America/Chicago',\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$snapshot['asset_key'],$review['count'],$this->actorId,$this->actorLabel]);
+            $delivery=(int)$this->db->insert_id;
+            if(!empty($draft['resend']['enabled'])){
+                $zone=new DateTimeZone($send['timezone']??'America/Chicago');
+                $resend=(new DateTimeImmutable($due,new DateTimeZone('UTC')))->setTimezone($zone)->modify('+'.(int)$draft['resend']['days'].' days');
+                $resend=new DateTimeImmutable($resend->format('Y-m-d').' '.$draft['resend']['time'],$zone);
+                $this->write('UPDATE marketing_campaign_deliveries SET resend_due_at=? WHERE id=?',[$resend->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$delivery]);
             }
-            $flush();
-            $this->write('UPDATE marketing_campaign_deliveries SET due_at=(SELECT MIN(next_attempt_at) FROM marketing_campaign_recipients WHERE delivery_id=?) WHERE id=?',[$delivery,$delivery]);
-            if(!empty($draft['experiment']))$this->write("UPDATE marketing_campaign_deliveries SET experiment_due_at=DATE_ADD((SELECT MAX(next_attempt_at) FROM marketing_campaign_recipients WHERE delivery_id=? AND phase='test'),INTERVAL ? HOUR) WHERE id=?",[$delivery,(int)$draft['experiment']['hours'],$delivery]);
+            if(!$scheduled)$this->queueDispatchRecipients($delivery,$snapshot,$this->dispatchCandidates($draft),$due);
             $this->write('UPDATE marketing_campaigns SET status=?,version=version+1,actor_label=? WHERE audience_id=? AND id=?',[$state,$this->actorLabel,$this->audienceId,$id]);
             return $delivery;
         });}finally{$this->db->execute_query('SELECT RELEASE_LOCK(?)',[$lock]);}
     }
+    private function setDispatchResendAudience(array &$snapshot):void
+    {
+        $resend=$snapshot['draft']['resend']??[];
+        if(empty($resend['enabled'])||in_array($resend['segment'],['non-openers','non-clickers'],true))return;
+        [$where,$params]=$this->campaignTarget(['recipients_saved'=>true,'include'=>[$resend['segment']],'exclude'=>[]]);
+        $snapshot['resend_allowed_ids']=array_map('intval',array_column($this->all("SELECT c.id FROM marketing_contacts c WHERE $where",$params),'id'));
+    }
+
+    /** Called with the campaign dispatch lock held, before claiming any recipient. */
+    public function resolveScheduledRecipients(array $job,array $snapshot):bool
+    {
+        return $this->transaction(function()use($job,$snapshot){
+            $delivery=(int)$job['id'];
+            $send=$snapshot['draft']['send_time'];
+            $legacy=!array_key_exists('recipients_resolved',$snapshot);
+            // A pre-upgrade worker may already have attempted delivery, even if it deferred or crashed.
+            if($legacy&&$this->one("SELECT id FROM marketing_campaign_recipients WHERE delivery_id=? AND (state<>'queued' OR phase<>'main' OR attempts>0 OR started_at IS NOT NULL) LIMIT 1",[$delivery])){
+                $snapshot['recipients_resolved']=true;
+                $this->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?',[\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$delivery]);
+                return true;
+            }
+            $candidates=$this->dispatchCandidates($snapshot['draft']);
+            if(count($candidates)>100000)throw new InvalidArgumentException('More than 100,000 subscribers match the scheduled audience.');
+            $due=$job['due_at'];
+            $localTimes=[];
+            if(($send['delivery']??'')==='timewarp'){
+                $localTimes=audienceTimewarpTimes($send);
+                $due=$localTimes[$send['timezone']];
+                $now=$this->one('SELECT UTC_TIMESTAMP() AS dispatch_time')['dispatch_time'];
+                $first=null;
+                foreach($candidates as$person){
+                    $at=$localTimes[$person['timezone']]??$due;
+                    if($first===null||$at<$first)$first=$at;
+                }
+                // Keep membership open until the first matching recipient is due. A new
+                // subscriber can be in any zone, so wake at the next possible local time.
+                $future=array_filter($localTimes,static fn($at)=>$at>$now);
+                if(($first===null||$first>$now)&&$future){
+                    $this->write('UPDATE marketing_campaign_deliveries SET due_at=? WHERE id=?',[min($future),$delivery]);
+                    return false;
+                }
+            }
+            if($legacy){
+                // Unsent legacy rows are retained for reporting. Matching rows will be refreshed below.
+                $this->write("UPDATE marketing_campaign_recipients SET state='suppressed',error_message='Outside the audience at send time.' WHERE delivery_id=? AND state='queued'",[$delivery]);
+            }
+            $this->setDispatchResendAudience($snapshot);
+            if($candidates)$this->queueDispatchRecipients($delivery,$snapshot,$candidates,$due,$localTimes,$legacy);
+            $snapshot['recipients_resolved']=true;
+            $this->write('UPDATE marketing_campaign_deliveries SET recipient_count=?,snapshot_ciphertext=? WHERE id=?',[count($candidates),\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$delivery]);
+            return true;
+        });
+    }
+
+    private function queueDispatchRecipients(int $delivery,array $snapshot,array $candidates,string $due,array $localTimes=[],bool $replaceUnsent=false):void
+    {
+        $fields=$this->fields();$tagIds=array_column($this->tags(true,false),'id');$groupIds=[];foreach($this->groups(true,false)as$g)foreach($g['options']as$o)$groupIds[]=$o['id'];
+        $memberships=[];foreach($this->all('SELECT ct.contact_id,ct.tag_id FROM marketing_contact_tags ct JOIN marketing_tags t ON t.id=ct.tag_id WHERE t.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['tag:'.$m['tag_id']]='1';
+        foreach($this->all('SELECT cg.contact_id,cg.option_id FROM marketing_contact_groups cg JOIN marketing_group_options o ON o.id=cg.option_id JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.audience_id=?',[$this->audienceId])as$m)$memberships[$m['contact_id']]['group:'.$m['option_id']]='1';
+        // Match collectionEmailFormat's latest valid recipient preference in
+        // one query, instead of fetching the contact and preference per row.
+        $formats=[];
+        foreach($this->all("SELECT e.contact_id,JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.email_format')) format FROM marketing_contact_events e JOIN (
+            SELECT events.contact_id,MAX(events.id) id FROM marketing_contact_events events JOIN marketing_contacts c ON c.id=events.contact_id
+            WHERE c.audience_id=? AND events.actor_type='recipient' AND events.event_type='signup-permission'
+            AND JSON_UNQUOTE(JSON_EXTRACT(events.details_json,'$.email_format')) IN ('html','text') GROUP BY events.contact_id
+        ) latest ON latest.id=e.id",[$this->audienceId])as$preference)$formats[$preference['contact_id']]=$preference['format'];
+        $render=audienceDispatchRenderer($snapshot);$pending=[];$pendingBytes=0;
+        $flush=function()use(&$pending,&$pendingBytes,$replaceUnsent):void{
+            if(!$pending)return;
+            $values=implode(',',array_fill(0,(int)(count($pending)/10),'(?,?,?,?,?,?,?,?,?,?)'));
+            // A legacy schedule can have untouched rows from its original confirmation.
+            $update=$replaceUnsent?" AS incoming ON DUPLICATE KEY UPDATE email_hash=incoming.email_hash,context_ciphertext=incoming.context_ciphertext,token_hash=incoming.token_hash,message_id=incoming.message_id,next_attempt_at=incoming.next_attempt_at,state='queued',error_message=''":'';
+            $this->write('INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,next_attempt_at,variant_key,phase) VALUES '.$values.$update,$pending);
+            $pending=[];$pendingBytes=0;
+        };
+        foreach($candidates as$person){
+            $custom=audienceJson($person['custom_json']);
+            $context=['EMAIL'=>$person['email'],'FNAME'=>$person['first_name'],'LNAME'=>$person['last_name'],'SOURCE'=>$person['source'],'EMAIL_STATUS'=>$person['email_status']];
+            foreach($fields as$f){$value=$custom[$f['id']]??'';if($value===''||$value===[])$value=$f['default_value'];$context[$f['merge_tag']]=is_array($value)?implode(', ',$value):(string)$value;}
+            foreach($tagIds as$t)$context['tag:'.$t]=$memberships[$person['id']]['tag:'.$t]??'';foreach($groupIds as$g)$context['group:'.$g]=$memberships[$person['id']]['group:'.$g]??'';
+            $context['__email_format']=$formats[$person['id']]??'html';
+            $token=bin2hex(random_bytes(32));$mid='<mm-'.bin2hex(random_bytes(24)).'@'.parse_url($snapshot['base'],PHP_URL_HOST).'>';
+            $recipientDue=$localTimes[$person['timezone']]??$due;
+            $render($context,$token,$mid);
+            $ciphertext=\Dnr\Security\ApplicationKey::seal(json_encode(['context'=>$context,'token'=>$token],JSON_THROW_ON_ERROR));
+            array_push($pending,$this->audienceId,$delivery,$person['id'],audienceDispatchEmailHash($person['email']),$ciphertext,hash('sha256',$token),$mid,$recipientDue,'0','main');
+            $pendingBytes+=strlen($ciphertext)+512;
+            if(count($pending)>=1000||$pendingBytes>=524288)$flush();
+        }
+        $flush();
+    }
+
     public function campaignDelivery(int $campaign):?array
     {
         return $this->one('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? AND flow_run_id=0 ORDER BY id DESC LIMIT 1',[$this->audienceId,$campaign]);
