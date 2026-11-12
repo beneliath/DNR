@@ -13,6 +13,15 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     --ignore-platform-req=ext-zip \
     --classmap-authoritative
 
+FROM dependencies AS audience-geoip
+
+# DB-IP removes older monthly downloads. The archive serves the same pinned bytes.
+RUN edition=dbip-city-lite-2026-11.mmdb.gz \
+    && (curl -fsSL --retry 2 --max-time 180 "https://download.db-ip.com/free/$edition" -o /tmp/city.mmdb.gz \
+        || curl -fsSL --retry 2 --max-time 180 "https://dbip.mirror.framasoft.org/files/$edition" -o /tmp/city.mmdb.gz) \
+    && echo 'b69c625515f636ac92112b71df26bb92a5748f648c79bad124ecd9ba1c97bf4a  /tmp/city.mmdb.gz' | sha256sum -c - \
+    && gzip -dc /tmp/city.mmdb.gz > /tmp/dbip-city-lite.mmdb
+
 FROM php:8.5.12-apache@sha256:08af36df144462d84c7f16190557eec06cb9f656882685610b712a15eec54d46
 
 # PHP 8.5 includes OPcache in the binary; do not build it as a shared extension.
@@ -57,8 +66,10 @@ RUN a2enconf zz-dnr-security zz-dnr-capacity zz-dnr-short-links \
 # bind mount cannot hide or expose them.
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
-RUN install -d -m 0755 /opt/dnr/bin /opt/dnr/backup-public \
+RUN install -d -m 0755 /opt/dnr/bin /opt/dnr/backup-public /opt/dnr/geoip \
     && install -d -o www-data -g www-data -m 0700 /var/lib/dnr/files
+COPY --from=audience-geoip --chmod=0444 /tmp/dbip-city-lite.mmdb /opt/dnr/geoip/dbip-city-lite.mmdb
+COPY docker/dbip-city-NOTICE /opt/dnr/geoip/NOTICE
 COPY --chmod=0644 scripts/compile_device_detector_yaml.php /opt/dnr/bin/compile_device_detector_yaml.php
 RUN php /opt/dnr/bin/compile_device_detector_yaml.php
 COPY --chmod=0644 scripts/create_admin.php /opt/dnr/bin/create_admin.php

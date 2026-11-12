@@ -503,10 +503,9 @@ body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: c
   z-index: 86;
   inset: var(--deployment-banner-height, 0px) 0 auto var(--sidebar-width);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 8px 40px;
   min-height: 68px;
   padding: 10px var(--app-content-padding);
   border-bottom: 1px solid #9a3412;
@@ -517,13 +516,22 @@ body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: c
   text-align: left;
 }
 
+html:not(.dark-mode) .admin-unlock-banner { --tooltip-bg: #000; }
 html.dark-mode .admin-unlock-banner { background: #fb923c !important; }
 .admin-unlock-banner[hidden] { display: none !important; }
 .admin-unlock-copy { display: flex; flex-direction: column; gap: 1px; }
 .admin-unlock-copy strong { color: inherit; font-size: 0.98rem; }
-.admin-unlock-lock-form { justify-self: center; margin: 0; text-align: center; }
+.admin-unlock-lock-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  justify-self: end;
+  column-gap: 24px;
+  margin: 0;
+  text-align: center;
+}
 .admin-unlock-banner .admin-unlock-lock-button { white-space: nowrap; }
-[data-admin-lock-error]:not([hidden]) { display: block; margin-top: 4px; }
+[data-admin-lock-error]:not([hidden]) { display: block; flex-basis: 100%; margin-top: 4px; }
 .admin-unlock-countdown { display: flex; align-items: center; justify-self: end; gap: 12px; flex-shrink: 0; }
 [data-admin-unlock-timer] {
   padding: 3px 10px;
@@ -540,24 +548,21 @@ body.has-app-shell.admin-unlock-active {
   scroll-margin-top: calc(var(--deployment-banner-height, 0px) + var(--admin-unlock-banner-height, 68px) + 80px);
 }
 
-/* Keep the timer clear of the action buttons when the main column narrows. */
+/* Let the message take its own row while the actions stay next to the timer. */
 @media (max-width: 1100px) {
   .admin-unlock-banner { grid-template-columns: minmax(0, 1fr) auto; }
-  .admin-unlock-lock-form { grid-column: 1 / -1; grid-row: 2; }
+  .admin-unlock-copy { grid-column: 1 / -1; }
 }
 @media (min-width: 1101px) and (max-width: 1600px) {
   body.coach-open .admin-unlock-banner { grid-template-columns: minmax(0, 1fr) auto; }
-  body.coach-open .admin-unlock-lock-form { grid-column: 1 / -1; grid-row: 2; }
+  body.coach-open .admin-unlock-copy { grid-column: 1 / -1; }
 }
 
 @media (max-width: 860px) {
   .admin-unlock-banner {
     inset: calc(64px + var(--deployment-banner-height, 0px)) 0 auto;
-    gap: 8px;
     padding: 9px 14px;
-    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .admin-unlock-lock-form { grid-column: 1 / -1; grid-row: 2; }
   .admin-unlock-countdown { flex-direction: column; align-items: flex-end; gap: 2px; }
   .admin-unlock-countdown > span:first-child { font-size: 0.7rem; }
   body.has-app-shell.admin-unlock-active {
@@ -3669,9 +3674,14 @@ html body .action-icon-button.delete-button:focus-visible {
 html body .admin-unlock-banner .admin-unlock-lock-button {
   width: 44px !important;
   height: 44px !important;
-  border-color: var(--border-strong) !important;
-  background: var(--surface) !important;
-  color: var(--text) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+.admin-unlock-lock-button .action-icon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
 }
 html body .admin-unlock-banner .admin-unlock-lock-button:is(:hover, :focus-visible):not(:disabled) {
   border-color: var(--action-edit) !important;
@@ -3682,8 +3692,6 @@ html body .admin-unlock-banner .admin-unlock-lock-button:is(:hover, :focus-visib
 .admin-unlock-banner .action-icon-button::after {
   top: calc(100% + 8px);
   bottom: auto;
-  background: #000;
-  color: #fff;
   transform: translate(-50%, 0);
   transition: none;
 }
@@ -3694,7 +3702,7 @@ html body .admin-unlock-banner .admin-unlock-lock-button:is(:hover, :focus-visib
   left: calc(50% - 4px);
   width: 8px;
   height: 8px;
-  background: #000;
+  background: var(--tooltip-bg);
   transform: rotate(45deg);
   opacity: 0;
 }

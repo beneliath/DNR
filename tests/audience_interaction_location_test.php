@@ -8,6 +8,7 @@ $checks=0;
 $expect=static function(bool $ok,string $message)use(&$checks):void{if(!$ok)throw new RuntimeException($message);++$checks;};
 $oldProxy=getenv('DNR_TRUSTED_PROXY_IPS');
 $oldCloudflare=getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+$oldDatabase=getenv('DNR_GEOIP_DATABASE');
 putenv('DNR_TRUSTED_PROXY_IPS=10.0.0.1');
 putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=10.1.0.0/24');
 try {
@@ -22,6 +23,22 @@ try {
     $expect(audienceInteractionPlace($city)==='Chicago, Illinois, United States of America','Recorded location has a readable label');
     $country=audienceInteractionLocation($edge,null,'');
     $expect($country['country_code']==='US'&&$country['source']==='trusted edge country'&&!isset($country['city']),'Trusted edge country is a fallback, not invented city data');
+    $estimate=audienceInteractionCurrentEstimate($country,static fn(string $ip)=>$ip===$country['ip_address']?$city:[]);
+    $expect($estimate===['place'=>'Chicago, Illinois, United States of America','source'=>'local GeoIP database']&&audienceInteractionPlace($country)==='United States of America','A legacy country-only event keeps its recorded place beside an attributable current estimate');
+    $neverLookup=static function(){throw new RuntimeException('Unexpected profile lookup');};
+    $expect(audienceInteractionCurrentEstimate($city,$neverLookup)===null,'A complete recorded place needs no estimate');
+    $expect(audienceInteractionCurrentEstimate(['country_code'=>'CA'],$neverLookup)===null,'No estimate is possible without a recorded IP');
+    $expect(audienceInteractionCurrentEstimate(['ip_address'=>'192.0.2.10'],$neverLookup)===null,'Reserved and demonstration addresses are not estimated');
+    $expect(audienceInteractionCurrentEstimate($country,static fn()=>['country_code'=>'US'])===null,'A repeated country adds no estimate');
+    $expect(audienceInteractionCurrentEstimate($country,static fn()=>[])===null,'Unmapped IPs retain the original observation');
+
+    putenv('DNR_GEOIP_DATABASE=fixture-country.mmdb');
+    $countryRecord=static fn(string $code)=>['country'=>['iso_code'=>$code]];
+    $bundled=$countryRecord('US')+['subdivisions'=>[['names'=>['en'=>'Illinois']]],'city'=>['names'=>['en'=>'Chicago']]];
+    $refined=audienceInteractionLocation($edge,static fn($path)=>$path==='fixture-country.mmdb'?$countryRecord('US'):$bundled);
+    $expect($refined['source']==='DB-IP City Lite'&&$refined['city']==='Chicago','The bundled City file refines a matching configured Country record');
+    $conflict=audienceInteractionLocation($edge,static fn($path)=>$path==='fixture-country.mmdb'?$countryRecord('CA'):$bundled);
+    $expect($conflict['country_code']==='CA'&&!isset($conflict['city']),'A conflicting fallback cannot replace the configured country');
     $direct=audienceInteractionLocation(array_replace($edge,['REMOTE_ADDR'=>'8.8.8.8','HTTP_X_FORWARDED_FOR'=>'1.1.1.1']),null,'');
     $expect($direct['ip_address']==='8.8.8.8'&&!isset($direct['country_code']),'Untrusted forwarding and country headers cannot supply location');
     $intervening=audienceInteractionLocation(array_replace($edge,['HTTP_X_FORWARDED_FOR'=>'10.1.0.2, 8.8.8.8']),null,'');
@@ -32,6 +49,7 @@ try {
     $expect(audienceInteractionGeoRecord(['country'=>['iso_code'=>'ZZ'],'city'=>['names'=>['en'=>'Nowhere']]])===[],'Unknown countries cannot carry city data');
     $expect(audienceInteractionGeoRecord(['country'=>['iso_code'=>'CA'],'city'=>['names'=>['en'=>"Tor\nonto"]]])['city']==='Tor onto','City labels cannot contain controls');
 } finally {
+    $oldDatabase===false?putenv('DNR_GEOIP_DATABASE'):putenv('DNR_GEOIP_DATABASE='.$oldDatabase);
     $oldProxy===false?putenv('DNR_TRUSTED_PROXY_IPS'):putenv('DNR_TRUSTED_PROXY_IPS='.$oldProxy);
     $oldCloudflare===false?putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS'):putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS='.$oldCloudflare);
 }

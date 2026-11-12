@@ -7,27 +7,20 @@ require_once __DIR__.'/../src/audience_store.php';
 $checks=0;
 $expect=static function(bool $ok,string $message)use(&$checks):void{if(!$ok)throw new RuntimeException($message);++$checks;};
 
-$chicago=audienceInteractionMapCoordinate('US','Illinois','Chicago');
-$expect($chicago!==null&&$chicago['precision']==='city'&&abs($chicago['latitude']-41.88)<1,'Known city gets an approximate city pin');
-$madison=audienceInteractionMapCoordinate('US','Wisconsin','Madison');
-$expect($madison!==null&&$madison['precision']==='city','Sample city is covered by offline reference');
-$fallback=audienceInteractionMapCoordinate('US','Unknown region','Unknown city');
-$expect($fallback!==null&&$fallback['precision']==='country','Unknown city uses a country label point');
-$expect(audienceInteractionMapCoordinate('ZZ','','')===null,'Unknown country has no invented pin');
-
 $rows=[
     ['source'=>'message','event_type'=>'open','country_code'=>'US','region'=>'Illinois','city'=>'Chicago','observations'=>2],
-    ['source'=>'message','event_type'=>'click','country_code'=>'US','region'=>'Illinois','city'=>'Chicago','observations'=>1],
+    ['source'=>'message','event_type'=>'click','country_code'=>'US','region'=>'Wisconsin','city'=>'Madison','observations'=>1],
     ['source'=>'contact','event_type'=>'preferences','country_code'=>'CA','region'=>'Ontario','city'=>'Toronto','observations'=>1],
-    ['source'=>'contact','event_type'=>'status','country_code'=>'US','region'=>'Unknown region','city'=>'Unknown city','observations'=>2],
+    ['source'=>'contact','event_type'=>'status','country_code'=>'US','observations'=>2],
     ['source'=>'contact','event_type'=>'survey-response','country_code'=>'ZZ','region'=>'','city'=>'','observations'=>1],
 ];
 $result=audienceInteractionMapSummarize($rows);
 $expect($result['observations']===7&&$result['unmapped']===1,'All observations and unmappable locations are counted');
-$expect(count($result['pins'])===3,'City and country locations form separate aggregate pins');
+$expect(count($result['pins'])===2,'Different cities and country-only events in the same country share one pin');
 $expect($result['unmapped_types']===['Survey Responses'=>1],'Unmappable observations retain their interaction type for filtered totals');
-$expect($result['pins'][0]['types']['Email Opens']===2&&$result['pins'][0]['types']['Email Clicks']===1,'Message interactions aggregate by type');
-$expect($result['pins'][1]['precision']==='country'&&$result['pins'][1]['reported_places']!==[],'Country fallback explains the reported place');
+$us=$result['pins'][0];
+$expect($us['label']==='United States of America'&&$us['observations']===5&&[$us['longitude'],$us['latitude']]===audienceInteractionMapCoordinate('US'),'The US pin shows its total at the country label point');
+$expect($us['types']['Email Opens']===2&&$us['types']['Email Clicks']===1&&$us['types']['Unsubscribes']===2,'Contact and message interactions retain their per-type counts');
 
 $allTypes=[];
 foreach(audienceInteractionMapTypes() as$key=>$label){
@@ -51,5 +44,7 @@ foreach(audienceInteractionMapTypes() as$label)$expect(str_contains($html,'<opti
 preg_match('/<script type="application\/json" id="interaction-location-map-data">(.*?)<\/script>/s',$html,$payloadMatch);
 $payload=json_decode($payloadMatch[1]??'',true,512,JSON_THROW_ON_ERROR);
 $expect($payload['unmapped']===1&&$payload['unmappedTypes']===['Survey Responses'=>1],'Rendered map payload includes per-type unmapped counts');
+$expect(str_contains($html,'Interactions by Country')&&str_contains($html,'2 countries · 6 mapped interactions'),'The report table and counts describe country totals');
+$expect(!preg_match('/Chicago|Illinois|Madison|Wisconsin|Toronto|Ontario|reported_places/', $html),'Neither the table nor its embedded map data contains detailed locations');
 
 echo "Audience interaction map: {$checks} checks passed.\n";

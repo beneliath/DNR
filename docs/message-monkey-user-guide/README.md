@@ -1,6 +1,6 @@
 # MessageMonkey Comprehensive User Guide
 
-This guide extends the shared online MessageMonkey manual with native, high-resolution application screenshots and offline navigation. The October 31, 2026 edition documents version 2.10.7. Screens affected by user-visible changes were recaptured; unaffected figures retain their October 29 captures. It uses fictional data in a separate local preview; no external email was sent.
+The November 12, 2026 edition documents MessageMonkey in MOED 2.11.5. The connections chapter explains country-level analytics, recorded interaction locations, and current IP estimates on profiles and in Daily Audience Summary emails. The figures use fictional data captured on October 29 and 31 in a separate local preview.
 
 ## Deliverables and sources
 
@@ -19,7 +19,7 @@ The PDF uses the repository's MessageMonkey logo as vector paths, illustrated wo
 
 Follow the account-release-parity and Docker collision-check rules before starting a preview. Inspect host routes and all Docker networks, including networks whose containers are stopped. `preview.py` selects an unused dedicated subnet and creates a loopback-only Compose configuration with new, labelled volumes. It refuses to reuse a running preview. Never point these scripts at a production account or reuse its data volumes.
 
-For this edition, the project is `dnr-mm-guide-20261031`, the configuration is `tmp/pdfs/message-monkey-manual/compose.json`, and the URL is `http://127.0.0.1:18147`. Update edition-specific values deliberately for a new edition. The preview has no dispatch worker, uses the log mail transport, and has no configured delivery or AI credentials. The scripts require `DNR_MANUAL_FIXTURE=disposable` and the dedicated account key.
+For the October screenshot captures, the project is `dnr-mm-guide-20261031`, the configuration is `tmp/pdfs/message-monkey-manual/compose.json`, and the URL is `http://127.0.0.1:18147`. Update edition-specific values deliberately for a new edition. The preview has no dispatch worker, uses the log mail transport, and has no configured delivery or AI credentials. The scripts require `DNR_MANUAL_FIXTURE=disposable` and the dedicated account key.
 
 1. Run `python3 scripts/message-monkey-manual/preview.py` after checking routes and available images. Review its network record and generated configuration.
 2. Start only that project with `docker compose -p dnr-mm-guide-20261031 -f tmp/pdfs/message-monkey-manual/compose.json up -d --no-build --wait`.

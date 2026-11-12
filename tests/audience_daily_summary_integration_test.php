@@ -36,6 +36,7 @@ try{
     $expect(queueAudienceChangeAlerts($db,100,$first)===1,'A quiet day queues a summary at 23:11');
     $quiet=$last();$quietMessage=audienceChangeAlertReady($db,$message($quiet));
     $expect(str_contains($quietMessage['text'],'0 subscriptions · 0 pending sign-ups · 0 unsubscribes')&&str_contains($quietMessage['html'],'No pending sign-ups.'),'Quiet-day email explicitly reports all three empty categories');
+    foreach (['text','html'] as $part) $expect(!str_contains($quietMessage[$part],'Current IP estimate')&&!str_contains($quietMessage[$part],'IP geolocation by DB-IP'),'Quiet days omit location estimates and attribution in '.$part);
     $expect(str_contains($quietMessage['text'],'Audience changes for '.$day.' (UTC)'),'The summary covers the previous complete UTC day');
     $header=new DOMDocument();@$header->loadHTML($quietMessage['html']);
     $logos=$header->getElementsByTagName('img');
@@ -51,7 +52,8 @@ try{
     $expect(queueAudienceChangeAlerts($db,100,$first+120)===0&&$checkpoint()===gmdate('Y-m-d',$first),'A new preference generation preserves the daily checkpoint');
     // Exercise the real service-mail worker with a controlled callback, never SES.
     $store->write('UPDATE marketing_service_mail SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$quiet['id']]);$delivered=[];
-    processAudienceServiceMail($db,5,static function(array $outgoing,string $kind)use(&$delivered,$email):string{if($kind!=='audience-alert'||$outgoing['email']!==$email)throw new RuntimeException('Unexpected outgoing fixture.');$delivered[]=$outgoing;return 'accepted';});
+    $capture=static function(array $outgoing,string $kind)use(&$delivered,$email):string{if($kind!=='audience-alert'||$outgoing['email']!==$email)throw new RuntimeException('Unexpected outgoing fixture.');$delivered[]=$outgoing;return 'accepted';};
+    processAudienceServiceMail($db,5,$capture);
     $expect(count($delivered)===1&&$delivered[0]['html']===$quietMessage['html']&&$store->one('SELECT state FROM marketing_service_mail WHERE id=?',[$quiet['id']])['state']==='accepted','The worker delivers the rendered HTML summary');
     $addressField=$store->saveField(['label'=>'Summary address','merge_tag'=>'ADDR'.strtoupper($suffix),'field_type'=>'address'],0,0);
     $person=$store->savePerson(['email'=>'summary-contact-'.$suffix.'@example.test','first_name'=>'Avery','last_name'=>'O\'Neil & Lee','email_status'=>'non-subscribed',
@@ -61,11 +63,15 @@ try{
     $event=static function(int $id,string $type,array $detail,string $time)use($store,$eventDay):void{
         $store->write('INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,?,?,?,?)',[$id,$type,json_encode($detail,JSON_THROW_ON_ERROR),'Summary fixture',$eventDay.' '.$time]);
     };
-    $event($person,'signup-permission',['opt_in'=>'double','interaction_location'=>['country_code'=>'CA','city'=>'Toronto']], '08:01:02');
-    $event($person,'subscription-confirmed',['from'=>'pending','to'=>'subscribed','interaction_location'=>['country_code'=>'US','region'=>'Wisconsin','city'=>'Madison']], '10:02:03');
+    // Public DNS resolver addresses exercise the same offline data the mail worker uses.
+    $ipv4='8.8.8.8';$ipv6='2001:4860:4860::8888';
+    $current4=audienceInteractionIpLookup($ipv4);$current6=audienceInteractionIpLookup($ipv6);
+    $expect(isset($current4['region'],$current4['city'],$current6['region'],$current6['city']),'The bundled database resolves both fixture addresses for the delivery user');
+    $event($person,'signup-permission',['opt_in'=>'double','interaction_location'=>['country_code'=>'CA','city'=>'Toronto','ip_address'=>$ipv6]], '08:01:02');
+    $event($person,'subscription-confirmed',['from'=>'pending','to'=>'subscribed','interaction_location'=>['country_code'=>'US','region'=>'Wisconsin','city'=>'Madison','ip_address'=>$ipv4]], '10:02:03');
     $event($person,'collection-converted',['method'=>'double'], '10:02:03');
     $event($person,'signup-permission',['opt_in'=>'double'], '11:00:00');
-    $event($person,'status',['from'=>'subscribed','to'=>'unsubscribed','interaction_location'=>['country_code'=>'GB']], '14:03:04');
+    $event($person,'status',['from'=>'subscribed','to'=>'unsubscribed','interaction_location'=>['country_code'=>'GB','ip_address'=>$ipv4]], '14:03:04');
     $event($unnamed,'signup-permission',['opt_in'=>'single','prior_status'=>null,'interaction_location'=>['ip_address'=>'192.0.2.42']], '23:59:59');
     $event($person,'contact_added',['status'=>'subscribed','origin'=>'Import'], '15:00:00');
     $event($person,'subscription-confirmed',['from'=>'subscribed','to'=>'subscribed'], '15:00:01');
@@ -83,9 +89,14 @@ try{
     $expect(str_contains($changes['text'],$analyticsUrl)&&str_contains($changes['html'],'href="'.htmlspecialchars($analyticsUrl,ENT_QUOTES).'"'),'Both alternatives link to account audience analytics');
     foreach(['text','html'] as $part){
         $body=html_entity_decode(strip_tags($changes[$part]),ENT_QUOTES,'UTF-8');
-        $expect(!preg_match('/[\w.+-]+@[\w.-]+/',$body)&&!str_contains($body,'Private Street')&&!str_contains($body,'192.0.2.42'),'Email addresses, street addresses and IPs are absent from '.$part);
+        $expect(!preg_match('/[\w.+-]+@[\w.-]+/',$body)&&!str_contains($body,'Private Street')&&!str_contains($changes[$part],'192.0.2.42')&&!str_contains($changes[$part],$ipv4)&&!str_contains($changes[$part],$ipv6),'Email addresses, street addresses and IPs are absent from '.$part);
         $expect(substr_count($body,'Evanston, IL')===2&&str_contains($body,"Avery O'Neil & Lee")&&str_contains($body,'Connection #'.$unnamed),'Only subscriptions and pending sign-ups carry the mailing locality, with a safe unnamed fallback in '.$part);
         foreach(['Subscription Location · Madison, Wisconsin','Sign-Up Location · Toronto, Canada','Unsubscribe Location · United Kingdom','Subscription Location · Not Recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
+        $flat=preg_replace('/\s+/u',' ',$body);
+        foreach (['Sign-Up Location · Toronto, Canada'=>$current6,'Unsubscribe Location · United Kingdom'=>$current4] as $recorded=>$current) {
+            $expect(str_contains($flat,$recorded.' Current IP estimate · '.audienceInteractionPlace($current)),'The current estimate follows its original observation in '.$part);
+        }
+        $expect(substr_count($body,'Current IP estimate')===2&&substr_count($body,'IP geolocation by DB-IP')===1,'Only incomplete, resolvable rows receive estimates and the source is credited once in '.$part);
     }
     foreach ([
         ['123 Example Street, St. Louis, MO 63101 US', ['St. Louis','MO']],
@@ -94,6 +105,10 @@ try{
         ['Unstructured text', ['','']],
     ] as [$legacy,$expected]) $expect(audienceSummaryAddress($legacy)===$expected,'Legacy mailing lines return only a recognizable locality');
     $expect(str_contains($changes['html'],'O&#039;Neil &amp; Lee'),'Contact names are HTML escaped');
+    $changeJob=$last();$delivered=[];
+    $store->write('UPDATE marketing_service_mail SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$changeJob['id']]);
+    processAudienceServiceMail($db,1,$capture);
+    $expect(count($delivered)===1&&$delivered[0]['text']===$changes['text']&&$delivered[0]['html']===$changes['html'],'The worker hands both alternatives with location estimates to the delivery transport');
     $store->write('UPDATE marketing_contacts SET deleted_at=UTC_TIMESTAMP() WHERE id=?',[$unnamed]);
     $redacted=audienceChangeAlertReady($db,$queued);
     $expect(!str_contains($redacted['text'],'Connection #'.$unnamed)&&!str_contains($redacted['html'],'Connection #'.$unnamed),'Profiles removed after queueing are omitted at delivery');

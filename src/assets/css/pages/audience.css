@@ -103,11 +103,11 @@ body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68p
 .audience-app .account-primary-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid color-mix(in srgb,#9a3f00 45%,#dfe4ec);border-radius:999px;color:#9a3f00;background:#fff0e5;font-size:.7rem;font-weight:650;line-height:1.4;white-space:nowrap}
 .audience-app .account-primary-badge svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .audience-app .role-preview-banner{position:fixed;inset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height) + var(--admin-unlock-banner-height,0px)) 0 auto;z-index:85;display:flex;min-height:68px;align-items:center;justify-content:space-between;gap:20px;padding:10px 24px;border-bottom:1px solid color-mix(in srgb,#9a5b05 55%,#dfe4ec);background:#fff3d8;color:#172033;box-shadow:0 1px 2px #1018280a,0 1px 4px #1018280d}
-.audience-app .admin-unlock-banner{position:fixed;inset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height)) 0 auto;z-index:86;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:20px;min-height:68px;padding:10px 24px;border-bottom:1px solid #9a3412;background:#f97316;color:#2b1106;font-size:.84rem}
+.audience-app .admin-unlock-banner{position:fixed;inset:calc(var(--deployment-banner-height,0px) + var(--audience-account-banner-height)) 0 auto;z-index:86;display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px 40px;min-height:68px;padding:10px 24px;border-bottom:1px solid #9a3412;background:#f97316;color:#2b1106;font-size:.84rem}
 .audience-app .admin-unlock-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
 .audience-app .admin-unlock-copy strong{color:inherit;font-size:.98rem}
-.audience-app .admin-unlock-lock-form{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0}
-.audience-app .admin-unlock-banner button{white-space:nowrap}
+.audience-app .admin-unlock-lock-form{justify-self:end;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;margin:0}
+.audience-app .admin-unlock-banner .admin-unlock-lock-button{white-space:nowrap;color:inherit}
 .audience-app .action-icon-button{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--audience-text);text-decoration:none;transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease}
 .audience-app .action-icon-button .action-icon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .audience-app .action-icon-button .action-icon-export{stroke:#f0f}
@@ -126,7 +126,7 @@ body.audience-app:has(.role-preview-banner){--audience-preview-banner-height:68p
 .audience-app #admin-unlock-dialog .confirmation-dialog-actions{display:flex;justify-content:flex-end;gap:12px var(--audience-action-gap);margin-top:24px}
 html.dark-mode .audience-app .admin-unlock-banner{background:#fb923c}
 html body.audience-app:not(.admin-unlock-active) :is(button,input,a):is([data-admin-unlock-required],[data-admin-unlock-hint]){outline:2px solid #c75b00!important;outline-offset:2px;box-shadow:0 0 0 5px rgb(234 112 12 / 18%)!important}
-@media(max-width:1100px){.audience-app .admin-unlock-banner{grid-template-columns:minmax(0,1fr) auto;gap:10px}.audience-app .admin-unlock-lock-form{grid-column:1/-1;grid-row:2}}
+@media(max-width:1100px){.audience-app .admin-unlock-banner{grid-template-columns:minmax(0,1fr) auto}.audience-app .admin-unlock-copy{grid-column:1/-1}}
 @media(max-width:640px){.audience-app .admin-unlock-banner{padding:10px 14px}.audience-app .admin-unlock-countdown{flex-direction:column;align-items:flex-end;gap:2px}.audience-app .admin-unlock-countdown>span:first-child{font-size:.7rem}}
 .audience-app .role-preview-banner-copy{display:flex;min-width:0;flex-direction:column;gap:1px}
 .audience-app .role-preview-banner-copy strong{color:#9a5b05;font-size:.98rem}

@@ -103,6 +103,7 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
     );
     $fields = $store->fields();
     $utc = new DateTimeZone('UTC');
+    $estimateLookup = audienceInteractionEstimateLookup();
     foreach ($events as $event) {
         $details = audienceJson($event['details_json']);
         if ($event['event_type'] === 'signup-permission') {
@@ -113,11 +114,16 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
         }
         if ($kind === null) continue;
         [$name, $address] = audienceSummaryProfile($event, $fields, $kind !== 'unsubscribe');
-        $location = $details['interaction_location'] ?? null;
-        $place = is_array($location) ? audienceSummaryLabel(audienceInteractionPlace($location)) : '';
+        $location = is_array($details['interaction_location'] ?? null) ? $details['interaction_location'] : [];
+        $place = audienceSummaryLabel(audienceInteractionPlace($location));
+        $estimate = audienceInteractionCurrentEstimate($location, $estimateLookup);
+        $estimatePlace = audienceSummaryLabel($estimate['place'] ?? '');
         $groups[$kind][] = [
             'contact_id'=>(int) $event['contact_id'], 'name'=>$name, 'address'=>$address,
             'location'=>$place !== '' ? $place : 'Not Recorded',
+            'current_estimate'=>$estimatePlace,
+            'dbip_location'=>($place !== '' && ($location['source'] ?? '') === 'DB-IP City Lite')
+                || ($estimatePlace !== '' && $estimate['source'] === 'DB-IP City Lite'),
             'time'=>(new DateTimeImmutable($event['created_at'], $utc))->format('M j, Y · g:i:s A T'),
         ];
     }
@@ -146,20 +152,24 @@ function audienceDailySummaryEmail(string $audienceName, string $day, array $gro
     }
     $summary = implode(' · ', $counts);
     $lines = ['MessageMonkey Daily Audience Summary', $audienceName, 'Audience changes for '.$day.' (UTC)', $summary];
+    $usesDbip = false;
     foreach ($sections as $kind => $section) {
         $lines[] = '';
         $lines[] = $section['title'];
         if (!$groups[$kind]) $lines[] = $section['empty'];
         foreach ($groups[$kind] as $index => $row) {
+            if (!empty($row['dbip_location'])) $usesDbip = true;
             $url = applicationPublicUrl('audience.php', ['view'=>'contact', 'id'=>$row['contact_id']]);
             $groups[$kind][$index]['url'] = $url;
             $lines[] = $row['name'].($row['address'] !== '' ? ' · '.$row['address'] : '');
             $lines[] = $section['place'].' · '.$row['location'];
+            if (!empty($row['current_estimate'])) $lines[] = 'Current IP estimate · '.$row['current_estimate'];
             $lines[] = $section['action'].' · '.$row['time'];
             $lines[] = $url;
         }
     }
     $lines[] = "\nOpen Audience Analytics\n".$analyticsUrl;
+    if ($usesDbip) $lines[] = 'IP geolocation by DB-IP · https://db-ip.com/';
     $lines[] = "\n".emailAsciiFooterText();
     $h = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     ob_start();

@@ -19,26 +19,40 @@ $actor = $db->query("SELECT id FROM users WHERE role='admin' AND account_status=
 if (!$actor) throw new RuntimeException('An active local administrator is required.');
 $store = new AudienceStore($db, 1, (int)$actor['id'], 'Fictional localhost map sample');
 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+// These public DNS addresses are looked up offline. Neither belongs to a sample member.
+$signupIp = '8.8.8.8';
+$preferencesIp = '2001:4860:4860::8888';
+$signup = audienceInteractionLocation(['REMOTE_ADDR'=>$signupIp]);
+$preferences = audienceInteractionLocation(['REMOTE_ADDR'=>$preferencesIp]);
+if (empty($signup['city']) || empty($signup['region']) || empty($preferences['region']) || empty($preferences['city'])) {
+    throw new RuntimeException('A readable City MMDB is required to preview both recorded and current estimates.');
+}
+$place = static fn(string $country, string $region = '', string $city = ''): array =>
+    array_filter(['country_code'=>$country, 'region'=>$region, 'city'=>$city], static fn(string $value): bool => $value !== '');
 $fixtures = [
-    ['chicago', 'Chicago', 'US', 'Illinois', 'Chicago', 'signup-permission', 0],
-    ['toronto', 'Toronto', 'CA', 'Ontario', 'Toronto', 'preferences', 1],
-    ['london', 'London', 'GB', 'England', 'London', 'subscription-confirmed', 2],
-    ['jerusalem', 'Jerusalem', 'IL', 'Jerusalem District', 'Jerusalem', 'survey-response', 3],
-    ['haifa', 'Haifa', 'IL', 'Haifa District', 'Haifa', 'status', 4],
-    ['madison', 'Madison', 'US', 'Wisconsin', 'Madison', 'signup-permission', 5],
-    ['australia', 'Australia', 'AU', '', '', 'preferences', 6],
-    ['chicago-again', 'Chicago', 'US', 'Illinois', 'Chicago', 'preferences', 1],
-    ['paris', 'Paris', 'FR', 'Île-de-France', 'Paris', 'preferences', 2],
-    ['berlin', 'Berlin', 'DE', 'Berlin', 'Berlin', 'survey-response', 3],
-    ['tokyo', 'Tokyo', 'JP', 'Tokyo', 'Tokyo', 'signup-permission', 4],
-    ['nairobi', 'Nairobi', 'KE', 'Nairobi', 'Nairobi', 'preferences', 5],
-    ['new-york', 'New York', 'US', 'New York', 'New York', 'subscription-confirmed', 6],
+    ['chicago', 'Chicago', 'signup-permission', 0, $place('US','Illinois','Chicago')],
+    ['toronto', 'Toronto', 'preferences', 1, $place('CA','Ontario','Toronto')],
+    ['london', 'London', 'subscription-confirmed', 2, $place('GB','England','London')],
+    ['jerusalem', 'Jerusalem', 'survey-response', 3, $place('IL','Jerusalem District','Jerusalem')],
+    ['haifa', 'Haifa', 'status', 4, $place('IL','Haifa District','Haifa')],
+    ['madison', 'Madison', 'signup-permission', 5, $place('US','Wisconsin','Madison')],
+    ['australia', 'Australia', 'preferences', 6, $place('AU')],
+    ['chicago-again', 'Chicago', 'preferences', 1, $place('US','Illinois','Chicago'), 'chicago'],
+    ['paris', 'Paris', 'preferences', 2, $place('FR','Île-de-France','Paris')],
+    ['berlin', 'Berlin', 'survey-response', 3, $place('DE','Berlin','Berlin')],
+    ['tokyo', 'Tokyo', 'signup-permission', 4, $place('JP','Tokyo','Tokyo')],
+    ['nairobi', 'Nairobi', 'preferences', 5, $place('KE','Nairobi','Nairobi')],
+    ['new-york', 'New York', 'subscription-confirmed', 6, $place('US','New York','New York')],
+    ['ip-lookup', 'IP Lookup', 'signup-permission', 5, ['country_code'=>$signup['country_code'],'ip_address'=>$signupIp]],
+    ['ip-lookup-preferences', 'IP Lookup', 'preferences', 1, $preferences, 'ip-lookup'],
 ];
 $result = $store->transaction(function () use ($store, $fixtures, $now): array {
     $createdContacts = 0;
     $createdEvents = 0;
-    foreach ($fixtures as [$key, $name, $country, $region, $city, $type, $daysAgo]) {
-        $email = 'interaction-map-sample-'.($key === 'chicago-again' ? 'chicago' : $key).'@example.invalid';
+    $previewId = null;
+    foreach ($fixtures as $index => $fixture) {
+        [$key, $name, $type, $daysAgo, $location] = $fixture;
+        $email = 'interaction-map-sample-'.($fixture[5] ?? $key).'@example.invalid';
         $contact = $store->one('SELECT id,deleted_at FROM marketing_contacts WHERE audience_id=? AND email=? LIMIT 1',
             [$store->audienceId, $email]);
         if ($contact && $contact['deleted_at'] !== null) throw new RuntimeException('A map sample connection was deleted: '.$email);
@@ -50,10 +64,10 @@ $result = $store->transaction(function () use ($store, $fixtures, $now): array {
             $contact = ['id'=>(int)$store->db->insert_id];
             $createdContacts++;
         }
-        $location = array_filter(['country_code'=>$country, 'region'=>$region, 'city'=>$city],
-            static fn(string $value): bool => $value !== '');
+        if ($key === 'ip-lookup') $previewId = (int)$contact['id'];
+        $location += ['ip_address'=>'192.0.2.'.($index+1), 'source'=>'fictional localhost sample'];
         $details = ['sample_dataset'=>'localhost-interaction-map-v1', 'sample_key'=>$key,
-            'sample'=>true, 'interaction_location'=>$location+['source'=>'fictional localhost sample']];
+            'sample'=>true, 'interaction_location'=>$location];
         if ($type === 'status') $details += ['from'=>'subscribed', 'to'=>'unsubscribed'];
         $json = json_encode($details, JSON_THROW_ON_ERROR);
         $at = $now->modify('-'.$daysAgo.' days')->modify('-1 hour')->format('Y-m-d H:i:s');
@@ -68,6 +82,6 @@ $result = $store->transaction(function () use ($store, $fixtures, $now): array {
         }
     }
     return ['created_contacts'=>$createdContacts,'created_events'=>$createdEvents,
-        'sample_interactions'=>count($fixtures),'external_messages_sent'=>0];
+        'sample_interactions'=>count($fixtures),'preview_contact_id'=>$previewId,'external_messages_sent'=>0];
 });
 echo json_encode($result, JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),"\n";
