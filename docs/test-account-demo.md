@@ -82,8 +82,9 @@ saved replies. Content → My files has six licensed, locally bundled sample pho
 Content → Brand Kit has two Test Account sample logos. Email/audience reports are
 shared with the demo users. All 24 fictional connections show Interaction Location
 examples for signup, confirmation, preference changes and unsubscribe, using
-41 fictional events and documentation-only IP ranges. Nine recent examples add
-city-level pins in Israel, Europe, Australia and Japan. Historical sends,
+41 fictional events and documentation-only IP ranges. Nine recent examples show
+city detail on connection profiles in Israel, Europe, Australia and Japan.
+Analytics groups these interactions by country. Historical sends,
 deliveries, opens, clicks and bounces are explicitly simulated; no mail was
 sent. All sample addresses use `example.invalid`.
 

@@ -1,29 +1,15 @@
 <?php
 declare(strict_types=1);
 
-/** Offline Natural Earth lookup; city positions and country label points are approximate. */
-function audienceInteractionMapCoordinate(string $country, string $region, string $city): ?array
+/** Natural Earth label points for the country totals on the analytics map. */
+function audienceInteractionMapCoordinate(string $country): ?array
 {
-    static $places = null;
-    if ($places === null) {
+    static $countries = null;
+    if ($countries === null) {
         $json = file_get_contents(__DIR__.'/assets/data/interaction-place-coordinates.json');
-        $places = $json === false ? [] : json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        $countries = $json === false ? [] : json_decode($json, true, 512, JSON_THROW_ON_ERROR)['countries'];
     }
-    $countryPoint = $places['countries'][$country] ?? null;
-    if (!is_array($countryPoint)) return null;
-    if ($city !== '') {
-        $key = mb_convert_case(trim($city), MB_CASE_FOLD, 'UTF-8');
-        $candidates = $places['cities'][$country][$key] ?? [];
-        if ($candidates) {
-            $regionKey = mb_convert_case(trim($region), MB_CASE_FOLD, 'UTF-8');
-            $matches = $regionKey === '' ? [] : array_values(array_filter($candidates,
-                static fn(array $row): bool => mb_convert_case($row[0], MB_CASE_FOLD, 'UTF-8') === $regionKey));
-            // A unique city in a country is useful even when the region naming differs.
-            $chosen = $matches[0] ?? (count($candidates) === 1 ? $candidates[0] : null);
-            if ($chosen !== null) return ['longitude'=>$chosen[1], 'latitude'=>$chosen[2], 'precision'=>'city'];
-        }
-    }
-    return ['longitude'=>$countryPoint[0], 'latitude'=>$countryPoint[1], 'precision'=>'country'];
+    return $countries[$country] ?? null;
 }
 
 function audienceInteractionMapTypes(): array
@@ -36,7 +22,7 @@ function audienceInteractionMapTypes(): array
     ];
 }
 
-/** Collapse coarse observations into map pins without exposing IPs or contacts. */
+/** One pin per country across both subscriber and email interactions. */
 function audienceInteractionMapSummarize(array $rows): array
 {
     $pins = [];
@@ -44,38 +30,28 @@ function audienceInteractionMapSummarize(array $rows): array
     $unmappedTypes = [];
     $total = 0;
     $types = audienceInteractionMapTypes();
+    $countryNames = addressCountryChoices();
     foreach ($rows as $row) {
         $count = max(0, (int)($row['observations'] ?? 0));
         if ($count === 0) continue;
         $total += $count;
         $type = $types[($row['source'] ?? '').':'.($row['event_type'] ?? '')] ?? null;
         $country = strtoupper(trim((string)($row['country_code'] ?? '')));
-        $region = trim((string)($row['region'] ?? ''));
-        $city = trim((string)($row['city'] ?? ''));
-        if (!preg_match('/^[A-Z]{2}$/D', $country) || !($point = audienceInteractionMapCoordinate($country, $region, $city))) {
+        $point = audienceInteractionMapCoordinate($country);
+        if ($point === null) {
             $unmapped += $count;
             if ($type !== null) $unmappedTypes[$type] = ($unmappedTypes[$type] ?? 0) + $count;
             continue;
         }
-        $key = $point['precision'] === 'city'
-            ? $country.'|'.$point['longitude'].'|'.$point['latitude']
-            : $country;
-        $countryName = addressCountryChoices()[$country]['name'] ?? $country;
-        $place = audienceInteractionPlace(['country_code'=>$country, 'region'=>$region, 'city'=>$city]);
-        if (!isset($pins[$key])) $pins[$key] = [
-            'label'=>$point['precision'] === 'city' ? $place : $countryName,
-            'country'=>$countryName,
-            'longitude'=>$point['longitude'], 'latitude'=>$point['latitude'],
-            'precision'=>$point['precision'], 'observations'=>0, 'types'=>[], 'reported_places'=>[],
+        $pins[$country] ??= [
+            'label'=>$countryNames[$country]['name'] ?? $country,
+            'longitude'=>$point[0], 'latitude'=>$point[1],
+            'observations'=>0, 'types'=>[],
         ];
-        $pins[$key]['observations'] += $count;
-        if ($type !== null) $pins[$key]['types'][$type] = ($pins[$key]['types'][$type] ?? 0) + $count;
-        if ($point['precision'] === 'country' && $place !== $countryName && $place !== '') {
-            $pins[$key]['reported_places'][$place] = true;
-        }
+        $pins[$country]['observations'] += $count;
+        if ($type !== null) $pins[$country]['types'][$type] = ($pins[$country]['types'][$type] ?? 0) + $count;
     }
     foreach ($pins as &$pin) {
-        $pin['reported_places'] = array_keys($pin['reported_places']);
         arsort($pin['types']);
     }
     unset($pin);

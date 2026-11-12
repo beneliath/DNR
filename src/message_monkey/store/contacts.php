@@ -21,11 +21,12 @@ trait AudienceContacts
     public function personInteractionHistory(int $personId): array
     {
         $this->person($personId);
-        $rows=$this->all("SELECT event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('signup-permission','subscription-confirmed','preferences','status','survey-response') AND JSON_CONTAINS_PATH(details_json,'one','$.interaction_location.ip_address') ORDER BY id",[$personId]);
+        $rows=$this->all("SELECT event_type,details_json,created_at FROM marketing_contact_events WHERE contact_id=? AND event_type IN ('signup-permission','subscription-confirmed','preferences','status','survey-response') AND JSON_CONTAINS_PATH(details_json,'one','$.interaction_location') ORDER BY id",[$personId]);
         $history=[];
         foreach($rows as $row){
             $details=audienceJson($row['details_json']);
-            if(!is_array($details['interaction_location']??null))continue;
+            $location=$details['interaction_location']??null;
+            if(!is_array($location)||(empty($location['ip_address'])&&audienceInteractionPlace($location)===''))continue;
             $key=match($row['event_type']){
                 'signup-permission'=>'signup',
                 'subscription-confirmed'=>'confirmed',
@@ -36,7 +37,7 @@ trait AudienceContacts
             };
             if($key==='')continue;
             if(in_array($key,['signup','confirmed'],true)&&isset($history[$key]))continue;
-            $history[$key]=['at'=>$row['created_at'],'location'=>$details['interaction_location']];
+            $history[$key]=['at'=>$row['created_at'],'location'=>$location];
         }
         return $history;
     }

@@ -1014,6 +1014,17 @@ Configure these values as needed:
 
 #### Database and protected secrets
 
+MessageMonkey looks up public interaction IPs locally with [DB-IP City Lite](https://db-ip.com/db/download/ip-to-city-lite).
+The shared web and mail-dispatch image contains a monthly snapshot, pinned by SHA-256 in the Dockerfile. To refresh it for a release,
+update the edition and compressed-file hash in the Dockerfile and the edition in `docker/dbip-city-NOTICE`.
+A newer verified DB-IP file can also be placed at `geoip/dbip-city-lite.mmdb` in the web service’s
+read-only `/run/dnr/deployment` mount. Mount that same directory read-only at `/run/dnr/deployment/geoip`
+on the mail worker. Publish the file by atomic rename so both services see a complete edition.
+The optional `docker-compose.geoip.yaml` overlay accepts an operator-supplied MMDB via `DNR_GEOIP_DATABASE_FILE` for the web service.
+If using that override, give mail-dispatch the same read-only file and `DNR_GEOIP_DATABASE` container path.
+Interaction Locations analytics counts recorded countries. Member profiles and Daily Audience Summary emails
+can also show a labeled current estimate from the saved IP alongside an incomplete recorded location.
+
 - `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The isolated `backup` service uses the read-only full-schema backup identity after independently checking the administrator’s current role, password, and fresh 2FA or recovery code; the everyday `web` service has no backup credential; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.

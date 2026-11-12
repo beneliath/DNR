@@ -44,7 +44,8 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The November 7, 2026 edition applies to application version **2.10.35**.
+The November 12, 2026 edition applies to application version **2.11.5**.
+The operator appendix documents the offline city database used for member profiles and Daily Audience Summary emails.
 The Work Queue chapter explains which Standard Event Tasks complete when a
 presentation is saved or restored and when a financial report is finalized.
 The README appendix includes the closeout prerequisites.

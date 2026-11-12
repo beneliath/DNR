@@ -71,21 +71,20 @@ trait AudienceAnalyticsReports
     public function analyticsInteractionLocations(array $window): array
     {
         // Use observation times, not the campaign send date. Every query stays in
-        // this audience, and only aggregate place counts leave the database.
-        $location = "JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.interaction_location.";
-        $fields = "{$location}country_code')) country_code,{$location}region')) region,{$location}city')) city";
+        // this audience, and only aggregate country counts leave the database.
+        $country = "JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.interaction_location.country_code')) AS country_code";
         $messageBot = $window['bots'] === 'filtered'
             ? " AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot')),'false')<>'true'" : '';
-        $messageRows = $this->all("SELECT $fields,e.event_type,COUNT(*) observations
+        $messageRows = $this->all("SELECT $country,e.event_type,COUNT(*) observations
             FROM marketing_message_events e
             JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id
             WHERE e.audience_id=? AND e.event_at>=? AND e.event_at<?
                 AND e.event_type IN ('open','click')
                 AND JSON_EXTRACT(e.details_json,'$.interaction_location') IS NOT NULL $messageBot
-            GROUP BY country_code,region,city,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
+            GROUP BY country_code,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
         foreach ($messageRows as &$row) $row['source'] = 'message';
         unset($row);
-        $contactRows = $this->all("SELECT $fields,e.event_type,COUNT(*) observations
+        $contactRows = $this->all("SELECT $country,e.event_type,COUNT(*) observations
             FROM marketing_contact_events e
             JOIN marketing_contacts c ON c.id=e.contact_id
             WHERE c.audience_id=? AND e.created_at>=? AND e.created_at<?
@@ -93,7 +92,7 @@ trait AudienceAnalyticsReports
                 AND e.event_type IN ('signup-permission','subscription-confirmed','preferences','status','survey-response')
                 AND (e.event_type<>'status' OR JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.to'))='unsubscribed')
                 AND JSON_EXTRACT(e.details_json,'$.interaction_location') IS NOT NULL
-            GROUP BY country_code,region,city,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
+            GROUP BY country_code,e.event_type", [$this->audienceId,$window['from'],$window['until']]);
         foreach ($contactRows as &$row) $row['source'] = 'contact';
         unset($row);
         return audienceInteractionMapSummarize([...$messageRows,...$contactRows]);

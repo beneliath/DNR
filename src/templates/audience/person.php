@@ -30,13 +30,16 @@
             <form method="post" class="person-create-tag"><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'create_person_tag','id'=>$id,'version'=>$contact['version']]); ?><label for="person-new-tag">Create a New Tag</label><input id="person-new-tag" name="name" maxlength="100" required placeholder="Tag Name"><button class="primary" type="submit">Create and Add</button></form>
         </div><?php endif; ?>
         <section class="audience-panel subtle person-groups-card"><div class="section-title"><h3>Groups</h3><?php if($canManage): ?><button data-open-dialog="edit-groups">Edit Groups</button><?php endif; ?></div><?php foreach($groups as$group): $chosen=array_filter($group['options'],fn($o)=>in_array((int)$o['id'],$contact['group_ids'],true));if(!$chosen)continue; ?><dl class="person-group-row"><dt><?= $h($group['name']) ?><?= !empty($group['archived_at'])?' (Archived)':'' ?></dt><dd><?= $h(implode(', ',array_column($chosen,'name'))) ?></dd></dl><?php endforeach; ?><?php if(!$contact['group_ids']): ?><p class="audience-help">No groups selected.</p><?php endif; ?></section>
-        <section class="audience-panel subtle person-interaction-card">
-            <h3>Interaction Locations</h3>
-            <p class="audience-help">Approximate locations from the request's IP address. Tracked email opens and clicks, and one-click unsubscribes, may come from email services. Earlier actions are not backfilled.</p>
-            <?php $locationLabels=['signup'=>'Signup Submitted','confirmed'=>'Subscription Confirmed','preferences'=>'Preferences Updated','unsubscribe'=>'Unsubscribed','survey'=>'Survey Submitted']; ?>
-            <?php $foundLocation=false; foreach($locationLabels as$key=>$label): if(!isset($interactionHistory[$key]))continue; $foundLocation=true; $entry=$interactionHistory[$key]; $place=audienceInteractionPlace($entry['location']); ?>
-            <div class="person-interaction-entry"><strong><?= $h($label) ?></strong><p class="audience-help"><?= $h(audienceProfileDate($entry['at'])) ?></p><p><?= $h($place!==''?$place:'Location unavailable') ?></p><?php if($canManage): ?><p class="audience-help">IP Address: <?= $h($entry['location']['ip_address']) ?></p><?php endif; ?></div>
+        <section id="person-interaction-locations" class="audience-panel subtle person-interaction-card" aria-labelledby="person-interaction-title">
+            <h3 id="person-interaction-title">Interaction Locations</h3>
+            <p class="audience-help">Locations are estimated from the IP address at the time of the interaction. A current IP estimate can add city or state detail missing from an older record. Email opens, clicks, and one-click unsubscribes may come from a mail service.</p>
+            <?php $estimateLookup=audienceInteractionEstimateLookup(); $locationLabels=['signup'=>'Signup Submitted','confirmed'=>'Subscription Confirmed','preferences'=>'Preferences Updated','unsubscribe'=>'Unsubscribed','survey'=>'Survey Submitted']; ?>
+            <?php $foundLocation=false; foreach($locationLabels as$key=>$label): if(!isset($interactionHistory[$key]))continue; $foundLocation=true; $entry=$interactionHistory[$key]; $observed=$entry['location']; ?>
+            <div class="person-interaction-entry"><strong><?= $h($label) ?></strong><p class="audience-help"><?= $h(audienceProfileDate($entry['at'])) ?></p>
+                <?php include __DIR__.'/person-interaction-location.php'; ?>
+            </div>
             <?php endforeach; if(!$foundLocation): ?><p>No recorded interaction locations yet.</p><?php endif; ?>
+            <p class="audience-help"><a href="https://db-ip.com/" rel="noreferrer">IP geolocation by DB-IP</a></p>
         </section>
     </aside>
     <section class="audience-panel audience-person-main">
@@ -65,7 +68,10 @@
                     <?php foreach($forwardGroups as $label=>$addresses): sort($addresses,SORT_STRING); ?><p><strong><?= $h($label) ?>:</strong> <?= $h(implode(', ',$addresses)) ?></p><?php endforeach; ?>
                     <?php if(!empty($detail['consent_note'])): ?><p><strong>Permission:</strong> <?= $h($detail['consent_note']) ?></p><?php endif; ?>
                     <?php if(isset($detail['from'],$detail['to'])): ?><p><?= $h($detail['from']) ?> → <?= $h($detail['to']) ?></p><?php endif; ?>
-                    <?php include __DIR__.'/person-interaction-location.php'; ?>
+                    <?php if(is_array($detail['interaction_location']??null)): $observed=$detail['interaction_location']; ?>
+                        <?php include __DIR__.'/person-interaction-location.php'; ?>
+                        <?php if($observed&&in_array($event['event_type'],['email_open','email_click'],true)): ?><p class="audience-help">Tracked email activity may reflect a mail service or scanner's location.</p><?php endif; ?>
+                    <?php endif; ?>
                 </div></article>
             <?php endforeach; ?><?php if(!$events): ?><div class="audience-empty"><h3>No Activity in This Period</h3><p>Change the filters to see more history.</p></div><?php endif; ?></div>
             <?php audiencePagination(['total'=>$eventTotal,'page'=>$eventPage,'size'=>$eventSize,'page_key'=>'activity_page','size_key'=>'activity_size','label'=>'Connection Activity Pages','params'=>['view'=>'contact','id'=>$id,'tab'=>$tab,'activity_type'=>$eventFilter,'activity_days'=>$days,'activity_year'=>$activityYear??0],'url'=>$url]); ?>

@@ -34,7 +34,8 @@ if (element && dataElement && feedback && fitButton) {
         });
         map.addControl(new NavigationControl({showCompass: false}), 'top-left');
         let bounds = new LngLatBounds();
-        let visiblePins = [];
+        let countryCount = 0;
+        const countryZoom = 3;
         const markers = new Array(pins.length);
         const table = document.querySelector('.analytics-interaction-table');
         const rows = new Map(Array.from(table?.querySelectorAll('tbody tr[data-interaction-pin]') || [], (row) => [Number(row.dataset.interactionPin), row]));
@@ -57,7 +58,7 @@ if (element && dataElement && feedback && fitButton) {
             const popupContent = document.createElement('div');
             popupContent.className = 'analytics-interaction-popup';
             const title = document.createElement('strong');
-            title.textContent = String(pin.label || pin.country || 'Location');
+            title.textContent = String(pin.label || 'Country');
             popupContent.append(title);
             const count = document.createElement('p');
             count.textContent = countLabel;
@@ -67,15 +68,6 @@ if (element && dataElement && feedback && fitButton) {
                 detail.textContent = `${kind}: ${Number(n).toLocaleString()}`;
                 popupContent.append(detail);
             }
-            if (Array.isArray(pin.reported_places) && pin.reported_places.length) {
-                const reported = document.createElement('small');
-                const first = pin.reported_places.slice(0, 3).join(', ');
-                reported.textContent = `Reported places: ${first}${pin.reported_places.length > 3 ? ' and more' : ''}`;
-                popupContent.append(reported);
-            }
-            const accuracy = document.createElement('small');
-            accuracy.textContent = pin.precision === 'city' ? 'Approximate City Position' : 'Approximate Country Position';
-            popupContent.append(accuracy);
             const popup = new Popup({offset: 18, maxWidth: '320px'}).setDOMContent(popupContent);
             popup.on('open', () => {
                 for (const otherMarker of markers) {
@@ -92,14 +84,14 @@ if (element && dataElement && feedback && fitButton) {
                 .setPopup(popup)
                 .addTo(map);
             bounds.extend([longitude, latitude]);
-            visiblePins.push(pin);
+            countryCount++;
         };
         const renderPins = () => {
             for (const marker of markers) marker?.remove();
             markers.fill(null);
             setSelectedIndex(null);
             bounds = new LngLatBounds();
-            visiblePins = [];
+            countryCount = 0;
             const selectedType = typeFilter?.value || '';
             let observations = 0;
             for (const [index, pin] of pins.entries()) {
@@ -122,25 +114,23 @@ if (element && dataElement && feedback && fitButton) {
                 observations += count;
                 addPin(index, {...pin, observations: count, types});
             }
-            const visible = visiblePins.length;
             const unmapped = Number(selectedType ? payload.unmappedTypes?.[selectedType] : payload.unmapped) || 0;
-            feedback.textContent = `${visible.toLocaleString()} ${visible === 1 ? 'location' : 'locations'} · ${observations.toLocaleString()} ${observations === 1 ? 'interaction' : 'interactions'} with a mapped location`
+            feedback.textContent = `${countryCount.toLocaleString()} ${countryCount === 1 ? 'country' : 'countries'} · ${observations.toLocaleString()} mapped ${observations === 1 ? 'interaction' : 'interactions'}`
                 + (unmapped ? ` · ${unmapped.toLocaleString()} without a mappable country` : '')
                 + (selectedType ? ` · ${selectedType}` : '');
             if (emptyState) {
-                emptyState.hidden = visible > 0;
+                emptyState.hidden = countryCount > 0;
                 emptyState.textContent = selectedType
-                    ? `No ${selectedType.toLowerCase()} with a mappable location were found in this date range.`
-                    : 'No interactions with a mappable location were found in this date range.';
+                    ? `No ${selectedType.toLowerCase()} with a mappable country were found in this date range.`
+                    : 'No interactions with a mappable country were found in this date range.';
             }
-            if (emptyRow) emptyRow.hidden = visible > 0;
-            fitButton.disabled = visible === 0;
+            if (emptyRow) emptyRow.hidden = countryCount > 0;
+            fitButton.disabled = countryCount === 0;
         };
         const fitPins = () => {
-            const visible = visiblePins.length;
-            if (!visible) return;
-            if (visible === 1) {
-                map.easeTo({center: bounds.getCenter(), zoom: visiblePins[0].precision === 'city' ? 7 : 3});
+            if (!countryCount) return;
+            if (countryCount === 1) {
+                map.easeTo({center: bounds.getCenter(), zoom: countryZoom});
             } else {
                 map.fitBounds(bounds, {padding: 64, maxZoom: 7});
             }
@@ -153,10 +143,9 @@ if (element && dataElement && feedback && fitButton) {
             // MapLibre can skip a marker toggle while its pin is hidden by the globe.
             if (popup && !popup.isOpen()) popup.setLngLat(position).addTo(map);
             setSelectedIndex(index);
-            const zoom = pins[index].precision === 'city' ? 7 : 3;
             const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (reduceMotion) map.jumpTo({center: position, zoom});
-            else map.flyTo({center: position, zoom, essential: true});
+            if (reduceMotion) map.jumpTo({center: position, zoom: countryZoom});
+            else map.flyTo({center: position, zoom: countryZoom, essential: true});
             element.scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', block: 'center'});
             selectedMarker.getElement().focus({preventScroll: true});
         };

@@ -12,9 +12,9 @@ require 'src/audience_store.php';
 $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 $interactionMapProvider=null;
 $interactionLocations=['observations'=>1012,'unmapped'=>0,'pins'=>[
- ['label'=>'Sydney','observations'=>1000,'precision'=>'city','reported_places'=>[],'types'=>['Signups'=>1000]],
- ['label'=>'Chicago','observations'=>10,'precision'=>'city','reported_places'=>[],'types'=>['Signups'=>10]],
- ['label'=>'Berlin','observations'=>2,'precision'=>'city','reported_places'=>[],'types'=>['Signups'=>2]]
+ ['label'=>'Switzerland','observations'=>1000,'types'=>['Signups'=>1000]],
+ ['label'=>'Canada','observations'=>10,'types'=>['Signups'=>10]],
+ ['label'=>'Belgium','observations'=>2,'types'=>['Signups'=>2]]
 ]];
 echo '<!doctype html><html lang="en">';
 renderPageHead('Interaction sorting fixture',['styles'=>['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'],'scripts'=>['assets/js/audience.min.js','assets/js/audience-analytics.min.js']]);
@@ -63,9 +63,9 @@ const rows = page => page.locator('#interaction-location-table tbody tr[data-int
                 await sort.waitFor();
                 await sort.selectOption(key === 'location' ? '0' : '1');
             };
-            assert.deepEqual(await rows(page),['Sydney','Chicago','Berlin'],'Highest interaction count is the initial order');
+            assert.deepEqual(await rows(page),['Switzerland','Canada','Belgium'],'Highest interaction count is the initial order');
             await choose('location');
-            assert.deepEqual(await rows(page),['Berlin','Chicago','Sydney'],'Location sorts alphabetically');
+            assert.deepEqual(await rows(page),['Belgium','Canada','Switzerland'],'Location sorts alphabetically');
             assert.equal(await location.locator('..').getAttribute('aria-sort'),'ascending');
             assert.equal(await location.locator('[data-sort-arrow]').textContent(),'↑');
             assert.equal(await interactions.locator('..').getAttribute('aria-sort'),'none');
@@ -74,19 +74,19 @@ const rows = page => page.locator('#interaction-location-table tbody tr[data-int
                 await location.focus();
                 await page.keyboard.press('Enter');
             } else await choose('location');
-            assert.deepEqual(await rows(page),['Sydney','Chicago','Berlin'],'Location toggles to reverse alphabetical order');
+            assert.deepEqual(await rows(page),['Switzerland','Canada','Belgium'],'Location toggles to reverse alphabetical order');
             assert.equal(await location.locator('[data-sort-arrow]').textContent(),'↓');
             await choose('interactions');
-            assert.deepEqual(await rows(page),['Berlin','Chicago','Sydney'],'Counts sort numerically including formatted thousands');
+            assert.deepEqual(await rows(page),['Belgium','Canada','Switzerland'],'Counts sort numerically including formatted thousands');
             assert.equal(await interactions.locator('..').getAttribute('aria-sort'),'ascending');
             await choose('interactions');
-            assert.deepEqual(await rows(page),['Sydney','Chicago','Berlin'],'Counts toggle to highest first');
+            assert.deepEqual(await rows(page),['Switzerland','Canada','Belgium'],'Counts toggle to highest first');
             assert.equal(await interactions.locator('[data-sort-arrow]').textContent(),'↓');
             // The map updates these values at the target before the event bubbles.
             await page.evaluate(() => {
                 const table = document.getElementById('interaction-location-table');
                 for (const row of table.querySelectorAll('tr[data-interaction-location]')) {
-                    const count = {Berlin:3,Chicago:20,Sydney:3}[row.dataset.interactionLocation];
+                    const count = {Belgium:3,Canada:20,Switzerland:3}[row.dataset.interactionLocation];
                     const cell = row.querySelector('[data-interaction-observations]');
                     cell.dataset.interactionObservations = String(count);
                     cell.textContent = String(count);
@@ -94,7 +94,7 @@ const rows = page => page.locator('#interaction-location-table tbody tr[data-int
                 const filter = document.getElementById('interaction-map-type');
                 filter.dispatchEvent(new Event('change',{bubbles:true}));
             });
-            assert.deepEqual(await rows(page),['Chicago','Berlin','Sydney'],'A type change reapplies the selected numeric order with alphabetical ties');
+            assert.deepEqual(await rows(page),['Canada','Belgium','Switzerland'],'A type change reapplies the selected numeric order with alphabetical ties');
             assert.equal(await interactions.locator('..').getAttribute('aria-sort'),'descending');
             assert.equal(await page.locator('#interaction-location-table-empty').evaluate(node => node === node.parentElement.lastElementChild),true,'Empty state remains after the data rows');
             assert.deepEqual(errors,[],'No browser errors');
