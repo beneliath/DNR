@@ -156,14 +156,16 @@ if($view==='campaigns'){
     $campaignSize=(int)$campaignFilters['per_page'];
     $campaignPage=max(1,min(max(1,(int)ceil($campaignTotal/$campaignSize)),\Dnr\Http\RequestInput::positiveInt($_GET,'page')??1));
     $campaignPageNames=$store->all("SELECT c.id,c.name FROM marketing_campaigns c WHERE $campaignWhere ORDER BY c.{$campaignFilters['sort']} {$campaignFilters['direction']},c.id {$campaignFilters['direction']} LIMIT ? OFFSET ?",[...$campaignParams,$campaignSize,($campaignPage-1)*$campaignSize]);
+    // Timewarp's worker wakes across time zones. Show the editor's chosen date on the calendar.
+    $displayDue="CASE WHEN c.draft_json->>'$.send_time.delivery'='timewarp' THEN COALESCE(CAST(c.draft_json->>'$.send_time.utc' AS DATETIME),d.due_at) ELSE d.due_at END";
     if($campaignFilters['layout']==='calendar'){
         $calendarStart=$month->modify('monday this week');$calendarEnd=$month->modify('last day of this month')->modify('sunday this week');
-        $calendarDate=$dispatchInstalled?"COALESCE((SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
+        $calendarDate=$dispatchInstalled?"COALESCE((SELECT $displayDue FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 AND d.state IN ('scheduled','sending','paused') ORDER BY d.id DESC LIMIT 1),c.sent_at,c.updated_at)":"COALESCE(c.sent_at,c.updated_at)";
         $calendarRows=$store->all("SELECT c.id,c.name,c.status,$calendarDate calendar_at FROM marketing_campaigns c WHERE $campaignWhere AND $calendarDate>=? AND $calendarDate<? ORDER BY calendar_at,c.id",[...$campaignParams,$calendarStart->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),$calendarEnd->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
         foreach($calendarRows as&$calendarRow)$calendarRow['calendar_date']=userDisplayInstant($calendarRow['calendar_at'])?->format('Y-m-d');unset($calendarRow);
         $campaignRows=$campaignPageNames; // The same search suggestions as the list, without its drafts or metrics.
     }else{
-        $dispatchColumns=$dispatchInstalled?",(SELECT d.due_at FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
+        $dispatchColumns=$dispatchInstalled?",(SELECT $displayDue FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_due,(SELECT d.recipient_count FROM marketing_campaign_deliveries d WHERE d.audience_id=c.audience_id AND d.campaign_id=c.id AND d.flow_run_id=0 ORDER BY d.id DESC LIMIT 1) delivery_count":"";
         $campaignRowIds=array_column($campaignPageNames,'id');
         $campaignRowsById=[];
         if($campaignRowIds){
@@ -241,7 +243,7 @@ if($view==='delivery'){
     }
 }
 if($view==='campaign'&&$campaign&&$deliveryAvailable)$senderReadiness=$store->sendingReadiness((string)($campaign['draft']['from_email']??''),audienceJson($audience['settings_json']));
-// Review is read-only. Queue creation only happens on an explicit CSRF-protected confirmation.
+// Review is read-only. A confirmed schedule resolves its recipients in the delivery worker.
 $dispatchReview=null;$dispatchError='';$delivery=null;$deliveryCounts=[];$deliveryRows=[];$deliveryReport=[];$deliverySnapshot=[];
 if($campaign&&$dispatchInstalled){
     $delivery=$store->campaignDelivery((int)$campaign['id']);

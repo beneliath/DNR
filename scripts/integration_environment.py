@@ -223,6 +223,11 @@ def main():
                         '/opt/dnr/tests/'+suite],
                         cwd=ROOT, env=env, check=True)
                 if sys.argv[1:] == ['audience-presend']:
+                    subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                        '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
+                        '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
+                        'web', '/opt/dnr/tests/audience_scheduled_delivery_worker.php'], cwd=ROOT, env=env, check=True)
                     verify_inbox_forward_smtp(compose,env,values)
                 if sys.argv[1:] == ['audience-minor-fixes']:
                     subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',

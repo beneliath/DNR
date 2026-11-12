@@ -120,7 +120,24 @@ audienceHttpExpect(count($resends)===5,'Only original accepted non-clickers are 
 $resendSent=[];processAudienceCampaignDelivery($conn,20,static function($m)use(&$resendSent){$resendSent[]=$m;return 'accepted';});audienceHttpExpect(count($resendSent)===5&&$resendSent[0]['subject']==='Follow-up','Resends use separate messages and replacement subject');
 $cancelId=$makeRuntime(['resend'=>['enabled'=>true,'segment'=>'non-clickers','ignore_bots'=>true,'days'=>1,'time'=>'09:00']]);$cancelJob=$confirmRuntime($cancelId);$j=$campaignStore->campaignDelivery($cancelId);$campaignStore->campaignRuntimeOperation($cancelId,(int)$j['version'],'cancel-resend');processAudienceCampaignDelivery($conn,20,static fn()=> 'accepted');$j=$campaignStore->campaignDelivery($cancelId);audienceHttpExpect($j['resend_created_at']!==null,'Pending resend can be cancelled independently');
 $optId=$makeRuntime(['send_time'=>['mode'=>'schedule','delivery'=>'optimized','timezone'=>'UTC','local'=>gmdate('Y-m-d',time()+86400).' 09:00','utc'=>gmdate('Y-m-d',time()+86400).' 09:00:00']]);$optReview=$campaignStore->reviewCampaignDispatch($optId,$dispatchAudience,$dispatchBase);audienceHttpExpect(str_contains($optReview['snapshot']['draft']['send_time']['optimization_basis'],'Not enough'),'Optimization honestly falls back without audience history');
-$warpId=$makeRuntime(['send_time'=>['mode'=>'schedule','delivery'=>'timewarp','timezone'=>'UTC','local'=>gmdate('Y-m-d',time()+3*86400).' 09:00','utc'=>gmdate('Y-m-d',time()+3*86400).' 09:00:00']]);$warpJob=$confirmRuntime($warpId);$warpTimes=$campaignStore->all('SELECT DISTINCT next_attempt_at FROM marketing_campaign_recipients WHERE delivery_id=?',[$warpJob]);audienceHttpExpect(count($warpTimes)===2,'Timewarp stores distinct recipient-local due times');$j=$campaignStore->campaignDelivery($warpId);$campaignStore->campaignDeliveryOperation($warpId,(int)$j['version'],'cancel');
+$warpId=$makeRuntime(['send_time'=>['mode'=>'schedule','delivery'=>'timewarp','timezone'=>'UTC','local'=>gmdate('Y-m-d',time()+3*86400).' 09:00','utc'=>gmdate('Y-m-d',time()+3*86400).' 09:00:00']]);
+$warpJob=$confirmRuntime($warpId);
+$conn->execute_query('UPDATE marketing_campaign_deliveries SET due_at=UTC_TIMESTAMP() WHERE id=?',[$warpJob]);
+$warpSent=[];
+$warpTransport=static function($message)use(&$warpSent){$warpSent[]=$message['email'];return 'accepted';};
+processAudienceCampaignDelivery($conn,1,$warpTransport);
+audienceHttpExpect(!$warpSent&&!$campaignStore->campaignDeliveryCounts($warpJob),'Timewarp keeps the audience open until a matching connection is due');
+$j=$campaignStore->campaignDelivery($warpId);
+$snapshot=json_decode(\Dnr\Security\ApplicationKey::open($j['snapshot_ciphertext']),true);
+$wall=gmdate('Y-m-d H:i',time()+2*3600); // Tokyo is due, Chicago is still waiting.
+$snapshot['draft']['send_time']['local']=$wall;
+$snapshot['draft']['send_time']['utc']=$wall.':00';
+$conn->execute_query('UPDATE marketing_campaign_deliveries SET due_at=UTC_TIMESTAMP(),snapshot_ciphertext=? WHERE id=?',[\Dnr\Security\ApplicationKey::seal(json_encode($snapshot)),$warpJob]);
+processAudienceCampaignDelivery($conn,1,$warpTransport);
+$warpTimes=array_column($campaignStore->all("SELECT DISTINCT next_attempt_at FROM marketing_campaign_recipients WHERE delivery_id=? AND state='queued' ORDER BY next_attempt_at",[$warpJob]),'next_attempt_at');
+audienceHttpExpect(count($warpSent)===1&&$warpTimes===[audienceLocalSendTime($wall,'Asia/Tokyo'),audienceLocalSendTime($wall,'America/Chicago')],'Timewarp builds once and keeps recipient-local due times');
+$j=$campaignStore->campaignDelivery($warpId);$campaignStore->campaignDeliveryOperation($warpId,(int)$j['version'],'cancel');
+audienceHttpExpect($campaignStore->campaign($warpId)['status']==='paused','Cancelling after sending starts does not return the email to Draft');
 $campaignStore->queueCampaignTest($runtimeId,(int)$campaignStore->campaign($runtimeId)['version'],['test_recipients'=>'deferred-test@example.test','request_key'=>str_repeat('d',64)],$dispatchAudience,$dispatchBase);
 processAudienceServiceMail($conn,1,static fn()=>throw new MailBudgetDeferredException(gmdate('Y-m-d H:i:s',time()+3600),'Paid allocation used.'));$deferredMail=$campaignStore->one('SELECT * FROM marketing_service_mail ORDER BY id DESC LIMIT 1');
 audienceHttpExpect($deferredMail['state']==='queued'&&(int)$deferredMail['attempts']===0&&$deferredMail['payload_ciphertext']!==''&&str_contains($deferredMail['error_message'],'allocation'),'Quota deferral retains test payload without burning retry attempt');

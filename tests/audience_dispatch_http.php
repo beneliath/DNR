@@ -31,14 +31,10 @@ audienceHttpExpect($editor($send,array_replace($confirm,['csrf_token'=>'invalid'
 audienceHttpExpect($reviewer($send,array_replace($confirm,['csrf_token'=>$reviewToken]))['status']===403,'Reviewer cannot confirm delivery');
 audienceHttpExpect($editor($send,array_replace($confirm,['confirmed'=>'0']))['status']===200&&!$campaignStore->campaignDelivery($dispatchId),'Explicit review confirmation required');
 $conn->execute_query('UPDATE marketing_contacts SET version=version+1 WHERE id=?',[$dispatchPeople[0]]);
-audienceHttpExpect(str_contains($editor($send,$confirm)['body'],'recipients or sender settings changed')&&!$campaignStore->campaignDelivery($dispatchId),'Changed recipient snapshot invalidates review');
-$proof=$proofFrom($editor($send));$confirm['review_proof']=$proof;
 audienceHttpExpect($editor($send,$confirm)['status']===302,'Schedule confirmation creates delivery');$job=$campaignStore->campaignDelivery($dispatchId);$jobId=(int)$job['id'];
-audienceHttpExpect($job['state']==='scheduled'&&(int)$job['recipient_count']===6,'Scheduled snapshot has exact recipient count');
+audienceHttpExpect($job['state']==='scheduled'&&(int)$job['recipient_count']===6&&!$campaignStore->campaignDeliveryCounts($jobId),'Scheduling saves an estimate without freezing recipients');
 $immutable=false;try{$campaignStore->saveCampaignSection($dispatchId,(int)$campaignStore->campaign($dispatchId)['version'],'subject',['subject'=>'Unreviewed replacement']);}catch(InvalidArgumentException){$immutable=true;}audienceHttpExpect($immutable,'Confirmed email content cannot be edited');
 
-$r=$campaignStore->one('SELECT * FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id',[$jobId]);
-audienceHttpExpect(!str_contains($r['context_ciphertext'],'example.test')&&!str_contains($job['snapshot_ciphertext'],'newsletter'),'Personalization and content encrypted at rest');
 audienceHttpExpect($editor($send,$confirm)['status']===302&&(int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_campaign_deliveries WHERE campaign_id=?',[$dispatchId])['n']===1,'Repeated confirmation is idempotent');
 $received=[];$adapter=static function(array $m)use(&$received):string{$received[]=$m;return 'accepted';};
 audienceHttpExpect(processAudienceCampaignDelivery($conn,20,$adapter)===0&&!$received,'Scheduled campaigns never dispatch early');
@@ -48,9 +44,15 @@ audienceHttpExpect($op('pause')['status']===302&&$campaignStore->campaignDeliver
 audienceHttpExpect(processAudienceCampaignDelivery($conn,20,$adapter)===0,'Paused schedule does not dispatch');
 audienceHttpExpect($op('resume')['status']===302&&$campaignStore->campaignDelivery($dispatchId)['state']==='scheduled','Resume preserves future due time');
 audienceHttpExpect($op('cancel')['status']===302&&$campaignStore->campaign($dispatchId)['status']==='draft','Unstarted cancelled schedule returns to editable draft');
-audienceHttpExpect((int)$campaignStore->one("SELECT COUNT(*) n FROM marketing_campaign_recipients WHERE delivery_id=? AND state='cancelled'",[$jobId])['n']===6,'Cancellation affects only waiting recipients');
+audienceHttpExpect(!$campaignStore->campaignDeliveryCounts($jobId)&&str_contains($editor($opPath)['body'],'Edit Email and Reschedule'),'Cancellation before dispatch leaves no recipients and offers the editable draft');
 // A new exact snapshot is required after cancellation and editing.
-$c=$campaignStore->campaign($dispatchId);$campaignStore->saveCampaignSection($dispatchId,(int)$c['version'],'send_time',['send_mode'=>'now','timezone'=>'UTC','delivery'=>'specific']);$c=$campaignStore->campaign($dispatchId);$review=$campaignStore->reviewCampaignDispatch($dispatchId,$dispatchAudience,$dispatchBase);$jobId=$campaignStore->confirmCampaignDispatch($dispatchId,(int)$c['version'],$review['proof'],$dispatchAudience,$dispatchBase);
+$c=$campaignStore->campaign($dispatchId);$campaignStore->saveCampaignSection($dispatchId,(int)$c['version'],'send_time',['send_mode'=>'now','timezone'=>'UTC','delivery'=>'specific']);$c=$campaignStore->campaign($dispatchId);$sendNowProof=$proofFrom($editor($send));
+$conn->execute_query('UPDATE marketing_contacts SET version=version+1 WHERE id=?',[$dispatchPeople[0]]);
+$changed=$editor($send,array_replace($confirm,['version'=>$c['version'],'review_proof'=>$sendNowProof]));
+audienceHttpExpect(str_contains($changed['body'],'recipients or sender settings changed'),'Send Now still requires review of the exact recipients');
+$review=$campaignStore->reviewCampaignDispatch($dispatchId,$dispatchAudience,$dispatchBase);$jobId=$campaignStore->confirmCampaignDispatch($dispatchId,(int)$c['version'],$review['proof'],$dispatchAudience,$dispatchBase);
+$r=$campaignStore->one('SELECT context_ciphertext FROM marketing_campaign_recipients WHERE delivery_id=? ORDER BY id',[$jobId]);
+audienceHttpExpect(!str_contains($r['context_ciphertext'],'example.test')&&!str_contains($job['snapshot_ciphertext'],'newsletter'),'Personalization and content encrypted at rest');
 $conn->query('UPDATE marketing_ses_settings SET sending_enabled=0 WHERE audience_id=1');$gatedAttempts=0;
 processAudienceCampaignDelivery($conn,10,static function()use(&$gatedAttempts):string{$gatedAttempts++;return 'accepted';});
 audienceHttpExpect($gatedAttempts===0&&$campaignStore->campaignDelivery($dispatchId)['state']==='paused','SES disabling sending after confirmation pauses the campaign without invoking transport');
@@ -126,10 +128,16 @@ $conn->execute_query("UPDATE marketing_campaign_deliveries SET state='sending' W
 $recovered=0;processAudienceCampaignDelivery($conn,20,static function($m)use(&$recovered){$recovered++;return 'accepted';});$recoveredCounts=$campaignStore->campaignDeliveryCounts($htmlJob);
 audienceHttpExpect($recovered===1&&($recoveredCounts['uncertain']??0)==1,'Restart retries an unstarted claim and quarantines a possibly transmitted claim');
 require __DIR__.'/audience_delivery_completion_http.php';
+require __DIR__.'/audience_scheduled_recipients_http.php';
 require __DIR__.'/audience_dispatch_scale_http.php';
 // Dedicated worker fixture: exactly one eligible recipient, injected log adapter only.
 $conn->execute_query("UPDATE marketing_contacts SET email_status='unsubscribed' WHERE audience_id=1 AND id<>?",[$dispatchPeople[5]]);
-$workerId=$makeDispatch('Dedicated worker dispatch fixture',false);$v=$campaignStore->campaign($workerId)['version'];$rev=$campaignStore->reviewCampaignDispatch($workerId,$dispatchAudience,$dispatchBase);$campaignStore->confirmCampaignDispatch($workerId,(int)$v,$rev['proof'],$dispatchAudience,$dispatchBase);
+$workerId=$makeDispatch('Dedicated worker dispatch fixture');
+$conn->execute_query("INSERT INTO marketing_segments(audience_id,name,filters_json) VALUES (1,'Worker dispatch segment',?)",[json_encode(['match'=>'all','rules'=>[['field'=>'tags','operator'=>'any','value'=>[$dispatchTag]]]])]);
+$workerSegment=(int)$conn->insert_id;
+$campaignStore->saveCampaignSection($workerId,(int)$campaignStore->campaign($workerId)['version'],'to',['target'=>'segment:'.$workerSegment]);
+$workerJob=$confirmRuntime($workerId);
+$conn->execute_query('UPDATE marketing_campaign_deliveries SET due_at=UTC_TIMESTAMP() WHERE id=?',[$workerJob]);
 audienceHttpExpect($otherStore->campaignDelivery($workerId)===null,'Foreign audience cannot read delivery receipt');
 $conn->query('UPDATE marketing_delivery_policy SET hourly_budget=3,daily_budget=3,hourly_reserve=1,daily_reserve=1,interval_seconds=2,last_permit_at=NULL WHERE audience_id=1');
 echo 'Campaign dispatch HTTP/storage: '.($checks-$dispatchStart)." checks passed; all sends used a disposable adapter.\n";

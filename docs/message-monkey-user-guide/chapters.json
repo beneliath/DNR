@@ -257,7 +257,7 @@
     {
         "id": "sending",
         "title": "Delivery, Sending, and Scheduling",
-        "summary": "Check readiness, approve the final audience, and follow delivery outcomes.",
+        "summary": "Review the audience and schedule, manage delivery, and follow the results.",
         "links": [
             [
                 "Campaigns",
@@ -282,7 +282,12 @@
             [
                 "send-review",
                 "Send or Schedule a Campaign",
-                "<ol><li>Open the saved campaign and complete its checklist. Recheck the recipients and exclusions, sender, reply address, subject, and content.</li><li>Run the available review and test tools. Resolve blockers and understand any warnings.</li><li>Choose <strong>Send</strong> or the scheduling option. Review the final recipient count and the date, time, and time zone displayed by the scheduling screen.</li><li>Complete the final confirmation. Wait for the success or queued result before leaving the page.</li><li>Open the delivery view to confirm the campaign’s actual state and progress.</li></ol>\n<p>Sending requires an unrestricted editor or administrator, suitable account security access, and successful readiness checks. A saved draft or planning touchpoint is not a scheduled send.</p>\n<p>On <strong>Review your email</strong>, choose <strong>Preview your recipients</strong> under To to inspect the eligible names and addresses. The displayed list may show only the first recipients when the audience is large; use the full eligible count for the send decision. After pressing the final <strong>Send now</strong> button, a progress animation indicates that the request is being processed. Wait for the result before taking another action.</p>"
+                "<ol><li>Open the campaign and check the audience filters and exclusions, sender, reply address, subject, and content.</li><li>Preview and test the email. Resolve any blockers.</li><li>Choose <strong>Send</strong> or <strong>Schedule</strong>. Under <strong>To</strong>, choose <strong>Preview Your Recipients</strong> to see who qualifies now. A large preview shows the first 100 connections and the full count.</li><li>For a scheduled email, check the date, time, and time zone. Confirm and wait for the delivery page before leaving.</li></ol>\n<p>Sending requires an unrestricted editor or administrator, suitable account security access, and successful readiness checks. A saved draft or planning touchpoint is not a scheduled send.</p>\n<p><strong>Send Now</strong> saves the recipient list when you confirm. <strong>Schedule</strong> saves the email and audience filters. When delivery begins, MessageMonkey selects the subscribers who match those filters, including new subscribers. Anyone who has left the selected audience is excluded. With Timewarp, the list is set when the first eligible recipient is due, and each recipient’s email follows their local schedule.</p>"
+            ],
+            [
+                "cancel-schedule",
+                "Cancel a Scheduled Email and Return It to Draft",
+                "<p>In <strong>Campaigns</strong>, open the scheduled email and choose <strong>View Delivery</strong>. Choose <strong>Cancel Remaining Delivery</strong>, then confirm with <strong>Cancel Delivery</strong>. If delivery has not started, the campaign returns to <strong>Draft</strong>. Choose <strong>Edit Email and Reschedule</strong> to make changes or set a new send time.</p>\n<p><strong>Pause</strong> holds the delivery for later. If sending has already started, cancellation stops the remaining email. Messages already accepted by the provider cannot be recalled.</p>"
             ],
             [
                 "delivery-results",
