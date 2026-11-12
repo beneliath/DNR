@@ -80,7 +80,7 @@
                                     <?php endif; ?>
                                     <span style="display:block;margin-top:4px;color:#475467;font-size:12px;line-height:1.5"><?= $section['place'] ?> · <?= $h($row['location']) ?></span>
                                     <?php if (!empty($row['current_estimate'])): ?>
-                                        <span style="display:block;color:#475467;font-size:12px;line-height:1.5">Current IP estimate · <?= $h($row['current_estimate']) ?></span>
+                                        <span style="display:block;color:#475467;font-size:12px;line-height:1.5">Current IP Estimate · <?= $h($row['current_estimate']) ?></span>
                                     <?php endif; ?>
                                     <span style="display:block;color:#667085;font-size:12px;line-height:1.5"><?= $section['action'] ?> · <?= $h($row['time']) ?></span>
                                 </a>
@@ -92,7 +92,7 @@
             <tr><td align="center" style="padding:24px 12px 8px">
                 <a href="<?= $h($analyticsUrl) ?>" style="display:inline-block;padding:11px 17px;border-radius:9px;background:#2457d6;color:#fff;font-size:13px;font-weight:700">Open Audience Analytics</a>
             </td></tr>
-            <?php if ($usesDbip): ?><tr><td align="center" style="font-size:12px"><a href="https://db-ip.com/">IP geolocation by DB-IP</a></td></tr><?php endif; ?>
+            <?php if ($usesDbip): ?><tr><td align="center" style="font-size:12px"><a href="https://db-ip.com/">IP Geolocation by DB-IP</a></td></tr><?php endif; ?>
             <tr><td align="center" style="padding:34px 8px 2px"><?= renderEmailAsciiFooter() ?></td></tr>
         </table>
         <!--[if mso]></td></tr></table><![endif]-->

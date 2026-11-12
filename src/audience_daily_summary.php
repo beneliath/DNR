@@ -163,13 +163,13 @@ function audienceDailySummaryEmail(string $audienceName, string $day, array $gro
             $groups[$kind][$index]['url'] = $url;
             $lines[] = $row['name'].($row['address'] !== '' ? ' · '.$row['address'] : '');
             $lines[] = $section['place'].' · '.$row['location'];
-            if (!empty($row['current_estimate'])) $lines[] = 'Current IP estimate · '.$row['current_estimate'];
+            if (!empty($row['current_estimate'])) $lines[] = 'Current IP Estimate · '.$row['current_estimate'];
             $lines[] = $section['action'].' · '.$row['time'];
             $lines[] = $url;
         }
     }
     $lines[] = "\nOpen Audience Analytics\n".$analyticsUrl;
-    if ($usesDbip) $lines[] = 'IP geolocation by DB-IP · https://db-ip.com/';
+    if ($usesDbip) $lines[] = 'IP Geolocation by DB-IP · https://db-ip.com/';
     $lines[] = "\n".emailAsciiFooterText();
     $h = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     ob_start();

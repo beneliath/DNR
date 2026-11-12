@@ -36,7 +36,7 @@ try{
     $expect(queueAudienceChangeAlerts($db,100,$first)===1,'A quiet day queues a summary at 23:11');
     $quiet=$last();$quietMessage=audienceChangeAlertReady($db,$message($quiet));
     $expect(str_contains($quietMessage['text'],'0 subscriptions · 0 pending sign-ups · 0 unsubscribes')&&str_contains($quietMessage['html'],'No pending sign-ups.'),'Quiet-day email explicitly reports all three empty categories');
-    foreach (['text','html'] as $part) $expect(!str_contains($quietMessage[$part],'Current IP estimate')&&!str_contains($quietMessage[$part],'IP geolocation by DB-IP'),'Quiet days omit location estimates and attribution in '.$part);
+    foreach (['text','html'] as $part) $expect(!str_contains($quietMessage[$part],'Current IP Estimate')&&!str_contains($quietMessage[$part],'IP Geolocation by DB-IP'),'Quiet days omit location estimates and attribution in '.$part);
     $expect(str_contains($quietMessage['text'],'Audience changes for '.$day.' (UTC)'),'The summary covers the previous complete UTC day');
     $header=new DOMDocument();@$header->loadHTML($quietMessage['html']);
     $logos=$header->getElementsByTagName('img');
@@ -94,9 +94,9 @@ try{
         foreach(['Subscription Location · Madison, Wisconsin','Sign-Up Location · Toronto, Canada','Unsubscribe Location · United Kingdom','Subscription Location · Not Recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
         $flat=preg_replace('/\s+/u',' ',$body);
         foreach (['Sign-Up Location · Toronto, Canada'=>$current6,'Unsubscribe Location · United Kingdom'=>$current4] as $recorded=>$current) {
-            $expect(str_contains($flat,$recorded.' Current IP estimate · '.audienceInteractionPlace($current)),'The current estimate follows its original observation in '.$part);
+            $expect(str_contains($flat,$recorded.' Current IP Estimate · '.audienceInteractionPlace($current)),'The current estimate follows its original observation in '.$part);
         }
-        $expect(substr_count($body,'Current IP estimate')===2&&substr_count($body,'IP geolocation by DB-IP')===1,'Only incomplete, resolvable rows receive estimates and the source is credited once in '.$part);
+        $expect(substr_count($body,'Current IP Estimate')===2&&substr_count($body,'IP Geolocation by DB-IP')===1,'Only incomplete, resolvable rows receive estimates and the source is credited once in '.$part);
     }
     foreach ([
         ['123 Example Street, St. Louis, MO 63101 US', ['St. Louis','MO']],
