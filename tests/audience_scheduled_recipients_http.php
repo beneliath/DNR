@@ -18,12 +18,18 @@ $signup=static function(string $name,bool $included=true,string $last='Member')u
     return $person;
 };
 $dueNow=static fn(int $delivery)=>$campaignStore->write('UPDATE marketing_campaign_deliveries SET due_at=UTC_TIMESTAMP() WHERE id=?',[$delivery]);
+$deliveryPage=static function(int $campaign)use($editor):string{
+    $page=$editor('audience.php?view=campaign-delivery&id='.$campaign);
+    audienceHttpExpect($page['status']===200&&!preg_match('/Warning:|Fatal error:/',$page['body']),'Scheduled delivery status renders');
+    return $page['body'];
+};
 $sent=[];
 $transport=static function(array $message)use(&$sent):string{$sent[]=$message['email'];return 'accepted';};
 
 // An empty preview can be scheduled, and an empty audience at send time finishes without sending.
 $emptyCampaign=$makeScheduled();
 $emptyJob=$confirmRuntime($emptyCampaign);
+audienceHttpExpect(str_contains($deliveryPage($emptyCampaign),'<strong>0</strong><span>Eligible Now</span>'),'An empty scheduled audience shows a genuine live zero');
 $dueNow($emptyJob);
 processAudienceCampaignDelivery($conn,5,$transport);
 audienceHttpExpect(!$sent&&$campaignStore->campaignDelivery($emptyCampaign)['state']==='completed'&&!$campaignStore->campaignDeliveryCounts($emptyJob),'An empty scheduled audience completes exactly once');
@@ -36,13 +42,25 @@ $excluded=$signup('excluded-before-delivery');$changed=$signup('changed-before-d
 $jobId=$campaignStore->confirmCampaignDispatch($campaignId,(int)$row['version'],$review['proof'],$dispatchAudience,$dispatchBase);
 $signup('joined-after-scheduling');
 $signup('never-in-segment',false);$signup('wrong-filter',true,'Visitor');
+$page=$deliveryPage($campaignId);
+audienceHttpExpect(str_contains($page,'5 eligible when scheduled')&&str_contains($page,'<strong>6</strong><span>Eligible Now</span>')&&!str_contains($page,'<span>Waiting</span>'),'Delivery status includes matching new subscribers and keeps the scheduling count');
 $conn->execute_query('DELETE FROM marketing_contact_tags WHERE contact_id=? AND tag_id=?',[$left,$allowTag]);
 $conn->execute_query('INSERT INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$excluded,$excludeTag]);
 $conn->execute_query("UPDATE marketing_contacts SET last_name='Visitor' WHERE id=?",[$changed]);
 $conn->execute_query('INSERT INTO marketing_email_optouts(audience_id,email_hash) VALUES (1,?)',[audienceDispatchEmailHash('opted-out-before-delivery@example.test')]);
 $removedAfterStart=$signup('opts-out-during-delivery');
+$unsubscribed=$signup('unsubscribed-before-delivery');
+$conn->execute_query("UPDATE marketing_contacts SET email_status='unsubscribed' WHERE id=?",[$unsubscribed]);
+$page=$deliveryPage($campaignId);
+audienceHttpExpect(str_contains($page,'<strong>3</strong><span>Eligible Now</span>')&&!$campaignStore->campaignDeliveryCounts($jobId),'Refreshing excludes opt-outs, unsubscribes, changed filters and excluded tags without queuing recipients');
+$conn->execute_query('UPDATE marketing_segments SET filters_json=? WHERE id=?',[json_encode(['match'=>'all','rules'=>[['field'=>'missing','operator'=>'is','value'=>'x']]]),$segmentId]);
+$page=$deliveryPage($campaignId);
+audienceHttpExpect(str_contains($page,'<strong>—</strong><span>Eligible Now</span>')&&str_contains($page,'The current audience count is unavailable.'),'An invalid saved segment displays an unavailable count');
+$conn->execute_query('UPDATE marketing_segments SET filters_json=? WHERE id=?',[json_encode($rules),$segmentId]);
 $dueNow($jobId);processAudienceCampaignDelivery($conn,1,$transport);
 $signup('joined-after-first-send');
+$page=$deliveryPage($campaignId);
+audienceHttpExpect(!str_contains($page,'<span>Eligible Now</span>')&&str_contains($page,'<strong>2</strong><span>Waiting</span>'),'After the first send the actual waiting queue replaces the live estimate');
 $conn->execute_query("UPDATE marketing_contacts SET email_status='unsubscribed' WHERE id=?",[$removedAfterStart]);
 processAudienceCampaignDelivery($conn,10,$transport);
 $counts=$campaignStore->campaignDeliveryCounts($jobId);
@@ -60,11 +78,15 @@ $late=$signup('legacy-late-subscriber');
 $conn->execute_query('INSERT INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$late,$excludeTag]);
 $conn->execute_query('DELETE FROM marketing_contact_tags WHERE contact_id=? AND tag_id=?',[$changed,$allowTag]);
 $signup('legacy-late-match');
+$page=$deliveryPage($legacy);
+audienceHttpExpect(str_contains($page,'<span>Eligible Now</span>')&&!str_contains($page,'<span>Waiting</span>'),'Untouched schedules from older versions show live eligibility despite their prebuilt rows');
 $sent=[];processAudienceCampaignDelivery($conn,1,$transport);
 $started=$campaignStore->campaignDelivery($legacy);
 $snapshot=json_decode(\Dnr\Security\ApplicationKey::open($started['snapshot_ciphertext']),true);
 unset($snapshot['recipients_resolved']); // Older workers left no marker on in-progress campaigns.
 $conn->execute_query('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?',[\Dnr\Security\ApplicationKey::seal(json_encode($snapshot)),$legacyJob]);
+$page=$deliveryPage($legacy);
+audienceHttpExpect(str_contains($page,'<span>Waiting</span>')&&!str_contains($page,'<span>Eligible Now</span>'),'A legacy delivery with a recorded attempt shows its fixed queue');
 $signup('legacy-after-start');processAudienceCampaignDelivery($conn,20,$transport);
 audienceHttpExpect(in_array('legacy-late-match@example.test',$sent,true)&&!in_array('changed-before-delivery@example.test',$sent,true)&&!in_array('legacy-late-subscriber@example.test',$sent,true)&&count($sent)===count(array_unique($sent)),'An untouched legacy schedule refreshes its rows, adds new matches and skips obsolete recipients');
 audienceHttpExpect(!in_array('legacy-after-start@example.test',$sent,true),'A legacy delivery already in progress keeps its original audience');

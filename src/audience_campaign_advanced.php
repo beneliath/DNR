@@ -103,7 +103,8 @@ trait AudienceCampaignAdvanced
         }
         if(preg_match('/^segment:([1-9][0-9]*)$/D',$target,$m)){
             $segment=$this->one('SELECT filters_json FROM marketing_segments WHERE audience_id=? AND id=?',[$this->audienceId,(int)$m[1]]);if(!$segment)throw new InvalidArgumentException('A selected segment is unavailable.');
-            return audienceLegacyRules(audienceJson($segment['filters_json']),$this->tags(true));
+            $filters=audienceJson($segment['filters_json']);
+            return audienceLegacyRules($filters,empty($filters['tag'])?[]:$this->tags(true,withCounts:false));
         }
         throw new InvalidArgumentException('Choose an available tag or segment.');
     }
@@ -118,8 +119,9 @@ trait AudienceCampaignAdvanced
         foreach($include as$value){if(!is_string($value))throw new InvalidArgumentException('Choose valid recipients.');$includeRules[]=$this->campaignTargetRule($value);}
         if($includeRules)$root['rules'][]=['match'=>'any','rules'=>$includeRules];
         if(isset($draft['recipient_rules'])){if(!is_array($draft['recipient_rules']))throw new InvalidArgumentException('The audience filters are invalid.');if(!empty($draft['recipient_rules']['rules']))$root['rules'][]=$draft['recipient_rules'];}
-        [$where,$params]=$this->where(['status'=>['subscribed']],$root);
-        foreach($exclude as$value){if(!is_string($value))throw new InvalidArgumentException('Choose valid exclusions.');$rule=$this->campaignTargetRule($value);[$excluded,$values]=$this->where(['status'=>['subscribed']],isset($rule['field'])?['match'=>'all','rules'=>[$rule]]:$rule);$where.=' AND NOT ('.$excluded.')';array_push($params,...$values);}
+        $catalog=$this->catalogForDefinitions($this->fields(),$this->tags(true,withCounts:false),$this->groups(true,withCounts:false));
+        [$where,$params]=$this->where(['status'=>['subscribed']],$root,$catalog);
+        foreach($exclude as$value){if(!is_string($value))throw new InvalidArgumentException('Choose valid exclusions.');$rule=$this->campaignTargetRule($value);[$excluded,$values]=$this->where(['status'=>['subscribed']],isset($rule['field'])?['match'=>'all','rules'=>[$rule]]:$rule,$catalog);$where.=' AND NOT ('.$excluded.')';array_push($params,...$values);}
         return [$where,$params];
     }
     public function campaignDesign(array $row,int $variant=0):?array

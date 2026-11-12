@@ -41,10 +41,12 @@ audienceHttpExpect(processAudienceCampaignDelivery($conn,20,$adapter)===0&&!$rec
 $opPath='audience.php?view=campaign-delivery&id='.$dispatchId;
 $op=static function(string $operation)use($editor,$token,$campaignStore,$dispatchId,$opPath){$j=$campaignStore->campaignDelivery($dispatchId);return $editor($opPath,['csrf_token'=>$token,'action'=>'campaign_delivery_operation','id'=>$dispatchId,'version'=>$j['version'],'operation'=>$operation]);};
 audienceHttpExpect($op('pause')['status']===302&&$campaignStore->campaignDelivery($dispatchId)['state']==='paused','Schedule can pause');
+audienceHttpExpect(str_contains($editor($opPath)['body'],'<strong>6</strong><span>Eligible Now</span>'),'A paused schedule still shows its current audience before sending');
 audienceHttpExpect(processAudienceCampaignDelivery($conn,20,$adapter)===0,'Paused schedule does not dispatch');
 audienceHttpExpect($op('resume')['status']===302&&$campaignStore->campaignDelivery($dispatchId)['state']==='scheduled','Resume preserves future due time');
 audienceHttpExpect($op('cancel')['status']===302&&$campaignStore->campaign($dispatchId)['status']==='draft','Unstarted cancelled schedule returns to editable draft');
-audienceHttpExpect(!$campaignStore->campaignDeliveryCounts($jobId)&&str_contains($editor($opPath)['body'],'Edit Email and Reschedule'),'Cancellation before dispatch leaves no recipients and offers the editable draft');
+$cancelledPage=$editor($opPath)['body'];
+audienceHttpExpect(!$campaignStore->campaignDeliveryCounts($jobId)&&str_contains($cancelledPage,'Edit Email and Reschedule')&&!str_contains($cancelledPage,'<span>Eligible Now</span>'),'Cancellation before dispatch removes the live estimate and offers the editable draft');
 // A new exact snapshot is required after cancellation and editing.
 $c=$campaignStore->campaign($dispatchId);$campaignStore->saveCampaignSection($dispatchId,(int)$c['version'],'send_time',['send_mode'=>'now','timezone'=>'UTC','delivery'=>'specific']);$c=$campaignStore->campaign($dispatchId);$sendNowProof=$proofFrom($editor($send));
 $conn->execute_query('UPDATE marketing_contacts SET version=version+1 WHERE id=?',[$dispatchPeople[0]]);
