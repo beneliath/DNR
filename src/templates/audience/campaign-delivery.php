@@ -44,15 +44,28 @@ $dispatchForm=static function(string $action,array $extra=[])use($csrf,$id){echo
 $state=$delivery['state'];$counts=$deliveryCounts;$finished=array_sum(array_intersect_key($counts,array_flip(['accepted','development','suppressed','failed','uncertain','cancelled'])));$total=array_sum($counts);$active=in_array($state,['scheduled','sending','paused'],true);
 $when=(new DateTimeImmutable($delivery['due_at'],new DateTimeZone('UTC')))->setTimezone(new DateTimeZone($delivery['timezone']));
 $timewarp=$schedule&&($draft['send_time']['delivery']??'')==='timewarp';
-$awaitingAudience=$schedule&&empty($delivery['completed_at'])&&(isset($deliverySnapshot['recipients_resolved'])?!$deliverySnapshot['recipients_resolved']:$state==='scheduled');
 $headline=match($state){'scheduled'=>'Your Email Is Scheduled','sending'=>'Your Email Is on Its Way','paused'=>'Your Email Is Paused','cancelled'=>'Delivery Cancelled',default=>'Email Processing Complete'};
 ?>
 <section class="campaign-delivery-card" data-campaign-delivery-auto-refresh="20000"><div class="campaign-delivery-heading"><div><span class="campaign-status"><?= $h(\Dnr\Domain\ReferenceData::label($state)) ?></span><h2><?= $headline ?></h2><p><?= $h($campaign['name']) ?></p></div><div class="campaign-delivery-refresh"><a class="audience-button" href="<?= $h($url(['view'=>'campaign-delivery','id'=>$id])) ?>">Refresh Status</a><small>Auto-refreshes every 20 seconds</small></div></div>
 <dl class="campaign-delivery-summary"><div><dt>Delivery Time</dt><dd><?php if($timewarp): ?><?= $h($draft['send_time']['local']) ?> in each recipient’s time zone<small>Fallback time zone: <?= $h($delivery['timezone']) ?></small><?php else: ?><?= $h(formatUserTimestamp($delivery['due_at'])) ?><small>Scheduled timezone: <?= $h($delivery['timezone']) ?> · <?= $h(formatUserTimestamp($delivery['due_at'],'Y-m-d H:i:s')) ?></small><?php endif; ?></dd></div><div><dt>Audience</dt><dd><?= $h($audience['name']) ?><small><?= number_format((int)$delivery['recipient_count']) ?> <?= $awaitingAudience?'eligible when scheduled':'recipients' ?></small></dd></div></dl>
 <?php if($delivery['error_message']): ?><div class="audience-notice error" role="alert"><?= $h($delivery['error_message']) ?> <?php if($canDelete): ?><a href="<?= $h($url(['view'=>'delivery'])) ?>">Email Delivery Setup</a><?php else: ?>Ask an administrator to review email delivery setup.<?php endif; ?></div><?php endif; ?>
-<?php if($awaitingAudience): ?><p class="audience-help"><?= $state==='cancelled'?'The schedule was cancelled before recipients were selected.':'The final recipient count is set when delivery begins.' ?></p><?php elseif($schedule&&$state==='completed'&&!(int)$delivery['recipient_count']): ?><p class="audience-help">No subscribed connections matched the audience filters when delivery began.</p><?php else: ?>
+<?php if($awaitingAudience): ?>
+<p class="audience-help"><?php if($state==='cancelled'): ?>The schedule was cancelled before recipients were selected.<?php else: ?><?php if($showEligibleNow): ?>Eligible Now counts subscribed connections who match your audience filters. <?php endif; ?>The final recipient list is set when delivery begins.<?php endif; ?></p>
+<?php if($eligibilityError!==''): ?><p class="audience-notice error">The current audience count is unavailable. <?= $h($eligibilityError) ?></p><?php endif; ?>
+<?php elseif($schedule&&$state==='completed'&&!(int)$delivery['recipient_count']): ?><p class="audience-help">No subscribed connections matched the audience filters when delivery began.</p><?php else: ?>
 <progress max="<?= max(1,$total) ?>" value="<?= $finished ?>" aria-label="Campaign Processing Progress"></progress><p><?= number_format($finished) ?> of <?= number_format($total) ?> processed</p><?php endif; ?>
-<div class="campaign-delivery-metrics"><?php foreach(['accepted'=>'Accepted by SES','queued'=>'Waiting','suppressed'=>'Suppressed','failed'=>'Failed','uncertain'=>'Uncertain','cancelled'=>'Cancelled','development'=>'Development Only']as$key=>$label): if($key==='development'&&empty($counts[$key]))continue; ?><div><strong><?= number_format((int)($counts[$key]??0)) ?></strong><span><?= $label ?></span></div><?php endforeach; ?></div>
+<div class="campaign-delivery-metrics">
+<?php foreach(['accepted'=>'Accepted by SES','queued'=>'Waiting','suppressed'=>'Suppressed','failed'=>'Failed','uncertain'=>'Uncertain','cancelled'=>'Cancelled','development'=>'Development Only'] as $key=>$label):
+    if($key==='development'&&empty($counts[$key]))continue;
+    $value=(int)($counts[$key]??0);
+    if($key==='queued'&&$showEligibleNow){
+        $label='Eligible Now';
+        $value=$eligibleNow;
+    }
+?>
+<div><strong><?= $value===null?'—':number_format($value) ?></strong><span><?= $label ?></span></div>
+<?php endforeach; ?>
+</div>
 <?php if(!empty($counts['uncertain'])): ?><p class="audience-notice error">Some messages have no confirmed SES receipt. They will not be retried automatically because they may already have been accepted.</p><?php endif; ?>
 <p class="audience-help">Accepted by SES confirms API acceptance. Delivery receipts come from signed SES delivery events; observed opens and clicks appear below. Pause and cancel apply to remaining messages; a message in progress may finish first.</p>
 <?php if($canSend&&$active): ?><div class="campaign-delivery-actions"><?php foreach(($state==='paused'?['resume'=>'Resume Sending']:['pause'=>'Pause'])as$operation=>$label): ?><form method="post"><?php $dispatchForm('campaign_delivery_operation',['version'=>$delivery['version'],'operation'=>$operation]); ?><button><?= $label ?></button></form><?php endforeach; ?><button type="button" data-open-dialog="campaign-delivery-cancel">Cancel Remaining Delivery</button><?php if($state==='paused'&&$finished===0): ?><p class="audience-help">To change the time or content, cancel this delivery, edit the draft and confirm the new schedule.</p><?php endif; ?></div><?php endif; ?>

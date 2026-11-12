@@ -245,12 +245,24 @@ if($view==='delivery'){
 if($view==='campaign'&&$campaign&&$deliveryAvailable)$senderReadiness=$store->sendingReadiness((string)($campaign['draft']['from_email']??''),audienceJson($audience['settings_json']));
 // Review is read-only. A confirmed schedule resolves its recipients in the delivery worker.
 $dispatchReview=null;$dispatchError='';$delivery=null;$deliveryCounts=[];$deliveryRows=[];$deliveryReport=[];$deliverySnapshot=[];
+$awaitingAudience=false;$showEligibleNow=false;$eligibleNow=null;$eligibilityError='';
 if($campaign&&$dispatchInstalled){
     $delivery=$store->campaignDelivery((int)$campaign['id']);
     if($delivery){
         if($runtimeInstalled)$deliverySnapshot=audienceJson(\Dnr\Security\ApplicationKey::open($delivery['snapshot_ciphertext']));
         if($campaign['status']!=='draft')$recipientCount=(int)$delivery['recipient_count'];
         if($view==='campaign-delivery'){
+            $scheduledDraft=$deliverySnapshot['draft']??$campaign['draft'];
+            if(($scheduledDraft['send_time']['mode']??'')==='schedule'&&empty($delivery['completed_at'])){
+                $awaitingAudience=$runtimeInstalled
+                    ? !$store->scheduledRecipientsResolved($delivery,$deliverySnapshot)
+                    : $delivery['state']==='scheduled';
+                $showEligibleNow=$runtimeInstalled&&$awaitingAudience&&in_array($delivery['state'],['scheduled','paused','sending'],true);
+                if($showEligibleNow){
+                    try{$eligibleNow=$store->dispatchCandidateCount($scheduledDraft);}
+                    catch(InvalidArgumentException $e){$eligibilityError=$e->getMessage();}
+                }
+            }
             if($runtimeInstalled)$deliveryReport=$store->deliveryReport((int)$delivery['id']);
             $deliveryCounts=$store->campaignDeliveryCounts((int)$delivery['id']);
             $deliveryRows=$store->all('SELECT r.id,r.contact_id,r.state,r.attempts,r.accepted_at,r.next_attempt_at,r.error_message FROM marketing_campaign_recipients r WHERE r.audience_id=? AND r.delivery_id=? ORDER BY r.id DESC LIMIT 25',[$audienceId,$delivery['id']]);

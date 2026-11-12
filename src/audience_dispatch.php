@@ -153,14 +153,24 @@ trait AudienceDispatch
     {
         return (int)$this->one("SELECT COUNT(*) n FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='marketing_campaign_deliveries'")['n']===1;
     }
-    private function dispatchCandidates(array $draft,bool $previewOnly=false):array
+    private function dispatchCandidateFilter(array $draft):array
     {
         if(empty($draft['recipients_saved']))throw new InvalidArgumentException('Save your recipients before sending.');
         [$where,$params]=$this->campaignTarget($draft);
         $deletedEmailPolicy=audienceDeletedEmailSuppressionSql();
+        return ["$where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy",$params];
+    }
+    public function dispatchCandidateCount(array $draft):int
+    {
+        [$where,$params]=$this->dispatchCandidateFilter($draft);
+        return (int)$this->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $where",$params)['n'];
+    }
+    private function dispatchCandidates(array $draft,bool $previewOnly=false):array
+    {
+        [$where,$params]=$this->dispatchCandidateFilter($draft);
         $columns=$previewOnly?'c.id,c.email,c.first_name,c.last_name,COUNT(*) OVER() eligible_count':'c.id,c.email,c.version,c.first_name,c.last_name,c.source,c.email_status,c.custom_json,c.timezone';
         $limit=$previewOnly?100:100001;
-        return $this->all("SELECT $columns FROM marketing_contacts c WHERE $where AND NOT EXISTS(SELECT 1 FROM marketing_email_optouts o WHERE o.audience_id=c.audience_id AND o.email_hash=SHA2(LOWER(TRIM(c.email)),256)) AND NOT $deletedEmailPolicy ORDER BY c.id LIMIT $limit",$params);
+        return $this->all("SELECT $columns FROM marketing_contacts c WHERE $where ORDER BY c.id LIMIT $limit",$params);
     }
     private function dispatchSnapshot(array $row,array $audience,string $base):array
     {
@@ -263,8 +273,7 @@ trait AudienceDispatch
             $delivery=(int)$job['id'];
             $send=$snapshot['draft']['send_time'];
             $legacy=!array_key_exists('recipients_resolved',$snapshot);
-            // A pre-upgrade worker may already have attempted delivery, even if it deferred or crashed.
-            if($legacy&&$this->one("SELECT id FROM marketing_campaign_recipients WHERE delivery_id=? AND (state<>'queued' OR phase<>'main' OR attempts>0 OR started_at IS NOT NULL) LIMIT 1",[$delivery])){
+            if($legacy&&$this->scheduledRecipientsResolved($job,$snapshot)){
                 $snapshot['recipients_resolved']=true;
                 $this->write('UPDATE marketing_campaign_deliveries SET snapshot_ciphertext=? WHERE id=?',[\Dnr\Security\ApplicationKey::seal(json_encode($snapshot,JSON_THROW_ON_ERROR)),$delivery]);
                 return true;
@@ -344,6 +353,12 @@ trait AudienceDispatch
     public function campaignDelivery(int $campaign):?array
     {
         return $this->one('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=? AND campaign_id=? AND flow_run_id=0 ORDER BY id DESC LIMIT 1',[$this->audienceId,$campaign]);
+    }
+    public function scheduledRecipientsResolved(array $delivery,array $snapshot):bool
+    {
+        if(isset($snapshot['recipients_resolved']))return (bool)$snapshot['recipients_resolved'];
+        // Older schedules already had queued rows. Only evidence of processing fixes their audience.
+        return (bool)$this->one("SELECT id FROM marketing_campaign_recipients WHERE audience_id=? AND delivery_id=? AND (state<>'queued' OR phase<>'main' OR attempts>0 OR started_at IS NOT NULL) LIMIT 1",[$this->audienceId,$delivery['id']]);
     }
     public function campaignDeliveryCounts(int $delivery):array
     {
