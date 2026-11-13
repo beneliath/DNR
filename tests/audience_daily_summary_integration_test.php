@@ -59,16 +59,25 @@ try{
     $person=$store->savePerson(['email'=>'summary-contact-'.$suffix.'@example.test','first_name'=>'Avery','last_name'=>'O\'Neil & Lee','email_status'=>'non-subscribed',
         'custom'=>[$addressField=>['address1'=>'Private Street','city'=>'Evanston','region'=>'IL']]]);
     $unnamed=$store->savePerson(['email'=>'unnamed-'.$suffix.'@example.test','first_name'=>'private@example.test','email_status'=>'non-subscribed']);
+    $confirmed=$store->savePerson(['email'=>'confirmed-'.$suffix.'@example.test','first_name'=>'Casey','email_status'=>'non-subscribed']);
+    $waiting=$store->savePerson(['email'=>'waiting-'.$suffix.'@example.test','first_name'=>'Jordan','email_status'=>'non-subscribed',
+        'custom'=>[$addressField=>['address1'=>'Private Street','city'=>'Oak Park','region'=>'IL']]]);
     $eventDay=gmdate('Y-m-d',$first);
-    $event=static function(int $id,string $type,array $detail,string $time)use($store,$eventDay):void{
-        $store->write('INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,?,?,?,?)',[$id,$type,json_encode($detail,JSON_THROW_ON_ERROR),'Summary fixture',$eventDay.' '.$time]);
+    $nextDay=gmdate('Y-m-d',$first+86400);
+    $event=static function(int $id,string $type,array $detail,string $time,?string $day=null)use($store,$eventDay):void{
+        $store->write('INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,?,?,?,?)',[$id,$type,json_encode($detail,JSON_THROW_ON_ERROR),'Summary fixture',($day??$eventDay).' '.$time]);
     };
     // Public DNS resolver addresses exercise the same offline data the mail worker uses.
     $ipv4='8.8.8.8';$ipv6='2001:4860:4860::8888';
     $current4=audienceInteractionIpLookup($ipv4);$current6=audienceInteractionIpLookup($ipv6);
     $expect(isset($current4['region'],$current4['city'],$current6['region'],$current6['city']),'The bundled database resolves both fixture addresses for the delivery user');
-    $event($person,'signup-permission',['opt_in'=>'double','interaction_location'=>['country_code'=>'CA','city'=>'Toronto','ip_address'=>$ipv6]], '08:01:02');
+    $event($person,'signup-permission',['opt_in'=>'double'], '08:01:02');
     $event($person,'subscription-confirmed',['from'=>'pending','to'=>'subscribed','interaction_location'=>['country_code'=>'US','region'=>'Wisconsin','city'=>'Madison','ip_address'=>$ipv4]], '10:02:03');
+    $event($confirmed,'signup-permission',['opt_in'=>'double','prior_status'=>null], '11:02:03');
+    $event($confirmed,'subscription-confirmed',['from'=>'pending','to'=>'subscribed'], '11:02:03');
+    $confirmedRows=audienceDailySummaryRows($store,$eventDay,$baseline);
+    $expect(array_column($confirmedRows['signup'],'contact_id')===[$confirmed,$person]&&$confirmedRows['pending']===[],
+        'Two confirmed double opt-ins appear only under Subscriptions, including a legacy receipt and a confirmation in the same second');
     $event($person,'collection-converted',['method'=>'double'], '10:02:03');
     $event($person,'signup-permission',['opt_in'=>'double'], '11:00:00');
     $event($person,'status',['from'=>'subscribed','to'=>'unsubscribed','interaction_location'=>['country_code'=>'GB','ip_address'=>$ipv4]], '14:03:04');
@@ -76,22 +85,30 @@ try{
     $event($person,'contact_added',['status'=>'subscribed','origin'=>'Import'], '15:00:00');
     $event($person,'subscription-confirmed',['from'=>'subscribed','to'=>'subscribed'], '15:00:01');
     $event($person,'signup-permission',['opt_in'=>'double','prior_status'=>'subscribed'], '15:00:02');
-    $store->write("INSERT INTO marketing_contact_events(contact_id,event_type,details_json,actor_label,created_at) VALUES (?,'contact_added',JSON_OBJECT('status','pending'),'Summary fixture',DATE_ADD(?, INTERVAL 1 DAY))",[$person,$eventDay]);
+    $event($waiting,'signup-permission',['opt_in'=>'double','prior_status'=>'non-subscribed'], '08:01:02');
+    $event($waiting,'signup-permission',['opt_in'=>'double','prior_status'=>'non-subscribed','interaction_location'=>['country_code'=>'CA','city'=>'Toronto','ip_address'=>$ipv6]], '09:12:13');
+    $event($waiting,'subscription-confirmed',['from'=>'non-subscribed','to'=>'subscribed'], '00:00:00',$nextDay);
+    $store->write("UPDATE marketing_contacts SET email_status='subscribed' WHERE id=?",[$waiting]);
+    $event($person,'subscription_changed',['from'=>'unsubscribed','to'=>'pending'], '00:00:00',$nextDay);
     $changed['in_app_unsubscribe']='1';$prefs=$save($changed);
     $expect($prefs['digest_start_event']===$baseline&&$prefs['start_event']>$baseline,'Preference edits retain the summary baseline while renewing individual alerts');
     $second=(new DateTimeImmutable($day.' 23:11:00',new DateTimeZone('America/Chicago')))->modify('+1 day')->getTimestamp();
     $expect(queueAudienceChangeAlerts($db,100,$second)===1,'Next daily email is queued after preference edits');$queued=$message($last());
     $changes=audienceChangeAlertReady($db,$queued);
-    $expect(str_contains($changes['text'],'2 subscriptions · 1 pending sign-up · 1 unsubscribe'),'Single opt-ins, confirmations and pending requests count once, excluding imports, repeated confirmations and existing-subscriber form submissions');
-    $contactUrl=applicationPublicUrl('audience.php',['view'=>'contact','id'=>$person]);
+    $expect(str_contains($changes['text'],'3 subscriptions · 1 pending sign-up · 1 unsubscribe'),'Only the outstanding request counts as pending alongside confirmations, a single opt-in and an unsubscribe');
+    foreach ([$person=>2,$confirmed=>1,$waiting=>1,$unnamed=>1] as $id=>$expected) {
+        $contactUrl=applicationPublicUrl('audience.php',['view'=>'contact','id'=>$id]);
+        $expect(substr_count($changes['text'],$contactUrl."\n")===$expected&&substr_count($changes['html'],'href="'.htmlspecialchars($contactUrl,ENT_QUOTES).'"')===$expected,
+            'Confirmed sign-ups, the latest outstanding request and the unsubscribe link to their respective contacts in both alternatives');
+    }
     $analyticsUrl=applicationPublicUrl('audience.php',['view'=>'analytics','section'=>'audience']);
-    $expect(substr_count($changes['text'],$contactUrl)===3&&substr_count($changes['html'],'href="'.htmlspecialchars($contactUrl,ENT_QUOTES).'"')===3,'Each interaction row opens the same specific account contact in both alternatives');
     $expect(str_contains($changes['text'],$analyticsUrl)&&str_contains($changes['html'],'href="'.htmlspecialchars($analyticsUrl,ENT_QUOTES).'"'),'Both alternatives link to account audience analytics');
     foreach(['text','html'] as $part){
         $body=html_entity_decode(strip_tags($changes[$part]),ENT_QUOTES,'UTF-8');
         $expect(!preg_match('/[\w.+-]+@[\w.-]+/',$body)&&!str_contains($body,'Private Street')&&!str_contains($changes[$part],'192.0.2.42')&&!str_contains($changes[$part],$ipv4)&&!str_contains($changes[$part],$ipv6),'Email addresses, street addresses and IPs are absent from '.$part);
-        $expect(substr_count($body,'Evanston, IL')===2&&str_contains($body,"Avery O'Neil & Lee")&&str_contains($body,'Connection #'.$unnamed),'Only subscriptions and pending sign-ups carry the mailing locality, with a safe unnamed fallback in '.$part);
-        foreach(['Subscription Location · Madison, Wisconsin','Sign-Up Location · Toronto, Canada','Unsubscribe Location · United Kingdom','Subscription Location · Not Recorded','8:01:02 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
+        $expect(substr_count($body,'Evanston, IL')===1&&substr_count($body,'Oak Park, IL')===1&&str_contains($body,"Avery O'Neil & Lee")&&str_contains($body,'Connection #'.$unnamed),'Only subscriptions and pending sign-ups carry the mailing locality, with a safe unnamed fallback in '.$part);
+        $expect(!str_contains($body,'8:01:02 AM UTC'),'Resolved and superseded sign-up receipts are omitted from '.$part);
+        foreach(['Subscription Location · Madison, Wisconsin','Sign-Up Location · Toronto, Canada','Unsubscribe Location · United Kingdom','Subscription Location · Not Recorded','9:12:13 AM UTC','10:02:03 AM UTC','2:03:04 PM UTC']as$value)$expect(str_contains($body,$value),'Interaction-specific detail in '.$part.': '.$value);
         $flat=preg_replace('/\s+/u',' ',$body);
         foreach (['Sign-Up Location · Toronto, Canada'=>$current6,'Unsubscribe Location · United Kingdom'=>$current4] as $recorded=>$current) {
             $expect(str_contains($flat,$recorded.' Current IP Estimate · '.audienceInteractionPlace($current)),'The current estimate follows its original observation in '.$part);
@@ -118,7 +135,7 @@ try{
     $store->write('UPDATE marketing_ses_settings SET enabled=1 WHERE audience_id=1');
     $expect(queueAudienceChangeAlerts($db,100,$third+30)===1&&queueAudienceChangeAlerts($db,100,$third+60)===0,'Sending recovery queues the due summary exactly once');
     $next=audienceChangeAlertReady($db,$message($last()));
-    $expect(str_contains($next['text'],'0 subscriptions · 1 pending sign-up · 0 unsubscribes'),'Midnight UTC belongs to the following summary');
+    $expect(str_contains($next['text'],'1 subscription · 1 pending sign-up · 0 unsubscribes'),'A confirmation at midnight UTC counts on the following day, alongside a new pending request');
     $fourth=(new DateTimeImmutable('@'.$third))->setTimezone(new DateTimeZone('America/Chicago'))->modify('+1 day')->getTimestamp();
     $store->write('UPDATE users SET email_verified_at=NULL WHERE id=?',[$actor]);$priorDay=$checkpoint();
     $expect(queueAudienceChangeAlerts($db,100,$fourth)===0&&$checkpoint()===$priorDay,'Ineligible recipients do not silently consume a due summary');

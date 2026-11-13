@@ -76,7 +76,7 @@ function audienceSummaryProfile(array $row, array $fields, bool $includeAddress)
     ];
 }
 
-/** One row per observed interaction, even if the same person changes status again. */
+/** Report subscriptions and unsubscribes as events, and sign-ups still pending at the end of the UTC day. */
 function audienceDailySummaryRows(AudienceStore $store, string $day, int $startEvent): array
 {
     $groups = ['signup'=>[], 'pending'=>[], 'unsubscribe'=>[]];
@@ -104,7 +104,10 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
     $fields = $store->fields();
     $utc = new DateTimeZone('UTC');
     $estimateLookup = audienceInteractionEstimateLookup();
+    // Events are newest first. A later outcome or request supersedes earlier pending rows.
+    $hasLaterOutcome = [];
     foreach ($events as $event) {
+        $contactId = (int) $event['contact_id'];
         $details = audienceJson($event['details_json']);
         if ($event['event_type'] === 'signup-permission') {
             if (($details['origin'] ?? '') === 'Import' || ($details['prior_status'] ?? $event['legacy_signup_status']) === 'subscribed') continue;
@@ -112,14 +115,23 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
         } else {
             $kind = audienceSubscriptionChange($event['event_type'], $details, true);
         }
-        if ($kind === null) continue;
+        if ($kind === null) {
+            // An import or a move to cleaned/non-subscribed can close a request without adding a report row.
+            $to = $details['to'] ?? $details['status'] ?? null;
+            if ($to !== ($details['from'] ?? null) && in_array($to, ['subscribed','unsubscribed','cleaned','non-subscribed'], true)) {
+                $hasLaterOutcome[$contactId] = true;
+            }
+            continue;
+        }
+        if ($kind === 'pending' && isset($hasLaterOutcome[$contactId])) continue;
+        $hasLaterOutcome[$contactId] = true;
         [$name, $address] = audienceSummaryProfile($event, $fields, $kind !== 'unsubscribe');
         $location = is_array($details['interaction_location'] ?? null) ? $details['interaction_location'] : [];
         $place = audienceSummaryLabel(audienceInteractionPlace($location));
         $estimate = audienceInteractionCurrentEstimate($location, $estimateLookup);
         $estimatePlace = audienceSummaryLabel($estimate['place'] ?? '');
         $groups[$kind][] = [
-            'contact_id'=>(int) $event['contact_id'], 'name'=>$name, 'address'=>$address,
+            'contact_id'=>$contactId, 'name'=>$name, 'address'=>$address,
             'location'=>$place !== '' ? $place : 'Not Recorded',
             'current_estimate'=>$estimatePlace,
             'dbip_location'=>($place !== '' && ($location['source'] ?? '') === 'DB-IP City Lite')
