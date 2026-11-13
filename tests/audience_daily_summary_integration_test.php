@@ -16,7 +16,7 @@ foreach([
 $oldAudience=$store->one('SELECT * FROM marketing_audiences WHERE id=1');$oldSettings=audienceJson($oldAudience['settings_json']);$oldState=$store->one('SELECT * FROM marketing_audience_notification_state WHERE audience_id=1');$oldSes=$store->sesSettings();
 $oldQueued=$store->all("SELECT id,next_attempt_at FROM marketing_service_mail WHERE state='queued'");
 foreach($oldQueued as$row)$store->write('UPDATE marketing_service_mail SET next_attempt_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 30 DAY) WHERE id=?',[$row['id']]);
-$suffix=bin2hex(random_bytes(6));$email='daily-summary-'.$suffix.'@example.test';$actor=0;$person=0;
+$suffix=bin2hex(random_bytes(6));$email='daily-summary-'.$suffix.'@example.test';$actor=0;$person=0;$confirmed=0;$waiting=0;
 try{
     $db->execute_query("INSERT INTO users(username,password,role,account_status,email,email_verified_at) VALUES (?,?,'admin','active',?,UTC_TIMESTAMP())",['daily-summary-'.$suffix,password_hash(bin2hex(random_bytes(16)),PASSWORD_DEFAULT),$email]);$actor=(int)$db->insert_id;
     $store=new AudienceStore($db,1,$actor,'Daily summary qualification');
@@ -147,6 +147,7 @@ try{
     $expect(queueAudienceChangeAlerts($db,100,$fifth)===0&&count($jobs())===$count,'An empty recipient list keeps daily email disabled');
     echo "Daily summary: $checks checks passed; no external email.\n";
 }finally{
+    $store->write('UPDATE marketing_contacts SET deleted_at=UTC_TIMESTAMP() WHERE audience_id=1 AND id IN (?,?)',[$confirmed,$waiting]);
     if($actor){$store->write("UPDATE marketing_service_mail SET state='cancelled' WHERE kind='audience-alert' AND actor_id=? AND state IN ('queued','processing')",[$actor]);$store->write("UPDATE users SET account_status='inactive' WHERE id=?",[$actor]);}
     $store->write('UPDATE marketing_audiences SET settings_json=?,version=version+1 WHERE id=1',[$oldAudience['settings_json']]);
     $restore=$oldState??['generation'=>str_repeat('0',32),'event_cursor'=>0,'digest_day'=>gmdate('Y-m-d',audienceDailySummaryDue(time()))];
