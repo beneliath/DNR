@@ -44,8 +44,8 @@ if(!str_ends_with($db->query('SELECT subscription_arn FROM marketing_ses_setting
 echo "SNS durable retry, signed confirmation, forged-envelope rejection, suppression and mail-role isolation passed.\n";
 require __DIR__.'/audience_sns_worker_security.php';
 $fakeSes=new class{
- public array $sent=[];public ?Throwable $failure=null;public int $checks=0;public bool $verified=true;public ?Closure $onSend=null;
- public function getAccount(array $args):array{$this->checks++;return ['SendingEnabled'=>true,'ProductionAccessEnabled'=>true,'SendQuota'=>['Max24HourSend'=>1000,'MaxSendRate'=>10,'SentLast24Hours'=>0]];}
+ public array $sent=[];public ?Throwable $failure=null;public ?Throwable $checkFailure=null;public int $checks=0;public bool $verified=true;public ?Closure $onSend=null;
+ public function getAccount(array $args):array{$this->checks++;if($this->checkFailure)throw $this->checkFailure;return ['SendingEnabled'=>true,'ProductionAccessEnabled'=>true,'SendQuota'=>['Max24HourSend'=>1000,'MaxSendRate'=>10,'SentLast24Hours'=>0]];}
  public function getEmailIdentity(array $args):array{return ['VerifiedForSendingStatus'=>$this->verified,'VerificationStatus'=>$this->verified?'SUCCESS':'FAILED','DkimAttributes'=>['SigningEnabled'=>true,'Status'=>'SUCCESS']];}
  public function getConfigurationSet(array $args):array{return ['ConfigurationSetName'=>'message-monkey','SendingOptions'=>['SendingEnabled'=>true]];}
  public function getConfigurationSetEventDestinations(array $args):array{return ['EventDestinations'=>[['Enabled'=>true,'SnsDestination'=>['TopicArn'=>'arn:aws:sns:us-east-1:123456789012:message-monkey'],'MatchingEventTypes'=>['SEND','DELIVERY','BOUNCE','COMPLAINT','REJECT','DELIVERY_DELAY','RENDERING_FAILURE']]]];}
@@ -61,6 +61,25 @@ $db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(
 if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1||$fakeSes->checks!==$idleChecks+1)throw new RuntimeException('Idle SES connection was not refreshed before signup readiness expired.');
 $idleSettings=$db->query('SELECT * FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc();
 if(audienceSesReasons($idleSettings,$ses['from_email'])||$fakeSes->sent)throw new RuntimeException('Idle refresh did not restore readiness without sending email.');
+$diagnosticLog=tempnam(sys_get_temp_dir(),'ses-diagnostics-');
+$originalLog=ini_get('error_log');
+try{
+    ini_set('error_log',$diagnosticLog);
+    $fakeSes->checkFailure=new \Aws\Exception\AwsException('SECRET provider failure',new \Aws\Command('GetAccount'),[
+        'code'=>'InternalFailure','request_id'=>'worker-request-fixture','response'=>new \GuzzleHttp\Psr7\Response(503),
+    ]);
+    $db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 11 MINUTE) WHERE audience_id=1");
+    processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none']);
+    $logged=file_get_contents($diagnosticLog);
+    if(!str_contains($logged,'"operation":"GetAccount"')||!str_contains($logged,'"http_status":503')
+        ||!str_contains($logged,'"aws_request_id":"worker-request-fixture"')||!str_contains($logged,'"region":"us-east-1"')
+        ||str_contains($logged,'SECRET'))throw new RuntimeException('Actual SES check failed to log safe AWS diagnostics.');
+}finally{
+    ini_set('error_log',$originalLog);
+    unlink($diagnosticLog);
+    $fakeSes->checkFailure=null;
+}
+$db->query("UPDATE marketing_ses_settings SET check_state='ready' WHERE audience_id=1");
 $fakeSes->verified=false;
 $db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 11 MINUTE) WHERE audience_id=1");
 processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none']);
@@ -74,7 +93,7 @@ if(strlen($incident)!==32)throw new RuntimeException('SES incident identity was 
 $alert=claimQueuedAudienceSesAlert($db);
 if(!$alert)throw new RuntimeException('SES alert could not be claimed.');
 $alertMessage=audienceSesAlertMessage($alert['payload_ciphertext']);
-if(!str_contains($alertMessage['body'],'Email Delivery')||!str_contains($alertMessage['body'],rtrim((string)getenv('DNR_PUBLIC_BASE_URL'),'/').'/audience.php?view=delivery'))throw new RuntimeException('SES alert does not link to this account’s delivery page.');
+if(!str_contains($alertMessage['body'],'Email delivery')||!str_contains($alertMessage['body'],rtrim((string)getenv('DNR_PUBLIC_BASE_URL'),'/').'/audience.php?view=delivery'))throw new RuntimeException('SES alert does not link to this account’s delivery page.');
 failQueuedAudienceSesAlert($db,$alert['id'],$alert['claim_token'],new RuntimeException('SMTP test outage'));
 $retry=$db->execute_query('SELECT status,attempts FROM marketing_ses_alert_outbox WHERE id=?',[$alert['id']])->fetch_assoc();
 if($retry['status']!=='retry'||(int)$retry['attempts']!==1)throw new RuntimeException('SES alert was not retained for SMTP retry.');
@@ -84,12 +103,63 @@ if(!$alert)throw new RuntimeException('SES alert retry was not claimable.');
 completeQueuedAudienceSesAlert($db,$alert['id'],$alert['claim_token']);
 $sent=$db->execute_query('SELECT status,payload_ciphertext FROM marketing_ses_alert_outbox WHERE id=?',[$alert['id']])->fetch_assoc();
 if($sent['status']!=='sent'||$sent['payload_ciphertext']!==null)throw new RuntimeException('SES alert completion did not erase its payload.');
+for($i=1;$i<$adminCount;$i++){
+    $remaining=claimQueuedAudienceSesAlert($db);
+    if(!$remaining)throw new RuntimeException('Another administrator’s incident alert was not claimable.');
+    completeQueuedAudienceSesAlert($db,$remaining['id'],$remaining['claim_token']);
+}
+if(queueAudienceSesRecoveryAlerts($db)!==0)throw new RuntimeException('An unhealthy SES connection queued a recovery alert.');
 if(processAudienceSesSetup($db,1,$factory)!==0)throw new RuntimeException('Failed connection was retried before its cooldown.');
 $fakeSes->verified=true;
 $db->query("UPDATE marketing_ses_settings SET check_started_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 6 MINUTE) WHERE audience_id=1");
 if(processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none'])!==1)throw new RuntimeException('SES connection did not retry after its cooldown.');
-if($db->query('SELECT alert_incident FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['alert_incident']!==''||queueAudienceSesFailureAlerts($db)!==0)throw new RuntimeException('Recovered SES incident was not closed.');
-echo "Idle SES refresh, failure alert deduplication, SMTP retry and automatic recovery passed.\n";
+if($db->query('SELECT alert_incident FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['alert_incident']!==$incident)throw new RuntimeException('Recovery lost the incident before its notification was durable.');
+$subscription=$db->query('SELECT subscription_arn FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['subscription_arn'];
+$db->query("UPDATE marketing_ses_settings SET subscription_arn='' WHERE audience_id=1");
+if(queueAudienceSesRecoveryAlerts($db)!==0)throw new RuntimeException('SES recovery was announced while its required event subscription was unavailable.');
+$db->execute_query('UPDATE marketing_ses_settings SET subscription_arn=?,enabled=0 WHERE audience_id=1',[$subscription]);
+if(queueAudienceSesRecoveryAlerts($db)!==0)throw new RuntimeException('A disconnected SES connection announced recovery.');
+$db->query('UPDATE marketing_ses_settings SET enabled=1 WHERE audience_id=1');
+if(queueAudienceSesRecoveryAlerts($db)!==$adminCount||queueAudienceSesRecoveryAlerts($db)!==0||queueAudienceSesFailureAlerts($db)!==0)throw new RuntimeException('Recovery notifications were missing or duplicated.');
+if($db->query('SELECT alert_incident FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['alert_incident']!=='')throw new RuntimeException('Notified recovery did not close the incident.');
+$recovery=claimQueuedAudienceSesAlert($db);
+if(!$recovery)throw new RuntimeException('Recovery notification was not claimable by the mail worker.');
+$recoveryMessage=audienceSesAlertMessage($recovery['payload_ciphertext']);
+if($recoveryMessage['subject']!=='MessageMonkey SES email delivery recovered'
+    ||!str_contains($recoveryMessage['body'],'previously reported connection problem is resolved')
+    ||!str_contains($recoveryMessage['body'],rtrim((string)getenv('DNR_PUBLIC_BASE_URL'),'/').'/audience.php?view=delivery'))throw new RuntimeException('Recovery email lost its resolved status or account delivery link.');
+failQueuedAudienceSesAlert($db,$recovery['id'],$recovery['claim_token'],new RuntimeException('SMTP recovery fixture outage'));
+$db->execute_query('UPDATE marketing_ses_alert_outbox SET next_attempt_at=UTC_TIMESTAMP() WHERE id=?',[$recovery['id']]);
+for($i=0;$i<$adminCount;$i++){
+    $recovery=claimQueuedAudienceSesAlert($db);
+    if(!$recovery||audienceSesAlertMessage($recovery['payload_ciphertext'])['subject']!==$recoveryMessage['subject'])throw new RuntimeException('Recovery SMTP retry was lost or replaced.');
+    completeQueuedAudienceSesAlert($db,$recovery['id'],$recovery['claim_token']);
+    $completed=$db->execute_query('SELECT status,payload_ciphertext FROM marketing_ses_alert_outbox WHERE id=?',[$recovery['id']])->fetch_assoc();
+    if($completed['status']!=='sent'||$completed['payload_ciphertext']!==null)throw new RuntimeException('Recovery delivery did not erase its payload.');
+}
+// Replaying an incident close after a restart cannot send its recovery twice.
+$db->execute_query('UPDATE marketing_ses_settings SET alert_incident=? WHERE audience_id=1',[$incident]);
+if(queueAudienceSesRecoveryAlerts($db)!==0)throw new RuntimeException('Repeated incident recovery was replayed.');
+// An SMTP warning retry must finish before the corresponding recovery notice is queued.
+$db->query("UPDATE marketing_ses_settings SET check_state='attention',error_message='Temporary fixture outage' WHERE audience_id=1");
+if(queueAudienceSesFailureAlerts($db)!==$adminCount)throw new RuntimeException('A later outage did not create a fresh incident.');
+$nextIncident=$db->query('SELECT alert_incident FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['alert_incident'];
+if($nextIncident===$incident)throw new RuntimeException('Separate outages reused the incident identity.');
+$db->query("UPDATE marketing_ses_settings SET check_started_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 6 MINUTE) WHERE audience_id=1");
+processAudienceSesSetup($db,1,$factory,static fn()=>['v=DMARC1; p=none']);
+if(queueAudienceSesRecoveryAlerts($db)!==0||$db->query('SELECT alert_incident FROM marketing_ses_settings WHERE audience_id=1')->fetch_assoc()['alert_incident']!==$nextIncident)throw new RuntimeException('Recovery overtook a pending incident warning.');
+for($i=0;$i<$adminCount;$i++){
+    $pending=claimQueuedAudienceSesAlert($db);
+    if(!$pending||audienceSesAlertMessage($pending['payload_ciphertext'])['subject']!=='MessageMonkey SES email delivery needs attention')throw new RuntimeException('A pending failure warning was replaced by recovery.');
+    completeQueuedAudienceSesAlert($db,$pending['id'],$pending['claim_token']);
+}
+if(queueAudienceSesRecoveryAlerts($db)!==$adminCount)throw new RuntimeException('An incident warning delivered after SES recovered lost its recovery notice.');
+for($i=0;$i<$adminCount;$i++){
+    $pending=claimQueuedAudienceSesAlert($db);
+    if(!$pending)throw new RuntimeException('Later recovery notice was missing.');
+    completeQueuedAudienceSesAlert($db,$pending['id'],$pending['claim_token']);
+}
+echo "Idle SES refresh, failure and recovery alerts, deduplication, ordered SMTP retry and incident reuse guards passed.\n";
 $beforeChecks=$fakeSes->checks;
 $db->query("UPDATE marketing_ses_settings SET checked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 HOUR) WHERE audience_id=1");
 $refreshed=audienceSesWorkerReady($db,1,$ses['from_email'],audienceSesBinding($ses),$factory,static fn()=>['v=DMARC1; p=none']);

@@ -42,6 +42,65 @@ function queueAudienceSesFailureAlerts(mysqli $db):int
     }catch(Throwable $exception){$db->rollback();throw $exception;}
 }
 
+/** Close an incident only after recovery notices are durable for its alerted administrators. */
+function queueAudienceSesRecoveryAlerts(mysqli $db):int
+{
+    if (!audienceSesInstalled($db)) return 0;
+    $db->begin_transaction();
+    try {
+        $settings = $db->query("SELECT * FROM marketing_ses_settings WHERE audience_id=1 FOR UPDATE")->fetch_assoc();
+        if (!$settings || $settings['alert_incident'] === '' || audienceSesReasons($settings, $settings['from_email'])) {
+            $db->commit();
+            return 0;
+        }
+        $incident = $settings['alert_incident'];
+        // A separate deterministic key uses the outbox's existing per-recipient uniqueness guard.
+        $recoveryKey = substr(hash('sha256', 'ses-recovery:'.$incident), 0, 32);
+        $alerts = $db->execute_query("SELECT o.user_id,o.status,o.attempts,o.created_at,u.email
+            FROM marketing_ses_alert_outbox o JOIN users u ON u.id=o.user_id
+            WHERE o.audience_id=? AND o.incident_key=? AND u.role='admin' AND u.account_status='active'
+                AND u.email_verified_at IS NOT NULL AND u.email IS NOT NULL
+                AND o.recipient_hash=UNHEX(SHA2(LOWER(TRIM(u.email)),256))",
+            [$settings['audience_id'], $incident])->fetch_all(MYSQLI_ASSOC);
+        $url = rtrim(accountPublicUrl((string) getenv('DNR_PUBLIC_BASE_URL')), '/').'/audience.php?view=delivery';
+        $recoveredAt = gmdate('Y-m-d H:i', strtotime($settings['checked_at'].' UTC'));
+        $queued = 0;
+        $awaitingAlert = false;
+        foreach ($alerts as $alert) {
+            if ($alert['status'] === 'processing' || (in_array($alert['status'], ['pending','retry'], true) && (int) $alert['attempts'] < 8)) {
+                // The original warning must finish before its recipient gets a recovery message.
+                $awaitingAlert = true;
+                continue;
+            }
+            if (!in_array($alert['status'], ['sent','delivery_uncertain'], true)) continue;
+            $recipient = normalizeAccountEmail($alert['email']);
+            $reportedAt = gmdate('Y-m-d H:i', strtotime($alert['created_at'].' UTC'));
+            $body = 'MessageMonkey SES email delivery recovered at '.$recoveredAt.' UTC.'
+                ."\n\nThe SES connection check is passing again. The previously reported connection problem is resolved."
+                ."\n\nThe incident was first reported at {$reportedAt} UTC."
+                ."\n\nReview the current status in Email delivery: {$url}";
+            $payload = \Dnr\Security\ApplicationKey::seal(json_encode([
+                'recipient'=>$recipient, 'subject'=>'MessageMonkey SES email delivery recovered', 'body'=>$body,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            $db->execute_query('INSERT IGNORE INTO marketing_ses_alert_outbox(audience_id,incident_key,user_id,recipient_hash,payload_ciphertext) VALUES (?,?,?,?,?)',
+                [(int) $settings['audience_id'], $recoveryKey, (int) $alert['user_id'], hash('sha256', $recipient, true), $payload]);
+            $queued += $db->affected_rows;
+        }
+        if (!$awaitingAlert) {
+            $db->execute_query("UPDATE marketing_ses_settings SET alert_incident='' WHERE audience_id=? AND alert_incident=?", [$settings['audience_id'], $incident]);
+        }
+        $db->commit();
+        if (!$awaitingAlert && function_exists('applicationLog')) applicationLog('info', 'SES connection recovered', [
+            'audience_id'=>(int) $settings['audience_id'], 'incident'=>$incident,
+            'checked_at'=>$settings['checked_at'], 'recovery_alerts_queued'=>$queued,
+        ]);
+        return $queued;
+    } catch (Throwable $exception) {
+        $db->rollback();
+        throw $exception;
+    }
+}
+
 function maintainQueuedAudienceSesAlerts(mysqli $db,int $leaseSeconds=600):void
 {
     $leaseSeconds=max(60,min(3600,$leaseSeconds));
