@@ -74,6 +74,7 @@ function audienceSesDeliver(mysqli $db,array $m,string $lane='campaign',?callabl
             // MessageMonkey signs and measures its own links/pixel, avoiding duplicate rewrites.
             'ConfigurationOverrides'=>['Tracking'=>['OpenTrackingEnabled'=>'DISABLED','ClickTrackingEnabled'=>'DISABLED']],
         ]);}catch(Throwable $e){
+            if(function_exists('applicationLog'))applicationLog('error','SES email request failed',audienceSesErrorDiagnostics($e)+['audience_id'=>1,'region'=>$s['region'],'lane'=>$lane]);
             $failure=audienceSesFailure($e);
             if($failure==='throttled'){$db->query('UPDATE marketing_ses_settings SET blocked_until=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 60 SECOND),quota_checked_at=NULL WHERE audience_id=1');audienceSesDeferred('SES throttled this request. Waiting before retrying.');}
             // IAM conditions can reject one recipient while allowing others. Do not invalidate the connection.

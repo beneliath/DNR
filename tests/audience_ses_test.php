@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__.'/../vendor/autoload.php';require_once __DIR__.'/../src/audience_store.php';require_once __DIR__.'/../src/audience_ses_worker.php';require_once __DIR__.'/../src/audience_ses_notifications.php';
+require_once __DIR__.'/../vendor/autoload.php';
+$source=getenv('DNR_TEST_SOURCE_DIR')?:__DIR__.'/../src';
+require_once $source.'/audience_store.php';require_once $source.'/audience_ses_worker.php';require_once $source.'/audience_ses_notifications.php';
 $checks=0;$expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};$reject=static function(callable $call)use($expect):void{try{$call();}catch(Throwable){$expect(true,'Rejected invalid input');return;}throw new RuntimeException('Expected rejection');};
 $s=audienceSesInput(['region'=>'us-east-1','from_email'=>'Sender@Example.org','configuration_set'=>'message-monkey','topic_arn'=>'arn:aws:sns:us-east-1:123456789012:message-monkey']);$expect($s['from_email']==='sender@example.org'&&$s['aws_account_id']==='123456789012','Normalized scoped SES setup');
 foreach([['region'=>'http://localhost'],['topic_arn'=>'arn:aws:sns:eu-west-1:123456789012:topic'],['topic_arn'=>'arn:aws:sqs:us-east-1:123456789012:topic'],['configuration_set'=>'../bad'],['from_email'=>'a@gmail.com']]as$change)$reject(fn()=>audienceSesInput(array_replace($s,$change)));
@@ -27,6 +29,30 @@ $credentialError=new \Aws\Exception\AwsException('SECRET must not be emailed',$c
 $temporaryError=new \Aws\Exception\AwsException('SECRET must not be emailed',$command,['code'=>'InternalFailure','response'=>new \GuzzleHttp\Psr7\Response(503)]);
 $expect(str_contains(audienceSesVerificationError($credentialError),'credentials')&&!str_contains(audienceSesVerificationError($credentialError),'SECRET'),'Credential failure is actionable without leaking AWS diagnostics');
 $expect(str_contains(audienceSesVerificationError($temporaryError),'retry')&&!str_contains(audienceSesVerificationError($temporaryError),'SECRET'),'Temporary SES outage is identified for automatic retry');
+$diagnosticRequest=new \GuzzleHttp\Psr7\Request('GET','https://email.us-east-2.amazonaws.com/v2/email/account?X-Amz-Credential=SECRET',['Authorization'=>'SECRET'],'SECRET');
+$diagnosticError=new \Aws\Exception\AwsException('SECRET signed request',new \Aws\Command('GetAccount'),[
+    'code'=>'InternalFailure','request_id'=>'aws-request-fixture','request'=>$diagnosticRequest,
+    'response'=>new \GuzzleHttp\Psr7\Response(503,['X-Amzn-RequestId'=>'aws-request-fixture'],'SECRET'),
+    'transfer_stats'=>['total_time'=>1.25,'namelookup_time'=>0.03,'ssl_verify_result'=>0,'url'=>'SECRET','request_header'=>'SECRET'],
+]);
+$diagnostics=audienceSesErrorDiagnostics($diagnosticError);
+$expect($diagnostics['operation']==='GetAccount'&&$diagnostics['http_status']===503&&$diagnostics['aws_code']==='InternalFailure'
+    &&$diagnostics['aws_request_id']==='aws-request-fixture'&&$diagnostics['endpoint_host']==='email.us-east-2.amazonaws.com',
+    'SES diagnostics identify the failing AWS operation, response, request and host');
+$expect($diagnostics['total_time']===1.25&&$diagnostics['namelookup_time']===0.03&&$diagnostics['ssl_verify_result']===0,
+    'SES diagnostics retain numeric transfer and TLS details');
+$expect(!str_contains(json_encode($diagnostics,JSON_THROW_ON_ERROR),'SECRET'),'Signed query strings, authorization, bodies and raw provider messages are excluded from diagnostics');
+foreach ([6,7,28,35,60] as $errno) {
+    $transportError=new \GuzzleHttp\Exception\ConnectException('cURL error '.$errno.': SECRET connection detail',$diagnosticRequest);
+    $networkError=new \Aws\Exception\AwsException('SECRET',new \Aws\Command('GetEmailIdentity'),
+        ['connection_error'=>true,'request'=>$diagnosticRequest],$transportError);
+    $diagnostics=audienceSesErrorDiagnostics($networkError);
+    $expect($diagnostics['curl_errno']===$errno&&$diagnostics['transport_error']===curl_strerror($errno)
+        &&$diagnostics['connection_error']===true&&$diagnostics['http_status']===null&&!str_contains(json_encode($diagnostics,JSON_THROW_ON_ERROR),'SECRET'),
+        'DNS, connection, timeout and TLS errors remain identifiable without a response or secret material: '.$errno);
+}
+$expect(audienceSesErrorDiagnostics(new RuntimeException('SECRET'))===['exception'=>RuntimeException::class],
+    'Non-AWS failures expose their type without raw exception text');
 $client=audienceSesClient('ses',$s,['key'=>'AKIA'.str_repeat('A',16),'secret'=>str_repeat('b',40)]);$calls=0;$client->getHandlerList()->setHandler(static function($command,$request)use(&$calls){$calls++;return new \GuzzleHttp\Promise\RejectedPromise(new \Aws\Exception\AwsException('ambiguous',$command,['response'=>new \GuzzleHttp\Psr7\Response(500)]));});try{$client->getAccount([]);}catch(Throwable){}$expect($calls===1,'SDK does not replay ambiguous API requests');$shape=$client->getApi()->getOperation('SendEmail')->getInput()->getMembers();$expect(isset($shape['ConfigurationOverrides']),'SDK supports per-message tracking overrides');
 $client->getHandlerList()->setHandler(static function($command,$request){return new \GuzzleHttp\Promise\FulfilledPromise(new \Aws\Result(['MessageId'=>'fixture']));});
 $result=$client->sendEmail(['FromEmailAddress'=>'sender@example.org','Destination'=>['ToAddresses'=>['recipient@example.test']],'ConfigurationSetName'=>'message-monkey','Content'=>['Raw'=>['Data'=>"From: sender@example.org\r\nTo: recipient@example.test\r\nSubject: Test\r\n\r\nFixture"]],'EmailTags'=>[['Name'=>'moed-receipt','Value'=>str_repeat('a',64)]],'ConfigurationOverrides'=>['Tracking'=>['OpenTrackingEnabled'=>'DISABLED','ClickTrackingEnabled'=>'DISABLED']]]);$expect($result['MessageId']==='fixture','Actual SDK validates the raw API request and tracking overrides');

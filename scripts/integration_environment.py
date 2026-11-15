@@ -74,8 +74,8 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['event-tasks'], ['audience'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|event-tasks|audience|audience-minor-fixes|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['event-tasks'], ['audience'], ['audience-ses'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|event-tasks|audience|audience-ses|audience-minor-fixes|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -147,7 +147,7 @@ def main():
         notice = folder / 'notice'; notice.mkdir()
         for service in ('web', 'ingress'):
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
-        if sys.argv[1:] in (['audience'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
+        if sys.argv[1:] in (['audience'], ['audience-ses'], ['audience-minor-fixes'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
@@ -237,12 +237,16 @@ def main():
                         '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
                         'web', '/opt/dnr/tests/audience_subscription_notice_worker.php'], cwd=ROOT, env=env, check=True)
                 return
-            if sys.argv[1:] == ['audience']:
-                # Include every Audience integration suite, including newer lifecycle,
-                # transfer, AI and performance regressions, so focused QA cannot
-                # silently omit functionality covered by the full CI dispatcher.
-                suites = ['audience_stage1b_test.php'] + sorted(
-                    path.name for path in (ROOT / 'tests').glob('audience*_integration_test.php'))
+            if sys.argv[1:] in (['audience'], ['audience-ses']):
+                if sys.argv[1:] == ['audience-ses']:
+                    # The HTTP suite prepares the signed events and delivery fixtures used by the restricted SES worker.
+                    suites = ['audience_ses_test.php', 'audience_http_integration_test.php']
+                else:
+                    # Include every Audience integration suite, including newer lifecycle,
+                    # transfer, AI and performance regressions, so focused QA cannot
+                    # silently omit functionality covered by the full CI dispatcher.
+                    suites = ['audience_stage1b_test.php'] + sorted(
+                        path.name for path in (ROOT / 'tests').glob('audience*_integration_test.php'))
                 for suite in suites:
                     print('Running ' + suite, flush=True)
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
@@ -257,6 +261,8 @@ def main():
                     '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
                     '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
                     'web', '/opt/dnr/tests/audience_delivery_worker_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                if sys.argv[1:] == ['audience-ses']:
+                    return
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'MYSQL_USER=dnrmailingest', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/test_ingest_password',

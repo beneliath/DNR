@@ -36,7 +36,7 @@ function audienceSesReasons(array $s,string $from,bool $requireFreshCheck=true):
 /** No ambient credentials, profiles, arbitrary endpoints or automatic send retries. */
 function audienceSesClient(string $service,array $settings,array $credentials):object
 {
-    $options=['version'=>match($service){'ses'=>'2019-09-27','sns'=>'2010-03-31',default=>'2011-06-15'},'region'=>$settings['region'],'credentials'=>$credentials,'retries'=>0,'http'=>['timeout'=>20,'connect_timeout'=>5,'allow_redirects'=>false,'proxy'=>'']];
+    $options=['version'=>match($service){'ses'=>'2019-09-27','sns'=>'2010-03-31',default=>'2011-06-15'},'region'=>$settings['region'],'credentials'=>$credentials,'retries'=>0,'stats'=>['http'=>true,'timer'=>true],'http'=>['timeout'=>20,'connect_timeout'=>5,'allow_redirects'=>false,'proxy'=>'']];
     return match($service){'ses'=>new \Aws\SesV2\SesV2Client($options),'sns'=>new \Aws\Sns\SnsClient($options),'sts'=>new \Aws\Sts\StsClient($options),default=>throw new InvalidArgumentException('Unsupported AWS service.')};
 }
 function audienceSesCredentials(mysqli $db,int $audience):array
@@ -59,23 +59,63 @@ function audienceSesVerificationError(Throwable $error):string
     }
     return 'Unable to verify SES. Check the credentials, IAM permissions, Region, sender domain and event destination.';
 }
+
+/** Allowlisted diagnostics exclude signed URLs, headers, bodies and exception messages. */
+function audienceSesErrorDiagnostics(Throwable $error):array
+{
+    $context = ['exception'=>get_class($error)];
+    if ($error instanceof \Aws\Exception\AwsException) {
+        $context += [
+            'operation'=>$error->getCommand()->getName(),
+            'aws_code'=>$error->getAwsErrorCode(),
+            'aws_request_id'=>$error->getAwsRequestId(),
+            'http_status'=>$error->getStatusCode(),
+            'connection_error'=>$error->isConnectionError(),
+            'endpoint_host'=>$error->getRequest()?->getUri()->getHost(),
+        ];
+        foreach (['namelookup_time','connect_time','appconnect_time','starttransfer_time','total_time','ssl_verify_result'] as $key) {
+            $value = $error->getTransferInfo($key);
+            if (is_int($value) || is_float($value)) $context[$key] = $value;
+        }
+    }
+    // Guzzle 8 exposes cURL's number in its message, rather than handler context.
+    // Read only that number and use libcurl's fixed description in the log.
+    for ($cause = $error; $cause !== null; $cause = $cause->getPrevious()) {
+        if ($cause instanceof \GuzzleHttp\Exception\TransferException) {
+            $context['transport_exception'] = get_class($cause);
+            if (preg_match('/\bcURL error (\d{1,3}):/', $cause->getMessage(), $match)) {
+                $context['curl_errno'] = (int) $match[1];
+                $context['transport_error'] = curl_strerror((int) $match[1]);
+                break;
+            }
+        }
+    }
+    return $context;
+}
+
 /** Read-only AWS setup check; it never sends, changes a plan, or provisions AWS resources. */
 function audienceSesCheck(mysqli $db,int $audience,?callable $factory=null,?callable $resolve=null):bool
 {
     $s=$db->execute_query('SELECT * FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc();if(!$s||!$s['enabled'])return false;
-    $factory??='audienceSesClient';$credentials=audienceSesCredentials($db,$audience);$ses=$factory('ses',$s,$credentials);$sts=$factory('sts',$s,$credentials);
-    $caller=$sts->getCallerIdentity([]);if(($caller['Account']??'')!==$s['aws_account_id'])throw new DomainException('The AWS credentials and SNS topic belong to different AWS accounts.');
-    $sample=gmdate('Y-m-d H:i:s');$account=$ses->getAccount([]);$domain=substr(strrchr($s['from_email'],'@'),1);$identity=$ses->getEmailIdentity(['EmailIdentity'=>$domain]);$set=$ses->getConfigurationSet(['ConfigurationSetName'=>$s['configuration_set']]);$destinations=$ses->getConfigurationSetEventDestinations(['ConfigurationSetName'=>$s['configuration_set']]);
-    $required=['SEND','DELIVERY','BOUNCE','COMPLAINT','REJECT','DELIVERY_DELAY','RENDERING_FAILURE'];$events=[];
-    foreach($destinations['EventDestinations']??[]as$d)if(!empty($d['Enabled'])&&($d['SnsDestination']['TopicArn']??'')===$s['topic_arn'])$events=array_merge($events,$d['MatchingEventTypes']??[]);
-    $dns=$resolve??'audienceSendingDns';$dmarc=audienceSendingDmarc($dns('_dmarc.'.$domain,'TXT'));
-    $domainReady=!empty($identity['VerifiedForSendingStatus'])&&($identity['VerificationStatus']??'')==='SUCCESS'&&!empty($identity['DkimAttributes']['SigningEnabled'])&&($identity['DkimAttributes']['Status']??'')==='SUCCESS'&&$dmarc;
-    $configReady=($set['ConfigurationSetName']??'')===$s['configuration_set']&&($set['SendingOptions']['SendingEnabled']??true)&&!array_diff($required,$events);
-    $mailFrom=$identity['MailFromAttributes']??[];if(!empty($mailFrom['MailFromDomain'])&&($mailFrom['MailFromDomainStatus']??'')!=='SUCCESS')$domainReady=false;
-    $quota=$account['SendQuota']??[];$sending=!empty($account['SendingEnabled']);$production=!empty($account['ProductionAccessEnabled']);$ready=$sending&&$production&&$domainReady&&$configReady&&(float)($quota['Max24HourSend']??0)>0&&(float)($quota['MaxSendRate']??0)>0;
-    $result=['domain'=>$domain,'domain_verified'=>$domainReady,'dmarc'=>$dmarc,'configuration_ready'=>$configReady,'event_types'=>array_values(array_unique($events)),'dkim'=>$identity['DkimAttributes']??[],'mail_from'=>$mailFrom,'pricing'=>$account['PricingAttributes']??[]];
-    $reason=$ready?'':(!$production?'SES is in the sandbox. Request production access.':(!$sending?'AWS has paused SES sending.':(!$domainReady?'Verify the domain, enable DKIM and publish DMARC.':'Check the configuration set and required SNS event destination.')));
-    $db->execute_query("UPDATE marketing_ses_settings SET check_state=?,checked_at=UTC_TIMESTAMP(),error_message=?,production_access=?,sending_enabled=?,max_daily=?,max_rate=?,sent_last_day=?,quota_checked_at=?,result_json=?,alert_incident=IF(?,'',alert_incident) WHERE audience_id=? AND generation=? AND enabled=1",[$ready?'ready':'attention',$reason,$production?1:0,$sending?1:0,(float)($quota['Max24HourSend']??0),(float)($quota['MaxSendRate']??0),(float)($quota['SentLast24Hours']??0),$sample,json_encode($result,JSON_THROW_ON_ERROR),$ready?1:0,$audience,$s['generation']]);return $ready&&($db->execute_query('SELECT generation FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc()['generation']??'')===$s['generation'];
+    try {
+        $factory??='audienceSesClient';$credentials=audienceSesCredentials($db,$audience);$ses=$factory('ses',$s,$credentials);$sts=$factory('sts',$s,$credentials);
+        $caller=$sts->getCallerIdentity([]);if(($caller['Account']??'')!==$s['aws_account_id'])throw new DomainException('The AWS credentials and SNS topic belong to different AWS accounts.');
+        $sample=gmdate('Y-m-d H:i:s');$account=$ses->getAccount([]);$domain=substr(strrchr($s['from_email'],'@'),1);$identity=$ses->getEmailIdentity(['EmailIdentity'=>$domain]);$set=$ses->getConfigurationSet(['ConfigurationSetName'=>$s['configuration_set']]);$destinations=$ses->getConfigurationSetEventDestinations(['ConfigurationSetName'=>$s['configuration_set']]);
+        $required=['SEND','DELIVERY','BOUNCE','COMPLAINT','REJECT','DELIVERY_DELAY','RENDERING_FAILURE'];$events=[];
+        foreach($destinations['EventDestinations']??[]as$d)if(!empty($d['Enabled'])&&($d['SnsDestination']['TopicArn']??'')===$s['topic_arn'])$events=array_merge($events,$d['MatchingEventTypes']??[]);
+        $dns=$resolve??'audienceSendingDns';$dmarc=audienceSendingDmarc($dns('_dmarc.'.$domain,'TXT'));
+        $domainReady=!empty($identity['VerifiedForSendingStatus'])&&($identity['VerificationStatus']??'')==='SUCCESS'&&!empty($identity['DkimAttributes']['SigningEnabled'])&&($identity['DkimAttributes']['Status']??'')==='SUCCESS'&&$dmarc;
+        $configReady=($set['ConfigurationSetName']??'')===$s['configuration_set']&&($set['SendingOptions']['SendingEnabled']??true)&&!array_diff($required,$events);
+        $mailFrom=$identity['MailFromAttributes']??[];if(!empty($mailFrom['MailFromDomain'])&&($mailFrom['MailFromDomainStatus']??'')!=='SUCCESS')$domainReady=false;
+        $quota=$account['SendQuota']??[];$sending=!empty($account['SendingEnabled']);$production=!empty($account['ProductionAccessEnabled']);$ready=$sending&&$production&&$domainReady&&$configReady&&(float)($quota['Max24HourSend']??0)>0&&(float)($quota['MaxSendRate']??0)>0;
+        $result=['domain'=>$domain,'domain_verified'=>$domainReady,'dmarc'=>$dmarc,'configuration_ready'=>$configReady,'event_types'=>array_values(array_unique($events)),'dkim'=>$identity['DkimAttributes']??[],'mail_from'=>$mailFrom,'pricing'=>$account['PricingAttributes']??[]];
+        $reason=$ready?'':(!$production?'SES is in the sandbox. Request production access.':(!$sending?'AWS has paused SES sending.':(!$domainReady?'Verify the domain, enable DKIM and publish DMARC.':'Check the configuration set and required SNS event destination.')));
+        $db->execute_query("UPDATE marketing_ses_settings SET check_state=?,checked_at=UTC_TIMESTAMP(),error_message=?,production_access=?,sending_enabled=?,max_daily=?,max_rate=?,sent_last_day=?,quota_checked_at=?,result_json=? WHERE audience_id=? AND generation=? AND enabled=1",[$ready?'ready':'attention',$reason,$production?1:0,$sending?1:0,(float)($quota['Max24HourSend']??0),(float)($quota['MaxSendRate']??0),(float)($quota['SentLast24Hours']??0),$sample,json_encode($result,JSON_THROW_ON_ERROR),$audience,$s['generation']]);return $ready&&($db->execute_query('SELECT generation FROM marketing_ses_settings WHERE audience_id=?',[$audience])->fetch_assoc()['generation']??'')===$s['generation'];
+    } catch (Throwable $error) {
+        if (function_exists('applicationLog')) applicationLog('error', 'SES connection verification failed',
+            audienceSesErrorDiagnostics($error) + ['audience_id'=>$audience,'region'=>$s['region']]);
+        throw $error;
+    }
 }
 function processAudienceSesSetup(mysqli $db,int $limit=1,?callable $factory=null,?callable $resolve=null):int
 {
@@ -88,7 +128,6 @@ function processAudienceSesSetup(mysqli $db,int $limit=1,?callable $factory=null
     $db->execute_query("UPDATE marketing_ses_settings SET check_state='checking',check_started_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=? AND $due",[$row['audience_id'],$row['generation']]);if($db->affected_rows!==1)return 0;
     try{audienceSesCheck($db,(int)$row['audience_id'],$factory,$resolve);}catch(Throwable $error){
         $db->execute_query("UPDATE marketing_ses_settings SET check_state='attention',checked_at=NULL,error_message=? WHERE audience_id=? AND generation=?",[audienceSesVerificationError($error),$row['audience_id'],$row['generation']]);
-        if(function_exists('applicationLog'))applicationLog('error','SES connection verification failed',['exception'=>get_class($error),'aws_code'=>$error instanceof \Aws\Exception\AwsException?$error->getAwsErrorCode():null]);
     }return 1;
 }
 trait AudienceSesSetup
@@ -103,7 +142,7 @@ trait AudienceSesSetup
             $credentials=['key'=>$key,'secret'=>$secret];if($token!=='')$credentials['token']=$token;$sealed=\Dnr\Security\ApplicationKey::seal(json_encode(['account'=>currentAccountKey(),'credentials'=>$credentials],JSON_THROW_ON_ERROR));
         }elseif($token!=='')throw new InvalidArgumentException('Enter all temporary credential fields together.');
         $this->transaction(function()use($version,$s,$key,$sealed){$old=$this->one('SELECT * FROM marketing_ses_settings WHERE audience_id=? FOR UPDATE',[$this->audienceId]);if(!$old||(int)$old['version']!==$version)throw new InvalidArgumentException('SES settings changed. Reload before saving.');if($sealed===null&&!$old['access_key_tail'])throw new InvalidArgumentException('Enter this MOED account’s SES API credentials.');
-            $sameTopic=$old['topic_arn']===$s['topic_arn'];$this->write("UPDATE marketing_ses_settings SET enabled=1,region=?,from_email=?,configuration_set=?,topic_arn=?,aws_account_id=?,access_key_tail=?,generation=?,check_state='queued',checked_at=NULL,alert_incident='',production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,result_json=JSON_OBJECT(),subscription_arn=?,last_event_at=NULL,blocked_until=NULL,version=version+1 WHERE audience_id=?",[$s['region'],$s['from_email'],$s['configuration_set'],$s['topic_arn'],$s['aws_account_id'],$sealed!==null?substr($key,-4):$old['access_key_tail'],bin2hex(random_bytes(16)),$sameTopic?$old['subscription_arn']:'',$this->audienceId]);if($sealed!==null)$this->write('UPDATE marketing_ses_credentials SET credential_ciphertext=? WHERE audience_id=?',[$sealed,$this->audienceId]);
+            $sameTopic=$old['topic_arn']===$s['topic_arn'];$this->write("UPDATE marketing_ses_settings SET enabled=1,region=?,from_email=?,configuration_set=?,topic_arn=?,aws_account_id=?,access_key_tail=?,generation=?,check_state='queued',checked_at=NULL,production_access=0,sending_enabled=0,max_daily=0,max_rate=0,sent_last_day=0,quota_checked_at=NULL,result_json=JSON_OBJECT(),subscription_arn=?,last_event_at=NULL,blocked_until=NULL,version=version+1 WHERE audience_id=?",[$s['region'],$s['from_email'],$s['configuration_set'],$s['topic_arn'],$s['aws_account_id'],$sealed!==null?substr($key,-4):$old['access_key_tail'],bin2hex(random_bytes(16)),$sameTopic?$old['subscription_arn']:'',$this->audienceId]);if($sealed!==null)$this->write('UPDATE marketing_ses_credentials SET credential_ciphertext=? WHERE audience_id=?',[$sealed,$this->audienceId]);
             if(function_exists('recordAuditEvent'))recordAuditEvent($this->db,['event_type'=>'marketing_ses_configured','actor_user_id'=>$this->actorId,'actor_username'=>$this->actorLabel,'entity_type'=>'marketing_audience','entity_id'=>$this->audienceId,'details'=>'SES connection saved; credentials are encrypted and excluded from audit details.']);
         });
     }

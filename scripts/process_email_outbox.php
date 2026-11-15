@@ -95,7 +95,7 @@ do {
     $businessDate = applicationBusinessDate();
     $queues = $limitedQueues ? [] : [
         'account email' => static fn() => maintainQueuedAccountEmail($conn),
-        'SES failure alert' => static fn() => maintainQueuedAudienceSesAlerts($conn),
+        'SES status alert' => static fn() => maintainQueuedAudienceSesAlerts($conn),
         'notification email' => static fn() => maintainQueuedNotificationEmail($conn, $businessDate),
         'engagement email' => static fn() => maintainQueuedEngagementEmail($conn),
     ];
@@ -139,6 +139,11 @@ do {
         catch (Throwable $exception) {
             $pass_succeeded = false;
             applicationLog('error', 'Unable to queue SES failure alert', ['exception' => get_class($exception)]);
+        }
+        try { queueAudienceSesRecoveryAlerts($conn); }
+        catch (Throwable $exception) {
+            $pass_succeeded = false;
+            applicationLog('error', 'Unable to queue SES recovery alert', ['exception' => get_class($exception)]);
         }
     }
 
