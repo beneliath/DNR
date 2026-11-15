@@ -20,7 +20,7 @@ if($hardBounce||$softBounce||$wasCleaned):
 <?php elseif($hardBounce||$softBounce): ?>
     <p class="audience-help"><?= $bounce?'The email provider did not supply a detailed server response.':'Detailed bounce diagnostics were not recorded for this event.' ?></p>
 <?php endif; ?>
-<?php if($diagnostics): ?><details><summary>Delivery diagnostics</summary><dl class="settings-details">
+<?php if($diagnostics): ?><details><summary>Delivery Diagnostics</summary><dl class="settings-details">
     <?php foreach($diagnostics as$label=>$value): ?><dt><?= $h($label) ?></dt><dd><?= $h($value) ?></dd><?php endforeach; ?>
 </dl></details><?php endif; ?>
 <?php endif; ?>
