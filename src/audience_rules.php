@@ -175,6 +175,12 @@ function audienceCompileRules(array $tree, array $catalog): array
         if ($kind === 'event') {
             $params[] = substr($key, 6);
             $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type=?';
+            // Campaign unsubscribes and provider status changes use `status`.
+            // Include their existing history in saved subscription-change rules.
+            if ($key === 'event:subscription_changed') {
+                $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type IN (?,?)';
+                $params[] = 'status';
+            }
             if ($op === 'last_days') { if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 36500) throw new InvalidArgumentException('Enter a day count between 1 and 36500.'); $sql .= ' AND ev.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)'; $params[] = (int) $value; }
             if ($op === 'before' || $op === 'after') { if (!audienceValidDate($value)) throw new InvalidArgumentException('Enter a valid date.'); $sql .= ' AND DATE(ev.created_at) ' . ($op === 'before' ? '<' : '>') . ' ?'; $params[] = $value; }
             return ($op === 'never' ? 'NOT ' : '') . "EXISTS ($sql)";

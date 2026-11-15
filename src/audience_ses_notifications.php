@@ -66,6 +66,27 @@ function audienceSnsEventTime(string $value):string
     if(($errors&&($errors['warning_count']||$errors['error_count']))||$at->getTimestamp()<time()-30*86400||$at->getTimestamp()>time()+300)throw new InvalidArgumentException('Invalid SES event time.');
     return $at->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.u');
 }
+/** Keep bounded bounce evidence for the matched recipient, never the raw mail envelope. */
+function audienceSnsBounceDiagnostics(array $bounce,string $email):array
+{
+    $details=[];
+    $copy=static function(array $input,array $fields)use(&$details):void{
+        foreach($fields as$field=>[$key,$limit]){
+            if(!is_string($input[$field]??null))continue;
+            $value=trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u','',$input[$field])??'');
+            if($value!=='')$details[$key]=mb_strlen($value)>$limit?mb_substr($value,0,$limit-1).'…':$value;
+        }
+    };
+    $copy($bounce,['bounceType'=>['type',100],'bounceSubType'=>['subtype',100],
+        'reportingMTA'=>['reporting_mta',512],'remoteMtaIp'=>['remote_mta_ip',64],'feedbackId'=>['feedback_id',512]]);
+    foreach(is_array($bounce['bouncedRecipients']??null)?$bounce['bouncedRecipients']:[]as$recipient){
+        if(!is_array($recipient)||!is_string($recipient['emailAddress']??null)
+            ||!hash_equals(audienceDispatchEmailHash($email),audienceDispatchEmailHash($recipient['emailAddress'])))continue;
+        $copy($recipient,['action'=>['action',100],'status'=>['status',100],'diagnosticCode'=>['diagnostic_code',4096]]);
+        break;
+    }
+    return $details;
+}
 function audienceSnsReceive(AudienceStore $store,array $data,?callable $fetch=null,?callable $confirm=null):string
 {
     $s=$store->sesSettings();$m=audienceSnsValidate($data,$s,$fetch);$fetch??='audienceSnsFetch';
@@ -83,13 +104,17 @@ function audienceSnsReceive(AudienceStore $store,array $data,?callable $fetch=nu
     if($type==='')return 'ignored'; // Open/click events are measured by native signed links and pixel.
     $part=match($kind){'Delivery'=>'delivery','Bounce'=>'bounce','Complaint'=>'complaint','DeliveryDelay'=>'deliveryDelay','Reject'=>'reject',default=>'mail'};
     $at=audienceSnsEventTime((string)($event[$part]['timestamp']??$mail['timestamp']??''));
-    return $store->transaction(function()use($store,$s,$m,$data,$mail,$correlation,$id,$type,$at){
+    $details=['provider'=>'ses','message_id'=>$id];
+    if($kind==='Bounce'&&is_array($event['bounce']??null)&&is_string($mail['destination'][0]??null)){
+        $details['bounce']=audienceSnsBounceDiagnostics($event['bounce'],$mail['destination'][0])+['occurred_at'=>$at];
+    }
+    return $store->transaction(function()use($store,$s,$m,$data,$mail,$correlation,$id,$type,$at,$details){
         $r=$store->one("SELECT * FROM marketing_campaign_recipients WHERE audience_id=? AND provider='ses' AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$s['aws_account_id'],$s['region']]);
-        if(!$r){require_once __DIR__.'/audience_inbox_runtime.php';return audienceServiceMailProviderEvent($store,$s,$data,$mail,$correlation,$id,$type,$at);}
+        if(!$r){require_once __DIR__.'/audience_inbox_runtime.php';return audienceServiceMailProviderEvent($store,$s,$data,$mail,$correlation,$id,$type,$at,$details);}
         if(count($mail['destination']??[])!==1||!hash_equals($r['email_hash'],audienceDispatchEmailHash((string)$mail['destination'][0]))||($r['provider_message_id']!==null&&$r['provider_message_id']!==$id))return 'ignored';
         $store->write('INSERT IGNORE INTO marketing_ses_notifications(audience_id,notification_id,event_type) VALUES (?,?,?)',[$store->audienceId,$m['MessageId'],$type]);if($store->db->affected_rows!==1)return 'duplicate';
         $store->write('UPDATE marketing_campaign_recipients SET provider_message_id=? WHERE audience_id=? AND id=?',[$id,$store->audienceId,$r['id']]);
-        $store->recordDeliveryEvent((int)$r['id'],$type,hash('sha256','ses:'.$m['MessageId']),'provider',$at,['provider'=>'ses','message_id'=>$id]);
+        $store->recordDeliveryEvent((int)$r['id'],$type,hash('sha256','ses:'.$m['MessageId']),'provider',$at,$details);
         // A verified provider receipt can resolve an ambiguous API response, never replay it.
         $store->write("UPDATE marketing_campaign_recipients SET state='accepted',accepted_at=COALESCE(accepted_at,UTC_TIMESTAMP()),error_message='' WHERE audience_id=? AND id=? AND state='uncertain'",[$store->audienceId,$r['id']]);
         $store->write('UPDATE marketing_ses_settings SET last_event_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=?',[$store->audienceId,$s['generation']]);return 'accepted';

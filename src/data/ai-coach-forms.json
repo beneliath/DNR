@@ -60,7 +60,7 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf"
       },
@@ -225,7 +225,7 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
@@ -534,7 +534,7 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "169441549e1d57b77424c3922c661a1b87455d82641208aa06397a2a0e50006a",
+        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "templates/footer.php": "8f5b3d34b3094ebd3206f3a2f6218b6d6f116b1f0f6a8e1201a2efb7dd303a01",
         "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",

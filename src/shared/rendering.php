@@ -193,6 +193,7 @@ function actionIconSvg($action)
         'archive' => '<svg class="action-icon action-icon-archive" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M9 12h6"/></svg>',
         'restore' => '<svg class="action-icon action-icon-restore" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
         'pause' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>',
+        'cancel' => '<svg class="action-icon action-icon-cancel" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M10 2h8l-5 8h6L6 22l4-10H5Z"/></svg>',
         'results' => '<svg class="action-icon action-icon-results" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 21V12h4v9Zm7 0V7h4v14Zm7 0V2h4v19Z"/></svg>',
         'delete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></svg>',
     ];

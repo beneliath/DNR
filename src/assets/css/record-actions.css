@@ -16,6 +16,7 @@
   --record-results: 0px;
   --record-view: 0px;
   --record-edit: 0px;
+  --record-cancel: 0px;
   --record-rename: 0px;
   --record-folder: 0px;
   --record-duplicate: 0px;
@@ -37,6 +38,7 @@
   &:has(.action-icon-button > [data-action-icon="results"]) { --record-results: var(--record-action-slot); }
   &:has(.action-icon-button > [data-action-icon="view"]) { --record-view: var(--record-action-slot); }
   &:has(.action-icon-button > [data-action-icon="edit"]) { --record-edit: var(--record-action-slot); }
+  &:has(.action-icon-button > [data-action-icon="cancel"]) { --record-cancel: var(--record-action-slot); }
   &:has(.action-icon-button > [data-action-icon="rename"]) { --record-rename: var(--record-action-slot); }
   &:has(.action-icon-button > [data-action-icon="folder"]) { --record-folder: var(--record-action-slot); }
   &:has(.action-icon-button > [data-action-icon="duplicate"]) { --record-duplicate: var(--record-action-slot); }
@@ -79,6 +81,7 @@
       [results] var(--record-results)
       [view] var(--record-view)
       [edit] var(--record-edit)
+      [cancel] var(--record-cancel)
       [rename] var(--record-rename)
       [folder] var(--record-folder)
       [duplicate] var(--record-duplicate)
@@ -112,6 +115,7 @@
     & > :is(.action-icon-button:has(> [data-action-icon="results"]), form:has(> .action-icon-button > [data-action-icon="results"])) { grid-column: results; }
     & > :is(.action-icon-button:has(> [data-action-icon="view"]), form:has(> .action-icon-button > [data-action-icon="view"])) { grid-column: view; }
     & > :is(.action-icon-button:has(> [data-action-icon="edit"]), form:has(> .action-icon-button > [data-action-icon="edit"])) { grid-column: edit; }
+    & > :is(.action-icon-button:has(> [data-action-icon="cancel"]), form:has(> .action-icon-button > [data-action-icon="cancel"])) { grid-column: cancel; }
     & > :is(.action-icon-button:has(> [data-action-icon="rename"]), form:has(> .action-icon-button > [data-action-icon="rename"])) { grid-column: rename; }
     & > :is(.action-icon-button:has(> [data-action-icon="folder"]), form:has(> .action-icon-button > [data-action-icon="folder"])) { grid-column: folder; }
     & > :is(.action-icon-button:has(> [data-action-icon="duplicate"]), form:has(> .action-icon-button > [data-action-icon="duplicate"])) { grid-column: duplicate; }

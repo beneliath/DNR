@@ -2,7 +2,7 @@
   "pages": 191,
   "screenshots": 114,
   "internal_links": 1642,
-  "bookmarks": 397,
+  "bookmarks": 398,
   "chapter_targets": "14/14 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
@@ -28,8 +28,8 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.11.5",
-    "edition_date": "November 12, 2026",
+    "version": "2.11.11",
+    "edition_date": "November 15, 2026",
     "cover_and_metadata": "verified"
   },
   "screenshot_quality": {

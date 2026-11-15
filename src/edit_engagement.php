@@ -424,9 +424,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             );
         }
 
-        $canceled_task_count = 0;
+        $archived_task_count = 0;
         if ($lifecycle_changed && $lifecycle_status === 'canceled') {
-            $canceled_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id);
+            $archived_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id, $current_user_id);
         }
 
         if (!$presentation_not_required && syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id)) {
@@ -581,9 +581,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
         }
         $success_message = 'Engagement updated successfully.';
-        if ($canceled_task_count > 0) {
-            $success_message .= ' ' . $canceled_task_count . ' open task'
-                . ($canceled_task_count === 1 ? ' was' : 's were') . ' canceled.';
+        if ($archived_task_count > 0) {
+            $success_message .= ' ' . $archived_task_count . ' associated task'
+                . ($archived_task_count === 1 ? ' was' : 's were') . ' archived.';
         }
         $_SESSION['clear_form_drafts'][] = 'edit_engagement.php:' . $engagement_id;
         $_SESSION['engagement_action_message'] = $success_message;

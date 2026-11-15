@@ -1,9 +1,9 @@
 {
   "document": {
     "title": "MOED Comprehensive User Manual",
-    "subject": "Illustrated application reference, version 2.11.5, updated November 12, 2026",
+    "subject": "Illustrated application reference, version 2.11.11, updated November 15, 2026",
     "path": "assets/docs/moed-comprehensive-user-manual.pdf",
-    "sha256": "bc8133537f7cebebbd5374d34092d6bc532e57fca265c003005b51e17a28b900",
+    "sha256": "40b096df5b46416d47aafe0114cbc30fcd2d2747adcb54092aca03ae25272f2b",
     "pages": 191,
     "index_version": 1
   },
@@ -486,7 +486,7 @@
       "title": "Lifecycle",
       "page": 26,
       "end_page": 26,
-      "text": "Active The event is moving forward. Postponed The original is paused and may link to its replacement. Canceled A reason is required; open event tasks are canceled automatically. Completed The event has finished. Finalizing its financial report also sets this state."
+      "text": "Active The event is moving forward. Postponed The original is paused and may link to its replacement. Canceled A reason is required. Pending event tasks are canceled and all associated tasks are archived; completed work retains its completion history. Completed The event has finished. Finalizing its financial report also sets this state."
     },
     "manual-topic-engagements-confirmation": {
       "id": "manual-topic-engagements-confirmation",
@@ -495,6 +495,14 @@
       "page": 27,
       "end_page": 27,
       "text": "Work in Progress Details are still being assembled. Under Review The plan is ready for checking or decision. Confirmed The commitment is agreed. For an active event, add a presentation or select No presentation required. Lifecycle and confirmation are independent. A postponed event can retain its former confirmation state, while a completed event may reflect the confirmation state it reached during planning. The Engagements list starts with All lifecycle states. Your selection is remembered for your account in this browser. Use Lifecycle to narrow the list to Active, Postponed, Canceled, or Completed; the separate Current/Archived view controls whether archived records appear."
+    },
+    "manual-topic-engagements-cancel-an-engagement": {
+      "id": "manual-topic-engagements-cancel-an-engagement",
+      "chapter": "engagements",
+      "title": "Cancel an Engagement",
+      "page": 27,
+      "end_page": 27,
+      "text": "Editors and administrators can select the red lightning-bolt Cancel Engagement action in the Engagements list. Check the event name, enter a cancellation reason, and type CANCEL exactly before selecting Cancel Engagement. Select Keep Engagement or press Esc to leave it unchanged. Cancellation changes the lifecycle to Canceled and archives every associated task, including completed and pending work. Pending tasks become canceled; completed tasks keep their completion history. The engagement itself remains in the Current view. Archived engagements, engagements already canceled, and events with a finalized financial report do not offer this action."
     },
     "manual-topic-engagements-presentation-files-qr-codes-and-history": {
       "id": "manual-topic-engagements-presentation-files-qr-codes-and-history",
@@ -621,7 +629,7 @@
       "chapter": "engagements",
       "title": "View QR Codes PDF",
       "page": 29,
-      "end_page": 29,
+      "end_page": 30,
       "text": "Lets you choose which of that presentation's QR codes to include, then opens a themed landscape sheet. Editors and administrators can use Financial Closeout to save a receipt draft while work is still pending. Enter Giving Received, Lodging Received, Travel Received, and Book Table Received before finalizing. Leave unknown amounts blank while saving a draft; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Finalizing completes the outstanding financial closeout task. Other tasks due through the last active presentation must first be Completed, including any canceled tasks due by that date. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update."
     },
     "manual-topic-engagements-archive-and-delete-carefully": {
@@ -2662,7 +2670,7 @@
       "title": "Edition and source notes",
       "page": 163,
       "end_page": 164,
-      "text": "Application version: MOED / DNR 2.11.5. Guide updated: November 12, 2026. This refresh covers application changes from 2.4.1 through 2.11.5: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages, optional photo reduction and size limits, progress steps, network date windows, and administrator unlock extension. Illustrated workflows use high-resolution captures with their original capture dates; updated captions explain changed controls. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
+      "text": "Application version: MOED / DNR 2.11.11. Guide updated: November 15, 2026. This refresh covers application changes from 2.4.1 through 2.11.11: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages, optional photo reduction and size limits, progress steps, network date windows, and administrator unlock extension. Illustrated workflows use high-resolution captures with their original capture dates; updated captions explain changed controls. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
     },
     "manual-topic-operator-appendix-readme-md": {
       "id": "manual-topic-operator-appendix-readme-md",
@@ -2670,7 +2678,7 @@
       "title": "README.md",
       "page": 164,
       "end_page": 165,
-      "text": "Complete README for application source 2.11.5 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 116,565 bytes · November 12, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 165 Application workflows - p. 169 Email and integrations - p. 173 Configuration reference - p. 179 Security and operations - p. 184 Development and contributing - p. 189 License - p. 191 Storage and delivery hardening - p. 191 DNR: MOED מֹוֵעד DNR (MOED )מֹוֵעדis a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
+      "text": "Complete README for application source 2.11.11 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 116,565 bytes · November 15, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 165 Application workflows - p. 169 Email and integrations - p. 173 Configuration reference - p. 179 Security and operations - p. 184 Development and contributing - p. 189 License - p. 191 Storage and delivery hardening - p. 191 DNR: MOED מֹוֵעד DNR (MOED )מֹוֵעדis a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
     },
     "manual-topic-operator-appendix-getting-started-and-deployment": {
       "id": "manual-topic-operator-appendix-getting-started-and-deployment",

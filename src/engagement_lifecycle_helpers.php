@@ -216,19 +216,26 @@ function fetchEngagementRescheduleSources(mysqli $conn, int $engagement_id): arr
     return $sources;
 }
 
-function cancelEngagementFollowUpTasks(mysqli $conn, int $engagement_id): int
+/** Stop pending work and archive every task, preserving completed work and prior archive history. */
+function cancelEngagementFollowUpTasks(mysqli $conn, int $engagement_id, int $actor_user_id): int
 {
+    if ($actor_user_id < 1) {
+        throw new InvalidArgumentException('A signed-in editor is required to archive engagement tasks.');
+    }
     $stmt = $conn->prepare(
         "UPDATE follow_up_tasks
-         SET status = 'canceled', waiting_on = NULL,
-             completed_by = NULL, completed_at = NULL
-         WHERE engagement_id = ?
-           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
+         SET waiting_on = IF(status IN ('open', 'in_progress', 'waiting'), NULL, waiting_on),
+             completed_by = IF(status IN ('open', 'in_progress', 'waiting'), NULL, completed_by),
+             completed_at = IF(status IN ('open', 'in_progress', 'waiting'), NULL, completed_at),
+             status = IF(status IN ('open', 'in_progress', 'waiting'), 'canceled', status),
+             is_archived = 1, archived_by = ?, archived_at = UTC_TIMESTAMP(),
+             updated_at = GREATEST(CURRENT_TIMESTAMP(6), DATE_ADD(updated_at, INTERVAL 1 MICROSECOND))
+         WHERE engagement_id = ? AND is_archived = 0"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the engagement task cancellation.');
     }
-    $stmt->bind_param('i', $engagement_id);
+    $stmt->bind_param('ii', $actor_user_id, $engagement_id);
     if (!$stmt->execute()) {
         $stmt->close();
         throw new RuntimeException('Unable to cancel the engagement tasks.');
@@ -236,4 +243,49 @@ function cancelEngagementFollowUpTasks(mysqli $conn, int $engagement_id): int
     $canceled_count = $stmt->affected_rows;
     $stmt->close();
     return $canceled_count;
+}
+
+/** Commit the lifecycle transition and all task archives together after checking the displayed version. */
+function cancelEngagementAndArchiveTasks(
+    mysqli $conn,
+    int $engagement_id,
+    int $actor_user_id,
+    string $expected_version,
+    string $reason
+): int {
+    $reason = trim($reason);
+    if ($engagement_id < 1 || $actor_user_id < 1 || $expected_version === '') {
+        throw new InvalidArgumentException('Reload the engagement list before canceling this engagement.');
+    }
+    if ($reason === '' || mb_strlen($reason) > 1000) {
+        throw new InvalidArgumentException('Enter a cancellation reason of 1 to 1,000 characters.');
+    }
+    $conn->begin_transaction();
+    try {
+        $engagement = $conn->execute_query(
+            'SELECT lifecycle_status, updated_at, is_deleted FROM engagements WHERE id = ? FOR UPDATE',
+            [$engagement_id]
+        )->fetch_assoc();
+        if (!$engagement || !empty($engagement['is_deleted'])) {
+            throw new InvalidArgumentException('This engagement is unavailable or archived. Reload the list.');
+        }
+        if (!hash_equals((string) $engagement['updated_at'], $expected_version)
+            || $engagement['lifecycle_status'] === 'canceled') {
+            throw new InvalidArgumentException('This engagement changed after the list was opened. Reload before canceling it.');
+        }
+        validateEngagementLifecycleStatus($conn, $engagement_id, 'canceled');
+        $conn->execute_query(
+            "UPDATE engagements SET lifecycle_status = 'canceled', cancellation_reason = ?,
+                lifecycle_changed_by = ?, lifecycle_changed_at = UTC_TIMESTAMP(6),
+                updated_at = GREATEST(CURRENT_TIMESTAMP(6), DATE_ADD(updated_at, INTERVAL 1 MICROSECOND))
+             WHERE id = ?",
+            [$reason, $actor_user_id, $engagement_id]
+        );
+        $archived_count = cancelEngagementFollowUpTasks($conn, $engagement_id, $actor_user_id);
+        $conn->commit();
+        return $archived_count;
+    } catch (Throwable $error) {
+        $conn->rollback();
+        throw $error;
+    }
 }

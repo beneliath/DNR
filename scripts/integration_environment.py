@@ -314,7 +314,7 @@ def main():
                 subprocess.run(compose + ['up','-d','--no-build','--wait','data-maintenance'],cwd=ROOT,env=env,check=True)
                 return
             if uiux_only:
-                for suite in (('bulk_delete_http_integration_test.php', 'short_links_http_integration_test.php') if sys.argv[1] == 'actions' else ('functional_workflows_integration_test.php',) if sys.argv[1] == 'functional' else ('follow_up_tasks_integration_test.php', 'workflow_improvements_http_integration_test.php', 'functional_workflows_integration_test.php')):
+                for suite in (('bulk_delete_http_integration_test.php', 'short_links_http_integration_test.php') if sys.argv[1] == 'actions' else ('functional_workflows_integration_test.php', 'engagement_lifecycle_integration_test.php', 'engagement_cancellation_http_integration_test.php') if sys.argv[1] == 'functional' else ('follow_up_tasks_integration_test.php', 'workflow_improvements_http_integration_test.php', 'functional_workflows_integration_test.php')):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',

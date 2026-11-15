@@ -28,6 +28,13 @@ foreach (array_slice($queued, 1, 2) as $notification) {
     $isBounce = $event['eventType'] === 'Bounce';
     $contact = $db->execute_query('SELECT id,email_status FROM marketing_contacts WHERE audience_id=1 AND email=?', [$event['mail']['destination'][0]])->fetch_assoc();
     if ($contact['email_status'] !== ($isBounce ? 'cleaned' : 'unsubscribed')) throw new RuntimeException('Queued bounce or complaint did not suppress marketing.');
+    if($isBounce){
+        $history=$db->execute_query("SELECT details_json FROM marketing_contact_events WHERE contact_id=? AND event_type='status' ORDER BY id DESC LIMIT 1",[$contact['id']])->fetch_assoc();
+        $message=$db->execute_query("SELECT e.details_json FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id WHERE r.audience_id=1 AND r.contact_id=? AND e.event_type='hard-bounce' ORDER BY e.id DESC LIMIT 1",[$contact['id']])->fetch_assoc();
+        $drained=$db->execute_query('SELECT state,payload_ciphertext FROM marketing_ses_inbox WHERE id=?',[$notification['id']])->fetch_assoc();
+        foreach([$history,$message]as$retained)if((json_decode($retained['details_json'],true)['bounce']['diagnostic_code']??'')!=='smtp; 550 queued diagnostic retained')throw new RuntimeException('Worker discarded the detailed bounce evidence.');
+        if($drained['state']!=='done'||$drained['payload_ciphertext']!=='')throw new RuntimeException('Processed bounce retained its raw envelope.');
+    }
     // The dispatch worker checks automation entry rules before it can claim the next campaign batch.
     if ($store->flowMatches((int)$contact['id'], $cleanedEntry) !== $isBounce) throw new RuntimeException('Worker could not match the cleaned contact after a hard bounce.');
 }
