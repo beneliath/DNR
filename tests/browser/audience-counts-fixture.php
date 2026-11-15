@@ -17,8 +17,9 @@ $audience=['name'=>'Example audience','settings_json'=>'{}','version'=>1];
 $groups=$fields=$tags=$sources=$segments=$query=$rowTags=$rowGroups=[];
 $activeTags=$tags;
 $rules=['match'=>'all','rules'=>[]];$catalog=audienceRuleCatalog([],[],[]);$segment=$job=null;
-$filters=audienceListFilters($_GET);$query=$_GET;$sort='created_at';$direction='desc';$page=1;$pageSize=audiencePageSize($_GET);
+$filters=audienceListFilters($_GET);$query=$_GET;$page=1;$pageSize=audiencePageSize($_GET);
 $sortColumns=['email','first_name','last_name','email_status','source','created_at','updated_at'];
+['sort'=>$sort,'direction'=>$direction]=audienceConnectionSortPreference($_GET,$sortColumns,11);
 $counts=['records'=>22,'total'=>19,'subscribed'=>16,'unsubscribed'=>1,'non_subscribed'=>2,'pending'=>2,'cleaned'=>1,'archived'=>2];
 $rows=[];
 foreach([...array_fill(0,16,'subscribed'),'unsubscribed','non-subscribed','non-subscribed','pending','pending','cleaned','archived','archived']as$i=>$status){

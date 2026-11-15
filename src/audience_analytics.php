@@ -23,6 +23,54 @@ function audienceAnalyticsPresets(?DateTimeImmutable $now=null):array
     return $presets;
 }
 
+/** Keep each Home/Analytics date picker independent, including individual saved reports. */
+function audienceRememberAnalyticsRange(array $input,string $view,string $section,int $userId,?DateTimeImmutable $now=null):array
+{
+    $changed=($input['date_range_change']??null)==='1';unset($input['date_range_change']);
+    if($userId<1||!in_array($view,['home','analytics'],true))return $input;
+    $context=$view==='home'?'home':'analytics:'.$section;
+    $report=is_string($input['report']??null)?trim($input['report']):'';
+    if($view==='analytics'&&$section==='custom'&&$report!=='')$context.=':'.$report;
+    $cookieName='dnr_mm_date_range_'.substr(hash('sha256',currentAccountKey().':'.$userId.':'.$context),0,24);
+    $presets=audienceAnalyticsPresets($now);
+    $selection=static function(array $value)use($presets,$now):array{
+        $range=$value['range']??null;
+        if(!is_string($range))return [];
+        // Store the preset name so relative periods advance on the next visit.
+        if(isset($presets[$range]))return ['range'=>$range];
+        if($range!=='custom'||!is_string($value['start']??null)||$value['start']===''
+            ||!is_string($value['end']??null)||$value['end']==='')return [];
+        $dates=['range'=>'custom','start'=>$value['start'],'end'=>$value['end']];
+        try{audienceAnalyticsWindow($dates,$now);}catch(InvalidArgumentException){return [];}
+        return $dates;
+    };
+    $hasDates=array_intersect_key($input,array_flip(['range','start','end']))!==[];
+    $cookie=$_COOKIE[$cookieName]??null;
+    if(!$hasDates){
+        $stored=is_string($cookie)?json_decode($cookie,true):null;
+        return is_array($stored)?array_replace($input,$selection($stored)):$input;
+    }
+    // Bookmarks, drill-down links and exports may carry another period. Only
+    // applying the date picker replaces the user's remembered selection.
+    if(!$changed)return $input;
+    $selected=$selection($input);
+    if(!$selected)return $input;
+    try{audienceAnalyticsWindow(array_replace($input,$presets[$selected['range']]??[]),$now);}
+    catch(InvalidArgumentException){return $input;}
+    $encoded=json_encode($selected,JSON_THROW_ON_ERROR);
+    if($cookie!==$encoded&&!headers_sent()){
+        setcookie($cookieName,$encoded,[
+            'expires'=>time()+365*86400,
+            'path'=>accountIsPrimary()?'/':accountCookiePath(),
+            'secure'=>requestUsesHttps()||applicationRequiresHttps(),
+            'httponly'=>true,
+            'samesite'=>'Lax',
+        ]);
+        $_COOKIE[$cookieName]=$encoded;
+    }
+    return $input;
+}
+
 /** UTC calendar windows are shared by the dashboard, comparisons and exports. */
 function audienceAnalyticsWindow(array $input, ?DateTimeImmutable $now = null): array
 {

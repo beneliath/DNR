@@ -1,13 +1,13 @@
 <?php
 $dateQuery=$view==='analytics'?$reportQuery:['view'=>'home','bots'=>$window['bots'],'drafts'=>$showDrafts?'1':'0'];
 if($view==='analytics'&&$section==='reports')$dateQuery+=array_intersect_key($reportListParams,array_flip(['removed','report_search','favorites','list_size']));
-unset($dateQuery['start'],$dateQuery['end']);
+unset($dateQuery['range'],$dateQuery['start'],$dateQuery['end']);
 $rangeLabel=$presets[$rangeKey]['label']??'Custom Date Range';
 ?>
 <div class="analytics-reference-filters<?= $view==='home'?' analytics-home-filters':'' ?>">
 <div class="analytics-range-control"><?php if($view==='analytics'): ?><label for="analytics-range-trigger">Date Range</label><?php endif; ?><button id="analytics-range-trigger" class="analytics-range-trigger" popovertarget="analytics-range" aria-label="<?= $h($rangeLabel.' Calendar') ?>" aria-describedby="analytics-range-summary"><span><?= $h($rangeLabel) ?></span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="17" rx="2"/><path d="M3 10h18M7 2v6M17 2v6"/></svg></button>
 <div popover id="analytics-range" class="analytics-range-popover" aria-label="Date Range Picker">
-    <form method="get" data-analytics-range><?php audienceInputs($dateQuery); ?>
+    <form method="get" data-analytics-range><?php audienceInputs($dateQuery+['date_range_change'=>'1']); ?>
     <div class="analytics-date-fields"><label>Date Range<select name="range" data-analytics-preset><?php foreach($presets as$key=>$preset): ?><option value="<?= $h($key) ?>" data-start="<?= $h($preset['start']) ?>" data-end="<?= $h($preset['end']) ?>"<?= (string)$rangeKey===(string)$key?' selected':'' ?>><?= $h($preset['label']) ?></option><?php endforeach; ?><option value="custom"<?= $rangeKey==='custom'?' selected':'' ?>>Custom Date Range</option></select></label>
     <?php foreach(['start'=>'Start Date','end'=>'End Date']as$key=>$label): ?><div class="analytics-date-field"><label for="analytics-date-<?= $key ?>"><?= $label ?></label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="analytics-date-<?= $key ?>" name="<?= $key ?>" value="<?= $h($window[$key]) ?>" required max="<?= gmdate('Y-m-d') ?>"></div><?php endforeach; ?></div>
     <div class="analytics-range-actions"><button type="button" data-analytics-range-cancel>Cancel</button><button type="submit" class="primary">Apply</button></div>
