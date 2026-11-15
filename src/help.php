@@ -376,7 +376,7 @@ $manual_access_summary = match ($manual_role) {
                         <dl>
                             <div><dt>Active</dt><dd>The event is moving forward.</dd></div>
                             <div><dt>Postponed</dt><dd>The original is paused and may link to its replacement.</dd></div>
-                            <div><dt>Canceled</dt><dd>A reason is required; open event tasks are canceled automatically.</dd></div>
+                            <div><dt>Canceled</dt><dd>A reason is required. Pending event tasks are canceled and all associated tasks are archived; completed work retains its completion history.</dd></div>
                             <div><dt>Completed</dt><dd>The event has finished. Finalizing its financial report also sets this state.</dd></div>
                         </dl>
                     </article>
@@ -392,6 +392,12 @@ $manual_access_summary = match ($manual_role) {
                 </section>
                 <p class="manual-note"><strong>Lifecycle and confirmation are independent.</strong> A postponed event can retain its former confirmation state, while a completed event may reflect the confirmation state it reached during planning.</p>
                 <p>The Engagements list starts with <strong>All</strong> lifecycle states. Your selection is remembered for your account in this browser. Use <strong>Lifecycle</strong> to narrow the list to Active, Postponed, Canceled, or Completed; the separate <strong>Current</strong>/<strong>Archived</strong> view controls whether archived records appear.</p>
+
+                <section class="manual-subsection">
+                    <h3 id="manual-topic-engagements-cancel-an-engagement">Cancel an Engagement</h3>
+                    <p>Editors and administrators can select the red lightning-bolt <strong>Cancel Engagement</strong> action in the Engagements list. Check the event name, enter a cancellation reason, and type <code>CANCEL</code> exactly before selecting <strong>Cancel Engagement</strong>. Select <strong>Keep Engagement</strong> or press <kbd>Esc</kbd> to leave it unchanged.</p>
+                    <p>Cancellation changes the lifecycle to <strong>Canceled</strong> and archives every associated task, including completed and pending work. Pending tasks become canceled; completed tasks keep their completion history. The engagement itself remains in the Current view. Archived engagements, engagements already canceled, and events with a finalized financial report do not offer this action.</p>
+                </section>
 
                 <section class="manual-subsection">
                     <h3>Presentation Files, QR Codes, and History</h3>

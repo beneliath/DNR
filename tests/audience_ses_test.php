@@ -16,6 +16,43 @@ foreach([['enabled'=>0],['access_key_tail'=>''],['subscription_arn'=>''],['produ
 $expect((bool)audienceSesReasons($expired,'other@example.org',requireFreshCheck:false),'Test enqueueing cannot change the configured sender');
 $certUrl='https://sns.us-east-1.amazonaws.com/SimpleNotificationService-fixture.pem';$expect(audienceSnsCertificateUrl($certUrl,$s),'Exact AWS certificate URL accepted');
 $eventSecond=gmdate('Y-m-d\TH:i:s');$expect(str_ends_with(audienceSnsEventTime($eventSecond.'.123456Z'),'.123456'),'SES receipts preserve subsecond consent ordering');$reject(fn()=>audienceSnsEventTime('tomorrow'));
+$bounceFixture=['bounceType'=>'Permanent','bounceSubType'=>'NoEmail','reportingMTA'=>'dns; mx.example.test',
+    'remoteMtaIp'=>'192.0.2.5','feedbackId'=>'bounce-feedback','headers'=>['private-header'],
+    'bouncedRecipients'=>[
+        ['emailAddress'=>'other@example.test','diagnosticCode'=>'OTHER-RECIPIENT-PRIVATE'],
+        ['emailAddress'=>' Recipient@Example.test ','action'=>'failed','status'=>'5.1.1','diagnosticCode'=>"smtp; 550 <recipient@example.test> does not exist\r\nMore detail"],
+    ]];
+$bounceDetails=audienceSnsBounceDiagnostics($bounceFixture,'recipient@example.test');
+$expect($bounceDetails===['type'=>'Permanent','subtype'=>'NoEmail','reporting_mta'=>'dns; mx.example.test',
+    'remote_mta_ip'=>'192.0.2.5','feedback_id'=>'bounce-feedback','action'=>'failed','status'=>'5.1.1',
+    'diagnostic_code'=>"smtp; 550 <recipient@example.test> does not exist\r\nMore detail"],
+    'Bounce diagnostics preserve the matching recipient response and allowlisted provider evidence only');
+$mismatch=audienceSnsBounceDiagnostics($bounceFixture,'unmatched@example.test');
+$expect(!isset($mismatch['diagnostic_code'],$mismatch['status'])&&$mismatch['type']==='Permanent','Another recipient’s diagnostic cannot be attributed to this contact');
+$expect(audienceSnsBounceDiagnostics(['bounceType'=>[],'bouncedRecipients'=>'invalid'],'recipient@example.test')===[],
+    'Malformed optional diagnostics do not prevent bounce processing');
+$bounded=audienceSnsBounceDiagnostics(['bouncedRecipients'=>[null,['emailAddress'=>[]],
+    ['emailAddress'=>'recipient@example.test','action'=>['invalid'],'status'=>null,'diagnosticCode'=>"\0".str_repeat('é',5000)]]],'recipient@example.test');
+$expect(mb_strlen($bounded['diagnostic_code'])===4096&&str_ends_with($bounded['diagnostic_code'],'…')
+    &&!str_contains($bounded['diagnostic_code'],"\0")&&!isset($bounded['action'],$bounded['status']),
+    'Diagnostic limits preserve UTF-8, omit malformed fields and remove control bytes');
+$renderBounce=static function(array $detail,string $type='status')use($source):string{
+    $event=['event_type'=>$type];$h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
+    ob_start();include $source.'/templates/audience/person-bounce-reason.php';return ob_get_clean();
+};
+$legacyBounce=$renderBounce(['from'=>'subscribed','to'=>'cleaned','source'=>'hard-bounce']);
+$expect(str_contains($legacyBounce,'Cleaning reason:')&&str_contains($legacyBounce,'permanent delivery failure')
+    &&str_contains($legacyBounce,'Detailed bounce diagnostics were not recorded'),'Legacy hard-bounce history explains cleaning without inventing a server response');
+$expect(str_contains($renderBounce(['from'=>'subscribed','to'=>'cleaned']),'The cleaning reason was not recorded.'),
+    'Legacy cleaning without evidence does not claim a hard bounce');
+$expect($renderBounce(['from'=>'cleaned','to'=>'cleaned','source'=>'complaint'])==='','A later complaint does not invent a new cleaning reason');
+$renderedBounce=$renderBounce(['from'=>'subscribed','to'=>'cleaned','source'=>'hard-bounce','bounce'=>
+    array_replace($bounceDetails,['diagnostic_code'=>'550 <script>fixture</script> & unavailable'])]);
+$expect(str_contains($renderedBounce,'550 &lt;script&gt;fixture&lt;/script&gt; &amp; unavailable')
+    &&!str_contains($renderedBounce,'<script>')&&str_contains($renderedBounce,'NoEmail')&&str_contains($renderedBounce,'5.1.1'),
+    'Profile bounce reason renders SMTP status and subtype while escaping server-supplied markup');
+$expect(str_contains($renderBounce(['bounce'=>['type'=>'Transient','subtype'=>'MailboxFull']],'email_soft-bounce'),'temporary delivery failure'),
+    'Soft-bounce history is not presented as a cleaning event');
 foreach(['http://sns.us-east-1.amazonaws.com/SimpleNotificationService-x.pem','https://sns.us-east-1.amazonaws.com.evil.test/SimpleNotificationService-x.pem','https://sns.us-east-1.amazonaws.com:443/SimpleNotificationService-x.pem','https://sns.us-east-1.amazonaws.com/other.pem','https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-x.pem',$certUrl.'?next=http://localhost']as$url)$expect(!audienceSnsCertificateUrl($url,$s),'Certificate fetch cannot redirect scope');
 $key=openssl_pkey_new(['private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_RSA]);$csr=openssl_csr_new(['commonName'=>'SNS test certificate'],$key);$x509=openssl_csr_sign($csr,null,$key,1);openssl_x509_export($x509,$cert);
 $data=['Type'=>'Notification','MessageId'=>'fixture-123','TopicArn'=>$s['topic_arn'],'Timestamp'=>gmdate('c'),'Message'=>'{"eventType":"Send"}','SignatureVersion'=>'2','SigningCertURL'=>$certUrl,'Signature'=>'pending'];

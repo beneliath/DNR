@@ -4,6 +4,44 @@
             padding-inline: var(--app-content-padding);
             container: engagement-list / inline-size;
         }
+html body .action-icon-button.cancel-engagement-button {
+    --action-current: var(--action-delete);
+    color: var(--action-delete) !important;
+}
+html body .action-icon-button.cancel-engagement-button:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--action-delete-hover) !important;
+    background: var(--engagement-cancel-hover-bg, var(--action-delete-hover)) !important;
+    color: var(--engagement-cancel-hover-fg, #fff) !important;
+    outline: 2px solid var(--action-delete-hover) !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+    transition: none;
+}
+html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not([aria-disabled="true"]) {
+    animation: engagement-cancel-hover-blink 1.2s steps(1, end) infinite;
+}
+@keyframes engagement-cancel-hover-blink {
+    0%, 49% {
+        --engagement-cancel-hover-bg: var(--action-delete-hover);
+        --engagement-cancel-hover-fg: #fff;
+    }
+    50%, 100% {
+        --engagement-cancel-hover-bg: transparent;
+        --engagement-cancel-hover-fg: var(--action-delete);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not([aria-disabled="true"]) {
+        animation: none;
+    }
+}
+.cancel-engagement-button .action-icon-cancel {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linejoin: miter;
+}
         .engagements-heading h1 {
             font-size: clamp(1.8rem, 3vw, 2.3rem);
         }

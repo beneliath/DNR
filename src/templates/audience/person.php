@@ -68,6 +68,7 @@
                     <?php foreach($forwardGroups as $label=>$addresses): sort($addresses,SORT_STRING); ?><p><strong><?= $h($label) ?>:</strong> <?= $h(implode(', ',$addresses)) ?></p><?php endforeach; ?>
                     <?php if(!empty($detail['consent_note'])): ?><p><strong>Permission:</strong> <?= $h($detail['consent_note']) ?></p><?php endif; ?>
                     <?php if(isset($detail['from'],$detail['to'])): ?><p><?= $h($detail['from']) ?> → <?= $h($detail['to']) ?></p><?php endif; ?>
+                    <?php include __DIR__.'/person-bounce-reason.php'; ?>
                     <?php if(is_array($detail['interaction_location']??null)): $observed=$detail['interaction_location']; ?>
                         <?php include __DIR__.'/person-interaction-location.php'; ?>
                         <?php if($observed&&in_array($event['event_type'],['email_open','email_click'],true)): ?><p class="audience-help">Tracked email activity may reflect a mail service or scanner's location.</p><?php endif; ?>

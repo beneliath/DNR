@@ -12,6 +12,7 @@ requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
+$can_cancel_engagements = in_array($user_role, ['admin', 'editor'], true);
 $allowed_page_sizes = [20, 50, 100];
 
 $list_status = \Dnr\Http\RequestInput::string(
@@ -23,12 +24,23 @@ $list_status = \Dnr\Http\RequestInput::string(
     : 'active';
 $show_archived = $list_status === 'archived';
 
-// Handle archive, restore, and permanent deletion through authenticated POST requests.
+// Handle cancellation, archive, restore, and deletion through authenticated POST requests.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $engagement_id = filter_input(INPUT_POST, 'engagement_id', FILTER_VALIDATE_INT);
     $action = $_POST['action'] ?? '';
     $action_succeeded = false;
+    $action_message = '';
+    $action_error = '';
+
+    if ($action === 'cancel' && !$can_cancel_engagements) {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    if ($action === 'cancel' && ($_POST['cancel_confirmation'] ?? null) !== 'CANCEL') {
+        http_response_code(400);
+        exit('Type CANCEL exactly to confirm cancellation.');
+    }
 
     if (in_array($action, ['archive', 'restore'], true) && !canArchiveEntries($user_role)) {
         http_response_code(403);
@@ -42,7 +54,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         requireRecentAdminElevation('engagements.php?' . http_build_query(['status' => $list_status]));
     }
 
-    if ($engagement_id && $action === 'archive') {
+    if ($engagement_id && $action === 'cancel') {
+        try {
+            $archived_task_count = cancelEngagementAndArchiveTasks(
+                $conn, $engagement_id, (int) $_SESSION['user_id'],
+                \Dnr\Http\RequestInput::string($_POST, 'expected_version'),
+                \Dnr\Http\RequestInput::string($_POST, 'cancellation_reason')
+            );
+            $action_succeeded = true;
+            $action_message = 'Engagement canceled. ' . $archived_task_count . ' associated task'
+                . ($archived_task_count === 1 ? ' was' : 's were') . ' archived.';
+        } catch (InvalidArgumentException $error) {
+            $action_error = $error->getMessage();
+        } catch (Throwable $error) {
+            applicationLog('error', 'Engagement cancellation failed', ['engagement_id' => $engagement_id, 'exception' => get_class($error)]);
+        }
+    } elseif ($engagement_id && $action === 'archive') {
         $action_succeeded = archiveEntity($conn, 'engagement', $engagement_id);
         $action_message = 'Event archived.';
     } elseif ($engagement_id && $action === 'restore') {
@@ -59,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action_succeeded) {
         $_SESSION['engagement_action_message'] = $action_message;
     } else {
-        $_SESSION['engagement_action_error'] = 'Unable to update the event. Please try again.';
+        $_SESSION['engagement_action_error'] = $action_error ?: 'Unable to update the event. Please try again.';
     }
 
     header('Location: ' . safeRecordReturnUrl($_POST['return_to'] ?? null, 'engagements.php?' . http_build_query(['status' => $list_status])));
@@ -251,7 +278,7 @@ $query_values = $pagination_values;
 
 $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                  e.event_type, e.event_type_other, e.confirmation_status,
-                 e.lifecycle_status,
+                 e.lifecycle_status, e.updated_at,
                  o.organization_name,
                  financial_report.engagement_id IS NOT NULL AS financially_closed
           FROM engagements e
@@ -295,7 +322,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     2 => 'assets/css/pages/engagements.min.css',
     3 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
-  'scripts' => ['assets/js/engagement-date-reminder.min.js'],
+  'scripts' => ['assets/js/engagement-date-reminder.min.js', 'assets/js/engagement-cancel.min.js'],
 )); ?>
 <body class="engagements-body">
 <?php include 'templates/header.php'; ?>
@@ -451,6 +478,13 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
                                 <a href="edit_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Event" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
+                            <?php if ($can_cancel_engagements && !$show_archived && $row['lifecycle_status'] !== 'canceled' && !$is_financially_closed): ?>
+                                <button type="button" class="action-button action-icon-button cancel-engagement-button"
+                                        data-cancel-engagement="<?php echo (int) $row['id']; ?>"
+                                        data-engagement-version="<?php echo htmlspecialchars($row['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-engagement-label="<?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        aria-label="Cancel Engagement" title="Cancel Engagement" data-tooltip="Cancel Engagement"><?php echo actionIconSvg('cancel'); ?></button>
+                            <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
                                     <form method="post" action="engagements.php">
@@ -493,6 +527,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     </div>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
 </main>
+<?php if ($can_cancel_engagements): include __DIR__ . '/templates/engagement_cancel_dialog.php'; endif; ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

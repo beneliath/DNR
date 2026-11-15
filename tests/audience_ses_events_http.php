@@ -36,12 +36,14 @@ foreach([
 audienceHttpExpect((int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_ses_inbox')['n']===$queueBefore,'Malformed public requests consume no durable SNS rows');
 audienceHttpExpect($public('audience_delivery_event.php')['status']===405,'Legacy event route refuses GET');
 require __DIR__.'/audience_test_delivery_events_http.php';
+require __DIR__.'/audience_bounce_diagnostics_http.php';
 // Queue real signed envelopes through the network-isolated public route. The
 // dedicated mail-role suite verifies them without any external AWS calls.
 $queuedConfirm=$signEnvelope($confirmation+['FixtureCertificate'=>$cert]);
 audienceSnsEnqueue($campaignStore,$queuedConfirm);audienceSnsEnqueue($campaignStore,$queuedConfirm);
 audienceHttpExpect((int)$campaignStore->one('SELECT COUNT(*) n FROM marketing_ses_inbox')['n']===1,'Webhook retries deduplicate within a connection generation');
-$queuedBounce=$sesEvent($rr,'Bounce');$queuedBounce['bounce']=['bounceType'=>'Permanent','timestamp'=>(new DateTimeImmutable('now',new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u\Z')];
+$queuedBounce=$sesEvent($rr,'Bounce');$queuedBounce['bounce']=['bounceType'=>'Permanent','bounceSubType'=>'NoEmail','timestamp'=>(new DateTimeImmutable('now',new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u\Z'),
+    'bouncedRecipients'=>[['emailAddress'=>$queuedBounce['mail']['destination'][0],'status'=>'5.1.1','action'=>'failed','diagnosticCode'=>'smtp; 550 queued diagnostic retained']]];
 $queuedComplaint=$sesEvent($runtimeRows[3],'Complaint');
 foreach([[$queuedBounce,'queued-hard-bounce'],[$queuedComplaint,'queued-complaint']]as[$payload,$mid])audienceSnsEnqueue($campaignStore,$signSes($payload,$mid)+['FixtureCertificate'=>$cert]);
 $forged=$signSes($event,'queued-tampered')+['FixtureCertificate'=>$cert];$forged['Message']='{"tampered":true}';

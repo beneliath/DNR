@@ -176,8 +176,8 @@ try {
     $taskStmt->close();
 
     expectEngagementLifecycleIntegration(
-        cancelEngagementFollowUpTasks($conn, $engagementIds[0]) === 1,
-        'canceling an engagement should cancel only its open tasks.'
+        cancelEngagementFollowUpTasks($conn, $engagementIds[0], $userId) === 2,
+        'canceling an engagement should archive both open and completed tasks.'
     );
     $statusResult = $conn->query(
         "SELECT status, COUNT(*) AS status_count
@@ -193,6 +193,10 @@ try {
         ($statuses['canceled'] ?? 0) === 1
             && ($statuses['completed'] ?? 0) === 1,
         'completed tasks should remain completed when an event is canceled.'
+    );
+    expectEngagementLifecycleIntegration(
+        (int) $conn->query("SELECT COUNT(*) n FROM follow_up_tasks WHERE engagement_id = {$engagementIds[0]} AND is_archived = 1 AND archived_by = {$userId} AND archived_at IS NOT NULL")->fetch_assoc()['n'] === 2,
+        'every associated task should retain the actor and time of cancellation archiving.'
     );
 
     $conn->rollback();

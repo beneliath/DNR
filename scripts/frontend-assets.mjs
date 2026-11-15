@@ -43,6 +43,7 @@ export const javascriptAssets = [
     {name: 'engagement-contacts'},
     {name: 'edit-engagement'},
     {name: 'engagement-lifecycle'},
+    {name: 'engagement-cancel'},
     {name: 'engagement-date-reminder'},
     {name: 'engagement-email'},
     {name: 'email-template-editor'},

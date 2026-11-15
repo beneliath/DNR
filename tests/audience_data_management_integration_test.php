@@ -81,6 +81,58 @@ foreach($cases as$n=>[$type,$details,$status,$column]){
         if(($details['method']??'')==='single')$expect($row['CONFIRM_TIME']==='','Single opt-in cannot inherit an old confirmation date');
     }else $expect($row[($status==='cleaned'?'CLEAN':'UNSUB').'_CAMPAIGN_ID']==='','Native suppression cannot inherit an old provider campaign');
 }
+
+// Existing saved subscription-change rules must also find campaign/provider
+// history recorded as `status`, without rewriting events or counting duplicates.
+$filterStore=$newStore();$filterForeign=$newStore();$filterPeople=[];
+$filterCases=[
+    'manual'=>['subscription_changed',5,'unsubscribed',0,false],
+    'campaign'=>['status',5,'unsubscribed',0,false],
+    'complaint'=>['status',5,'unsubscribed',0,false],
+    'duplicate'=>['status',5,'unsubscribed',0,false],
+    'old-manual'=>['subscription_changed',40,'unsubscribed',0,false],
+    'old-campaign'=>['status',40,'unsubscribed',0,false],
+    'unrelated'=>['contact_updated',5,'unsubscribed',0,false],
+    'resubscribed'=>['status',5,'subscribed',0,false],
+    'archived'=>['status',5,'unsubscribed',1,false],
+    'deleted'=>['status',5,'unsubscribed',1,true],
+    'foreign'=>['status',5,'unsubscribed',0,false],
+];
+foreach($filterCases as$name=>[$type,$days,$status,$archived,$deleted]){
+    $scope=$name==='foreign'?$filterForeign:$filterStore;
+    $id=$newPerson($scope,'subscription-filter-'.$name.'@example.test');$filterPeople[$name]=$id;
+    $scope->write('UPDATE marketing_contacts SET email_status=?,is_archived=?,deleted_at=IF(?,UTC_TIMESTAMP(),NULL) WHERE id=?',[$status,$archived,(int)$deleted,$id]);
+    foreach($name==='duplicate'?[$type,'subscription_changed']:[$type]as$eventType){
+        $scope->event($id,$eventType,['from'=>'subscribed','to'=>'unsubscribed','source'=>$name==='complaint'?'complaint':'Campaign unsubscribe']);
+        $scope->write('UPDATE marketing_contact_events SET created_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? DAY) WHERE id=?',[$days,(int)$db->insert_id]);
+    }
+}
+$filterCatalog=audienceRuleCatalog([],[],[]);
+$historySql='SELECT e.id,e.event_type,e.details_json,e.created_at FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? ORDER BY e.id';
+$filterHistory=$filterStore->all($historySql,[$filterStore->audienceId]);
+$cutoff=gmdate('Y-m-d',time()-30*86400);
+foreach([
+    ['last_days','30',['manual','campaign','complaint','duplicate']],
+    ['ever','',['manual','campaign','complaint','duplicate','old-manual','old-campaign']],
+    ['never','',['unrelated']],
+    ['before',$cutoff,['old-manual','old-campaign']],
+    ['after',$cutoff,['manual','campaign','complaint','duplicate']],
+]as[$operator,$value,$names]){
+    $tree=['match'=>'all','rules'=>[
+        ['field'=>'event:subscription_changed','operator'=>$operator,'value'=>$value],
+        ['field'=>'email_status','operator'=>'is','value'=>'unsubscribed'],
+    ]];
+    $segmentId=$filterStore->saveSegment('Subscription history '.$operator,$tree,0,0);
+    $saved=$filterStore->one('SELECT * FROM marketing_segments WHERE id=?',[$segmentId]);
+    [$where,$params]=$filterStore->where(audienceListFilters([]),audienceJson($saved['filters_json']),$filterCatalog);
+    $actual=array_map('intval',array_column($filterStore->all("SELECT c.id FROM marketing_contacts c WHERE $where ORDER BY c.id",$params),'id'));
+    $expected=array_map(static fn($name)=>$filterPeople[$name],$names);sort($expected);
+    $expect($actual===$expected,'Subscription-change '.$operator.' includes both event types and retains date, status and audience scope');
+    $expect($filterStore->segmentConnectionCounts([$saved],$filterCatalog,[])[$segmentId]===count($expected),'Saved segment '.$operator.' count agrees with its connections without duplicate history');
+}
+[$where,$params]=$filterStore->where(audienceListFilters([]),['field'=>'event:contact_updated','operator'=>'last_days','value'=>'30'],$filterCatalog);
+$expect(array_map('intval',array_column($filterStore->all("SELECT c.id FROM marketing_contacts c WHERE $where",$params),'id'))===[$filterPeople['unrelated']],'Other activity filters do not match subscription status events');
+$expect($filterStore->all($historySql,[$filterStore->audienceId])===$filterHistory,'Reading saved subscription segments preserves existing event history');
 echo "Audience data management: $checks checks, ".count($failures)." failures.\n";
 foreach($failures as$failure)echo 'FAIL: '.$failure."\n";
 if($failures)exit(1);

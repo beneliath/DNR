@@ -132,7 +132,7 @@ function audienceInboxForwardViaSmtp(mysqli $db, array $message): string
 }
 
 /** Retain signed service receipts without replaying mail or changing test-recipient consent. */
-function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,array $envelope,array $mail,string $correlation,string $providerId,string $type,string $at):string
+function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,array $envelope,array $mail,string $correlation,string $providerId,string $type,string $at,array $details=[]):string
 {
     if(!$store->inboxAvailable())return 'ignored';
     $job=$store->one("SELECT * FROM marketing_service_mail WHERE audience_id=? AND kind IN ('test','inbox','inbox-alert','subscription-notice') AND ses_correlation=? AND provider_account_id=? AND provider_region=? AND delivery_started_at IS NOT NULL FOR UPDATE",[$store->audienceId,$correlation,$settings['aws_account_id'],$settings['region']]);
@@ -146,7 +146,7 @@ function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,a
         if($person&&hash_equals($job['recipient_hash'],audienceDispatchEmailHash($person['email']))&&(!$confirmed||new DateTimeImmutable($confirmed['created_at'],new DateTimeZone('UTC'))<=new DateTimeImmutable($at,new DateTimeZone('UTC')))){
             $status=$type==='hard-bounce'||$person['email_status']==='cleaned'?'cleaned':'unsubscribed';$store->write('UPDATE marketing_contacts SET email_status=?,version=version+1 WHERE audience_id=? AND id=?',[$status,$store->audienceId,$person['id']]);
             if($type==='complaint')$store->write('INSERT IGNORE INTO marketing_email_optouts(audience_id,email_hash) VALUES (?,?)',[$store->audienceId,$job['recipient_hash']]);
-            $store->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Authenticated event source','provider','status',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>$status,'source'=>$type,'inbox_service_mail_id'=>(int)$job['id']],JSON_THROW_ON_ERROR)]);
+            $store->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Authenticated event source','provider','status',?)",[$person['id'],json_encode(['from'=>$person['email_status'],'to'=>$status,'source'=>$type,'inbox_service_mail_id'=>(int)$job['id']]+array_intersect_key($details,array_flip(['provider','message_id','bounce'])),JSON_THROW_ON_ERROR)]);
         }
     }
     $store->write('UPDATE marketing_ses_settings SET last_event_at=UTC_TIMESTAMP() WHERE audience_id=? AND generation=?',[$store->audienceId,$settings['generation']]);return 'accepted';

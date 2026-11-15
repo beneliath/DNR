@@ -44,7 +44,10 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The November 12, 2026 edition applies to application version **2.11.5**.
+The November 15, 2026 edition applies to application version **2.11.11**.
+The Engagements chapter documents the red lightning-bolt Cancel Engagement action,
+Editor/Admin access, the required reason and exact `CANCEL` confirmation, and
+archiving all associated tasks while preserving completed-task history.
 The operator appendix documents the offline city database used for member profiles and Daily Audience Summary emails.
 The Work Queue chapter explains which Standard Event Tasks complete when a
 presentation is saved or restored and when a financial report is finalized.
