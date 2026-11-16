@@ -305,7 +305,7 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "6fe5389cd60bdcf5d9ee1398dc79c2beacb7d36d71215d8627ce97ddb949d26f",
+        "tasks.php": "8436e60d6b9b738692978893aeade0de03e5665aec36365c8f0bc9566666d605",
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef"
       },
       "controls": {
@@ -412,9 +412,9 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "311e4f80dc9428532be1e5568f660be5c23b6e3473216ea3b4ff3dccab2c0c6c",
+        "reimbursements.php": "395224c03331948c998bb8838228ec052575b2c5586c35924774a2965394ae1b",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
-        "reimbursement_requests.php": "0c3133181939c22185ea11dfea1ade63d5ee958bd9995a4ea46400b863510159",
+        "reimbursement_requests.php": "803ca9d77f9c8059b6fee355c2d70c3e61ed5ba4966030259a16534c02ef4932",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {

@@ -1041,7 +1041,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "2a60948854250b1def17ece2d5c547d67fae309f8510f8fd2bfa37332b36729b",
+      "sha256": "0dcb3396084e6cd7044dcb72c3f5349617bec47cb44da1cb5c4ba45683a678e2",
       "controls": [
         {
           "kind": "a",
@@ -1986,7 +1986,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "0871a450ceb6a00761d957e52bfcaac316e104896d145ada85f2e494781181f3",
+      "sha256": "4e9c39472c239419df08579866ef8d478764f7b539b731da5cc8dad64792c433",
       "controls": [
         {
           "kind": "a",
@@ -2015,13 +2015,17 @@
         },
         {
           "kind": "label",
-          "label": "Title, Organization, Contact, Chron Log Text, \"and\"/or User",
+          "label": "Search Engagements",
           "for": "engagement-search"
         },
         {
           "kind": "a",
           "label": "Clear",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Search"
         },
         {
           "kind": "label",
@@ -2754,7 +2758,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "cbd4ad3948f2f7700cef52c093031035184b013ef80dbfb0c532b738fa3e0233",
+      "sha256": "1fe6baba2d281d31d6406d07b6c5bffab6f33b37371752ee5c89de42101b447b",
       "controls": [
         {
           "kind": "a",
@@ -3122,7 +3126,7 @@
       ]
     },
     "reimbursement_cost_centers.php": {
-      "sha256": "c8ab8876ad2580e9a37ba47a828606e1c8b1b5cd143f3dacd8a2665e9a51d9ec",
+      "sha256": "66c9a57f3d9aedac289388fb96ac4aa5e4831d501d8d0951825acd9c35bcf81f",
       "controls": [
         {
           "kind": "a",
@@ -3402,7 +3406,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "0c3133181939c22185ea11dfea1ade63d5ee958bd9995a4ea46400b863510159",
+      "sha256": "803ca9d77f9c8059b6fee355c2d70c3e61ed5ba4966030259a16534c02ef4932",
       "controls": [
         {
           "kind": "a",
@@ -3604,7 +3608,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "311e4f80dc9428532be1e5568f660be5c23b6e3473216ea3b4ff3dccab2c0c6c",
+      "sha256": "395224c03331948c998bb8838228ec052575b2c5586c35924774a2965394ae1b",
       "controls": [
         {
           "kind": "h1",
@@ -4141,7 +4145,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "82c39a4ff2fdb7ab8464405d62f383cfb3879ab0c27570018f3bbbcd3d944e97",
+      "sha256": "5ace98200ecb7eb7233620d63a7db161b79b2477ef444b92eb4d4580d81f5059",
       "controls": [
         {
           "kind": "h1",
@@ -4207,7 +4211,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "6fe5389cd60bdcf5d9ee1398dc79c2beacb7d36d71215d8627ce97ddb949d26f",
+      "sha256": "8436e60d6b9b738692978893aeade0de03e5665aec36365c8f0bc9566666d605",
       "controls": [
         {
           "kind": "h1",

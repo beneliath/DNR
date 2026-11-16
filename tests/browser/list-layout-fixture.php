@@ -75,8 +75,9 @@ if ($fixture) {
  foreach ($headers[0] as $i=>$header) echo '<td data-field="'.htmlspecialchars(trim(preg_replace('/[↑↓↕]/u','',strip_tags($header)))).'">Example '.$i.'</td>';
  echo '</tr></tbody></table>';if(str_starts_with($page,'reimbursement'))echo '</div>';
 } else echo '<p>Example list content</p>';
-if ($page==='reimbursements') echo '</form></section>';
-if (in_array($page,['reimbursement_requests','reimbursement_cost_centers'])) echo '</section>';
+if ($page==='reimbursements') echo '</div></form></section>';
+if ($page === 'reimbursement_requests') echo '</section>';
+if ($page === 'reimbursement_cost_centers') echo '</div></section>';
 echo '</main><span hidden data-initial-layout-parsed></span>';
 renderScript('assets/js/workflow-ui.min.js');
 echo '</body></html>';

@@ -43,17 +43,19 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     </div>
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-    <div class="list-controls">
+    <div class="list-controls directory-list-controls">
+        <div class="directory-filter-row">
+            <form method="get" action="speakers.php" class="list-search-form unified-list-filter" role="search">
+                <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+                <input type="hidden" name="name_sort" value="<?php echo $name_sort; ?>">
+                <label class="visually-hidden" for="speaker-search">Search Speakers</label>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Speakers">
+                <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
+                <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+            </form>
+        </div>
         <?php renderListFilterSummary(['Search' => $search], 'speakers.php'); ?>
-        <form method="get" action="speakers.php" class="list-search-form unified-list-filter" role="search">
-            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <input type="hidden" name="name_sort" value="<?php echo $name_sort; ?>">
-            <label class="visually-hidden" for="speaker-search">Search Speakers</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Speakers">
-            <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
-            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
-        </form>
     </div>
     <?php if ($search !== ''): ?><p class="result-context">Showing speakers matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p><?php endif; ?>
     <?php renderBulkDeleteToolbar('speaker', $list_current_url); ?>

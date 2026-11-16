@@ -121,16 +121,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.403.0",
+            "version": "3.403.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "effd01087c371988150d882e856889ffd2b5d728"
+                "reference": "6e52905dabd868c1bc7fd491e0deec6f78a0f7d1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/effd01087c371988150d882e856889ffd2b5d728",
-                "reference": "effd01087c371988150d882e856889ffd2b5d728",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/6e52905dabd868c1bc7fd491e0deec6f78a0f7d1",
+                "reference": "6e52905dabd868c1bc7fd491e0deec6f78a0f7d1",
                 "shasum": ""
             },
             "require": {
@@ -212,9 +212,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.403.0"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.403.5"
             },
-            "time": "2026-11-05T19:10:30+00:00"
+            "time": "2026-11-12T19:40:30+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -395,16 +395,16 @@
         },
         {
             "name": "giggsey/libphonenumber-for-php",
-            "version": "9.0.42",
+            "version": "9.0.43",
             "source": {
                 "type": "git",
                 "url": "https://github.com/giggsey/libphonenumber-for-php.git",
-                "reference": "bd4266d1d6f4585055cc241cdbcd4aced0e24b18"
+                "reference": "75a801c3dbf9a675e4bc83e0da2c2142fcc5344d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php/zipball/bd4266d1d6f4585055cc241cdbcd4aced0e24b18",
-                "reference": "bd4266d1d6f4585055cc241cdbcd4aced0e24b18",
+                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php/zipball/75a801c3dbf9a675e4bc83e0da2c2142fcc5344d",
+                "reference": "75a801c3dbf9a675e4bc83e0da2c2142fcc5344d",
                 "shasum": ""
             },
             "require": {
@@ -467,7 +467,7 @@
                 "issues": "https://github.com/giggsey/libphonenumber-for-php/issues",
                 "source": "https://github.com/giggsey/libphonenumber-for-php"
             },
-            "time": "2026-10-28T12:32:21+00:00"
+            "time": "2026-11-06T10:00:34+00:00"
         },
         {
             "name": "giggsey/locale",
@@ -529,25 +529,26 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "8.3.1",
+            "version": "8.5.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "7d9b1f430bb65ac664e120af227bf9a795ad6333"
+                "reference": "f8aca40edffeae0ec508b92f4594766083c6e203"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/7d9b1f430bb65ac664e120af227bf9a795ad6333",
-                "reference": "7d9b1f430bb65ac664e120af227bf9a795ad6333",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/f8aca40edffeae0ec508b92f4594766083c6e203",
+                "reference": "f8aca40edffeae0ec508b92f4594766083c6e203",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "guzzlehttp/promises": "^3.1",
-                "guzzlehttp/psr7": "^3.2",
+                "guzzlehttp/psr7": "^3.4",
                 "php": "^7.4 || ^8.0",
                 "psr/http-client": "^1.0",
                 "psr/http-factory": "^1.0",
+                "symfony/deprecation-contracts": "^2.5 || ^3.0",
                 "symfony/polyfill-php80": "^1.25",
                 "symfony/polyfill-php82": "^1.27"
             },
@@ -635,7 +636,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/8.3.1"
+                "source": "https://github.com/guzzle/guzzle/tree/8.5.0"
             },
             "funding": [
                 {
@@ -651,7 +652,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-25T21:35:34+00:00"
+            "time": "2026-11-13T03:12:32+00:00"
         },
         {
             "name": "guzzlehttp/promises",
@@ -739,22 +740,23 @@
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "3.2.0",
+            "version": "3.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "cdc139396207a5eba10c242d241fb014cb098390"
+                "reference": "180bd6fcebd1dc289cbec5c576135f4b6f576e02"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/cdc139396207a5eba10c242d241fb014cb098390",
-                "reference": "cdc139396207a5eba10c242d241fb014cb098390",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/180bd6fcebd1dc289cbec5c576135f4b6f576e02",
+                "reference": "180bd6fcebd1dc289cbec5c576135f4b6f576e02",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.4 || ^8.0",
                 "psr/http-factory": "^1.1",
                 "psr/http-message": "^2.0",
+                "symfony/deprecation-contracts": "^2.5 || ^3.0",
                 "symfony/polyfill-php80": "^1.25",
                 "symfony/polyfill-php82": "^1.27"
             },
@@ -838,7 +840,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/3.2.0"
+                "source": "https://github.com/guzzle/psr7/tree/3.4.0"
             },
             "funding": [
                 {
@@ -854,20 +856,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-17T23:57:19+00:00"
+            "time": "2026-11-13T03:03:24+00:00"
         },
         {
             "name": "laravel/serializable-closure",
-            "version": "v2.1.0",
+            "version": "v2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/serializable-closure.git",
-                "reference": "2d5869a838bbcf37e0d8b0568fc41914e81374b5"
+                "reference": "2bfb44e8af009b553ed2c060c94b0bc3c67b4769"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/2d5869a838bbcf37e0d8b0568fc41914e81374b5",
-                "reference": "2d5869a838bbcf37e0d8b0568fc41914e81374b5",
+                "url": "https://api.github.com/repos/laravel/serializable-closure/zipball/2bfb44e8af009b553ed2c060c94b0bc3c67b4769",
+                "reference": "2bfb44e8af009b553ed2c060c94b0bc3c67b4769",
                 "shasum": ""
             },
             "require": {
@@ -915,7 +917,7 @@
                 "issues": "https://github.com/laravel/serializable-closure/issues",
                 "source": "https://github.com/laravel/serializable-closure"
             },
-            "time": "2026-09-22T14:32:34+00:00"
+            "time": "2026-10-14T21:20:29+00:00"
         },
         {
             "name": "matomo/device-detector",
@@ -1173,16 +1175,16 @@
         },
         {
             "name": "paragonie/constant_time_encoding",
-            "version": "v3.1.3",
+            "version": "v3.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/paragonie/constant_time_encoding.git",
-                "reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77"
+                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
-                "reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
+                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
+                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
                 "shasum": ""
             },
             "require": {
@@ -1238,7 +1240,7 @@
                 "issues": "https://github.com/paragonie/constant_time_encoding/issues",
                 "source": "https://github.com/paragonie/constant_time_encoding"
             },
-            "time": "2025-09-24T15:06:41+00:00"
+            "time": "2026-11-06T20:31:19+00:00"
         },
         {
             "name": "php-di/invoker",
@@ -1681,21 +1683,21 @@
         },
         {
             "name": "setasign/fpdi",
-            "version": "v2.6.9",
+            "version": "v2.6.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Setasign/FPDI.git",
-                "reference": "d97ade6368aa0b51b6316d5dc16a567e2bf60167"
+                "reference": "be29a9d43c64f06569c1075f181e43d829a3d5bb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Setasign/FPDI/zipball/d97ade6368aa0b51b6316d5dc16a567e2bf60167",
-                "reference": "d97ade6368aa0b51b6316d5dc16a567e2bf60167",
+                "url": "https://api.github.com/repos/Setasign/FPDI/zipball/be29a9d43c64f06569c1075f181e43d829a3d5bb",
+                "reference": "be29a9d43c64f06569c1075f181e43d829a3d5bb",
                 "shasum": ""
             },
             "require": {
                 "ext-zlib": "*",
-                "php": ">=7.2 <=8.6.99999"
+                "php": ">=7.2 <8.7"
             },
             "conflict": {
                 "setasign/tfpdf": "<1.31"
@@ -1740,7 +1742,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Setasign/FPDI/issues",
-                "source": "https://github.com/Setasign/FPDI/tree/v2.6.9"
+                "source": "https://github.com/Setasign/FPDI/tree/v2.6.10"
             },
             "funding": [
                 {
@@ -1748,20 +1750,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-13T07:36:28+00:00"
+            "time": "2026-11-09T10:58:35+00:00"
         },
         {
             "name": "spomky-labs/otphp",
-            "version": "11.5.0",
+            "version": "11.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Spomky-Labs/otphp.git",
-                "reference": "877683d6352b80cdc7020fd43a725629c2524435"
+                "reference": "16866d2206d6f0c0421294357da23a28b78852f7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Spomky-Labs/otphp/zipball/877683d6352b80cdc7020fd43a725629c2524435",
-                "reference": "877683d6352b80cdc7020fd43a725629c2524435",
+                "url": "https://api.github.com/repos/Spomky-Labs/otphp/zipball/16866d2206d6f0c0421294357da23a28b78852f7",
+                "reference": "16866d2206d6f0c0421294357da23a28b78852f7",
                 "shasum": ""
             },
             "require": {
@@ -1806,7 +1808,7 @@
             ],
             "support": {
                 "issues": "https://github.com/Spomky-Labs/otphp/issues",
-                "source": "https://github.com/Spomky-Labs/otphp/tree/11.5.0"
+                "source": "https://github.com/Spomky-Labs/otphp/tree/11.5.1"
             },
             "funding": [
                 {
@@ -1818,7 +1820,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2026-06-06T23:41:24+00:00"
+            "time": "2026-11-07T17:39:42+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -2533,16 +2535,16 @@
         },
         {
             "name": "zbateson/mail-mime-parser",
-            "version": "4.0.8",
+            "version": "4.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zbateson/mail-mime-parser.git",
-                "reference": "21a8a6ff886f6ab19c065655f84f5a9ac4f86266"
+                "reference": "19fe2c11fd257856bc8042bf056eab2525fdb34e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zbateson/mail-mime-parser/zipball/21a8a6ff886f6ab19c065655f84f5a9ac4f86266",
-                "reference": "21a8a6ff886f6ab19c065655f84f5a9ac4f86266",
+                "url": "https://api.github.com/repos/zbateson/mail-mime-parser/zipball/19fe2c11fd257856bc8042bf056eab2525fdb34e",
+                "reference": "19fe2c11fd257856bc8042bf056eab2525fdb34e",
                 "shasum": ""
             },
             "require": {
@@ -2605,7 +2607,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-27T16:17:50+00:00"
+            "time": "2026-11-09T21:44:36+00:00"
         },
         {
             "name": "zbateson/mb-wrapper",
@@ -2808,7 +2810,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -2822,6 +2824,6 @@
         "ext-sodium": "*",
         "ext-zip": "*"
     },
-    "platform-dev": [],
-    "plugin-api-version": "2.6.0"
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
 }

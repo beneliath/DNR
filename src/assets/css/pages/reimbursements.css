@@ -37,7 +37,17 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-search-field>label{display:block;flex:none;margin:0}
 .reimbursement-search-form{flex:none;width:100%;min-width:0;max-width:none;margin-top:.35rem}
 .reimbursement-list-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem}.reimbursement-list-heading h2{margin:0}.reimbursement-list-heading nav,.reimbursement-row-actions{display:flex;align-items:center;gap:.25rem}.reimbursement-list-heading .button-secondary{padding:.4rem .7rem}.reimbursement-list-heading .is-current{border-color:var(--primary);color:var(--primary)}.reimbursement-row-actions{white-space:nowrap}.reimbursement-row-actions form{margin:0}
-.reimbursement-request-table th,.reimbursement-request-table td{vertical-align:middle}.reimbursement-request-table time{white-space:nowrap}
+.reimbursement-request-table { --table-body-font-size: .9375rem; }
+.reimbursement-request-table th,
+.reimbursement-request-table td { padding-inline: .5rem; vertical-align: middle; }
+.reimbursement-request-table time { display: inline-block; white-space: nowrap; }
+.reimbursement-request-table .reimbursement-request-timestamp { white-space: normal; }
+.reimbursement-request-timestamp > span { display: inline-block; white-space: nowrap; }
+/* Submit belongs beside the request reference, so it needs no slot in Actions. */
+.reimbursement-request-table .reimbursement-row-actions {
+  --record-action-columns: [view] var(--record-view) [edit] var(--record-edit)
+    [restore] var(--record-restore) [archive] var(--record-archive) [delete] var(--record-delete);
+}
 .reimbursement-setup-wide{grid-column:1/-1}.reimbursement-setup-form label{display:flex;flex-direction:column;font-weight:600}.reimbursement-setup-form input{width:100%}@media(max-width:640px){.reimbursement-setup-wide{grid-column:auto}}
 .reimbursement-setup-phone>label{margin-bottom:.35rem}
 .reimbursement-filter-block .reimbursement-inline-form :is(input[type=search],.date-picker-box input,select){height:44px;min-height:44px;box-sizing:border-box}
@@ -50,10 +60,32 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-filter-block{margin:0 0 1rem}
 .reimbursement-filter-block .reimbursement-sort-group{margin-top:1.5rem}
 .reimbursement-filter-block .field-help{margin:.6rem 0 0}
-.reimbursement-card .reimbursement-expenses-heading{font-size:1.35rem}
+.reimbursement-expenses-section,
+.reimbursement-request-filters { margin: 1.2rem 0; }
+.reimbursement-expenses-section .reimbursement-expenses-heading{font-size:1.35rem}
+.reimbursement-expenses-section .reimbursement-expense-table tbody tr:last-child,
+.reimbursement-expenses-section .reimbursement-expense-table tbody tr:last-child > td,
+.reimbursement-request-list .reimbursement-request-table tbody tr:last-child,
+.reimbursement-request-list .reimbursement-request-table tbody tr:last-child > td { border-bottom: 0; }
 
 .reimbursement-form-page textarea{min-height:6rem;height:auto;resize:vertical}
 .reimbursement-list-heading .control-group{margin:0}
+.reimbursement-account-section { margin: 1.2rem 0; }
+.reimbursement-account-section h2 { font-size: 1.15rem; }
+.reimbursement-account-editor { width: 50%; }
+.reimbursement-account-editor > h2 { margin: 0 0 1rem; }
+.reimbursement-account-editor .reimbursement-add-center-form {
+  grid-template-columns: minmax(7.5rem, .6fr) minmax(0, 1.4fr) auto;
+  column-gap: 24px;
+}
+@media (max-width: 1100px) {
+  .reimbursement-account-editor { width: 100%; }
+}
+@media (max-width: 700px) {
+  .reimbursement-account-editor .reimbursement-add-center-form { grid-template-columns: minmax(0, 1fr); }
+}
+.reimbursement-account-list { container: record-list / inline-size; }
+.reimbursement-account-list .data-table tbody tr:last-child > td { border-bottom: 0; }
 .reimbursement-page .reimbursement-account-search {
   padding: 0;
   border: 0;
@@ -106,10 +138,19 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-expenses-list-heading{margin-bottom:1rem}
 .reimbursement-table-wrap td:has(.reimbursement-row-actions){vertical-align:middle}
 
-.reimbursement-request-identity{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:.85rem;white-space:nowrap}
+.reimbursement-request-identity{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:.5rem}
 .reimbursement-request-identity>a:last-child{grid-column:2;justify-self:end}
-.reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{width:1%;white-space:nowrap}
+.reimbursement-request-identity .record-link { min-width:0; overflow-wrap:anywhere; }
+.reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{width:20%}
 .reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{text-align:right}
+@container reimbursements (width > 64rem) and (width <= 80rem) {
+  .reimbursement-request-table:has(.edit-button) .reimbursement-row-actions {
+    --record-action-columns: [view restore archive] var(--record-action-slot) [edit delete] var(--record-action-size);
+  }
+  .reimbursement-request-table:has(.edit-button) .reimbursement-row-actions > form {
+    grid-row: 2 !important;
+  }
+}
 .reimbursement-email-details{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6rem 1rem}.reimbursement-email-details dt{font-weight:650}.reimbursement-email-details dd{margin:0;overflow-wrap:anywhere}
 .reimbursement-email-preview{width:100%;min-height:300px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);overflow-x:auto;overscroll-behavior-inline:contain}
 #bookkeeper-note{display:block;width:100%;margin-top:.4rem;min-height:6rem;resize:vertical}
@@ -142,20 +183,30 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 @media (max-width: 700px) {
   .reimbursement-expense-table { min-width:0 !important; }
   .reimbursement-expense-table thead { display:none; }
-  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table, :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table tbody { display:block; width:100%; }
-  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead { display:block; margin-bottom:.75rem; }
-  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead tr { display:flex; flex-wrap:wrap; gap:4px 20px; }
-  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead th { padding:0; border:0; background:transparent !important; }
-  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead th:not([aria-sort]) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .reimbursement-expense-table.sortable-table, .reimbursement-expense-table.sortable-table tbody { display:block; width:100%; }
+  .reimbursement-expense-table.sortable-table thead { display:block; margin-bottom:.75rem; }
+  .reimbursement-expense-table.sortable-table thead tr { display:flex; flex-wrap:wrap; gap:4px 20px; }
+  .reimbursement-expense-table.sortable-table thead th { padding:0; border:0; background:transparent !important; }
+  .reimbursement-expense-table.sortable-table thead th:not([aria-sort]) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .reimbursement-expense-table tbody tr { display:grid; grid-template-columns:auto 1fr; padding:.75rem; border-bottom:1px solid var(--border-color, #dfe4ec); }
   .reimbursement-expense-table tbody td { border:0; padding:.35rem; }
   .reimbursement-expense-table tbody td:nth-child(3) { grid-column:1/-1; font-weight:600; }
   .reimbursement-expense-table tbody td:nth-child(4), .reimbursement-expense-table tbody td:nth-child(5), .reimbursement-expense-table tbody td:nth-child(6) { display:none; }
   .reimbursement-expense-table tbody td:last-child { grid-column:1/-1; }
+}
+/* Reflow the ten request columns before they outgrow their containing pane. */
+@container reimbursements (max-width: 64rem) {
   .reimbursement-request-table { min-width:0 !important; }
-  .reimbursement-request-table thead { display:none; }
-  .reimbursement-request-table tbody tr { display:grid; grid-template-columns:1fr 1fr; padding:.75rem; border-bottom:1px solid var(--border-color, #dfe4ec); }
-  .reimbursement-request-table tbody td { border:0; padding:.35rem; text-align:left; }
+  .reimbursement-request-table.sortable-table,
+  .reimbursement-request-table.sortable-table tbody { display:block; width:100%; }
+  .reimbursement-request-table.sortable-table thead { display:block; margin-bottom:.75rem; }
+  .reimbursement-request-table.sortable-table thead tr { display:flex; flex-wrap:wrap; gap:4px 20px; }
+  .reimbursement-request-table.sortable-table thead th { padding:0; border:0; background:transparent !important; }
+  .reimbursement-request-table.sortable-table thead th:not([aria-sort]) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .reimbursement-request-table th:first-child,
+  .reimbursement-request-table td:first-child { width:auto; }
+  .reimbursement-request-table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); padding:.75rem; border-bottom:1px solid var(--border-color, #dfe4ec); }
+  .reimbursement-request-table tbody td { min-width:0; border:0; padding:.35rem; text-align:left; overflow-wrap:anywhere; }
   .reimbursement-request-table tbody td:first-child, .reimbursement-request-table tbody td:last-child { grid-column:1/-1; }
   .reimbursement-request-table tbody td:nth-child(4), .reimbursement-request-table tbody td:nth-child(5), .reimbursement-request-table tbody td:nth-child(8), .reimbursement-request-table tbody td:nth-child(9) { display:none; }
 }

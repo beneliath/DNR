@@ -295,24 +295,26 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <?php renderListContextTabs([
-        'active' => ['Active', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search)],
-        'archived' => ['Archived', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search)],
-    ], $list_status, 'Contact Status'); ?>
-    <div class="list-controls">
+    <div class="list-controls directory-list-controls">
+        <div class="directory-filter-row">
+            <?php renderListContextTabs([
+                'active' => ['Active', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search)],
+                'archived' => ['Archived', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search)],
+            ], $list_status, 'Contact Status'); ?>
+            <form method="get" action="contacts.php" class="list-search-form unified-list-filter" role="search">
+                <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+                <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="last_name_sort" value="<?php echo htmlspecialchars($last_name_sort, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="organization_sort" value="<?php echo htmlspecialchars($organization_sort, ENT_QUOTES, 'UTF-8'); ?>">
+                <label class="visually-hidden" for="contact-search">Search Contacts</label>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Contacts">
+                <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+                <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+            </form>
+        </div>
         <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
-        <form method="get" action="contacts.php" class="list-search-form unified-list-filter" role="search">
-            <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="last_name_sort" value="<?php echo htmlspecialchars($last_name_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="organization_sort" value="<?php echo htmlspecialchars($organization_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="contact-search">Search Contacts</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Contacts">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
-            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
-        </form>
     </div>
 
     <?php if ($search !== ''): ?>

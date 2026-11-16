@@ -77,15 +77,13 @@ function listUiFixture(string $page, array $input = []): array
         ob_start();
         if ($page === 'reimbursements') {
             eval('?>' . $block('<div class="reimbursement-list-heading reimbursement-expenses-list-heading', '<div class="reimbursement-filter-block">'));
-        } elseif ($page === 'reimbursement_cost_centers') {
-            eval('?>' . $block('<div class="reimbursement-list-heading reimbursement-context-heading">', '<div class="list-controls'));
         } elseif ($page !== 'engagements' && preg_match('/<\?php renderListContextTabs\(.*?\?>/s', $source, $context)) {
             eval('?>' . $context[0]);
         }
         $contextHtml = ob_get_clean();
         $controls = '';
         if ($page === 'engagements') {
-            $startOffset = strpos($source, '<div class="list-controls engagement-controls">');
+            $startOffset = strpos($source, '<div class="list-controls engagement-controls');
             $endOffset = strpos($source, '<?php renderBulkDeleteToolbar', $startOffset);
             ob_start();
             eval('?>' . substr($source, $startOffset, $endOffset - $startOffset));

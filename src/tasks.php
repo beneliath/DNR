@@ -415,31 +415,30 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php endforeach; ?>
     </div>
 
-    <div class="task-context-row">
+    <div class="list-controls task-list-controls directory-list-controls">
+        <div class="directory-filter-row">
+            <?php renderListContextTabs([
+                'active' => ['Active', $queue_url(['view' => $view === 'archived' ? 'all' : $view])],
+                'archived' => ['Archived', $queue_url(['view' => 'archived'])],
+            ], $view === 'archived' ? 'archived' : 'active', 'Task Context'); ?>
+            <form method="get" action="tasks.php" class="list-search-form unified-list-filter" role="search">
+                <input type="hidden" name="view" value="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="scope" value="<?php echo htmlspecialchars($scope, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php if ($has_subject_filter): ?>
+                    <input type="hidden" name="subject_type" value="<?php echo htmlspecialchars($subject_filter_type, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="subject_id" value="<?php echo (int) $subject_filter_id; ?>">
+                <?php endif; ?>
+                <?php if ($selected_task_id): ?><input type="hidden" name="task_id" value="<?php echo $selected_task_id; ?>"><?php endif; ?>
+                <label class="visually-hidden" for="task-search">Search Tasks</label>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Tasks" title="Search Tasks, Records, and Assignees">
+                <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+                <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+            </form>
+        </div>
         <nav class="task-scope-selector control-group" aria-label="Task Ownership">
             <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
         </nav>
-        <?php renderListContextTabs([
-            'active' => ['Active', $queue_url(['view' => $view === 'archived' ? 'all' : $view])],
-            'archived' => ['Archived', $queue_url(['view' => 'archived'])],
-        ], $view === 'archived' ? 'archived' : 'active', 'Task Context'); ?>
-    </div>
-    <div class="list-controls task-list-controls">
         <?php renderListFilterSummary(['Visibility' => $view === 'archived' ? 'Archived' : 'Active', 'Owner' => $scope_labels[$scope], 'View' => $view === 'archived' ? null : $view_labels[$view], 'Search' => $search, 'Task' => $selected_task_id ?: ''], 'tasks.php?scope=mine&view=all'); ?>
-        <form method="get" action="tasks.php" class="list-search-form unified-list-filter" role="search">
-            <input type="hidden" name="view" value="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="scope" value="<?php echo htmlspecialchars($scope, ENT_QUOTES, 'UTF-8'); ?>">
-            <?php if ($has_subject_filter): ?>
-                <input type="hidden" name="subject_type" value="<?php echo htmlspecialchars($subject_filter_type, ENT_QUOTES, 'UTF-8'); ?>">
-                <input type="hidden" name="subject_id" value="<?php echo (int) $subject_filter_id; ?>">
-            <?php endif; ?>
-            <?php if ($selected_task_id): ?><input type="hidden" name="task_id" value="<?php echo $selected_task_id; ?>"><?php endif; ?>
-            <label class="visually-hidden" for="task-search">Search Tasks</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Tasks, Records, and Assignees">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
-            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
-        </form>
-
     </div>
 
     <?php if ($subject_filter_record): ?>
