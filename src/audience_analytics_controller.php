@@ -38,10 +38,11 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         try{
             $savedReport=$store->analyticsSavedReport($reportKey,$canDelete);$base=$savedReport['definition'];
             if(isset($reportInput['dataset'])&&$reportInput['dataset']!==$base['dataset'])$base=array_diff_key($base,array_flip(['columns','plots','dimension']));
-            $reportInput=array_replace($base,$reportInput);
         }
         catch(InvalidArgumentException $e){http_response_code(403);exit($h($e->getMessage()));}
     }
+    $reportInput=audienceRememberAnalyticsRange($reportInput,$view,$section,$_SERVER['REQUEST_METHOD']==='GET'?$actor:0);
+    if($savedReport)$reportInput=array_replace($base,$reportInput);
     $presets=audienceAnalyticsPresets();
     $rangeKey=audienceText($reportInput,'range',20)?:((isset($reportInput['start'])||isset($reportInput['end']))?'custom':($view==='home'?'30':($section==='locations'?'7':'90')));
     if(!isset($reportInput['range'])&&isset($reportInput['start'],$reportInput['end']))foreach($presets as$key=>$preset)if($reportInput['start']===$preset['start']&&$reportInput['end']===$preset['end']){$rangeKey=(string)$key;break;}

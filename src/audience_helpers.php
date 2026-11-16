@@ -259,6 +259,38 @@ function audienceParseListCell(string $value): array
     return array_values(array_filter(array_map(static fn($v)=>trim((string)$v),str_getcsv($value,'|','"','')),static fn($v)=>$v!==''));
 }
 
+/** Remember the Connections sort in this browser for the current account and user. */
+function audienceConnectionSortPreference(array $input,array $sortColumns,int $userId):array
+{
+    $default=['sort'=>'created_at','direction'=>'desc'];
+    $valid=static fn(array $value):bool=>is_string($value['sort']??null)
+        &&in_array($value['sort'],$sortColumns,true)
+        &&in_array($value['direction']??null,['asc','desc'],true);
+    $requested=['sort'=>$input['sort']??null,'direction'=>$input['direction']??'desc'];
+    if($userId<1)return $valid($requested)?$requested:$default;
+
+    $cookieName='dnr_mm_connection_sort_'.substr(hash('sha256',currentAccountKey().':'.$userId),0,24);
+    $cookie=$_COOKIE[$cookieName]??null;
+    $stored=is_string($cookie)?json_decode($cookie,true):null;
+    $remembered=is_array($stored)&&$valid($stored)
+        ?['sort'=>$stored['sort'],'direction'=>$stored['direction']]:$default;
+    if(!$valid($requested))return $remembered;
+
+    $encoded=json_encode($requested,JSON_THROW_ON_ERROR);
+    if($cookie!==$encoded&&!headers_sent()){
+        setcookie($cookieName,$encoded,[
+            'expires'=>time()+365*86400,
+            // The primary account also supports root URLs on localhost.
+            'path'=>accountIsPrimary()?'/':accountCookiePath(),
+            'secure'=>requestUsesHttps()||applicationRequiresHttps(),
+            'httponly'=>true,
+            'samesite'=>'Lax',
+        ]);
+        $_COOKIE[$cookieName]=$encoded;
+    }
+    return $requested;
+}
+
 /** Date columns use typed values, with empty dates last in either direction. */
 function audienceConnectionOrder(string $sort,string $direction,array $fields):string
 {
