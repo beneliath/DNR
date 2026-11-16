@@ -44,7 +44,10 @@ verification compares every embedded image with its included source pixels.
 
 ## Current edition
 
-The November 15, 2026 edition applies to application version **2.11.11**.
+The November 16, 2026 edition applies to application version **2.11.15**.
+The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
+Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
+Retained screenshots identify the earlier Active lifecycle wording in their captions.
 The Engagements chapter documents the red lightning-bolt Cancel Engagement action,
 Editor/Admin access, the required reason and exact `CANCEL` confirmation, and
 archiving all associated tasks while preserving completed-task history.

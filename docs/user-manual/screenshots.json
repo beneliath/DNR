@@ -393,7 +393,7 @@
     "title": "Find an engagement",
     "route": "engagements.php",
     "steps": [
-      "Start with All lifecycle states, or select Active, Postponed, Canceled, or Completed. Your choice is remembered for your account in this browser.",
+      "The list opens with Active visibility and Scheduled lifecycle. Select All, Scheduled, Postponed, Canceled, or Completed to change the lifecycle view; Clear Filters restores the defaults.",
       "Current and Archived are separate from Lifecycle. Clear both filters when looking for a missing record.",
       "Sort by organization, date, confirmation, or lifecycle. Open the event title or View action to continue planning."
     ],
@@ -413,7 +413,8 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening"
-    }
+    },
+    "note": "The former Active lifecycle label in this retained capture now reads Scheduled; Active and Archived tabs describe visibility."
   },
   {
     "chapter": 5,
@@ -1362,12 +1363,12 @@
     "route": "add_standard_task.php",
     "steps": [
       "Enter the reusable title and notes above the Scheduling section. Choose priority, date anchor, day offset, and display order.",
-      "Administrators can check Also add this task to all active, open engagements before Add standard task. Editors can maintain definitions but cannot use bulk generation.",
-      "This adds the task to unarchived engagements with an Active lifecycle and open financial closeout. Copies use the date rule and go to the active Caller, or to the administrator if none is assigned.",
-      "On a saved definition, administrators can use Add to Active, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication."
+      "Administrators can check Also add this task to all scheduled, open engagements before Add standard task. Editors can maintain definitions but cannot use bulk generation.",
+      "This adds the task to unarchived engagements with a Scheduled lifecycle and open financial closeout. Copies use the date rule and go to the active Caller, or to the administrator if none is assigned.",
+      "On a saved definition, administrators can use Add to Scheduled, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication."
     ],
     "file": "screenshots/standard-form.png",
-    "note": "The option is selected for illustration; the form was not submitted.",
+    "note": "The option is selected for illustration; the form was not submitted. The former Active lifecycle label in this retained capture now reads Scheduled; Active and Archived tabs describe visibility.",
     "captured_on": "2026-09-13",
     "action": "standard-generation",
     "focus": ".form-section:has(#standard-task-priority)",

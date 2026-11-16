@@ -178,7 +178,7 @@ function generateEngagementFollowUpChecklist(
         $engagement = $engagement_stmt->get_result()->fetch_assoc();
         $engagement_stmt->close();
         if (!$engagement) {
-            throw new InvalidArgumentException('Checklists can only be added to active engagements.');
+            throw new InvalidArgumentException('Checklists can only be added to scheduled engagements.');
         }
 
         if ($assigned_to !== null) {

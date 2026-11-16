@@ -18,7 +18,7 @@ expectEngagementSummary(
     'the summary query should count operationally active engagements.'
 );
 expectEngagementSummary(
-    str_contains($engagements_source, '<small>Active</small>')
+    str_contains($engagements_source, '<small>Scheduled</small>')
         && str_contains($engagements_source, "\$summary['active']")
         && str_contains($engagements_source, '<small>Postponed</small>')
         && str_contains($engagements_source, '<small>Canceled</small>')

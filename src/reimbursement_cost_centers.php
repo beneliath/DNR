@@ -12,10 +12,13 @@ $view = in_array($_GET['show'] ?? '', ['archived', 'used'], true) ? $_GET['show'
 $showArchived = $view === 'archived';
 $search = mb_substr(trim(is_string($_GET['q'] ?? null) ? $_GET['q'] : ''), 0, 200);
 $sortColumns = ['coa_number' => 'c.coa_number', 'description' => 'c.description', 'expenses' => 'expense_count'];
-$sortBy = is_string($_GET['sort_by'] ?? null) && isset($sortColumns[$_GET['sort_by']]) ? $_GET['sort_by'] : 'coa_number';
-$sortDir = ($_GET['sort_dir'] ?? '') === 'desc' ? 'desc' : 'asc';
+$selectedSort = listSortSelection($_GET, [
+    'coa_number' => ['sort_dir', 'asc'], 'description' => ['sort_dir', 'asc'], 'expenses' => ['sort_dir', 'desc'],
+], 'coa_number');
+$sortBy = $selectedSort['column'];
+$sortDir = $selectedSort['direction'];
 $listQuery = array_filter(['show' => $view === 'active' ? null : $view, 'q' => $search ?: null,
-    'sort_by' => $sortBy === 'coa_number' ? null : $sortBy, 'sort_dir' => $sortDir === 'asc' ? null : $sortDir], static fn($value) => $value !== null);
+    'sort_by' => $sortBy === 'coa_number' ? null : $sortBy, 'sort_dir' => $sortDir], static fn($value) => $value !== null);
 $listLink = static function (array $changes = []) use ($listQuery): string {
     $query = http_build_query(array_filter(array_replace($listQuery, $changes), static fn($value) => $value !== null));
     return 'reimbursement_cost_centers.php' . ($query !== '' ? '?' . $query : '');
@@ -77,8 +80,14 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <div class="reimbursement-actions"><button class="save-button" type="submit" data-pending-reminder="cost-center"><?= $editingCenter ? 'Save Account' : 'Add Account' ?></button><?php if ($editingCenter): ?><a class="button-secondary" href="<?= reimbursementCenterH($listUrl) ?>">Cancel</a><?php endif; ?></div>
 </form></section>
 <section class="reimbursement-card">
-<h2>Chart of Accounts</h2>
-<div class="list-controls">
+<div class="reimbursement-list-heading reimbursement-context-heading"><h2>Chart of Accounts</h2>
+<?php renderListContextTabs([
+    'active' => ['Active', $listLink(['show' => null])],
+    'used' => ['In Use', $listLink(['show' => 'used'])],
+    'archived' => ['Archived', $listLink(['show' => 'archived'])],
+], $view, 'Account Status'); ?>
+</div>
+<div class="list-controls reimbursement-account-search">
 <form method="get" action="reimbursement_cost_centers.php" class="list-search-form unified-list-filter" role="search">
 <input type="hidden" name="show" value="<?= reimbursementCenterH($view) ?>">
 <input type="hidden" name="sort_by" value="<?= reimbursementCenterH($sortBy) ?>">
@@ -88,23 +97,16 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <?php if ($search !== ''): ?><a class="clear-search" href="<?= reimbursementCenterH($listLink(['q' => null])) ?>">Clear</a><?php endif; ?>
     <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
-<nav class="control-group" aria-label="Account View">
-<?php foreach (['active' => 'Active', 'used' => 'In Use', 'archived' => 'Archived'] as $value => $label): ?>
-<a class="sort-button<?= $view === $value ? ' active' : '' ?>"<?= $view === $value ? ' aria-current="page"' : '' ?> href="<?= reimbursementCenterH($listLink(['show' => $value === 'active' ? null : $value])) ?>"><?= $label ?></a>
-<?php endforeach; ?>
-</nav>
-<div class="control-group" aria-label="Account Sort Order"><span class="control-label">Sort:</span><div class="sort-buttons">
-<?php foreach (['coa_number' => 'COA Number', 'description' => 'Description', 'expenses' => 'Expenses'] as $key => $label):
-    $direction = $sortBy === $key ? $sortDir : ($key === 'expenses' ? 'desc' : 'asc');
-    $nextDirection = $sortBy === $key ? ($sortDir === 'asc' ? 'desc' : 'asc') : $direction;
-?>
-<a class="sort-button<?= $sortBy === $key ? ' active' : '' ?>"<?= $sortBy === $key ? ' aria-current="true"' : '' ?> href="<?= reimbursementCenterH($listLink(['sort_by' => $key, 'sort_dir' => $nextDirection])) ?>"><?= $label ?> <?= $direction === 'asc' ? '↑' : '↓' ?></a>
-<?php endforeach; ?>
-</div></div></div>
+</div>
 <?php if ($search !== ''): ?><p class="result-context">Showing accounts matching “<?= reimbursementCenterH($search) ?>”.</p><?php endif; ?>
 <?php if ($view === 'used'): ?><p class="field-help">Active accounts with one or more associated expenses.</p><?php endif; ?>
 <p class="field-help">COA numbers must be unique, including numbers assigned to archived accounts. Accounts with expenses can be archived but cannot be deleted.</p>
-<div class="reimbursement-table-wrap"><table class="data-table"><thead><tr><th scope="col">COA Number</th><th scope="col">Description</th><th scope="col">Expenses</th><th scope="col">Actions</th></tr></thead><tbody>
+<div class="reimbursement-table-wrap"><table class="data-table sortable-table"><thead><tr>
+<th scope="col" aria-sort="<?= listSortState($sortBy === 'coa_number', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementCenterH($listLink(['sort_by' => 'coa_number', 'sort_dir' => $sortBy === 'coa_number' && $sortDir === 'asc' ? 'desc' : 'asc'])) ?>">COA Number <span aria-hidden="true"><?= listSortArrow($sortBy === 'coa_number', $sortDir) ?></span></a></th>
+<th scope="col" aria-sort="<?= listSortState($sortBy === 'description', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementCenterH($listLink(['sort_by' => 'description', 'sort_dir' => $sortBy === 'description' && $sortDir === 'asc' ? 'desc' : 'asc'])) ?>">Description <span aria-hidden="true"><?= listSortArrow($sortBy === 'description', $sortDir) ?></span></a></th>
+<th scope="col" aria-sort="<?= listSortState($sortBy === 'expenses', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementCenterH($listLink(['sort_by' => 'expenses', 'sort_dir' => $sortBy === 'expenses' && $sortDir === 'desc' ? 'asc' : 'desc'])) ?>">Expenses <span aria-hidden="true"><?= listSortArrow($sortBy === 'expenses', $sortDir) ?></span></a></th>
+<th scope="col">Actions</th>
+</tr></thead><tbody>
 <?php foreach ($centers as $center): ?>
 <tr><td><?= reimbursementCenterH($center['coa_number']) ?></td><td><?= reimbursementCenterH($center['description']) ?></td><td><?= (int) $center['expense_count'] ?></td><td><div class="reimbursement-row-actions">
 <a class="action-button action-icon-button edit-button" href="<?= reimbursementCenterH($listLink(['edit' => (int) $center['id']])) ?>#cost-center-editor" aria-label="Edit Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="Edit"><?= actionIconSvg('edit') ?></a>

@@ -809,7 +809,7 @@
       ]
     },
     "close_engagement.php": {
-      "sha256": "a0672edafe3af4a30b5fc3cdad2e24273d3397e5494162f32cdfaad00c21223c",
+      "sha256": "90057a8afc2f7c2f053b1880382cdff12c5796706ce7070e2ff883f608b9125d",
       "controls": [
         {
           "kind": "a",
@@ -850,7 +850,7 @@
         },
         {
           "kind": "label",
-          "label": "I Confirm These Are the Final Received Amounts and This Event Is Ready to Be Financially Closed"
+          "label": "I confirm these are the final received amounts and this event is ready to be financially closed."
         },
         {
           "kind": "a",
@@ -1041,7 +1041,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "112ed20800ee606865fc9faf92a6b2682ae44e5c2dfa8cc330c28e9bd2c6d54d",
+      "sha256": "2a60948854250b1def17ece2d5c547d67fae309f8510f8fd2bfa37332b36729b",
       "controls": [
         {
           "kind": "a",
@@ -1064,22 +1064,12 @@
         },
         {
           "kind": "a",
-          "label": "Active",
+          "label": "Contact",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "Archived",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Last Name",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Primary Organization",
+          "label": "Organizations",
           "href": ""
         }
       ]
@@ -1149,7 +1139,7 @@
       ]
     },
     "dashboard.php": {
-      "sha256": "dbc86bd998feeaa1f86835d2a1ef145aff45525a327c47b94e8f8b4be1e3eddc",
+      "sha256": "ef5f97242c9c09e9b6e9e07aa30bbc4ec0c1f9cd095ba21b8390122a5ad80d30",
       "controls": [
         {
           "kind": "h1",
@@ -1442,7 +1432,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
+      "sha256": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
       "controls": [
         {
           "kind": "a",
@@ -1765,7 +1755,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "9f77a27a59dfe875ba763ab9df6ba11e2fbfa7308364e7ad51ca1d58e87b5017",
+      "sha256": "41387a6994f44b3aa36889534b9125c61b38eab12b1e410aa71d2aa6bb542556",
       "controls": [
         {
           "kind": "a",
@@ -1785,6 +1775,11 @@
           "kind": "label",
           "label": "Name",
           "for": "speaker_name"
+        },
+        {
+          "kind": "label",
+          "label": "Sort Name",
+          "for": "speaker_sort_name"
         },
         {
           "kind": "label",
@@ -1958,7 +1953,7 @@
       ]
     },
     "email_templates.php": {
-      "sha256": "6ee1e55dbeb9f001218dff404c37a595ed77a0a9b2fcc8a6d03fd6ebb29dd6a8",
+      "sha256": "0cb78f8c5562a520a1f230cda76dcb48cfe41a35e2362a6d5428e29112b697e2",
       "controls": [
         {
           "kind": "a",
@@ -1987,19 +1982,11 @@
         {
           "kind": "button",
           "label": "Search"
-        },
-        {
-          "kind": "a",
-          "label": "Active ()"
-        },
-        {
-          "kind": "a",
-          "label": "Archived ()"
         }
       ]
     },
     "engagements.php": {
-      "sha256": "8bb9ae912358195b18debb545b95493931710e819489c9e1585272d6ab1813c6",
+      "sha256": "0871a450ceb6a00761d957e52bfcaac316e104896d145ada85f2e494781181f3",
       "controls": [
         {
           "kind": "a",
@@ -2008,7 +1995,7 @@
         },
         {
           "kind": "a",
-          "label": "\u25c6Active",
+          "label": "\u25c6Scheduled",
           "href": ""
         },
         {
@@ -2057,12 +2044,7 @@
         },
         {
           "kind": "a",
-          "label": "Current",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Archived ()",
+          "label": "Event Title",
           "href": ""
         },
         {
@@ -2072,17 +2054,17 @@
         },
         {
           "kind": "a",
-          "label": "Date",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Confirmation",
+          "label": "Event Date(s)",
           "href": ""
         },
         {
           "kind": "a",
           "label": "Lifecycle",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Confirmation",
           "href": ""
         }
       ]
@@ -2204,7 +2186,7 @@
       ]
     },
     "index.php": {
-      "sha256": "2b07024ecd9f741274db3841810a1c824e6febe06e6775386ba542e5eb8ccbbf",
+      "sha256": "fcbbecf32ffe01b6b4fb4de9446e6e1c2805d5619294152ed16e6d2dcea4e8b4",
       "controls": [
         {
           "kind": "a",
@@ -2359,7 +2341,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "cbe77976180815246e379b3f107432a2a18495e5f91a3dba6ff6e6fd0a7c70b7",
+      "sha256": "6695edb322f103d99948317f2c091c202e35aca5085f27c10612098f03c702f4",
       "controls": [
         {
           "kind": "a",
@@ -2772,7 +2754,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "8690869b08d8a721522969f2b6bd959603ed590bb20b09ed8b94d612e5076523",
+      "sha256": "cbd4ad3948f2f7700cef52c093031035184b013ef80dbfb0c532b738fa3e0233",
       "controls": [
         {
           "kind": "a",
@@ -2795,17 +2777,17 @@
         },
         {
           "kind": "a",
-          "label": "Active",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Archived",
-          "href": ""
-        },
-        {
-          "kind": "a",
           "label": "Organization",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Last Receipts",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Lifetime Receipts",
           "href": ""
         }
       ]
@@ -3140,7 +3122,7 @@
       ]
     },
     "reimbursement_cost_centers.php": {
-      "sha256": "a9731dca98880d4658150742fefb5e982429f54977fc9d5b28a6844625747bd3",
+      "sha256": "c8ab8876ad2580e9a37ba47a828606e1c8b1b5cd143f3dacd8a2665e9a51d9ec",
       "controls": [
         {
           "kind": "a",
@@ -3196,6 +3178,21 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "COA Number",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Description",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Expenses",
+          "href": ""
         }
       ]
     },
@@ -3405,7 +3402,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "62ca11c4ca648da8d1aeafb4cc35bb07d79a2fd8345021de7855ac028a6a9a37",
+      "sha256": "0c3133181939c22185ea11dfea1ade63d5ee958bd9995a4ea46400b863510159",
       "controls": [
         {
           "kind": "a",
@@ -3447,14 +3444,6 @@
           "label": "Through"
         },
         {
-          "kind": "label",
-          "label": "Sort By"
-        },
-        {
-          "kind": "label",
-          "label": "DirectionDescending \u2193Ascending \u2191"
-        },
-        {
           "kind": "button",
           "label": "Apply"
         },
@@ -3464,12 +3453,27 @@
         },
         {
           "kind": "a",
-          "label": "Active",
+          "label": "Request",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "Archived",
+          "label": "Owner",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Total",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Created",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Submitted",
           "href": ""
         }
       ]
@@ -3600,7 +3604,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "0b6e0247a3eb86957d98c6d3527b2ab1535b90240625d6f38d8027ae8692c12c",
+      "sha256": "311e4f80dc9428532be1e5568f660be5c23b6e3473216ea3b4ff3dccab2c0c6c",
       "controls": [
         {
           "kind": "h1",
@@ -3628,16 +3632,6 @@
         {
           "kind": "h2",
           "label": "Expenses"
-        },
-        {
-          "kind": "a",
-          "label": "Active",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Archived",
-          "href": ""
         },
         {
           "kind": "label",
@@ -3688,6 +3682,36 @@
         {
           "kind": "button",
           "label": "Clear Selection"
+        },
+        {
+          "kind": "a",
+          "label": "Date",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Merchant / Payee",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Owner",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Account",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Amount",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "State",
+          "href": ""
         },
         {
           "kind": "a",
@@ -4117,7 +4141,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "edf58bd61b7aa81688087606a2415c8c8c95235122771f13c23ac81aaf4edd93",
+      "sha256": "82c39a4ff2fdb7ab8464405d62f383cfb3879ab0c27570018f3bbbcd3d944e97",
       "controls": [
         {
           "kind": "h1",
@@ -4143,13 +4167,13 @@
         },
         {
           "kind": "a",
-          "label": "Name",
+          "label": "Speaker",
           "href": ""
         }
       ]
     },
     "standard_tasks.php": {
-      "sha256": "4e416c2dcbefa8ea4cc6ae91c733ba0f0ed157dc2b0db1799bcebd08443c1c79",
+      "sha256": "9fc4ea156b0c0a858b825c605d4ce2325533c47280e0f060b939666c07dc8def",
       "controls": [
         {
           "kind": "a",
@@ -4165,14 +4189,6 @@
           "kind": "a",
           "label": "+ New Standard Task",
           "href": "add_standard_task.php"
-        },
-        {
-          "kind": "a",
-          "label": "Active ()"
-        },
-        {
-          "kind": "a",
-          "label": "Archived ()"
         }
       ]
     },
@@ -4191,7 +4207,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64",
+      "sha256": "6fe5389cd60bdcf5d9ee1398dc79c2beacb7d36d71215d8627ce97ddb949d26f",
       "controls": [
         {
           "kind": "h1",
@@ -4953,7 +4969,7 @@
       ]
     },
     "view_standard_task.php": {
-      "sha256": "ee5167895a96b430d40ddd16aa28b57a27e0997089b3622608d792a4e6a092cb",
+      "sha256": "362f2ceb8b8f8e4c0ca6b477002ae7c5c351ec9346e1a107b16d29bffa439d08",
       "controls": [
         {
           "kind": "a",
@@ -4978,7 +4994,7 @@
         },
         {
           "kind": "button",
-          "label": "Add to Active, Open Engagements"
+          "label": "Add to Scheduled, Open Engagements"
         },
         {
           "kind": "button",

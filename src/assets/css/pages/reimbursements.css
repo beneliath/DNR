@@ -54,8 +54,52 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 
 .reimbursement-form-page textarea{min-height:6rem;height:auto;resize:vertical}
 .reimbursement-list-heading .control-group{margin:0}
+.reimbursement-page .reimbursement-account-search {
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+.reimbursement-add-center-form :is(input[type="text"], .reimbursement-actions > button, .reimbursement-actions > .button-secondary) {
+  height: 44px !important;
+  min-height: 44px;
+}
+.reimbursement-add-center-form .reimbursement-actions {
+  align-items: center;
+  margin-top: 0;
+}
+.reimbursement-context-heading {
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.reimbursement-context-heading .list-context-tabs {
+  align-items: stretch;
+  gap: 24px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 680px) {
+  .reimbursement-context-heading .list-context-tabs { gap: 16px; }
+}
 
-.reimbursement-selection-summary:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;margin:.75rem 0;color:var(--text-muted)}
+/* Browser-saved selections can add off-page counts and receipt notes on reload.
+   Keep their slots in the initial layout, including the disabled Clear action. */
+.reimbursement-selection-summary:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: .5rem .75rem;
+  margin: .75rem 0;
+  color: var(--text-muted);
+}
+.reimbursement-selection-summary [data-selection-count] { min-block-size: 1lh; }
+.reimbursement-selection-summary [data-selection-total] {
+  grid-column: 1 / -1;
+  min-block-size: 1lh;
+}
+.reimbursement-selection-summary [data-selection-error] { grid-column: 1 / -1; }
 
 .reimbursement-page button:disabled{opacity:.55;cursor:not-allowed}
 
@@ -98,6 +142,11 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 @media (max-width: 700px) {
   .reimbursement-expense-table { min-width:0 !important; }
   .reimbursement-expense-table thead { display:none; }
+  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table, :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table tbody { display:block; width:100%; }
+  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead { display:block; margin-bottom:.75rem; }
+  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead tr { display:flex; flex-wrap:wrap; gap:4px 20px; }
+  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead th { padding:0; border:0; background:transparent !important; }
+  :is(.reimbursement-expense-table, .reimbursement-request-table).sortable-table thead th:not([aria-sort]) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .reimbursement-expense-table tbody tr { display:grid; grid-template-columns:auto 1fr; padding:.75rem; border-bottom:1px solid var(--border-color, #dfe4ec); }
   .reimbursement-expense-table tbody td { border:0; padding:.35rem; }
   .reimbursement-expense-table tbody td:nth-child(3) { grid-column:1/-1; font-weight:600; }
@@ -108,7 +157,7 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
   .reimbursement-request-table tbody tr { display:grid; grid-template-columns:1fr 1fr; padding:.75rem; border-bottom:1px solid var(--border-color, #dfe4ec); }
   .reimbursement-request-table tbody td { border:0; padding:.35rem; text-align:left; }
   .reimbursement-request-table tbody td:first-child, .reimbursement-request-table tbody td:last-child { grid-column:1/-1; }
-  .reimbursement-request-table tbody td:nth-child(4), .reimbursement-request-table tbody td:nth-child(5), .reimbursement-request-table tbody td:nth-child(8) { display:none; }
+  .reimbursement-request-table tbody td:nth-child(4), .reimbursement-request-table tbody td:nth-child(5), .reimbursement-request-table tbody td:nth-child(8), .reimbursement-request-table tbody td:nth-child(9) { display:none; }
 }
 .reimbursement-filter-form label { display:flex; flex-direction:column; gap:.3rem; margin:0; }
 .reimbursement-filter-form input,.reimbursement-filter-form select,.reimbursement-filter-form button { margin:0; }
@@ -198,6 +247,7 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 }
 
 @container reimbursements (max-width: 64rem) {
+    .reimbursement-selection-summary [data-selection-total] { min-block-size: 2lh; }
     .reimbursement-filter-block > .reimbursement-inline-form,
     .reimbursement-page .reimbursement-filter-form {
         display: grid;
@@ -242,4 +292,15 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
     .reimbursement-page .reimbursement-filter-form {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+@container reimbursements (max-width: 40rem) {
+    .reimbursement-selection-summary:not([hidden]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .reimbursement-selection-summary [data-selection-count] { grid-column: 1 / -1; }
+    .reimbursement-selection-summary [data-selection-total] { min-block-size: 3lh; }
+    .reimbursement-progress-total[data-flow-selection] { min-block-size: calc(2lh + 11px); }
+}
+@container reimbursements (max-width: 26rem) {
+    .reimbursement-selection-summary [data-selection-count] { min-block-size: 2lh; }
+    .reimbursement-selection-summary [data-selection-total] { min-block-size: 4lh; }
 }

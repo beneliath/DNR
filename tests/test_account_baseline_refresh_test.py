@@ -70,6 +70,28 @@ class BaselineRefreshTest(unittest.TestCase):
                 with self.assertRaises(RuntimeError):upgrade_staged_schema(name,'','','')
                 command.assert_not_called()
 
+    def test_legacy_speaker_names_keep_automatic_sorting_after_restore(self):
+        self.assertIn('speakers', refresh_operator.TABLES)
+        with patch('test_account_baseline_refresh.query', side_effect=['1', '0']):
+            refresh_operator.check_baseline_speaker_sort_names('isolated-stage')
+        with patch('test_account_baseline_refresh.query', return_value='0') as query:
+            refresh_operator.check_baseline_speaker_sort_names('pre-migration-stage')
+            self.assertEqual(query.call_count, 1)
+        with patch('test_account_baseline_refresh.query', side_effect=['1', '1']):
+            with self.assertRaisesRegex(RuntimeError, 'automatic surname sorting'):
+                refresh_operator.check_baseline_speaker_sort_names('isolated-stage')
+
+    def test_schema_check_allows_physical_order_but_rejects_definition_changes(self):
+        columns='contacts\tid\t1\tint\tNO\t<NULL>\tauto_increment\t\ncontacts\tname\t2\tvarchar(255)\tYES\t<NULL>\t\tutf8mb4_0900_ai_ci'
+        reordered='contacts\tname\t1\tvarchar(255)\tYES\t<NULL>\t\tutf8mb4_0900_ai_ci\ncontacts\tid\t2\tint\tNO\t<NULL>\tauto_increment'
+        expected=refresh_operator.schema_column_definitions(columns)
+        self.assertEqual(expected,refresh_operator.schema_column_definitions(reordered))
+        for old,new in [('varchar(255)','text'),('YES','NO'),('<NULL>','0'),('utf8mb4_0900_ai_ci','utf8mb4_bin'),('auto_increment',''),('contacts\tname','contacts\tsurname')]:
+            self.assertNotEqual(expected,refresh_operator.schema_column_definitions(columns.replace(old,new)))
+        self.assertNotEqual(expected,refresh_operator.schema_column_definitions(columns.splitlines()[0]))
+        for invalid in ['', 'incomplete', columns+'\n'+columns.splitlines()[0]]:
+            with self.assertRaises(RuntimeError):refresh_operator.schema_column_definitions(invalid)
+
     def test_reviewed_inbox_dependencies_are_accepted(self):
         links='marketing_inbox_inbound_parts\tinbound_email_messages\nmarketing_inbox_route_receipts\tinbound_email_messages'
         with patch('test_account_baseline_refresh.query',side_effect=[links,'1','CASCADE']):

@@ -308,13 +308,17 @@ $exportQuery = http_build_query(array_filter([
 <?php include 'templates/header.php'; ?>
 <main class="container inquiry-pipeline-page">
     <header class="page-heading inquiry-pipeline-heading">
-        <div><h1><?php echo $pageTitle; ?></h1><p class="page-intro"><?php echo $view === 'archived' ? 'Review retained inquiries or restore them to the booking pipeline.' : 'Capture and qualify opportunities before they become engagements.'; ?></p><a href="inquiries.php<?php echo $view === 'archived' ? '' : '?view=archived'; ?>"><?php echo $view === 'archived' ? 'Back to Booking Pipeline' : 'Archived Inquiries'; ?></a></div>
+        <div><h1><?php echo $pageTitle; ?></h1><p class="page-intro"><?php echo $view === 'archived' ? 'Review retained inquiries or restore them to the booking pipeline.' : 'Capture and qualify opportunities before they become engagements.'; ?></p></div>
         <div class="page-heading-actions"><a href="inquiries.php?<?php echo htmlspecialchars($exportQuery, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary inquiry-export-action"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 13v7h14v-7"/></svg>Export</a><?php if ($canManage): ?><a href="add_inquiry.php" class="button-add inquiry-primary-action"><span class="inquiry-button-icon" aria-hidden="true">+</span>New Inquiry</a><?php endif; ?></div>
     </header>
     <?php if ($notice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <?php renderListFilterSummary(['Status' => ucfirst($view), 'Owner' => ucfirst($owner), 'Priority' => ucfirst($priority), 'Timing' => \Dnr\Domain\ReferenceData::label($timing), 'Search' => $search], 'inquiries.php'); ?>
+    <?php renderListContextTabs([
+        'active' => ['Active', 'inquiries.php?' . http_build_query(['view' => $view === 'archived' ? 'active' : $view, 'owner' => $owner, 'priority' => $priority, 'timing' => $timing, 'q' => $search, 'per_page' => $pageSize])],
+        'archived' => ['Archived', 'inquiries.php?' . http_build_query(['view' => 'archived', 'owner' => $owner, 'priority' => $priority, 'timing' => $timing, 'q' => $search, 'per_page' => $pageSize])],
+    ], $view === 'archived' ? 'archived' : 'active', 'Inquiry Context'); ?>
+    <?php renderListFilterSummary(['Visibility' => $view === 'archived' ? 'Archived' : 'Active', 'Stage' => in_array($view, ['active', 'archived'], true) ? null : ucfirst($view), 'Owner' => ucfirst($owner), 'Priority' => ucfirst($priority), 'Timing' => \Dnr\Domain\ReferenceData::label($timing), 'Search' => $search], 'inquiries.php'); ?>
         <form method="get" action="inquiries.php" class="inquiry-filter-bar unified-list-filter" role="search" data-inquiry-filter>
         <label class="inquiry-search-field"><span class="visually-hidden">Search Inquiries</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Inquiries, Organizations, or Contacts"></label>
         <div class="inquiry-filter-controls">

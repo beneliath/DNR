@@ -45,7 +45,9 @@ foreach ($files as $file) {
                     ENT_QUOTES | ENT_HTML5,
                     'UTF-8'
                 );
-                if ($text !== '' && preg_match('~[.!;…]\z~u', $text) === 1) {
+                // The financial closeout confirmation is intentionally a complete sentence.
+                $sentence_confirmation = $text === 'I confirm these are the final received amounts and this event is ready to be financially closed.';
+                if ($text !== '' && !$sentence_confirmation && preg_match('~[.!;…]\z~u', $text) === 1) {
                     $line = substr_count(substr($source, 0, $offset), "\n") + 1;
                     $violations[] = str_replace($root . '/', '', $file->getPathname())
                         . ':' . $line . ' (`' . $text . '`)';
@@ -72,7 +74,7 @@ expectLabelPunctuation(
     'a genuine question label may retain its final question mark.'
 );
 expectLabelPunctuation(
-    str_contains((string) file_get_contents($root . '/src/contacts.php'), '<span class="control-label">Sort:</span>'),
+    str_contains((string) file_get_contents($root . '/src/engagements.php'), '<span class="control-label">Lifecycle:</span>'),
     'a label may retain an intentional final colon.'
 );
 

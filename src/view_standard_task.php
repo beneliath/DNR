@@ -85,7 +85,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
             <form method="post" action="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="generate_existing_engagements">
-                <button type="submit" class="save-button" data-confirm="Add this task to all active engagements with an open financial closeout? Copies use this due-date rule and go to each active Caller, or to you when no active Caller is assigned. Existing copies are kept.">Add to Active, Open Engagements</button>
+                <button type="submit" class="save-button" data-confirm="Add this task to all scheduled engagements with an open financial closeout? Copies use this due-date rule and go to each active Caller, or to you when no active Caller is assigned. Existing copies are kept.">Add to Scheduled, Open Engagements</button>
             </form>
         <?php endif; ?>
         <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $is_archived)): ?>

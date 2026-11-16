@@ -12,7 +12,16 @@ function expectSpeaker(bool $condition, string $message): void
 }
 $input = ['name' => ' Olivier Melnick ', 'email' => 'olivier@shalominmessiah.com', 'phone' => '+1 (949)400-2892'];
 $speaker = normalizeSpeakerInput($input);
-expectSpeaker($speaker === ['name' => 'Olivier Melnick', 'email' => 'olivier@shalominmessiah.com', 'phone' => '+19494002892', 'bio' => ''] + array_fill_keys(array_keys(SPEAKER_URL_FIELDS), ''), 'Names are trimmed, telephone numbers normalized, and links optional.');
+expectSpeaker($speaker === ['name' => 'Olivier Melnick', 'email' => 'olivier@shalominmessiah.com', 'phone' => '+19494002892', 'sort_name' => '', 'bio' => ''] + array_fill_keys(array_keys(SPEAKER_URL_FIELDS), ''), 'Names are trimmed, telephone numbers normalized, and links and sort names optional.');
+$sortedSpeaker = normalizeSpeakerInput($input + ['sort_name' => '  Melnick, Olivier  ']);
+expectSpeaker($sortedSpeaker['sort_name'] === 'Melnick, Olivier' && $sortedSpeaker['name'] === 'Olivier Melnick', 'Sort names are trimmed without changing display names.');
+foreach ([[], str_repeat('é', 256), "Smith\nJohn", "Smith\0John"] as $invalidSortName) {
+    try {
+        normalizeSpeakerInput($input + ['sort_name' => $invalidSortName]);
+        throw new RuntimeException('Invalid speaker sort name was accepted.');
+    } catch (InvalidArgumentException $expected) {
+    }
+}
 foreach (SPEAKER_URL_FIELDS as $field => $label) {
     $linked = normalizeSpeakerInput($input + [$field => '  https://example.com/' . $field . '?from=profile&lang=en  ']);
     expectSpeaker($linked[$field] === 'https://example.com/' . $field . '?from=profile&lang=en', $label . ' preserves its path and query while trimming whitespace.');

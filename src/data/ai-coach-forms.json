@@ -12,7 +12,7 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "2b07024ecd9f741274db3841810a1c824e6febe06e6775386ba542e5eb8ccbbf",
+        "index.php": "fcbbecf32ffe01b6b4fb4de9446e6e1c2805d5619294152ed16e6d2dcea4e8b4",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
@@ -60,7 +60,7 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
+        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf"
       },
@@ -108,11 +108,11 @@
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "bae97533386505e857f19ad4bb8eb2b795c812e4285a5a4f017329537c2a5f23",
         "follow_up_task_helpers.php": "de5a0ba8a1caac0158c26e943479b2de541d57e006b3ce114df18d927c3a6301",
-        "moed/tasks/generation.php": "837a58aac02d8cf6df76360992e1883ff1e853f2f5d50da5190e5bb7782edc77",
+        "moed/tasks/generation.php": "cfe3aef866b6e2fdfea97c77c8e74bfebe3b3d5f8fea25811218e6d231b65578",
         "moed/tasks/input.php": "52bf58fa9ddd7055545efc30ffdcd5a157494c30b924a8c025a915be1d5f0622",
         "moed/tasks/lifecycle.php": "9f2a415061ae9536e82669a6ec04a7f28000b69b1ff9d583c3426cf28d99619a",
         "moed/tasks/policy.php": "84c7eb1225b4ba36eb0de6184cbd94e6a986bf8b260e2e2d80b0c39316d98735",
-        "moed/tasks/presentation.php": "e756281c2c4f4a5a45a7570a5ace68f4a7818f261b0ef407bbf307dd0a4f7368",
+        "moed/tasks/presentation.php": "552a08c08a59478d5dab1a86ddd02506ce4843d9d93b77fadfd037bdc7334bed",
         "moed/tasks/repository.php": "29af180c6c168067207e365e54d888df31bb4c6f81416530854f9b9f8d43ed6b",
         "moed/tasks/subjects.php": "321813d237cefe7f31e6b36cfc151a554d32a46a1ff0b0d861507b304bf6fd6e",
         "moed/tasks/templates.php": "5df81cd25625fe0ede008f248a5de9459628627b1c24cc5c8c3968285fcfc4ff",
@@ -225,7 +225,7 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
+        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
@@ -305,7 +305,7 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "a7d79be77734e96cfbc655e4b9f85b6c02fa588492b329f27c183b79b07a9b64",
+        "tasks.php": "6fe5389cd60bdcf5d9ee1398dc79c2beacb7d36d71215d8627ce97ddb949d26f",
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef"
       },
       "controls": {
@@ -412,9 +412,9 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "0b6e0247a3eb86957d98c6d3527b2ab1535b90240625d6f38d8027ae8692c12c",
+        "reimbursements.php": "311e4f80dc9428532be1e5568f660be5c23b6e3473216ea3b4ff3dccab2c0c6c",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
-        "reimbursement_requests.php": "62ca11c4ca648da8d1aeafb4cc35bb07d79a2fd8345021de7855ac028a6a9a37",
+        "reimbursement_requests.php": "0c3133181939c22185ea11dfea1ade63d5ee958bd9995a4ea46400b863510159",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
@@ -534,7 +534,7 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "08957c566e7b222ee38dcc838cace5ebfc2fd4c910ac5a9be972345837f13d9a",
+        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "templates/footer.php": "8f5b3d34b3094ebd3206f3a2f6218b6d6f116b1f0f6a8e1201a2efb7dd303a01",
         "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",

@@ -30,10 +30,11 @@ $today = applicationBusinessDate();
 $start = (string) ($_POST['start_date'] ?? $_GET['start_date'] ?? substr($today, 0, 4) . '-01-01');
 $end = (string) ($_POST['end_date'] ?? $_GET['end_date'] ?? $today);
 $search = is_string($_GET['q'] ?? null) ? trim(mb_substr($_GET['q'], 0, 100)) : '';
-$sortLabels = ['date' => 'Date', 'merchant' => 'Merchant', 'owner' => 'Owner', 'cost_center' => 'Account', 'amount' => 'Amount', 'status' => 'State'];
 $sortDefaults = ['date' => 'desc', 'merchant' => 'asc', 'owner' => 'asc', 'cost_center' => 'asc', 'amount' => 'desc', 'status' => 'asc'];
-$sortBy = is_string($_GET['sort_by'] ?? null) && isset($sortLabels[$_GET['sort_by']]) ? $_GET['sort_by'] : 'date';
-$sortDir = is_string($_GET['sort_dir'] ?? null) && in_array($_GET['sort_dir'], ['asc', 'desc'], true) ? $_GET['sort_dir'] : $sortDefaults[$sortBy];
+$selectedSort = listSortSelection($_GET,
+    array_map(static fn(string $direction): array => ['sort_dir', $direction], $sortDefaults), 'date');
+$sortBy = $selectedSort['column'];
+$sortDir = $selectedSort['direction'];
 $error = '';
 try {
     reimbursementDate($start, 'start date');
@@ -158,9 +159,14 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
     <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementH($error) ?></p><?php endif; ?>
     <?php if ($message !== ''): ?><p class="success" role="status"><?= reimbursementH($message) ?></p><?php endif; ?>
     <section class="reimbursement-card">
-        <div class="reimbursement-list-heading reimbursement-expenses-list-heading"><h2 class="reimbursement-expenses-heading">Expenses</h2><nav class="control-group" aria-label="Expense Archive"><a class="sort-button<?= !$showArchived ? ' active' : '' ?>"<?= !$showArchived ? ' aria-current="page"' : '' ?> href="<?= reimbursementH('reimbursements.php?' . http_build_query(array_merge($listParams, ['show' => 'active']))) ?>">Active</a><a class="sort-button<?= $showArchived ? ' active' : '' ?>"<?= $showArchived ? ' aria-current="page"' : '' ?> href="<?= reimbursementH('reimbursements.php?' . http_build_query(array_merge($listParams, ['show' => 'archived']))) ?>">Archived</a></nav></div>
+        <div class="reimbursement-list-heading reimbursement-expenses-list-heading reimbursement-context-heading"><h2 class="reimbursement-expenses-heading">Expenses</h2>
+        <?php renderListContextTabs([
+            'active' => ['Active', 'reimbursements.php?' . http_build_query(array_replace($listParams, ['show' => 'active']))],
+            'archived' => ['Archived', 'reimbursements.php?' . http_build_query(array_replace($listParams, ['show' => 'archived']))],
+        ], $showArchived ? 'archived' : 'active', 'Expense Status'); ?>
+        </div>
         <div class="reimbursement-filter-block">
-            <?php renderListFilterSummary(['Archive' => $showArchived ? 'Archived' : 'Active', 'State' => $stateLabels[$state], 'Search' => $search, 'Owner' => $ownerFilterId === 0 ? 'All Users' : (array_column($expenseOwners, 'owner_name', 'id')[$ownerFilterId] ?? 'Me'), 'From' => $start, 'Through' => $end], 'reimbursements.php'); ?>
+            <?php renderListFilterSummary(['Visibility' => $showArchived ? 'Archived' : 'Active', 'State' => $stateLabels[$state], 'Search' => $search, 'Owner' => $ownerFilterId === 0 ? 'All Users' : (array_column($expenseOwners, 'owner_name', 'id')[$ownerFilterId] ?? 'Me'), 'From' => $start, 'Through' => $end], 'reimbursements.php'); ?>
         <form method="get" class="reimbursement-inline-form" data-reimbursement-filters>
                 <input type="hidden" name="show" value="<?= $showArchived ? 'archived' : 'active' ?>"><input type="hidden" name="state" value="<?= reimbursementH($state) ?>"><input type="hidden" name="sort_by" value="<?= reimbursementH($sortBy) ?>"><input type="hidden" name="sort_dir" value="<?= reimbursementH($sortDir) ?>"><input type="hidden" name="per_page" value="<?= $pageSize ?>">
                 <div class="reimbursement-search-field"><label for="reimbursement-search">Search Expenses</label><div class="list-search-form reimbursement-search-form unified-list-filter"><span class="search-icon" aria-hidden="true">⌕</span><input type="search" id="reimbursement-search" name="q" value="<?= reimbursementH($search) ?>" maxlength="100" placeholder="Search Expenses"><?php if ($search !== ''): ?><a class="clear-search" href="<?= reimbursementH('reimbursements.php?' . http_build_query(array_merge($listParams, ['q' => '']))) ?>">Clear</a><?php endif; ?><button type="submit" class="button-secondary">Search</button></div></div>
@@ -174,11 +180,6 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
                     <a href="<?= reimbursementH($stateUrl($stateValue)) ?>" class="sort-button<?= $state === $stateValue ? ' active' : '' ?>"<?= $state === $stateValue ? ' aria-current="page"' : '' ?>><?= reimbursementH($stateLabel) ?></a>
                 <?php endforeach; ?>
             </div></nav>
-            <div class="reimbursement-sort-group" aria-label="Expense Sort Order"><span class="control-label">Sort:</span><div class="reimbursement-sort-buttons">
-                <?php foreach ($sortLabels as $sortKey => $sortLabel): $activeSort = $sortBy === $sortKey; $arrow = ($activeSort ? $sortDir : $sortDefaults[$sortKey]) === 'asc' ? '↑' : '↓'; ?>
-                    <a href="<?= reimbursementH($sortUrl($sortKey)) ?>" class="sort-button sort-selection<?= $activeSort ? ' active' : '' ?>"<?= $activeSort ? ' aria-current="true"' : '' ?>><?= reimbursementH($sortLabel) ?> <?= $arrow ?></a>
-                <?php endforeach; ?>
-            </div></div>
             <?php if ($canSelect): ?><p class="field-help">Select your unclaimed expenses below to make a draft request. An expense already in a draft or submitted request cannot be selected again.</p><?php elseif ($showArchived): ?><p class="field-help">Restore an archived expense before editing it or including it in a request.</p><?php endif; ?>
         </div>
         <?php if ($search !== ''): ?><p class="result-context">Showing expenses matching “<?= reimbursementH($search) ?>”.</p><?php endif; ?>
@@ -186,8 +187,18 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
         <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, $listUrl, 'expenses', 'Expense pages'); ?>
         <form method="post" action="<?= reimbursementH($listUrl . '&page=' . $pagination['page']) ?>" id="reimbursement-create-form"<?= $canSelect ? ' data-reimbursement-selection data-available-url="' . reimbursementH($listUrl . '&action=available_expenses') . '"' : '' ?> data-selection-key="reimbursement-selection-<?= $userId ?>" data-selection-scope="<?= hash('sha256', json_encode([$start, $end, $ownerFilterId, $search])) ?>">
             <?= csrfInput() ?><?php if ($canSelect): ?><details><summary>Dates for New Request</summary><p class="field-help">These dates apply to the draft you create. The browsing filters above stay unchanged.</p><div class="reimbursement-inline-form"><label>Request Start Date<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="start_date" required value="<?= reimbursementH($_POST['start_date'] ?? $start) ?>"></label><label>Request End Date<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="end_date" required value="<?= reimbursementH($_POST['end_date'] ?? $end) ?>"></label></div></details><?php endif; ?>
-            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count role="status" aria-live="polite"></span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
-            <div class="reimbursement-table-wrap"><table class="data-table reimbursement-expense-table"><thead><tr><th scope="col">Include</th><th scope="col">Date</th><th scope="col">Merchant / Payee</th><th scope="col">Owner</th><th scope="col">Account</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">State</th><th scope="col">Actions</th></tr></thead><tbody>
+            <?php if ($canSelect): ?><div class="reimbursement-selection-summary"><span data-selection-count role="status" aria-live="polite">0 expenses selected</span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection disabled>Clear Selection</button><span data-selection-total>Selected Total: $0.00 · 0 Without Receipts (rechecked when creating the draft)</span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
+            <div class="reimbursement-table-wrap"><table class="data-table reimbursement-expense-table sortable-table"><thead><tr>
+                <th scope="col">Include</th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'date', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('date')) ?>">Date <span aria-hidden="true"><?= listSortArrow($sortBy === 'date', $sortDir) ?></span></a></th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'merchant', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('merchant')) ?>">Merchant / Payee <span aria-hidden="true"><?= listSortArrow($sortBy === 'merchant', $sortDir) ?></span></a></th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'owner', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('owner')) ?>">Owner <span aria-hidden="true"><?= listSortArrow($sortBy === 'owner', $sortDir) ?></span></a></th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'cost_center', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('cost_center')) ?>">Account <span aria-hidden="true"><?= listSortArrow($sortBy === 'cost_center', $sortDir) ?></span></a></th>
+                <th scope="col">Receipts</th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'amount', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('amount')) ?>">Amount <span aria-hidden="true"><?= listSortArrow($sortBy === 'amount', $sortDir) ?></span></a></th>
+                <th scope="col" aria-sort="<?= listSortState($sortBy === 'status', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('status')) ?>">State <span aria-hidden="true"><?= listSortArrow($sortBy === 'status', $sortDir) ?></span></a></th>
+                <th scope="col">Actions</th>
+            </tr></thead><tbody>
                 <?php foreach ($expenses as $expense):
                     $expenseId = (int) $expense['id'];
                     $incompleteMileage = reimbursementMileageIncomplete($expense);
@@ -211,7 +222,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
                 </tr><?php endforeach; ?>
                 <?php if (!$expenses): ?><tr><td colspan="9"><?= $search !== '' || $state !== 'all' ? 'No expenses match these filters.' : 'No expenses in this date range.' ?></td></tr><?php endif; ?>
             </tbody></table></div>
-            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count></span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
+            <?php if ($canSelect): ?><div class="reimbursement-selection-summary"><span data-selection-count>0 expenses selected</span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection disabled>Clear Selection</button><span data-selection-total>Selected Total: $0.00 · 0 Without Receipts (rechecked when creating the draft)</span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
         </form>
         <?php foreach ($expenses as $expense): $expenseId = (int) $expense['id']; ?>
             <?php if ($canManage && (int) $expense['user_id'] === $userId && $expense['request_id'] === null): ?><form method="post" id="expense-archive-<?= $expenseId ?>" action="<?= reimbursementH($returnUrl) ?>" hidden><?= csrfInput() ?><input type="hidden" name="action" value="<?= $showArchived ? 'restore_expense' : 'archive_expense' ?>"><input type="hidden" name="expense_id" value="<?= $expenseId ?>"></form><?php endif; ?>

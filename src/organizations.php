@@ -82,12 +82,15 @@ generateCsrfToken();
 releaseApplicationSessionLock();
 
 // Keep sort columns and directions allowlisted before building SQL.
-$name_sort = strtolower(\Dnr\Http\RequestInput::string($_GET, 'name_sort')) === 'desc'
-    ? 'desc'
-    : 'asc';
-$last_giving_sort = \Dnr\Http\RequestInput::string($_GET, 'last_giving_sort') === 'asc' ? 'asc' : 'desc';
-$lifetime_giving_sort = \Dnr\Http\RequestInput::string($_GET, 'lifetime_giving_sort') === 'asc' ? 'asc' : 'desc';
-$sort_column = \Dnr\Http\RequestInput::enum($_GET, 'sort_by', ['name', 'last_giving', 'lifetime_giving'], 'name');
+$selected_sort = listSortSelection($_GET, [
+    'name' => ['name_sort', 'asc'],
+    'last_giving' => ['last_giving_sort', 'desc'],
+    'lifetime_giving' => ['lifetime_giving_sort', 'desc'],
+], 'name');
+$sort_column = $selected_sort['column'];
+$name_sort = $sort_column === 'name' ? $selected_sort['direction'] : 'asc';
+$last_giving_sort = $sort_column === 'last_giving' ? $selected_sort['direction'] : 'desc';
+$lifetime_giving_sort = $sort_column === 'lifetime_giving' ? $selected_sort['direction'] : 'desc';
 $sort_direction = match ($sort_column) {
     'last_giving' => $last_giving_sort,
     'lifetime_giving' => $lifetime_giving_sort,
@@ -273,9 +276,9 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
 <?php include 'templates/header.php'; ?>
 <main class="container organizations-page">
     <div class="page-heading organizations-heading">
-        <div><h1><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></h1><p class="page-intro">Keep organization details, locations, and related contacts together.</p></div>
-        <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="add_organization.php" class="button-add">+ New Organization</a>
+        <div><h1 data-width-label="Archived Organizations"><span><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></span></h1><p class="page-intro">Keep organization details, locations, and related contacts together.</p></div>
+        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+            <a href="add_organization.php" class="button-add"<?php if ($show_archived): ?> data-visibility-placeholder aria-hidden="true" tabindex="-1"<?php endif; ?>>+ New Organization</a>
         <?php endif; ?>
     </div>
 
@@ -286,8 +289,12 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
+    <?php renderListContextTabs([
+        'active' => ['Active', $list_url(['status' => 'active'])],
+        'archived' => ['Archived', $list_url(['status' => 'archived'])],
+    ], $list_status, 'Organization Status'); ?>
     <div class="list-controls">
-        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
+        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
         <form method="get" action="organizations.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
@@ -301,24 +308,6 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
-        <div class="control-group" aria-label="Organization Archive Status">
-            <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
-        </div>
-
-        <div class="control-group" aria-label="Organization Sort Order">
-            <span class="control-label">Sort:</span>
-            <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'name', 'name_sort' => $sort_column === 'name' && $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === 'name' ? ' active' : ''; ?>"<?php echo $sort_column === 'name' ? ' aria-current="true"' : ''; ?>>
-                    Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-                <?php foreach (['last_giving' => ['Last Receipts', $last_giving_sort], 'lifetime_giving' => ['Lifetime Receipts', $lifetime_giving_sort]] as $giving_column => [$giving_label, $giving_direction]): ?>
-                    <a href="<?php echo htmlspecialchars($list_url(['sort_by' => $giving_column, $giving_column . '_sort' => $sort_column === $giving_column ? ($giving_direction === 'asc' ? 'desc' : 'asc') : $giving_direction]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === $giving_column ? ' active' : ''; ?>"<?php echo $sort_column === $giving_column ? ' aria-current="true"' : ''; ?>>
-                        <?php echo $giving_label . ' ' . ($giving_direction === 'asc' ? '↑' : '↓'); ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
     </div>
 
     <?php if ($search !== ''): ?>
@@ -328,15 +317,15 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
     <?php renderBulkDeleteToolbar('organization', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
     <div class="data-table-scroll">
-    <table class="organization-table data-table mobile-record-table">
+    <table class="organization-table data-table mobile-record-table sortable-table">
         <thead>
             <tr>
-                <th>Organization</th>
-                <th>Location</th>
-                <th>Contact(s)</th>
-                <th>Last Receipts</th>
-                <th>Lifetime Receipts</th>
-                <th>Actions</th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'name', $name_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'name', 'name_sort' => $sort_column === 'name' && $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Organization <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'name', $name_sort); ?></span></a></th>
+                <th scope="col">Location</th>
+                <th scope="col">Contact(s)</th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'last_giving', $last_giving_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'last_giving', 'last_giving_sort' => $sort_column === 'last_giving' && $last_giving_sort === 'desc' ? 'asc' : 'desc']), ENT_QUOTES, 'UTF-8'); ?>">Last Receipts <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'last_giving', $last_giving_sort); ?></span></a></th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'lifetime_giving', $lifetime_giving_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'lifetime_giving', 'lifetime_giving_sort' => $sort_column === 'lifetime_giving' && $lifetime_giving_sort === 'desc' ? 'asc' : 'desc']), ENT_QUOTES, 'UTF-8'); ?>">Lifetime Receipts <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'lifetime_giving', $lifetime_giving_sort); ?></span></a></th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>

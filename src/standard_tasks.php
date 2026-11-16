@@ -114,17 +114,6 @@ try {
     http_response_code(500);
     exit('Unable to load the standard event tasks.');
 }
-$counts = ['active' => 0, 'archived' => 0];
-$count_result = $conn->query(
-    'SELECT SUM(is_archived = 0) AS active_count,
-            SUM(is_archived = 1) AS archived_count
-     FROM standard_event_tasks'
-);
-if ($count_result) {
-    $count_row = $count_result->fetch_assoc() ?: [];
-    $counts['active'] = (int) ($count_row['active_count'] ?? 0);
-    $counts['archived'] = (int) ($count_row['archived_count'] ?? 0);
-}
 $priority_labels = followUpTaskPriorities();
 ?>
 <!DOCTYPE html>
@@ -143,7 +132,7 @@ $priority_labels = followUpTaskPriorities();
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><span>Standard Event Tasks</span></nav>
     <div class="page-heading standard-tasks-heading">
         <div>
-            <h1><?php echo $show_archived ? 'Archived Standard Event Tasks' : 'Standard Event Tasks'; ?></h1>
+            <h1 data-width-label="Archived Standard Event Tasks"><span><?php echo $show_archived ? 'Archived Standard Event Tasks' : 'Standard Event Tasks'; ?></span></h1>
             <p class="page-intro">Control the reusable work assigned automatically when new events are created.</p>
         </div>
         <div class="page-heading-actions">
@@ -155,12 +144,10 @@ $priority_labels = followUpTaskPriorities();
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <div class="list-controls standard-task-controls">
-        <div class="control-group" aria-label="Standard Event Task Archive Status">
-            <a href="standard_tasks.php?status=active" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active (<?php echo $counts['active']; ?>)</a>
-            <a href="standard_tasks.php?status=archived" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $counts['archived']; ?>)</a>
-        </div>
-    </div>
+    <?php renderListContextTabs([
+        'active' => ['Active', 'standard_tasks.php?status=active'],
+        'archived' => ['Archived', 'standard_tasks.php?status=archived'],
+    ], $list_status, 'Standard Event Task Status'); ?>
 
     <p class="result-context">Every active definition is added and assigned to the creator automatically with each new event. “Add missing checklist tasks” remains available for older events. Existing event tasks remain unchanged.</p>
 

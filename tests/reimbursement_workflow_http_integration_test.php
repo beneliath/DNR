@@ -71,7 +71,12 @@ try {
     $centerId = (int) $conn->insert_id;
     $centerPage = $editor('reimbursement_cost_centers.php');
     $centerCsrf = reimbursementCsrf($centerPage);
-    expectReimbursement(str_contains($centerPage['body'], '<table class="data-table">') && str_contains($centerPage['body'], '?edit=' . $centerId), 'Accounts use a table and edit actions');
+    $centerDocument = new DOMDocument(); @$centerDocument->loadHTML($centerPage['body']);
+    $centerXpath = new DOMXPath($centerDocument);
+    $centerEdit = $centerXpath->query('//table[contains(concat(" ", normalize-space(@class), " "), " data-table ")]//a[@aria-label="Edit Account TEST-' . $suffix . '"]')->item(0);
+    $centerEditQuery = [];
+    if ($centerEdit instanceof DOMElement) parse_str((string) parse_url($centerEdit->getAttribute('href'), PHP_URL_QUERY), $centerEditQuery);
+    expectReimbursement((int) ($centerEditQuery['edit'] ?? 0) === $centerId, 'Accounts use a table and edit actions');
     $editCenterPath = 'reimbursement_cost_centers.php?edit=' . $centerId;
     expectReimbursement(str_contains($editor($editCenterPath)['body'], 'value="TEST-' . $suffix . '"'), 'Account edit loads selected values');
     $centerSave = $editor($editCenterPath, ['csrf_token' => $centerCsrf, 'version' => '1', 'action' => 'save', 'id' => $centerId, 'coa_number' => 'TEST-' . $suffix, 'description' => 'Updated workflow fixture']);

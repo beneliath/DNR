@@ -29,6 +29,18 @@ html body .tasks-page .task-actions > .task-assign-action {
     }
 }
 
+.task-context-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 20px;
+}
+
+.task-context-row .task-scope-selector { margin: 0; }
+.task-context-row .list-context-tabs { margin: 0 0 0 auto; }
+
 .tasks-page .task-list-controls {
     padding: 0;
     border: 0;

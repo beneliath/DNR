@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/github_version_helpers.php';
 require_once __DIR__ . '/engagement_location_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 function engagementMapStyleUrl(): string
 {
@@ -31,12 +32,7 @@ function engagementMapStatuses()
 
 function engagementMapLifecycles()
 {
-    return [
-        'active' => 'Active',
-        'postponed' => 'Postponed',
-        'canceled' => 'Canceled',
-        'completed' => 'Completed',
-    ];
+    return engagementLifecycleStatuses();
 }
 
 function engagementMapDateAfterMonths($date, $months)

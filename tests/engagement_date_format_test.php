@@ -37,8 +37,8 @@ expectEngagementDateFormat(
     'Engagement date cells should have a dedicated non-wrapping class.'
 );
 expectEngagementDateFormat(
-    str_contains($source, '<th>Event Date(s)</th>')
-        && !str_contains($source, '<th>Event Dates</th>'),
+    preg_match('/>\s*Event Date\(s\)\s*</', $source) === 1
+        && preg_match('/>\s*Event Dates\s*</', $source) === 0,
     'The Engagements table heading should accommodate single-day and multi-day events.'
 );
 expectEngagementDateFormat(

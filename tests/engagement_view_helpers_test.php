@@ -12,6 +12,14 @@ function expectEngagementView(bool $condition, string $message): void
     }
 }
 
+expectEngagementView(engagementLifecycleFilter(null) === 'active', 'The default lifecycle is Scheduled.');
+foreach (['all', 'active', 'postponed', 'canceled', 'completed'] as $filter) {
+    expectEngagementView(engagementLifecycleFilter($filter) === $filter, 'Explicit lifecycle filters remain selectable.');
+}
+foreach (['', 'invalid', [], true] as $invalidFilter) {
+    expectEngagementView(engagementLifecycleFilter($invalidFilter) === 'active', 'Invalid lifecycle filters use the Scheduled default.');
+}
+
 $draft = [
     'confirmation_status' => 'work_in_progress',
     'lifecycle_status' => 'active',

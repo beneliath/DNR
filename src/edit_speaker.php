@@ -17,11 +17,11 @@ if (isset($_GET['id']) && !$speaker) {
     http_response_code(404);
     exit('Speaker not found.');
 }
-$form_values = $speaker ?? ['name' => '', 'email' => '', 'phone' => '', 'bio' => '', 'version' => ''];
+$form_values = $speaker ?? ['name' => '', 'sort_name' => '', 'email' => '', 'phone' => '', 'bio' => '', 'version' => ''];
 $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
-    foreach (array_merge(['name', 'email', 'phone', 'bio', 'version'], array_keys(SPEAKER_URL_FIELDS)) as $field) {
+    foreach (array_merge(['name', 'sort_name', 'email', 'phone', 'bio', 'version'], array_keys(SPEAKER_URL_FIELDS)) as $field) {
         $form_values[$field] = \Dnr\Http\RequestInput::string($_POST, $field);
     }
     $input = $_POST;
@@ -88,7 +88,10 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
                         <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove Current Photo</label><?php endif; ?>
                     </div>
                 </div>
-                <div class="form-field"><label for="speaker_name" class="required">Name</label><input type="text" id="speaker_name" name="name" maxlength="255" autocomplete="name" required value="<?php echo htmlspecialchars($form_values['name'], ENT_QUOTES, 'UTF-8'); ?>"></div>
+                <div class="speaker-name-fields">
+                    <div class="form-field"><label for="speaker_name" class="required">Name</label><input type="text" id="speaker_name" name="name" maxlength="255" autocomplete="name" required value="<?php echo htmlspecialchars($form_values['name'], ENT_QUOTES, 'UTF-8'); ?>"></div>
+                    <div class="form-field"><label for="speaker_sort_name">Sort Name</label><input type="text" id="speaker_sort_name" name="sort_name" maxlength="255" aria-describedby="speaker-sort-name-help" value="<?php echo htmlspecialchars((string) ($form_values['sort_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><p class="field-help" id="speaker-sort-name-help">Optional. Enter the surname first, such as “Smith, John Jr.” or “García Márquez, Gabriel,” to control alphabetical order. The displayed name stays unchanged.</p></div>
+                </div>
                 <div class="form-field"><label for="speaker_email" class="required">Email Address</label><input type="email" id="speaker_email" name="email" maxlength="254" autocomplete="email" required value="<?php echo htmlspecialchars($form_values['email'], ENT_QUOTES, 'UTF-8'); ?>"></div>
                 <div class="form-group">
                     <label for="speaker_phone">Phone Number</label>

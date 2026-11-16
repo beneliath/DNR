@@ -428,7 +428,7 @@ $closed_timestamp = $is_correction
         <?php if (!$is_correction): ?>
             <label class="final-confirmation">
                 <input type="checkbox" name="confirm_final" value="yes" required>
-                <span>I Confirm These Are the Final Received Amounts and This Event Is Ready to Be Financially Closed</span>
+                <span>I confirm these are the final received amounts and this event is ready to be financially closed.</span>
             </label>
         <?php endif; ?>
 

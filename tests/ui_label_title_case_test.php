@@ -48,6 +48,11 @@ foreach ($files as $file) {
         if ($text === '' || str_contains($text, '$')) {
             continue;
         }
+        // This confirmation is intentionally a sentence, as requested for closeout.
+        if ($file->getPathname() === $sourceDirectory . '/close_engagement.php'
+            && $text === 'I confirm these are the final received amounts and this event is ready to be financially closed.') {
+            continue;
+        }
         $words = preg_split('/\s+/u', $text) ?: [];
         $last = count($words) - 1;
         $checked++;

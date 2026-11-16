@@ -60,8 +60,6 @@ $stmt->bind_param('issii', $archived, $search, $search, $pageSize, $offset);
 $stmt->execute();
 $templates = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
-$countResult = $conn->query('SELECT SUM(is_archived = 0) AS active_count, SUM(is_archived = 1) AS archived_count FROM email_message_templates');
-$counts = $countResult ? ($countResult->fetch_assoc() ?: []) : [];
 $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' => $pageSize]);
 ?>
 <!DOCTYPE html>
@@ -72,7 +70,7 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
 <main class="container email-templates-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Email Templates</span></nav>
     <div class="page-heading">
-        <div><h1><?php echo $archived ? 'Archived Email Templates' : 'Email Templates'; ?></h1><p class="page-intro">Manage reusable subjects and messages for engagement correspondence.</p></div>
+        <div><h1 data-width-label="Archived Email Templates"><span><?php echo $archived ? 'Archived Email Templates' : 'Email Templates'; ?></span></h1><p class="page-intro">Manage reusable subjects and messages for engagement correspondence.</p></div>
         <div class="page-heading-actions">
             <?php if ($engagementId !== null): ?><a href="compose_engagement_email.php?id=<?php echo $engagementId; ?>" class="button-secondary">Return to Email</a><?php endif; ?>
             <?php if ($canManage): ?><a href="edit_email_template.php<?php echo $engagementId !== null ? '?engagement_id=' . $engagementId : ''; ?>" class="button-add">+ New Email Template</a><?php endif; ?>
@@ -80,6 +78,10 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
     </div>
     <?php if ($message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php renderListContextTabs([
+        'active' => ['Active', 'email_templates.php?' . http_build_query(['status' => 'active', 'engagement_id' => $engagementId, 'q' => $search, 'per_page' => $pageSize])],
+        'archived' => ['Archived', 'email_templates.php?' . http_build_query(['status' => 'archived', 'engagement_id' => $engagementId, 'q' => $search, 'per_page' => $pageSize])],
+    ], $status, 'Email Template Status'); ?>
     <div class="list-controls">
         <form method="get" action="email_templates.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo $status; ?>">
@@ -89,10 +91,6 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($listUrl, ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
-        <div class="control-group" aria-label="Email Template Archive Status">
-            <a href="email_templates.php?status=active<?php echo $contextQuery; ?>" class="sort-button<?php echo !$archived ? ' active' : ''; ?>"<?php echo !$archived ? ' aria-current="page"' : ''; ?>>Active (<?php echo (int) ($counts['active_count'] ?? 0); ?>)</a>
-            <a href="email_templates.php?status=archived<?php echo $contextQuery; ?>" class="sort-button<?php echo $archived ? ' active' : ''; ?>"<?php echo $archived ? ' aria-current="page"' : ''; ?>>Archived (<?php echo (int) ($counts['archived_count'] ?? 0); ?>)</a>
-        </div>
     </div>
     <p class="result-context"><?php echo $archived ? 'Restore a template to make it available again. Administrators can permanently delete archived templates.' : 'Active templates appear in the engagement email composer. Changes apply to future messages.'; ?> Custom message is always available for writing from scratch.</p>
     <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, $paginationUrl, 'email templates', 'Email template pages'); ?>

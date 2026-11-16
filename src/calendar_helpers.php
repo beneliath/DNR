@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/task_visibility_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 function calendarStatusLabel($status) {
     $status = trim((string) $status);
@@ -15,13 +16,8 @@ function calendarStatusLabel($status) {
 }
 
 function calendarLifecycleLabel($status) {
-    return match (trim((string) $status)) {
-        'active' => 'Active',
-        'postponed' => 'Postponed',
-        'canceled' => 'Canceled',
-        'completed' => 'Completed',
-        default => 'Active',
-    };
+    $labels = engagementLifecycleStatuses();
+    return $labels[trim((string) $status)] ?? $labels['active'];
 }
 
 function calendarOperationalStatus(array $engagement) {

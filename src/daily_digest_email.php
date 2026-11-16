@@ -508,7 +508,7 @@ function renderDailyTaskDigestHtml(
                                             <tr>
                                                 <td>
                                                     <h2 style="margin:0;color:#172033;font-size:17px;line-height:1.3;">Upcoming Engagements</h2>
-                                                    <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Active events beginning or continuing during the next <?php echo $dashboardUpcomingDays; ?> days.</p>
+                                                    <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Scheduled events beginning or continuing during the next <?php echo $dashboardUpcomingDays; ?> days.</p>
                                                 </td>
                                                 <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="<?php echo $engagementsUrl; ?>" style="color:#2457d6;font-size:12px;font-weight:700;">View All</a></td>
                                             </tr>
@@ -665,7 +665,7 @@ function renderDailyTaskDigestHtml(
                                     </td>
                                     <td width="50%" class="mobile-column" style="width:50%;padding-left:5px;">
                                         <table role="presentation" width="100%" height="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;height:100%;overflow:hidden;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;">
-                                            <tr><td style="padding:17px 18px 13px;border-bottom:1px solid #dfe4ec;"><h3 style="margin:0;color:#172033;font-size:15px;line-height:1.3;">Financial Closeouts</h3><p style="margin:5px 0 0;color:#667085;font-size:11px;line-height:1.45;">Ended active events without final figures.</p></td></tr>
+                                            <tr><td style="padding:17px 18px 13px;border-bottom:1px solid #dfe4ec;"><h3 style="margin:0;color:#172033;font-size:15px;line-height:1.3;">Financial Closeouts</h3><p style="margin:5px 0 0;color:#667085;font-size:11px;line-height:1.45;">Past scheduled events without final figures.</p></td></tr>
                                             <?php if ($financialCloseouts === []): ?>
                                                 <tr><td align="center" style="padding:28px 16px;color:#667085;font-size:12px;"><strong style="display:block;margin-bottom:4px;color:#137a55;">Closeouts are current</strong>No completed event is waiting for final figures.</td></tr>
                                             <?php else: ?>

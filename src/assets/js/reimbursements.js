@@ -120,7 +120,6 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
     const visible = new Set(boxes.map(function (box) { return box.value; }));
     const offPage = Array.from(selected).filter(function (id) { return !visible.has(id); }).length;
     summaries.forEach(function (summary) {
-      summary.parentElement.hidden = false;
       summary.textContent = selected.size + ' expense' + (selected.size === 1 ? '' : 's') + ' selected'
         + (offPage ? ' (' + offPage + ' on other pages)' : '');
     });
@@ -129,7 +128,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
     const missing = known.filter(function (id) { return metadata[id].missing; }).length;
     document.querySelectorAll('[data-flow-selection]').forEach(function (summary) { summary.textContent = selected.size + ' expenses · $' + (cents / 100).toFixed(2) + (known.length < selected.size ? ' known total · Refresh older selections' : ' selected'); });
     form.querySelectorAll('[data-selection-total]').forEach(function (summary) { summary.textContent = 'Selected Total: $' + (cents / 100).toFixed(2) + ' · ' + missing + ' Without Receipts' + (known.length < selected.size ? ' · Refresh older selections to include their totals' : '') + ' (rechecked when creating the draft)'; });
-    clearButtons.forEach(function (clear) { clear.hidden = selected.size === 0; });
+    clearButtons.forEach(function (clear) { clear.disabled = selected.size === 0; });
     form.querySelectorAll('[data-off-page-selection]').forEach(function (input) { input.remove(); });
     selected.forEach(function (id) {
       if (visible.has(id)) return;

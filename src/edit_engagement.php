@@ -9,7 +9,7 @@ include 'two_factor_helpers.php';
 include 'follow_up_task_helpers.php';
 include 'engagement_contact_helpers.php';
 require_once __DIR__ . '/engagement_contact_input_helpers.php';
-include 'engagement_lifecycle_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 

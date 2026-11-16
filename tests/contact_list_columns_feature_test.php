@@ -41,8 +41,8 @@ expectContactListColumns(
 );
 
 expectContactListColumns(
-    str_contains($contacts_page, '<th>Phone Number</th>')
-        && str_contains($contacts_page, '<th>Email Address</th>')
+    preg_match('/<th\b[^>]*>\s*Phone Number\s*<\/th>/', $contacts_page) === 1
+        && preg_match('/<th\b[^>]*>\s*Email Address\s*<\/th>/', $contacts_page) === 1
         && str_contains($contacts_page, 'colspan="5"'),
     'the table headings and empty state should account for both contact-method columns.'
 );

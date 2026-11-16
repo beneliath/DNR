@@ -227,7 +227,7 @@ $task_status_labels = followUpTaskStatuses();
             <div class="dashboard-panel-heading">
                 <div>
                     <h2 id="upcoming-engagements-heading">Upcoming Engagements</h2>
-                    <p>Active events beginning or continuing during the next <?php echo $dashboard_upcoming_days; ?> days.</p>
+                    <p>Scheduled events beginning or continuing during the next <?php echo $dashboard_upcoming_days; ?> days.</p>
                 </div>
                 <a href="<?php echo htmlspecialchars($upcoming_engagements_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary dashboard-panel-button">View List</a>
             </div>
@@ -289,7 +289,7 @@ $task_status_labels = followUpTaskStatuses();
             <div class="dashboard-panel-heading">
                 <div>
                     <h3 id="financial-closeouts-heading">Financial Closeouts</h3>
-                    <p>Ended active events without a finalized financial report.</p>
+                    <p>Past scheduled events without a finalized financial report.</p>
                 </div>
             </div>
             <?php if ($financial_closeouts === []): ?>
