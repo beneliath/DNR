@@ -307,7 +307,7 @@ export function initializeConnectionsWorkspace(config, show) {
             setValue(form, 'selection_scope', allMatching || (!active && selector === '#people-export') ? 'all' : 'selected');
             $(target, form).replaceChildren(...(allMatching ? [] : ids.map(id => hidden('selected[]', id))));
         }
-        if ($('[data-export-label]')) $('[data-export-label]').textContent = active ? '↓ Export selection' : ($('[data-export-label]').dataset.exportBaseLabel || '↓ Export connections');
+        if ($('[data-export-label]')) $('[data-export-label]').textContent = active ? 'Export Selection' : ($('[data-export-label]').dataset.exportBaseLabel || 'Export Connections');
     };
     peopleResults?.addEventListener('change',event => {
         if (event.target.matches('[data-auto-submit]')) { event.target.form.requestSubmit(); return; }
