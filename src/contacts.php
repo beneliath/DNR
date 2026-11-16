@@ -85,22 +85,17 @@ releaseApplicationSessionLock();
 
 $page_size = paginationPageSizePreference('contacts', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
 
-$legacy_sort = \Dnr\Http\RequestInput::string($_GET, 'sort');
-$last_name_sort = strtolower(\Dnr\Http\RequestInput::string(
-    $_GET,
-    'last_name_sort',
-    $legacy_sort
-)) === 'desc' ? 'desc' : 'asc';
-$organization_sort = strtolower(\Dnr\Http\RequestInput::string(
-    $_GET,
-    'organization_sort'
-)) === 'desc' ? 'desc' : 'asc';
-$sort_column = \Dnr\Http\RequestInput::enum(
-    $_GET,
-    'sort_by',
-    ['last_name', 'organization'],
-    'last_name'
-);
+$sort_input = $_GET;
+if (!array_key_exists('last_name_sort', $sort_input) && array_key_exists('sort', $sort_input)) {
+    $sort_input['last_name_sort'] = $sort_input['sort'];
+}
+$selected_sort = listSortSelection($sort_input, [
+    'last_name' => ['last_name_sort', 'asc'],
+    'organization' => ['organization_sort', 'asc'],
+], 'last_name');
+$sort_column = $selected_sort['column'];
+$last_name_sort = $sort_column === 'last_name' ? $selected_sort['direction'] : 'asc';
+$organization_sort = $sort_column === 'organization' ? $selected_sort['direction'] : 'asc';
 $search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
@@ -287,9 +282,9 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
 <?php include 'templates/header.php'; ?>
 <main class="container contacts-page">
     <div class="page-heading contacts-heading">
-        <div><h1><?php echo $show_archived ? 'Archived Contacts' : 'Contacts'; ?></h1><p class="page-intro">Find the people connected to every organization and engagement.</p></div>
-        <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="add_contact.php" class="button-add">+ New Contact</a>
+        <div><h1 data-width-label="Archived Contacts"><span><?php echo $show_archived ? 'Archived Contacts' : 'Contacts'; ?></span></h1><p class="page-intro">Find the people connected to every organization and engagement.</p></div>
+        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+            <a href="add_contact.php" class="button-add"<?php if ($show_archived): ?> data-visibility-placeholder aria-hidden="true" tabindex="-1"<?php endif; ?>>+ New Contact</a>
         <?php endif; ?>
     </div>
 
@@ -300,8 +295,12 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
+    <?php renderListContextTabs([
+        'active' => ['Active', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search)],
+        'archived' => ['Archived', contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search)],
+    ], $list_status, 'Contact Status'); ?>
     <div class="list-controls">
-        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
+        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
         <form method="get" action="contacts.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
@@ -314,29 +313,6 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
-        <div class="control-group" aria-label="Contact Archive Status">
-            <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
-        </div>
-
-        <div class="control-group" aria-label="Contact Sort Order">
-            <span class="control-label">Sort:</span>
-            <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'last_name', $last_name_sort === 'asc' ? 'desc' : 'asc', $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button sort-selection<?php echo $sort_column === 'last_name' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'last_name' ? 'aria-current="true"' : ''; ?>>
-                    Last Name <?php echo $last_name_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-                <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'organization', $last_name_sort, $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button sort-selection<?php echo $sort_column === 'organization' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'organization' ? 'aria-current="true"' : ''; ?>>
-                    Primary Organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-            </div>
-        </div>
-
     </div>
 
     <?php if ($search !== ''): ?>
@@ -346,14 +322,14 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
     <?php renderBulkDeleteToolbar('contact', $list_current_url); ?>
     <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
     <div class="contact-table-wrapper">
-        <table class="contact-table data-table mobile-record-table">
+        <table class="contact-table data-table mobile-record-table sortable-table">
             <thead>
                 <tr>
-                    <th>Contact</th>
-                    <th>Organizations</th>
-                    <th>Phone Number</th>
-                    <th>Email Address</th>
-                    <th>Actions</th>
+                    <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'last_name', $last_name_sort); ?>"><a class="table-sort-link" aria-label="Sort Contacts by Last Name" href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'last_name', $sort_column === 'last_name' && $last_name_sort === 'asc' ? 'desc' : 'asc', $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>">Contact <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'last_name', $last_name_sort); ?></span></a></th>
+                    <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'organization', $organization_sort); ?>"><a class="table-sort-link" aria-label="Sort Contacts by Primary Organization" href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'organization', $last_name_sort, $sort_column === 'organization' && $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>">Organizations <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'organization', $organization_sort); ?></span></a></th>
+                    <th scope="col">Phone Number</th>
+                    <th scope="col">Email Address</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>

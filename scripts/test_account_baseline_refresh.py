@@ -113,6 +113,21 @@ SCHEMA_COLUMNS_SQL="""SELECT TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,COLUMN_TYPE
  COALESCE(COLUMN_DEFAULT,'<NULL>'),EXTRA,COALESCE(COLLATION_NAME,'')
  FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='dnr' ORDER BY TABLE_NAME,ORDINAL_POSITION"""
 
+def schema_column_definitions(columns):
+ # Full-row imports use --complete-insert (explicit column names), so physical
+ # order is immaterial. The approved snapshot predates a contact-column reorder.
+ # Keep every other property in the comparison, including defaults/collation.
+ definitions={}
+ for row in columns.splitlines():
+  fields=row.split('\t')
+  require(6<=len(fields)<=8 and fields[2].isdigit(),'Invalid schema column metadata')
+  fields += ['']*(8-len(fields)) # query() strips empty fields at the very end.
+  key=tuple(fields[:2])
+  require(key not in definitions,'Duplicate schema column metadata')
+  definitions[key]=tuple(fields[3:])
+ require(bool(definitions),'Schema column metadata is empty')
+ return definitions
+
 def migration_plan(baseline_ledger,current_ledger):
  def parse(ledger):
   result={}
@@ -165,7 +180,8 @@ def upgrade_staged_schema(staged,current_ledger,current_columns,baseline_ledger)
   result=subprocess.run(command,text=True,capture_output=True)
   require(result.returncode==0,'Isolated baseline migration failed: '+(result.stdout+result.stderr)[-2500:])
  require(query(staged,MIGRATIONS_SQL)==current_ledger,'Migrated baseline ledger does not match the current Test Account schema')
- require(query(staged,SCHEMA_COLUMNS_SQL)==current_columns,'Migrated baseline columns do not match the current Test Account schema')
+ require(schema_column_definitions(query(staged,SCHEMA_COLUMNS_SQL))==schema_column_definitions(current_columns),
+         'Migrated baseline columns do not match the current Test Account schema')
  return dict(plan,isolated=True,migration_ledger_verified=True,schema_columns_verified=True)
 
 def wait_for_lock(lock,label,timeout=None,poll_interval=2):
@@ -297,8 +313,16 @@ def check_baseline_presentation_requirement(db):
   require(query(db,'SELECT COUNT(*) FROM dnr.engagements WHERE presentation_not_required <> 0')=='0',
           'Restored baseline engagements must retain the default presentation requirement')
 
+def check_baseline_speaker_sort_names(db):
+ # Speakers are already restored as full rows. This nullable display-order
+ # override has no dependent records; old baseline names use the fallback.
+ if query(db,"SELECT COUNT(*) FROM dnr.schema_migrations WHERE migration_name='20261116_add_speaker_sort_name.sql' AND state='applied'")=='1':
+  require(query(db,'SELECT COUNT(*) FROM dnr.speakers WHERE sort_name IS NOT NULL')=='0',
+          'Restored baseline speakers must retain automatic surname sorting')
+
 def validate(db,anchor):
  check_baseline_presentation_requirement(db)
+ check_baseline_speaker_sort_names(db)
  for table in INBOUND_SOURCE_METADATA:
   require(query(db,'SELECT COUNT(*) FROM dnr.`'+table+'`')=='0','Stale inbox receive/routing metadata remains: '+table)
  window=[month_shift(anchor,-3).isoformat(),month_shift(anchor,9).isoformat()]

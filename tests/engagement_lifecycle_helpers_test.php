@@ -18,7 +18,8 @@ expectEngagementLifecycleHelper(
     'lifecycle states should retain their stable operational order.'
 );
 expectEngagementLifecycleHelper(
-    engagementLifecycleLabel('postponed') === 'Postponed'
+    engagementLifecycleLabel('active') === 'Scheduled'
+        && engagementLifecycleLabel('postponed') === 'Postponed'
         && engagementLifecycleLabel('invalid') === 'Lifecycle Not Set',
     'lifecycle labels should be readable and safely handle unknown values.'
 );

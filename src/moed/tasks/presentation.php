@@ -114,6 +114,6 @@ function standardTaskGenerationMessage(int $count): string
 {
     return $count > 0
         ? $count . ' task' . ($count === 1 ? ' was' : 's were')
-            . ' added to active, open engagements. Assigned to each active Caller, or to you when no active Caller is assigned.'
-        : 'No tasks were added. Eligible engagements already have this task, or none are active with an open financial closeout.';
+            . ' added to scheduled, open engagements. Assigned to each active Caller, or to you when no active Caller is assigned.'
+        : 'No tasks were added. Eligible engagements already have this task, or none are scheduled with an open financial closeout.';
 }

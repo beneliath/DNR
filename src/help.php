@@ -332,7 +332,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes PPT Slidedeck PowerPoint pptx download replace upload QR code copy link speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template library add edit archive restore delete display order event fields placeholders booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle scheduled active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes PPT Slidedeck PowerPoint pptx download replace upload QR code copy link speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template library add edit archive restore delete display order event fields placeholders booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
                 <header class="manual-chapter-heading">
                     <span>Chapter 05</span>
                     <h2>Engagements</h2>
@@ -374,7 +374,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Operational State</span>
                         <h3>Lifecycle</h3>
                         <dl>
-                            <div><dt>Active</dt><dd>The event is moving forward.</dd></div>
+                            <div><dt>Scheduled</dt><dd>The event is on the calendar, including tentative plans.</dd></div>
                             <div><dt>Postponed</dt><dd>The original is paused and may link to its replacement.</dd></div>
                             <div><dt>Canceled</dt><dd>A reason is required. Pending event tasks are canceled and all associated tasks are archived; completed work retains its completion history.</dd></div>
                             <div><dt>Completed</dt><dd>The event has finished. Finalizing its financial report also sets this state.</dd></div>
@@ -386,17 +386,17 @@ $manual_access_summary = match ($manual_role) {
                         <dl>
                             <div><dt>Work in Progress</dt><dd>Details are still being assembled.</dd></div>
                             <div><dt>Under Review</dt><dd>The plan is ready for checking or decision.</dd></div>
-                            <div><dt>Confirmed</dt><dd>The commitment is agreed. For an active event, add a presentation or select No presentation required.</dd></div>
+                            <div><dt>Confirmed</dt><dd>The commitment is agreed. For a scheduled event, add a presentation or select No presentation required.</dd></div>
                         </dl>
                     </article>
                 </section>
                 <p class="manual-note"><strong>Lifecycle and confirmation are independent.</strong> A postponed event can retain its former confirmation state, while a completed event may reflect the confirmation state it reached during planning.</p>
-                <p>The Engagements list starts with <strong>All</strong> lifecycle states. Your selection is remembered for your account in this browser. Use <strong>Lifecycle</strong> to narrow the list to Active, Postponed, Canceled, or Completed; the separate <strong>Current</strong>/<strong>Archived</strong> view controls whether archived records appear.</p>
+                <p>The Engagements list opens with <strong>Visibility: Active</strong> and <strong>Lifecycle: Scheduled</strong>. Use the column headings to sort and <strong>Lifecycle</strong> to select All, Scheduled, Postponed, Canceled, or Completed. The separate <strong>Active</strong>/<strong>Archived</strong> tabs control record visibility. Clear Filters returns to Active visibility and Scheduled lifecycle.</p>
 
                 <section class="manual-subsection">
                     <h3 id="manual-topic-engagements-cancel-an-engagement">Cancel an Engagement</h3>
                     <p>Editors and administrators can select the red lightning-bolt <strong>Cancel Engagement</strong> action in the Engagements list. Check the event name, enter a cancellation reason, and type <code>CANCEL</code> exactly before selecting <strong>Cancel Engagement</strong>. Select <strong>Keep Engagement</strong> or press <kbd>Esc</kbd> to leave it unchanged.</p>
-                    <p>Cancellation changes the lifecycle to <strong>Canceled</strong> and archives every associated task, including completed and pending work. Pending tasks become canceled; completed tasks keep their completion history. The engagement itself remains in the Current view. Archived engagements, engagements already canceled, and events with a finalized financial report do not offer this action.</p>
+                    <p>Cancellation changes the lifecycle to <strong>Canceled</strong> and archives every associated task, including completed and pending work. Pending tasks become canceled; completed tasks keep their completion history. The engagement itself remains in the Active visibility view. Archived engagements, engagements already canceled, and events with a finalized financial report do not offer this action.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -547,9 +547,10 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection" id="speakers">
                     <h3>Keep Speaker Profiles Ready to Use</h3>
-                    <p>Open <strong>Relationships → Speakers</strong> to find a speaker by name, email, or phone. Select <strong>Name</strong> to switch alphabetical order, then open the speaker’s name or View icon for their details. Administrators and editors can use <strong>New Speaker</strong> or <strong>Edit Speaker</strong>; reviewers can view profiles and statistics.</p>
+                    <p>Open <strong>Relationships → Speakers</strong> to find a speaker by name, email, or phone. Select the <strong>Speaker</strong> column label to switch alphabetical order by last name, then open the speaker’s name or View icon for their details. Administrators and editors can use <strong>New Speaker</strong> or <strong>Edit Speaker</strong>; reviewers can view profiles and statistics.</p>
                     <ul class="manual-check-list">
                         <li>Save the speaker’s name, email address, and phone number once, then choose that speaker when adding presentations.</li>
+                        <li>Use the optional <strong>Sort Name</strong> field for compound surnames or a different alphabetical placement, such as <strong>García Márquez, Gabriel</strong>. This does not change the displayed name.</li>
                         <li>Add a biography and an optional photo to make the profile useful and recognizable. Photos can be JPEG, PNG, or WebP, up to 5 MB.</li>
                         <li>Add the speaker’s website and other audience links. The written <strong>Bio</strong> is for the profile; <strong>Bio URL</strong> is the web page opened by the biography QR code.</li>
                         <li>For videos, social pages, or other resources, use <strong>Speakers → Edit Speaker → Custom Links</strong>. Give each link a clear name and full web address; select <strong>Add Custom Link</strong> for more, then <strong>Save speaker</strong>.</li>
@@ -646,7 +647,7 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Standard Event Tasks</h3>
                     <p>Standard tasks are reusable definitions copied when a new active engagement is first saved. Each has content, priority, display order, and a due date offset from event start or end.</p>
                     <p>Saving or restoring a presentation completes the event’s <strong>Populate event record with one or more presentations</strong> task. When one active presentation has a saved topic, date, and time, MOED also completes <strong>Confirm presentation topics, dates, and times</strong>. Finalizing the financial report completes <strong>Complete the event financial closeout</strong>. A receipt draft leaves that task open.</p>
-                    <p>Administrators can select <strong>Also add this task to all active, open engagements</strong> when creating a definition, or <strong>Add to Active, Open Engagements</strong> afterward. This generates its checklist item for existing unarchived engagements with an Active lifecycle and open financial closeout. Each copy follows the definition’s due-date rule and goes to the active Caller, or to the administrator if none is active. Existing copies, including completed and canceled tasks, are not duplicated.</p>
+                    <p>Administrators can select <strong>Also add this task to all scheduled, open engagements</strong> when creating a definition, or <strong>Add to Scheduled, Open Engagements</strong> afterward. This generates its checklist item for existing unarchived engagements with a Scheduled lifecycle and open financial closeout. Each copy follows the definition’s due-date rule and goes to the active Caller, or to the administrator if none is active. Existing copies, including completed and canceled tasks, are not duplicated.</p>
                     <p>Initial standard tasks go to the selected <strong>Caller</strong>, or to the event creator when no Caller is selected. Changing the Caller later does not reassign these tasks; each remains independently editable.</p>
                     <p>Changing an engagement’s dates reschedules its active generated tasks from the standard schedule. A task whose due date was manually overridden keeps that date. Editing a standard definition does not rewrite an existing task’s title, notes, priority, or current due date.</p>
                     <p>Editors and administrators manage definitions in <strong>Standard Event Tasks</strong>. <strong>Add Missing Checklist Tasks</strong> creates absent standard items on an active engagement and assigns them to the acting user. The built-in financial closeout reminder is due one week after event end and cannot be edited, archived, or deleted.</p>
@@ -734,7 +735,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Explore</span>
                         <h3>Engagement Map</h3>
-                        <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation, with lifecycle shown by the outline or symbol. Select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
+                        <p>The initial view shows scheduled engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation, with lifecycle shown by the outline or symbol. Select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
                         <p>Use <strong>Fit visible pins</strong> after filtering. The companion list includes On map, Needs address, Awaiting lookup, and Not located views for the current page, with Edit location links. Find missing addresses searches the selected date and lifecycle scope; Previous and Next reach additional pages. A new address may take time to resolve.</p>
                         <a href="map.php" class="manual-inline-link">Open the Map</a>
                     </article>

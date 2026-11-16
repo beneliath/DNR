@@ -26,12 +26,6 @@
         || !cancellationReason || !rescheduleFields || !rescheduleSelect
         || !rescheduleStatus || !badge) return;
 
-    const labels = {
-        active: 'Active',
-        postponed: 'Postponed',
-        canceled: 'Canceled',
-        completed: 'Completed'
-    };
     let request;
 
     function synchronizeFields() {
@@ -44,7 +38,7 @@
         rescheduleFields.hidden = !state.rescheduleVisible;
         rescheduleSelect.disabled = !state.rescheduleVisible;
         badge.className = 'lifecycle-badge lifecycle-' + status;
-        badge.textContent = labels[status] || 'Lifecycle Not Set';
+        badge.textContent = lifecycle.selectedOptions[0]?.textContent.trim() || 'Lifecycle Not Set';
     }
 
     function replaceOptions(engagements) {

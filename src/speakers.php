@@ -14,14 +14,16 @@ generateCsrfToken();
 releaseApplicationSessionLock();
 $page_size = paginationPageSizePreference('speakers', $_GET['per_page'] ?? null, 20, [20, 50, 100]);
 $search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 255);
-$name_sort = \Dnr\Http\RequestInput::enum($_GET, 'name_sort', ['asc', 'desc'], 'asc');
+$selected_sort = listSortSelection($_GET, ['name' => ['name_sort', 'asc']], 'name');
+$name_sort = $selected_sort['direction'];
 $direction = $name_sort === 'desc' ? 'DESC' : 'ASC';
 $from = 'FROM speakers WHERE LOCATE(?, name) > 0 OR LOCATE(?, email) > 0 OR LOCATE(?, phone) > 0';
 $pagination = queryPagination($conn, $from, 'sss', [$search, $search, $search], $page_size, $_GET['page'] ?? null);
 $total_speakers = $pagination['total'];
 $current_page = $pagination['page'];
 $offset = $pagination['offset'];
-$stmt = $conn->prepare("SELECT id, name, email, phone, photo_mime, version {$from} ORDER BY name {$direction}, id {$direction} LIMIT ? OFFSET ?");
+$sortName = speakerSortNameSql();
+$stmt = $conn->prepare("SELECT id, name, email, phone, photo_mime, version {$from} ORDER BY {$sortName} {$direction}, name {$direction}, id {$direction} LIMIT ? OFFSET ?");
 $stmt->bind_param('sssii', $search, $search, $search, $page_size, $offset);
 $stmt->execute();
 $speakers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -52,19 +54,16 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
             <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
             <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
-        <div class="control-group" aria-label="Speaker Sort Order">
-            <span class="control-label">Sort:</span>
-            <div class="sort-buttons">
-                <a class="sort-button sort-selection active" aria-current="true" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['page' => 1, 'name_sort' => $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Name <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?></a>
-            </div>
-        </div>
     </div>
     <?php if ($search !== ''): ?><p class="result-context">Showing speakers matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p><?php endif; ?>
     <?php renderBulkDeleteToolbar('speaker', $list_current_url); ?>
     <?php renderPagination($total_speakers, $current_page, $page_size, $list_current_url, 'speakers', 'Speaker pages'); ?>
     <div class="contact-table-wrapper">
-        <table class="contact-table speaker-table data-table mobile-record-table">
-            <thead><tr><th scope="col">Speaker</th><th scope="col">Phone Number</th><th scope="col">Email Address</th><th scope="col">Actions</th></tr></thead>
+        <table class="contact-table speaker-table data-table mobile-record-table sortable-table">
+            <thead><tr>
+                <th scope="col" aria-sort="<?php echo listSortState(true, $name_sort); ?>"><a class="table-sort-link" aria-label="Sort Speakers by Last Name" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['page' => 1, 'name_sort' => $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Speaker <span aria-hidden="true"><?php echo listSortArrow(true, $name_sort); ?></span></a></th>
+                <th scope="col">Phone Number</th><th scope="col">Email Address</th><th scope="col">Actions</th>
+            </tr></thead>
             <tbody>
             <?php foreach ($speakers as $speaker): ?>
                 <tr>

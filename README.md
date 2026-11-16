@@ -318,7 +318,7 @@ be supplied together.
 ### Daily operations dashboard
 
 The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
-view. It combines active engagements in the configured upcoming window, the signed-in user's active and overdue
+view. It combines scheduled engagements in the configured upcoming window, the signed-in user's active and overdue
 work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
 identify unconfirmed events, missing venue addresses, missing required presentations, and events
 without an assigned contact. Select **No Presentation Required** on an engagement to confirm it
@@ -447,17 +447,17 @@ overdue and due-today colors and semantic edge.
 ### Engagement lifecycle
 
 Engagements track operational lifecycle separately from planning confirmation. Lifecycle states are
-**Active**, **Postponed**, **Canceled**, and **Completed**; confirmation remains **Work in
+**Scheduled**, **Postponed**, **Canceled**, and **Completed**; confirmation remains **Work in
 progress**, **Under review**, or **Confirmed**. Canceling an engagement requires a reason, and a
 postponed or canceled engagement may link to a replacement event from the same organization.
 Replacement links cannot point to the same event or form a cycle.
 
 Canceling an engagement also cancels its open, in-progress, and waiting follow-up tasks while
 preserving completed work. Postponed and canceled events cannot receive a new standard checklist or
-financial closeout. Finalizing the first financial report marks an active event completed, and an
+financial closeout. Finalizing the first financial report marks a scheduled event completed, and an
 event with a final report cannot be moved back to another lifecycle state. Engagement lists,
 exports, maps, calendar feeds, and detail screens expose lifecycle and confirmation independently;
-daily operational queues default to active events so postponed, canceled, and completed records do
+daily operational queues default to scheduled events so postponed, canceled, and completed records do
 not appear as current work.
 
 ### Speaker records
@@ -521,8 +521,8 @@ all four receipt categories, for quick review.
 ### Map and venue locations
 
 Authenticated users can open **Map** in the primary navigation to view engagements on an interactive,
-zoomable map. The initial view contains active lifecycle records; lifecycle, confirmation, and date
-filters can include other records when needed. Active pins use confirmation colors, while
+zoomable map. The initial view contains scheduled lifecycle records; lifecycle, confirmation, and date
+filters can include other records when needed. Scheduled pins use confirmation colors, while
 postponed, canceled, and completed pins display their lifecycle state. Selecting a pin opens the
 event summary and a link to the full engagement. Events without an address are counted but cannot
 be placed.

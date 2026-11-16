@@ -58,10 +58,10 @@ try {
     $id = (int) $match[1]; $path = 'view_standard_task.php?id=' . $id;
     expectStandardTaskHttp((int) fetchStandardEventTask($conn, $id)['generated_count'] === 0, 'opting out should leave existing engagements untouched');
     $page = $request($path, null, $admin['cookie']);
-    expectStandardTaskHttp(str_contains($page['body'], 'Add to Active, Open Engagements'), 'saved definitions should offer the batch action');
+    expectStandardTaskHttp(str_contains($page['body'], 'Add to Scheduled, Open Engagements'), 'saved definitions should offer the batch action');
     $editorPage = $request('add_standard_task.php', null, $editor['cookie']);
     expectStandardTaskHttp($editorPage['status'] === 200 && !str_contains($editorPage['body'], 'name="generate_existing_engagements"'), 'editors may create future definitions but must not see the bulk option');
-    expectStandardTaskHttp(!str_contains($request($path, null, $editor['cookie'])['body'], 'Add to Active, Open Engagements'), 'editors must not see the saved bulk action');
+    expectStandardTaskHttp(!str_contains($request($path, null, $editor['cookie'])['body'], 'Add to Scheduled, Open Engagements'), 'editors must not see the saved bulk action');
     expectStandardTaskHttp($request('add_standard_task.php', array_replace($input, ['csrf_token' => $editor['csrf'], 'generate_existing_engagements' => '1']), $editor['cookie'])['status'] === 403, 'editors cannot forge bulk generation while creating a definition');
     $editorSave = $request('add_standard_task.php', array_replace($input, ['csrf_token' => $editor['csrf']]), $editor['cookie']);
     expectStandardTaskHttp($editorSave['status'] === 302, 'editors can still save definitions without bulk generation');

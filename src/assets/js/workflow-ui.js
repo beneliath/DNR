@@ -57,7 +57,8 @@
                 row.setAttribute('role', 'row');
                 Array.from(row.cells).forEach(function (cell, index) {
                     cell.setAttribute('role', 'cell');
-                    if (cell.colSpan === 1) cell.dataset.field = headers[index] || '';
+                    // Server-rendered labels already exclude decorative sorting arrows.
+                    if (cell.colSpan === 1 && !cell.hasAttribute('data-field')) cell.dataset.field = headers[index] || '';
                 });
             });
         });

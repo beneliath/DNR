@@ -409,17 +409,23 @@ $active_task_statuses = followUpTaskActiveStatuses();
     <?php if ($action_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <nav class="task-scope-selector control-group" aria-label="Task Ownership">
-        <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
-    </nav>
     <div class="summary-grid task-summary-grid" aria-label="Filters for the Selected Task Ownership">
-        <?php foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed', 'archived'] as $summary_view): ?>
+        <?php foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed'] as $summary_view): ?>
             <a class="summary-card<?php echo $view === $summary_view ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => $summary_view]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $view === $summary_view ? ' aria-current="page"' : ''; ?>><span><small><?php echo htmlspecialchars($view_labels[$summary_view], ENT_QUOTES, 'UTF-8'); ?></small><strong><?php echo $summary[$summary_view]; ?></strong></span></a>
         <?php endforeach; ?>
     </div>
 
+    <div class="task-context-row">
+        <nav class="task-scope-selector control-group" aria-label="Task Ownership">
+            <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
+        </nav>
+        <?php renderListContextTabs([
+            'active' => ['Active', $queue_url(['view' => $view === 'archived' ? 'all' : $view])],
+            'archived' => ['Archived', $queue_url(['view' => 'archived'])],
+        ], $view === 'archived' ? 'archived' : 'active', 'Task Context'); ?>
+    </div>
     <div class="list-controls task-list-controls">
-        <?php renderListFilterSummary(['Owner' => $scope_labels[$scope], 'Status' => $view_labels[$view], 'Search' => $search, 'Task' => $selected_task_id ?: ''], 'tasks.php?scope=mine&view=all'); ?>
+        <?php renderListFilterSummary(['Visibility' => $view === 'archived' ? 'Archived' : 'Active', 'Owner' => $scope_labels[$scope], 'View' => $view === 'archived' ? null : $view_labels[$view], 'Search' => $search, 'Task' => $selected_task_id ?: ''], 'tasks.php?scope=mine&view=all'); ?>
         <form method="get" action="tasks.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="view" value="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="scope" value="<?php echo htmlspecialchars($scope, ENT_QUOTES, 'UTF-8'); ?>">
             <?php if ($has_subject_filter): ?>

@@ -5,10 +5,7 @@ require __DIR__ . '/../../src/functions.php';
 require __DIR__ . '/../../src/follow_up_task_helpers.php';
 require __DIR__ . '/../../src/booking_inquiry_helpers.php';
 require_once __DIR__ . '/../../src/app/Domain/ReferenceData.php';
-
-function reimbursementCenterH(mixed $value): string {
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-}
+require_once __DIR__ . '/../list_ui_fixture.php';
 
 $_SERVER['REQUEST_METHOD'] = 'GET';
 $_SESSION = ['user_id' => 11, '_csrf_token' => 'layout-fixture'];
@@ -16,6 +13,15 @@ $case = $argv[1] ?? 'task';
 $draftState = $argv[2] ?? 'none';
 $styles = ['assets/css/style.min.css', 'assets/css/modern.min.css'];
 $page = str_starts_with($case, 'list:') ? substr($case, 5) : $case;
+if (str_starts_with($case, 'list:') && $page !== 'audit_log') {
+    $visibilityKey = in_array($page, ['tasks', 'inquiries'], true) ? 'view'
+        : (str_starts_with($page, 'reimbursement') ? 'show' : 'status');
+    $query = $draftState === 'archived' ? $visibilityKey . '=archived' : '';
+    if ($page === 'reimbursements' && str_starts_with($draftState, 'saved')) $query = 'fixture_selection=' . $draftState;
+    $argv = [$argv[0], $page, $query];
+    require __DIR__ . '/list-layout-fixture.php';
+    return;
+}
 if (is_file(__DIR__ . '/../../src/assets/css/pages/' . $page . '.min.css')) $styles[] = 'assets/css/pages/' . $page . '.min.css';
 if ($case === 'inquiry') $styles[] = 'assets/css/pages/booking_inquiries.min.css';
 if ($draftState === 'cleared') $_SESSION['clear_form_drafts'] = ['layout'];
@@ -46,19 +52,21 @@ if (str_starts_with($case, 'task')) {
     $view = 'all'; $scope = 'mine'; $has_subject_filter = false; $selected_task_id = 0;
     $page_size = 20; $list_status = $status = 'active'; $engagementId = null;
     $sort_column = 'name'; $last_name_sort = $organization_sort = $name_sort = 'asc';
-    $last_giving_sort = $lifetime_giving_sort = $date_sort = $status_sort = $lifecycle_sort = $org_sort = 'asc';
+    $last_giving_sort = $lifetime_giving_sort = $date_sort = $status_sort = $lifecycle_sort = $org_sort = $title_sort = 'asc';
     $lifecycle_filter = 'all'; $date_filter_active = false; $date_from = $date_to = $date_error = '';
     $list_url = static fn(array $changes = []): string => $page . '.php?' . http_build_query($changes);
     $showArchived = false;
     $sortBy = 'coa_number'; $sortDir = 'asc';
     $category = $from_date = $to_date = $ip_filter = '';
+    if ($page === 'contacts') listUiFixture('contacts');
     eval('?>' . substr($source, $start, $end - $start));
     if (in_array($page, ['tasks', 'contacts', 'organizations', 'speakers', 'engagements'], true)
         && preg_match('/<table\b[^>]*>/', $source, $table, PREG_OFFSET_CAPTURE)) {
         $tableStart = $table[0][1];
         $tableSource = substr($source, $tableStart, strpos($source, '</table>', $tableStart) - $tableStart);
         preg_match('/<thead>.*?<\/thead>/s', $tableSource, $head);
-        echo $table[0][0] . $head[0] . '<tbody><tr>';
+        $heading = in_array($page, ['contacts', 'organizations', 'speakers', 'engagements'], true) ? listUiFixture($page)['header'] : $head[0];
+        echo $table[0][0] . $heading . '<tbody><tr>';
         preg_match_all('/<td\b[^>]*>/', $tableSource, $cells);
         foreach ($cells[0] as $index => $cell) {
             if (str_contains($cell, 'colspan=')) continue;

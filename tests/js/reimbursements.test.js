@@ -154,15 +154,15 @@ test('selection persists across pagination and sorting; submits visible and off-
   assert.deepEqual(second.hidden.map(input => input.value), ['2']);
   second.select('3');
   assert.equal(second.lowerCount.textContent, second.count.textContent);
-  assert.equal(second.lowerClear.hidden, false);
+  assert.equal(second.lowerClear.disabled, false);
   const sorted = page(state, ['3', '2', '1']);
   assert.deepEqual(sorted.boxes.filter(box => box.checked).map(box => box.value), ['3', '2']);
   assert.equal(sorted.hidden.length, 0);
   sorted.lowerClear.events.click();
   assert.equal(sorted.lowerCount.textContent, '0 expenses selected');
   assert.equal(sorted.count.textContent, '0 expenses selected');
-  assert.equal(sorted.clear.hidden, true);
-  assert.equal(sorted.lowerClear.hidden, true);
+  assert.equal(sorted.clear.disabled, true);
+  assert.equal(sorted.lowerClear.disabled, true);
   assert.ok(sorted.buttons.every(button => button.disabled));
   assert.ok(page(state, ['1', '2']).boxes.every(box => !box.checked));
 });
@@ -200,7 +200,7 @@ test('Select All Available includes eligible expenses on other pages and updates
   assert.match(first.total.textContent, /Selected Total: \$125\.85 · 1 Without Receipts/);
   assert.equal(first.lowerTotal.textContent, first.total.textContent);
   assert.equal(first.lowerSelectAll.disabled, false);
-  assert.equal(first.lowerClear.hidden, false);
+  assert.equal(first.lowerClear.disabled, false);
   assert.equal(first.hidden.length, 1);
   const next = page(state, ['3']);
   assert.equal(next.boxes[0].checked, true);

@@ -25,6 +25,9 @@ $migration = $read('migrations/20260823_add_engagement_lifecycle.sql');
 $form = $read('src/templates/engagement_lifecycle_form.php');
 $edit = $read('src/edit_engagement.php');
 $list = $read('src/engagements.php');
+$list_markup = preg_replace('/<\?(?:php|=).*?\?>/s', '', $list);
+preg_match_all('/<th\b[^>]*>(.*?)<\/th>/s', $list_markup, $list_header_matches);
+$list_headers = array_map(static fn(string $heading): string => trim(strip_tags($heading)), $list_header_matches[1]);
 $calendar = $read('src/calendar_helpers.php');
 $dashboard = $read('src/dashboard_helpers.php');
 $map = $read('src/map.php');
@@ -60,12 +63,12 @@ expectEngagementLifecycleFeature(
 );
 expectEngagementLifecycleFeature(
     str_contains($list, 'e.lifecycle_status = ?')
-        && str_contains($list, '<th>Lifecycle</th>')
-        && str_contains($list, '<th>Confirmation</th>')
-        && !str_contains($list, '<th>Organization</th>')
-        && !str_contains($list, '<th>Type</th>')
+        && in_array('Lifecycle', $list_headers, true)
+        && in_array('Confirmation', $list_headers, true)
+        && array_slice($list_headers, 0, 2) === ['Event Title', 'Organization']
+        && !in_array('Type', $list_headers, true)
         && str_contains($list, 'class="engagement-title"')
-        && str_contains($list, 'colspan="6"')
+        && str_contains($list, 'colspan="7"')
         && str_contains($map, 'e.lifecycle_status = ?')
         && str_contains($dashboard, "e.lifecycle_status = 'active'"),
     'lists should prioritize event titles, while maps and the dashboard apply lifecycle-aware operational views.'

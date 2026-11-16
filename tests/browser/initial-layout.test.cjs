@@ -11,7 +11,10 @@ const fixtures = [
     ['task', '.form-section, #task-selected-record, .engagement-page-actions'],
     ['task-linked', '.form-section, #task-selected-record, .engagement-page-actions'],
     ['task-duplicate', '.form-section, #task-selected-record, .engagement-page-actions'],
-    ...['tasks', 'contacts', 'organizations', 'speakers', 'engagements', 'email_templates', 'reimbursement_cost_centers', 'audit_log'].map(page => ['list:' + page, '.list-search-form, .list-search-form button, table, tbody tr, tbody td, #after-content']),
+    ...['tasks', 'contacts', 'organizations', 'speakers', 'engagements', 'email_templates', 'standard_tasks', 'inquiries', 'reimbursements', 'reimbursement_requests', 'reimbursement_cost_centers', 'audit_log'].flatMap(page =>
+        (page === 'reimbursements' ? ['none', 'archived', 'saved', 'saved-legacy']
+            : ['speakers', 'audit_log'].includes(page) ? ['none'] : ['none', 'archived']).map(state =>
+            ['list:' + page, '.page-heading, .summary-grid, .list-context-tabs, .list-context-tabs a, .list-controls, .list-filter-summary, .list-search-form input[type=search], .engagement-date-window label, .engagement-filter-group, .reimbursement-selection-summary, .inquiry-filter-bar, table, tbody tr, tbody td, #after-content', state])),
     ['affiliations', '.contact-affiliation-row, .contact-affiliation-actions, [data-add-affiliation], #after-content'],
     ['inquiry', '.form-draft-panel, .form-section, .engagement-page-actions'],
     ...['draft', 'draft-chron'].flatMap(name => ['none', 'saved', 'stale', 'cleared'].map(state => [name, '.form-draft-panel, #after-content', state]))
@@ -20,6 +23,7 @@ const fixtures = [
 (async () => {
     const browser = await chromium.launch({headless: true});
     let checks = 0;
+    const activeLayouts = new Map();
     try {
         for (const width of [390, 1440]) {
             for (const [name, selector, draftState = 'none'] of fixtures) {
@@ -30,7 +34,7 @@ const fixtures = [
                 page.on('pageerror', error => errors.push(error.message));
                 await page.addInitScript(({state, name}) => {
                     localStorage.setItem('theme', 'dark');
-                    if (state === 'none') return;
+                    if (name.startsWith('list:') || state === 'none') return;
                     localStorage.setItem('dnr.form-draft.layout-fixture.layout', JSON.stringify({
                         fields: [{name: 'name', type: 'text', value: 'A saved name'}],
                         version: state === 'stale' ? 'older-version' : (name === 'draft-chron'
@@ -43,7 +47,8 @@ const fixtures = [
                 await page.route('https://initial-layout.test/**', async route => {
                     const url = new URL(route.request().url());
                     if (url.pathname.startsWith('/assets/')) {
-                        if (delayed.has(path.basename(url.pathname))) await hold;
+                        if (delayed.has(path.basename(url.pathname)) || (name.startsWith('list:')
+                            && ['date-picker.min.js', 'reimbursements.js'].includes(path.basename(url.pathname)))) await hold;
                         return route.fulfill({path: path.join(root, 'src', url.pathname)});
                     }
                     return route.fulfill({contentType: 'text/html', body: html});
@@ -82,6 +87,17 @@ const fixtures = [
                             assert.match(status, draftState === 'saved' ? /^Draft available/ : draftState === 'stale' ? /^The record changed/ : /^No saved draft/);
                         }
                         checks++;
+                    }
+                    if (name.startsWith('list:') && name !== 'list:audit_log') {
+                        // Content and action availability may change, but the controls used
+                        // to switch visibility must stay under the pointer after navigation.
+                        const stable = await page.locator('.page-heading, .summary-grid, .list-context-tabs, .list-context-tabs a, .list-search-form input[type=search], .engagement-date-window label, .engagement-filter-group').evaluateAll(nodes => nodes.map(node => {
+                            const rect = node.getBoundingClientRect();
+                            return [Math.round(rect.x), Math.round(rect.y), Math.round(rect.width), Math.round(rect.height)];
+                        }));
+                        const key = name + '/' + width;
+                        if (draftState === 'none') activeLayouts.set(key, stable);
+                        else assert.deepEqual(stable, activeLayouts.get(key), name + ' keeps controls in place when visibility changes');
                     }
                     if (name.startsWith('draft') && draftState === 'saved') {
                         await page.getByRole('button', {name: 'Restore Draft', exact: true}).click();

@@ -354,7 +354,7 @@ try {
             }
             expectRecordHttp($xpath->query('//form[@role="search"]//input[@name="sort_by" and @value="' . $column . '"]')->length === 1,
                 'Search retains the financial sort');
-            $activeSort = $xpath->query('//div[@aria-label="Organization Sort Order"]//a[@aria-current="true"]')->item(0);
+            $activeSort = $xpath->query('//th[@aria-sort="' . ($direction === 'asc' ? 'ascending' : 'descending') . '"]/a[@class="table-sort-link"]')->item(0);
             expectRecordHttp($activeSort instanceof DOMElement, 'The active giving sort is identified');
             parse_str((string) parse_url($activeSort->getAttribute('href'), PHP_URL_QUERY), $toggleQuery);
             expectRecordHttp($toggleQuery[$column . '_sort'] === ($direction === 'asc' ? 'desc' : 'asc') && !isset($toggleQuery['page']),

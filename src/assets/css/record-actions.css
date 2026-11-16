@@ -11,7 +11,7 @@
   .template-gallery.template-list
 ) {
   --record-action-size: var(--audience-action-size, 40px);
-  --record-action-gap: var(--audience-action-gap, 6px);
+  --record-action-gap: var(--audience-action-gap, 16px);
   --record-action-slot: calc(var(--record-action-size) + var(--record-action-gap));
   --record-results: 0px;
   --record-view: 0px;

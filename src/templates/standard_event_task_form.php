@@ -67,9 +67,9 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
             <h2>Existing Engagements</h2>
             <label class="standard-task-generation-option" for="generate-existing-engagements">
                 <input type="checkbox" id="generate-existing-engagements" name="generate_existing_engagements" value="1" aria-describedby="standard-task-generation-help"<?php echo ($standard_task_form_values['generate_existing_engagements'] ?? '') === '1' ? ' checked' : ''; ?>>
-                <span>Also Add This Task to All Active, Open Engagements</span>
+                <span>Also Add This Task to All Scheduled, Open Engagements</span>
             </label>
-            <p id="standard-task-generation-help" class="field-help">Creates this task for every unarchived engagement with an Active lifecycle and an open financial closeout. Each copy uses the due-date rule above and is assigned to the engagement’s active Caller, or to you if no active Caller is assigned. Existing copies are kept.</p>
+            <p id="standard-task-generation-help" class="field-help">Creates this task for every unarchived engagement with a Scheduled lifecycle and an open financial closeout. Each copy uses the due-date rule above and is assigned to the engagement’s active Caller, or to you if no active Caller is assigned. Existing copies are kept.</p>
         </section>
     <?php endif; ?>
 

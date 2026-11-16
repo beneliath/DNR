@@ -94,7 +94,7 @@ function defaultSpeakerId(array $speakers, string $preferredName = ''): int
 
 function fetchSpeaker(mysqli $conn, int $id): ?array
 {
-    $stmt = $conn->prepare('SELECT id, name, email, phone, bio, version, photo_mime, photo_updated_at, custom_links, '
+    $stmt = $conn->prepare('SELECT id, name, sort_name, email, phone, bio, version, photo_mime, photo_updated_at, custom_links, '
         . implode(', ', array_keys(SPEAKER_URL_FIELDS)) . ' FROM speakers WHERE id = ?');
     if (!$stmt) {
         throw new RuntimeException('Unable to load the speaker.');
@@ -105,6 +105,16 @@ function fetchSpeaker(mysqli $conn, int $id): ?array
     $stmt->close();
     if ($speaker) $speaker['custom_links'] = speakerCustomLinks($speaker);
     return $speaker ?: null;
+}
+
+/** Use an explicit surname-first name when provided; ignore common suffixes otherwise. */
+function speakerSortNameSql(): string
+{
+    $surname = "SUBSTRING_INDEX(TRIM(REGEXP_REPLACE(TRIM(name), "
+        . "'([[:space:],]+(jr[.]?|sr[.]?|ii|iii|iv|v|vi|esq[.]?|ph[.]?d[.]?|m[.]?d[.]?))+$', '', 1, 0, 'i')), ' ', -1)";
+    // Match the surname-first format of explicit overrides so mixed automatic
+    // and custom names retain alphabetical tie-breaking within one surname.
+    return "COALESCE(NULLIF(TRIM(sort_name), ''), CONCAT({$surname}, ', ', TRIM(name)))";
 }
 
 /** @return list<array{key: string, label: string, url: string}> */
@@ -163,6 +173,11 @@ function normalizeSpeakerInput(array $input): array
     if (mb_strlen($data['name'], 'UTF-8') > 255) {
         throw new InvalidArgumentException('Speaker name must be 255 characters or fewer.');
     }
+    $sortName = $input['sort_name'] ?? '';
+    if (!is_string($sortName) || mb_strlen($sortName, 'UTF-8') > 255 || preg_match('/[\x00-\x1F\x7F]/', $sortName)) {
+        throw new InvalidArgumentException('Sort name must be 255 characters or fewer on a single line.');
+    }
+    $data['sort_name'] = trim($sortName);
     if (strlen($data['email']) > 254 || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         throw new InvalidArgumentException('Enter a valid speaker email address.');
     }
@@ -210,6 +225,12 @@ function saveSpeaker(mysqli $conn, array $input, ?int $id = null, ?int $version 
     $columns = ['name', 'email', 'phone', 'bio'];
     $values = [$speaker['name'], $speaker['email'], $speaker['phone'], $speaker['bio']];
     $types = 'ssss';
+    // Older callers that update other profile fields must not erase the override.
+    if (array_key_exists('sort_name', $input)) {
+        $columns[] = 'sort_name';
+        $values[] = $speaker['sort_name'] !== '' ? $speaker['sort_name'] : null;
+        $types .= 's';
+    }
     if (array_key_exists('custom_links', $input)) {
         $existing = $id === null ? [] : speakerCustomLinks(fetchSpeaker($conn, $id) ?? []);
         $columns[] = 'custom_links';

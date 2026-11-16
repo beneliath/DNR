@@ -36,10 +36,13 @@
     margin-bottom: 18px;
 }
 
-.speaker-details-row > :is(.form-field, .form-group) {
+.speaker-details-row > :is(.form-field, .form-group, .speaker-name-fields) {
     min-width: 0;
     margin-bottom: 0;
 }
+
+.speaker-name-fields { display: grid; gap: 16px; }
+.speaker-name-fields > .form-field { margin-bottom: 0; }
 
 .speaker-details-row input { margin-bottom: 0; }
 

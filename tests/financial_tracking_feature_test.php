@@ -90,6 +90,11 @@ expectFinancialTracking(
     'organization totals should include finalized archived history and select last giving by event date.'
 );
 
+$has_heading = static function (string $source, string $label): bool {
+    $markup = preg_replace('/<\?(?:php|=).*?\?>/s', '', $source);
+    preg_match_all('/<th\b[^>]*>(.*?)<\/th>/s', $markup, $matches);
+    return in_array($label, array_map(static fn(string $heading): string => trim(strip_tags($heading)), $matches[1]), true);
+};
 expectFinancialTracking(
     is_string($engagementView)
         && str_contains($engagementView, 'id="financial-closeout"')
@@ -98,7 +103,7 @@ expectFinancialTracking(
         && str_contains($engagementView, 'close_engagement.php?id=')
         && is_string($engagementList)
         && str_contains($engagementList, 'AS financially_closed')
-        && str_contains($engagementList, '<th>Closeout</th>')
+        && $has_heading($engagementList, 'Closeout')
         && str_contains($engagementList, 'event-closeout-badge')
         && str_contains($engagementList, "'Not Applicable'")
         && str_contains($engagementList, "? 'Closed'")
@@ -108,8 +113,8 @@ expectFinancialTracking(
         && str_contains($organizationView, 'Average Event Giving')
         && str_contains($organizationView, 'financial-history-table')
         && is_string($organizationList)
-        && str_contains($organizationList, '<th>Last Receipts</th>')
-        && str_contains($organizationList, '<th>Lifetime Receipts</th>'),
+        && $has_heading($organizationList, 'Last Receipts')
+        && $has_heading($organizationList, 'Lifetime Receipts'),
     'event and organization screens should expose the final report and required giving metrics.'
 );
 

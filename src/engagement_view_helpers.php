@@ -2,29 +2,11 @@
 
 declare(strict_types=1);
 
-/** Remember the lifecycle choice for this user in the current browser. */
-function engagementLifecycleFilterPreference(mixed $requested, int $userId): string
+/** Fresh visits show Scheduled engagements; explicit URL filters select other views. */
+function engagementLifecycleFilter(mixed $requested): string
 {
     $allowed = ['all', 'active', 'postponed', 'canceled', 'completed'];
-    $cookieName = 'dnr_engagement_lifecycle_' . $userId;
-    $remembered = $_COOKIE[$cookieName] ?? 'all';
-    if (!in_array($remembered, $allowed, true)) {
-        $remembered = 'all';
-    }
-    if (!in_array($requested, $allowed, true)) {
-        return $remembered;
-    }
-    if (($_COOKIE[$cookieName] ?? null) !== $requested && !headers_sent()) {
-        setcookie($cookieName, $requested, [
-            'expires' => time() + 365 * 86400,
-            'path' => accountCookiePath(),
-            'secure' => requestUsesHttps() || applicationRequiresHttps(),
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-        $_COOKIE[$cookieName] = $requested;
-    }
-    return $requested;
+    return in_array($requested, $allowed, true) ? $requested : 'active';
 }
 
 /**

@@ -6,7 +6,7 @@ require_once __DIR__ . '/engagement_view_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'engagement_search_helpers.php';
 include 'two_factor_helpers.php';
-include 'engagement_lifecycle_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -101,24 +101,20 @@ releaseApplicationSessionLock();
 
 // Retrieve engagements with organization name. Every value is allowlisted
 // before it is used in SQL or reflected into a link.
-$date_sort = \Dnr\Http\RequestInput::string($_GET, 'date_sort') === 'desc' ? 'desc' : 'asc';
-$status_sort = \Dnr\Http\RequestInput::string($_GET, 'status_sort') === 'desc' ? 'desc' : 'asc';
-$lifecycle_sort = \Dnr\Http\RequestInput::string($_GET, 'lifecycle_sort') === 'desc'
-    ? 'desc'
-    : 'asc';
-$org_sort = \Dnr\Http\RequestInput::string($_GET, 'org_sort') === 'desc' ? 'desc' : 'asc';
-$lifecycle_filter = engagementLifecycleFilterPreference(
-    $_GET['lifecycle'] ?? null,
-    (int) $_SESSION['user_id']
-);
-
-// Determine which column to sort by based on which button was clicked
-$sort_column = \Dnr\Http\RequestInput::enum(
-    $_GET,
-    'sort_by',
-    ['date', 'status', 'lifecycle', 'org'],
-    'date'
-);
+$selected_sort = listSortSelection($_GET, [
+    'date' => ['date_sort', 'asc'],
+    'status' => ['status_sort', 'asc'],
+    'lifecycle' => ['lifecycle_sort', 'asc'],
+    'org' => ['org_sort', 'asc'],
+    'title' => ['title_sort', 'asc'],
+], 'date');
+$sort_column = $selected_sort['column'];
+$date_sort = $sort_column === 'date' ? $selected_sort['direction'] : 'asc';
+$status_sort = $sort_column === 'status' ? $selected_sort['direction'] : 'asc';
+$lifecycle_sort = $sort_column === 'lifecycle' ? $selected_sort['direction'] : 'asc';
+$org_sort = $sort_column === 'org' ? $selected_sort['direction'] : 'asc';
+$title_sort = $sort_column === 'title' ? $selected_sort['direction'] : 'asc';
+$lifecycle_filter = engagementLifecycleFilter($_GET['lifecycle'] ?? null);
 
 // Determine sort order based on column
 if ($sort_column === 'date') {
@@ -129,6 +125,8 @@ if ($sort_column === 'date') {
     $sort_order = $lifecycle_sort;
 } elseif ($sort_column === 'org') {
     $sort_order = $org_sort;
+} elseif ($sort_column === 'title') {
+    $sort_order = $title_sort;
 } else {
     $sort_order = 'asc';
 }
@@ -142,6 +140,8 @@ if ($sort_column === 'date') {
     $order_by = 'e.lifecycle_status';
 } elseif ($sort_column === 'org') {
     $order_by = 'o.organization_name';
+} elseif ($sort_column === 'title') {
+    $order_by = "COALESCE(NULLIF(e.event_title, ''), o.organization_name)";
 } else {
     $order_by = 'e.event_start_date';
 }
@@ -176,6 +176,7 @@ $list_url = static function (array $overrides = []) use (
     $status_sort,
     $lifecycle_sort,
     $org_sort,
+    $title_sort,
     $lifecycle_filter,
     $search,
     $page_size,
@@ -189,6 +190,7 @@ $list_url = static function (array $overrides = []) use (
         'status_sort' => $status_sort,
         'lifecycle_sort' => $lifecycle_sort,
         'org_sort' => $org_sort,
+        'title_sort' => $title_sort,
         'lifecycle' => $lifecycle_filter,
         'q' => $search,
         'per_page' => $page_size,
@@ -329,11 +331,11 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
 <main class="container engagements-page">
     <div class="page-heading engagements-heading">
         <div>
-            <h1><?php echo $show_archived ? 'Archived Engagements' : 'Engagements'; ?></h1>
+            <h1 data-width-label="Archived Engagements"><span><?php echo $show_archived ? 'Archived Engagements' : 'Engagements'; ?></span></h1>
             <p class="page-intro">Manage event lifecycle, confirmation, schedules, and speaking commitments.</p>
         </div>
-        <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="index.php" class="button-add">+ New Engagement</a>
+        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+            <a href="index.php" class="button-add"<?php if ($show_archived): ?> data-visibility-placeholder aria-hidden="true" tabindex="-1"<?php endif; ?>>+ New Engagement</a>
         <?php endif; ?>
     </div>
 
@@ -347,7 +349,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     <div class="summary-grid" aria-label="Engagement Summary">
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'active', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
            class="summary-card summary-confirmed<?php echo in_array($lifecycle_filter, ['all', 'active'], true) ? ' is-selected' : ''; ?>"
-           <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">◆</span><span><small>Active</small><strong><?php echo $summary['active']; ?></strong></span></a>
+           <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">◆</span><span><small>Scheduled</small><strong><?php echo $summary['active']; ?></strong></span></a>
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'postponed', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
            class="summary-card summary-review<?php echo in_array($lifecycle_filter, ['all', 'postponed'], true) ? ' is-selected' : ''; ?>"
            <?php echo $lifecycle_filter === 'postponed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">Ⅱ</span><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></a>
@@ -360,7 +362,11 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     </div>
 
     <div class="list-controls engagement-controls">
-        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Lifecycle' => ucfirst($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=all'); ?>
+        <?php renderListContextTabs([
+            'active' => ['Active', $list_url(['status' => 'active'])],
+            'archived' => ['Archived', $list_url(['status' => 'archived'])],
+        ], $list_status, 'Engagement Status'); ?>
+        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Lifecycle' => $lifecycle_filter === 'all' ? 'All' : engagementLifecycleLabel($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=active'); ?>
         <form method="get" action="engagements.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
@@ -368,6 +374,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="hidden" name="status_sort" value="<?php echo htmlspecialchars($status_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="lifecycle_sort" value="<?php echo htmlspecialchars($lifecycle_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="title_sort" value="<?php echo htmlspecialchars($title_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <div class="engagement-search-field">
@@ -376,6 +383,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Title, Organization, Contact, Chron Log Text, &quot;and&quot;/or User">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </div>
+            <div class="engagement-date-filter-row">
             <fieldset class="engagement-date-window<?php echo $date_filter_active ? ' has-active-date-filter' : ''; ?>" aria-label="Engagement Dates" data-engagement-date-window>
                 <label for="engagement-date-from">From
                     <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
@@ -386,51 +394,19 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                 <button type="submit" data-pending-reminder="list-search" class="button-secondary" data-engagement-date-apply>Apply</button>
                 <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>
             </fieldset>
+            <div class="control-group engagement-filter-group" aria-label="Engagement Lifecycle Filter">
+                <span class="control-label">Lifecycle:</span>
+                <div class="engagement-filter-options">
+                    <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
+                        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+                           class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
+                           <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            </div>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Engagement Archive Status">
-            <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Current</a>
-            <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $summary['archived']; ?>)</a>
-        </div>
-
-        <div class="control-group engagement-filter-group" aria-label="Engagement Lifecycle Filter">
-            <span class="control-label">Lifecycle:</span>
-            <div class="engagement-filter-options">
-                <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
-                    <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-                       class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
-                       <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <div class="control-group engagement-filter-group" aria-label="Engagement Sort Order">
-            <span class="control-label">Sort:</span>
-            <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'org', 'org_sort' => $org_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button<?php echo $sort_column === 'org' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'org' ? 'aria-current="true"' : ''; ?>>
-                    Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'date', 'date_sort' => $date_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button<?php echo $sort_column === 'date' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'date' ? 'aria-current="true"' : ''; ?>>
-                    Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'status', 'status_sort' => $status_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
-                    Confirmation <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'lifecycle', 'lifecycle_sort' => $lifecycle_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="sort-button<?php echo $sort_column === 'lifecycle' ? ' active' : ''; ?>"
-                   <?php echo $sort_column === 'lifecycle' ? 'aria-current="true"' : ''; ?>>
-                    Lifecycle <?php echo $lifecycle_sort === 'asc' ? '↑' : '↓'; ?>
-                </a>
-            </div>
-        </div>
     </div>
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
@@ -438,24 +414,26 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     <?php renderBulkDeleteToolbar('engagement', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
     <div class="data-table-scroll">
-    <table class="engagement-table data-table mobile-record-table">
+    <table class="engagement-table data-table mobile-record-table sortable-table">
         <thead>
             <tr>
-                <th>Event Title</th>
-                <th>Event Date(s)</th>
-                <th>Lifecycle</th>
-                <th>Confirmation</th>
-                <th>Closeout</th>
-                <th>Actions</th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'title', $title_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'title', 'title_sort' => $sort_column === 'title' && $title_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Event Title <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'title', $title_sort); ?></span></a></th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'org', $org_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'org', 'org_sort' => $sort_column === 'org' && $org_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Organization <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'org', $org_sort); ?></span></a></th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'date', $date_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'date', 'date_sort' => $sort_column === 'date' && $date_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Event Date(s) <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'date', $date_sort); ?></span></a></th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'lifecycle', $lifecycle_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'lifecycle', 'lifecycle_sort' => $sort_column === 'lifecycle' && $lifecycle_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Lifecycle <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'lifecycle', $lifecycle_sort); ?></span></a></th>
+                <th scope="col" aria-sort="<?php echo listSortState($sort_column === 'status', $status_sort); ?>"><a class="table-sort-link" href="<?php echo htmlspecialchars($list_url(['sort_by' => 'status', 'status_sort' => $sort_column === 'status' && $status_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Confirmation <span aria-hidden="true"><?php echo listSortArrow($sort_column === 'status', $status_sort); ?></span></a></th>
+                <th scope="col">Closeout</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>
             <?php if ($engagement_rows === []): ?>
-                <tr><td colspan="6" class="empty-state">No engagements match the current view.</td></tr>
+                <tr><td colspan="7" class="empty-state">No engagements match the current view.</td></tr>
             <?php endif; ?>
             <?php foreach ($engagement_rows as $row): ?>
                 <tr>
                     <td data-field="Event Title" class="engagement-title"><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $row['id'], $row['event_title'] ?: $row['organization_name']); ?><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></span></td>
+                    <td data-field="Organization" class="engagement-organization"><?php echo htmlspecialchars((string) $row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                     <td data-field="Event Date(s)" class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
                     <td data-field="Lifecycle" class="engagement-lifecycle"><span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $row['lifecycle_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($row['lifecycle_status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
                     <td data-field="Confirmation" class="engagement-status"><?php

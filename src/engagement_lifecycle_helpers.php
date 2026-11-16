@@ -6,7 +6,7 @@ declare(strict_types=1);
 function engagementLifecycleStatuses(): array
 {
     return [
-        'active' => 'Active',
+        'active' => 'Scheduled',
         'postponed' => 'Postponed',
         'canceled' => 'Canceled',
         'completed' => 'Completed',
