@@ -64,9 +64,13 @@ class MemberReleaseTest(unittest.TestCase):
         (root / 'migrations').mkdir()
         (root / 'migrations/old.sql').write_text('original schema')
         (root / 'migrations/new.sql').write_text('qualified new schema')
+        (frozen / 'ingress-security.conf').write_text('previous gateway policy')
+        (frozen / 'ingress-security.conf').chmod(0o444)
         document = {'services': {'web': {'image': 'old-app', 'environment': {'DNR_ACCOUNT_KEY': 'member-account',
             'DNR_PUBLIC_BASE_URL': 'https://example.test/a/member-account', 'SETTING': 'private value'}},
-            'db': {'image': 'old-db'}, 'ingress': {'image': 'old-ingress'},
+            'db': {'image': 'old-db'}, 'ingress': {'image': 'old-ingress', 'volumes': [
+                {'type': 'bind', 'source': str(frozen / 'ingress-security.conf'),
+                 'target': '/etc/apache2/conf-enabled/zy-dnr-account-security.conf', 'read_only': True}]},
             'migrator': {'image': 'old-db', 'volumes': [
                 {'type': 'bind', 'source': str(frozen / 'migrations'), 'target': '/opt/dnr/migrations', 'read_only': True},
                 {'type': 'bind', 'source': str(frozen / 'migrate.sh'), 'target': '/opt/dnr/bin/migrate', 'read_only': True},
@@ -76,7 +80,7 @@ class MemberReleaseTest(unittest.TestCase):
             'secrets': {'private-key': {'file': str(directory / 'private-key')}},
             'x-moed-active-services': ['web', 'ingress'], 'x-moed-live-binds': [],
             'x-moed-frozen-configuration': {str(p.relative_to(directory)): production.configuration_digest(p)
-                for p in [frozen / 'migrations', frozen / 'migrate.sh', frozen / 'configure_database_privileges.sh']}}
+                for p in [frozen / 'migrations', frozen / 'migrate.sh', frozen / 'configure_database_privileges.sh', frozen / 'ingress-security.conf']}}
         metadata = {'commit': '1' * 40, 'mode': 'production', 'project': 'member-project', 'networks': {'backend': '10.252.4.0/24'}}
         qualified = {'commit': 'a' * 40, 'version': '2.5.11', 'images': {'app': 'qualified-app', 'database': 'qualified-db', 'ingress': 'qualified-ingress'}}
         member = dict(key='member-account', project='member-project', directory=directory, document=document,
@@ -103,10 +107,24 @@ class MemberReleaseTest(unittest.TestCase):
             self.assertTrue((migration / 'new.sql').is_file())
             grants = Path(staged['services']['migrator']['volumes'][2]['source'])
             self.assertEqual(grants.read_text(), 'new configure_database_privileges.sh')
+            policy = Path(staged['services']['ingress']['volumes'][0]['source'])
+            self.assertEqual(policy.read_text(), production.ingress_security_configuration(
+                'member-account', 'https://example.test/a/member-account'))
+            self.assertEqual(policy.stat().st_mode & 0o777, 0o444)
+            self.assertEqual((member['directory'] / 'runtime-config/ingress-security.conf').read_text(), 'previous gateway policy')
             self.assertEqual(release.stage_runtime(root, member['directory'], original, qualified, 'release-time'), staged)
             grants.write_text('tampered staging')
             with self.assertRaisesRegex(ValueError, 'differs from the qualified'):
                 release.stage_runtime(root, member['directory'], original, qualified, 'release-time')
+
+    def test_staging_rejects_a_changed_gateway_policy_on_retry(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); member, qualified = self.fixture(root)
+            staged = release.stage_runtime(root, member['directory'], member['document'], qualified, 'release-time')
+            policy = Path(staged['services']['ingress']['volumes'][0]['source'])
+            policy.chmod(0o644); policy.write_text('unreviewed gateway policy')
+            with self.assertRaisesRegex(ValueError, 'differs from the qualified'):
+                release.stage_runtime(root, member['directory'], member['document'], qualified, 'release-time')
 
     def test_upgrade_requires_verified_backup_before_any_changes(self):
         member = {'backup': {'restore_verified': False}}

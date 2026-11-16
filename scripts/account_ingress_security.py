@@ -17,7 +17,8 @@ def configuration(key, public_url, primary=False, stripped=True):
             or re.search(r'[\s"<>\\]',public_url):
         raise ValueError('Invalid canonical Account URL')
     session='MOED_'+hashlib.sha256(key.encode()).hexdigest()[:16]
-    preferences=r'dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|download_[a-f0-9]{32}|sidebar_[a-f0-9]{12}|collection_[a-f0-9]{12})'
+    selections=r'dnr_mm_(?:connection_sort|date_range)_[a-f0-9]{24}'
+    preferences=r'(?:dnr_(?:rows_per_page_[a-zA-Z0-9_-]+|engagement_lifecycle_[0-9]+|backup_[a-f0-9]{32}|download_[a-f0-9]{32}|sidebar_[a-f0-9]{12}|collection_[a-f0-9]{12})|'+selections+')'
     allowed='(?:'+session+'|'+preferences+')'
     assets=public_url+'/assets/'
     if primary: assets+=' '+url.scheme+'://'+url.netloc+'/assets/'
@@ -58,6 +59,9 @@ def configuration(key, public_url, primary=False, stripped=True):
             # Expired legacy cookies retain their scoped path, so their deletion
             # cannot remove the newly saved root preference.
             lines.append(f'    Header {table} edit Set-Cookie "^(dnr_rows_per_page_mm_[a-f0-9]{{24}}=(?:10|25|50|100);(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
+            # Sort and date-range cookies are also scoped by account and user.
+            # Keep deletions scoped so future legacy-path cleanup stays safe.
+            lines.append(f'    Header {table} edit Set-Cookie "^({selections}=(?!deleted;)[^;]+;(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
             if not stripped:
                 # Legacy root pages must be able to read their non-auth download
                 # acknowledgements. Canonical Account pages keep the scoped path.
