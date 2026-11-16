@@ -27,6 +27,7 @@ body[data-mm-workspace] :is(.mm-search-row,.campaign-filter-row,.campaign-toolba
 
 /* Neutral text actions share the same pointer and keyboard feedback in both themes. */
 body[data-mm-workspace] :is(a.button,a.audience-button),
+body[data-mm-workspace] #people-export>button,
 body[data-mm-workspace] :is(.audience-actions,.row-actions,.form-actions,.dialog-actions,.confirmation-dialog-actions,
   .analytics-range-actions,.ai-actions,.collection-share-actions,.designer-rich-dialog-actions) > button,
 body[data-mm-workspace] :is(.audience-menu:not(.primary),.designer-save-menu:not(.primary),.inbox-sender-details)>summary,
