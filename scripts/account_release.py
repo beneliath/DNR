@@ -78,7 +78,7 @@ def backup_members(members, app_image, password_file, records):
 
 def stage_runtime(root, directory, document, release, timestamp):
     """Preserve topology/settings; refresh qualified code binds into a new frozen tree."""
-    from account_production import configuration_digest
+    from account_production import configuration_digest, ingress_security_configuration
     updated = copy.deepcopy(document)
     original_images = {kind:document['services'][service]['image'] for kind, service in
         [('app', 'web'), ('database', 'db'), ('ingress', 'ingress')]}
@@ -91,11 +91,31 @@ def stage_runtime(root, directory, document, release, timestamp):
     qualified_sources = {volume['source']: code_binds[volume['target']]
         for service in document['services'].values() for volume in service.get('volumes', [])
         if volume['type'] == 'bind' and volume['target'] in code_binds}
+    # The gateway policy is release code, not an account setting. Regenerate it
+    # while retaining the old frozen copy for the verified recovery snapshot.
+    policy_binds = [volume for volume in document['services']['ingress'].get('volumes', [])
+        if volume['type'] == 'bind' and volume['target'] == '/etc/apache2/conf-enabled/zy-dnr-account-security.conf']
+    if len(policy_binds) != 1 or not policy_binds[0].get('read_only'):
+        raise ValueError('Account release requires one frozen gateway policy bind')
+    environment = document['services']['web']['environment']
+    generated = {policy_binds[0]['source']: ingress_security_configuration(
+        environment['DNR_ACCOUNT_KEY'], environment['DNR_PUBLIC_BASE_URL'])}
     for relative in document['x-moed-frozen-configuration']:
         original = directory / relative
         source = qualified_sources.get(str(original), original)
         target = directory / 'runtime-config' / ('release-' + release['commit']) / Path(relative).name
-        if target.exists():
+        if str(original) in generated:
+            configuration_digest(original)
+            content = generated[str(original)]
+            if target.exists():
+                configuration_digest(target)
+                if target.read_text() != content or target.stat().st_mode & 0o777 != original.stat().st_mode & 0o777:
+                    raise ValueError('Existing Account release staging differs from the qualified configuration')
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                target.write_text(content)
+                shutil.copymode(original, target)
+        elif target.exists():
             if configuration_digest(target) != configuration_digest(source):
                 raise ValueError('Existing Account release staging differs from the qualified configuration')
         else:

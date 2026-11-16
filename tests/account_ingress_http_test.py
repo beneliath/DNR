@@ -31,6 +31,8 @@ def main():
     name='account-ingress-check-'+uuid.uuid4().hex[:10]
     key='test-account'; own='MOED_'+hashlib.sha256(key.encode()).hexdigest()[:16]
     sibling='MOED_'+hashlib.sha256(b'primary-account').hexdigest()[:16]
+    sort_cookie='dnr_mm_connection_sort_'+'a'*24
+    range_cookie='dnr_mm_date_range_'+'b'*24
     with tempfile.TemporaryDirectory(prefix=name+'-') as folder:
         root=Path(folder); root.chmod(0o755)
         (root/'assets').mkdir(); (root/'assets/test.js').write_text('/* trusted fixture */')
@@ -93,6 +95,12 @@ header('Set-Cookie: OWN=deleted; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; 
 header('Set-Cookie: dnr_rows_per_page_tasks=25; Path=/; Domain=localhost', false);
 header('Set-Cookie: dnr_rows_per_page_mm_aaaaaaaaaaaaaaaaaaaaaaaa=50; Path=/; HttpOnly; SameSite=Lax', false);
 header('Set-Cookie: dnr_rows_per_page_mm_aaaaaaaaaaaaaaaaaaaaaaaa=deleted; Path=/a/test-account/; Max-Age=0', false);
+setcookie('dnr_mm_connection_sort_aaaaaaaaaaaaaaaaaaaaaaaa', json_encode(['sort'=>'updated_at','direction'=>'desc']), ['path'=>'/','domain'=>'localhost','httponly'=>true,'samesite'=>'Lax']);
+setcookie('dnr_mm_date_range_bbbbbbbbbbbbbbbbbbbbbbbb', json_encode(['range'=>'custom','start'=>'2026-10-01','end'=>'2026-10-31']), ['path'=>'/','domain'=>'localhost','httponly'=>true,'samesite'=>'Lax']);
+header('Set-Cookie: dnr_mm_connection_sort_cccccccccccccccccccccccc=deleted; Path=/a/test-account/; Max-Age=0', false);
+header('Set-Cookie: dnr_mm_date_range_dddddddddddddddddddddddd=deleted; Path=/a/test-account/; Max-Age=0', false);
+header('Set-Cookie: dnr_mm_connection_sort_invalid=blocked; Path=/', false);
+header('Set-Cookie: dnr_mm_date_range_bbbbbbbbbbbbbbbbbbbbbbbbx=blocked; Path=/', false);
 header('Set-Cookie: dnr_download_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=started; Path=/; Domain=localhost; SameSite=Strict', false);
 header('Set-Cookie: dnr_backup_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb=created; Path=/; Domain=localhost; SameSite=Strict', false);
 header('Set-Cookie: dnr_download_not-a-valid-token=started; Path=/', false);
@@ -100,7 +108,9 @@ header('Clear-Site-Data: "cookies", "storage"');
 header('Service-Worker-Allowed: /');
 header('Access-Control-Allow-Origin: *');
 header("Content-Security-Policy: script-src * 'unsafe-inline'");
-echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQUEST_URI']]);
+echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQUEST_URI'],
+    'sort'=>json_decode($_COOKIE['dnr_mm_connection_sort_aaaaaaaaaaaaaaaaaaaaaaaa']??'null',true),
+    'range'=>json_decode($_COOKIE['dnr_mm_date_range_bbbbbbbbbbbbbbbbbbbbbbbb']??'null',true)]);
 '''.replace('SIBLING',sibling).replace('OWN',own))
         try:
             # Publish only on loopback; Docker internal networks omit published
@@ -137,15 +147,37 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
             status,headers,body=request(cookie=own+'=allowed; dnr_rows_per_page_tasks=25; unknown=hidden')
             assert 'dnr_rows_per_page_tasks=25' in json.loads(body)['cookie']
             cookies=[v for k,v in headers if k.lower()=='set-cookie' and v]
-            assert len(cookies)==7,cookies
-            assert all(sibling not in v and 'Domain=' not in v for v in cookies),cookies
-            assert all('Path=/a/'+key+'/' in v for v in cookies),cookies
+            assert len(cookies)==11,cookies
+            assert all(sibling not in v and 'domain=' not in v.lower() for v in cookies),cookies
+            assert all('path=/a/'+key+'/' in v.lower() for v in cookies),cookies
             assert any('Max-Age=0' in v and 'Expires=' in v for v in cookies),cookies
             assert any(v.startswith('dnr_download_'+'a'*32+'=started;') for v in cookies),cookies
             assert not any('dnr_download_not-a-valid-token' in v for v in cookies),cookies
             _,_,body=request(cookie=own+'=allowed; dnr_download_'+'a'*32+'=started; dnr_download_not-a-valid-token=hidden')
             assert 'dnr_download_'+'a'*32+'=started' in json.loads(body)['cookie']
             assert 'dnr_download_not-a-valid-token' not in json.loads(body)['cookie']
+            for preference_name in [sort_cookie,range_cookie]:
+                _,_,body=request(cookie=own+'=allowed; '+preference_name+'=remembered; '+preference_name+'x=blocked')
+                assert preference_name+'=remembered' in json.loads(body)['cookie']
+                assert preference_name+'x=blocked' not in json.loads(body)['cookie']
+            assert not any('invalid=blocked' in value or 'x=blocked' in value for value in cookies),cookies
+
+            def preference_roundtrip(expected_path):
+                jar=http.cookiejar.CookieJar()
+                client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+                base='http://127.0.0.1:'+str(port)
+                with client.open(base+'/',timeout=5) as response: response.read()
+                stored={cookie.name:cookie for cookie in jar if cookie.name in [sort_cookie,range_cookie]}
+                assert set(stored)=={sort_cookie,range_cookie},list(stored)
+                assert all(cookie.path==expected_path and cookie.has_nonstandard_attr('HttpOnly') for cookie in stored.values())
+                for path in ['/a/'+key+'/profile.php', '/profile.php']:
+                    with client.open(base+path,timeout=5) as response: result=json.load(response)
+                    if path.startswith(expected_path):
+                        assert result['sort']=={'sort':'updated_at','direction':'desc'},result
+                        assert result['range']=={'range':'custom','start':'2026-10-01','end':'2026-10-31'},result
+                    else:
+                        assert result['sort'] is None and result['range'] is None,result
+            preference_roundtrip('/a/'+key+'/')
             assert not any(k.lower() in ['clear-site-data','service-worker-allowed','access-control-allow-origin'] for k,v in headers)
             policies=[v for k,v in headers if k.lower()=='content-security-policy']
             assert len(policies)==3,policies
@@ -180,7 +212,13 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
                 assert len(preferences)==2,preferences
                 assert any('=50;' in v and 'Path=/;' in v for v in preferences),preferences
                 assert any('=deleted;' in v and 'Path=/a/'+key+'/' in v for v in preferences),preferences
+                selections=[v for k,v in headers if k.lower()=='set-cookie' and v.startswith(('dnr_mm_connection_sort_','dnr_mm_date_range_'))]
+                assert len(selections)==4,selections
+                for value in selections:
+                    expected='/a/'+key+'/' if '=deleted;' in value else '/'
+                    assert 'path='+expected+';' in value.lower(),value
                 assert all('Path=/a/'+key+'/' in v for k,v in headers if k.lower()=='set-cookie' and v.startswith('dnr_rows_per_page_tasks=')),headers
+            preference_roundtrip('/')
             # Real PHP preference cookies must survive the real Apache rewrite,
             # including cleanup of the old, narrower cookie.
             jar=http.cookiejar.CookieJar(); client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
@@ -204,7 +242,12 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
                     acknowledgements=[v for k,v in headers if k.lower()=='set-cookie' and v]
                     assert len(acknowledgements)==1 and acknowledgements[0].startswith('dnr_download_'+'d'*32+'=started;'),acknowledgements
                     assert 'path='+prefix+';' in acknowledgements[0].lower(),acknowledgements
-            print('PASS: cookie isolation, scoped download acknowledgements, logout, trusted assets, intersecting CSP, and primary/member path routing')
+            # Production primary gateways see the stripped path; preferences
+            # must also survive that policy and remain usable at root URLs.
+            (root/'security.conf').write_text(configuration(key,'http://localhost/a/'+key,True,True))
+            run('exec',name,'apachectl','-k','graceful'); time.sleep(.5)
+            preference_roundtrip('/')
+            print('PASS: cookie isolation, MessageMonkey sort/date preferences, scoped download acknowledgements, logout, trusted assets, intersecting CSP, and primary/member path routing')
             if options.browser_review:
                 url='http://127.0.0.1:'+str(port)+'/a/'+key
                 (root/'security.conf').write_text(configuration(key,url,True,False))
