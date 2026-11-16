@@ -48,13 +48,16 @@ try {
         $sessions[$role] = recordTestSession($row);
     }
     [$editorSession, $csrf] = $sessions['editor'];
-    // Lifecycle filters survive leaving the list and returning without URL state.
+    // Explicit URL filters work; returning without URL state restores Active + Scheduled.
     $preferenceCookie = 'dnr_engagement_lifecycle_' . $users[0];
-    foreach (['active', 'postponed', 'canceled', 'completed', 'all'] as $lifecycle) {
+    foreach (['active' => 'Scheduled', 'postponed' => 'Postponed', 'canceled' => 'Canceled', 'completed' => 'Completed', 'all' => 'All'] as $lifecycle => $label) {
         $selection = recordHttp('engagements.php?lifecycle=' . $lifecycle, $editorSession);
+        $dom = new DOMDocument(); @$dom->loadHTML($selection['body']); $xpath = new DOMXPath($dom);
+        $selected = $xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0);
         expectRecordHttp($selection['status'] === 200
-            && str_contains($selection['headers'], $preferenceCookie . '=' . $lifecycle),
-            'Explicit lifecycle selection persists, including All');
+            && $selected instanceof DOMElement && trim($selected->textContent) === $label
+            && !str_contains($selection['headers'], $preferenceCookie . '='),
+            'Explicit lifecycle selection applies without saving a sticky preference');
         $cookies = [$preferenceCookie => $lifecycle];
         recordHttp('dashboard.php', $editorSession, null, [], $cookies);
         foreach (['engagements.php', 'engagements.php?lifecycle=invalid', 'engagements.php?lifecycle[]=active'] as $returnPath) {
@@ -62,13 +65,14 @@ try {
             $dom = new DOMDocument(); @$dom->loadHTML($returned['body']); $xpath = new DOMXPath($dom);
             $selected = $xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0);
             expectRecordHttp($returned['status'] === 200 && $selected instanceof DOMElement
-                && trim($selected->textContent) === ucfirst($lifecycle),
-                'Returning restores the saved lifecycle filter and ignores invalid input');
+                && trim($selected->textContent) === 'Scheduled'
+                && str_contains($returned['body'], 'Visibility: Active'),
+                'Returning restores Active + Scheduled and ignores invalid input and legacy cookies');
         }
         $otherUser = recordHttp('engagements.php', $sessions['reviewer'][0], null, [], $cookies);
         $dom = new DOMDocument(); @$dom->loadHTML($otherUser['body']); $xpath = new DOMXPath($dom);
-        expectRecordHttp(trim($xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0)->textContent) === 'All',
-            'Lifecycle preferences do not leak between users sharing a browser');
+        expectRecordHttp(trim($xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0)->textContent) === 'Scheduled',
+            'Other users also receive the Scheduled default regardless of legacy cookies');
     }
     $orgName = 'Relationship HTTP ' . $suffix;
     $operationToken = bin2hex(random_bytes(16));
@@ -324,8 +328,8 @@ try {
             $response = recordHttp($url . '&page=' . $page, $editorSession);
             expectRecordHttp($response['status'] === 200, 'Financial organization sort renders');
             $dom = new DOMDocument(); @$dom->loadHTML($response['body']); $xpath = new DOMXPath($dom);
-            expectRecordHttp($xpath->evaluate('string(//thead/tr/th[4])') === 'Last Receipts'
-                && $xpath->evaluate('string(//thead/tr/th[5])') === 'Lifetime Receipts',
+            expectRecordHttp($xpath->evaluate('normalize-space(//thead/tr/th[4]/a/text())') === 'Last Receipts'
+                && $xpath->evaluate('normalize-space(//thead/tr/th[5]/a/text())') === 'Lifetime Receipts',
                 'Organization columns identify combined receipts');
             foreach ($xpath->query('//tbody//a[@class="record-link"]') as $link) {
                 parse_str((string) parse_url($link->getAttribute('href'), PHP_URL_QUERY), $query);

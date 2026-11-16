@@ -44,6 +44,9 @@ function parentWorkQueue(string $session, array $parent, array $query, array $ex
             'Queue visibility matches parent, task status, ownership, and filters: ' . $key . ' ' . json_encode($query));
     }
     $dom = new DOMDocument(); @$dom->loadHTML($page['body']); $xpath = new DOMXPath($dom);
+    $visibilityLabels = array_map(static fn($node) => trim($node->textContent),
+        iterator_to_array($xpath->query('//nav[@class="list-context-tabs"]//a')));
+    expectParentWork($visibilityLabels === ['Active', 'Archived'], 'Visibility tabs have no numeric counts');
     foreach ($counts as $view => $count) {
         $node = $xpath->query('//a[contains(@class,"summary-card") and contains(@href,"view=' . $view . '")]//strong')->item(0);
         expectParentWork($node !== null && (int) $node->textContent === $count, 'Summary matches visible work: ' . $view);
@@ -129,7 +132,7 @@ try {
             expectParentWork($response['status'] === 302, 'Real parent archive/restore endpoint succeeds');
             $active = $archived ? [] : ['overdue', 'today', 'waiting', 'undated'];
             $counts = ['all' => count($active), 'overdue' => (int) !$archived, 'today' => (int) !$archived,
-                'upcoming' => (int) !$archived, 'waiting' => (int) !$archived, 'completed' => 2, 'archived' => 1];
+                'upcoming' => (int) !$archived, 'waiting' => (int) !$archived, 'completed' => 2];
             parentWorkQueue($session, $parent, [], $active, $counts);
             foreach (['overdue' => 'overdue', 'today' => 'today', 'upcoming' => 'waiting', 'waiting' => 'waiting'] as $view => $key) {
                 parentWorkQueue($session, $parent, ['view' => $view], $archived ? [] : [$key], $counts);

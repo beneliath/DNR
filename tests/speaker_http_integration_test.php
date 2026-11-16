@@ -63,7 +63,7 @@ try {
         $login = $request('login.php', ['csrf_token' => speakerHidden($form['body'], 'csrf_token'), 'username' => $username, 'password' => $password]);
         $login = finishIntegrationTestEnrollment($request, $login);
         expectSpeakerHttp($login['status'] === 302, 'Test user can sign in.');
-        $directory = $request('speakers.php');
+        $directory = $request('speakers.php?q=Olivier+Melnick');
         expectSpeakerHttp($directory['status'] === 200 && str_contains($directory['body'], 'Olivier Melnick'), 'Both roles can view speakers.');
         if ($role === 'editor') {
             $form = $request('edit_speaker.php');
