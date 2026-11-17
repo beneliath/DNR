@@ -231,7 +231,11 @@ function audienceCollectionDocument(array $input, string $kind, array $fields, a
     foreach (array_slice(is_array($input['sections']??null)?$input['sections']:[],0,30) as $s) {
         if (!is_array($s) || !in_array($s['type']??'', ['heading','text','image','button','divider'],true)) throw new InvalidArgumentException('Choose a supported section.');
         $section=['type'=>$s['type'],'text'=>audienceCollectionText($s['text']??'',5000),'url'=>audienceCollectionUrl($s['url']??'',$s['type']==='image')];
-        if($s['type']==='image'&&isset($s['width'])&&$s['width']!=='')$section['width']=audienceDesignNumber($s['width'],40,1200);
+        if($s['type']==='image'){
+            $section['align']=$s['align']??'left';
+            if(!in_array($section['align'],['left','center','right'],true))throw new InvalidArgumentException('Choose a supported image alignment.');
+            if(isset($s['width'])&&$s['width']!=='')$section['width']=audienceDesignNumber($s['width'],40,1200);
+        }
         $d['sections'][]=$section;
     }
     $d['questions']=[]; $ids=[];
