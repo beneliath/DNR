@@ -461,10 +461,10 @@
         "editor"
       ],
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
-      "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
+      "condition": "Review recipients, expense descriptions in the email preview, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
-        "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
+        "reimbursement_submission_helpers.php": "c2c8ed0c1854828425303642df72bed2e5846245841ce229b19bef145ce7f980",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
         "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"
