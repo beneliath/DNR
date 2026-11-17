@@ -7,7 +7,7 @@ $recipient=$as->one('SELECT r.id FROM marketing_campaign_recipients r JOIN marke
 $rid=(int)$recipient['id'];$link=hash('sha256','https://example.test/engagement');
 $selection=array_replace($window,['messages_mode'=>'selected','messages'=>[$cid]]);
 $before=$as->analyticsOverview($selection)['totals'];
-foreach([1,2]as$repeat)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE),?)",[$analyticsAid,$rid,bin2hex(random_bytes(32)),json_encode(['bot'=>false,'link_hash'=>$link,'link_label'=>'example.test/engagement'])]);
+foreach([1,2]as$repeat)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',?,?)",[$analyticsAid,$rid,bin2hex(random_bytes(32)),$analyticsAt,json_encode(['bot'=>false,'link_hash'=>$link,'link_label'=>'example.test/engagement'])]);
 $after=$as->analyticsOverview($selection)['totals'];
 audienceHttpExpect($after['opens']===$before['opens']+1&&$after['clicks']===$before['clicks']+1&&$after['total_clicks']===$before['total_clicks']+2,'Click-only activity implies one unique open; repeat clicks remain separate totals');
 audienceHttpExpect($after['successful']===$after['accepted']-$after['failed']&&$after['failed']===1&&$after['click_rate']===audienceAnalyticsRate($after['clicks'],$after['successful']),'Bounced messages are excluded from engagement denominator');
@@ -45,7 +45,7 @@ audienceHttpExpect(count($timeline['rows'])>=2&&!array_filter($timeline['rows'],
 audienceHttpExpect(!array_filter($timeline['rows'],static fn($e)=>!empty(audienceJson($e['details_json'])['bot'])),'Human timeline observations are not mislabeled as known bots');
 $pending=$as->analyticsOverview($selection)['totals'];
 audienceHttpExpect($pending['awaiting_receipt']>0&&$pending['awaiting_receipt']===$pending['successful']-$pending['delivered'],'Missing delivery receipts remain provisional rather than counted as failure');
-foreach(['rejected','hard-bounce']as$type)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,?,?,'provider',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE),JSON_OBJECT())",[$analyticsAid,$rid,$type,bin2hex(random_bytes(32))]);
+foreach(['rejected','hard-bounce']as$type)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,?,?,'provider',?,JSON_OBJECT())",[$analyticsAid,$rid,$type,bin2hex(random_bytes(32)),$analyticsAt]);
 $failed=$as->analyticsOverview($selection)['totals'];
 audienceHttpExpect($failed['successful']===$after['successful']-1&&$failed['clicks']===$before['clicks'],'A message with multiple failure events leaves the denominator once and does not inflate engagement');
 $listAfterFailure=$as->analyticsCampaignListMetrics([$cid])[$cid];
@@ -83,8 +83,8 @@ audienceHttpExpect($oldChoicePage['status']===200&&str_contains($oldChoicePage['
 $mapSeed=$as->one('SELECT * FROM marketing_campaign_deliveries WHERE audience_id=? ORDER BY id LIMIT 1',[$analyticsAid]);
 $recipientSeed=$as->one('SELECT * FROM marketing_campaign_recipients WHERE audience_id=? AND delivery_id=? LIMIT 1',[$analyticsAid,$mapSeed['id']]);
 for($i=0;$i<101;$i++){
-    $as->write("INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label) VALUES (?,?,?,'completed',UTC_TIMESTAMP(),'UTC',?,?,1,?,'Old-map qualification')",[$analyticsAid,$mapSeed['campaign_id'],$i+2,$mapSeed['snapshot_ciphertext'],bin2hex(random_bytes(32)),$as->actorId]);$newDelivery=(int)$conn->insert_id;
-    $as->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at,phase) VALUES (?,?,?,?,?,?,?,'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP(),'main')",[$analyticsAid,$newDelivery,$recipientSeed['contact_id'],$recipientSeed['email_hash'],$recipientSeed['context_ciphertext'],bin2hex(random_bytes(32)),'<map-'.bin2hex(random_bytes(16)).'@example.test>']);
+    $as->write("INSERT INTO marketing_campaign_deliveries(audience_id,campaign_id,confirmed_version,state,due_at,timezone,snapshot_ciphertext,asset_key,recipient_count,actor_id,actor_label) VALUES (?,?,?,'completed',?,'UTC',?,?,1,?,'Old-map qualification')",[$analyticsAid,$mapSeed['campaign_id'],$i+2,$analyticsAt,$mapSeed['snapshot_ciphertext'],bin2hex(random_bytes(32)),$as->actorId]);$newDelivery=(int)$conn->insert_id;
+    $as->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at,phase) VALUES (?,?,?,?,?,?,?,'accepted',?,?,'main')",[$analyticsAid,$newDelivery,$recipientSeed['contact_id'],$recipientSeed['email_hash'],$recipientSeed['context_ciphertext'],bin2hex(random_bytes(32)),'<map-'.bin2hex(random_bytes(16)).'@example.test>',$analyticsAt,$analyticsAt]);
 }
 $allMap=$as->analyticsClickMap($window,(int)$mapSeed['id']);
 audienceHttpExpect(count($allMap['options'])>100&&$allMap['delivery']===(int)$mapSeed['id']&&!isset($allMap['options'][0]['snapshot_ciphertext']),'Click map selects an older delivery without loading every encrypted message snapshot');

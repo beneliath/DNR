@@ -13,7 +13,9 @@ $heldFlows = $store->all("SELECT id FROM marketing_flows WHERE audience_id=1 AND
 $heldJobs = $store->all("SELECT id,state FROM marketing_campaign_deliveries WHERE audience_id=1 AND state IN ('scheduled','sending')");
 $settings = $store->sesSettings();
 $audienceSettings = $store->one('SELECT settings_json FROM marketing_audiences WHERE id=1')['settings_json'];
-$flowIds = []; $suffix = bin2hex(random_bytes(5)); $clock = time();
+$flowIds = []; $suffix = bin2hex(random_bytes(5));
+// Keep every simulated step inside the delivery window, including CI runs at midnight.
+$clock = (new DateTimeImmutable('today', new DateTimeZone('UTC')))->setTime(12, 0)->getTimestamp();
 $newFlow = static function(array $document, string $name) use ($store, &$flowIds): array {
     $id = $store->saveFlow($name, $document); $flowIds[] = $id;
     $store->flowOperation($id, 1, 'activate'); return $store->flow($id);
