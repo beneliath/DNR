@@ -51,8 +51,8 @@ function parentWorkQueue(string $session, array $parent, array $query, array $ex
         $node = $xpath->query('//a[contains(@class,"summary-card") and contains(@href,"view=' . $view . '")]//strong')->item(0);
         expectParentWork($node !== null && (int) $node->textContent === $count, 'Summary matches visible work: ' . $view);
     }
-    expectParentWork(str_contains($page['body'], 'Showing ' . count($expected) . ' of ' . count($expected) . ' task'),
-        'Pagination totals match the visible tasks');
+    expectParentWork($xpath->query('//table[contains(@class,"task-table")]/tbody/tr[td[@data-field="Task"]]')->length === count($expected),
+        'Rendered task rows match the filtered total');
 }
 
 $suffix = bin2hex(random_bytes(5));

@@ -64,9 +64,10 @@ try {
             $returned = recordHttp($returnPath, $editorSession, null, [], $cookies);
             $dom = new DOMDocument(); @$dom->loadHTML($returned['body']); $xpath = new DOMXPath($dom);
             $selected = $xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0);
+            $visibility = $xpath->query('//nav[@class="list-context-tabs"]/a[@aria-current="page"]')->item(0);
             expectRecordHttp($returned['status'] === 200 && $selected instanceof DOMElement
                 && trim($selected->textContent) === 'Scheduled'
-                && str_contains($returned['body'], 'Visibility: Active'),
+                && $visibility instanceof DOMElement && trim($visibility->textContent) === 'Active',
                 'Returning restores Active + Scheduled and ignores invalid input and legacy cookies');
         }
         $otherUser = recordHttp('engagements.php', $sessions['reviewer'][0], null, [], $cookies);
