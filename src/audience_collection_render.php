@@ -121,6 +121,7 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     .collection-image-block>.collection-block-remove{top:-8px;left:-8px;right:auto}
     .collection-image-block>img{display:block;margin:0}
     button.collection-image-resize{position:absolute;z-index:3;bottom:-8px;right:-8px;display:flex;align-items:center;justify-content:center;width:26px;height:26px;min-height:26px;margin:0;padding:0;border:2px solid #fff;border-radius:4px;background:#007c89;color:#fff;font:20px/1 Arial;cursor:nwse-resize;touch-action:none;opacity:0}
+    .collection-image-section[data-image-align="right"]>.collection-image-resize{left:-8px;right:auto;cursor:nesw-resize}
     .collection-image-block:hover>.collection-image-resize,.collection-image-block:focus-within>.collection-image-resize,.collection-image-block.is-selected>.collection-image-resize{opacity:1}
     button.collection-image-resize:focus-visible{outline:3px solid #007c89;outline-offset:2px}
     <?php endif; ?>
@@ -130,7 +131,11 @@ function audienceCollectionHtml(array $r,array $fields,array $groups,string $act
     <?php if($success!==''): ?><div class="success" role="status"><p><?= $h($success) ?></p></div>
     <?php else: ?>
     <?php if($d['intro']!==''): ?><p class="collection-intro"><?= $h($d['intro']) ?></p><?php endif; ?>
-    <?php foreach($d['sections']as$sectionIndex=>$s): ?><?php if($preview): ?><div data-collection-section="<?= $sectionIndex ?>"><?php endif; ?><?php if($s['type']==='heading'): ?><h2><?= $h($s['text']) ?></h2><?php elseif($s['type']==='text'): ?><p><?= $h($s['text']) ?></p><?php elseif($s['type']==='image'&&$s['url']): ?><img class="section-image"<?php if(isset($s['width'])): ?> width="<?= (int)$s['width'] ?>"<?php endif; ?> src="<?= $h($s['url']) ?>" alt="<?= $h($s['text']) ?>" referrerpolicy="no-referrer"><?php elseif($s['type']==='button'&&$s['url']): ?><a class="button" href="<?= $h($s['url']) ?>" rel="noopener noreferrer"><?= $h($s['text']) ?></a><?php elseif($s['type']==='divider'): ?><hr><?php endif; ?><?php if($preview): ?></div><?php endif; ?><?php endforeach; ?>
+    <?php foreach($d['sections']as$sectionIndex=>$s): ?>
+    <?php if($preview||$s['type']==='image'): ?><div<?php if($preview): ?> data-collection-section="<?= $sectionIndex ?>"<?php endif; ?><?php if($s['type']==='image'): ?> class="collection-image-section" data-image-align="<?= $h(in_array($s['align']??'', ['left','center','right'],true)?$s['align']:'left') ?>"<?php endif; ?>><?php endif; ?>
+    <?php if($s['type']==='heading'): ?><h2><?= $h($s['text']) ?></h2><?php elseif($s['type']==='text'): ?><p><?= $h($s['text']) ?></p><?php elseif($s['type']==='image'&&$s['url']): ?><img class="section-image"<?php if(isset($s['width'])): ?> width="<?= (int)$s['width'] ?>"<?php endif; ?> src="<?= $h($s['url']) ?>" alt="<?= $h($s['text']) ?>" referrerpolicy="no-referrer"><?php elseif($s['type']==='button'&&$s['url']): ?><a class="button" href="<?= $h($s['url']) ?>" rel="noopener noreferrer"><?= $h($s['text']) ?></a><?php elseif($s['type']==='divider'): ?><hr><?php endif; ?>
+    <?php if($preview||$s['type']==='image'): ?></div><?php endif; ?>
+    <?php endforeach; ?>
     <?php if($error!==''): ?><div class="error" role="alert" tabindex="-1"><strong><?= $h($messages['error_title']) ?></strong><p><?= $h($messages[$publicErrorKey]) ?></p></div><?php endif; ?>
     <form method="post" action="<?= $h($action) ?>">
     <?php if($unavailable!==''): ?><div class="error" role="status"><p><?= $h($unavailable) ?></p></div><fieldset disabled><legend class="trap">Signup Temporarily Unavailable</legend><?php endif; ?>
