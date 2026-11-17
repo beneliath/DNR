@@ -361,12 +361,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
            <?php echo $lifecycle_filter === 'completed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">✓</span><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></a>
     </div>
 
-    <div class="list-controls engagement-controls">
-        <?php renderListContextTabs([
-            'active' => ['Active', $list_url(['status' => 'active'])],
-            'archived' => ['Archived', $list_url(['status' => 'archived'])],
-        ], $list_status, 'Engagement Status'); ?>
-        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Lifecycle' => $lifecycle_filter === 'all' ? 'All' : engagementLifecycleLabel($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=active'); ?>
+    <div class="list-controls engagement-controls directory-list-controls">
         <form method="get" action="engagements.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
@@ -377,11 +372,18 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="hidden" name="title_sort" value="<?php echo htmlspecialchars($title_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <div class="engagement-search-field">
-            <label class="visually-hidden" for="engagement-search">Title, Organization, Contact, Chron Log Text, "and"/or User</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Title, Organization, Contact, Chron Log Text, &quot;and&quot;/or User">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <div class="directory-filter-row">
+                <?php renderListContextTabs([
+                    'active' => ['Active', $list_url(['status' => 'active'])],
+                    'archived' => ['Archived', $list_url(['status' => 'archived'])],
+                ], $list_status, 'Engagement Status'); ?>
+                <div class="directory-search-control">
+                    <label class="visually-hidden" for="engagement-search">Search Engagements</label>
+                    <span class="search-icon" aria-hidden="true">⌕</span>
+                    <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Engagements" title="Title, Organization, Contact, Chron Log Text, &quot;and&quot;/or User">
+                    <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+                    <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+                </div>
             </div>
             <div class="engagement-date-filter-row">
             <fieldset class="engagement-date-window<?php echo $date_filter_active ? ' has-active-date-filter' : ''; ?>" aria-label="Engagement Dates" data-engagement-date-window>
@@ -407,6 +409,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             </div>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>
+        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Lifecycle' => $lifecycle_filter === 'all' ? 'All' : engagementLifecycleLabel($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=active'); ?>
     </div>
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>

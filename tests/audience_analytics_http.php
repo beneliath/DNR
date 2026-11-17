@@ -6,6 +6,8 @@ $startChecks=$checks;
 $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Analytics isolation fixture',JSON_OBJECT())");$analyticsAid=(int)$conn->insert_id;
 $as=new AudienceStore($conn,$analyticsAid,1,'Analytics fixture');
 $samples=audienceAnalyticsFixture($as,'Sample');$window=audienceAnalyticsWindow([]);
+// Keep synthetic observations inside this report window even when the suite crosses midnight.
+$analyticsAt=$window['end'].' 00:00:00';
 $result=$as->analyticsOverview($window);
 audienceHttpExpect($result['totals']['accepted']===36,'Analytics counts accepted messages once');
 audienceHttpExpect($result['totals']['delivered']===33&&$result['totals']['delivery_rate']===91.67,'Delivery rate requires provider receipts and keeps the accepted denominator');
@@ -31,9 +33,9 @@ audienceHttpExpect($empty['totals']['accepted']===0&&$empty['totals']['open_rate
 audienceHttpExpect(array_sum(array_column($result['daily'],'accepted'))===36,'Trend and headline reconcile');
 audienceHttpExpect(array_sum(array_column(array_column($result['campaigns'],'metrics'),'accepted'))===36,'Campaign rows reconcile with the same cohort');
 $r=$as->one('SELECT r.id FROM marketing_campaign_recipients r WHERE r.audience_id=? ORDER BY id LIMIT 1',[$analyticsAid]);
-$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'tracking',UTC_TIMESTAMP(),JSON_OBJECT('bot',false))",[$analyticsAid,$r['id'],bin2hex(random_bytes(32))]);
+$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'tracking',?,JSON_OBJECT('bot',false))",[$analyticsAid,$r['id'],bin2hex(random_bytes(32)),$analyticsAt]);
 $new=$as->analyticsOverview($window);audienceHttpExpect($new['totals']['accepted']===36&&$new['totals']['opens']===19,'Repeated event fan-out never inflates sends or recipient engagement');
-$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'tracking',UTC_TIMESTAMP(),JSON_OBJECT('bot',false))",[$analyticsAid,$r['id'],bin2hex(random_bytes(32))]);
+$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'tracking',?,JSON_OBJECT('bot',false))",[$analyticsAid,$r['id'],bin2hex(random_bytes(32)),$analyticsAt]);
 audienceHttpExpect($as->analyticsOverview($window)['totals']['opens']===19,'A second human observation of the same message remains unique');
 foreach([['start'=>'2026-02-30'],['start'=>'2026-10-17','end'=>'2026-10-16'],['start'=>'2000-01-01'],['end'=>'2099-01-01'],['bots'=>'invented']]as$bad){$failed=false;try{audienceAnalyticsWindow($bad);}catch(InvalidArgumentException){$failed=true;}audienceHttpExpect($failed,'Invalid reporting window is rejected');}
 audienceHttpExpect(!array_intersect($samples['campaigns'],array_column($campaignStore->analyticsOverview($window)['campaigns'],'id')),'Analytics fixture never crosses audience boundary');

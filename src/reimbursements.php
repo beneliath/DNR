@@ -158,7 +158,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
     <?php $flowStep = 1; include __DIR__ . '/templates/reimbursement_progress.php'; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementH($error) ?></p><?php endif; ?>
     <?php if ($message !== ''): ?><p class="success" role="status"><?= reimbursementH($message) ?></p><?php endif; ?>
-    <section class="reimbursement-card">
+    <section class="reimbursement-expenses-section">
         <div class="reimbursement-list-heading reimbursement-expenses-list-heading reimbursement-context-heading"><h2 class="reimbursement-expenses-heading">Expenses</h2>
         <?php renderListContextTabs([
             'active' => ['Active', 'reimbursements.php?' . http_build_query(array_replace($listParams, ['show' => 'active']))],
@@ -188,6 +188,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
         <form method="post" action="<?= reimbursementH($listUrl . '&page=' . $pagination['page']) ?>" id="reimbursement-create-form"<?= $canSelect ? ' data-reimbursement-selection data-available-url="' . reimbursementH($listUrl . '&action=available_expenses') . '"' : '' ?> data-selection-key="reimbursement-selection-<?= $userId ?>" data-selection-scope="<?= hash('sha256', json_encode([$start, $end, $ownerFilterId, $search])) ?>">
             <?= csrfInput() ?><?php if ($canSelect): ?><details><summary>Dates for New Request</summary><p class="field-help">These dates apply to the draft you create. The browsing filters above stay unchanged.</p><div class="reimbursement-inline-form"><label>Request Start Date<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="start_date" required value="<?= reimbursementH($_POST['start_date'] ?? $start) ?>"></label><label>Request End Date<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="end_date" required value="<?= reimbursementH($_POST['end_date'] ?? $end) ?>"></label></div></details><?php endif; ?>
             <?php if ($canSelect): ?><div class="reimbursement-selection-summary"><span data-selection-count role="status" aria-live="polite">0 expenses selected</span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection disabled>Clear Selection</button><span data-selection-total>Selected Total: $0.00 · 0 Without Receipts (rechecked when creating the draft)</span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
+            <div class="reimbursement-card">
             <div class="reimbursement-table-wrap"><table class="data-table reimbursement-expense-table sortable-table"><thead><tr>
                 <th scope="col">Include</th>
                 <th scope="col" aria-sort="<?= listSortState($sortBy === 'date', $sortDir) ?>"><a class="table-sort-link" href="<?= reimbursementH($sortUrl('date')) ?>">Date <span aria-hidden="true"><?= listSortArrow($sortBy === 'date', $sortDir) ?></span></a></th>
@@ -221,7 +222,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
                     </div></td>
                 </tr><?php endforeach; ?>
                 <?php if (!$expenses): ?><tr><td colspan="9"><?= $search !== '' || $state !== 'all' ? 'No expenses match these filters.' : 'No expenses in this date range.' ?></td></tr><?php endif; ?>
-            </tbody></table></div>
+            </tbody></table></div></div>
             <?php if ($canSelect): ?><div class="reimbursement-selection-summary"><span data-selection-count>0 expenses selected</span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection disabled>Clear Selection</button><span data-selection-total>Selected Total: $0.00 · 0 Without Receipts (rechecked when creating the draft)</span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
         </form>
         <?php foreach ($expenses as $expense): $expenseId = (int) $expense['id']; ?>

@@ -6,6 +6,9 @@ updates:
     ignore:
       - dependency-name: tecnickcom/tcpdf
         update-types: ["version-update:semver-major"]
+      # QR Code 6.2 requires PHP 8.5; keep the supported PHP 8.4 test matrix.
+      - dependency-name: endroid/qr-code
+        versions: [">=6.2.0"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

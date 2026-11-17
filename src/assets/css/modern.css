@@ -7042,6 +7042,7 @@ html.dark-mode .filter-chip.is-archived-visibility {
 }
 .clear-filters { padding: 8px; margin-left: auto; font-weight: 600; }
 .list-context-tabs {
+  --inactive-tab-color: #929292;
   display: flex;
   gap: 24px;
   width: max-content;
@@ -7051,16 +7052,17 @@ html.dark-mode .filter-chip.is-archived-visibility {
   border-bottom: 1px solid var(--border);
   overflow: auto;
 }
+html.dark-mode .list-context-tabs { --inactive-tab-color: #666666; }
 .list-context-tabs > a {
   display: inline-grid;
   flex: none;
   padding: 20px 0 16px;
   border-bottom: 3px solid transparent;
-  color: var(--text);
+  color: var(--inactive-tab-color);
   white-space: nowrap;
   text-decoration: none !important;
 }
-.list-context-tabs > a[aria-current="page"] { border-bottom-color: var(--primary); font-weight: 600; }
+.list-context-tabs > a[aria-current="page"] { color: var(--text); border-bottom-color: var(--primary); font-weight: 600; }
 /* Reserve the selected label's width without changing the inactive typography. */
 .list-context-tabs > a > span,
 .list-context-tabs > a::after,
@@ -7208,6 +7210,65 @@ html body .unified-list-filter > button { min-height: 42px; }
   .list-controls .sort-buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Record lists share compact search controls with page-specific filters below. */
+.list-controls.directory-list-controls {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch !important;
+  gap: 12px !important;
+}
+.directory-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  min-width: 0;
+}
+.directory-filter-row > .list-context-tabs { margin: 0; }
+.directory-filter-row > .list-context-tabs > a {
+  min-height: 44px;
+  align-items: center;
+  padding-block: 10px;
+}
+.directory-filter-row > :is(.list-search-form, .directory-search-control) {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 24px;
+  flex: 0 1 auto;
+  width: min(24rem, 50%);
+  min-width: 0;
+  margin: 0 0 0 auto;
+}
+.directory-filter-row > :is(.list-search-form, .directory-search-control) > input[type="search"] {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.directory-filter-row > :is(.list-search-form, .directory-search-control) > button {
+  grid-area: 1 / 2;
+  min-height: 42px;
+  margin: 0;
+}
+.directory-filter-row > :is(.list-search-form, .directory-search-control) > .clear-search {
+  position: static;
+  grid-area: 1 / 1;
+  justify-self: end;
+  margin-right: 12px;
+  z-index: 1;
+}
+.list-controls.directory-list-controls > .list-filter-summary {
+  margin: 0;
+  min-width: 0;
+}
+.directory-list-controls .clear-filters { margin-left: 0; }
+@container (max-width: 40rem) {
+  .directory-filter-row > .list-context-tabs { flex-basis: 100%; }
+  .directory-filter-row > :is(.list-search-form, .directory-search-control) {
+    width: min(24rem, 100%);
+    margin-left: 0;
   }
 }
 @container (max-width: 40rem) {

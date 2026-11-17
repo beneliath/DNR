@@ -22,7 +22,7 @@ $evidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_col
 $before=$evidence['links'][0];$rid=$as->one("SELECT e.recipient_id,e.details_json FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id WHERE e.audience_id=? AND e.event_type='click' AND JSON_UNQUOTE(JSON_EXTRACT(e.details_json,'$.bot'))='false' ORDER BY e.id LIMIT 1",[$analyticsAid]);
 $linkPage=$as->analyticsActivity($window,'clicks',999,1,$before['link_hash']);
 audienceHttpExpect($linkPage['total']===$linkPage['page']&&$linkPage['total']===(int)$before['messages']&&count($linkPage['rows'])===1,'A tracked link counts distinct matching messages before clamping the requested page');
-$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',UTC_TIMESTAMP(),?)",[$analyticsAid,$rid['recipient_id'],bin2hex(random_bytes(32)),$rid['details_json']]);
+$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',?,?)",[$analyticsAid,$rid['recipient_id'],bin2hex(random_bytes(32)),$analyticsAt,$rid['details_json']]);
 $updatedEvidence=$as->analyticsEvidence($window);audienceHttpExpect(array_sum(array_column($updatedEvidence['links'],'messages'))===3&&array_sum(array_column($updatedEvidence['links'],'observations'))===4,'Repeated link clicks increase observations while unique messages stay fixed');
 // New classifications coexist with older events without reclassifying historical data.
 $conn->begin_transaction();
@@ -32,7 +32,7 @@ try{
     $beforeOs=$as->analyticsEvidence($scope)['os'];
     audienceHttpExpect(count($beforeOs)===1&&$beforeOs[0]['label']==='Unknown','Historical events without OS evidence stay Unknown');
     $details=audienceAnalyticsClientEvidence('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/128.0.6613.98 Mobile/15E148 Safari/604.1',null);
-    foreach([false,false,true]as$bot)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',UTC_TIMESTAMP(),?)",[$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),json_encode(['bot'=>$bot]+$details)]);
+    foreach([false,false,true]as$bot)$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',?,?)",[$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),$analyticsAt,json_encode(['bot'=>$bot]+$details)]);
     $classified=$as->analyticsEvidence($scope);
     foreach(['client'=>'Chrome Mobile iOS','os'=>'iOS','device'=>'Smartphone']as$key=>$label){
         $rows=array_column($classified[$key],null,'label');
@@ -46,8 +46,8 @@ try{
     $afterOs=array_column($classified['os'],null,'label');
     audienceHttpExpect($afterOs['Unknown']===$beforeOs[0],'Recording new classifications preserves historical counts');
     $alternate = array_replace($details, ['client'=>'Another browser','country'=>'CA','bot'=>false]);
-    $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',UTC_TIMESTAMP(),?)",
-        [$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),json_encode($alternate)]);
+    $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'open',?,'browser',?,?)",
+        [$analyticsAid,$recipient['id'],bin2hex(random_bytes(32)),$analyticsAt,json_encode($alternate)]);
     $devices = $as->analyticsEvidence($scope, 'devices');
     $ios = array_column($devices['os'], null, 'label')['iOS'];
     audienceHttpExpect((int)$ios['messages']===1 && (int)$ios['observations']===3,
@@ -140,8 +140,8 @@ $patternRows=$as->analyticsContentPatterns($window,$as->analyticsOverview($windo
             SELECT ?,CONCAT('benchmark-',a.n*90+b.n,'@example.test'),'non-subscribed','Benchmark volume fixture',''
             FROM numbers a CROSS JOIN numbers b WHERE a.n<80", [$store->audienceId]);
         $store->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at)
-            SELECT audience_id,?,id,SHA2(email,256),'fixture',SHA2(CONCAT('benchmark-',id),256),CONCAT('benchmark-',id),'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP()
-            FROM marketing_contacts WHERE audience_id=? AND source='Benchmark volume fixture'", [$delivery['id'], $store->audienceId]);
+            SELECT audience_id,?,id,SHA2(email,256),'fixture',SHA2(CONCAT('benchmark-',id),256),CONCAT('benchmark-',id),'accepted',?,?
+            FROM marketing_contacts WHERE audience_id=? AND source='Benchmark volume fixture'", [$delivery['id'], $window['end'].' 00:00:00', $window['end'].' 00:00:00', $store->audienceId]);
         $scope = array_replace($window, ['messages_mode'=>'selected','messages'=>[$campaign]]);
         $overview = $store->analyticsOverview($scope);
         $db->query('SET SESSION max_execution_time=5000');
@@ -273,12 +273,13 @@ audienceHttpExpect($editor('audience.php?view=analytics&section=activity&activit
     audienceHttpExpect(str_contains($empty,'No reports match these filters.')&&str_contains($empty,'0 of 0'),'Favorites filter and empty state apply within the selected report list');
 })();
 
+$timingAt=gmdate('Y-m-d H:i:s',strtotime($analyticsAt.' UTC')-86400);
 $baseline=$as->analyticsTimingEvidence()['contacts'];$timingDelivery=(int)$mapDelivery['id'];$lastTimingRecipient=0;
 for($i=0;$i<100-$baseline;$i++){
     $email='timing-'.$i.'@example.test';$as->write("INSERT INTO marketing_contacts(audience_id,email,email_status,is_archived,source,notes) VALUES (?,?,'non-subscribed',1,'Disposable timing fixture','Fictional; never sent')",[$analyticsAid,$email]);$contact=(int)$conn->insert_id;
-    $as->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at,phase) VALUES (?,?,?,?,?,?,?,'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP(),'main')",[$analyticsAid,$timingDelivery,$contact,audienceDispatchEmailHash($email),Dnr\Security\ApplicationKey::seal(json_encode(['email'=>$email])),bin2hex(random_bytes(32)),'timing-'.$i.'@example.test']);$lastTimingRecipient=(int)$conn->insert_id;
-    $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY),JSON_OBJECT('bot',?))",[$analyticsAid,$lastTimingRecipient,bin2hex(random_bytes(32)),$i===99-$baseline?'true':'false']);
+    $as->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,accepted_at,phase) VALUES (?,?,?,?,?,?,?,'accepted',?,?,'main')",[$analyticsAid,$timingDelivery,$contact,audienceDispatchEmailHash($email),Dnr\Security\ApplicationKey::seal(json_encode(['email'=>$email])),bin2hex(random_bytes(32)),'timing-'.$i.'@example.test',$timingAt,$timingAt]);$lastTimingRecipient=(int)$conn->insert_id;
+    $as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',?,JSON_OBJECT('bot',?))",[$analyticsAid,$lastTimingRecipient,bin2hex(random_bytes(32)),$timingAt,$i===99-$baseline?'true':'false']);
 }
 audienceHttpExpect($as->analyticsTimingEvidence()['contacts']===99&&!$as->analyticsTimingEvidence()['ready'],'Detected bot clicks cannot satisfy the 100-recipient scheduling threshold');
-$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY),JSON_OBJECT('bot',false))",[$analyticsAid,$lastTimingRecipient,bin2hex(random_bytes(32))]);
+$as->write("INSERT INTO marketing_message_events(audience_id,recipient_id,event_type,event_key,source,event_at,details_json) VALUES (?,?,'click',?,'browser',?,JSON_OBJECT('bot',false))",[$analyticsAid,$lastTimingRecipient,bin2hex(random_bytes(32)),$timingAt]);
 audienceHttpExpect($as->analyticsTimingEvidence()['ready']&&$as->analyticsTimingEvidence()['contacts']===100,'Scheduling and analytics share the exact 100 distinct recipient threshold');

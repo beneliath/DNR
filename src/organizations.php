@@ -289,25 +289,27 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <?php renderListContextTabs([
-        'active' => ['Active', $list_url(['status' => 'active'])],
-        'archived' => ['Archived', $list_url(['status' => 'archived'])],
-    ], $list_status, 'Organization Status'); ?>
-    <div class="list-controls">
+    <div class="list-controls directory-list-controls">
+        <div class="directory-filter-row">
+            <?php renderListContextTabs([
+                'active' => ['Active', $list_url(['status' => 'active'])],
+                'archived' => ['Archived', $list_url(['status' => 'archived'])],
+            ], $list_status, 'Organization Status'); ?>
+            <form method="get" action="organizations.php" class="list-search-form unified-list-filter" role="search">
+                <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="last_giving_sort" value="<?php echo $last_giving_sort; ?>">
+                <input type="hidden" name="lifetime_giving_sort" value="<?php echo $lifetime_giving_sort; ?>">
+                <input type="hidden" name="sort_by" value="<?php echo $sort_column; ?>">
+                <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+                <label class="visually-hidden" for="organization-search">Search Organizations</label>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Organizations">
+                <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+                <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+            </form>
+        </div>
         <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
-        <form method="get" action="organizations.php" class="list-search-form unified-list-filter" role="search">
-            <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="last_giving_sort" value="<?php echo $last_giving_sort; ?>">
-            <input type="hidden" name="lifetime_giving_sort" value="<?php echo $lifetime_giving_sort; ?>">
-            <input type="hidden" name="sort_by" value="<?php echo $sort_column; ?>">
-            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <label class="visually-hidden" for="organization-search">Search Organizations</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Organizations">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
-            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
-        </form>
     </div>
 
     <?php if ($search !== ''): ?>
