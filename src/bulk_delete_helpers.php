@@ -123,12 +123,12 @@ function permanentlyDeleteSelectedRecords(mysqli $conn, string $entity, array $i
     return ['deleted' => $deleted, 'failed' => count($records) - $deleted];
 }
 
-function renderBulkDeleteToolbar(string $entity, string $return_to): void
+function renderBulkDeleteToolbar(string $entity, string $return_to, bool $compact = false): void
 {
     if (!canDeleteEntries($_SESSION['role'] ?? null)) return;
     $type = bulkDeleteType($entity);
     ?>
-    <form id="bulk-delete-form" class="bulk-delete-toolbar" method="post" action="bulk_delete.php" data-bulk-delete>
+    <form id="bulk-delete-form" class="bulk-delete-toolbar" method="post" action="bulk_delete.php" data-bulk-delete<?php if ($compact): ?> data-bulk-submit-label="Review Deletion"<?php endif; ?>>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="action" value="review">
         <input type="hidden" name="entity" value="<?php echo htmlspecialchars($entity, ENT_QUOTES, 'UTF-8'); ?>">
@@ -136,8 +136,8 @@ function renderBulkDeleteToolbar(string $entity, string $return_to): void
         <span data-bulk-count role="status" aria-live="polite">0 selected</span>
         <button type="button" class="button-secondary" data-bulk-select-all>Select All Available</button>
         <button type="button" class="button-secondary" data-bulk-clear hidden>Clear Selection</button>
-        <button type="submit" class="delete-button" data-bulk-submit data-admin-unlock-required>Delete Selected</button>
-        <p class="bulk-delete-help">Select <?php echo htmlspecialchars($type['plural'], ENT_QUOTES, 'UTF-8'); ?> on this page. Review the selection and unlock admin actions before deleting.</p>
+        <button type="submit" class="delete-button" data-bulk-submit data-admin-unlock-required><?php echo $compact ? 'Review Deletion' : 'Delete Selected'; ?></button>
+        <?php if (!$compact): ?><p class="bulk-delete-help">Select <?php echo htmlspecialchars($type['plural'], ENT_QUOTES, 'UTF-8'); ?> on this page. Review the selection and unlock admin actions before deleting.</p><?php endif; ?>
     </form>
     <?php
     renderScript('assets/js/bulk-delete.min.js');

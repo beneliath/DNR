@@ -52,6 +52,13 @@ function followUpTaskQueueViews()
     ];
 }
 
+/** Keep each user's ownership-view choice available on primary root URLs too. */
+function followUpTaskPageSizePreference(string $scope, int $userId, mixed $value): int
+{
+    $scope = in_array($scope, ['mine', 'everyone', 'unassigned'], true) ? $scope : 'mine';
+    return paginationUserPageSizePreference('tasks', $userId, $value, 20, [20, 50, 100], $scope);
+}
+
 function followUpTaskActiveStatuses()
 {
     return ['open', 'in_progress', 'waiting'];

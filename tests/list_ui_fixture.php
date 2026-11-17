@@ -84,7 +84,7 @@ function listUiFixture(string $page, array $input = []): array
         $controls = '';
         if ($page === 'engagements') {
             $startOffset = strpos($source, '<div class="list-controls engagement-controls');
-            $endOffset = strpos($source, '<?php renderBulkDeleteToolbar', $startOffset);
+            $endOffset = strpos($source, '<?php renderPagination', $startOffset);
             ob_start();
             eval('?>' . substr($source, $startOffset, $endOffset - $startOffset));
             $controls = ob_get_clean();

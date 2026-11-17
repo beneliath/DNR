@@ -59,6 +59,8 @@ def configuration(key, public_url, primary=False, stripped=True):
             # Expired legacy cookies retain their scoped path, so their deletion
             # cannot remove the newly saved root preference.
             lines.append(f'    Header {table} edit Set-Cookie "^(dnr_rows_per_page_mm_[a-f0-9]{{24}}=(?:10|25|50|100);(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
+            # MOED list names also include account, user and subview identity.
+            lines.append(f'    Header {table} edit Set-Cookie "^(dnr_rows_per_page_(?:tasks|engagements)_[a-f0-9]{{24}}=(?:20|50|100);(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')
             # Sort and date-range cookies are also scoped by account and user.
             # Keep deletions scoped so future legacy-path cleanup stays safe.
             lines.append(f'    Header {table} edit Set-Cookie "^({selections}=(?!deleted;)[^;]+;(?i:.*?Path=))[^;]*(.*)$" "$1/$2"')

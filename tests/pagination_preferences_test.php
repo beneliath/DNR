@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/functions.php';
 require_once __DIR__ . '/../src/pagination_helpers.php';
+require_once __DIR__ . '/../src/follow_up_task_helpers.php';
 
 function expectPaginationPreference(bool $condition, string $message): void {
     if (!$condition) {
@@ -52,5 +53,39 @@ expectPaginationPreference(paginationPageSizePreference('users', null) === 20,
 $_COOKIE['dnr_rows_per_page_users'] = '99999';
 expectPaginationPreference(paginationPageSizePreference('users', null) === 20,
     'Cookies cannot request unsupported row limits.');
+
+$_COOKIE = ['dnr_rows_per_page_tasks_everyone' => '50'];
+expectPaginationPreference(followUpTaskPageSizePreference('everyone', 11, null) === 50,
+    'An existing ownership preference migrates to the account/user/view preference.');
+expectPaginationPreference(followUpTaskPageSizePreference('mine', 11, null) === 20
+    && followUpTaskPageSizePreference('everyone', 11, null) === 50,
+    'Returning through My Tasks retains the separately saved Everyone setting.');
+expectPaginationPreference(followUpTaskPageSizePreference('unassigned', 11, '100') === 100
+    && followUpTaskPageSizePreference('everyone', 11, null) === 50,
+    'Unassigned Tasks can remember a different choice.');
+unset($_COOKIE['dnr_rows_per_page_tasks_everyone']);
+expectPaginationPreference(followUpTaskPageSizePreference('everyone', 22, null) === 20
+    && followUpTaskPageSizePreference('everyone', 11, null) === 50,
+    'A different signed-in user cannot overwrite the saved choice.');
+expectPaginationPreference(followUpTaskPageSizePreference('everyone', 11, '500') === 50
+    && followUpTaskPageSizePreference('everyone', 11, '20') === 20
+    && followUpTaskPageSizePreference('unassigned', 11, null) === 100,
+    'Invalid choices are ignored, and explicitly choosing 20 changes only that ownership view.');
+$tasksSource = file_get_contents(__DIR__ . '/../src/tasks.php');
+$queue_parameters = ['view' => 'all', 'scope' => 'everyone', 'per_page' => 50, 'q' => 'follow up'];
+$queueStart = strpos($tasksSource, '$queue_url = static function');
+$queueEnd = strpos($tasksSource, '$subject_filter_record =', $queueStart);
+eval(substr($tasksSource, $queueStart, $queueEnd - $queueStart));
+parse_str(parse_url($queue_url(['scope' => 'mine']), PHP_URL_QUERY), $nextQueue);
+expectPaginationPreference($nextQueue['scope'] === 'mine' && !isset($nextQueue['per_page'])
+    && $nextQueue['q'] === 'follow up',
+    'Ownership links restore the target view preference while preserving the search.');
+parse_str(parse_url($queue_url(['view' => 'waiting']), PHP_URL_QUERY), $sameOwnership);
+expectPaginationPreference($sameOwnership['per_page'] === '50',
+    'Changing a status filter within the same ownership view retains its size.');
+expectPaginationPreference(paginationUserPageSizePreference('engagements', 11, '50') === 50
+    && paginationUserPageSizePreference('engagements', 11, null) === 50
+    && paginationUserPageSizePreference('engagements', 22, null) === 20,
+    'Engagements restores each signed-in user\'s own page-size selection.');
 
 echo "Pagination preference tests passed.\n";

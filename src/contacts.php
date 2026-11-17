@@ -314,16 +314,16 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
             </form>
         </div>
-        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
     </div>
 
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing contacts matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
-    <?php renderBulkDeleteToolbar('contact', $list_current_url); ?>
     <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
-    <div class="contact-table-wrapper">
+    <div class="record-table-pane contact-table-pane">
+        <?php renderBulkDeleteToolbar('contact', $list_current_url, true); ?>
+        <div class="contact-table-wrapper data-table-scroll">
         <table class="contact-table data-table mobile-record-table sortable-table">
             <thead>
                 <tr>
@@ -439,9 +439,10 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
     </div>
 
-        <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
+    <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

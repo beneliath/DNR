@@ -37,17 +37,30 @@ The local authoring output is `output/pdf/moed-comprehensive-user-manual.pdf`.
 `build-report.json` records page locations and `verification.json` records the
 checks performed against the finished PDF.
 
-All 114 figures were recaptured on October 13, 2026. Browser views use native
+The November 17 refresh retakes 69 existing browser figures and adds six workflow
+illustrations. The other 45 figures retain their recorded capture dates. Browser views use native
 3x-resolution PNGs; the generated receipt-report page is rendered at 300 DPI.
 The PDF limits image enlargement to retain at least 300 effective DPI and
 verification compares every embedded image with its included source pixels.
 
+A subsequent November 17 layout refresh retakes seven figures: Engagements,
+Organizations, Contacts, Speakers, and the active, completed, and archived Tasks
+views. These use a 1600-pixel desktop viewport at native 3x resolution so the
+updated controls and table actions fit. Captions describe the selection toolbars
+inside the table panes, their sticky scrolling behavior, and current filtering
+and Records Per Page controls.
+
+The new illustrations cover engagement cancellation, optional and duplicate
+presentations, actual chunk-upload progress, and receipt-photo reduction. The
+preview uses fictional records, a separate Docker network and volumes, log mail
+transport, and no mail dispatch worker. No production data was changed.
+
 ## Current edition
 
-The November 16, 2026 edition applies to application version **2.11.15**.
+The November 17, 2026 edition applies to application version **2.11.19**.
 The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
 Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
-Retained screenshots identify the earlier Active lifecycle wording in their captions.
+Refreshed screenshots show Scheduled lifecycle wording and the current list controls.
 The Engagements chapter documents the red lightning-bolt Cancel Engagement action,
 Editor/Admin access, the required reason and exact `CANCEL` confirmation, and
 archiving all associated tasks while preserving completed-task history.
@@ -59,8 +72,7 @@ The README appendix includes the closeout prerequisites.
 The reimbursement email review now offers Reduce Photo Sizes for large receipt
 photos. It prepares smaller email copies while preserving the original uploads,
 then rechecks the 18 MB ZIP and 25 MB encoded email limits. Users download the
-package to confirm receipt readability before submitting. Retained review
-screenshots show the original-photo workflow; their captions explain the new option.
+package to confirm receipt readability before submitting. New review illustrations show the size warning and the prepared smaller copies.
 
 The operator appendix now documents Major.Minor.Patch versioning. The Inbox uses
 a conversation list and content pane, with explicit selection before reading,
@@ -74,7 +86,7 @@ undated tasks, completed/canceled/archived work, and shared financial closeout
 reminders are excluded. The badge is hidden at zero and capped at 99+. The
 Dashboard's My Active Tasks card continues to show all active assignments.
 
-This release adds an Admin Unlock dialog that preserves the current page, orange outlines for locked sensitive actions, review-count badges, and aligned action columns. Platform-only views and preview controls require SuperAdmin access. Reimbursement reports and emails use the Account Name from Account Settings. Retained screenshots of the earlier unlock page and reimbursement setup are labeled with the current workflow.
+This release adds an Admin Unlock dialog that preserves the current page, orange outlines for locked sensitive actions, review-count badges, and aligned action columns. Platform-only views and preview controls require SuperAdmin access. Reimbursement reports and emails use the Account Name from Account Settings. Refreshed screenshots show the Admin Unlock dialog and current reimbursement setup.
 
 The financial closeout now requires Giving Received, Lodging Received, Travel Received, and Book Table Received before finalization. Drafts retain unknown amounts, confirmed zero remains explicit, and book-table amounts are included in totals and correction history. Existing finalized reports retain an unrecorded book-table amount until corrected.
 
@@ -89,13 +101,12 @@ undo limits, email reply follow-up, Inbox filing, pending map filters, network
 windows, administrator unlock extension, and reimbursement selection, notes,
 progress, CSV/receipt packages, and mail size checks.
 
-38 refreshed or new illustrations show the current application or an actual
-generated report using fictional records in an isolated preview. Existing figures
-are retained only for unchanged controls. No external email was sent. See
+75 refreshed or new illustrations show the current application using fictional
+records in an isolated preview. The other 45 figures are retained for unchanged
+controls or generated reports. No external email was sent. See
 `refresh-coverage.json` for the feature-to-figure inventory and limitations.
-The merge review documents the 90-day undo boundary; the preview merge fixture
-rolled back on a database privilege error, so a completed merge/undo is not
-represented as verified by this documentation refresh.
+The merge review documents the 90-day undo boundary. A completed merge/undo is not
+represented as verified by this screenshot refresh.
 
 Run `scripts/manual/export-online.py` before building to export the current sidebar
 chapters without a database or user session. `release-supplements.json` supplies
@@ -113,9 +124,8 @@ sequence. The sidebar manual keeps these instructions concise. Invitation and
 administrator-unlock button spacing and network-column alignment do not change
 those workflows, so their existing instructions are retained.
 
-The calendar and presentation-file walkthroughs explain the new controls. Existing
-illustrations remain reference views; captions identify the older one-month/file
-layout where relevant. No real localhost records or sample-calendar fixtures were
+The calendar and presentation-file walkthroughs explain the current controls.
+Their browser figures were retaken in November. No real localhost records were
 included in the guide. The PDF retrieval index and static application-control map
 are regenerated; the unchanged calendar-subscription procedure/form source hashes
 are reverified. This is retrieval maintenance, not model training. Existing approved
@@ -138,8 +148,9 @@ implying that a local development automation is installed on every MOED deployme
 
 Presentation instructions now begin at the event's Presentations tab and Edit
 Presentations. PowerPoint .ppt/.pptx files allow 500 MB per file; PDF notes remain
-100 MB. The engagement editor uploads both formats in small chunks with visible progress and retries, followed by a saving stage. Existing screenshot crops retain
-the unchanged file controls and exclude the obsolete size-limit line. The event
+100 MB. The engagement editor uploads both formats in small chunks with visible
+progress and retries, followed by a saving stage. The November captures show the
+current file controls and an actual upload in progress. The event
 creation procedure starts at Engagements, then + New Engagement, with organization
 selection inside that form. Account Security also names the current Change Password
 panel and its confirmation fields.
@@ -261,6 +272,8 @@ The existing CLI capture utility waits for fonts and captures lossless PNGs at
 - `DNR_MANUAL_FIXTURE_JSON`: local seed result JSON.
 - `DNR_MANUAL_EXTRA_JSON`: local augmentation result JSON.
 - Optional `DNR_MANUAL_ONLY`: comma-separated screenshot IDs to refresh.
+- Optional `DNR_MANUAL_VIEWPORT_WIDTH`: desktop width in CSS pixels, from 1280 to
+  2560; defaults to 1280. Mobile figures retain their phone viewport.
 - Optional `DNR_MANUAL_WORK_DIR`: ignored directory for page snapshots and capture results.
 - Optional `DNR_MANUAL_OUTPUT_DIR`: staging directory for PNGs and an updated manifest;
   omit to update the checked-in guide sources.

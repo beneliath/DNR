@@ -889,7 +889,7 @@ html body .engagement-next-action-content p.task-due {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
     margin: 14px 0 0;
-    gap: 9px !important;
+    gap: 9px 16px !important;
 }
 
 .presentation-export-actions.export-actions > * {

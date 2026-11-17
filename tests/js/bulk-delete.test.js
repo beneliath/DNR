@@ -4,11 +4,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/bulk-delete.js'), 'utf8');
-function fixture(size = 3) {
+function fixture(size = 3, submitLabel) {
     const node = () => ({ checked: false, events: {}, addEventListener(type, fn) { this.events[type] = fn; } });
     const items = Array.from({ length: size }, node);
     const controls = Object.fromEntries(['select-all', 'clear', 'count', 'submit'].map(key => [key, node()]));
     const form = node();
+    form.dataset = submitLabel ? { bulkSubmitLabel: submitLabel } : {};
     form.querySelector = selector => controls[selector.slice(11, -1)];
     const events = {};
     vm.runInNewContext(source, { document: {
@@ -44,4 +45,14 @@ test('empty lists cannot select all or submit, and a browser-restored selection 
     restored.events.pageshow();
     assert.equal(restored.controls.submit.disabled, false);
     assert.equal(restored.controls.count.textContent, '1 Selected');
+});
+
+test('compact table toolbars retain their review label as selection changes', () => {
+    const { controls } = fixture(3, 'Review Deletion');
+    assert.equal(controls.submit.textContent, 'Review Deletion');
+    controls['select-all'].events.click();
+    assert.equal(controls.submit.textContent, 'Review Deletion (3)');
+    controls.clear.events.click();
+    assert.equal(controls.submit.textContent, 'Review Deletion');
+    assert.equal(controls.submit.disabled, true);
 });

@@ -127,13 +127,10 @@ expectFollowUpTaskFeature(
     'active overdue and due-today rows should have neutral backgrounds with theme-aware edges, hover, and keyboard-focus feedback.'
 );
 expectFollowUpTaskFeature(
-    str_contains($queue, 'class="task-priority-legend"')
-        && str_contains($queue, "['urgent', 'high', 'normal', 'low']")
-        && str_contains($queue, "htmlspecialchars(\$priority_labels[\$priority_value], ENT_QUOTES, 'UTF-8')")
-        && !str_contains($queue, "\$priority_labels[\$priority_value] . ' Priority'")
+    str_contains($queue, "\$priority_labels[\$task['priority']] . ' Priority'")
         && str_contains($queue, 'task-priority-legend-item task-priority-')
         && preg_match('/\.task-priority-legend-item\s*\{[^}]*padding:\s*3px 7px;[^}]*border-radius:\s*999px;/s', $styles) === 1,
-    'the queue should explain every priority color with short, title-cased legend badges.'
+    'each task should identify its priority with a compact labeled badge.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, 'requireValidCsrfToken()')

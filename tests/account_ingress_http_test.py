@@ -40,7 +40,7 @@ def main():
         for asset in ['js/button-feedback.min.js', 'css/style.min.css', 'css/modern.min.css']:
             (root/'assets'/Path(asset).name).write_bytes((repository/'src/assets'/asset).read_bytes())
         (root/'download_feedback_helpers.php').write_bytes((repository/'src/download_feedback_helpers.php').read_bytes())
-        for helper in ['pagination_helpers.php','audience_pagination.php','app/Domain/ReferenceData.php']:
+        for helper in ['pagination_helpers.php','audience_pagination.php','app/Domain/ReferenceData.php','moed/tasks/policy.php']:
             (root/helper).parent.mkdir(parents=True,exist_ok=True)
             (root/helper).write_bytes((repository/'src'/helper).read_bytes())
         (root/'assets/browser-check.js').write_text('''
@@ -52,6 +52,23 @@ document.addEventListener('DOMContentLoaded', () => {
 ''')
         (root/'assets/denied.php').write_text('<?php echo "not executable";')
         (root/'backend.php').write_text('''<?php
+if (str_contains($_SERVER['REQUEST_URI'], '/tasks-size.php') || str_contains($_SERVER['REQUEST_URI'], '/engagements-size.php')) {
+    function currentAccountKey() { return 'test-account'; }
+    function accountIsPrimary() { return true; }
+    function accountCookiePath() { return '/a/test-account/'; }
+    function requestUsesHttps() { return false; }
+    function applicationRequiresHttps() { return false; }
+    require '/fixture/pagination_helpers.php';
+    require '/fixture/moed/tasks/policy.php';
+    $state=followUpTaskQueueState($_GET);
+    $size=str_contains($_SERVER['REQUEST_URI'],'/engagements-size.php')
+        ? paginationUserPageSizePreference('engagements',31,$_GET['per_page']??null)
+        : followUpTaskPageSizePreference($state['scope'],31,$_GET['per_page']??null);
+    header('Content-Type: application/json');echo json_encode(['scope'=>$state['scope'],'size'=>$size]);exit;
+}
+if (str_contains($_SERVER['REQUEST_URI'], '/booking-pipeline.php')) {
+    header('Content-Type: application/json');echo '{}';exit;
+}
 if (str_contains($_SERVER['REQUEST_URI'], '/page-size.php')) {
     function currentAccountKey() { return 'test-account'; }
     function accountIsPrimary() { return true; }
@@ -231,6 +248,32 @@ echo json_encode(['cookie'=>$_SERVER['HTTP_COOKIE'] ?? '', 'uri'=>$_SERVER['REQU
                 with client.open('http://127.0.0.1:'+str(port)+path,timeout=5) as response:
                     assert json.load(response)['size']==expected,path
             assert any(c.name.startswith('dnr_rows_per_page_mm_')and c.value=='100'and c.path=='/'for c in jar)
+            # Leave Everyone's Tasks, return through the default My Tasks view,
+            # and switch back without a size parameter. Exercise real cookies
+            # through Apache, on both root and canonical account URLs.
+            for prefix in ['/', '/a/'+key+'/']:
+                task_jar=http.cookiejar.CookieJar()
+                task_client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(task_jar))
+                for suffix,expected_scope,expected_size in [
+                    ('tasks-size.php?scope=everyone&per_page=50','everyone',50),
+                    ('booking-pipeline.php',None,None),
+                    ('tasks-size.php','mine',20),
+                    ('tasks-size.php?scope=everyone','everyone',50),
+                    ('tasks-size.php?scope=mine&per_page=100','mine',100),
+                    ('tasks-size.php?scope=everyone','everyone',50),
+                    ('tasks-size.php?scope=unassigned&per_page=20','unassigned',20),
+                    ('tasks-size.php?scope=everyone&per_page=invalid','everyone',50),
+                ]:
+                    with task_client.open('http://127.0.0.1:'+str(port)+prefix+suffix,timeout=5) as response:
+                        result=json.load(response)
+                        if expected_scope is not None:
+                            assert result=={'scope':expected_scope,'size':expected_size},(prefix,suffix,result)
+                preferences=[c for c in task_jar if c.name.startswith('dnr_rows_per_page_tasks_')]
+                assert len(preferences)==3 and all(c.path=='/'for c in preferences),preferences
+                for suffix in ['engagements-size.php?per_page=100','booking-pipeline.php','engagements-size.php']:
+                    with task_client.open('http://127.0.0.1:'+str(port)+prefix+suffix,timeout=5) as response:
+                        result=json.load(response)
+                        if suffix.startswith('engagements-size.php'):assert result['size']==100,(prefix,suffix,result)
             assert sibling in json.loads(request('/a/other-account/profile.php',cookie=sibling+'=private')[2])['cookie']
             assert request('/a/test-account/assets/test.js')[2]==b'/* trusted fixture */'
             # Exercise the actual PHP helper through Apache for streamed and

@@ -19,8 +19,8 @@ foreach (['index.php', 'add_organization.php', 'add_contact.php', 'register.php'
 }
 
 expectCreateFormActions(
-    preg_match('/\.create-form-actions\s*\{[^}]*display:\s*flex\s*!important;[^}]*gap:\s*10px\s*!important;/s', $modern_styles) === 1,
-    'Create-form buttons should use the same 10px separation as New Engagement.'
+    preg_match('/\.create-form-actions\s*\{[^}]*display:\s*flex\s*!important;[^}]*gap:\s*10px\s+16px\s*!important;/s', $modern_styles) === 1,
+    'Create-form buttons should keep 10px between wrapped rows and 16px between neighboring buttons.'
 );
 
 echo "Create form action tests passed.\n";

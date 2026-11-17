@@ -5,8 +5,8 @@
       "width": 1280,
       "overflow": false,
       "link": {
-        "height": 22.09375,
-        "color": "rgb(0, 124, 137)"
+        "height": 20.640625,
+        "color": "rgb(36, 87, 214)"
       }
     },
     {
@@ -14,8 +14,8 @@
       "width": 390,
       "overflow": false,
       "link": {
-        "height": 48.4921875,
-        "color": "rgb(0, 124, 137)"
+        "height": 20.640625,
+        "color": "rgb(36, 87, 214)"
       }
     },
     {
@@ -23,8 +23,8 @@
       "width": 1280,
       "overflow": false,
       "link": {
-        "height": 22.09375,
-        "color": "rgb(112, 214, 208)"
+        "height": 20.640625,
+        "color": "rgb(120, 167, 255)"
       }
     },
     {
@@ -32,8 +32,8 @@
       "width": 390,
       "overflow": false,
       "link": {
-        "height": 48.4921875,
-        "color": "rgb(112, 214, 208)"
+        "height": 20.640625,
+        "color": "rgb(120, 167, 255)"
       }
     }
   ],

@@ -1,0 +1,883 @@
+{
+  "audit_date": "2026-11-17",
+  "application_version": "2.11.19",
+  "application_commit": "90c1d73bf033dca2a736e043d74b4c9ace004406",
+  "scope": "Initial screenshot currency audit and completed November 17 replacement against application 2.11.19, including the button-spacing patch. Per-guide baseline fields describe the PDFs installed before this refresh; refresh fields describe their verified replacements.",
+  "method": [
+    "Reviewed all 170 source figures as visual contact sheets and cross-checked capture dates and PDF figure destinations.",
+    "Rendered representative installed PDF pages: MOED 32 and 149; MessageMonkey 16 and 55. Checked screenshot crops when selecting retakes.",
+    "Compared visible controls and documented workflows with source changes since each guide screenshot baseline. Backend-only fixes and dependency changes do not by themselves require new screenshots.",
+    "Verified every installed PDF figure against the original included PNG pixels, lossless compression and effective image resolution.",
+    "The initial audit used source and image review. Replacement captures were subsequently qualified in an authenticated disposable fictional-data preview, as recorded in refresh."
+  ],
+  "capture_requirements": {
+    "native_browser_device_scale_factor": 3,
+    "typical_desktop_css_viewport": [
+      1280,
+      1000
+    ],
+    "typical_native_png_pixels": [
+      3840,
+      3000
+    ],
+    "minimum_pdf_effective_dpi": 300,
+    "compression": "Lossless PNG source and PDF Flate; retain original included pixels.",
+    "processing": "No enlargement, resampling, sharpening or JPEG substitution. Crops may frame complete controls without changing included source pixels.",
+    "data": "Use fictional records in an isolated disposable local preview and block external sends.",
+    "verification": "Rebuild and verify both PDFs after approved retakes; check image/source pixel identity, minimum effective DPI and rendered page layout. Reconcile guide versions/captions with the qualified release being documented."
+  },
+  "guides": {
+    "user-manual": {
+      "installed_pdf": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "pdf_version": "2.11.15",
+      "pdf_edition": "November 16, 2026",
+      "figure_count": 114,
+      "capture_dates": {
+        "2026-10-13": 114
+      },
+      "recommended_retake_count": 42,
+      "cosmetic_review_count": 10,
+      "no_specific_retake_identified_count": 62,
+      "retake_groups": [
+        {
+          "reason": "Search, visibility tabs, filters, sorting and action columns have changed. The Engagements image also shows the former Active lifecycle instead of Scheduled.",
+          "figures": [
+            "pipeline",
+            "inquiry-archived",
+            "engagement-list",
+            "email-templates",
+            "organizations",
+            "contacts",
+            "speakers",
+            "tasks",
+            "task-confirmation",
+            "task-archived",
+            "reimbursement-expenses",
+            "reimbursement-selection",
+            "reimbursement-requests",
+            "reimbursement-accounts"
+          ],
+          "evidence": [
+            "c460109",
+            "4fcceb2",
+            "src/engagements.php",
+            "src/assets/css/modern.css"
+          ]
+        },
+        {
+          "reason": "Show the current Scheduled lifecycle, engagement editor layout, presentation numbering and tab counts. Reframe presentation editing to include No Presentation Required and Duplicate Presentation.",
+          "figures": [
+            "engagement",
+            "engagement-form",
+            "presentations",
+            "presentation-form",
+            "presentation-management",
+            "lifecycle",
+            "standard-form",
+            "presentation-restore"
+          ],
+          "evidence": [
+            "de9609c",
+            "53367d7",
+            "90446ff",
+            "c460109",
+            "src/templates/presentation_form.php",
+            "src/engagement_lifecycle_helpers.php"
+          ]
+        },
+        {
+          "reason": "The profile now includes Display Timezone. Reframe the related profile figures and replace the recovery-email illustration whose own caption identifies the earlier field arrangement.",
+          "figures": [
+            "profile",
+            "digest-preferences",
+            "reimbursement-profile",
+            "recovery-email"
+          ],
+          "evidence": [
+            "80fbc69",
+            "src/profile.php",
+            "docs/user-manual/screenshots.json"
+          ]
+        },
+        {
+          "reason": "Replace the full-page administrator verification illustration with the in-page Admin Unlock dialog used by the documented workflow. The installed PDF still explains away the old illustration in its caption.",
+          "figures": [
+            "elevation"
+          ],
+          "evidence": [
+            "docs/user-manual/screenshots.json",
+            "src/templates/admin-unlock-dialog.php"
+          ]
+        },
+        {
+          "reason": "Backup copy now distinguishes compressed downloads from uncompressed limits, lists MessageMonkey data, and has staged progress. Capture current controls and add a progress state if illustrating the export operation.",
+          "figures": [
+            "backup"
+          ],
+          "evidence": [
+            "d21f557",
+            "e4b0417",
+            "src/database_maintenance.php",
+            "src/assets/js/database-backup.js"
+          ]
+        },
+        {
+          "reason": "Illustrate the current receipt-photo workflow, Reduce Photo Sizes and the resulting reviewed package. Use a fictional request with eligible large photos so the option is visible; the old PDF-only fixture does not demonstrate it.",
+          "figures": [
+            "reimbursement-review",
+            "reimbursement-confirm"
+          ],
+          "evidence": [
+            "77e61eb",
+            "src/reimbursement_submit.php"
+          ]
+        },
+        {
+          "reason": "Draft persistence and recovery changed after this capture. Recreate an available draft with the current recovery controls and use the current status wording.",
+          "figures": [
+            "browser-draft-recovery"
+          ],
+          "evidence": [
+            "0ed277b",
+            "src/assets/js/form-drafts.js"
+          ]
+        },
+        {
+          "reason": "The sign-in description was expanded to include organizations, speakers and reimbursements.",
+          "figures": [
+            "login"
+          ],
+          "evidence": [
+            "9016e65",
+            "src/login.php"
+          ]
+        },
+        {
+          "reason": "These figures visibly contain date entry or date-filter controls. Replace native date-input views with the current shared date picker, current field labels and current filter arrangement.",
+          "figures": [
+            "inquiry-form",
+            "inquiry-action",
+            "conversion",
+            "task-form",
+            "duplicate-task",
+            "reimbursement-expense-entry",
+            "reimbursement-draft",
+            "map-pending-filters",
+            "audit",
+            "retention"
+          ],
+          "evidence": [
+            "460efdb",
+            "src/assets/js/date-picker.js",
+            "src/assets/css/date-picker.css"
+          ]
+        }
+      ],
+      "retake_pdf_pages": {
+        "pipeline": 18,
+        "inquiry-archived": 25,
+        "engagement-list": 32,
+        "email-templates": 47,
+        "organizations": 64,
+        "contacts": 68,
+        "speakers": 71,
+        "tasks": 80,
+        "task-confirmation": 85,
+        "task-archived": 86,
+        "reimbursement-expenses": 111,
+        "reimbursement-selection": 112,
+        "reimbursement-requests": 115,
+        "reimbursement-accounts": 121,
+        "engagement": 33,
+        "engagement-form": 34,
+        "presentations": 36,
+        "presentation-form": 39,
+        "presentation-management": 55,
+        "lifecycle": 43,
+        "standard-form": 84,
+        "presentation-restore": 57,
+        "profile": 127,
+        "digest-preferences": 128,
+        "reimbursement-profile": 123,
+        "recovery-email": 131,
+        "elevation": 149,
+        "backup": 152,
+        "reimbursement-review": 118,
+        "reimbursement-confirm": 119,
+        "browser-draft-recovery": 10,
+        "login": 132,
+        "inquiry-form": 20,
+        "inquiry-action": 21,
+        "conversion": 22,
+        "task-form": 81,
+        "duplicate-task": 82,
+        "reimbursement-expense-entry": 113,
+        "reimbursement-draft": 116,
+        "map-pending-filters": 104,
+        "audit": 150,
+        "retention": 151
+      },
+      "cosmetic_review_figures": [
+        "delete-user",
+        "network-reset",
+        "setup",
+        "presentation-delete-confirmation",
+        "presentation-exports",
+        "reset-statistics",
+        "presentation-link-reset",
+        "email-message",
+        "email-template-fields",
+        "closeout-amounts"
+      ],
+      "cosmetic_review_note": "Lower-priority consistency check for spacing, title case, styling and shared shell changes. Do not replace solely because code changed if those changes are outside the included screenshot crop.",
+      "no_specific_retake_identified": [
+        "admin-countdown",
+        "bulk-speaker-review",
+        "bulk-user-confirmation",
+        "bulk-user-review",
+        "calendar",
+        "calendar-agenda",
+        "chron",
+        "closeout",
+        "contact",
+        "contact-form",
+        "dark",
+        "dashboard",
+        "dashboard-timing",
+        "duplicate-record-warning",
+        "edit-user",
+        "email",
+        "email-template-editor",
+        "event-contacts",
+        "final-report",
+        "financial",
+        "financial-correction",
+        "financial-history",
+        "forgot-password",
+        "inbound-message",
+        "inbox",
+        "inquiry",
+        "inquiry-archive",
+        "inquiry-email",
+        "invite",
+        "link-controls",
+        "logistics",
+        "manual",
+        "manual-search",
+        "map",
+        "map-pin",
+        "mattermost",
+        "mobile",
+        "network",
+        "operations",
+        "organization",
+        "organization-financial",
+        "organization-form",
+        "presentation-file-pending",
+        "presentation-files",
+        "presentation-ppt-qr",
+        "qr-selection",
+        "record-merge",
+        "reimbursement-delivery",
+        "reimbursement-detail",
+        "reimbursement-receipts",
+        "reimbursement-report-receipt",
+        "reimbursement-setup",
+        "roles",
+        "security",
+        "speaker",
+        "speaker-links",
+        "standard-task-details",
+        "standard-tasks",
+        "statistics",
+        "subscription",
+        "task-bulk-preview",
+        "users"
+      ],
+      "additional_or_expanded_coverage": [
+        {
+          "subject": "Cancel Engagement confirmation",
+          "reason": "No existing figure demonstrates the red cancellation action, required reason and exact CANCEL confirmation.",
+          "route": "engagements.php",
+          "source": "src/templates/engagement_cancel_dialog.php"
+        },
+        {
+          "subject": "Presentation duplication / optional presentations",
+          "reason": "The current guide has no dedicated state showing duplication or No Presentation Required. Prefer incorporating both into the presentation-editing retakes before adding a new figure.",
+          "route": "edit_engagement.php?id=<fictional-id>",
+          "source": "src/templates/presentation_form.php"
+        },
+        {
+          "subject": "Upload progress and pending changes",
+          "reason": "Existing file-control screenshots do not show chunked upload progress, retry/saving stages or the current pending-change reminder.",
+          "route": "edit_engagement.php?id=<fictional-id>&tab=presentations",
+          "source": "src/assets/js/presentation-form.js"
+        }
+      ],
+      "installed_pdf_image_quality": {
+        "guide": "user-manual",
+        "figures": 114,
+        "lossless_pixel_matches": 114,
+        "minimum_effective_dpi": 300.0,
+        "issues": [],
+        "pdf_sha256": "f7d04483aad887363c42b19e229fc2bd5fc07dfb15a927d3b0b968a123608c30"
+      },
+      "refresh": {
+        "status": "completed",
+        "version": "2.11.19",
+        "edition": "November 17, 2026",
+        "pages": 197,
+        "figures": 120,
+        "retaken_existing_figures": 69,
+        "new_figures": [
+          "engagement-cancel",
+          "presentation-duplicate",
+          "presentation-optional",
+          "presentation-upload-progress",
+          "reimbursement-photo-reduced",
+          "reimbursement-photo-reduction"
+        ],
+        "fresh_figures": [
+          "audit",
+          "backup",
+          "browser-draft-recovery",
+          "calendar",
+          "calendar-agenda",
+          "closeout-amounts",
+          "contact-form",
+          "contacts",
+          "conversion",
+          "dark",
+          "dashboard",
+          "delete-user",
+          "digest-preferences",
+          "duplicate-task",
+          "edit-user",
+          "elevation",
+          "email-message",
+          "email-template-fields",
+          "email-templates",
+          "engagement",
+          "engagement-cancel",
+          "engagement-form",
+          "engagement-list",
+          "final-report",
+          "financial",
+          "financial-history",
+          "inbound-message",
+          "inbox",
+          "inquiry-action",
+          "inquiry-archived",
+          "inquiry-form",
+          "lifecycle",
+          "login",
+          "manual",
+          "map-pending-filters",
+          "mobile",
+          "network-reset",
+          "organization-form",
+          "organizations",
+          "pipeline",
+          "presentation-delete-confirmation",
+          "presentation-duplicate",
+          "presentation-exports",
+          "presentation-file-pending",
+          "presentation-files",
+          "presentation-form",
+          "presentation-link-reset",
+          "presentation-management",
+          "presentation-optional",
+          "presentation-restore",
+          "presentation-upload-progress",
+          "presentations",
+          "profile",
+          "recovery-email",
+          "reimbursement-accounts",
+          "reimbursement-confirm",
+          "reimbursement-draft",
+          "reimbursement-expense-entry",
+          "reimbursement-expenses",
+          "reimbursement-photo-reduced",
+          "reimbursement-photo-reduction",
+          "reimbursement-profile",
+          "reimbursement-requests",
+          "reimbursement-review",
+          "reimbursement-selection",
+          "reimbursement-setup",
+          "reset-statistics",
+          "retention",
+          "setup",
+          "speakers",
+          "standard-form",
+          "task-archived",
+          "task-confirmation",
+          "task-form",
+          "tasks"
+        ],
+        "retained_unchanged_figures": [
+          "admin-countdown",
+          "bulk-speaker-review",
+          "bulk-user-confirmation",
+          "bulk-user-review",
+          "chron",
+          "closeout",
+          "contact",
+          "dashboard-timing",
+          "duplicate-record-warning",
+          "email",
+          "email-template-editor",
+          "event-contacts",
+          "financial-correction",
+          "forgot-password",
+          "inquiry",
+          "inquiry-archive",
+          "inquiry-email",
+          "invite",
+          "link-controls",
+          "logistics",
+          "manual-search",
+          "map",
+          "map-pin",
+          "mattermost",
+          "network",
+          "operations",
+          "organization",
+          "organization-financial",
+          "presentation-ppt-qr",
+          "qr-selection",
+          "record-merge",
+          "reimbursement-delivery",
+          "reimbursement-detail",
+          "reimbursement-receipts",
+          "reimbursement-report-receipt",
+          "roles",
+          "security",
+          "speaker",
+          "speaker-links",
+          "standard-task-details",
+          "standard-tasks",
+          "statistics",
+          "subscription",
+          "task-bulk-preview",
+          "users"
+        ],
+        "all_recommended_retakes_completed": true,
+        "native_device_scale_factor": 3,
+        "minimum_effective_dpi": 300.0,
+        "lossless_source_pixel_matches": 120,
+        "resampling": false,
+        "sharpening": false,
+        "installed_pdf": {
+          "status": 200,
+          "content_type": "application/pdf",
+          "bytes": 43246425,
+          "sha256": "f06dabf85afb34f37a9b975d11b71a809a6a7e49033b3df47bb90b598bc9d021",
+          "matches_installed_pdf": true
+        },
+        "list_layout_refresh": {
+          "date": "2026-11-17",
+          "figures": [
+            "engagement-list",
+            "organizations",
+            "contacts",
+            "speakers",
+            "tasks",
+            "task-confirmation",
+            "task-archived"
+          ],
+          "desktop_viewport": [
+            1600,
+            1000
+          ],
+          "native_device_scale_factor": 3,
+          "rendered_pdf_pages_reviewed": [
+            1,
+            32,
+            68,
+            72,
+            75,
+            84,
+            89,
+            90
+          ],
+          "minimum_effective_dpi": 300.0,
+          "lossless_source_pixel_matches": 120,
+          "download_matches_verified_pdf": true,
+          "captions_and_shared_manual_text": "Updated for current filters, selection toolbar placement and Records Per Page preferences.",
+          "preview": {
+            "project": "dnr-manual-highres",
+            "loopback_port": 18143,
+            "isolated_subnet": "10.252.200.0/24",
+            "data": "fictional records only",
+            "mail_transport": "log; no dispatch worker",
+            "cleanup": "Preview containers, volumes and network removed; preview sign-in credentials and session removed."
+          }
+        }
+      }
+    },
+    "message-monkey-user-guide": {
+      "installed_pdf": "src/assets/docs/message-monkey-comprehensive-user-guide.pdf",
+      "pdf_version": "2.11.6",
+      "pdf_edition": "November 12, 2026",
+      "figure_count": 56,
+      "capture_dates": {
+        "2026-10-29": 48,
+        "2026-10-31": 8
+      },
+      "recommended_retake_count": 31,
+      "cosmetic_review_count": 24,
+      "no_specific_retake_identified_count": 1,
+      "retake_groups": [
+        {
+          "reason": "Search/filter controls, list action placement and spacing have changed. Connections now uses a clearer Export Connections control; recapture the light, dark and mobile variants together.",
+          "figures": [
+            "connections",
+            "dark",
+            "mobile",
+            "tags",
+            "groups",
+            "segments",
+            "campaigns",
+            "templates",
+            "content",
+            "automations",
+            "forms",
+            "surveys",
+            "preferences",
+            "custom-reports"
+          ],
+          "evidence": [
+            "3c14105",
+            "119ed8f",
+            "c4411ed",
+            "src/templates/audience/people.php",
+            "src/assets/css/pages/audience-ui-standards.css",
+            "src/assets/css/pages/audience-mobile.css"
+          ]
+        },
+        {
+          "reason": "Reframe the connection profile with an expanded recorded interaction so it actually illustrates Recorded Location, Current IP Estimate and the current subscription/bounce detail presentation.",
+          "figures": [
+            "profile"
+          ],
+          "evidence": [
+            "3f08f9a",
+            "49de909",
+            "src/templates/audience/person.php",
+            "src/templates/audience/person-interaction-location.php",
+            "src/templates/audience/person-bounce-reason.php"
+          ]
+        },
+        {
+          "reason": "Capture the current recipient preview/count controls and delivery-date picker. Include the scheduled state to illustrate send-time eligibility, cancellation and the live countdown instead of relying only on an old unscheduled draft.",
+          "figures": [
+            "checklist",
+            "plain-text",
+            "send-checks",
+            "schedule"
+          ],
+          "evidence": [
+            "b228e76",
+            "cb46943",
+            "6d13c33",
+            "src/templates/audience/campaign-checklist.php",
+            "src/templates/audience/campaign-countdown.php"
+          ]
+        },
+        {
+          "reason": "Form editor controls, form-name/actions, setup and publishing guidance changed. Reframe at least one selected image to document the new left/center/right alignment controls.",
+          "figures": [
+            "form-editor",
+            "embedded",
+            "popup",
+            "landing",
+            "survey-editor"
+          ],
+          "evidence": [
+            "75932f3",
+            "3c14105",
+            "c345123",
+            "src/templates/audience/collection-editor.php",
+            "src/assets/js/audience-collection.js"
+          ]
+        },
+        {
+          "reason": "Automation overview/editor controls and report outcome explanations changed, including renaming and completed versus skipped outcomes. Template artwork/headings were also refined.",
+          "figures": [
+            "flow",
+            "flow-results",
+            "flow-templates"
+          ],
+          "evidence": [
+            "1eab20f",
+            "37f4f7a",
+            "de9609c",
+            "53367d7",
+            "src/templates/audience/flow-report.php",
+            "src/templates/audience/flow-template-preview.php"
+          ]
+        },
+        {
+          "reason": "Recapture the visual editor with its current toolbar, save/unsaved controls and responsive panel arrangement.",
+          "figures": [
+            "designer"
+          ],
+          "evidence": [
+            "ab016dd",
+            "3c14105",
+            "90446ff",
+            "src/templates/audience/designer.php",
+            "src/assets/css/pages/audience-designer.css"
+          ]
+        },
+        {
+          "reason": "Date range controls, explicit report-window summaries, typography and report tables changed. Recreate each report with a meaningful current date range.",
+          "figures": [
+            "analytics",
+            "report-builder",
+            "audience-analytics"
+          ],
+          "evidence": [
+            "1e0d890",
+            "7a6a7e4",
+            "3c14105",
+            "460efdb",
+            "src/templates/audience/analytics-filters.php",
+            "src/templates/audience/analytics-range-summary.php"
+          ]
+        }
+      ],
+      "retake_pdf_pages": {
+        "connections": 16,
+        "dark": 8,
+        "mobile": 9,
+        "tags": 23,
+        "groups": 24,
+        "segments": 26,
+        "campaigns": 28,
+        "templates": 33,
+        "content": 39,
+        "automations": 48,
+        "forms": 54,
+        "surveys": 59,
+        "preferences": 61,
+        "custom-reports": 71,
+        "profile": 17,
+        "checklist": 29,
+        "plain-text": 30,
+        "send-checks": 43,
+        "schedule": 45,
+        "form-editor": 55,
+        "embedded": 56,
+        "popup": 57,
+        "landing": 58,
+        "survey-editor": 60,
+        "flow": 50,
+        "flow-results": 51,
+        "flow-templates": 49,
+        "designer": 34,
+        "analytics": 70,
+        "report-builder": 72,
+        "audience-analytics": 73
+      },
+      "cosmetic_review_figures": [
+        "home",
+        "manual",
+        "manual-dark",
+        "roles",
+        "import",
+        "import-map",
+        "import-job",
+        "export-history",
+        "fields",
+        "review",
+        "email-preview",
+        "email-mobile",
+        "brand",
+        "delivery",
+        "inbox",
+        "conversation",
+        "compose",
+        "inbox-templates",
+        "inbox-sources",
+        "form-results",
+        "writing-ai",
+        "analytics-ai",
+        "writing-actions",
+        "manual-search"
+      ],
+      "cosmetic_review_note": "Lower-priority consistency check for spacing, title case, styling and shared shell changes. Do not replace solely because code changed if those changes are outside the included screenshot crop.",
+      "no_specific_retake_identified": [
+        "plan"
+      ],
+      "additional_or_expanded_coverage": [
+        {
+          "subject": "Interaction Locations country map",
+          "reason": "No current figure shows the map, country totals, Interaction Type filter or Fit Pins.",
+          "route": "audience.php?view=analytics&section=locations",
+          "source": "src/templates/audience/analytics-interaction-locations.php"
+        },
+        {
+          "subject": "Scheduled campaign countdown and cancellation",
+          "reason": "Existing schedule/checklist pictures show an unscheduled draft. Add a scheduled-state picture or explicitly include this state among the campaign retakes.",
+          "route": "audience.php?view=campaign&id=<fictional-id>",
+          "source": "src/templates/audience/campaign-countdown.php"
+        },
+        {
+          "subject": "Form image alignment",
+          "reason": "The editor screenshots predate left/center/right image alignment. Capture a selected image and its controls rather than only the default empty selection.",
+          "route": "audience.php?view=form&id=<fictional-id>",
+          "source": "src/assets/js/audience-collection.js"
+        },
+        {
+          "subject": "Inbox forwarding dialog",
+          "reason": "The existing Manage Sources picture shows an unconfigured receiving setup, not the SMTP forwarding dialog.",
+          "route": "audience.php?view=inbox&thread=<fictional-id>",
+          "source": "src/templates/audience/inbox-forward-dialog.php"
+        }
+      ],
+      "installed_pdf_image_quality": {
+        "guide": "message-monkey-user-guide",
+        "figures": 56,
+        "lossless_pixel_matches": 56,
+        "minimum_effective_dpi": 435.26,
+        "issues": [],
+        "pdf_sha256": "2b8beb4b785608aa15511357da90ae308aae71fc3c2338c0a4e62eab1adc3be9"
+      },
+      "refresh": {
+        "status": "completed",
+        "version": "2.11.19",
+        "edition": "November 17, 2026",
+        "pages": 89,
+        "figures": 61,
+        "retaken_existing_figures": 56,
+        "new_figures": [
+          "form-image-alignment",
+          "inbox-forward",
+          "interaction-locations",
+          "profile-interaction-locations",
+          "scheduled-campaign"
+        ],
+        "fresh_figures": [
+          "analytics",
+          "analytics-ai",
+          "audience-analytics",
+          "automations",
+          "brand",
+          "campaigns",
+          "checklist",
+          "compose",
+          "connections",
+          "content",
+          "conversation",
+          "custom-reports",
+          "dark",
+          "delivery",
+          "designer",
+          "email-mobile",
+          "email-preview",
+          "embedded",
+          "export-history",
+          "fields",
+          "flow",
+          "flow-results",
+          "flow-templates",
+          "form-editor",
+          "form-image-alignment",
+          "form-results",
+          "forms",
+          "groups",
+          "home",
+          "import",
+          "import-job",
+          "import-map",
+          "inbox",
+          "inbox-forward",
+          "inbox-sources",
+          "inbox-templates",
+          "interaction-locations",
+          "landing",
+          "manual",
+          "manual-dark",
+          "manual-search",
+          "mobile",
+          "plain-text",
+          "plan",
+          "popup",
+          "preferences",
+          "profile",
+          "profile-interaction-locations",
+          "report-builder",
+          "review",
+          "roles",
+          "schedule",
+          "scheduled-campaign",
+          "segments",
+          "send-checks",
+          "survey-editor",
+          "surveys",
+          "tags",
+          "templates",
+          "writing-actions",
+          "writing-ai"
+        ],
+        "retained_unchanged_figures": [],
+        "all_recommended_retakes_completed": true,
+        "native_device_scale_factor": 3,
+        "minimum_effective_dpi": 435.26,
+        "lossless_source_pixel_matches": 61,
+        "resampling": false,
+        "sharpening": false,
+        "installed_pdf": {
+          "status": 200,
+          "content_type": "application/pdf",
+          "bytes": 40844117,
+          "sha256": "7c0008d373f1d458922fa6e7fd57119b78d16df1910dc245885b101fe59c024f",
+          "matches_installed_pdf": true
+        }
+      }
+    }
+  },
+  "documentation_notes": [
+    "MessageMonkey README names version 2.11.5, while its installed PDF metadata and build report identify 2.11.6. Reconcile when rebuilding.",
+    "MOED captions still describe earlier UI for several figures. Replace the corresponding earlier-view explanations when installing fresh captures.",
+    "Capture dates, figure hashes, crops, build/verification reports and the asset manifest must be updated after actual recapture/rebuild. Refresh the MOED AI Coach PDF retrieval index after installing its changed PDF."
+  ],
+  "refresh": {
+    "status": "complete",
+    "date": "2026-11-17",
+    "application_version": "2.11.19",
+    "fresh_native_browser_figures": 136,
+    "new_workflow_figures": 11,
+    "total_pdf_figures": 181,
+    "rendered_pages_reviewed": 286,
+    "preview": {
+      "project": "dnr-guides-20261117",
+      "loopback_port": 18149,
+      "isolated_subnet": "10.252.210.0/24",
+      "existing_docker_subnets_checked": 38,
+      "shared_networks": [],
+      "static_addresses": [],
+      "data": "fictional local records only",
+      "delivery": "log transport; no dispatch worker or delivery/AI credentials",
+      "map": "real configured public OpenStreetMap tiles; no private provider credentials",
+      "cleanup": "Both task containers, all three dedicated volumes, and the isolated network removed; temporary credentials, sessions, raw HTML, fixtures, staged captures, and page renders deleted."
+    },
+    "checks": {
+      "pdf_navigation_page_bounds_and_source_pixel_identity": "passed for both PDFs",
+      "visual_review": "all 286 rendered pages reviewed as contact sheets; covers and representative new workflows inspected at 120 dpi; receipt-photo framing corrected and rechecked",
+      "download_byte_identity": "200 application/pdf for both installed copies",
+      "manual_browser_layout": "passed light/dark at 1280 and 390 CSS pixels",
+      "email_editor_smoke": "native blocks, footer, and block selection passed",
+      "manual_and_asset_php_tests": "passed; MessageMonkey manual 431 checks",
+      "manual_search_js_tests": "6 passed",
+      "ai_coach_sources_and_hashes": "passed; PDF retrieval index and static application map regenerated"
+    },
+    "release_alignment": {
+      "version": "2.11.19",
+      "both_guides_rebuilt": true,
+      "cover_and_pdf_metadata": "verified",
+      "lossless_figure_verification": "passed for both PDFs"
+    }
+  }
+}

@@ -1041,7 +1041,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "0dcb3396084e6cd7044dcb72c3f5349617bec47cb44da1cb5c4ba45683a678e2",
+      "sha256": "1eb19c5390b8b63b15b667bf427401c2d831ea2cd3d06aea1066c5c67076631b",
       "controls": [
         {
           "kind": "a",
@@ -1986,7 +1986,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "4e9c39472c239419df08579866ef8d478764f7b539b731da5cc8dad64792c433",
+      "sha256": "60c7758f2d2717951f384c738d0d3dfd3b5ac549f8765958055681736b694c69",
       "controls": [
         {
           "kind": "a",
@@ -1995,22 +1995,22 @@
         },
         {
           "kind": "a",
-          "label": "\u25c6Scheduled",
+          "label": "Scheduled",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u2161Postponed",
+          "label": "Postponed",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u00d7Canceled",
+          "label": "Canceled",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u2713Completed",
+          "label": "Completed",
           "href": ""
         },
         {
@@ -2758,7 +2758,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "1fe6baba2d281d31d6406d07b6c5bffab6f33b37371752ee5c89de42101b447b",
+      "sha256": "54fe08b775591409ca8e18180ce6fbb745fb39cdbfd37904c035c352667778a9",
       "controls": [
         {
           "kind": "a",
@@ -4145,7 +4145,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "5ace98200ecb7eb7233620d63a7db161b79b2477ef444b92eb4d4580d81f5059",
+      "sha256": "95fdc9870dda6633e5964d25d9848850d9f8013e9181920a3b9b19f69e301dde",
       "controls": [
         {
           "kind": "h1",
@@ -4211,7 +4211,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "8436e60d6b9b738692978893aeade0de03e5665aec36365c8f0bc9566666d605",
+      "sha256": "be0fab98ddba13d88eb9234edf0aa0d3bea64cda147cfdf6aac214e56220580f",
       "controls": [
         {
           "kind": "h1",

@@ -1,11 +1,11 @@
 .engagements-page {
-            --engagement-summary-gap: 14px;
+            --engagement-summary-gap: 1.15rem;
             width: min(100%, var(--app-content-max));
             max-width: var(--app-content-max);
             padding-inline: var(--app-content-padding);
             container: engagement-list / inline-size;
         }
-.engagements-page .summary-grid { gap: var(--engagement-summary-gap); }
+.engagements-page .summary-grid { gap: var(--engagement-summary-gap); margin-bottom: 16px; }
 html body .action-icon-button.cancel-engagement-button {
     --action-current: var(--action-delete);
     color: var(--action-delete) !important;
@@ -48,9 +48,9 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
             font-size: clamp(1.8rem, 3vw, 2.3rem);
         }
         .engagements-page .summary-card {
-            min-height: 112px;
+            min-height: 0;
             gap: 1rem;
-            padding: 1.1rem 1.2rem;
+            padding: 18px;
             border-radius: 12px;
             color: inherit;
             text-decoration: none;
@@ -73,7 +73,7 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
             outline-offset: 3px;
         }
         .engagements-page .summary-card > span:last-child {
-            min-height: 56px;
+            min-height: 0;
             align-self: center;
             gap: .2rem;
             justify-content: center;
@@ -349,10 +349,71 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
     height: 44px !important;
 }
 
+.engagements-page .engagement-controls {
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    box-shadow: none;
+    gap: 16px !important;
+    margin-bottom: 16px !important;
+}
+.engagements-page .directory-filter-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: "visibility lifecycle search";
+}
+.engagements-page .directory-filter-row > .list-context-tabs {
+    grid-area: visibility;
+    transform: translateY(-8px);
+}
+.engagements-page .directory-filter-row > .engagement-filter-group {
+    grid-area: lifecycle;
+    justify-self: center;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    gap: 12px !important;
+}
+.engagements-page .engagement-filter-options { justify-content: center; gap: 16px; }
+.engagements-page .directory-search-control {
+    grid-area: search;
+    justify-self: end;
+    width: min(24rem, 100%);
+    margin: 0;
+}
+.engagements-page .engagement-date-filter-row { justify-content: flex-start; }
+.engagements-page .engagement-date-window {
+    grid-template-columns: max-content max-content auto auto;
+}
+.engagements-page .engagement-date-window label {
+    display: grid;
+    grid-template-columns: auto 11rem;
+    align-items: center;
+}
+@container engagement-list (max-width: 76rem) {
+    .engagements-page .directory-filter-row {
+        grid-template-columns: max-content minmax(0, 1fr);
+        grid-template-areas: "visibility search" "lifecycle lifecycle";
+    }
+}
+@container engagement-list (max-width: 40rem) {
+    .engagements-page .directory-filter-row {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "visibility" "lifecycle" "search";
+    }
+    .engagements-page .directory-search-control { width: 100%; }
+    .engagements-page .engagement-date-window label { grid-template-columns: minmax(0, 1fr); }
+    .engagements-page .record-table-pane [data-bulk-submit] { white-space: normal; }
+}
+
 @container engagement-list (max-width: 56rem) {
     .engagements-page .summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .engagements-page .engagement-date-window {
+        grid-template-columns: repeat(2, 11rem) auto auto;
+    }
+    .engagements-page .engagement-date-window label { grid-template-columns: minmax(0, 1fr); }
 }
 @container engagement-list (max-width: 40rem) {
     .engagements-heading {
@@ -362,6 +423,7 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
     .engagement-date-window {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .engagements-page .engagement-date-window { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .engagement-controls .engagement-filter-group {
         display: grid;
         grid-template-columns: minmax(0, 1fr);

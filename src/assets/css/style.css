@@ -246,7 +246,7 @@ footer .ascii-art-container pre {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 10px 16px;
   margin-top: 20px;
 }
 
@@ -720,7 +720,8 @@ label[for="caller_name"],
 .security-form-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
 }
 
 .security-button,

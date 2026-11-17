@@ -10,7 +10,7 @@
 .speaker-form-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 10px 16px;
 }
 
 .speaker-custom-link-row {

@@ -1,210 +1,923 @@
 {
-  "release": "2.4.19",
-  "updated": "2026-10-05",
-  "baseline_pdf": "2.4.0",
+  "release": "2.11.19",
+  "updated": "2026-11-17",
+  "baseline_pdf": "2.11.15",
+  "previous_coverage": {
+    "release": "2.4.19",
+    "updated": "2026-10-05"
+  },
+  "capture_counts": {
+    "retaken_existing": 69,
+    "new": 6,
+    "retained_unchanged": 45
+  },
   "features": [
     {
       "feature": "Find help by task",
       "figure": "manual",
-      "route": "help.php"
+      "route": "help.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Search for presentation deletion",
-      "figure": "manual-search",
-      "route": "help.php"
+      "feature": "Dark theme",
+      "figure": "dark",
+      "route": "dashboard.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Task deadline bars",
+      "feature": "Navigation on a phone",
+      "figure": "mobile",
+      "route": "dashboard.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Preview role permissions",
+      "figure": "roles",
+      "route": "users.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Dashboard work and task timing",
       "figure": "dashboard",
-      "route": "dashboard.php"
+      "route": "dashboard.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Financial follow-up since the event",
-      "figure": "dashboard-timing",
-      "route": "dashboard.php"
+      "feature": "Read and filter the booking board",
+      "figure": "pipeline",
+      "route": "inquiries.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review an inquiry",
+      "figure": "inquiry",
+      "route": "view_inquiry.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Capture the request and date options",
+      "figure": "inquiry-form",
+      "route": "edit_inquiry.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Give the inquiry a next action",
+      "figure": "inquiry-action",
+      "route": "edit_inquiry.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Convert a qualified inquiry",
+      "figure": "conversion",
+      "route": "convert_inquiry.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Write inquiry correspondence",
+      "figure": "inquiry-email",
+      "route": "compose_inquiry_email.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Archive a booked or declined inquiry",
+      "figure": "inquiry-archive",
+      "route": "view_inquiry.php?id=5",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Find and restore archived inquiries",
+      "figure": "inquiry-archived",
+      "route": "inquiries.php?view=archived",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Find an engagement",
+      "figure": "engagement-list",
+      "route": "engagements.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Planning overview and record tabs",
       "figure": "engagement",
-      "route": "view_engagement.php?id=1"
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Edit an engagement in focused cards",
       "figure": "engagement-form",
-      "route": "edit_engagement.php?id=1"
-    },
-    {
-      "feature": "Recover a local browser draft",
-      "figure": "browser-draft-recovery",
-      "route": "compose_engagement_email.php?id=1"
-    },
-    {
-      "feature": "Archive or delete the correct presentation",
-      "figure": "presentation-management",
-      "route": "edit_engagement.php?id=1&tab=presentations"
-    },
-    {
-      "feature": "Review permanent presentation deletion",
-      "figure": "presentation-delete-confirmation",
-      "route": "edit_engagement.php?id=1&tab=presentations"
-    },
-    {
-      "feature": "Restore archived presentations",
-      "figure": "presentation-restore",
-      "route": "restore_presentations.php?engagement_id=1"
-    },
-    {
-      "feature": "Clear visits for one QR link",
-      "figure": "presentation-link-reset",
-      "route": "reset_presentation_stats.php?presentation_id=1&link_id=1"
-    },
-    {
-      "feature": "Clear all links of one presentation",
-      "figure": "reset-statistics",
-      "route": "reset_presentation_stats.php?presentation_id=1"
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Read retained event contact assignments",
       "figure": "event-contacts",
-      "route": "view_engagement.php?id=1#engagement-contacts"
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
-      "feature": "Inspect financial correction history",
-      "figure": "financial-history",
-      "route": "view_engagement.php?id=2#engagement-financials"
+      "feature": "Presentation details and audience resources",
+      "figure": "presentations",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Correct a final financial report with a reason",
-      "figure": "financial-correction",
-      "route": "close_engagement.php?id=2"
+      "feature": "Share a PowerPoint download link",
+      "figure": "presentation-ppt-qr",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Select and order QR codes for a PDF",
+      "figure": "qr-selection",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Edit presentation details",
+      "figure": "presentation-form",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Upload or replace PDF notes and a PowerPoint",
+      "figure": "presentation-files",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Save a pending presentation-file change",
+      "figure": "presentation-file-pending",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review event logistics",
+      "figure": "logistics",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Lifecycle and rescheduling",
+      "figure": "lifecycle",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review combined presentation QR activity",
+      "figure": "statistics",
+      "route": "short_links.php?presentation_id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Review financial closeout",
+      "figure": "financial",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Draft and finalize received amounts",
+      "figure": "closeout",
+      "route": "close_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Manage the email template library",
+      "figure": "email-templates",
+      "route": "email_templates.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Add or edit reusable email text",
+      "figure": "email-template-editor",
+      "route": "edit_email_template.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Personalize fields and suggest recipients",
+      "figure": "email-template-fields",
+      "route": "edit_email_template.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Browse organizations",
+      "figure": "organizations",
+      "route": "organizations.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Organization record actions and follow-up",
       "figure": "organization",
-      "route": "view_organization.php?id=1"
+      "route": "view_organization.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Read organization financial history",
+      "figure": "organization-financial",
+      "route": "view_organization.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Organization identity and addresses",
+      "figure": "organization-form",
+      "route": "edit_organization.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Browse contacts",
+      "figure": "contacts",
+      "route": "contacts.php?q=Parker",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Contact details and related work",
       "figure": "contact",
-      "route": "view_contact.php?id=1"
+      "route": "view_contact.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
-      "feature": "Check possible existing records",
-      "figure": "duplicate-record-warning",
-      "route": "add_organization.php"
+      "feature": "Maintain affiliations and a photo",
+      "figure": "contact-form",
+      "route": "edit_contact.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Review a merge and its undo boundary",
-      "figure": "record-merge",
-      "route": "record_merge.php?kind=organization&source=2&target=1"
+      "feature": "Find a saved speaker",
+      "figure": "speakers",
+      "route": "speakers.php?q=Alex",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review a selection with protected records",
+      "figure": "bulk-speaker-review",
+      "route": "bulk_delete.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Speaker profile and resources",
+      "figure": "speaker",
+      "route": "view_speaker.php?id=2",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Edit standard and custom resource links",
+      "figure": "speaker-links",
+      "route": "edit_speaker.php?id=2",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
       "feature": "Filter and select work",
       "figure": "tasks",
-      "route": "tasks.php?owner=me"
+      "route": "tasks.php?owner=me",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Task relationships, ownership, and timing",
+      "feature": "Edit a task",
       "figure": "task-form",
-      "route": "edit_task.php?id=11"
+      "route": "edit_task.php?id=10",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Review several task updates together",
-      "figure": "task-bulk-preview",
-      "route": "task_bulk.php"
+      "feature": "Duplicate a task to another event",
+      "figure": "duplicate-task",
+      "route": "add_task.php?duplicate_from=10",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Understand reusable event task timing",
-      "figure": "standard-task-details",
-      "route": "view_standard_task.php?id=1"
+      "feature": "Manage reusable event checklists",
+      "figure": "standard-tasks",
+      "route": "standard_tasks.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Schedule a standard task for existing engagements",
+      "figure": "standard-form",
+      "route": "add_standard_task.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Add a Chron entry",
+      "figure": "chron",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
       "feature": "Compose an email and plan reply follow-up",
       "figure": "email",
-      "route": "compose_engagement_email.php?id=1"
+      "route": "compose_engagement_email.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
       "feature": "Review recipient visibility and sender copies",
       "figure": "email-message",
-      "route": "compose_engagement_email.php?id=1"
+      "route": "compose_engagement_email.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review copied inbound email",
+      "figure": "inbox",
+      "route": "inbound_mail.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Read an inbound message beside its filing choices",
       "figure": "inbound-message",
-      "route": "inbound_mail.php?id=1"
+      "route": "inbound_mail.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
-      "feature": "Apply pending map filter changes",
-      "figure": "map-pending-filters",
-      "route": "map.php"
+      "feature": "Locate engagements",
+      "figure": "map",
+      "route": "map.php?date_from=2026-11-10&date_to=2026-11-14",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
-      "feature": "Choose the network comparison window",
-      "figure": "network",
-      "route": "network_diagnostics.php?days=7"
+      "feature": "Confirm an event pin",
+      "figure": "map-pin",
+      "route": "map_pin.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
-      "feature": "Extend or lock administrator actions",
-      "figure": "admin-countdown",
-      "route": "users.php"
+      "feature": "Browse the month calendar",
+      "figure": "calendar",
+      "route": "view_calendar.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Private calendar subscriptions",
+      "figure": "subscription",
+      "route": "view_calendar.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Manage your personal profile",
+      "figure": "profile",
+      "route": "profile.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Choose Daily Digest time and days",
+      "figure": "digest-preferences",
+      "route": "profile.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Manage account security",
+      "figure": "security",
+      "route": "two_factor_settings.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Start authenticator replacement",
+      "figure": "setup",
+      "route": "setup_2fa.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Connect MOED and Mattermost",
+      "figure": "mattermost",
+      "route": "mattermost.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Review users and access state",
+      "figure": "users",
+      "route": "users.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Delete one inactive user",
+      "figure": "delete-user",
+      "route": "users.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review several inactive users before deletion",
+      "figure": "bulk-user-review",
+      "route": "bulk_delete.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Confirm or cancel the batch",
+      "figure": "bulk-user-confirmation",
+      "route": "bulk_delete.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Invite a new user",
+      "figure": "invite",
+      "route": "register.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Confirm administrator access",
+      "figure": "elevation",
+      "route": "users.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Inspect the audit trail",
+      "figure": "audit",
+      "route": "audit_log.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Preview audit retention",
+      "figure": "retention",
+      "route": "audit_log.php?tab=retention",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Export an encrypted backup with uploaded files",
+      "figure": "backup",
+      "route": "database_maintenance.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Review data and recovery health",
       "figure": "operations",
-      "route": "operations.php"
+      "route": "operations.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Search for presentation deletion",
+      "figure": "manual-search",
+      "route": "help.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Copy or export a presentation brief",
+      "figure": "presentation-exports",
+      "route": "view_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Change an existing QR destination",
+      "figure": "link-controls",
+      "route": "short_links.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Clear all links of one presentation",
+      "figure": "reset-statistics",
+      "route": "reset_presentation_stats.php?presentation_id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Enter actual receipts",
+      "figure": "closeout-amounts",
+      "route": "close_engagement.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Read a finalized financial report",
+      "figure": "final-report",
+      "route": "view_engagement.php?id=2",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Edit a user’s profile and digest preferences",
+      "figure": "edit-user",
+      "route": "edit_user.php?id=2",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Use the daily agenda on a phone",
+      "figure": "calendar-agenda",
+      "route": "view_calendar.php?day=2026-10-13",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Verify a new recovery email",
+      "figure": "recovery-email",
+      "route": "profile.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Sign in to MOED",
+      "figure": "login",
+      "route": "login.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Request password recovery",
+      "figure": "forgot-password",
+      "route": "recover_password.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Complete a Task and Review the Result",
+      "figure": "task-confirmation",
+      "route": "tasks.php?view=completed&scope=mine",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Restore a task with its original status",
+      "figure": "task-archived",
+      "route": "tasks.php?view=archived&scope=mine",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Choose the network comparison window",
+      "figure": "network",
+      "route": "network_diagnostics.php?days=7",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Extend or lock administrator actions",
+      "figure": "admin-countdown",
+      "route": "users.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Reset network traffic statistics",
+      "figure": "network-reset",
+      "route": "network_diagnostics.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Expenses, saved selection, and workflow progress",
       "figure": "reimbursement-expenses",
-      "route": "reimbursements.php"
+      "route": "reimbursements.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Select available expenses across pages",
       "figure": "reimbursement-selection",
-      "route": "reimbursements.php"
+      "route": "reimbursements.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Enter Expense Details",
+      "figure": "reimbursement-expense-entry",
+      "route": "reimbursement_expense.php?id=3&mode=edit",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Attach and Review Receipts",
+      "figure": "reimbursement-receipts",
+      "route": "reimbursement_expense.php?id=3&mode=edit",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Find Draft and Submitted Requests",
+      "figure": "reimbursement-requests",
+      "route": "reimbursement_requests.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Edit dates, expenses, and a bookkeeper note",
       "figure": "reimbursement-draft",
-      "route": "reimbursement_request.php?id=1&mode=edit"
+      "route": "reimbursement_request.php?id=1&mode=edit",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Read expense details and preview a PDF receipt",
       "figure": "reimbursement-detail",
-      "route": "reimbursement_expense.php?id=2&mode=view"
+      "route": "reimbursement_expense.php?id=2&mode=view",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
       "feature": "Review the email and ZIP attachment",
       "figure": "reimbursement-review",
-      "route": "reimbursement_submit.php?id=1"
+      "route": "reimbursement_submit.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "Check package contents and both email limits",
       "figure": "reimbursement-confirm",
-      "route": "reimbursement_submit.php?id=1"
+      "route": "reimbursement_submit.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Check Delivery and Record Corrections",
+      "figure": "reimbursement-delivery",
+      "route": "reimbursement_request.php?id=2",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Search and Manage the Chart of Accounts",
+      "figure": "reimbursement-accounts",
+      "route": "reimbursement_cost_centers.php?show=used",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Set Account and Shared Recipients",
+      "figure": "reimbursement-setup",
+      "route": "reimbursement_setup.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Set Your Personal Reimbursement Reviewer",
+      "figure": "reimbursement-profile",
+      "route": "profile.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Financial follow-up since the event",
+      "figure": "dashboard-timing",
+      "route": "dashboard.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Recover a local browser draft",
+      "figure": "browser-draft-recovery",
+      "route": "compose_engagement_email.php?id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Archive or delete the correct presentation",
+      "figure": "presentation-management",
+      "route": "edit_engagement.php?id=1&tab=presentations",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review permanent presentation deletion",
+      "figure": "presentation-delete-confirmation",
+      "route": "edit_engagement.php?id=1&tab=presentations",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Restore archived presentations",
+      "figure": "presentation-restore",
+      "route": "restore_presentations.php?engagement_id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Clear visits for one QR link",
+      "figure": "presentation-link-reset",
+      "route": "reset_presentation_stats.php?presentation_id=1&link_id=1",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Inspect financial correction history",
+      "figure": "financial-history",
+      "route": "view_engagement.php?id=2",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Correct a final financial report with a reason",
+      "figure": "financial-correction",
+      "route": "close_engagement.php?id=2",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Check possible existing records",
+      "figure": "duplicate-record-warning",
+      "route": "add_organization.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Review a merge and its undo boundary",
+      "figure": "record-merge",
+      "route": "record_merge.php?kind=organization&source=2&target=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Review several task updates together",
+      "figure": "task-bulk-preview",
+      "route": "task_bulk.php",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Understand reusable event task timing",
+      "figure": "standard-task-details",
+      "route": "view_standard_task.php?id=1",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
+    },
+    {
+      "feature": "Apply pending map filter changes",
+      "figure": "map-pending-filters",
+      "route": "map.php",
+      "capture_status": "retaken",
+      "captured_at": "2026-11-17"
     },
     {
       "feature": "PDF receipt pages within the report",
       "figure": "reimbursement-report-receipt",
-      "route": "download_reimbursement.php?id=1&format=pdf"
+      "route": "download_reimbursement.php?id=1&format=pdf",
+      "capture_status": "retained unchanged",
+      "captured_at": "2026-10-13"
     },
     {
-      "feature": "Compare combined last and lifetime organization receipts",
-      "figure": "organizations",
-      "route": "organizations.php"
+      "feature": "Review an engagement cancellation",
+      "figure": "engagement-cancel",
+      "route": "engagements.php",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Mark an engagement as not requiring a presentation",
+      "figure": "presentation-optional",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Prepare an independent presentation copy",
+      "figure": "presentation-duplicate",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Prepare smaller receipt photos for email",
+      "figure": "reimbursement-photo-reduction",
+      "route": "reimbursement_submit.php?id=1",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Watch a presentation upload before the final save",
+      "figure": "presentation-upload-progress",
+      "route": "edit_engagement.php?id=1",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
+    },
+    {
+      "feature": "Review the smaller email copies before submitting",
+      "figure": "reimbursement-photo-reduced",
+      "route": "reimbursement_submit.php?id=1&photos=reduced",
+      "capture_status": "new",
+      "captured_at": "2026-11-17"
     }
   ],
   "validation_notes": [
-    "Fictional isolated preview; no external email sent or production changes made.",
-    "Merge review and source-confirmed undo boundary illustrated. A separate merge fixture failed on a database privilege check and rolled back; no undo operation is claimed as tested."
+    "Fictional isolated preview; log mail transport and no dispatch worker. No production data was changed or external email sent.",
+    "Dialog, duplication, and optional-presentation examples were left unsaved. Upload progress uses real chunks from a disposable file; the final engagement save was blocked.",
+    "Normal-size reimbursement review and confirmation were captured before the separate oversized/reduced photo fixture. The new photo figures show actual 23.52 MB originals and 1.14 MB prepared copies.",
+    "Retained figures show unchanged controls or generated reports and preserve their original capture dates. No new merge/undo validation is claimed."
   ],
   "validation": {
-    "pdf_pages": 188,
-    "figures": 114,
-    "internal_links": 1627,
-    "php_manual_check": "passed",
-    "manual_search_tests": "6 passed",
-    "pdf_structure_and_layout": "passed",
-    "visual_review": "Cover, revised receipt guidance, and organization walkthrough inspected; retained illustrations preserve their earlier review."
+    "pages": 197,
+    "screenshots": 120,
+    "internal_links": 1700,
+    "bookmarks": 404,
+    "chapter_targets": "14/14 valid",
+    "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
+    "external_pdf_actions": 0,
+    "readme_appendix": {
+      "sections": 62,
+      "text_fragments_verified": 1259,
+      "attachment_bytes": 116582,
+      "attachment_matches_current_source": true,
+      "sha256": "91885b4a8f1f70fc10186d9b135b836055cfba8dc9af8f216f56d204de1b8b48"
+    },
+    "format": {
+      "reference_text": "two columns",
+      "walkthrough_instructions": "two columns below spanning screenshots",
+      "readme_reverse_pages": 28,
+      "readme_colors": "white text on black",
+      "cover_logo": "native SVG paths; no raster image or white backdrop",
+      "column_gutters": "clear",
+      "full_width_reference_blocks": 8,
+      "automatic_word_breaks": 0,
+      "sparse_reference_pages_checked": 74,
+      "stray_continuation_pages": 0,
+      "paragraph_widows_and_orphans": "disabled",
+      "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
+    },
+    "release": {
+      "version": "2.11.18",
+      "edition_date": "November 17, 2026",
+      "cover_and_metadata": "verified"
+    },
+    "screenshot_quality": {
+      "native_png_figures": 120,
+      "lossless_embedded_figures": 120,
+      "minimum_effective_dpi": 300.0,
+      "source_pixels": "identical to included capture pixels",
+      "resampling": false,
+      "sharpening": false
+    }
+  },
+  "list_layout_refresh": {
+    "date": "2026-11-17",
+    "figures": [
+      "engagement-list",
+      "organizations",
+      "contacts",
+      "speakers",
+      "tasks",
+      "task-confirmation",
+      "task-archived"
+    ],
+    "native_browser_device_scale_factor": 3,
+    "desktop_viewport": [
+      1600,
+      1000
+    ],
+    "changes": "Current list filters, visibility layout, selection toolbar inside the table pane, sticky scrolling, and Records Per Page instructions."
   }
 }

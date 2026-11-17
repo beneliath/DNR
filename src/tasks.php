@@ -30,7 +30,7 @@ $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$page_size = paginationPageSizePreference('tasks_' . $scope, $_GET['per_page'] ?? null);
+$page_size = followUpTaskPageSizePreference($scope, $current_user_id, $_GET['per_page'] ?? null);
 $cursor_keys = in_array($view, ['completed', 'archived'], true)
     ? ['updated_at', 'id']
     : ['due_date', 'priority_rank', 'id'];
@@ -356,7 +356,7 @@ $email_follow_up_states = emailFollowUpStatesForTasks($conn, array_column($tasks
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
     $parameters = array_merge($queue_parameters, $overrides);
     if ($parameters['scope'] !== $queue_parameters['scope']) {
-        // Let the destination ownership view restore its own saved row count.
+        // Restore the destination view's saved size instead of overwriting it.
         unset($parameters['per_page']);
     }
     return 'tasks.php?' . http_build_query($parameters);
@@ -374,7 +374,6 @@ if ($has_subject_filter) {
 $new_task_url = 'add_task.php?' . http_build_query($new_task_parameters);
 $view_labels = followUpTaskQueueViews();
 $view_labels['completed'] = 'Completed or canceled';
-$view_heading = $scope_labels[$scope] . ' · ' . $view_labels[$view];
 $status_labels = followUpTaskStatuses();
 $priority_labels = followUpTaskPriorities();
 $active_task_statuses = followUpTaskActiveStatuses();
@@ -421,6 +420,9 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 'active' => ['Active', $queue_url(['view' => $view === 'archived' ? 'all' : $view])],
                 'archived' => ['Archived', $queue_url(['view' => 'archived'])],
             ], $view === 'archived' ? 'archived' : 'active', 'Task Context'); ?>
+            <nav class="task-scope-selector control-group" aria-label="Task Ownership">
+                <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
+            </nav>
             <form method="get" action="tasks.php" class="list-search-form unified-list-filter" role="search">
                 <input type="hidden" name="view" value="<?php echo htmlspecialchars($view, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="scope" value="<?php echo htmlspecialchars($scope, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php if ($has_subject_filter): ?>
@@ -435,30 +437,14 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
             </form>
         </div>
-        <nav class="task-scope-selector control-group" aria-label="Task Ownership">
-            <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
-        </nav>
-        <?php renderListFilterSummary(['Visibility' => $view === 'archived' ? 'Archived' : 'Active', 'Owner' => $scope_labels[$scope], 'View' => $view === 'archived' ? null : $view_labels[$view], 'Search' => $search, 'Task' => $selected_task_id ?: ''], 'tasks.php?scope=mine&view=all'); ?>
     </div>
 
     <?php if ($subject_filter_record): ?>
         <p class="result-context">Showing tasks for <a href="<?php echo htmlspecialchars($subject_filter_record['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject_filter_record['label'], ENT_QUOTES, 'UTF-8'); ?></a>. <a href="<?php echo htmlspecialchars($queue_url(['subject_type' => '', 'subject_id' => '']), ENT_QUOTES, 'UTF-8'); ?>">Clear Record Filter</a></p>
     <?php endif; ?>
-    <div class="task-view-heading">
-        <h2><?php echo htmlspecialchars($view_heading, ENT_QUOTES, 'UTF-8'); ?></h2>
-        <div class="task-view-meta">
-            <div class="task-priority-legend" aria-label="Priority Color Legend">
-                <span class="task-priority-legend-title">Priority:</span>
-                <?php foreach (['urgent', 'high', 'normal', 'low'] as $priority_value): ?>
-                    <span class="task-priority-legend-item task-priority-<?php echo $priority_value; ?>"><?php echo htmlspecialchars($priority_labels[$priority_value], ENT_QUOTES, 'UTF-8'); ?></span>
-                <?php endforeach; ?>
-            </div>
-            <span class="task-count">Showing <?php echo count($tasks); ?> of <?php echo $summary[$view]; ?> task<?php echo count($tasks) === 1 ? '' : 's'; ?></span>
-        </div>
-    </div>
-
-    <?php include 'templates/task_bulk_toolbar.php'; ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
+    <div class="task-table-pane record-table-pane">
+    <?php include 'templates/task_bulk_toolbar.php'; ?>
     <div class="data-table-scroll">
     <table class="task-table data-table mobile-record-table">
         <thead><tr><th>Due</th><th>Task</th><th>Related Record</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
@@ -545,6 +531,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     </div>
 
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>

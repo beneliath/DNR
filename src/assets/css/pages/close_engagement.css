@@ -130,7 +130,8 @@
 
 .form-actions {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
 }
 
 .save-button {
