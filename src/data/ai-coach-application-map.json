@@ -3126,7 +3126,7 @@
       ]
     },
     "reimbursement_cost_centers.php": {
-      "sha256": "66c9a57f3d9aedac289388fb96ac4aa5e4831d501d8d0951825acd9c35bcf81f",
+      "sha256": "12b63e7e1659bec0ab34f9a650e234f1c69ad0518880c11cd42a05a8fa213466",
       "controls": [
         {
           "kind": "a",
@@ -3166,10 +3166,6 @@
           "href": ""
         },
         {
-          "kind": "h2",
-          "label": "Chart of Accounts"
-        },
-        {
           "kind": "label",
           "label": "Search Chart of Accounts",
           "for": "cost-center-search"
@@ -3182,6 +3178,11 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "reimbursement_cost_centers.php"
         },
         {
           "kind": "a",
@@ -3406,7 +3407,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "803ca9d77f9c8059b6fee355c2d70c3e61ed5ba4966030259a16534c02ef4932",
+      "sha256": "094d04a474925fe529d3d14b802213acf22b39f25c1faf939b2cf9632fa21803",
       "controls": [
         {
           "kind": "a",
@@ -3450,6 +3451,11 @@
         {
           "kind": "button",
           "label": "Apply"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "reimbursement_requests.php"
         },
         {
           "kind": "h2",
@@ -3608,7 +3614,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "395224c03331948c998bb8838228ec052575b2c5586c35924774a2965394ae1b",
+      "sha256": "d8d8808020eabb547afeed348dbc8d8c326b546ee8d643644d3c35f731b0d036",
       "controls": [
         {
           "kind": "h1",
@@ -3666,6 +3672,11 @@
         {
           "kind": "button",
           "label": "Apply"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "reimbursements.php"
         },
         {
           "kind": "button",

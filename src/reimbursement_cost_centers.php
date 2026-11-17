@@ -80,7 +80,6 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <div class="reimbursement-actions"><button class="save-button" type="submit" data-pending-reminder="cost-center"><?= $editingCenter ? 'Save Account' : 'Add Account' ?></button><?php if ($editingCenter): ?><a class="button-secondary" href="<?= reimbursementCenterH($listUrl) ?>">Cancel</a><?php endif; ?></div>
 </form></section>
 <section class="reimbursement-account-section reimbursement-account-list">
-<div class="reimbursement-list-heading reimbursement-context-heading"><h2>Chart of Accounts</h2></div>
 <div class="list-controls reimbursement-account-search directory-list-controls">
     <div class="directory-filter-row">
         <?php renderListContextTabs([
@@ -98,8 +97,8 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
             <?php if ($search !== ''): ?><a class="clear-search" href="<?= reimbursementCenterH($listLink(['q' => null])) ?>">Clear</a><?php endif; ?>
             <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
         </form>
+        <a class="button-secondary" href="reimbursement_cost_centers.php">Clear Filters</a>
     </div>
-    <?php renderListFilterSummary(['Visibility' => $view === 'used' ? 'In Use' : ucfirst($view), 'Search' => $search], 'reimbursement_cost_centers.php'); ?>
 </div>
 <?php if ($search !== ''): ?><p class="result-context">Showing accounts matching “<?= reimbursementCenterH($search) ?>”.</p><?php endif; ?>
 <?php if ($view === 'used'): ?><p class="field-help">Active accounts with one or more associated expenses.</p><?php endif; ?>
