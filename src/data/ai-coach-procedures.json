@@ -1127,14 +1127,14 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional brief note or comment, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every receipt, using originals unless you choose Reduce Photo Sizes. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, expense descriptions, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every receipt, using originals unless you choose Reduce Photo Sizes. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
         "When Large Receipt Photos Detected appears, select Reduce Photo Sizes. The app prepares smaller JPEG copies for supported photos, preserves the original uploads, and rechecks both size limits. PDFs remain unchanged. Download Package for Review and confirm every receipt is readable. Use Original Photos restores the original preview. If the package still exceeds a limit, return to the draft and remove expenses to submit smaller requests.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
         "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
-        "reimbursement_submission_helpers.php": "3a53b1cee95f10d49da0a975b500900fbe6a2dbc0e129124da89e993682e1406",
+        "reimbursement_submission_helpers.php": "c2c8ed0c1854828425303642df72bed2e5846245841ce229b19bef145ce7f980",
         "reimbursement_email_helpers.php": "04515a01f172e3f10d6c302a5d2ee71d50ca75b9d58335922a1b0aae3439520e",
         "email_helpers.php": "5c317c86b63b97607e619500dfc9437984f28d6cd9ed7f30e495840ff879ce3f",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",

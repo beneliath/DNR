@@ -68,6 +68,7 @@ try {
         }
         $receipts[] = $receipt;
     }
+    $memo = "Supplies & <folders>\nFor the volunteer orientation.";
     $context = [
         'request' => ['request_hash' => 'receipt-package-test', 'start_date' => '2026-01-01',
             'end_date' => '2026-09-29', 'status' => 'submitted', 'bookkeeper_note' => ''],
@@ -75,7 +76,7 @@ try {
         'setup' => ['account_name' => 'Test Account', 'bookkeeper_first_name' => '',
             'bookkeeper_last_name' => '', 'bookkeeper_email' => '', 'bookkeeper_phone' => '', 'cc_email' => ''],
         'items' => array_map(static fn($id) => ['expense_id' => $id, 'expense_date' => '2026-09-29',
-            'merchant' => 'Test Merchant', 'description' => 'Test expense', 'amount_cents' => 1234,
+            'merchant' => 'Test Merchant', 'description' => $id === 11 ? $memo : '', 'amount_cents' => 1234,
             'coa_number' => '5291', 'coa_description' => 'Equipment'], [11, 12, 13]),
         'receipts' => $receipts,
     ];
@@ -124,6 +125,19 @@ try {
         $context['setup']['bookkeeper_email'] = 'bookkeeper@example.test';
         $context['setup']['reviewer_email'] = '';
         $message = reimbursementSubmissionMessage($context, true);
+        foreach ([$message, reimbursementSubmissionMessage($context)] as $rendered) {
+            $document = \Dom\HTMLDocument::createFromString($rendered['html_body'], LIBXML_NOERROR);
+            $firstMemo = $document->querySelector('tbody tr:first-child td:nth-child(3)');
+            $emptyMemo = $document->querySelector('tbody tr:nth-child(2) td:nth-child(3)');
+            if ($document->querySelector('thead th:nth-child(3)')?->textContent !== 'Description'
+                || $firstMemo?->textContent !== $memo || $firstMemo->querySelector('br') === null
+                || $emptyMemo?->textContent !== '') {
+                throw new RuntimeException('The third email column must show escaped, multiline memos and allow empty memos.');
+            }
+            if (!str_contains($rendered['body'], "Description: {$memo}\n") || substr_count($rendered['body'], 'Description: ') !== 1) {
+                throw new RuntimeException('The plain-text email must include the memo for each expense that has one.');
+            }
+        }
         $recipients = reimbursementSubmissionRecipients($context);
         $mime = smtpMessageData(
             (string) (getenv('DNR_MAIL_FROM') ?: $context['owner']['email']), deploymentConfig()->string('brand.mail_name'),
