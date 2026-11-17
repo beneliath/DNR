@@ -64,11 +64,11 @@ foreach ($lists as $page => [$defaultColumn, $defaultDirection, $columns]) {
 $fixture = listUiFixture('engagements');
 $document = new DOMDocument(); @$document->loadHTML($fixture['controls']);
 $xpath = new DOMXPath($document);
-expectListUi(str_contains($fixture['controls'], 'Visibility: Active') && str_contains($fixture['controls'], 'Lifecycle: Scheduled'), 'Engagements opens with Active visibility and Scheduled lifecycle.');
-expectListUi($xpath->evaluate('string(//a[@class="clear-filters"]/@href)') === 'engagements.php?status=active&lifecycle=active', 'Clearing engagement filters restores the landing defaults.');
+expectListUi($xpath->evaluate('normalize-space(//nav[@class="list-context-tabs"]/a[@aria-current="page"])') === 'Active'
+    && $xpath->evaluate('normalize-space(//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"])') === 'Scheduled', 'Engagements opens with Active visibility and Scheduled lifecycle.');
 expectListUi($xpath->query('//div[@class="engagement-date-filter-row"]/fieldset[@data-engagement-date-window]')->length === 1
-    && $xpath->query('//div[@class="engagement-date-filter-row"]/div[@aria-label="Engagement Lifecycle Filter"]')->length === 1,
-    'Dates and lifecycle share a responsive layout row.');
+    && $xpath->query('//div[@class="directory-filter-row"]/div[@aria-label="Engagement Lifecycle Filter"]')->length === 1,
+    'Lifecycle shares the main controls row; dates have their own compact row.');
 ob_start();
 renderListContextTabs(['active' => ['Active <script>', 'organizations.php?q=A&B']], 'active', 'Context "label"');
 $escaped = ob_get_clean();

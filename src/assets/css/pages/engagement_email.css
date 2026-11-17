@@ -373,7 +373,8 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
     margin-top: 4px;
 }
 

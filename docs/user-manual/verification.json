@@ -1,8 +1,8 @@
 {
-  "pages": 191,
-  "screenshots": 114,
-  "internal_links": 1642,
-  "bookmarks": 398,
+  "pages": 197,
+  "screenshots": 120,
+  "internal_links": 1700,
+  "bookmarks": 404,
   "chapter_targets": "14/14 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
@@ -28,13 +28,13 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.11.15",
-    "edition_date": "November 16, 2026",
+    "version": "2.11.19",
+    "edition_date": "November 17, 2026",
     "cover_and_metadata": "verified"
   },
   "screenshot_quality": {
-    "native_png_figures": 114,
-    "lossless_embedded_figures": 114,
+    "native_png_figures": 120,
+    "lossless_embedded_figures": 120,
     "minimum_effective_dpi": 300.0,
     "source_pixels": "identical to included capture pixels",
     "resampling": false,

@@ -309,15 +309,15 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
             </form>
         </div>
-        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
     </div>
 
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
-    <?php renderBulkDeleteToolbar('organization', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
+    <div class="record-table-pane organization-table-pane">
+    <?php renderBulkDeleteToolbar('organization', $list_current_url, true); ?>
     <div class="data-table-scroll">
     <table class="organization-table data-table mobile-record-table sortable-table">
         <thead>
@@ -395,6 +395,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     </div>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
 </main>

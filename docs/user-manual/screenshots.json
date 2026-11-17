@@ -9,7 +9,7 @@
       "Open View Comprehensive User Guide for the illustrated PDF."
     ],
     "file": "screenshots/manual.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -23,7 +23,12 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "5dd37b4c05a36e528a90dbe364836646dc34487f4b30856e351e10656ca41ef1",
+      "native_pixels": [
+        3840,
+        3000
+      ]
     }
   },
   {
@@ -38,14 +43,8 @@
     "action": "dark",
     "shell": true,
     "file": "screenshots/dark.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "copyright_line_box": [
-      297,
-      1238,
-      476,
-      1255
-    ],
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -58,7 +57,12 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "9403259f87308ca65820610535066131395fe89194eb6e3c1302be02646e165a",
+      "native_pixels": [
+        3840,
+        3000
+      ]
     }
   },
   {
@@ -74,7 +78,7 @@
     "action": "mobile",
     "shell": true,
     "file": "screenshots/mobile.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -87,7 +91,12 @@
         "width": 390,
         "height": 844
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "0ba8476d2ab4aee1daef18463d8317906bbd33a7838469e99973ed106faface1",
+      "native_pixels": [
+        1170,
+        2532
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -137,7 +146,7 @@
       "Deadline bars show timing and urgency alongside the written due date; open a task for its details."
     ],
     "file": "screenshots/dashboard.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -151,7 +160,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "5358c8c2c0ac9f67ba3e0ccabbcd378aa18049407c793e36c241cda2fa6b8d92",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -165,7 +179,7 @@
       "Archive Inquiry is available for declined requests and recorded bookings. Archived Inquiries opens retained records outside the current pipeline."
     ],
     "file": "screenshots/pipeline.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -179,7 +193,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "176351289884df9ea16a92a1c87d580861be9c349f83ca4ebd470a2ff2a8cc89",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -222,7 +241,7 @@
     ],
     "file": "screenshots/inquiry-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -235,7 +254,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "6cc94180a81add9d914d01176b1b172c00aeb3de0431a8f6cee1a730d4ef35e0",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -250,14 +274,8 @@
     ],
     "focus": "#inquiry-next-action",
     "file": "screenshots/inquiry-action.png",
-    "copyright_line_box": [
-      44,
-      1132,
-      654,
-      1149
-    ],
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -268,9 +286,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 811
+        "height": 812
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "52155ed6e7af2dfe97ab0a5739f501ca3adb74b8ef53276d72ccf2c37c9aed68",
+      "native_pixels": [
+        3030,
+        2436
+      ]
     }
   },
   {
@@ -286,7 +309,7 @@
     ],
     "file": "screenshots/conversion.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -299,7 +322,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "889341f124120574e0ea30bf3cba370b5468ba1e2271092b3e452bb13dfda83c",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -370,7 +398,7 @@
       "Open a title to read its retained information. Restore Inquiry returns it to its original stage; restore a declined inquiry before reopening it."
     ],
     "file": "screenshots/inquiry-archived.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -382,9 +410,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 656
+        "height": 716
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "f21e658e461bb095a8405c4185c2766b34f39ea1fa15468f939dbea1f385a217",
+      "native_pixels": [
+        3030,
+        2148
+      ]
     }
   },
   {
@@ -393,28 +426,32 @@
     "title": "Find an engagement",
     "route": "engagements.php",
     "steps": [
-      "The list opens with Active visibility and Scheduled lifecycle. Select All, Scheduled, Postponed, Canceled, or Completed to change the lifecycle view; Clear Filters restores the defaults.",
-      "Current and Archived are separate from Lifecycle. Clear both filters when looking for a missing record.",
-      "Sort by organization, date, confirmation, or lifecycle. Open the event title or View action to continue planning."
+      "The list opens with Active visibility and Scheduled lifecycle. Select All, Scheduled, Postponed, Canceled, or Completed to change Lifecycle.",
+      "Active and Archived control visibility separately from Lifecycle. To find a missing record, check both views, select All, clear the search, and use Reset Dates.",
+      "Sort using the column headings. Administrators can select records using the toolbar inside the table pane; it stays visible while scrolling. Records Per Page is remembered."
     ],
     "file": "screenshots/engagement-list.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 687
       },
-      "source": "native browser PNG; no resizing or sharpening"
-    },
-    "note": "The former Active lifecycle label in this retained capture now reads Scheduled; Active and Archived tabs describe visibility."
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        2061
+      ],
+      "sha256": "8f7be778c87256cf4db183ad5657ca02665ab4283f662fc4d0d2c90f900d3bd3"
+    }
   },
   {
     "chapter": 5,
@@ -427,7 +464,7 @@
     ],
     "file": "screenshots/engagement.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -440,7 +477,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "e89d1d6202d89e425e3970f024429c2768a33feceaa8017c006605bfc5432764",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -454,7 +496,7 @@
     ],
     "file": "screenshots/engagement-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -467,7 +509,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "f78816b268a1c5c1b4757ff5ee15f92da1989e46d8b35b68d09ffbec78659065",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -515,7 +562,7 @@
     "focus": "#engagement-workspace",
     "file": "screenshots/presentations.png",
     "note": "The first row of resource codes is shown. Scroll down to find the file and custom-resource codes.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -529,7 +576,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "d31e22a82280cf7cd1add0685000162e37698de2d6c4866bdbc2a3982181d077",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -606,8 +658,7 @@
     "focus": ".presentation-entry",
     "file": "screenshots/presentation-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
-    "note": "The retained illustration shows the same presentation fields; the current view and editor also number each presentation section.",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -620,7 +671,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "4c47460ffa9250e8231016fcdd7a32a722d31b84a5e708e491ba05242678e6f1",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -635,8 +691,7 @@
       "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
-    "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in. The retained illustration shows the file controls; the current editor also provides separate PDF and PowerPoint drop areas.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -650,7 +705,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "1a5e59d8b26e335a8967aff604e464464064e38d99214e6808d79f7158cce472",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -659,7 +719,7 @@
     "title": "Save a pending presentation-file change",
     "route": "edit_engagement.php?id=1",
     "file": "screenshots/presentation-file-pending.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "steps": [
       "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
       "Read the pending notice. Selecting a file or checking Remove does not apply the change immediately.",
@@ -680,7 +740,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "ab41ef32e377a95631a02284119ae519a0706635b9b23ae3803479120c51bffa",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -726,7 +791,7 @@
     "focus": "[name=lifecycle_status]",
     "file": "screenshots/lifecycle.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -739,7 +804,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "ff0fbc1fba941c8ae249d51370e5c18d32965e5148b98ed92e36f6c18adfd758",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -786,7 +856,7 @@
     "tab": "Financials",
     "focus": "#engagement-workspace",
     "file": "screenshots/financial.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -800,7 +870,12 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "3c0f6fafc69fd95d52f1df7c14ef5b8e83776a71f5c698a5488aad8a9e6bb9c8",
+      "native_pixels": [
+        3030,
+        2433
+      ]
     }
   },
   {
@@ -844,9 +919,8 @@
       "Only administrators can permanently delete an archived template after confirming access. Sent messages and history remain unchanged."
     ],
     "file": "screenshots/email-templates.png",
-    "captured_on": "2026-09-10",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -857,9 +931,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 786
+        "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "4e1da29f251089e049c85ae15382dd8eb68edd6ffa0353bc2dd269b4a40cb20d",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -908,9 +987,8 @@
       "Save the template. Open an engagement email, choose it, and review the filled text and recipients before queuing."
     ],
     "file": "screenshots/email-template-fields.png",
-    "captured_on": "2026-09-10",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -923,7 +1001,12 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "2c66679f43e71c8c574bc9aa4211b1fc64391e9bda36d888256476eac363cacf",
+      "native_pixels": [
+        3030,
+        2433
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -935,24 +1018,29 @@
     "steps": [
       "Search by organization details or active contact information.",
       "Review Last Receipts and Lifetime Receipts: both combine finalized giving, lodging, travel, and book-table amounts.",
-      "Use Active/Archived, sorting, and Records per page to manage a longer directory."
+      "Use Active/Archived, sorting, and Records Per Page to manage a longer directory. Administrators can select records in the table pane; its selection toolbar stays visible while scrolling."
     ],
     "file": "screenshots/organizations.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 712
+        "width": 1330,
+        "height": 496
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        1488
+      ],
+      "sha256": "6741842cc256c3466ee584cacfb658690b9dd3fcd9928c291fd8276b0d613a87"
     }
   },
   {
@@ -1025,7 +1113,7 @@
     ],
     "file": "screenshots/organization-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1038,7 +1126,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "dcda3007719cbee2bbe069c63f199445e859241742bf2b9f7259ab25ca7aab49",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1047,26 +1140,31 @@
     "title": "Browse contacts",
     "route": "contacts.php?q=Parker",
     "steps": [
-      "Search by person or organization, sort the list, and adjust Records per page.",
+      "Search by person or organization, sort the list, and adjust Records Per Page.",
       "Open a contact to review history and affiliations; the row action icons remain available.",
-      "Administrators can select aligned checkboxes and choose Delete selected. Select all applies only to this page; Clear selection starts over.",
+      "Administrators can use the selection toolbar inside the table pane and choose Review Deletion. Select All Available applies to this page; Clear Selection starts over. The toolbar stays visible while scrolling.",
       "Review the selected names and related data, unlock if required, then confirm the Are you sure? dialog."
     ],
     "file": "screenshots/contacts.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 669
+        "width": 1330,
+        "height": 556
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        1668
+      ],
+      "sha256": "44f70571e2673f98e357746c70d6182e6a0fe2564086ee3199499460c714664c"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1110,7 +1208,7 @@
     ],
     "file": "screenshots/contact-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1123,7 +1221,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "e2752e32fc0ce30ee9c8e4645da2008e84936e3ecdacce4f0c4414eeaf24dcc3",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1132,26 +1235,31 @@
     "title": "Find a saved speaker",
     "route": "speakers.php?q=Alex",
     "steps": [
-      "Search by name, email, or phone; use Name to reverse alphabetical order.",
+      "Search by name, email, or phone; use the Speaker column heading to reverse alphabetical order.",
       "Open a profile, or use New Speaker to create one. Editors and administrators can maintain speaker details.",
-      "Administrators can use the individual Delete icon or select multiple speakers and choose Delete selected.",
+      "Administrators can use the individual Delete icon or select multiple speakers in the table pane and choose Review Deletion. The selection toolbar stays visible while scrolling.",
       "Referenced speakers are protected; only unused profiles can be permanently deleted."
     ],
     "file": "screenshots/speakers.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 592
+        "width": 1330,
+        "height": 521
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        1563
+      ],
+      "sha256": "1faf54ecc53f3445df9ca26311575f79c70115e619e634b9171551b4892ee722"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1247,28 +1355,33 @@
     "chapter": 7,
     "id": "tasks",
     "title": "Filter and select work",
-    "route": "tasks.php?owner=me",
+    "route": "tasks.php?scope=mine",
     "steps": [
-      "Choose My Tasks, Everyone’s Tasks, or Unassigned Tasks. Apply status/date filters and review the visible filter summary.",
-      "Filters are remembered in this browser. Use Clear Filters to return to the default view.",
-      "Select tasks for a bulk update and review the planned changes before applying."
+      "Choose My Tasks, Everyone’s Tasks, or Unassigned Tasks. Use the summary cards, search, and Active/Archived tabs to focus the queue.",
+      "Records Per Page is remembered separately for each ownership view, including after leaving Tasks and returning. Select All Active and clear the search to widen a view.",
+      "Select tasks using the toolbar inside the table pane. Choose the update and Preview Updates, or Review Deletion when available. The toolbar stays visible while scrolling."
     ],
     "file": "screenshots/tasks.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 807
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        2421
+      ],
+      "sha256": "f071caabe6feee2650f9683bb77162c21d4a4e940fc5d66a6ef5977f29398d62"
     }
   },
   {
@@ -1282,7 +1395,7 @@
     ],
     "file": "screenshots/task-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1295,7 +1408,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "21ff694aa5323b5bbe9f4fc4e82cd26365ea3660bb9e481eea7ac7a7b26978ee",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1311,7 +1429,7 @@
     ],
     "file": "screenshots/duplicate-task.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1324,7 +1442,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "0906a50f2a9f244631e2d22e4de0e847d69e32d43404eb1605aa9aa7720d84d2",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1368,11 +1491,10 @@
       "On a saved definition, administrators can use Add to Scheduled, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication."
     ],
     "file": "screenshots/standard-form.png",
-    "note": "The option is selected for illustration; the form was not submitted. The former Active lifecycle label in this retained capture now reads Scheduled; Active and Archived tabs describe visibility.",
-    "captured_on": "2026-09-13",
+    "note": "The option is selected for illustration; the form was not submitted.",
     "action": "standard-generation",
     "focus": ".form-section:has(#standard-task-priority)",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1383,9 +1505,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 811
+        "height": 812
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "6284b937301f308855fd6dc6449a6346dac9abd040d46114a802e7a18aa0560d",
+      "native_pixels": [
+        3030,
+        2436
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1459,14 +1586,8 @@
     ],
     "focus": "#body",
     "file": "screenshots/email-message.png",
-    "copyright_line_box": [
-      44,
-      1131,
-      654,
-      1148
-    ],
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1479,7 +1600,12 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "d73613dc453f8368dc5305dfb6341c5db4c346011fe05846f21476781fdbaeca",
+      "native_pixels": [
+        3030,
+        2433
+      ]
     }
   },
   {
@@ -1496,7 +1622,7 @@
     "file": "screenshots/inbox.png",
     "shell": true,
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1509,7 +1635,12 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "df25e7d65eefe877142249d5389b331fc00eb01a43d125fe69c78fa13006be30",
+      "native_pixels": [
+        3840,
+        3000
+      ]
     }
   },
   {
@@ -1524,7 +1655,7 @@
     "file": "screenshots/inbound-message.png",
     "focus": "#inbound-queue-search",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1537,7 +1668,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "a042f0c0664acfc7c093b58048dafb0d5a2e00f39f2e5177def576ab4b3d37b3",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1612,8 +1748,7 @@
     ],
     "file": "screenshots/calendar.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "note": "The retained illustration shows one month. The current desktop calendar also scrolls continuously, loading adjacent weeks and their items; the phone view remains a daily agenda.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1626,7 +1761,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "d6135840ee7296f993edcaeb6231fb535ec193cc5fe1deaf3b4869fd6b829780",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1672,7 +1812,7 @@
     ],
     "file": "screenshots/profile.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1685,7 +1825,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "629ae446f292069cae5f94990bfb7d21cc866b168ba54ad212560e3b41f44a5f",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1694,7 +1839,7 @@
     "title": "Choose Daily Digest time and days",
     "route": "profile.php",
     "file": "screenshots/digest-preferences.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "steps": [
       "Open My Profile and scroll to Notifications. Enable Daily work digest to receive the Dashboard summary by email.",
@@ -1714,7 +1859,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "629ae446f292069cae5f94990bfb7d21cc866b168ba54ad212560e3b41f44a5f",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -1758,13 +1908,7 @@
     ],
     "note": "Only the initial confirmation screen is illustrated. Enrollment secrets and recovery codes are intentionally absent.",
     "file": "screenshots/setup.png",
-    "copyright_line_box": [
-      44,
-      930,
-      653,
-      947
-    ],
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1777,7 +1921,12 @@
         "width": 1010,
         "height": 510
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "f21e40ab4dfb5ef9f62ef7099428d4b3ec31216279e9d004b0be60a8649fb1e4",
+      "native_pixels": [
+        3030,
+        1530
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1853,7 +2002,7 @@
     ],
     "note": "The confirmation is illustrated without submitting the deletion.",
     "file": "screenshots/delete-user.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -1862,12 +2011,17 @@
         "height": 1000
       },
       "clip": {
-        "x": 392,
-        "y": 275,
+        "x": 384,
+        "y": 305,
         "width": 496,
-        "height": 450
+        "height": 389
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "f3b529ffa89ed08966d1bcbc457a4323999db37f3506d35e6fb8e2c261cd0785",
+      "native_pixels": [
+        1488,
+        1167
+      ]
     }
   },
   {
@@ -1962,16 +2116,15 @@
     "chapter": 12,
     "id": "elevation",
     "title": "Confirm administrator access",
-    "route": "admin_elevation.php",
+    "route": "users.php",
     "steps": [
       "Select Admin Unlock in the sidebar or on Users, or select a protected action, to open the verification dialog over the current page.",
       "Enter your current administrator password and a fresh authenticator or unused recovery code.",
       "Select Unlock Sensitive Actions to continue on the same page. The five-minute unlock applies only to this signed-in session."
     ],
     "file": "screenshots/elevation.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "note": "Earlier full-page view of the verification fields. In version 2.5.3, these fields appear in a dialog that preserves the current page, edits, and scroll position.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -1979,12 +2132,17 @@
         "height": 1000
       },
       "clip": {
-        "x": 270,
-        "y": 0,
-        "width": 1010,
-        "height": 566
+        "x": 384,
+        "y": 275,
+        "width": 496,
+        "height": 450
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "ce568211c564db5577e91b899181a8538742dd37f3f9078dc630fe37ddc2cfa9",
+      "native_pixels": [
+        1488,
+        1350
+      ]
     }
   },
   {
@@ -1999,7 +2157,7 @@
     ],
     "file": "screenshots/audit.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2012,7 +2170,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "cb87f11f5b3957dd3ef891aed9c8ce96874bd87d0c7466379fbe82cc65bde1de",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2028,7 +2191,7 @@
     "focus": "#audit-retention-title",
     "file": "screenshots/retention.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2041,7 +2204,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "ff262d688bdbf260f00f8a687542357be0fba682a67f5cd010e279f21864c531",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2057,7 +2225,7 @@
     ],
     "file": "screenshots/backup.png",
     "note": "The credential and download section is shown with empty fields. No backup was exported during capture.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -2071,7 +2239,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "130f5797253e6a1762416f314c10fc06bc3e9e4a79c24f38b913b6c54a31512f",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2143,7 +2316,7 @@
     "focus": ".presentation-export",
     "file": "screenshots/presentation-exports.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2156,7 +2329,12 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "e687eaf03c19e8d646bcfe05e265767b3c851a22e36da959194e1adc66613a57",
+      "native_pixels": [
+        3030,
+        2433
+      ]
     }
   },
   {
@@ -2200,7 +2378,7 @@
       "Confirm only when the permanent loss of visit history is intended. Other presentations, files, and QR destinations stay intact."
     ],
     "file": "screenshots/reset-statistics.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -2212,9 +2390,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 523
+        "height": 591
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "262d18e03cf120abfbfb4078250ccbfff616c1070bf41ce5a848ce5eadf56983",
+      "native_pixels": [
+        3030,
+        1773
+      ]
     }
   },
   {
@@ -2230,7 +2413,7 @@
     "focus": ".closeout-form",
     "file": "screenshots/closeout-amounts.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2241,9 +2424,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 826
+        "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "c34ffc0bb1208539b1d30c264d186d6c529d565aa92f9c07912cdadecc4a2103",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2261,7 +2449,7 @@
     "note": "This completed report contains fictional amounts.",
     "file": "screenshots/final-report.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2272,9 +2460,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 812
+        "height": 835
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "e7996f258c46be15221d2e4a406d91d4164dce6c6851ab3ceb5dbea7305993c6",
+      "native_pixels": [
+        3030,
+        2505
+      ]
     }
   },
   {
@@ -2290,7 +2483,7 @@
     ],
     "elevated": true,
     "file": "screenshots/edit-user.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "The current form groups personal details together. Scroll to profile picture, username, role, digest preferences, and Save changes. No profile changes were saved.",
     "capture": {
@@ -2305,7 +2498,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "5b263bf00f68b8fbdd92582ad722404bcaee9175ae6e0d9bf5f5cbe6b1ef15b8",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2322,7 +2520,7 @@
     "shell": true,
     "file": "screenshots/calendar-agenda.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2335,7 +2533,12 @@
         "width": 390,
         "height": 844
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "413db325dd23d50af16e6c87418ee5c3e3afe7e204609ffe2b4b601bef661338",
+      "native_pixels": [
+        1170,
+        2532
+      ]
     }
   },
   {
@@ -2352,8 +2555,7 @@
     "focus": "#recovery-email-heading",
     "file": "screenshots/recovery-email.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
-    "note": "The retained illustration shows the earlier field arrangement. The current form places the new address on its own row, with the password and authenticator code below it.",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2364,9 +2566,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 811
+        "height": 812
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "ae4e7c940df1aa3efccd24e67d3b5e6c09f51e73feb67133ba3cba365372bedf",
+      "native_pixels": [
+        3030,
+        2436
+      ]
     }
   },
   {
@@ -2383,7 +2590,7 @@
     "anonymous": true,
     "shell": true,
     "file": "screenshots/login.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2396,7 +2603,12 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "20559f74fed8d04c80a5602cfa2a3c3fcf6cd6c94a343fb9e5b4c50cfe775883",
+      "native_pixels": [
+        3840,
+        3000
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2437,29 +2649,34 @@
     "title": "Complete a Task and Review the Result",
     "route": "tasks.php?view=completed&scope=mine",
     "steps": [
-      "Select the check-mark Complete task action only when the work is finished.",
-      "If Complete Task? appears, confirm the named task with Complete Task, or use Cancel or Esc to leave it unchanged.",
-      "Review the completion notice and the Completed or Closed list. When the notice offers Undo, use it promptly to restore the previous status."
+      "Select the check-mark Complete task action only when the work is finished. On Tasks it completes the task immediately.",
+      "Review the completion notice and the Completed or canceled list. When the notice offers Undo, use it promptly to restore the previous status.",
+      "Completing a task keeps its details and status available for reference; it does not archive the task."
     ],
     "shell": true,
     "action": "task-confirmation",
     "note": "The completed list shows a fictional preview task. No task is completed by the capture utility.",
     "file": "screenshots/task-confirmation.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 0,
         "y": 0,
-        "width": 1280,
-        "height": 964
+        "width": 1600,
+        "height": 730
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        4800,
+        2190
+      ],
+      "sha256": "cef5bd3dcba65a1e0786322e18615d348c94641f889d655852d20efb9978d711"
     }
   },
   {
@@ -2473,21 +2690,26 @@
       "Select the curved-arrow Restore task control. Details, status, owner, and due date are retained. An open overdue task becomes eligible for active reminders again."
     ],
     "file": "screenshots/task-archived.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 625
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "native_pixels": [
+        3990,
+        1875
+      ],
+      "sha256": "8c371ca0c2477fd15cf31c2e81a46b2feee415e451e4a81de4e16145ed40d3cf"
     }
   },
   {
@@ -2560,7 +2782,7 @@
     "action": "network-reset",
     "note": "The confirmation was canceled; no statistics were reset during screenshot capture.",
     "file": "screenshots/network-reset.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2568,12 +2790,17 @@
         "height": 1000
       },
       "clip": {
-        "x": 392,
-        "y": 275,
+        "x": 384,
+        "y": 357,
         "width": 496,
-        "height": 450
+        "height": 285
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "42c8e6a16a1249aa1a10948f4e1f44786764795f67b669b91d8ba9356d927957",
+      "native_pixels": [
+        1488,
+        855
+      ]
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2587,7 +2814,7 @@
       "Apply owner/date/state filters and check the current summary. View opens read-only detail; Edit returns through the allowed expense list."
     ],
     "file": "screenshots/reimbursement-expenses.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -2601,7 +2828,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "6c83c494cead0bad49e38b2bbb1c83b19f2c721602bf85f3c1aa02eb6389b667",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2615,7 +2847,7 @@
       "Review Dates for New Request before Create Draft Request from Selected Expenses."
     ],
     "file": "screenshots/reimbursement-selection.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -2629,7 +2861,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "33f4476315313e5dc79b2d9bbd208a61f1afc35cfc5c56449127e0289fe9c944",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2644,7 +2881,7 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-expense-entry.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
@@ -2659,7 +2896,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "3f63fa5e44fb3c486a1011d0cc9f5e096d71f6a439fc33fe4cd0391ca4b9da60",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2704,7 +2946,7 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-requests.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
@@ -2719,7 +2961,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "f1bde5b41da7ecff7e7d5c987192ca6d5e1309753b6462841ec562bd1cb4a6fe",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2733,7 +2980,7 @@
       "Download Report PDF or Download Package ZIP for review, then Review and Submit."
     ],
     "file": "screenshots/reimbursement-draft.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -2747,7 +2994,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "319941904c201248f4e716fe3ac4c1bc13b276347dd1e27263205dd7d1d734de",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2787,9 +3039,10 @@
       "Only one ZIP is attached; it contains the report PDF, expense CSV, and receipts. This retained view shows original photos. Large requests now offer Reduce Photo Sizes to prepare smaller copies without changing uploads. Download the package and check readability before submitting."
     ],
     "file": "screenshots/reimbursement-review.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
+      "source": "Native browser PNG from the initial qualified capture pass; no resizing or sharpening",
       "device_scale_factor": 3,
       "viewport": {
         "width": 1280,
@@ -2801,8 +3054,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
-    }
+      "sha256": "f18705f2fae8d8f1785f0ac6be7d913c2d2dcc7de505c7c8b592479d552318ca",
+      "native_pixels": [
+        3030,
+        2550
+      ]
+    },
+    "note": "Normal-size package example. Separate illustrations show an oversized photo package and its smaller prepared copies."
   },
   {
     "chapter": 14,
@@ -2815,9 +3073,10 @@
       "Check I Have Reviewed the Recipients, Email, and Package, then Submit Reimbursement Request. Wait for progress and check delivery afterward; Submitted does not mean paid."
     ],
     "file": "screenshots/reimbursement-confirm.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
+      "source": "Native browser PNG from the initial qualified capture pass; no resizing or sharpening",
       "device_scale_factor": 3,
       "viewport": {
         "width": 1280,
@@ -2829,8 +3088,14 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
-    }
+      "sha256": "e1f0e5ebf93630aff679e68d5ad2b6f0a55b38895421fbb6e348ec5034171dd0",
+      "native_pixels": [
+        3030,
+        2433
+      ]
+    },
+    "elevated": false,
+    "note": "Normal-size package example. Separate illustrations show an oversized photo package and its smaller prepared copies."
   },
   {
     "chapter": 14,
@@ -2874,7 +3139,7 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-accounts.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
@@ -2889,7 +3154,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "8d15bc7f22ff495969618d43d794b1dda1f078ffacaba3fa44a937c721b00bbd",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2904,9 +3174,8 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-setup.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "note": "Fictional documentation records in an earlier setup view. Version 2.5.3 replaces Organization Name with the Account Name from Account Settings. The recipient fields continue below the illustrated area.",
     "capture": {
       "device_scale_factor": 3,
       "viewport": {
@@ -2917,9 +3186,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 688
+        "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "3bdde07bafa614fe103927354f97115777addcd1522c2655389be0b19e3b20e7",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2934,7 +3208,7 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-profile.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Personal Details section from the current profile screen, with fictional example.org addresses.",
     "capture": {
@@ -2949,7 +3223,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "6539e4b870130c0adca69228a41fd5ff982c946565adbae2fe2435b19c36f9d3",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -2990,7 +3269,7 @@
       "Review restored text against the current record; files and changes on another browser are not restored."
     ],
     "file": "screenshots/browser-draft-recovery.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3004,7 +3283,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "6e6a7d556928e021363891813a71910f8a1104af42989d5d2252db41851387f3",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -3018,7 +3302,7 @@
       "These actions do not save other unsaved edits. Remove on an unsaved block and file-removal checkboxes are different actions."
     ],
     "file": "screenshots/presentation-management.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3032,7 +3316,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "55a8b40b8fbe4c9601343bc63dc64607d81068628f5a176e6b823b88f42efcf2",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -3046,7 +3335,7 @@
       "Select Delete Permanently only when its resources and visit history should also be removed. This cannot be undone."
     ],
     "file": "screenshots/presentation-delete-confirmation.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3055,12 +3344,17 @@
         "height": 1000
       },
       "clip": {
-        "x": 392,
-        "y": 363,
+        "x": 384,
+        "y": 338,
         "width": 496,
-        "height": 273
+        "height": 323
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "0a1362c92205206597fc8d62d4943a343dc395a9710209233c4a3e4a337b859b",
+      "native_pixels": [
+        1488,
+        969
+      ]
     }
   },
   {
@@ -3074,7 +3368,7 @@
       "An administrator can delete an archived presentation permanently; it has no restore path afterward."
     ],
     "file": "screenshots/presentation-restore.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3086,9 +3380,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 736
+        "height": 802
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "c4e36d79645c503c7d0c83079128fa28175e3264f87a79bf422c4d584f1262b5",
+      "native_pixels": [
+        3030,
+        2406
+      ]
     }
   },
   {
@@ -3102,7 +3401,7 @@
       "Cancel or confirm Reset Statistics to Zero. This clears visit history permanently, while keeping the QR link and resource."
     ],
     "file": "screenshots/presentation-link-reset.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3114,9 +3413,14 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 578
+        "height": 646
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "8a287620b6828a5f78948c7d878b14fe2817e8b202e2b2ae855a10e604f00564",
+      "native_pixels": [
+        3030,
+        1938
+      ]
     }
   },
   {
@@ -3129,7 +3433,7 @@
       "Compare the original and corrected totals and the recorded reason. Finalized history is retained; archive a protected event instead of deleting it."
     ],
     "file": "screenshots/financial-history.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3143,7 +3447,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "4beaa963d057dbe568cb663cd4c8e328802855b1ca73c30a9a656ab70dcfb0df",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -3292,7 +3601,7 @@
       "The highlighted Apply Filters button indicates that changes have not yet updated the results. Select it to refresh; Clear returns to the defaults."
     ],
     "file": "screenshots/map-pending-filters.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-17",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 3,
@@ -3306,7 +3615,12 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "4e2182072e77b02eb538c5770580321de1255fac2031b4498dabfc0fb20b04ad",
+      "native_pixels": [
+        3030,
+        2550
+      ]
     }
   },
   {
@@ -3325,5 +3639,208 @@
       "render_dpi": 300,
       "source": "actual generated fictional report, receipt page 3"
     }
+  },
+  {
+    "id": "engagement-cancel",
+    "chapter": 5,
+    "title": "Review an engagement cancellation",
+    "route": "engagements.php",
+    "steps": [
+      "Use the red Cancel Engagement action for the intended Scheduled engagement. Editors and administrators can cancel.",
+      "Enter the cancellation reason and type CANCEL exactly. Review the engagement name before confirming.",
+      "Confirm only when the event is canceled. Associated tasks are archived while their completion history is preserved. This preview dialog was not submitted."
+    ],
+    "file": "screenshots/engagement-cancel.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 384,
+        "y": 185,
+        "width": 496,
+        "height": 630
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "147ae75556e5e78fe86dca98fe99774fc03fc3b27176d0a30310e3379dd46aa2",
+      "native_pixels": [
+        1488,
+        1890
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "presentation-optional",
+    "chapter": 5,
+    "title": "Mark an engagement as not requiring a presentation",
+    "route": "edit_engagement.php?id=1",
+    "focus": "#presentations-container",
+    "steps": [
+      "Open Edit Engagement and find the Presentation(s) section.",
+      "Select No Presentation Required when the event does not need a presentation. The presentation fields are hidden without deleting saved presentations.",
+      "Use Save Changes to save the decision. Clear the option when presentations are needed again. This preview was not saved."
+    ],
+    "file": "screenshots/presentation-optional.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "060f8b634542c61dc1e9266de78b0822331972cd918fa0df389048f26c09bda6",
+      "native_pixels": [
+        3030,
+        2550
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "presentation-duplicate",
+    "chapter": 5,
+    "title": "Prepare an independent presentation copy",
+    "route": "edit_engagement.php?id=1",
+    "focus": ".presentation-entry:has(input[name$=\"[duplicate_from_id]\"])",
+    "steps": [
+      "Choose Duplicate Presentation on the source presentation.",
+      "Review the copied topic, speaker, date, time and file choices, then adjust them for the new session.",
+      "Save Changes creates the new presentation and its own QR links. The original presentation remains independent. This illustration shows an unsaved copy."
+    ],
+    "file": "screenshots/presentation-duplicate.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "c8b47f33122403c1f0106c2cfa23cdb4e8aa444645e1e62d5f840f8de3bc9346",
+      "native_pixels": [
+        3030,
+        2550
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "reimbursement-photo-reduction",
+    "chapter": 14,
+    "title": "Prepare smaller receipt photos for email",
+    "route": "reimbursement_submit.php?id=1",
+    "focus": "[aria-labelledby=\"receipt-photo-heading\"]",
+    "steps": [
+      "Review the Large Receipt Photos Detected panel and compare the package size with the displayed email limits.",
+      "Use Reduce Photo Sizes to prepare smaller email copies. The original stored receipts are preserved.",
+      "Download the prepared package to confirm that every receipt remains readable, then complete the submission review. Preparing smaller copies does not send the reimbursement email."
+    ],
+    "file": "screenshots/reimbursement-photo-reduction.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "71827b7524cf8dc00748c13c46dde6b631bd7326250f63e01e841d5846de07af",
+      "native_pixels": [
+        3030,
+        2550
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "presentation-upload-progress",
+    "chapter": 5,
+    "title": "Watch a presentation upload before the final save",
+    "route": "edit_engagement.php?id=1",
+    "shell": true,
+    "steps": [
+      "Select the intended PDF notes or PowerPoint file, then choose Save Changes.",
+      "The upload panel reports the file and transferred percentage. Keep the page open through the Saving Changes stage.",
+      "Transient chunk failures retry automatically. If retry is needed, keep the same page open and select Retry Save. This illustration uses a large disposable preview file; the final engagement save was blocked."
+    ],
+    "file": "screenshots/presentation-upload-progress.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 1000
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "1b1608bd6f3cd6a93d82a82721d7086e6f0d6d5c41223bb0d5a0a582d5f5b0df",
+      "native_pixels": [
+        3840,
+        3000
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "reimbursement-photo-reduced",
+    "chapter": 14,
+    "title": "Review the smaller email copies before submitting",
+    "route": "reimbursement_submit.php?id=1&photos=reduced",
+    "focus": "[aria-labelledby=\"receipt-photo-heading\"]",
+    "steps": [
+      "Compare the original receipt-file size with the smaller prepared copies. The original uploads remain unchanged.",
+      "Download the prepared package and check that every receipt remains readable. Review both the ZIP and encoded email limits.",
+      "Complete the normal submission review only after these checks. Preparing these copies does not send an email."
+    ],
+    "file": "screenshots/reimbursement-photo-reduced.png",
+    "captured_at": "2026-11-17",
+    "capture": {
+      "device_scale_factor": 3,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "sha256": "acb33d83655a0256a54809413d5ec8ed70989c6b1958bfd8e3006c0ba4e0fd0e",
+      "native_pixels": [
+        3030,
+        2550
+      ]
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   }
 ]

@@ -1,6 +1,6 @@
 # MessageMonkey Comprehensive User Guide
 
-The November 12, 2026 edition documents MessageMonkey in MOED 2.11.5. The connections chapter explains country-level analytics, recorded interaction locations, and current IP estimates on profiles and in Daily Audience Summary emails. The figures use fictional data captured on October 29 and 31 in a separate local preview.
+The November 17, 2026 edition documents MessageMonkey in MOED 2.11.19. All 56 existing figures were recaptured at native 3x resolution, and five new figures cover the country interaction map, scheduled-campaign countdown, form-image alignment, Inbox forwarding, and recorded profile locations. The examples use fictional data in a separate local preview.
 
 ## Deliverables and sources
 
@@ -41,7 +41,9 @@ python3 scripts/message-monkey-manual/verify.py
 pdftoppm -r 100 -png output/pdf/message-monkey-comprehensive-user-guide.pdf tmp/pdfs/message-monkey-manual/proof
 ```
 
-Review every rendered page and inspect representative pages at full resolution. `verify.py` checks internal destinations, all bookmarks, page totals, chapter/topic coverage, text and image bounds, one-page walkthroughs, native 3x dimensions, capture hashes, and exact embedded/source pixel equality. It rejects lossy screenshot compression and resampling. Rebuild after any source or capture changes; the printed contents and navigation converge across build passes.
+Review every rendered page and inspect representative pages at full resolution. Use a full matching Chromium build for WebGL map captures. Set `DNR_MANUAL_SOFTWARE_WEBGL=1` when a software renderer is required; the capture refuses to accept a failed map. `DNR_MANUAL_WORK_DIR` and `DNR_MANUAL_OUTPUT_DIR` support staging captures before installation. Public OpenStreetMap tile GETs are allowed for the real map; other external requests remain blocked.
+
+`verify.py` checks internal destinations, all bookmarks, page totals, chapter/topic coverage, text and image bounds, one-page walkthroughs, native 3x dimensions, capture hashes, and exact embedded/source pixel equality. It rejects lossy screenshot compression and resampling. Rebuild after any source or capture changes; the printed contents and navigation converge across build passes.
 
 After verification, copy the final PDF to `src/assets/docs/`, rebuild the asset manifest, and run `verify-ui.cjs` against the still-running disposable preview. It checks the PDF response and byte identity, the online link in light/dark mode at desktop/mobile widths, and email-editor rendering and block selection. Run the focused PHP manual renderer test and the designer model checks when those sources change.
 

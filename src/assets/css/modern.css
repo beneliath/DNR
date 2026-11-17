@@ -2401,7 +2401,7 @@ html body .container > [data-chron-form] + .chron-log-section {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
@@ -2466,7 +2466,7 @@ html body .chron-view-editor {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 16px;
 }
 
 .chron-view-editor-actions > :is(a, button) {
@@ -2528,7 +2528,8 @@ html body .chron-view-editor {
 .chron-restore-page-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
   margin-top: 20px;
 }
 
@@ -2554,14 +2555,16 @@ html body .chron-restore-page-actions a:focus-visible {
 
 .engagement-form > .form-row .form-group:last-child {
   display: flex !important;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
 }
 
 .engagement-page-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
   margin-top: 20px;
   padding: 18px;
   border: 1px solid var(--border);
@@ -2582,6 +2585,48 @@ html body .chron-restore-page-actions a:focus-visible {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 22px;
+}
+
+/* Lists share an opaque selection toolbar inside their table panel. */
+.record-table-pane {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.record-table-pane > .data-table-scroll { border-radius: 0 0 var(--radius-md) var(--radius-md); }
+.record-table-pane .data-table { border: 0; border-radius: 0; box-shadow: none; margin: 0; }
+html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  gap: 12px 16px !important;
+  margin: 0 !important;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--surface) !important;
+}
+.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck { border-radius: var(--radius-md); }
+.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: -1;
+  pointer-events: none;
+  border: 4px solid transparent;
+  border-radius: calc(var(--radius-md) + 4px);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(115deg, var(--primary), var(--accent)) border-box;
+  box-shadow: 0 0 0 2px var(--surface), var(--shadow-md);
+}
+.record-table-pane [data-bulk-submit] { margin-inline-start: auto; }
+@media (max-width: 860px), (pointer: coarse) {
+  html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) { top: calc(var(--account-shell-height, 64px) + 12px); }
 }
 
 .summary-card {
@@ -4614,7 +4659,8 @@ html:not(.dark-mode) .task-table tbody tr.task-row-today {
   display: flex !important;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px !important;
+  /* Leave room for focus rings between neighboring buttons. */
+  gap: 6px 16px !important;
   background: transparent !important;
 }
 
@@ -4626,7 +4672,8 @@ html:not(.dark-mode) .task-table tbody tr.task-row-today {
 .create-form-actions {
   display: flex !important;
   align-items: center;
-  gap: 10px !important;
+  flex-wrap: wrap;
+  gap: 10px 16px !important;
 }
 
 .invitation-submit-status {
@@ -4985,7 +5032,7 @@ html body .app-popover button {
 .app-popover-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 8px 16px;
 }
 
 .app-popover-actions > * {
@@ -7264,7 +7311,28 @@ html body .unified-list-filter > button { min-height: 42px; }
   min-width: 0;
 }
 .directory-list-controls .clear-filters { margin-left: 0; }
+/* Balance the visibility label and underline against each directory's next row. */
+:is(.organizations-page, .contacts-page) > .directory-list-controls {
+  --directory-visibility-offset: -10px;
+}
+:is(.organizations-page, .contacts-page) > .directory-list-controls:has(~ .numbered-pagination) {
+  --directory-visibility-offset: -7.5px;
+}
+:is(.organizations-page, .contacts-page) > .directory-list-controls:has(~ .numbered-pagination .pagination-bar) {
+  --directory-visibility-offset: -5px;
+}
+:is(.organizations-page, .contacts-page) .directory-filter-row > .list-context-tabs {
+  transform: translateY(var(--directory-visibility-offset));
+}
+@container (max-width: 64rem) {
+  :is(.organizations-page, .contacts-page) > .directory-list-controls:has(~ .numbered-pagination .pagination-bar) {
+    --directory-visibility-offset: -7.5px;
+  }
+}
 @container (max-width: 40rem) {
+  :is(.organizations-page, .contacts-page) .directory-filter-row > .list-context-tabs {
+    transform: translateY(-14px);
+  }
   .directory-filter-row > .list-context-tabs { flex-basis: 100%; }
   .directory-filter-row > :is(.list-search-form, .directory-search-control) {
     width: min(24rem, 100%);

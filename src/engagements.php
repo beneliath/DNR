@@ -154,7 +154,7 @@ $has_search_terms = $search_plan['sql'] !== '';
 if (!$has_search_terms) {
     $search = '';
 }
-$page_size = paginationPageSizePreference('engagements', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
+$page_size = paginationUserPageSizePreference('engagements', (int) $_SESSION['user_id'], $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
 $date_from = \Dnr\Http\RequestInput::string($_GET, 'date_from');
 $date_to = \Dnr\Http\RequestInput::string($_GET, 'date_to');
 $date_error = '';
@@ -348,17 +348,17 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
 
     <div class="summary-grid" aria-label="Engagement Summary">
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'active', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-           class="summary-card summary-confirmed<?php echo in_array($lifecycle_filter, ['all', 'active'], true) ? ' is-selected' : ''; ?>"
-           <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">◆</span><span><small>Scheduled</small><strong><?php echo $summary['active']; ?></strong></span></a>
+           class="summary-card<?php echo $lifecycle_filter === 'active' ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span><small>Scheduled</small><strong><?php echo $summary['active']; ?></strong></span></a>
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'postponed', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-           class="summary-card summary-review<?php echo in_array($lifecycle_filter, ['all', 'postponed'], true) ? ' is-selected' : ''; ?>"
-           <?php echo $lifecycle_filter === 'postponed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">Ⅱ</span><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></a>
+           class="summary-card<?php echo $lifecycle_filter === 'postponed' ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'postponed' ? 'aria-current="true"' : ''; ?>><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></a>
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'canceled', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-           class="summary-card summary-archived<?php echo in_array($lifecycle_filter, ['all', 'canceled'], true) ? ' is-selected' : ''; ?>"
-           <?php echo $lifecycle_filter === 'canceled' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">×</span><span><small>Canceled</small><strong><?php echo $summary['canceled']; ?></strong></span></a>
+           class="summary-card<?php echo $lifecycle_filter === 'canceled' ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'canceled' ? 'aria-current="true"' : ''; ?>><span><small>Canceled</small><strong><?php echo $summary['canceled']; ?></strong></span></a>
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'completed', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-           class="summary-card summary-work-in-progress<?php echo in_array($lifecycle_filter, ['all', 'completed'], true) ? ' is-selected' : ''; ?>"
-           <?php echo $lifecycle_filter === 'completed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">✓</span><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></a>
+           class="summary-card<?php echo $lifecycle_filter === 'completed' ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'completed' ? 'aria-current="true"' : ''; ?>><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></a>
     </div>
 
     <div class="list-controls engagement-controls directory-list-controls">
@@ -377,6 +377,16 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                     'active' => ['Active', $list_url(['status' => 'active'])],
                     'archived' => ['Archived', $list_url(['status' => 'archived'])],
                 ], $list_status, 'Engagement Status'); ?>
+                <div class="control-group engagement-filter-group" aria-label="Engagement Lifecycle Filter">
+                    <span class="control-label">Lifecycle:</span>
+                    <div class="engagement-filter-options">
+                        <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
+                            <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+                               class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
+                               <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
                 <div class="directory-search-control">
                     <label class="visually-hidden" for="engagement-search">Search Engagements</label>
                     <span class="search-icon" aria-hidden="true">⌕</span>
@@ -396,26 +406,16 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                 <button type="submit" data-pending-reminder="list-search" class="button-secondary" data-engagement-date-apply>Apply</button>
                 <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>
             </fieldset>
-            <div class="control-group engagement-filter-group" aria-label="Engagement Lifecycle Filter">
-                <span class="control-label">Lifecycle:</span>
-                <div class="engagement-filter-options">
-                    <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
-                        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-                           class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
-                           <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
             </div>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>
-        <?php renderListFilterSummary(['Visibility' => ucfirst($list_status), 'Lifecycle' => $lifecycle_filter === 'all' ? 'All' : engagementLifecycleLabel($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=active'); ?>
     </div>
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
-    <?php renderBulkDeleteToolbar('engagement', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
+    <div class="record-table-pane engagement-table-pane">
+    <?php renderBulkDeleteToolbar('engagement', $list_current_url, true); ?>
     <div class="data-table-scroll">
     <table class="engagement-table data-table mobile-record-table sortable-table">
         <thead>
@@ -505,6 +505,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     </div>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
 </main>

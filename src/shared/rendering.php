@@ -74,6 +74,7 @@ function renderPageHead($title, array $options = []) {
         $styles[] = 'assets/css/pages/audience-mobile.min.css';
     }
     $styles[] = 'assets/css/date-picker.min.css';
+    $styles[] = 'assets/css/pages/visibility-context.min.css';
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;

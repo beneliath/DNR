@@ -105,6 +105,19 @@ function paginationPageSizePreference(string $key, mixed $value, int $default = 
     return $requested_size;
 }
 
+/**
+ * A list preference scoped to account, user and optional subview.
+ * @param list<int> $allowed
+ */
+function paginationUserPageSizePreference(string $list, int $userId, mixed $value, int $default = 20, array $allowed = [20, 50, 100], string $context = ''): int {
+    if ($userId < 1) return paginationPageSize($value, $default, $allowed);
+    $key = $list . '_' . substr(hash('sha256', currentAccountKey() . ':' . $userId . ':' . $context), 0, 24);
+    if ($value === null && !isset($_COOKIE['dnr_rows_per_page_' . $key])) {
+        $value = $_COOKIE['dnr_rows_per_page_' . $list . ($context === '' ? '' : '_' . $context)] ?? null;
+    }
+    return paginationPageSizePreference($key, $value, $default, $allowed, accountIsPrimary() ? '/' : accountCookiePath());
+}
+
 /** @return array{total: int, page: int, pages: int, offset: int} */
 function paginationState(int $total, int $size, mixed $requested_page): array {
     $total = max(0, $total);

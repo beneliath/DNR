@@ -215,8 +215,9 @@ try {
                 $queue = $request('tasks.php?' . http_build_query(['scope' => $scope, 'view' => 'all',
                     'q' => $suffix, 'subject_type' => 'inquiry', 'subject_id' => $inquiryId]));
                 preg_match('/class="summary-card is-selected"[^>]*>.*?<strong>([0-9]+)<\/strong>/s', $queue['body'], $count);
+                $dom = new DOMDocument(); @$dom->loadHTML($queue['body']); $xpath = new DOMXPath($dom);
                 expectUiuxHttp($queue['status'] === 200 && (int) ($count[1] ?? -1) === $expectedCount
-                    && str_contains($queue['body'], 'Showing ' . $expectedCount . ' of ' . $expectedCount . ' task'),
+                    && $xpath->query('//table[contains(@class,"task-table")]/tbody/tr[td[@data-field="Task"]]')->length === $expectedCount,
                     'Task summary and rows should share the ' . $scope . ' owner, record, and search filters');
             }
         }

@@ -20,7 +20,31 @@
         operation.addEventListener('change', update);
         window.addEventListener('pageshow', update);
         update();
+
     }
+    document.querySelectorAll('.record-table-pane > [data-task-bulk], .record-table-pane > [data-bulk-delete]').forEach(function (taskBulk) {
+            let scheduled = false;
+            const updateStickyState = function () {
+                scheduled = false;
+                let top = parseFloat(window.getComputedStyle(taskBulk).top);
+                for (let parent = taskBulk.parentElement; parent && parent !== document.documentElement; parent = parent.parentElement) {
+                    const style = window.getComputedStyle(parent);
+                    if (!/^(auto|scroll|hidden|overlay)$/.test(style.overflowY)) continue;
+                    if (parent !== document.scrollingElement) top += parent.getBoundingClientRect().top + parent.clientTop + (parseFloat(style.paddingTop) || 0);
+                    break;
+                }
+                taskBulk.classList.toggle('is-stuck', taskBulk.getBoundingClientRect().top <= top + 1);
+            };
+            const scheduleStickyState = function () {
+                if (scheduled) return;
+                scheduled = true;
+                window.requestAnimationFrame(updateStickyState);
+            };
+            document.addEventListener('scroll', scheduleStickyState, {passive: true, capture: true});
+            window.addEventListener('resize', scheduleStickyState);
+            window.addEventListener('pageshow', scheduleStickyState);
+            updateStickyState();
+    });
     const pipeline = document.querySelector('.dashboard-pipeline-disclosure');
     if (pipeline) {
         const sidebar = document.getElementById('app-sidebar');

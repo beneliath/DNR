@@ -4,12 +4,16 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '../..');
-const work = path.join(root, 'tmp/pdfs/message-monkey-manual');
-const output = path.join(root, 'docs/message-monkey-user-guide');
+const work = process.env.DNR_MANUAL_WORK_DIR || path.join(root, 'tmp/pdfs/message-monkey-manual');
+const output = process.env.DNR_MANUAL_OUTPUT_DIR || path.join(root, 'docs/message-monkey-user-guide');
 const base = process.env.DNR_MANUAL_BASE_URL || 'http://127.0.0.1:18146';
 if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base)) throw Error('Use a disposable loopback preview.');
 const credentials = JSON.parse(fs.readFileSync(path.join(work, 'credentials.json')));
-const shots = JSON.parse(fs.readFileSync(path.join(output, 'screenshots.json')));
+const priorShots = fs.existsSync(path.join(output, 'screenshots.json')) ? JSON.parse(fs.readFileSync(path.join(output, 'screenshots.json'))) : [];
+const shots = JSON.parse(fs.readFileSync(path.join(root, 'docs/message-monkey-user-guide/screenshots.json'))).map(shot => {
+  const prior = priorShots.find(item => item.id === shot.id);
+  return prior ? {...prior, ...shot, file:prior.file, capture:prior.capture} : shot;
+});
 const only = process.env.DNR_MANUAL_ONLY?.split(',');
 fs.mkdirSync(path.join(output, 'screenshots'), { recursive: true });
 fs.mkdirSync(path.join(work, 'states'), { recursive: true });
@@ -21,12 +25,13 @@ function totp() {
   return ((h.readUInt32BE(h[19] & 15) & 0x7fffffff) % 1000000).toString().padStart(6, '0');
 }
 (async () => {
-  const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}) });
+  const browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}), ...(process.env.DNR_MANUAL_SOFTWARE_WEBGL === '1' ? {args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl','--ignore-gpu-blocklist']} : {}) });
   const session = path.join(work, 'session.json');
   const context = await browser.newContext({ ...(fs.existsSync(session) ? { storageState: session } : {}), viewport: { width: 1280, height: 1000 }, deviceScaleFactor: 3, reducedMotion: 'reduce' });
   await context.route('**/*', route => {
     const request = route.request(), url = new URL(request.url());
-    if (url.origin !== base && !['data:', 'blob:'].includes(url.protocol)) return route.abort();
+    const publicMapTile = request.method() === 'GET' && url.origin === 'https://tile.openstreetmap.org' && /^\/\d+\/\d+\/\d+\.png$/.test(url.pathname);
+    if (url.origin !== base && !['data:', 'blob:'].includes(url.protocol) && !publicMapTile) return route.abort();
     if (request.method() === 'POST' && !['login.php', 'verify_2fa.php', 'admin_elevation.php'].includes(url.pathname.split('/').pop())) {
       const body = request.postData() || '';
       const action = request.headers()['content-type']?.includes('multipart/form-data')
@@ -37,9 +42,11 @@ function totp() {
     }
     return route.continue();
   });
-  const page = await context.newPage(); page.setDefaultTimeout(8000);
-  let pageErrors = []; page.on('pageerror', error => pageErrors.push(error.stack || error.message));
-  await page.goto(base + '/dashboard.php');
+  const page = await context.newPage(); page.setDefaultTimeout(30000);
+  let pageErrors = [], browserLogs = []; page.on('pageerror', error => pageErrors.push(error.stack || error.message));
+  page.on('console', message => { if (message.type() === 'error') browserLogs.push(message.text()); });
+  page.on('requestfailed', request => browserLogs.push(request.method() + ' ' + request.url().split('?')[0] + ': ' + request.failure()?.errorText));
+  await page.goto(base + '/dashboard.php', {waitUntil:'domcontentloaded',timeout:30000});
   if (page.url().includes('login.php')) {
     await page.locator('[name=username]').fill(credentials.username);
     await page.locator('[name=password]').fill(credentials.password);
@@ -55,7 +62,7 @@ function totp() {
   for (const shot of shots) {
     if (only && !only.includes(shot.id)) continue;
     try {
-      pageErrors = [];
+      pageErrors = []; browserLogs = [];
       await page.setViewportSize(shot.viewport || { width: 1280, height: 1000 });
       await page.evaluate(theme => localStorage.setItem('theme', theme), shot.theme || 'light');
       let response = await page.goto(base + '/' + shot.route, { waitUntil: 'networkidle' });
@@ -71,6 +78,8 @@ function totp() {
         else if (action.op === 'hover') await locator.hover();
         else await locator.click();
       }
+      if (shot.focus) await page.locator(shot.focus).first().evaluate(element => { element.scrollIntoView({block:'start'}); window.scrollBy(0,-90); });
+      if (shot.id === 'interaction-locations') await page.waitForTimeout(2500);
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(200);
       if (shot.id === 'designer' && await page.locator('.designer-block').count() === 0) throw Error('The email canvas did not render its blocks.');
@@ -89,14 +98,20 @@ function totp() {
       fs.writeFileSync(path.join(work, 'states', shot.id + '.txt'), body);
       fs.writeFileSync(path.join(work, 'states', shot.id + '.html'), await page.content());
       fs.writeFileSync(path.join(work, 'states', shot.id + '-errors.json'), JSON.stringify(pageErrors));
+      fs.writeFileSync(path.join(work, 'states', shot.id + '-console.json'), JSON.stringify(browserLogs));
+      if (shot.id === 'interaction-locations' && /map could not be loaded/i.test(body)) throw Error('The live interaction map did not render; inspect its browser log.');
       if (pageErrors.length) throw Error('Browser error: ' + pageErrors.join('; '));
       if (/Fatal error:|Warning:.*\.php on line|Uncaught .*Error:/.test(body)) throw Error('Application error in rendered page: ' + body.slice(-1300));
       const file = 'screenshots/' + shot.id + '.png';
       await page.screenshot({ path: path.join(output, file), type: 'png', scale: 'device', animations: 'disabled', ...(shot.clip ? { clip: shot.clip } : {}) });
       shot.file = file;
-      shot.capture = { source: 'Native browser PNG; no resizing or sharpening', device_scale_factor: 3, viewport_css: page.viewportSize(), clip_css: shot.clip || null, theme: shot.theme || 'light', captured_at: new Date().toISOString().slice(0, 10), sha256: crypto.createHash('sha256').update(fs.readFileSync(path.join(output, file))).digest('hex') };
+      shot.capture = { source: 'Native browser PNG; no resizing or sharpening', device_scale_factor: 3, viewport_css: page.viewportSize(), clip_css: shot.clip || null, theme: shot.theme || 'light', captured_at: new Intl.DateTimeFormat('en-CA', {timeZone:'America/Chicago', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date()), sha256: crypto.createHash('sha256').update(fs.readFileSync(path.join(output, file))).digest('hex') };
       console.log('Captured ' + shot.id);
-    } catch (error) { failures.push({ id: shot.id, error: error.message }); console.error('Failed ' + shot.id + ': ' + error.message.split('\n')[0]); }
+    } catch (error) {
+      fs.writeFileSync(path.join(work, 'states', shot.id + '-failed.txt'), await page.locator('body').innerText().catch(() => ''));
+      fs.writeFileSync(path.join(work, 'states', shot.id + '-failed.html'), await page.content().catch(() => ''));
+      failures.push({ id: shot.id, error: error.message }); console.error('Failed ' + shot.id + ': ' + error.message);
+    }
   }
   fs.writeFileSync(path.join(output, 'screenshots.json'), JSON.stringify(shots, null, 2) + '\n');
   fs.writeFileSync(path.join(work, 'capture-failures.json'), JSON.stringify(failures, null, 2));

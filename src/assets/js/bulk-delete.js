@@ -8,11 +8,12 @@
     const clear = form.querySelector('[data-bulk-clear]');
     const count = form.querySelector('[data-bulk-count]');
     const submit = form.querySelector('[data-bulk-submit]');
+    const submitLabel = form.dataset.bulkSubmitLabel || 'Delete Selected';
     function update() {
         const selected = items.filter(item => item.checked).length;
         count.textContent = `${selected} Selected`;
         submit.disabled = selected === 0;
-        submit.textContent = selected ? `Delete Selected (${selected})` : 'Delete Selected';
+        submit.textContent = selected ? `${submitLabel} (${selected})` : submitLabel;
         selectAll.disabled = items.length === 0 || selected === items.length;
         clear.hidden = selected === 0;
     }
