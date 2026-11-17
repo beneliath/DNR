@@ -197,10 +197,11 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                 return;
             }
             const isLogo = image.classList.contains('logo');
+            const alignment = isLogo ? 'center' : block.dataset.imageAlign || 'left';
             block.classList.add('collection-image-block');
             if (isLogo) block.classList.add('collection-logo-block');
             const handle = doc.createElement('button'); handle.type = 'button'; handle.className = 'collection-image-resize';
-            handle.textContent = '↘'; handle.title = 'Drag to resize. Arrow keys adjust by 10 pixels.';
+            handle.textContent = alignment === 'right' ? '↙' : '↘'; handle.title = 'Drag to resize. Arrow keys adjust by 10 pixels.';
             handle.setAttribute('role', 'slider'); handle.setAttribute('aria-label', `Resize ${label}`);
             handle.setAttribute('aria-valuemin', '40'); handle.setAttribute('aria-orientation', 'horizontal');
             const parentStyle = doc.defaultView.getComputedStyle(block.parentElement);
@@ -222,7 +223,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
             });
             handle.addEventListener('pointermove', event => {
                 if (!drag || drag.id !== event.pointerId) return;
-                const horizontal = (event.clientX - drag.x) * (isLogo ? 2 : 1);
+                const horizontal = (event.clientX - drag.x) * (alignment === 'center' ? 2 : alignment === 'right' ? -1 : 1);
                 const vertical = (event.clientY - drag.y) * image.naturalWidth / image.naturalHeight;
                 paint(clamp(drag.width + (Math.abs(horizontal) >= Math.abs(vertical) ? horizontal : vertical)));
             });
@@ -501,6 +502,7 @@ import { enhanceAudienceFileInput } from './audience-file-drop.mjs';
                             if (value === '') delete item.width; else item.width = Number(value);
                         }, 'number');
                         width.min = '40'; width.max = '1200'; width.step = '1'; width.placeholder = 'Automatic';
+                        control(card, 'Image Alignment', item.align ?? 'left', value => { item.align = value; }, 'select', [['left','Left'],['center','Center'],['right','Right']]);
                     }
                 }
             } else if (key === 'variants') {

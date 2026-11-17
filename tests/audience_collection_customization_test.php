@@ -123,6 +123,22 @@ $imageDocument=audienceCollectionDocument(array_replace($preferenceLogo,['sectio
 $imageHtml=audienceCollectionHtml(['kind'=>'preferences','document'=>$imageDocument],[],[],'','');
 $expect($imageDocument['sections'][0]['width']===180&&str_contains($imageHtml,'class="section-image" width="180"'),'Content image width persists through validation and public rendering');
 $expect(!str_contains($imageHtml,' style="')&&!str_contains($imageHtml,'collection-image-resize'),'Published images do not expose editor tools or inline styles');
+$expect($imageDocument['sections'][0]['align']==='left','Existing image sections default to left alignment');
+foreach(AUDIENCE_COLLECTION_KINDS as$kind){
+    foreach(['left','center','right']as$align){
+        $aligned=audienceCollectionDefaults($kind);$aligned['sections']=[['type'=>'image','url'=>$logo,'text'=>'Aligned image','width'=>180,'align'=>$align]];
+        $aligned=audienceCollectionDocument($aligned,$kind,[],[],[]);
+        $reloaded=audienceCollectionDocument(json_decode(json_encode($aligned,JSON_THROW_ON_ERROR),true,32,JSON_THROW_ON_ERROR),$kind,[],[],[]);
+        $expect($reloaded['sections'][0]['align']===$align&&$reloaded['sections'][0]['width']===180,'Image alignment and width survive saving and reloading '.$kind);
+        foreach([false,true]as$isPreview){
+            $alignedHtml=audienceCollectionHtml(['kind'=>$kind,'document'=>$reloaded],[],[],'','',[],'','',null,$isPreview);
+            $expect(str_contains($alignedHtml,'class="collection-image-section" data-image-align="'.$align.'"'),'Preview and public '.$kind.' images share the selected alignment');
+        }
+    }
+}
+foreach(['justify','CENTER','right" onclick="bad()',[],1]as$invalidAlign){$invalid=$imageDocument;$invalid['sections'][0]['align']=$invalidAlign;$reject(fn()=>audienceCollectionDocument($invalid,'preferences',[],[],[]));}
+$legacyImage=$imageDocument;unset($legacyImage['sections'][0]['align']);
+$expect(str_contains(audienceCollectionHtml(['kind'=>'preferences','document'=>$legacyImage],[],[],'',''),'data-image-align="left"'),'Already published images render without requiring a resave');
 foreach([0,-1,1201,'invalid']as$invalidWidth){$invalid=$imageDocument;$invalid['sections'][0]['width']=$invalidWidth;$reject(fn()=>audienceCollectionDocument($invalid,'preferences',[],[],[]));}
 $imageDocument['sections'][0]['width']='';
 $expect(!isset(audienceCollectionDocument($imageDocument,'preferences',[],[],[])['sections'][0]['width']),'Automatic content image width remains supported');

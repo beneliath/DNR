@@ -57,6 +57,10 @@ legend { padding: 0; }
 .error strong + p { margin-top: 6px; }
 .trap { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 .section-image { max-width: 100%; height: auto; border-radius: 10px; }
+.collection-image-section { width: fit-content; max-width: 100%; margin-left: 0; margin-right: auto; }
+.collection-image-section[data-image-align="center"] { margin-left: auto; margin-right: auto; }
+.collection-image-section[data-image-align="right"] { margin-left: auto; margin-right: 0; }
+.collection-image-section > .section-image { display: block; }
 small { display: block; font-size: 12px; line-height: 1.5; color: #66777e; margin-top: 24px; text-align: center; }
 .collection-footer-credit { white-space: pre-wrap; overflow-wrap: anywhere; }
 hr { border: 0; border-top: 1px solid #e7ecee; margin: 28px 0; }
