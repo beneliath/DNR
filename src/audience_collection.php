@@ -539,8 +539,6 @@ trait AudienceCollection
             if (!$person) {
                 $this->write("INSERT INTO marketing_contacts(audience_id,email,first_name,last_name,email_status,custom_json,source,notes) VALUES (?,?,?,?,?,?,?, '')",[$this->audienceId,$email,$values['first_name'],$values['last_name'],$confirmation?'pending':'subscribed',json_encode((object)$custom,JSON_THROW_ON_ERROR),'Signup Form']);
                 $person=$this->person((int)$this->db->insert_id);
-                foreach ($d['tag_ids'] as $tag) if ($this->one('SELECT id FROM marketing_tags WHERE audience_id=? AND id=?',[$this->audienceId,$tag])) $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) VALUES (?,?)',[$person['id'],$tag]);
-                foreach ($chosen as $option) $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) VALUES (?,?)',[$person['id'],$option]);
             }
             // Existing profiles remain unchanged until the owner confirms this submission.
             $receipt = [
@@ -552,16 +550,48 @@ trait AudienceCollection
             if ($interactionLocation) $receipt['interaction_location'] = $interactionLocation;
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json)
                 VALUES (?,NULL,'Signup Form','recipient','signup-permission',?)", [$person['id'],json_encode($receipt,JSON_THROW_ON_ERROR)]);
+            $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
+            $memberships=['tag_ids'=>$d['tag_ids'],'group_ids'=>$chosen];
             if ($confirmation) {
-                $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
+                $context['memberships']=$memberships;
                 if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];
                 $this->requestSubscriptionConfirmation((int)$person['id'],$base,$context);
-            } elseif($person['email_status']!=='subscribed') {
-                $this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);
+            } else {
+                if($person['email_status']!=='subscribed')$this->write("UPDATE marketing_contacts SET email_status='subscribed',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);
+                $this->applyCollectionSignupMemberships((int)$person['id'],$memberships,$context);
             }
             if(!$wasSubscribed&&!$confirmation)$this->recordCollectionConversion((int)$person['id'],['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'],'single');
         }
         return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'email_format'=>$format,'quiz'=>audienceText($input,'quiz',200),'confirmation_required'=>$confirmation],$confirmation];
+    }
+
+    /** Apply consented additions for every signup kind, retaining existing memberships. */
+    private function applyCollectionSignupMemberships(int $contact,array $memberships,array $context):void
+    {
+        $person=$this->person($contact,true);
+        $tags=array_intersect(audienceIds($memberships['tag_ids']??[]),array_map('intval',array_column($this->tags(false,false),'id')));
+        $addedTags=[];$addedGroups=[];
+        foreach(array_diff($tags,$person['tag_ids'])as$tag){
+            $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) SELECT ?,id FROM marketing_tags WHERE audience_id=? AND id=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$contact,$this->audienceId,$tag]);
+            if($this->db->affected_rows>0)$addedTags[]=$tag;
+        }
+        $chosen=audienceIds($memberships['group_ids']??[]);
+        foreach($chosen?$this->groups(false,false):[]as$group){
+            if($group['display_type']==='hidden')continue;
+            $options=array_map('intval',array_column($group['options'],'id'));
+            $additions=array_values(array_intersect($chosen,$options));
+            // Like profile additions, a repeat signup must not replace recorded choices.
+            if(in_array($group['display_type'],['radio','dropdown'],true)&&(count($additions)!==1||array_intersect($person['group_ids'],$options)))continue;
+            foreach(array_diff($additions,$person['group_ids'])as$option){
+                $this->write('INSERT IGNORE INTO marketing_contact_groups(contact_id,option_id) SELECT ?,o.id FROM marketing_group_options o JOIN marketing_group_categories g ON g.id=o.category_id WHERE g.audience_id=? AND g.id=? AND o.id=? AND g.display_type<>\'hidden\''.($this->definitionArchiveAvailable()?' AND g.archived_at IS NULL':''),[$contact,$this->audienceId,$group['id'],$option]);
+                if($this->db->affected_rows>0)$addedGroups[]=$option;
+            }
+        }
+        foreach(['tags_changed'=>$addedTags,'groups_changed'=>$addedGroups]as$type=>$added)if($added){
+            $details=['added'=>$added,'removed'=>[],'source'=>'Signup form','resource_id'=>(int)$context['resource_id'],'revision_id'=>(int)$context['revision_id']];
+            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient',?,?)",[$contact,$type,json_encode($details,JSON_THROW_ON_ERROR)]);
+        }
+        if($addedTags||$addedGroups)$this->write('UPDATE marketing_contacts SET version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$contact]);
     }
 
     /** Public repeat signups cannot overwrite an existing contact's preference. */

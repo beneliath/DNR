@@ -233,11 +233,11 @@ trait AudienceDeliveryRuntime
             $this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE audience_id=? AND contact_id=? AND used_at IS NULL',[$this->audienceId,$personId]);
             $this->write('INSERT INTO marketing_consent_challenges(audience_id,contact_id,email_hash,token_hash,service_mail_id,expires_at) VALUES (?,?,?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 24 HOUR))',[$this->audienceId,$personId,audienceDispatchEmailHash($person['email']),hash('sha256',$token),$mail]);
             $challengeId=(int)$this->db->insert_id;
-            // Keep pending profile additions server-side, separate from the PII-free email body.
+            // Bind pending signup additions to this contact and challenge, outside the email body.
             if($collection){
                 $context['challenge_id']=$challengeId;
                 if($person['is_archived'])$context['archive_event_id']=audienceLatestArchiveEvent($this->db,$this->audienceId,$personId);
-                if(isset($collection['profile']))$context['profile_ciphertext']=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'contact'=>$personId,'challenge'=>$challengeId,'email_hash'=>audienceDispatchEmailHash($person['email']),'profile'=>$collection['profile']],JSON_THROW_ON_ERROR));
+                if(isset($collection['profile'])||isset($collection['memberships']))$context['profile_ciphertext']=\Dnr\Security\ApplicationKey::seal(json_encode(['audience'=>$this->audienceId,'contact'=>$personId,'challenge'=>$challengeId,'email_hash'=>audienceDispatchEmailHash($person['email']),'profile'=>$collection['profile']??[],'memberships'=>$collection['memberships']??[]],JSON_THROW_ON_ERROR));
                 $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient','collection-confirmation',?)",[$personId,json_encode($context,JSON_THROW_ON_ERROR)]);
             }
         }, readCommitted: true);
@@ -256,9 +256,12 @@ trait AudienceDeliveryRuntime
             if($deleted&&(!$attribution||$person['created_at']<$deleted['deleted_at']||$challenge['created_at']<$deleted['deleted_at']||$attribution['created_at']<$deleted['deleted_at']))return false;
             $context=$attribution?audienceJson($attribution['details_json']):[];
             if(!audienceConfirmationArchiveAllowed($this->db,$this->audienceId,$person,(int)$challenge['id'],$context))return false;
+            $memberships=null;
             if(isset($context['profile_ciphertext'])){
                 try{$pending=json_decode(\Dnr\Security\ApplicationKey::open($context['profile_ciphertext']),true,64,JSON_THROW_ON_ERROR);}catch(Throwable){return false;}
                 if(($pending['audience']??null)!==$this->audienceId||($pending['contact']??null)!==(int)$person['id']||($pending['challenge']??null)!==(int)$challenge['id']||!hash_equals($challenge['email_hash'],$pending['email_hash']??'')||!is_array($pending['profile']??null))return false;
+                if(isset($pending['memberships'])&&!is_array($pending['memberships']))return false;
+                $memberships=$pending['memberships']??null;
                 $profile=audienceCollectionProfileAdditions($person,$pending['profile'],$this->fields());
                 if($profile['changed_fields']){
                     $this->write('UPDATE marketing_contacts SET first_name=?,last_name=?,custom_json=? WHERE audience_id=? AND id=?',[$profile['first_name'],$profile['last_name'],json_encode((object)$profile['custom'],JSON_THROW_ON_ERROR),$this->audienceId,$person['id']]);
@@ -266,6 +269,12 @@ trait AudienceDeliveryRuntime
                 }
                 $this->write("UPDATE marketing_contact_events SET details_json=JSON_REMOVE(details_json,'$.profile_ciphertext') WHERE id=?",[$attribution['id']]);
             }
+            if($memberships===null&&$attribution){
+                // Links issued before membership staging still use their original published tags.
+                $revision=$this->one('SELECT document_json FROM marketing_collection_revisions WHERE audience_id=? AND resource_id=? AND id=?',[$this->audienceId,(int)($context['resource_id']??0),(int)($context['revision_id']??0)]);
+                $memberships=['tag_ids'=>$revision?(audienceJson($revision['document_json'])['tag_ids']??[]):[]];
+            }
+            if($memberships!==null)$this->applyCollectionSignupMemberships((int)$person['id'],$memberships,$context);
             $this->write("UPDATE marketing_contacts SET email_status='subscribed',is_archived=0,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);$this->write('DELETE FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]);$this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE id=?',[$challenge['id']]);
             if($person['is_archived'])$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','contact_restored',?)",[$person['id'],json_encode(['source'=>'Confirmed signup form','resource_id'=>$context['resource_id'],'challenge_id'=>(int)$challenge['id']],JSON_THROW_ON_ERROR)]);
             $details=['from'=>$person['email_status'],'to'=>'subscribed','source'=>'Delivered single-use confirmation'];
