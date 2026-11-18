@@ -95,10 +95,10 @@ expectBookingInquiryFeature(
         && str_contains($formTemplate, '$inquiry_sources = bookingInquirySelectableSources();')
         && str_contains($helpers, "unset(\$sources['mattermost']);")
         && str_contains($helpers, 'array_key_exists($source, bookingInquirySelectableSources())')
-        && str_contains($formTemplate, 'class="inquiry-source-fields"')
+        && preg_match('/class="inquiry-ownership-fields".*class="inquiry-assignment-fields".*class="inquiry-source-fields"/s', $formTemplate) === 1
         && str_contains($formTemplate, 'form-group inquiry-source-detail-field')
         && str_contains($formTemplate, 'form-group inquiry-next-action-detail-field')
-        && str_contains($bookingStyles, 'grid-template-columns: minmax(190px, .55fr) minmax(0, 1.45fr);')
+        && preg_match('/\.inquiry-ownership-fields,\s*\.inquiry-assignment-fields,\s*\.inquiry-source-fields\s*\{[^}]*flex-wrap:\s*wrap;/s', $bookingStyles) === 1
         && preg_match('/\.inquiry-source-detail-field input,\s*\.inquiry-next-action-detail-field input\s*\{[^}]*width:\s*100% !important;[^}]*border-radius:\s*8px !important;/s', $bookingStyles) === 1
         && preg_match('/\.inquiry-next-action-fields\s*\{[^}]*margin-top:\s*\.9rem;/s', $bookingStyles) === 1
         && str_contains($formTemplate, 'class="inquiry-form-grid inquiry-event-type-grid"')

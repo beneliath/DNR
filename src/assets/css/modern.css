@@ -2278,6 +2278,38 @@ html body .container > .engagement-form {
   font-size: 1.14rem;
 }
 
+.form-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: .9rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-section-heading h2 {
+  margin: 0;
+  font-size: 1.14rem;
+}
+
+.form-section-heading p {
+  margin: .2rem 0 0;
+  color: var(--text-muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+.form-section-number {
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 850;
+}
+
 .chron-log-section {
   scroll-margin-top: 24px;
 }
@@ -3098,16 +3130,42 @@ html body .task-action-button:focus-visible {
   font-size: 0.8rem;
 }
 
-.task-form-grid {
+.task-form-grid,
+.task-form-primary-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 18px;
 }
 
-@media (min-width: 1100px) {
-  .follow-up-task-form .task-form-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+.task-form-page .task-form-primary-row {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: .75rem;
+}
+
+@media (min-width: 761px) {
+  .task-form-page,
+  .task-form-page ~ .app-footer {
+    width: min(100%, clamp(40rem, 60%, calc(var(--app-content-max) * .6)));
   }
+}
+
+.task-ownership-fields {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 18px;
+}
+
+.task-ownership-fields > .form-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.task-ownership-fields > .task-due-date-field {
+  width: 10rem;
+}
+
+.task-form-page .task-ownership-fields .form-group > select {
+  padding-inline-end: calc(2em + .75rem) !important;
 }
 
 html body .container > .follow-up-task-form,
@@ -3137,7 +3195,6 @@ html.has-js .follow-up-task-form #task-subject {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 8px;
   padding: 16px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
@@ -3151,13 +3208,6 @@ html.has-js .follow-up-task-form .task-selected-record:not([hidden]) {
 .follow-up-task-form .task-selected-record > div {
   flex: 1 1 240px;
   min-width: 0;
-}
-
-.follow-up-task-form .task-selected-record small {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--text-muted);
-  font-size: 0.8rem;
 }
 
 .follow-up-task-form .task-selected-record strong {
@@ -5848,7 +5898,8 @@ html.dark-mode .login-secondary-link a {
     justify-content: flex-start !important;
   }
 
-  .task-form-grid {
+  .task-form-grid,
+  .task-form-primary-row {
     grid-template-columns: 1fr;
   }
 

@@ -14,7 +14,7 @@ $task_selected_priority = (string) ($task_form_values['priority'] ?? 'normal');
 $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
 $task_require_engagement_subject = !empty($task_require_engagement_subject);
 $task_duplicate_url = (string) ($task_duplicate_url ?? '');
-$task_subject_label = $task_require_engagement_subject ? 'Destination event' : 'Related Record';
+$task_subject_label = $task_require_engagement_subject ? 'Destination Event' : 'Related Record';
 $task_subject_search_placeholder = $task_require_engagement_subject
     ? 'Search events'
     : 'Search inquiries, engagements, organizations, or contacts';
@@ -26,7 +26,7 @@ $task_selected_label = $task_selected_subject === 'general'
         ? $task_selected_record['label'] . (empty($task_selected_record['active']) ? ' · Archived' : '')
         : 'No Record Selected');
 ?>
-<p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+<p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
     <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
@@ -34,35 +34,60 @@ $task_selected_label = $task_selected_subject === 'general'
         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task_form_values['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
     <?php endif; ?>
     <section class="form-section">
-        <h2>Task</h2>
-        <div class="form-group">
-            <label for="task-title" class="required">Title</label>
-            <input type="text" id="task-title" name="title" maxlength="255" required value="<?php echo htmlspecialchars($task_form_values['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+        <div class="form-section-heading">
+            <span class="form-section-number" aria-hidden="true">01</span>
+            <div>
+                <h2>Task</h2>
+                <p>Use an action verb in the title. Add handoff details in Notes.</p>
+            </div>
+        </div>
+        <div class="task-form-primary-row">
+            <div class="form-group">
+                <label for="task-title" class="required"><span aria-hidden="true">*</span>Title</label>
+                <input type="text" id="task-title" name="title" maxlength="255" required value="<?php echo htmlspecialchars($task_form_values['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+            </div>
+            <div class="form-group">
+                <label for="task-subject"<?php echo $task_require_engagement_subject ? ' class="required"' : ''; ?>><?php
+                    if ($task_require_engagement_subject) {
+                        echo '<span aria-hidden="true">*</span>';
+                    }
+                    echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8');
+                ?></label>
+                <div class="task-selected-record" id="task-selected-record">
+                    <div><strong id="task-selected-record-label"><?php echo htmlspecialchars($task_selected_label, ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                    <button type="button" class="button-secondary" id="task-change-record" aria-haspopup="dialog" aria-controls="task-record-search-dialog">Change Record</button>
+                    <?php if (!$task_require_engagement_subject): ?>
+                        <button type="button" class="button-secondary" id="task-clear-record"<?php echo $task_selected_subject === '' || $task_selected_subject === 'general' ? ' hidden' : ''; ?>>Clear Relationship</button>
+                    <?php endif; ?>
+                </div>
+                <select id="task-subject" name="subject"<?php echo $task_require_engagement_subject ? ' required' : ''; ?>>
+                    <?php if ($task_require_engagement_subject): ?>
+                        <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select Destination Event</option>
+                    <?php else: ?>
+                        <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endif; ?>
+                    <?php if ($task_selected_record && $task_selected_subject !== 'general'): ?>
+                        <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
+                    <?php endif; ?>
+                </select>
+                <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
+            </div>
         </div>
         <div class="form-group">
             <label for="task-details">Notes</label>
             <textarea id="task-details" name="details" rows="6" maxlength="20000"><?php echo htmlspecialchars($task_form_values['details'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
-        <div class="form-group">
-            <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="task-selected-record" id="task-selected-record"><div><small>Selected record</small><strong id="task-selected-record-label"><?php echo htmlspecialchars($task_selected_label, ENT_QUOTES, 'UTF-8'); ?></strong></div><button type="button" class="button-secondary" id="task-change-record" aria-haspopup="dialog" aria-controls="task-record-search-dialog">Change Record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record"<?php echo $task_selected_subject === '' || $task_selected_subject === 'general' ? ' hidden' : ''; ?>>Clear Relationship</button><?php endif; ?></div>
-            <select id="task-subject" name="subject" required>
-                <?php if ($task_require_engagement_subject): ?>
-                    <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select Destination Event</option>
-                <?php else: ?>
-                    <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
-                <?php endif; ?>
-                <?php if ($task_selected_record && $task_selected_subject !== 'general'): ?>
-                    <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
-                <?php endif; ?>
-            </select>
-            <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
-        </div>
     </section>
 
     <section class="form-section">
-        <h2>Ownership &amp; Timing</h2>
-        <div class="task-form-grid">
+        <div class="form-section-heading">
+            <span class="form-section-number" aria-hidden="true">02</span>
+            <div>
+                <h2>Ownership &amp; Timing</h2>
+                <p>Set a due date for deadlines and use Waiting when progress depends on a person or decision.</p>
+            </div>
+        </div>
+        <div class="task-ownership-fields">
             <div class="form-group">
                 <label for="task-assignee">Assigned To</label>
                 <select id="task-assignee" name="assigned_to">
@@ -72,21 +97,21 @@ $task_selected_label = $task_selected_subject === 'general'
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group task-due-date-field">
                 <label for="task-due-date">Due Date</label>
                 <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="task-due-date" name="due_date" value="<?php echo htmlspecialchars($task_form_values['due_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
             <div class="form-group">
-                <label for="task-priority" class="required">Priority</label>
-                <select id="task-priority" name="priority" required>
+                <label for="task-priority">Priority</label>
+                <select id="task-priority" name="priority">
                     <?php foreach ($task_priorities as $priority_value => $priority_label): ?>
                         <option value="<?php echo htmlspecialchars($priority_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $task_selected_priority === $priority_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($priority_label, ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group">
-                <label for="task-status" class="required">Status</label>
-                <select id="task-status" name="status" required>
+                <label for="task-status">Status</label>
+                <select id="task-status" name="status">
                     <?php foreach ($task_statuses as $status_value => $status_label): ?>
                         <option value="<?php echo htmlspecialchars($status_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $task_selected_status === $status_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($status_label, ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>

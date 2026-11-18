@@ -174,7 +174,7 @@ $task_duplicate_url = 'add_task.php?' . http_build_query([
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container" role="main">
+<div class="container task-form-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><span>Edit Task</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit Task</h1><p class="page-intro">Update the next action, owner, timing, or status.</p></div></div>
     <?php if ($error_message !== ''): ?>
