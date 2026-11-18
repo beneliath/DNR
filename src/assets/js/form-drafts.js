@@ -167,13 +167,17 @@
             }
             return rows.length;
         }
+        function showDraftAvailability() {
+            restore.hidden = discard.hidden = !saved;
+            status.textContent = saved
+                ? 'Draft available from ' + window.DnrUserTime.format(new Date(saved.at))
+                : 'No saved draft';
+        }
         function showSaved() {
-            restore.hidden=discard.hidden=!saved;
+            showDraftAvailability();
             const stale=saved && saved.version!==versions();
             restore.disabled=!!stale;
             const differences = renderRecovery(stale ? saved.fields : []);
-            status.textContent = 'No saved draft';
-            if (saved) status.textContent = 'Draft available from ' + window.DnrUserTime.format(new Date(saved.at));
             if (stale) status.textContent = differences
                 ? 'The record changed since this draft was saved. Restore the values you want, then review the form before saving.'
                 : 'The saved draft matches the current form. You can discard it.';
@@ -230,8 +234,12 @@
         window.addEventListener('beforeunload',function (event) {
             if(baseline !== '' && !submitting && JSON.stringify(capture())!==baseline && JSON.stringify(capture())!==lastSaved) { event.preventDefault(); event.returnValue=''; }
         });
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showSaved, {once: true});
-        else showSaved();
+        if (document.readyState === 'loading') {
+            showDraftAvailability();
+            document.addEventListener('DOMContentLoaded', showSaved, {once: true});
+        } else {
+            showSaved();
+        }
     }
     function scan() {
         const sidebar = document.getElementById('app-sidebar');

@@ -519,7 +519,7 @@
       ]
     },
     "add_task.php": {
-      "sha256": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
+      "sha256": "f7caf39146423b00633182971827d8f2273079c8faabbeb75f9df220a688fc2e",
       "controls": [
         {
           "kind": "a",
@@ -1836,7 +1836,7 @@
       ]
     },
     "edit_task.php": {
-      "sha256": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
+      "sha256": "d5875dbdf90feef97d7a4a1b5a6c24f18c4acc3ae334f96260e8daeff6e86625",
       "controls": [
         {
           "kind": "a",

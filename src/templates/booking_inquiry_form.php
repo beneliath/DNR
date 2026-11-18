@@ -10,17 +10,19 @@ $inquiry_priorities = bookingInquiryPriorities();
 $inquiry_event_types = \Dnr\Domain\ReferenceData::eventTypes();
 $value = static fn(string $key, string $fallback = ''): string => (string) ($inquiry_form_values[$key] ?? $fallback);
 ?>
-<p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form" data-recoverable-draft="<?php echo !empty($inquiry_id) ? 'edit_inquiry.php:' . (int)$inquiry_id : 'add_inquiry.php:new'; ?>" data-inquiry-draft-key="<?php echo (int) ($_SESSION['user_id'] ?? 0); ?>:<?php echo !empty($inquiry_id) ? (int) $inquiry_id : 'new'; ?>" data-inquiry-form-submitted="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>">
     <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
     <?php if (!empty($inbound_email_message_id)): ?><input type="hidden" name="inbound_email_message_id" value="<?php echo (int) $inbound_email_message_id; ?>"><?php endif; ?>
-    <?php renderFormDraftPanel(); ?>
+    <div class="inquiry-form-top-row">
+        <?php renderFormDraftPanel(); ?>
+        <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
+    </div>
     <section class="form-section">
-        <div class="inquiry-form-section-heading"><span>01</span><div><h2>Request</h2><p>Capture enough context to qualify the opportunity without inventing event details.</p></div></div>
+        <div class="form-section-heading inquiry-form-section-heading"><span class="form-section-number" aria-hidden="true">01</span><div><h2>Request</h2><p>Capture enough context to qualify the opportunity without inventing event details.</p></div></div>
         <div class="form-group">
-            <label for="inquiry-title" class="required">Inquiry Title</label>
+            <label for="inquiry-title" class="required"><span aria-hidden="true">*</span> Inquiry Title</label>
             <input type="text" id="inquiry-title" name="title" maxlength="255" required value="<?php echo htmlspecialchars($value('title'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Organization or proposed event">
         </div>
         <div class="inquiry-form-grid">
@@ -33,6 +35,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                         <option value="<?php echo (int) $organization['id']; ?>"<?php echo (int) $value('organization_id') === (int) $organization['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars((string) $organization['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <a class="button-secondary inquiry-related-action" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Organization</a>
             </div>
             <div class="form-group">
                 <label for="inquiry-contact">Primary Contact</label>
@@ -44,10 +47,10 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                         <option data-organization-name="<?php echo htmlspecialchars((string) ($contact['organization_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-organization-id="<?php echo (int) ($contact['organization_id'] ?? 0); ?>" value="<?php echo (int) $contact['id']; ?>"<?php echo (int) $value('primary_contact_id') === (int) $contact['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($contact_label, ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <a class="button-secondary inquiry-related-action" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Contact</a>
             </div>
         </div>
         <noscript><button type="submit" class="button-secondary" name="search_inquiry_relationships" value="1" formnovalidate>Search Organizations and Contacts</button></noscript>
-        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Contact</a></div>
         <p class="field-help" id="inquiry-relationship-status" role="status">Search by name to find a record. Up to 25 matches are shown. Choose an organization to narrow contacts. Standalone contacts can be selected when no organization is chosen. Creating a related record keeps this inquiry draft.</p>
         <div class="form-group inquiry-request-summary">
             <label for="inquiry-summary">What Is Being Requested?</label>
@@ -68,7 +71,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
     </section>
 
     <section class="form-section">
-        <div class="inquiry-form-section-heading"><span>02</span><div><h2>Timing &amp; Location</h2><p>Date ranges remain tentative until conversion creates the engagement.</p></div></div>
+        <div class="form-section-heading inquiry-form-section-heading"><span class="form-section-number" aria-hidden="true">02</span><div><h2>Timing &amp; Location</h2><p>Date ranges remain tentative until conversion creates the engagement.</p></div></div>
         <div class="inquiry-date-ranges">
             <fieldset><legend>Preferred Range</legend><div class="inquiry-form-grid"><div><label for="preferred-start">Start</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="preferred-start" name="preferred_start_date" value="<?php echo htmlspecialchars($value('preferred_start_date'), ENT_QUOTES, 'UTF-8'); ?>"></div><div><label for="preferred-end">End</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="preferred-end" name="preferred_end_date" value="<?php echo htmlspecialchars($value('preferred_end_date'), ENT_QUOTES, 'UTF-8'); ?>"></div></div></fieldset>
             <fieldset><legend>Alternate Range</legend><div class="inquiry-form-grid"><div><label for="alternate-start">Start</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="alternate-start" name="alternate_start_date" value="<?php echo htmlspecialchars($value('alternate_start_date'), ENT_QUOTES, 'UTF-8'); ?>"></div><div><label for="alternate-end">End</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="alternate-end" name="alternate_end_date" value="<?php echo htmlspecialchars($value('alternate_end_date'), ENT_QUOTES, 'UTF-8'); ?>"></div></div></fieldset>
@@ -76,64 +79,64 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
         <div class="address-section is-saved-address-section inquiry-location-section">
             <h3>Event Location</h3>
             <div class="address-fields">
-                <div class="form-field">
+                <div class="form-field inquiry-address-line">
                     <label for="event_address_line_1">Address Line 1</label>
                     <input type="text" name="event_address_line_1" id="event_address_line_1" maxlength="255" value="<?php echo htmlspecialchars($value('event_address_line_1'), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-                <div class="form-field">
+                <div class="form-field inquiry-address-line">
                     <label for="event_address_line_2">Address Line 2</label>
                     <input type="text" name="event_address_line_2" id="event_address_line_2" maxlength="255" value="<?php echo htmlspecialchars($value('event_address_line_2'), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-                <div class="address-row event-address-row">
-                    <div class="form-field event-address-city-field">
-                        <label for="event_city">City</label>
-                        <input type="text" name="event_city" id="event_city" maxlength="100" value="<?php echo htmlspecialchars($value('event_city'), ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="form-field">
+                    <label for="event_city">City</label>
+                    <input type="text" name="event_city" id="event_city" maxlength="100" value="<?php echo htmlspecialchars($value('event_city'), ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="form-field">
+                    <label for="event_state">State</label>
+                    <div data-address-region-control data-address-region-for="event">
+                        <input type="text" name="event_state" id="event_state" maxlength="100" value="<?php echo htmlspecialchars($value('event_state'), ENT_QUOTES, 'UTF-8'); ?>" data-address-region-input>
                     </div>
-                    <div class="form-field event-address-state-field">
-                        <label for="event_state">State</label>
-                        <div data-address-region-control data-address-region-for="event">
-                            <input type="text" name="event_state" id="event_state" maxlength="100" value="<?php echo htmlspecialchars($value('event_state'), ENT_QUOTES, 'UTF-8'); ?>" data-address-region-input>
-                        </div>
-                    </div>
-                    <div class="form-field event-address-zipcode-field">
-                        <label for="event_zipcode">Zipcode</label>
-                        <input type="text" name="event_zipcode" id="event_zipcode" maxlength="20" value="<?php echo htmlspecialchars($value('event_zipcode'), ENT_QUOTES, 'UTF-8'); ?>">
-                    </div>
-                    <div class="form-field event-address-country-field">
-                        <label>Country</label>
-                        <?php echo addressCountryPicker(
-                            'event_country',
-                            $value('event_country', applicationDefaultCountry()),
-                            'event'
-                        ); ?>
-                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="event_zipcode">Zipcode</label>
+                    <input type="text" name="event_zipcode" id="event_zipcode" maxlength="20" value="<?php echo htmlspecialchars($value('event_zipcode'), ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="form-field">
+                    <label>Country</label>
+                    <?php echo addressCountryPicker(
+                        'event_country',
+                        $value('event_country', applicationDefaultCountry()),
+                        'event'
+                    ); ?>
                 </div>
             </div>
         </div>
     </section>
 
     <section class="form-section">
-        <div class="inquiry-form-section-heading"><span>03</span><div><h2>Ownership &amp; Next Action</h2><p>Every active inquiry should make its next move visible.</p></div></div>
-        <div class="inquiry-form-grid">
-            <div class="form-group"><label for="inquiry-owner">Owner</label><select id="inquiry-owner" name="owner_user_id"><option value="">Unassigned</option><?php foreach ($inquiry_owners as $owner): ?><option value="<?php echo (int) $owner['id']; ?>"<?php echo (int) $value('owner_user_id') === (int) $owner['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($owner['username'] . ' · ' . ucfirst($owner['role']), ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></div>
-            <div class="form-group"><label for="inquiry-priority">Priority</label><select id="inquiry-priority" name="priority"><?php foreach ($inquiry_priorities as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $value('priority', 'normal') === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
-        </div>
-        <div class="inquiry-source-fields">
-            <div class="form-group"><label for="inquiry-source">Source</label><select id="inquiry-source" name="source"><?php foreach ($inquiry_sources as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $value('source', 'other') === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
-            <div class="form-group inquiry-source-detail-field"><label for="inquiry-source-detail">Source Detail</label><input id="inquiry-source-detail" name="source_detail" maxlength="255" value="<?php echo htmlspecialchars($value('source_detail'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Referrer, mailbox, form, or campaign"></div>
+        <div class="form-section-heading inquiry-form-section-heading"><span class="form-section-number" aria-hidden="true">03</span><div><h2>Ownership &amp; Next Action</h2><p>Every active inquiry should make its next move visible.</p></div></div>
+        <div class="inquiry-ownership-fields">
+            <div class="inquiry-assignment-fields">
+                <div class="form-group inquiry-owner-field"><label for="inquiry-owner">Owner</label><select id="inquiry-owner" name="owner_user_id"><option value="">Unassigned</option><?php foreach ($inquiry_owners as $owner): ?><option value="<?php echo (int) $owner['id']; ?>"<?php echo (int) $value('owner_user_id') === (int) $owner['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($owner['username'] . ' · ' . ucfirst($owner['role']), ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></div>
+                <div class="form-group"><label for="inquiry-priority">Priority</label><select id="inquiry-priority" name="priority"><?php foreach ($inquiry_priorities as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $value('priority', 'normal') === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
+            </div>
+            <div class="inquiry-source-fields">
+                <div class="form-group"><label for="inquiry-source">Source</label><select id="inquiry-source" name="source"><?php foreach ($inquiry_sources as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $value('source', 'other') === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
+                <div class="form-group inquiry-source-detail-field"><label for="inquiry-source-detail">Source Detail</label><input id="inquiry-source-detail" name="source_detail" maxlength="255" value="<?php echo htmlspecialchars($value('source_detail'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Referrer, mailbox, form, or campaign"></div>
+            </div>
         </div>
         <div class="inquiry-next-action-fields">
             <?php if (!empty($inquiry_form_values['id'])):
                 require_once __DIR__ . '/../follow_up_task_helpers.php';
                 $nextActionOptions = fetchFollowUpTasksForSubject($conn, 'inquiry', (int) $inquiry_form_values['id']); ?>
-            <div class="form-group"><label for="next-action-task-choice">Use an Existing Task as the Next Action</label>
+            <div class="form-group inquiry-next-action-task-field"><label for="next-action-task-choice">Use an Existing Task as the Next Action</label>
             <select id="next-action-task-choice" name="next_action_task_choice"><option value="0">Use the Next Action Fields Below</option>
             <?php foreach ($nextActionOptions as $option): if ($option['is_archived'] || !in_array($option['status'], ['open','in_progress','waiting'], true)) continue; ?>
             <option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $value('next_action_task_choice') === (int) $option['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($option['title'], ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?></select><p>Choosing an existing task uses its title, due date, and owner. Otherwise, the fields below create or update the linked task.</p></div>
+            <?php endforeach; ?></select><p class="field-help">Choosing an existing task uses its title, due date, and owner. Otherwise, the fields below create or update the linked task.</p></div>
             <?php endif; ?>
             <div class="form-group inquiry-next-action-detail-field"><label for="inquiry-next-action">Next Action</label><input id="inquiry-next-action" name="next_action" maxlength="255" value="<?php echo htmlspecialchars($value('next_action'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call host, request venue details, send proposal"></div>
-            <div class="form-group"><label for="inquiry-next-action-due">Due</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="inquiry-next-action-due" name="next_action_due_date" value="<?php echo htmlspecialchars($value('next_action_due_date'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+            <div class="form-group inquiry-next-action-due-field"><label for="inquiry-next-action-due">Due</label><input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" id="inquiry-next-action-due" name="next_action_due_date" value="<?php echo htmlspecialchars($value('next_action_due_date'), ENT_QUOTES, 'UTF-8'); ?>"></div>
         </div>
     </section>
 
