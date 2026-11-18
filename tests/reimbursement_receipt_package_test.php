@@ -127,12 +127,19 @@ try {
         $message = reimbursementSubmissionMessage($context, true);
         foreach ([$message, reimbursementSubmissionMessage($context)] as $rendered) {
             $document = \Dom\HTMLDocument::createFromString($rendered['html_body'], LIBXML_NOERROR);
-            $firstMemo = $document->querySelector('tbody tr:first-child td:nth-child(3)');
-            $emptyMemo = $document->querySelector('tbody tr:nth-child(2) td:nth-child(3)');
-            if ($document->querySelector('thead th:nth-child(3)')?->textContent !== 'Description'
-                || $firstMemo?->textContent !== $memo || $firstMemo->querySelector('br') === null
-                || $emptyMemo?->textContent !== '') {
-                throw new RuntimeException('The third email column must show escaped, multiline memos and allow empty memos.');
+            $headings = [];
+            foreach ($document->querySelectorAll('thead th') as $heading) $headings[] = $heading->textContent;
+            if ($headings !== ['Date', 'Merchant / Payee', 'Account', 'Amount']) {
+                throw new RuntimeException('The email must have four expense columns.');
+            }
+            $firstMemo = $document->querySelector('tbody tr:first-child td:nth-child(2) > strong + div');
+            $firstReceipt = reimbursementReceiptPackageFilename($receipts[0]);
+            if ($firstMemo?->textContent !== $memo || $firstMemo->querySelector('br') === null
+                || !str_contains($firstMemo->nextElementSibling?->textContent ?? '', $firstReceipt)) {
+                throw new RuntimeException('The payee cell must show the escaped, multiline memo above its receipt filename.');
+            }
+            if ($document->querySelectorAll('tbody tr:nth-child(2) td:nth-child(2) > div')->length !== 1) {
+                throw new RuntimeException('A blank memo must leave only the receipt block below the payee.');
             }
             if (!str_contains($rendered['body'], "Description: {$memo}\n") || substr_count($rendered['body'], 'Description: ') !== 1) {
                 throw new RuntimeException('The plain-text email must include the memo for each expense that has one.');
