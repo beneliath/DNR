@@ -16,15 +16,15 @@
       ],
       "steps": [
         "Open Engagements, open the existing event, and select Edit Engagement.",
-        "Change Start and End in the engagement form. Keep each presentation within the event date range.",
+        "Change Start and End under Schedule in Event Details. Keep each presentation within the event date range.",
         "Select Save Changes in the bottom bar, then check the save confirmation."
       ],
       "on_pages": {
-        "edit_engagement.php": "You are already in Edit Engagement. Change Start and End in the event fields."
+        "edit_engagement.php": "You are already in Edit Engagement. Change Start and End under Schedule in Event Details."
       },
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b"
+        "edit_engagement.php": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e"
       },
       "subjects": [
         "event",
@@ -131,7 +131,7 @@
             "label": "Show Edit Engagement"
           },
           "event-dates-review": {
-            "message": "Update Start and End in the event form. Keep End on or after Start, and keep every presentation within that range. Review those dates, then select i have reviewed the details.",
+            "message": "Update Start and End under Schedule in Event Details. Keep End on or after Start, and keep every presentation within that range. Review those dates, then select i have reviewed the details.",
             "target": "event-start-date",
             "label": "Show Start",
             "acknowledge": true
@@ -801,7 +801,7 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b"
+        "edit_engagement.php": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e"
       },
       "subjects": [
         "powerpoint",
@@ -834,7 +834,7 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b"
+        "edit_engagement.php": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e"
       },
       "subjects": [
         "speaker notes",
@@ -1330,7 +1330,7 @@
       "forms": [],
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
+        "edit_engagement.php": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
@@ -1371,11 +1371,11 @@
       "on_pages": {},
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
+        "edit_engagement.php": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "functions.php": "0ff3029e949349809d729c205ed882d814da795b9cda6d98e73733998f0b07d9",
-        "templates/footer.php": "8f5b3d34b3094ebd3206f3a2f6218b6d6f116b1f0f6a8e1201a2efb7dd303a01",
+        "templates/footer.php": "1d217a244076e5ab635b2c4e87e417dc7a0cf202068c063b7302b7117a8df706",
         "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",
         "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
         "ai_coach_guidance_helpers.php": "a01283579213f7ce89f8827004b307547dddcf796e77680fa5875fcc2cb17fbe",

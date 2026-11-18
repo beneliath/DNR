@@ -765,6 +765,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
     2 => 'assets/css/pages/edit_engagement.min.css',
     3 => 'assets/css/pages/engagement_contacts.min.css',
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
+    5 => 'assets/css/pages/engagement_form.min.css',
   ),
   'scripts' => ['assets/js/relationship-search.min.js'],
 )); ?>
@@ -800,82 +801,210 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>">
         <?php endforeach; ?>
         <?php renderFormDraftPanel(); ?>
-        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <?php include 'templates/engagement_lifecycle_form.php'; ?>
-        <section class="form-section engagement-event-details-section">
-        <h2>Event Details &amp; Schedule</h2>
-        <div class="organization-container">
-            <label for="organization_id">Organization</label>
-            <input type="search" placeholder="Find an Organization…" aria-label="Find an Organization for Organization" data-relationship-search-input>
-            <select name="organization_id" id="organization_id" data-organization-search required>
-                <?php foreach ($engagement_organization_options as $organization_option): ?>
-                    <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <p class="field-help" role="status" data-relationship-search-status></p>
-        </div>
-
-        <div class="event-schedule-row">
-            <div class="date-fields">
-                <div class="date-field">
-                    <label for="event_start_date">Start<span class="required">*</span></label>
-                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
+        <div class="engagement-section-row engagement-primary-row">
+            <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
+            <section class="form-section engagement-details-section">
+                <h2>Event Details</h2>
+                <div class="organization-container">
+                    <label for="organization_id">Organization</label>
+                    <input type="search" placeholder="Find an Organization…" aria-label="Find an Organization for Organization" data-relationship-search-input>
+                    <select name="organization_id" id="organization_id" data-organization-search required>
+                        <?php foreach ($engagement_organization_options as $organization_option): ?>
+                            <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="field-help" role="status" data-relationship-search-status></p>
                 </div>
-                <div class="date-field">
-                    <label for="event_end_date">End<span class="required">*</span></label>
-                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
-                </div>
-            </div>
-            <div class="form-field event-caller-field">
-                <label for="caller_user_id">Caller</label>
-                <select name="caller_user_id" id="caller_user_id">
-                    <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
-                    <?php
-                    $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
-                    $users = $conn->query(
-                        "SELECT id, username FROM users
-                         WHERE account_status = 'active' OR id = {$current_caller_id}
-                         ORDER BY username"
-                    );
-                    while ($row = $users->fetch_assoc()) {
-                        $selected = (int) ($engagement['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
-                        echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
-                    }
-                    ?>
-                </select>
-            </div>
-        </div>
 
-        <div class="event-row">
-            <div class="event-group event-title-group">
-                <label class="label-container" for="event_title">Event Title</label>
+                <label for="event_title">Event Title</label>
                 <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
-            </div>
 
-            <div class="event-group">
-                <label class="label-container" for="event_type">Event Type</label>
-                <select name="event_type" id="event_type">
-                    <?php
-                    $event_types = \Dnr\Domain\ReferenceData::eventTypes();
-                    foreach ($event_types as $type) {
-                        $selected = ($engagement['event_type'] === $type) ? 'selected' : '';
-                        echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
-                    }
-                    ?>
-                </select>
-            </div>
+                <label for="event_description">Event Description</label>
+                <textarea name="event_description" id="event_description" rows="11"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
 
-            <div class="event-group" id="other_event_type_div" <?php echo $engagement['event_type'] === 'other' ? '' : 'hidden'; ?>>
-                <label class="label-container" for="event_type_other">Other Event Type<span class="required">*</span></label>
-                <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
+                <section class="engagement-schedule-section">
+                    <h3>Schedule</h3>
+
+                    <div class="engagement-schedule-row">
+                        <div class="engagement-schedule-field">
+                            <label for="event_start_date" class="required"><span aria-hidden="true">*</span>Start</label>
+                            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" aria-label="Start" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
+                        </div>
+                        <div class="engagement-schedule-field">
+                            <label for="event_end_date" class="required"><span aria-hidden="true">*</span>End</label>
+                            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" aria-label="End" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
+                        </div>
+                        <div class="engagement-schedule-field">
+                            <label class="label-container" for="event_type">Event Type</label>
+                            <select name="event_type" id="event_type">
+                                <?php
+                                $event_types = \Dnr\Domain\ReferenceData::eventTypes();
+                                $selected_type = $engagement['event_type'];
+                                foreach ($event_types as $type) {
+                                    $selected = ($selected_type === $type) ? 'selected' : '';
+                                    echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="engagement-schedule-field" id="other_event_type_div" <?php echo $engagement['event_type'] === 'other' ? '' : 'hidden'; ?>>
+                            <label for="event_type_other" class="required"><span aria-hidden="true">*</span>Other Event Type</label>
+                            <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <div class="engagement-contact-column">
+                <?php
+                $engagement_contact_show_caller = true;
+                $engagement_contact_edit_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
+                include 'templates/engagement_contact_form.php';
+                unset($engagement_contact_show_caller, $engagement_contact_edit_caller_id);
+                ?>
             </div>
         </div>
 
-        <label for="event_description">Event Description</label>
-        <textarea name="event_description" id="event_description" rows="11"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
-        </section>
+        <div class="engagement-section-row">
+            <section class="form-section engagement-logistics-section">
+                <div class="engagement-logistics-heading">
+                    <h2>Logistics and Compensation</h2>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="book_table" <?php echo $engagement['book_table'] ? 'checked' : ''; ?>> Book Table Provided
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="brochures" <?php echo $engagement['brochures'] ? 'checked' : ''; ?>> Brochures Permitted
+                        </label>
+                    </div>
+                    <fieldset class="radio-row"><legend>All Travel Covered</legend>
+                        <div class="radio-options">
+                            <?php
+                            $travel_covered = $engagement['travel_covered'] ?? 'unknown';
+                            $options = \Dnr\Domain\ReferenceData::travelCoverage();
+                            foreach ($options as $option) {
+                                $checked = ($travel_covered === $option) ? 'checked' : '';
+                                echo "<label><input type='radio' name='travel_covered' value='{$option}' {$checked}> " . ucfirst($option) . "</label>";
+                            }
+                            ?>
+                        </div>
+                    </fieldset>
+                </div>
 
-        <?php include 'templates/engagement_contact_form.php'; ?>
+                <div class="compensation-grid">
+                    <div class="compensation-type-row">
+                        <div class="form-field">
+                            <div class="field-group">
+                                <label for="compensation_type">Type of Compensation</label>
+                                <select name="compensation_type" id="compensation_type" class="narrow-select">
+                                    <?php
+                                    $valid_compensation_types = \Dnr\Domain\ReferenceData::compensationTypes();
+                                    $selected_comp = $engagement['compensation_type'] ?? 'Unknown';
+                                    foreach ($valid_compensation_types as $type) {
+                                        $selected = ($selected_comp === $type) ? 'selected' : '';
+                                        echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-field" id="other_compensation_div" <?php echo $engagement['compensation_type'] === 'Other' ? '' : 'hidden'; ?>>
+                            <div class="field-group">
+                                <label for="other_compensation" class="required"><span aria-hidden="true">*</span>Describe Other Compensation</label>
+                                <input type="text" name="other_compensation" id="other_compensation" value="<?php echo htmlspecialchars($engagement['other_compensation'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="amount-row">
+                        <div class="form-field">
+                            <label for="travel_amount">Travel (Not in Compensation)</label>
+                            <div class="currency-input">
+                                <span>$</span>
+                                <input type="number" id="travel_amount" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['travel_amount'] ?? ''); ?>">
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label for="housing_amount">Lodging (Not in Travel)</label>
+                            <div class="currency-input">
+                                <span>$</span>
+                                <input type="number" id="housing_amount" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['housing_amount'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compensation-type-row">
+                    <div class="form-field">
+                        <div class="field-group">
+                            <label for="housing_type">Lodging Type</label>
+                            <select name="housing_type" id="housing_type" class="narrow-select">
+                                <?php
+                                $housing_types = \Dnr\Domain\ReferenceData::housingTypes();
+                                $selected_housing = $engagement['housing_type'] ?? 'Unknown';
+                                foreach ($housing_types as $type) {
+                                    $selected = ($selected_housing === $type) ? 'selected' : '';
+                                    echo "<option value='{$type}' {$selected}>{$type}</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-field" id="other_housing_div" <?php echo $engagement['housing_type'] === 'Other' ? '' : 'hidden'; ?>>
+                        <div class="field-group">
+                            <label for="other_housing" class="required"><span aria-hidden="true">*</span>Describe Other Lodging</label>
+                            <input type="text" name="other_housing" id="other_housing" value="<?php echo htmlspecialchars($engagement['other_housing'] ?? ''); ?>">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section engagement-location-section">
+                <h2>Event Location</h2>
+                <div class="address-fields">
+                    <div class="event-address-lines">
+                        <div class="form-field">
+                            <label for="event_address_line_1">Address Line 1</label>
+                            <input type="text" name="event_address_line_1" id="event_address_line_1" value="<?php echo htmlspecialchars($engagement['event_address_line_1'] ?? ''); ?>">
+                        </div>
+                        <div class="form-field">
+                            <label for="event_address_line_2">Address Line 2</label>
+                            <input type="text" name="event_address_line_2" id="event_address_line_2" value="<?php echo htmlspecialchars($engagement['event_address_line_2'] ?? ''); ?>">
+                        </div>
+                    </div>
+                    <div class="event-address-row">
+                        <div class="form-field event-address-city-field">
+                            <label for="event_city">City</label>
+                            <input type="text" name="event_city" id="event_city" value="<?php echo htmlspecialchars($engagement['event_city'] ?? ''); ?>">
+                        </div>
+                        <div class="form-field event-address-state-field">
+                            <label for="event_state">State</label>
+                            <div data-address-region-control data-address-region-for="event">
+                                <input type="text" name="event_state" id="event_state" value="<?php echo htmlspecialchars($engagement['event_state'] ?? ''); ?>" data-address-region-input>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="event-address-row event-address-postal-row">
+                        <div class="form-field event-address-zipcode-field">
+                            <label for="event_zipcode">Zipcode</label>
+                            <input type="text" name="event_zipcode" id="event_zipcode" value="<?php echo htmlspecialchars($engagement['event_zipcode'] ?? ''); ?>">
+                        </div>
+                        <div class="form-field event-address-country-field">
+                            <span id="event-country-label">Country</span>
+                            <?php echo addressCountryPicker(
+                                'event_country',
+                                $engagement['event_country'] ?: applicationDefaultCountry(),
+                                'event'
+                            ); ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
         <?php
         $presentation_not_required = (bool) $engagement['presentation_not_required'];
@@ -884,143 +1013,6 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             : $presentations;
         include 'templates/presentation_form.php';
         ?>
-
-        <section class="form-section engagement-logistics-section">
-        <div class="engagement-logistics-layout">
-        <div class="engagement-logistics-controls">
-        <h2>Logistics &amp; Compensation</h2>
-        <div class="checkbox-row">
-            <div class="checkbox-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="book_table" <?php echo $engagement['book_table'] ? 'checked' : ''; ?>> Book Table Provided
-                </label>
-                <label class="checkbox-label">
-                    <input type="checkbox" name="brochures" <?php echo $engagement['brochures'] ? 'checked' : ''; ?>> Brochures Permitted
-                </label>
-            </div>
-            <fieldset class="radio-row"><legend>All Travel Covered</legend>
-                <div class="radio-options">
-                    <?php
-                    $travel_covered = $engagement['travel_covered'] ?? 'unknown';
-                    $options = \Dnr\Domain\ReferenceData::travelCoverage();
-                    foreach ($options as $option) {
-                        $checked = ($travel_covered === $option) ? 'checked' : '';
-                        echo "<label><input type='radio' name='travel_covered' value='{$option}' {$checked}> " . ucfirst($option) . "</label>";
-                    }
-                    ?>
-                </div>
-            </fieldset>
-        </div>
-
-        <div class="compensation-grid">
-            <div class="compensation-type-row">
-                <div class="form-field">
-                    <div class="field-group">
-                        <label for="compensation_type">Type of Compensation</label>
-                        <select name="compensation_type" id="compensation_type" class="narrow-select">
-                            <?php
-                            $valid_compensation_types = \Dnr\Domain\ReferenceData::compensationTypes();
-                            $selected_comp = $engagement['compensation_type'] ?? 'Unknown';
-                            foreach ($valid_compensation_types as $type) {
-                                $selected = ($selected_comp === $type) ? 'selected' : '';
-                                echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-field" id="other_compensation_div" <?php echo $engagement['compensation_type'] === 'Other' ? '' : 'hidden'; ?>>
-                    <div class="field-group">
-                        <label for="other_compensation">Describe Other Compensation<span class="required">*</span></label>
-                        <input type="text" name="other_compensation" id="other_compensation" value="<?php echo htmlspecialchars($engagement['other_compensation'] ?? ''); ?>">
-                    </div>
-                </div>
-            </div>
-
-            <div class="amount-row">
-                <div class="form-field">
-                    <label for="travel_amount">Travel (Not in Compensation)</label>
-                    <div class="currency-input">
-                        <span>$</span>
-                        <input type="number" id="travel_amount" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['travel_amount'] ?? ''); ?>">
-                    </div>
-                </div>
-                <div class="form-field">
-                    <label for="housing_amount">Lodging (Not in Travel)</label>
-                    <div class="currency-input">
-                        <span>$</span>
-                        <input type="number" id="housing_amount" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['housing_amount'] ?? ''); ?>">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="compensation-type-row lodging-details-row">
-            <div class="form-field">
-                <div class="field-group">
-                    <label for="housing_type">Lodging Type</label>
-                    <select name="housing_type" id="housing_type">
-                        <?php
-                        $housing_types = \Dnr\Domain\ReferenceData::housingTypes();
-                        $selected_housing = $engagement['housing_type'] ?? 'Unknown';
-                        foreach ($housing_types as $type) {
-                            $selected = ($selected_housing === $type) ? 'selected' : '';
-                            echo "<option value='{$type}' {$selected}>{$type}</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-field" id="other_housing_div" <?php echo $engagement['housing_type'] === 'Other' ? '' : 'hidden'; ?>>
-                <div class="field-group">
-                    <label for="other_housing">Describe Other Lodging<span class="required">*</span></label>
-                    <input type="text" name="other_housing" id="other_housing" value="<?php echo htmlspecialchars($engagement['other_housing'] ?? ''); ?>">
-                </div>
-            </div>
-        </div>
-
-        </div>
-        <div class="address-section is-saved-address-section">
-            <h3>Event Location</h3>
-            <div class="address-fields">
-                <div class="form-field">
-                    <label for="event_address_line_1">Address Line 1</label>
-                    <input type="text" name="event_address_line_1" id="event_address_line_1" value="<?php echo htmlspecialchars($engagement['event_address_line_1'] ?? ''); ?>">
-                </div>
-                <div class="form-field">
-                    <label for="event_address_line_2">Address Line 2</label>
-                    <input type="text" name="event_address_line_2" id="event_address_line_2" value="<?php echo htmlspecialchars($engagement['event_address_line_2'] ?? ''); ?>">
-                </div>
-                <div class="address-row event-address-row">
-                    <div class="form-field event-address-city-field">
-                        <label for="event_city">City</label>
-                        <input type="text" name="event_city" id="event_city" value="<?php echo htmlspecialchars($engagement['event_city'] ?? ''); ?>">
-                    </div>
-                    <div class="form-field event-address-state-field">
-                        <label for="event_state">State</label>
-                        <div data-address-region-control data-address-region-for="event">
-                            <input type="text" name="event_state" id="event_state" value="<?php echo htmlspecialchars($engagement['event_state'] ?? ''); ?>" data-address-region-input>
-                        </div>
-                    </div>
-                    <div class="form-field event-address-zipcode-field">
-                        <label for="event_zipcode">Zipcode</label>
-                        <input type="text" name="event_zipcode" id="event_zipcode" value="<?php echo htmlspecialchars($engagement['event_zipcode'] ?? ''); ?>">
-                    </div>
-                    <div class="form-field event-address-country-field">
-                        <span id="event-country-label">Country</span>
-                        <?php echo addressCountryPicker(
-                            'event_country',
-                            $engagement['event_country'] ?: applicationDefaultCountry(),
-                            'event'
-                        ); ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>
-        </section>
 
     </form>
 
@@ -1128,7 +1120,10 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
     addressRegionClientData(),
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
 ); ?></script>
-<?php include 'templates/footer.php'; ?>
+<?php
+$hide_app_footer = true;
+include 'templates/footer.php';
+?>
 
 <?php renderScript('assets/js/presentation-form.min.js', false); ?>
 <?php renderScript('assets/js/presentation-upload.min.js', false); ?>

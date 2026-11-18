@@ -1,6 +1,6 @@
 {
-  "version": "2.11.19",
-  "edition_date": "November 17, 2026",
+  "version": "2.11.23",
+  "edition_date": "November 18, 2026",
   "pages": 197,
   "screenshots": 120,
   "chapters": 14,
@@ -533,7 +533,7 @@
     "__total__": 197
   },
   "outline_entries": 404,
-  "edition_scope": "Application release 2.11.19",
+  "edition_scope": "Application release 2.11.23",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -1122,8 +1122,9 @@
   "screenshot_quality": {
     "embedding": "lossless Flate compression at original cropped pixel dimensions",
     "native_png_processing": "no sharpening or resampling",
-    "minimum_effective_dpi": 300,
-    "future_capture_device_scale_factor": 3
+    "source_capture_dpi": 435,
+    "minimum_effective_dpi": 435,
+    "future_capture_device_scale_factor": 4.53125
   },
   "footer_adjusted_figures": [],
   "cover_logo": {

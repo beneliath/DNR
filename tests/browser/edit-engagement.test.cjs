@@ -52,10 +52,44 @@ async function verifyForm(page, width) {
     const searchStatus = page.locator('[data-relationship-search-status]');
     for (const text of ['', '1 matching organization.']) {
         await searchStatus.evaluate((el, value) => { el.textContent = value; }, text);
-        const sides = await page.locator('#organization_id, #caller_user_id, #event_type, #event_description')
+        const sides = await page.locator('#organization_id, #event_title, #event_description')
             .evaluateAll(fields => fields.map(field => field.getBoundingClientRect().right));
         assert.ok(Math.max(...sides) - Math.min(...sides) < 1, 'Event details fields share a right edge');
     }
+    assert.equal(await page.locator('.required-fields-note').textContent(), '*Required Field');
+    assert.equal(await page.locator('.engagement-details-section > :last-child h3').textContent(), 'Schedule');
+    assert.equal(await page.locator('.engagement-schedule-row label').first().textContent(), '*Start');
+    assert.equal(await page.locator('#engagement-contact-selector #caller_user_id').inputValue(), '7');
+    assert.equal(await page.locator('.address-region-label').textContent(), 'District of Columbia');
+    const addressRows = await page.locator('.engagement-location-section input[id], .address-region-trigger, .address-country-trigger')
+        .evaluateAll(fields => fields.filter(field => !field.hidden).map(field => field.getBoundingClientRect().top));
+    if (width > 1000) {
+        assert.equal(new Set(addressRows).size, 3, 'Location has three paired rows');
+    } else {
+        assert.equal(new Set(addressRows).size, 6, 'Location stacks in a narrow pane');
+    }
+    const chronPane = await page.locator('#chron-log').boundingBox();
+    const formPane = await page.locator('#engagement-edit-form').boundingBox();
+    assert.ok(Math.abs(chronPane.width - formPane.width) < 1 && Math.abs(chronPane.x - formPane.x) < 1,
+        'Chron Log spans the full edit form content width');
+    const locationPane = await page.locator('.engagement-location-section').boundingBox();
+    const presentationPane = await page.locator('#presentations-container').boundingBox();
+    const chronGap = chronPane.y - presentationPane.y - presentationPane.height;
+    const presentationGap = presentationPane.y - locationPane.y - locationPane.height;
+    assert.ok(Math.abs(chronGap - presentationGap) < 1, 'Chron Log uses the same gap as the other panes');
+    assert.ok(await page.locator('.engagement-page-actions').evaluate(node =>
+        getComputedStyle(node).position === 'fixed' && Math.abs(node.getBoundingClientRect().bottom - innerHeight) < 1),
+        'Cancel and Save Changes remain docked to the bottom of the screen');
+    assert.equal(await page.locator('.app-footer').count(), 0, 'Edit Engagement omits the site footer');
+    assert.equal(await page.locator('#delete-confirmation').count(), 1, 'Record confirmation dialogs remain available');
+    assert.equal(await save.evaluate(button => button.form.id), 'engagement-edit-form');
+    assert.equal(await page.locator('[name="chron_entries[8]"]').inputValue(), 'Saved Chron entry');
+    assert.equal(await page.locator('.chron-entry-card + .chron-entry-card').evaluate(card =>
+        getComputedStyle(card, '::before').content), 'none', 'Saved Chron entries have no divider');
+    assert.equal(await page.locator('#presentation-1 .presentation-entry-banner').evaluate(banner =>
+        getComputedStyle(banner).borderBottomWidth), '0px', 'The presentation banner has no divider');
+    assert.equal(await page.locator('#presentation-1 .presentation-assets').evaluate(assets =>
+        getComputedStyle(assets).borderTopWidth), '0px', 'Presentation files have no divider');
 
     assert.equal(await save.evaluate(el => getComputedStyle(el).outlineStyle), 'none');
     await pdf.setInputFiles({name: 'speaker-notes.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-')});
