@@ -30,7 +30,7 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
         'The required other-event caption should be an accessible label.'
     );
     expectRequiredLabelStyle(
-        str_contains($engagement_source, '<label class="label-container" for="event_type_other">Other Event Type'),
+        preg_match('/<label\b[^>]*\sfor="event_type_other"[^>]*>/', $engagement_source) === 1,
         'The other-event label should be associated with its input.'
     );
 }

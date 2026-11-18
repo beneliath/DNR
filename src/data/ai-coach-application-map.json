@@ -1432,7 +1432,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "59952314bd4b3b14ee181fdc9c6d13e171e886f42568be1ce594f7a604fbe27b",
+      "sha256": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e",
       "controls": [
         {
           "kind": "a",
@@ -1445,7 +1445,7 @@
         },
         {
           "kind": "h2",
-          "label": "Event Details & Schedule"
+          "label": "Event Details"
         },
         {
           "kind": "label",
@@ -1454,23 +1454,27 @@
         },
         {
           "kind": "label",
-          "label": "Start*",
+          "label": "Event Title",
+          "for": "event_title"
+        },
+        {
+          "kind": "label",
+          "label": "Event Description",
+          "for": "event_description"
+        },
+        {
+          "kind": "h3",
+          "label": "Schedule"
+        },
+        {
+          "kind": "label",
+          "label": "*Start",
           "for": "event_start_date"
         },
         {
           "kind": "label",
-          "label": "End*",
+          "label": "*End",
           "for": "event_end_date"
-        },
-        {
-          "kind": "label",
-          "label": "Caller",
-          "for": "caller_user_id"
-        },
-        {
-          "kind": "label",
-          "label": "Event Title",
-          "for": "event_title"
         },
         {
           "kind": "label",
@@ -1479,17 +1483,12 @@
         },
         {
           "kind": "label",
-          "label": "Other Event Type*",
+          "label": "*Other Event Type",
           "for": "event_type_other"
         },
         {
-          "kind": "label",
-          "label": "Event Description",
-          "for": "event_description"
-        },
-        {
           "kind": "h2",
-          "label": "Logistics & Compensation"
+          "label": "Logistics and Compensation"
         },
         {
           "kind": "label",
@@ -1510,7 +1509,7 @@
         },
         {
           "kind": "label",
-          "label": "Describe Other Compensation*",
+          "label": "*Describe Other Compensation",
           "for": "other_compensation"
         },
         {
@@ -1530,11 +1529,11 @@
         },
         {
           "kind": "label",
-          "label": "Describe Other Lodging*",
+          "label": "*Describe Other Lodging",
           "for": "other_housing"
         },
         {
-          "kind": "h3",
+          "kind": "h2",
           "label": "Event Location"
         },
         {
@@ -2190,7 +2189,7 @@
       ]
     },
     "index.php": {
-      "sha256": "fcbbecf32ffe01b6b4fb4de9446e6e1c2805d5619294152ed16e6d2dcea4e8b4",
+      "sha256": "7e12b8bc19b1a3dc6d7d46bce3149239eee190431899711732dea69bbff3b38d",
       "controls": [
         {
           "kind": "a",
@@ -2225,17 +2224,17 @@
           "for": "event_description"
         },
         {
-          "kind": "h2",
+          "kind": "h3",
           "label": "Schedule"
         },
         {
           "kind": "label",
-          "label": "Start*",
+          "label": "*Start",
           "for": "event_start_date"
         },
         {
           "kind": "label",
-          "label": "End*",
+          "label": "*End",
           "for": "event_end_date"
         },
         {
@@ -2245,12 +2244,12 @@
         },
         {
           "kind": "label",
-          "label": "Other Event Type*",
+          "label": "*Other Event Type",
           "for": "event_type_other"
         },
         {
           "kind": "h2",
-          "label": "Logistics & Compensation"
+          "label": "Logistics and Compensation"
         },
         {
           "kind": "label",
@@ -2271,7 +2270,7 @@
         },
         {
           "kind": "label",
-          "label": "Describe Other Compensation*",
+          "label": "*Describe Other Compensation",
           "for": "other_compensation"
         },
         {
@@ -2291,7 +2290,7 @@
         },
         {
           "kind": "label",
-          "label": "Describe Other Lodging*",
+          "label": "*Describe Other Lodging",
           "for": "other_housing"
         },
         {

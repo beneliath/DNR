@@ -37,18 +37,15 @@ The local authoring output is `output/pdf/moed-comprehensive-user-manual.pdf`.
 `build-report.json` records page locations and `verification.json` records the
 checks performed against the finished PDF.
 
-The November 17 refresh retakes 69 existing browser figures and adds six workflow
-illustrations. The other 45 figures retain their recorded capture dates. Browser views use native
-3x-resolution PNGs; the generated receipt-report page is rendered at 300 DPI.
-The PDF limits image enlargement to retain at least 300 effective DPI and
-verification compares every embedded image with its included source pixels.
+The November 18 refresh recaptures all 120 figures at 435 DPI. Chromium captures
+at 4.53125 device pixels per CSS pixel, and the receipt-report page is rendered
+directly from the fictional report PDF at 435 DPI. The build preserves at least
+435 effective DPI. Verification checks PNG density, capture checksums, and the
+exact pixels embedded in the PDF.
 
-A subsequent November 17 layout refresh retakes seven figures: Engagements,
-Organizations, Contacts, Speakers, and the active, completed, and archived Tasks
-views. These use a 1600-pixel desktop viewport at native 3x resolution so the
-updated controls and table actions fit. Captions describe the selection toolbars
-inside the table panes, their sticky scrolling behavior, and current filtering
-and Records Per Page controls.
+The list figures for Engagements, Organizations, Contacts, Speakers, and the
+active, completed, and archived Tasks views use a 1600-pixel desktop viewport
+so the controls and table actions fit.
 
 The new illustrations cover engagement cancellation, optional and duplicate
 presentations, actual chunk-upload progress, and receipt-photo reduction. The
@@ -57,7 +54,7 @@ transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
 
-The November 17, 2026 edition applies to application version **2.11.19**.
+The November 18, 2026 edition applies to application version **2.11.23**.
 The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
 Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
 Refreshed screenshots show Scheduled lifecycle wording and the current list controls.
@@ -202,7 +199,8 @@ appendix version reference, and metadata. Reconcile stale draft wording and incl
 the verified PDF and updated sources/reports in the release commit. Follow the
 [s1 guide version requirement](../release-workflow.md#comprehensive-guide-version-for-s1).
 
-Use Python with the dependencies in `scripts/manual/requirements.txt`:
+Use Python with the dependencies in `scripts/manual/requirements.txt` and
+Poppler for rendering and pixel verification:
 
 ```sh
 python3 scripts/manual/build.py
@@ -250,17 +248,17 @@ account, and refuses to overwrite an existing manual organization.
 birthday, user, and manually confirmed map pin. Pass the seed's ID JSON as its
 first argument. These scripts are CLI-only and never send mail.
 
-For a manual refresh, use CUA to sign in, navigate, and save screenshots with the
-viewports and crops described in `screenshots.json`. Prefer lossless PNG captures
-at three device pixels per CSS pixel; do not resize or convert them to JPEG.
+For an individual manual capture, sign in and use the viewport and crop
+described in `screenshots.json`. Capture lossless PNGs at
+435 DPI using 4.53125 device pixels per CSS pixel.
 Crop and omitted-region coordinates refer to source image pixels, so update them
 when replacing a capture at a different resolution. Check the actual image format
 instead of relying on its extension. Export each
 `[data-manual-section]` element’s id, h2 text, inner HTML, and keywords to
 `online-chapters.json`. Do not capture entered passwords or authentication codes.
 
-The existing CLI capture utility waits for fonts and captures lossless PNGs at
-3x device resolution without enlarging the CSS viewport. It can be run with
+The CLI capture utility waits for fonts and captures lossless PNGs at a native
+435 DPI using the recorded CSS viewports. It can be run with
 `node scripts/manual/capture.cjs`, supplying:
 
 - `PLAYWRIGHT_MODULE`: installed Playwright module path, if not on Node's path.
@@ -272,18 +270,22 @@ The existing CLI capture utility waits for fonts and captures lossless PNGs at
 - `DNR_MANUAL_FIXTURE_JSON`: local seed result JSON.
 - `DNR_MANUAL_EXTRA_JSON`: local augmentation result JSON.
 - Optional `DNR_MANUAL_ONLY`: comma-separated screenshot IDs to refresh.
-- Optional `DNR_MANUAL_VIEWPORT_WIDTH`: desktop width in CSS pixels, from 1280 to
-  2560; defaults to 1280. Mobile figures retain their phone viewport.
+- Optional `DNR_MANUAL_VIEWPORT_WIDTH`: override the recorded desktop widths with
+  a width from 1280 to 2560 CSS pixels. Mobile figures retain their phone viewports.
 - Optional `DNR_MANUAL_WORK_DIR`: ignored directory for page snapshots and capture results.
 - Optional `DNR_MANUAL_OUTPUT_DIR`: staging directory for PNGs and an updated manifest;
   omit to update the checked-in guide sources.
 - Optional `DNR_MANUAL_SLIDEDECK_FILE`: sample PowerPoint for the unsaved replacement view.
+- `DNR_MANUAL_LARGE_SLIDEDECK_FILE`: disposable PowerPoint large enough to
+  demonstrate chunked upload progress.
 
 The fixture ID JSON retains `org`, `contact`, `speaker`, `event`, `task`, `inquiry`,
 and `mail`. The augmentation JSON supplies `past_event`, `target_user`, `link`,
 `presentation`, and IDs for the newer figures: `expenses` (an array), `request`,
 `submitted`, `duplicate_org`, `archived_inquiry`, `template`, and `standard`.
-Prepare their fictional states in the disposable preview before capturing.
+Prepare their fictional states in the disposable preview before capturing. Set
+`photo_request` to a draft reimbursement with large fictional receipt photos for
+the two photo-reduction figures.
 The utility reads the existing manifest to preserve titles and instructions,
 captures separate anonymous sign-in views, and blocks business-changing POSTs.
 Authentication and selection-review POSTs are allowed. It replaces old crop
@@ -304,8 +306,8 @@ records each illustrated view and its steps. `scripts/manual/build.py` renders
 the shared chapter text, replaces two decorative-footer descriptions for the
 PDF edition, and adds calendar, recovery-email, map-pin, presentation, and form
 details. Reconcile these supplements with the
-live source when updating the manual. The CLI capture utility preserves
-supplementary CUA figures that are absent from its capture list; refresh those
-figures explicitly when their workflows change. Supplementary figures include presentation-files, presentation-ppt-qr, presentation-file-pending, and the September 21 deletion reviews; attach an illustrative .pptx to the first fictional presentation before capturing its QR selector. Set a fictional task due on the day after capture to illustrate Due tomorrow. The September 21 figures use a 1265 by 712 browser viewport, with crop bounds in source-image pixels. The Mattermost chapter describes the configured
+live source when updating the manual. Attach an illustrative PowerPoint to the
+first fictional presentation before capturing its QR selector. Set a fictional
+task due on the day after capture to illustrate Due tomorrow. The Mattermost chapter describes the configured
 plugin from the application guide; the preview screenshot explicitly shows the
 unconfigured state rather than a simulated connected service.

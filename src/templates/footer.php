@@ -11,7 +11,7 @@
     <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss Completion Notice">Dismiss</button>
 </aside>
 <?php endif; ?>
-<?php include __DIR__ . '/app-footer.php'; ?>
+<?php if (empty($hide_app_footer)) include __DIR__ . '/app-footer.php'; ?>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title" aria-describedby="logout-confirmation-message">
     <h2 id="logout-confirmation-title">Log Out?</h2>

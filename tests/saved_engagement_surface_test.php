@@ -16,14 +16,14 @@ $new_engagement = file_get_contents($root . '/src/index.php');
 $modern_css = file_get_contents($root . '/src/assets/css/modern.css');
 
 expectSavedEngagementSurface(
-    str_contains($edit_engagement, 'class="address-section is-saved-address-section"')
-        && !str_contains($new_engagement, 'class="address-section is-saved-address-section"'),
-    'only the saved engagement form should mark Event Location as a saved surface.'
+    str_contains($edit_engagement, '<section class="form-section engagement-location-section">')
+        && str_contains($new_engagement, '<section class="form-section engagement-location-section">'),
+    'New and Edit Engagement should each show Event Location in its own pane.'
 );
 
 expectSavedEngagementSurface(
     preg_match('/\.address-section\.is-saved-address-section\s*\{[^}]*background:\s*transparent\s*!important;/s', $modern_css) === 1,
-    'saved Event Location panels should have a transparent background.'
+    'embedded saved address panels should retain their transparent background.'
 );
 
 echo "Saved engagement surface tests passed.\n";

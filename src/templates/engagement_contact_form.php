@@ -70,14 +70,16 @@
                 <div class="form-field">
                     <label for="caller_user_id">Caller</label>
                     <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
+                        <?php $selected_caller_id = (int) ($engagement_contact_edit_caller_id ?? $_POST['caller_user_id'] ?? 0); ?>
+                        <option value="" <?php echo $selected_caller_id === 0 ? 'selected' : ''; ?>>No Caller Selected</option>
                         <?php
-                        // Fetch and display users in the dropdown
-                        $users = $conn->query(
-                            "SELECT id, username FROM users WHERE account_status = 'active' ORDER BY username"
-                        );
+                        $caller_filter = "account_status = 'active'";
+                        if (isset($engagement_contact_edit_caller_id)) {
+                            $caller_filter .= " OR id = {$selected_caller_id}";
+                        }
+                        $users = $conn->query("SELECT id, username FROM users WHERE {$caller_filter} ORDER BY username");
                         while ($row = $users->fetch_assoc()) {
-                            $selected = (int) ($_POST['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
+                            $selected = $selected_caller_id === (int) $row['id'] ? 'selected' : '';
                             echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
                         }
                         ?>

@@ -9,10 +9,10 @@
       "Open View Comprehensive User Guide for the illustrated PDF."
     ],
     "file": "screenshots/manual.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -24,11 +24,12 @@
         "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "5dd37b4c05a36e528a90dbe364836646dc34487f4b30856e351e10656ca41ef1",
+      "dpi": 435,
       "native_pixels": [
-        3840,
-        3000
-      ]
+        5800,
+        4531
+      ],
+      "sha256": "6cc5036546714f3740b6771869abc4eeb7ea5ddc677462ff698c8161121f20ec"
     }
   },
   {
@@ -43,10 +44,10 @@
     "action": "dark",
     "shell": true,
     "file": "screenshots/dark.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -58,11 +59,12 @@
         "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "9403259f87308ca65820610535066131395fe89194eb6e3c1302be02646e165a",
+      "dpi": 435,
       "native_pixels": [
-        3840,
-        3000
-      ]
+        5800,
+        4531
+      ],
+      "sha256": "6a0243108049dfbc57399c7fb5e44dbb1fc23f1da704dc7b9e671e3663fe1925"
     }
   },
   {
@@ -78,9 +80,9 @@
     "action": "mobile",
     "shell": true,
     "file": "screenshots/mobile.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 390,
         "height": 844
@@ -92,11 +94,12 @@
         "height": 844
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "0ba8476d2ab4aee1daef18463d8317906bbd33a7838469e99973ed106faface1",
+      "dpi": 435,
       "native_pixels": [
-        1170,
-        2532
-      ]
+        1767,
+        3824
+      ],
+      "sha256": "b35e6fc22ac37592e21cbc81fe53fc534fb748bb65db0a5bff3ffdaae8292f6d"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -113,7 +116,7 @@
     "action": "roles",
     "shell": true,
     "file": "screenshots/roles.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "copyright_line_box": [
       299,
       774,
@@ -121,7 +124,7 @@
       802
     ],
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -132,7 +135,13 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        5800,
+        4531
+      ],
+      "sha256": "e6cd4d31d6f1cfb4a23d8ca121d0ff3b1c1a09baa2c232c4926a08133465660c"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -146,10 +155,10 @@
       "Deadline bars show timing and urgency alongside the written due date; open a task for its details."
     ],
     "file": "screenshots/dashboard.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -161,11 +170,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "5358c8c2c0ac9f67ba3e0ccabbcd378aa18049407c793e36c241cda2fa6b8d92",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "a00f31cb92bb7d039248feec9fed89ccb269ad54f2497de84e30c9b33010cd57"
     }
   },
   {
@@ -179,10 +189,10 @@
       "Archive Inquiry is available for declined requests and recorded bookings. Archived Inquiries opens retained records outside the current pipeline."
     ],
     "file": "screenshots/pipeline.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -194,11 +204,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "176351289884df9ea16a92a1c87d580861be9c349f83ca4ebd470a2ff2a8cc89",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "9e4b223d01fa7a888269d11474f98dea4f61c6cf0d666a219c65840e25547af0"
     }
   },
   {
@@ -213,9 +224,9 @@
     ],
     "file": "screenshots/inquiry.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -226,7 +237,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "58fbab6e84ec7a20ed03e74e6002fda3c3da9d391566d7f407b87d7090856e7d"
     }
   },
   {
@@ -241,9 +258,9 @@
     ],
     "file": "screenshots/inquiry-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -255,11 +272,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "6cc94180a81add9d914d01176b1b172c00aeb3de0431a8f6cee1a730d4ef35e0",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "28508681b5e05fcd326cca43fced95f14accd339030657ff591ca0fd73eefb23"
     }
   },
   {
@@ -275,9 +293,9 @@
     "focus": "#inquiry-next-action",
     "file": "screenshots/inquiry-action.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -286,14 +304,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 812
+        "height": 811
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "52155ed6e7af2dfe97ab0a5739f501ca3adb74b8ef53276d72ccf2c37c9aed68",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2436
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "245fa17536492b38d9ebce39f0e2f831b46f927aca88012c06d266769ad7b03d"
     }
   },
   {
@@ -309,9 +328,9 @@
     ],
     "file": "screenshots/conversion.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -323,11 +342,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "889341f124120574e0ea30bf3cba370b5468ba1e2271092b3e452bb13dfda83c",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "f280aff4baaf45e3ca1d1f6f2a096e385e8e0eed7fa6ee7aab1442a22f7cf482"
     }
   },
   {
@@ -343,9 +363,9 @@
     "note": "The screenshot preview has mail delivery disabled. The form is shown without sending a message.",
     "file": "screenshots/inquiry-email.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -356,7 +376,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "49a8a0f77e482f3a4b98d0778a64c109bbc39be74d6f2af4f2eb858090c9bd3a"
     }
   },
   {
@@ -370,10 +396,10 @@
       "The inquiry leaves ordinary pipeline views. Archiving this source inquiry does not archive its engagement."
     ],
     "file": "screenshots/inquiry-archive.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -384,7 +410,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "b99a64576764511f6a9d00eccbe602ff43c9d350044c4d73f13e660567afceba"
     }
   },
   {
@@ -398,10 +430,10 @@
       "Open a title to read its retained information. Restore Inquiry returns it to its original stage; restore a declined inquiry before reopening it."
     ],
     "file": "screenshots/inquiry-archived.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -413,11 +445,12 @@
         "height": 716
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "f21e658e461bb095a8405c4185c2766b34f39ea1fa15468f939dbea1f385a217",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2148
-      ]
+        4577,
+        3244
+      ],
+      "sha256": "dd013d74e7b833dcd5a287ab70ca9a3bdcf06156d7e5d2f47f35895547113487"
     }
   },
   {
@@ -431,10 +464,10 @@
       "Sort using the column headings. Administrators can select records using the toolbar inside the table pane; it stays visible while scrolling. Records Per Page is remembered."
     ],
     "file": "screenshots/engagement-list.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -446,11 +479,12 @@
         "height": 687
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        2061
+        6027,
+        3113
       ],
-      "sha256": "8f7be778c87256cf4db183ad5657ca02665ab4283f662fc4d0d2c90f900d3bd3"
+      "sha256": "ca8a8dec833e70c8bba6fb3915b8b1e2c636afe626636e1d5326c3eb6639c6f7"
     }
   },
   {
@@ -464,9 +498,9 @@
     ],
     "file": "screenshots/engagement.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -478,11 +512,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "e89d1d6202d89e425e3970f024429c2768a33feceaa8017c006605bfc5432764",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "c48adfa181d4c21835015e87bc0c06c76a391bff5db9c47b5b55b63d762545b3"
     }
   },
   {
@@ -491,14 +526,14 @@
     "title": "Edit an engagement in focused cards",
     "route": "edit_engagement.php?id=1",
     "steps": [
-      "Work through Event Details & Schedule and the related cards.",
+      "Review Event Details and the Schedule at the bottom of that pane. Assign roles and review the Caller in the Event Contacts pane.",
       "Keep unsaved changes in this browser with Save Draft where offered, or save the record using Save Changes."
     ],
     "file": "screenshots/engagement-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -507,14 +542,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 850
+        "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "f78816b268a1c5c1b4757ff5ee15f92da1989e46d8b35b68d09ffbec78659065",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        4531
+      ],
+      "sha256": "bf75da301c7175a666b6bb7c7aba00ba4ce8a70d26753e805ccabf38ea4cb170"
     }
   },
   {
@@ -530,10 +566,10 @@
     "tab": "Contacts",
     "focus": "#engagement-workspace",
     "file": "screenshots/event-contacts.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -544,7 +580,13 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3675
+      ],
+      "sha256": "a581c9746ed541c8ad0422956e7198af3b11d07ee950deece985d28d31fa9ba5"
     }
   },
   {
@@ -562,10 +604,10 @@
     "focus": "#engagement-workspace",
     "file": "screenshots/presentations.png",
     "note": "The first row of resource codes is shown. Scroll down to find the file and custom-resource codes.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -577,11 +619,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "d31e22a82280cf7cd1add0685000162e37698de2d6c4866bdbc2a3982181d077",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "74cb22610aa8bb4bf3b2d8931fa21dcfbd494b26c333b0cbe6260f752fe22fde"
     }
   },
   {
@@ -596,10 +639,10 @@
       "Use the QR image or PNG/SVG downloads in slides and handouts. Replacing the PowerPoint keeps these previously shared codes usable."
     ],
     "note": "Copying a link or image does not add a visit. Opening the shared QR link records activity before delivering the file.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -610,7 +653,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "3f00cf2866cc5579d9d877b8c091c39f25a57ae2aff712dcc016be0e57da82b0"
     }
   },
   {
@@ -627,21 +676,27 @@
     ],
     "note": "PPT Slidedeck and Speaker Notes are selected and moved to the top. Other available codes remain below the visible rows.",
     "file": "screenshots/qr-selection.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
       },
       "clip": {
-        "x": 342,
+        "x": 334,
         "y": 91,
         "width": 596,
         "height": 817
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        2701,
+        3702
+      ],
+      "sha256": "e08fd32851ad463cd85a33e8da29ccaca9a28fc5b2504fe2cc6d1597c1ff2a27"
     }
   },
   {
@@ -658,9 +713,9 @@
     "focus": ".presentation-entry",
     "file": "screenshots/presentation-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -672,11 +727,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "4c47460ffa9250e8231016fcdd7a32a722d31b84a5e708e491ba05242678e6f1",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "a7be184f31910cec4386fd38f70cf693807833329f6ab569a7acee106067e80c"
     }
   },
   {
@@ -691,10 +747,10 @@
       "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -706,11 +762,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "1a5e59d8b26e335a8967aff604e464464064e38d99214e6808d79f7158cce472",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "ffd174068059a1181ce025a1c6dc7677e199446d65ba3d9e7905b31132725a97"
     }
   },
   {
@@ -719,7 +776,7 @@
     "title": "Save a pending presentation-file change",
     "route": "edit_engagement.php?id=1",
     "file": "screenshots/presentation-file-pending.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "steps": [
       "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
       "Read the pending notice. Selecting a file or checking Remove does not apply the change immediately.",
@@ -729,7 +786,7 @@
     "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept.",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -741,11 +798,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "ab41ef32e377a95631a02284119ae519a0706635b9b23ae3803479120c51bffa",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "af55e0c969f239c052fa75bb3da94e29b5563730ef4bd74e61401903333f2c55"
     }
   },
   {
@@ -761,9 +819,9 @@
     "tab": "Logistics",
     "focus": "#engagement-workspace",
     "file": "screenshots/logistics.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -774,7 +832,13 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3675
+      ],
+      "sha256": "d97b25ffe72cf9f90e09fd2af80dc91a5dcbe840aeb42ee3205146d33a41a27e"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -791,9 +855,9 @@
     "focus": "[name=lifecycle_status]",
     "file": "screenshots/lifecycle.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -805,11 +869,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "ff0fbc1fba941c8ae249d51370e5c18d32965e5148b98ed92e36f6c18adfd758",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "3e74d15399d444684c1fc0703437c6ee35acd33700076e6aa66777e853a97a10"
     }
   },
   {
@@ -826,9 +891,9 @@
     "note": "The chart uses fictional, seeded visit counts to illustrate the report.",
     "file": "screenshots/statistics.png",
     "captured_on": "2026-09-13",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -839,7 +904,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "c2fb573ba6f97a484ec72329c3c22b7c551189828b74b55cafbbc3936f979209"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -856,10 +927,10 @@
     "tab": "Financials",
     "focus": "#engagement-workspace",
     "file": "screenshots/financial.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -871,11 +942,12 @@
         "height": 811
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "3c0f6fafc69fd95d52f1df7c14ef5b8e83776a71f5c698a5488aad8a9e6bb9c8",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2433
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "be411b837840236cccb4bb26a0769efbbb26c671601df3766aa8c6db25382b8c"
     }
   },
   {
@@ -890,9 +962,9 @@
       "For a final report, use correction to update amounts while retaining the original close date."
     ],
     "file": "screenshots/closeout.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -903,7 +975,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "d7cff762591618992110a417b680d4ff99ee7d2cd62121874d8437e90646bcf7"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -920,9 +998,9 @@
     ],
     "file": "screenshots/email-templates.png",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -934,11 +1012,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "4e1da29f251089e049c85ae15382dd8eb68edd6ffa0353bc2dd269b4a40cb20d",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "54aa70abbe2887af4170f5f1b7b1566111f2c9481da2fd653b37221fb6d47623"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -956,9 +1035,9 @@
     "file": "screenshots/email-template-editor.png",
     "captured_on": "2026-09-10",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -969,7 +1048,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "0d1586f6f6c4e4d9a81a6f75b65996cc4559a9c310116b389b8e95df46089afc"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -988,9 +1073,9 @@
     ],
     "file": "screenshots/email-template-fields.png",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1002,11 +1087,12 @@
         "height": 811
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "2c66679f43e71c8c574bc9aa4211b1fc64391e9bda36d888256476eac363cacf",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2433
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "d0582f34aabe69532e204598c3910758357787842a92a4bd4d1c2ab52b6f29cb"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1021,10 +1107,10 @@
       "Use Active/Archived, sorting, and Records Per Page to manage a longer directory. Administrators can select records in the table pane; its selection toolbar stays visible while scrolling."
     ],
     "file": "screenshots/organizations.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -1033,14 +1119,15 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 496
+        "height": 581
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        1488
+        6027,
+        2633
       ],
-      "sha256": "6741842cc256c3466ee584cacfb658690b9dd3fcd9928c291fd8276b0d613a87"
+      "sha256": "3f1231eecfb00c57d90cf7bf14124a2b608df3d33c8bcd3c404a38a7b5557ce9"
     }
   },
   {
@@ -1054,9 +1141,9 @@
     ],
     "file": "screenshots/organization.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1067,7 +1154,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "9a7029a22a39a53fc5c7a74706881eb728f5762e3343542e7bc1b3e25c665aa3"
     }
   },
   {
@@ -1085,9 +1178,9 @@
     "note": "Amounts are fictional examples.",
     "file": "screenshots/organization-financial.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1098,7 +1191,13 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3675
+      ],
+      "sha256": "a2ee20d32151d766a666fda4287d15260d2ef48b8bccc9c704ed0d5128396a41"
     }
   },
   {
@@ -1113,9 +1212,9 @@
     ],
     "file": "screenshots/organization-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1127,11 +1226,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "dcda3007719cbee2bbe069c63f199445e859241742bf2b9f7259ab25ca7aab49",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "90f1b7bac2b3bdebe932563278df641db4e25ceb4c5511736d1f919453ecaee2"
     }
   },
   {
@@ -1146,9 +1246,9 @@
       "Review the selected names and related data, unlock if required, then confirm the Are you sure? dialog."
     ],
     "file": "screenshots/contacts.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -1160,11 +1260,12 @@
         "height": 556
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        1668
+        6027,
+        2519
       ],
-      "sha256": "44f70571e2673f98e357746c70d6182e6a0fe2564086ee3199499460c714664c"
+      "sha256": "b03c0f049b11ac002540d53c8e2e29db1e1daf337b32e63764478ab108a38f62"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1179,9 +1280,9 @@
     ],
     "file": "screenshots/contact.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1192,7 +1293,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "d6f4cf2a6e7df5a9189b7accf59a8704bdf6d4b2b5c2be74e13055b8b21f01ae"
     }
   },
   {
@@ -1208,9 +1315,9 @@
     ],
     "file": "screenshots/contact-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1222,11 +1329,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "e2752e32fc0ce30ee9c8e4645da2008e84936e3ecdacce4f0c4414eeaf24dcc3",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "b67101fb760c43bc1b6628d5476b48025ad0b2252b9750c910cd14286c4ba0f9"
     }
   },
   {
@@ -1241,9 +1349,9 @@
       "Referenced speakers are protected; only unused profiles can be permanently deleted."
     ],
     "file": "screenshots/speakers.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -1255,11 +1363,12 @@
         "height": 521
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        1563
+        6027,
+        2361
       ],
-      "sha256": "1faf54ecc53f3445df9ca26311575f79c70115e619e634b9171551b4892ee722"
+      "sha256": "60570e9966d27313464b839ba25fe2f36844904ff7f0bc4ced2d0c8e27388d90"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1276,21 +1385,27 @@
     ],
     "note": "The fictional linked speaker is protected; no speaker was deleted during capture.",
     "file": "screenshots/bulk-speaker-review.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
       },
       "clip": {
-        "x": 337,
+        "x": 329,
         "y": 0,
         "width": 866,
-        "height": 623
+        "height": 667
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        3924,
+        3022
+      ],
+      "sha256": "4b6c4b6ebbdbe6dac7f67899bebd87a726a2d660dafdc84357c481ea4ae756b3"
     }
   },
   {
@@ -1304,9 +1419,9 @@
       "Edit the profile to maintain shared details. The written biography and Bio URL serve different purposes."
     ],
     "file": "screenshots/speaker.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1317,7 +1432,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "97a530e94d2f4f03bd83317c453cca914b3632bc7aacfd0a6ec740cf65705433"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1335,9 +1456,9 @@
     "focus": "#speaker-links-heading",
     "file": "screenshots/speaker-links.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1346,9 +1467,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 850
+        "height": 812
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3679
+      ],
+      "sha256": "57d514952bc7b9f85ffc52c7e715150ba318f6c82214e62d55816fa3db1d2194"
     }
   },
   {
@@ -1362,10 +1489,10 @@
       "Select tasks using the toolbar inside the table pane. Choose the update and Preview Updates, or Review Deletion when available. The toolbar stays visible while scrolling."
     ],
     "file": "screenshots/tasks.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -1374,14 +1501,15 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 807
+        "height": 770
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        2421
+        6027,
+        3489
       ],
-      "sha256": "f071caabe6feee2650f9683bb77162c21d4a4e940fc5d66a6ef5977f29398d62"
+      "sha256": "5a29a3d223e8130838a86a7a20c59f1cab8aa02cf684cf4c31afe7b86290e2de"
     }
   },
   {
@@ -1395,9 +1523,9 @@
     ],
     "file": "screenshots/task-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1409,11 +1537,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "21ff694aa5323b5bbe9f4fc4e82cd26365ea3660bb9e481eea7ac7a7b26978ee",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "c97f3b06db73246abcacb09d0d51b039c99937d5ca0a56dcb2d3f7c1b1e640b3"
     }
   },
   {
@@ -1429,9 +1558,9 @@
     ],
     "file": "screenshots/duplicate-task.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1443,11 +1572,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "0906a50f2a9f244631e2d22e4de0e847d69e32d43404eb1605aa9aa7720d84d2",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "68efe02a537b76265e807ece5dacdaee144968d2a49bd347525d9b740375373b"
     }
   },
   {
@@ -1463,9 +1593,9 @@
     ],
     "file": "screenshots/standard-tasks.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1476,7 +1606,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "7fcc8773eb914d55299d97c5c7f2fb665164a863c97908e5fdd603e8be6565db"
     }
   },
   {
@@ -1494,9 +1630,9 @@
     "note": "The option is selected for illustration; the form was not submitted.",
     "action": "standard-generation",
     "focus": ".form-section:has(#standard-task-priority)",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1508,11 +1644,12 @@
         "height": 812
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "6284b937301f308855fd6dc6449a6346dac9abd040d46114a802e7a18aa0560d",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2436
-      ]
+        4577,
+        3679
+      ],
+      "sha256": "6d99c5fedebcc649319ff0971257b6062994831f563b926e9463e2cebf4281e5"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1529,9 +1666,9 @@
     "action": "chron",
     "file": "screenshots/chron.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1540,9 +1677,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 811
+        "height": 812
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3679
+      ],
+      "sha256": "b2b9198b6753aaae309cdbf48c7fba462170a3300fc19f55659afcb159e852a8"
     }
   },
   {
@@ -1558,10 +1701,10 @@
     "file": "screenshots/email.png",
     "captured_on": "2026-09-13",
     "action": "email-recipients",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1572,7 +1715,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "53202c65ea9006a1c0f1781a23e1d1b8d5ce2ded03e9d3b2905d48497de2e064"
     }
   },
   {
@@ -1587,9 +1736,9 @@
     "focus": "#body",
     "file": "screenshots/email-message.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1601,11 +1750,12 @@
         "height": 811
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "d73613dc453f8368dc5305dfb6341c5db4c346011fe05846f21476781fdbaeca",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2433
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "108cdec500bbe248bd156926ccb7a1c064a0479d275ae9857687ce57e34abc23"
     }
   },
   {
@@ -1622,9 +1772,9 @@
     "file": "screenshots/inbox.png",
     "shell": true,
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1636,11 +1786,12 @@
         "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "df25e7d65eefe877142249d5389b331fc00eb01a43d125fe69c78fa13006be30",
+      "dpi": 435,
       "native_pixels": [
-        3840,
-        3000
-      ]
+        5800,
+        4531
+      ],
+      "sha256": "8b78c15ce2e95e416b8c22930db594007966aaab15266a61db06ce1ef708f75f"
     }
   },
   {
@@ -1655,9 +1806,9 @@
     "file": "screenshots/inbound-message.png",
     "focus": "#inbound-queue-search",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1669,11 +1820,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "a042f0c0664acfc7c093b58048dafb0d5a2e00f39f2e5177def576ab4b3d37b3",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "f312373bb982b7dcf11bcaf45fad84aac6618d39ec026d8815a28ec8f1df15c4"
     }
   },
   {
@@ -1688,9 +1840,9 @@
     ],
     "focus": ".map-shell",
     "file": "screenshots/map.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1701,7 +1853,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "5960f577e4d3b38d8cf479f0e053e984c633c7de170d9ddc553b4a586527a7e6"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1719,9 +1877,9 @@
     "focus": "#pin-editor-map",
     "file": "screenshots/map-pin.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1732,7 +1890,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "9ee7f6e0dc42b34dc1a6b6bc5517f1067c6d07ed733acf090d6e388219b175ee"
     }
   },
   {
@@ -1748,9 +1912,9 @@
     ],
     "file": "screenshots/calendar.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1762,11 +1926,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "d6135840ee7296f993edcaeb6231fb535ec193cc5fe1deaf3b4869fd6b829780",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "e96169c0178fd67cb4c815e911a60063ccd6e20deff63396e4f09b49f223543a"
     }
   },
   {
@@ -1782,9 +1947,9 @@
     ],
     "focus": "#calendar-subscriptions-title",
     "file": "screenshots/subscription.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1795,7 +1960,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "b01538dd18c7135d84434d6f578de622144aefebea975289e27d2c4fb3f92e1f"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1812,9 +1983,9 @@
     ],
     "file": "screenshots/profile.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1826,11 +1997,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "629ae446f292069cae5f94990bfb7d21cc866b168ba54ad212560e3b41f44a5f",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "420d11b5471de837ef9c824167e2d3acbad7734ce0907bddf6da9d354814b119"
     }
   },
   {
@@ -1839,7 +2011,7 @@
     "title": "Choose Daily Digest time and days",
     "route": "profile.php",
     "file": "screenshots/digest-preferences.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "steps": [
       "Open My Profile and scroll to Notifications. Enable Daily work digest to receive the Dashboard summary by email.",
@@ -1848,7 +2020,7 @@
       "To change delivery settings later, return to My Profile. The email footer contains plain text; Dashboard and record links remain available in the message."
     ],
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1860,11 +2032,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "629ae446f292069cae5f94990bfb7d21cc866b168ba54ad212560e3b41f44a5f",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "5d48238abb837ef3936fd74c32e562dde2c6d18875d777d6e8222634542cf18b"
     }
   },
   {
@@ -1880,9 +2053,9 @@
     ],
     "file": "screenshots/security.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1893,7 +2066,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "fb87bd0485cae4337bb68b92fde6c2e425123c71b2ffe196cb0ab6dd08f28141"
     }
   },
   {
@@ -1908,9 +2087,9 @@
     ],
     "note": "Only the initial confirmation screen is illustrated. Enrollment secrets and recovery codes are intentionally absent.",
     "file": "screenshots/setup.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1919,14 +2098,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 510
+        "height": 578
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "f21e40ab4dfb5ef9f62ef7099428d4b3ec31216279e9d004b0be60a8649fb1e4",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        1530
-      ]
+        4577,
+        2619
+      ],
+      "sha256": "9627148859a0e734d02b6bc45139b13c3a7f3aa2508d5ef223c7016322c50f0f"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1943,9 +2123,9 @@
     ],
     "note": "The disposable preview is not connected to Mattermost. The chapter explains the configured plugin workflow; this screen shows its setup prerequisite.",
     "file": "screenshots/mattermost.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1956,7 +2136,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "6d537cfcf6a4ec953cc84446495537e06979d3bd5119e5d54dbf0f3b4ebebe87"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1972,11 +2158,11 @@
       "Only eligible accounts have deletion checkboxes. Individual Delete user remains available alongside Delete selected."
     ],
     "file": "screenshots/users.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional accounts illustrate active and inactive states. No account was deactivated or deleted during capture.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -1987,7 +2173,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "0b93ca8e3795b479cdb6dd7fa69c2549559ac2e05ab09147432f2270aba60cee"
     }
   },
   {
@@ -2002,10 +2194,10 @@
     ],
     "note": "The confirmation is illustrated without submitting the deletion.",
     "file": "screenshots/delete-user.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2017,11 +2209,12 @@
         "height": 389
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "f3b529ffa89ed08966d1bcbc457a4323999db37f3506d35e6fb8e2c261cd0785",
+      "dpi": 435,
       "native_pixels": [
-        1488,
-        1167
-      ]
+        2248,
+        1763
+      ],
+      "sha256": "f4b8f14d7e2b3ef56d8e226dc417994413e4ca3b91f4c610da317b5388d68fea"
     }
   },
   {
@@ -2036,21 +2229,27 @@
       "Cancel returns to the user list without deleting. Changing the list page or filters starts a new selection."
     ],
     "file": "screenshots/bulk-user-review.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
       },
       "clip": {
-        "x": 337,
+        "x": 329,
         "y": 0,
         "width": 866,
-        "height": 681
+        "height": 663
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        3924,
+        3004
+      ],
+      "sha256": "94164bedc193bc8d3975284c7be8fd51732607259650f4f953d2792088f6065c"
     }
   },
   {
@@ -2065,21 +2264,27 @@
     ],
     "note": "The confirmation phrase is entered for illustration. The request was not submitted and no accounts were deleted.",
     "file": "screenshots/bulk-user-confirmation.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
       },
       "clip": {
-        "x": 337,
+        "x": 329,
         "y": 0,
         "width": 866,
-        "height": 681
+        "height": 663
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        3924,
+        3004
+      ],
+      "sha256": "fb8a549e161787fec6b9328d92d554c95e399d0adb4f9574e9b39d9a146bb199"
     }
   },
   {
@@ -2095,9 +2300,9 @@
     "elevated": true,
     "note": "This form is shown without submitting an invitation.",
     "file": "screenshots/invite.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2108,7 +2313,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "ece14861c96576d75aabeab360bc87be4e48144a16e5ec3d144c74b737907ef2"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2123,10 +2334,10 @@
       "Select Unlock Sensitive Actions to continue on the same page. The five-minute unlock applies only to this signed-in session."
     ],
     "file": "screenshots/elevation.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2138,11 +2349,12 @@
         "height": 450
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "ce568211c564db5577e91b899181a8538742dd37f3f9078dc630fe37ddc2cfa9",
+      "dpi": 435,
       "native_pixels": [
-        1488,
-        1350
-      ]
+        2248,
+        2039
+      ],
+      "sha256": "789910859c5d2a42d8c000fd5a6a662286027a36a6353d444141e508cdf36a14"
     }
   },
   {
@@ -2157,9 +2369,9 @@
     ],
     "file": "screenshots/audit.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2171,11 +2383,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "cb87f11f5b3957dd3ef891aed9c8ce96874bd87d0c7466379fbe82cc65bde1de",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "255b3a4b70b3c6d938db968f740130d7ea69af5634aaa67482a5eca042bd44f3"
     }
   },
   {
@@ -2191,9 +2404,9 @@
     "focus": "#audit-retention-title",
     "file": "screenshots/retention.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2205,11 +2418,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "ff262d688bdbf260f00f8a687542357be0fba682a67f5cd010e279f21864c531",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "5a957cb9cc96e6b34bc9775ed507d43a9391a1b48a53358ac4185ab481529678"
     }
   },
   {
@@ -2225,10 +2439,10 @@
     ],
     "file": "screenshots/backup.png",
     "note": "The credential and download section is shown with empty fields. No backup was exported during capture.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2240,11 +2454,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "130f5797253e6a1762416f314c10fc06bc3e9e4a79c24f38b913b6c54a31512f",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "007272ab96e5102510532a768f81ef240df7d2c4117b2135340c52dd1b987c96"
     }
   },
   {
@@ -2257,10 +2472,10 @@
       "No report received means no reported result. A downloaded database backup is tracked separately; an operator must verify recovery before treating it as ready."
     ],
     "file": "screenshots/operations.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2271,7 +2486,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "48613df4e2bc043c7bb51e03cb3748425759b69ca1730fb16f681d276afe8a3a"
     }
   },
   {
@@ -2284,10 +2505,10 @@
       "Choose Archive or Delete a Presentation to jump to instructions for the buttons within each saved presentation block."
     ],
     "file": "screenshots/manual-search.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2298,7 +2519,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "63035ed77e932c2ed06cb6680ea6233ca3e35bdbda394696ec15127d8bcaaac0"
     }
   },
   {
@@ -2316,9 +2543,9 @@
     "focus": ".presentation-export",
     "file": "screenshots/presentation-exports.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2330,11 +2557,12 @@
         "height": 811
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "e687eaf03c19e8d646bcfe05e265767b3c851a22e36da959194e1adc66613a57",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2433
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "5b31ba5a3ec27384f639ca0e1af69f19b9372005f25be969c9fd6c967e7d0b48"
     }
   },
   {
@@ -2351,9 +2579,9 @@
     "focus": "[name=target_url]",
     "file": "screenshots/link-controls.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2364,7 +2592,13 @@
         "width": 1010,
         "height": 811
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3675
+      ],
+      "sha256": "7f411536bf02bb67439f525eb83eac4ea49519359ffe0471f08af41214599260"
     }
   },
   {
@@ -2378,10 +2612,10 @@
       "Confirm only when the permanent loss of visit history is intended. Other presentations, files, and QR destinations stay intact."
     ],
     "file": "screenshots/reset-statistics.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2393,11 +2627,12 @@
         "height": 591
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "262d18e03cf120abfbfb4078250ccbfff616c1070bf41ce5a848ce5eadf56983",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        1773
-      ]
+        4577,
+        2678
+      ],
+      "sha256": "cbc5843a0a7241c03024804dfa060ba0223578f4598d97330ffd9441d4bc37f0"
     }
   },
   {
@@ -2413,9 +2648,9 @@
     "focus": ".closeout-form",
     "file": "screenshots/closeout-amounts.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2427,11 +2662,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "c34ffc0bb1208539b1d30c264d186d6c529d565aa92f9c07912cdadecc4a2103",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "5e4a1148a258126f07869ccf7bd426412df7b7bce19f0818606ca963d95694e5"
     }
   },
   {
@@ -2449,9 +2685,9 @@
     "note": "This completed report contains fictional amounts.",
     "file": "screenshots/final-report.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2463,11 +2699,12 @@
         "height": 835
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "e7996f258c46be15221d2e4a406d91d4164dce6c6851ab3ceb5dbea7305993c6",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2505
-      ]
+        4577,
+        3784
+      ],
+      "sha256": "d8c899d6ca597e3be150153263a1f599be3e0965ab438259034fa3f3cd1fed8e"
     }
   },
   {
@@ -2483,11 +2720,11 @@
     ],
     "elevated": true,
     "file": "screenshots/edit-user.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "The current form groups personal details together. Scroll to profile picture, username, role, digest preferences, and Save changes. No profile changes were saved.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2499,11 +2736,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "5b263bf00f68b8fbdd92582ad722404bcaee9175ae6e0d9bf5f5cbe6b1ef15b8",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "f1ae99d9ff089a4e999fff195912d1d8d426afd045bda7a46ded27138317d91d"
     }
   },
   {
@@ -2520,9 +2758,9 @@
     "shell": true,
     "file": "screenshots/calendar-agenda.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 390,
         "height": 844
@@ -2534,11 +2772,12 @@
         "height": 844
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "413db325dd23d50af16e6c87418ee5c3e3afe7e204609ffe2b4b601bef661338",
+      "dpi": 435,
       "native_pixels": [
-        1170,
-        2532
-      ]
+        1767,
+        3824
+      ],
+      "sha256": "9ce809bf2a8914c128b5d5a4887a22c30bdcd189a4e56c75ac6bd8d3458dcb5b"
     }
   },
   {
@@ -2555,9 +2794,9 @@
     "focus": "#recovery-email-heading",
     "file": "screenshots/recovery-email.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2569,11 +2808,12 @@
         "height": 812
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "ae4e7c940df1aa3efccd24e67d3b5e6c09f51e73feb67133ba3cba365372bedf",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2436
-      ]
+        4577,
+        3679
+      ],
+      "sha256": "6edcaec5bd7204c66eb9d04a28ef7ce08877bf7d0fdd23add6c1b8922ebd34dd"
     }
   },
   {
@@ -2590,9 +2830,9 @@
     "anonymous": true,
     "shell": true,
     "file": "screenshots/login.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2604,11 +2844,12 @@
         "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "20559f74fed8d04c80a5602cfa2a3c3fcf6cd6c94a343fb9e5b4c50cfe775883",
+      "dpi": 435,
       "native_pixels": [
-        3840,
-        3000
-      ]
+        5800,
+        4531
+      ],
+      "sha256": "bece259b7a79ab6b8e381c1ead986d3222af1efd9163a73fe610321bc6db3389"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2626,9 +2867,9 @@
     "anonymous": true,
     "shell": true,
     "file": "screenshots/forgot-password.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2639,7 +2880,13 @@
         "width": 1280,
         "height": 1000
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        5800,
+        4531
+      ],
+      "sha256": "c9da33f45ed3159b87b0b7ae4dd24c69dceb933dee9d3a2c0144a572c9b305a5"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2657,10 +2904,10 @@
     "action": "task-confirmation",
     "note": "The completed list shows a fictional preview task. No task is completed by the capture utility.",
     "file": "screenshots/task-confirmation.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -2669,14 +2916,15 @@
         "x": 0,
         "y": 0,
         "width": 1600,
-        "height": 730
+        "height": 798
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        4800,
-        2190
+        7250,
+        3616
       ],
-      "sha256": "cef5bd3dcba65a1e0786322e18615d348c94641f889d655852d20efb9978d711"
+      "sha256": "3e16f45026318c1b8bdd45383248d5d63492e7f36ef439f0c54d4a41a0402e46"
     }
   },
   {
@@ -2690,10 +2938,10 @@
       "Select the curved-arrow Restore task control. Details, status, owner, and due date are retained. An open overdue task becomes eligible for active reminders again."
     ],
     "file": "screenshots/task-archived.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1600,
         "height": 1000
@@ -2702,14 +2950,15 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 625
+        "height": 774
       },
       "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3990,
-        1875
+        6027,
+        3507
       ],
-      "sha256": "8c371ca0c2477fd15cf31c2e81a46b2feee415e451e4a81de4e16145ed40d3cf"
+      "sha256": "9fab342a967c3f5506325e479c67af108877b593ff45c79de291415bbae9b609"
     }
   },
   {
@@ -2722,10 +2971,10 @@
       "Browser page-load and document-response measurements are separate. No public-client samples in this isolated preview is not evidence of a network failure."
     ],
     "file": "screenshots/network.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2736,7 +2985,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "5df5d93ac33db049d63203c9558f1d2ef16a3a9aef09bb93b91c3ae49d606de4"
     }
   },
   {
@@ -2750,10 +3005,10 @@
     ],
     "elevated": true,
     "file": "screenshots/admin-countdown.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2764,7 +3019,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "b4ac43571f8bd7a802219d73aed978fa10c37a8cefbd7ef44e4861c070ae80e4"
     }
   },
   {
@@ -2782,9 +3043,9 @@
     "action": "network-reset",
     "note": "The confirmation was canceled; no statistics were reset during screenshot capture.",
     "file": "screenshots/network-reset.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2796,11 +3057,12 @@
         "height": 285
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "42c8e6a16a1249aa1a10948f4e1f44786764795f67b669b91d8ba9356d927957",
+      "dpi": 435,
       "native_pixels": [
-        1488,
-        855
-      ]
+        2248,
+        1291
+      ],
+      "sha256": "af1748619e91b3bc17255d255afee278cf0b365c8f64ea12dd7bbbde9fed0934"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -2814,10 +3076,10 @@
       "Apply owner/date/state filters and check the current summary. View opens read-only detail; Edit returns through the allowed expense list."
     ],
     "file": "screenshots/reimbursement-expenses.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2829,11 +3091,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "6c83c494cead0bad49e38b2bbb1c83b19f2c721602bf85f3c1aa02eb6389b667",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "140d0c0a61dce24ee322438a2a1e5e3a7bff219dbf03aae616f7f8d6c5227b9f"
     }
   },
   {
@@ -2847,10 +3110,10 @@
       "Review Dates for New Request before Create Draft Request from Selected Expenses."
     ],
     "file": "screenshots/reimbursement-selection.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2862,11 +3125,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "33f4476315313e5dc79b2d9bbd208a61f1afc35cfc5c56449127e0289fe9c944",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "06146be9217c3d9b19c70b9bae6cf3793afb262cacb038f1625121296b755894"
     }
   },
   {
@@ -2881,11 +3145,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-expense-entry.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2897,11 +3161,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "3f63fa5e44fb3c486a1011d0cc9f5e096d71f6a439fc33fe4cd0391ca4b9da60",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "a7c47bfdef2a371af92f1fd04b7593bd9d798013d8a3b1f128b64029de32ef7d"
     }
   },
   {
@@ -2916,11 +3181,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-receipts.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Scrolled expense editor. Preview is a fictional PDF receipt; the original remains downloadable.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2931,7 +3196,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "9f313be4d28cd388d7574fd1a012fe55a8e5e6b47d73ad42ef2a050eca49c589"
     }
   },
   {
@@ -2946,11 +3217,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-requests.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2962,11 +3233,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "f1bde5b41da7ecff7e7d5c987192ca6d5e1309753b6462841ec562bd1cb4a6fe",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "3052a4a50794abbaf29468ae3683912094b6b5996464cbf5e32df91e0f7c3f7b"
     }
   },
   {
@@ -2980,10 +3252,10 @@
       "Download Report PDF or Download Package ZIP for review, then Review and Submit."
     ],
     "file": "screenshots/reimbursement-draft.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -2995,11 +3267,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "319941904c201248f4e716fe3ac4c1bc13b276347dd1e27263205dd7d1d734de",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "394dd6cbcc9a54541c75837e2a146bb21e4abed1624c2963aaae3b6eac051e7d"
     }
   },
   {
@@ -3012,10 +3285,10 @@
       "Open Original Receipt for the complete file. Choose Edit Expense only when you own the editable expense."
     ],
     "file": "screenshots/reimbursement-detail.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3026,7 +3299,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "1e7af693a73eb153beac83bf9eb2be5f6008b4db71bfc858ab0e820ec1775416"
     }
   },
   {
@@ -3039,11 +3318,10 @@
       "Only one ZIP is attached; it contains the report PDF, expense CSV, and receipts. This retained view shows original photos. Large requests now offer Reduce Photo Sizes to prepare smaller copies without changing uploads. Download the package and check readability before submitting."
     ],
     "file": "screenshots/reimbursement-review.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "source": "Native browser PNG from the initial qualified capture pass; no resizing or sharpening",
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3054,11 +3332,13 @@
         "width": 1010,
         "height": 850
       },
-      "sha256": "f18705f2fae8d8f1785f0ac6be7d913c2d2dcc7de505c7c8b592479d552318ca",
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "f1e69ea41a0ec3a74103035d8b61f035f0a7a485d402ee564f05cf7d2ee0c77e"
     },
     "note": "Normal-size package example. Separate illustrations show an oversized photo package and its smaller prepared copies."
   },
@@ -3073,11 +3353,10 @@
       "Check I Have Reviewed the Recipients, Email, and Package, then Submit Reimbursement Request. Wait for progress and check delivery afterward; Submitted does not mean paid."
     ],
     "file": "screenshots/reimbursement-confirm.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "source": "Native browser PNG from the initial qualified capture pass; no resizing or sharpening",
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3088,11 +3367,13 @@
         "width": 1010,
         "height": 811
       },
-      "sha256": "e1f0e5ebf93630aff679e68d5ad2b6f0a55b38895421fbb6e348ec5034171dd0",
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2433
-      ]
+        4577,
+        3675
+      ],
+      "sha256": "5b17aabc19879624eba7d4c0afa3446c95b8fdc9bbbece5f895863f716e54961"
     },
     "elevated": false,
     "note": "Normal-size package example. Separate illustrations show an oversized photo package and its smaller prepared copies."
@@ -3109,11 +3390,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-delivery.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "The fictional request is queued in an isolated environment with no mail worker. No email was sent.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3124,7 +3405,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "4451cbde6c73e94293556182c128a34fdc57d2d83e1ef2a0f759f0ba27c7f113"
     }
   },
   {
@@ -3139,11 +3426,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-accounts.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3155,11 +3442,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "8d15bc7f22ff495969618d43d794b1dda1f078ffacaba3fa44a937c721b00bbd",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "dd3235c7705e8a9bf12183e38699ab3bbaa73eed48b99704210b150fbe2274a7"
     }
   },
   {
@@ -3174,10 +3462,10 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-setup.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3189,11 +3477,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "3bdde07bafa614fe103927354f97115777addcd1522c2655389be0b19e3b20e7",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "215f572dee445f642c5eda262b1cba17bf34c0f4e8adb667278344382c6c9fcb"
     }
   },
   {
@@ -3208,11 +3497,11 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-profile.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Personal Details section from the current profile screen, with fictional example.org addresses.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3224,11 +3513,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "6539e4b870130c0adca69228a41fd5ff982c946565adbae2fe2435b19c36f9d3",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "021a7152dd6e088d0be251bba1e3b8e352ddfbd75f0182f075a68496902f6b94"
     }
   },
   {
@@ -3241,10 +3531,10 @@
       "Read the elapsed time since the event alongside its dates, then open the event to finish its report."
     ],
     "file": "screenshots/dashboard-timing.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3255,7 +3545,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "bc5907777a96eead12901a6a075a2ed8e383c7a1ef0b6a9bfca8c3de82c53f1c"
     }
   },
   {
@@ -3269,10 +3565,10 @@
       "Review restored text against the current record; files and changes on another browser are not restored."
     ],
     "file": "screenshots/browser-draft-recovery.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3284,11 +3580,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "6e6a7d556928e021363891813a71910f8a1104af42989d5d2252db41851387f3",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "a30982a806f4f717736c17564c749b9238193076b7714874af3b5b66c2367de1"
     }
   },
   {
@@ -3302,10 +3599,10 @@
       "These actions do not save other unsaved edits. Remove on an unsaved block and file-removal checkboxes are different actions."
     ],
     "file": "screenshots/presentation-management.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3317,11 +3614,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "55a8b40b8fbe4c9601343bc63dc64607d81068628f5a176e6b823b88f42efcf2",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "e63fca2816fbc944898002ab4be9c8d306b85ec2d0d1c3e8b5bec183b6a75fac"
     }
   },
   {
@@ -3335,10 +3633,10 @@
       "Select Delete Permanently only when its resources and visit history should also be removed. This cannot be undone."
     ],
     "file": "screenshots/presentation-delete-confirmation.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3350,11 +3648,12 @@
         "height": 323
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "0a1362c92205206597fc8d62d4943a343dc395a9710209233c4a3e4a337b859b",
+      "dpi": 435,
       "native_pixels": [
-        1488,
-        969
-      ]
+        2248,
+        1464
+      ],
+      "sha256": "796a91393dc5065ed427c70ada8bc5f2fa8e76e8171eba131da49a7c5b809125"
     }
   },
   {
@@ -3368,10 +3667,10 @@
       "An administrator can delete an archived presentation permanently; it has no restore path afterward."
     ],
     "file": "screenshots/presentation-restore.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3383,11 +3682,12 @@
         "height": 802
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "c4e36d79645c503c7d0c83079128fa28175e3264f87a79bf422c4d584f1262b5",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2406
-      ]
+        4577,
+        3634
+      ],
+      "sha256": "bb5ca872117db160c9844288471bc7d7a2e1f488265ee3a5eab4f0d299612712"
     }
   },
   {
@@ -3401,10 +3701,10 @@
       "Cancel or confirm Reset Statistics to Zero. This clears visit history permanently, while keeping the QR link and resource."
     ],
     "file": "screenshots/presentation-link-reset.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3416,11 +3716,12 @@
         "height": 646
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "8a287620b6828a5f78948c7d878b14fe2817e8b202e2b2ae855a10e604f00564",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        1938
-      ]
+        4577,
+        2927
+      ],
+      "sha256": "fc72fbbedd8ebaaf64f07f291b6203d6384c84559ac70812dade83ed22792152"
     }
   },
   {
@@ -3433,10 +3734,10 @@
       "Compare the original and corrected totals and the recorded reason. Finalized history is retained; archive a protected event instead of deleting it."
     ],
     "file": "screenshots/financial-history.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3448,11 +3749,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "4beaa963d057dbe568cb663cd4c8e328802855b1ca73c30a9a656ab70dcfb0df",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "6d88f0b9d2f6d92c4ed79d398b01b025a7a51bd11e2bb28ec9d525172040a119"
     }
   },
   {
@@ -3465,10 +3767,10 @@
       "Enter Correction Reason and check each amount before Save Correction. Prior revisions remain available."
     ],
     "file": "screenshots/financial-correction.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3479,7 +3781,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "c850970e1ac82db1756a17365304531188c3db043eeb521c1bbc2b71c0fb2368"
     }
   },
   {
@@ -3492,10 +3800,10 @@
       "Open Use Existing when a match is correct. If these are distinct records, explicitly acknowledge that before creating the new one."
     ],
     "file": "screenshots/duplicate-record-warning.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3506,7 +3814,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "387471a2940af0303b65e77d718ab33194743b2736ffa5c18d9650bf60a876f6"
     }
   },
   {
@@ -3520,10 +3834,10 @@
       "Review errors and reload if the record changed; do not assume a failed operation completed."
     ],
     "file": "screenshots/record-merge.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3534,7 +3848,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "eec81cfd4d937284674f1a14c9ae64bb7af5a00a28208d36b5541b82f09f6a2a"
     }
   },
   {
@@ -3547,10 +3867,10 @@
       "Check each affected task, owner, status, and date. Apply Updates only when the review matches your intent."
     ],
     "file": "screenshots/task-bulk-preview.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3559,9 +3879,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 445
+        "height": 549
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        2488
+      ],
+      "sha256": "472964abda8d4fdd0e81b5ee71320ac2411cf189b09ded40a77a455ea1742166"
     }
   },
   {
@@ -3574,10 +3900,10 @@
       "Edits affect future copies. Existing event tasks remain independent; review them separately when timing changes."
     ],
     "file": "screenshots/standard-task-details.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3588,7 +3914,13 @@
         "width": 1010,
         "height": 850
       },
-      "source": "native browser PNG; no resizing or sharpening"
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "6778e0d3cd23b8f523a29cbb803a5bb2803083d5900242367c25a054b75ece8c"
     }
   },
   {
@@ -3601,10 +3933,10 @@
       "The highlighted Apply Filters button indicates that changes have not yet updated the results. Select it to refresh; Clear returns to the defaults."
     ],
     "file": "screenshots/map-pending-filters.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3616,11 +3948,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "4e2182072e77b02eb538c5770580321de1255fac2031b4498dabfc0fb20b04ad",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "5793cb8bc5658816d5ecfd5372aee816dca627a30b1a70592a0c9c4e90de1f82"
     }
   },
   {
@@ -3633,11 +3966,17 @@
       "Review embedded receipt pages alongside Expense Detail and Receipt Files. The original receipt and CSV remain inside the ZIP."
     ],
     "file": "screenshots/reimbursement-report-receipt.png",
-    "captured_at": "2026-10-13",
+    "captured_at": "2026-11-18",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
-      "render_dpi": 300,
-      "source": "actual generated fictional report, receipt page 3"
+      "render_dpi": 435,
+      "source": "actual generated fictional report, receipt page 3",
+      "dpi": 435,
+      "native_pixels": [
+        3698,
+        4785
+      ],
+      "sha256": "a945e2c955f9ceebbc6486bec12ffb2b7cead7de49b8030e529fab35cb03229b"
     }
   },
   {
@@ -3651,9 +3990,9 @@
       "Confirm only when the event is canceled. Associated tasks are archived while their completion history is preserved. This preview dialog was not submitted."
     ],
     "file": "screenshots/engagement-cancel.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3665,11 +4004,12 @@
         "height": 630
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "147ae75556e5e78fe86dca98fe99774fc03fc3b27176d0a30310e3379dd46aa2",
+      "dpi": 435,
       "native_pixels": [
-        1488,
-        1890
-      ]
+        2248,
+        2855
+      ],
+      "sha256": "f1380adadfc1d64db243bee6a07b2ee8e557f1f355db1cc53be9d396099a9796"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3685,9 +4025,9 @@
       "Use Save Changes to save the decision. Clear the option when presentations are needed again. This preview was not saved."
     ],
     "file": "screenshots/presentation-optional.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3699,11 +4039,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "060f8b634542c61dc1e9266de78b0822331972cd918fa0df389048f26c09bda6",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "94d063732c6f52d44a0ef34203de1f09b071674f9b9dfab0026cfdf4394836e0"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3719,9 +4060,9 @@
       "Save Changes creates the new presentation and its own QR links. The original presentation remains independent. This illustration shows an unsaved copy."
     ],
     "file": "screenshots/presentation-duplicate.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3733,11 +4074,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "c8b47f33122403c1f0106c2cfa23cdb4e8aa444645e1e62d5f840f8de3bc9346",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "fc252340d02f9dfdbd1cb018f5d9c3f1dce3f43867d9bf536282d48c8ce720c2"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3745,7 +4087,7 @@
     "id": "reimbursement-photo-reduction",
     "chapter": 14,
     "title": "Prepare smaller receipt photos for email",
-    "route": "reimbursement_submit.php?id=1",
+    "route": "reimbursement_submit.php?id=3",
     "focus": "[aria-labelledby=\"receipt-photo-heading\"]",
     "steps": [
       "Review the Large Receipt Photos Detected panel and compare the package size with the displayed email limits.",
@@ -3753,9 +4095,9 @@
       "Download the prepared package to confirm that every receipt remains readable, then complete the submission review. Preparing smaller copies does not send the reimbursement email."
     ],
     "file": "screenshots/reimbursement-photo-reduction.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3767,11 +4109,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "71827b7524cf8dc00748c13c46dde6b631bd7326250f63e01e841d5846de07af",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "963d5d976f42228223b244533645431d8e9bac7895655a54677ed1f00b698cfc"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3787,9 +4130,9 @@
       "Transient chunk failures retry automatically. If retry is needed, keep the same page open and select Retry Save. This illustration uses a large disposable preview file; the final engagement save was blocked."
     ],
     "file": "screenshots/presentation-upload-progress.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3801,11 +4144,12 @@
         "height": 1000
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "1b1608bd6f3cd6a93d82a82721d7086e6f0d6d5c41223bb0d5a0a582d5f5b0df",
+      "dpi": 435,
       "native_pixels": [
-        3840,
-        3000
-      ]
+        5800,
+        4531
+      ],
+      "sha256": "eb0cad06ecc6c3df0419ba8410fb2b9e5821fab24f1f8a2dc05e0317e68ce553"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3813,7 +4157,7 @@
     "id": "reimbursement-photo-reduced",
     "chapter": 14,
     "title": "Review the smaller email copies before submitting",
-    "route": "reimbursement_submit.php?id=1&photos=reduced",
+    "route": "reimbursement_submit.php?id=3&photos=reduced",
     "focus": "[aria-labelledby=\"receipt-photo-heading\"]",
     "steps": [
       "Compare the original receipt-file size with the smaller prepared copies. The original uploads remain unchanged.",
@@ -3821,9 +4165,9 @@
       "Complete the normal submission review only after these checks. Preparing these copies does not send an email."
     ],
     "file": "screenshots/reimbursement-photo-reduced.png",
-    "captured_at": "2026-11-17",
+    "captured_at": "2026-11-18",
     "capture": {
-      "device_scale_factor": 3,
+      "device_scale_factor": 4.53125,
       "viewport": {
         "width": 1280,
         "height": 1000
@@ -3835,11 +4179,12 @@
         "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
-      "sha256": "acb33d83655a0256a54809413d5ec8ed70989c6b1958bfd8e3006c0ba4e0fd0e",
+      "dpi": 435,
       "native_pixels": [
-        3030,
-        2550
-      ]
+        4577,
+        3852
+      ],
+      "sha256": "17a3b108a4340730526f74d95becaa16f1e3fe2d3b0e02238175c5d900fd50c6"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   }

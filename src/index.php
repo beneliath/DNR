@@ -335,6 +335,7 @@ try {
     2 => 'assets/css/pages/index.min.css',
     3 => 'assets/css/pages/engagement_contacts.min.css',
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
+    5 => 'assets/css/pages/engagement_form.min.css',
   ),
   'scripts' =>
   array (
@@ -372,7 +373,7 @@ try {
         <?php renderFormDraftPanel(); ?>
         <?php include 'templates/engagement_lifecycle_form.php'; ?>
         <div class="engagement-section-row engagement-primary-row">
-            <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+            <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
         <section class="form-section engagement-details-section">
         <h2>Event Details</h2>
 <div class="organization-container">
@@ -394,6 +395,38 @@ try {
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="10"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
 
+        <section class="engagement-schedule-section">
+            <h3>Schedule</h3>
+
+            <div class="engagement-schedule-row">
+                <div class="engagement-schedule-field">
+                    <label for="event_start_date" class="required"><span aria-hidden="true">*</span>Start</label>
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" aria-label="Start" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_start_date'] ?? '') : ''; ?>">
+                </div>
+                <div class="engagement-schedule-field">
+                    <label for="event_end_date" class="required"><span aria-hidden="true">*</span>End</label>
+                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" aria-label="End" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_end_date'] ?? '') : ''; ?>">
+                </div>
+                <div class="engagement-schedule-field">
+                    <label class="label-container" for="event_type">Event Type</label>
+                    <select name="event_type" id="event_type">
+                        <?php
+                        $event_types = \Dnr\Domain\ReferenceData::eventTypes();
+                        $selected_type = $_POST['event_type'] ?? '';
+                        foreach ($event_types as $type) {
+                            $selected = ($selected_type === $type) ? 'selected' : '';
+                            echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="engagement-schedule-field" id="other_event_type_div" <?php echo isset($_POST['event_type']) && $_POST['event_type'] === 'other' ? '' : 'hidden'; ?>>
+                    <label for="event_type_other" class="required"><span aria-hidden="true">*</span>Other Event Type</label>
+                    <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
+                </div>
+            </div>
+        </section>
         </section>
 
             <div class="engagement-contact-column">
@@ -406,50 +439,9 @@ try {
         </div>
 
         <div class="engagement-section-row">
-        <section class="form-section engagement-schedule-section">
-        <h2>Schedule</h2>
-
-        <div class="date-fields">
-            <div class="date-field">
-                <label for="event_start_date">Start<span class="required">*</span></label>
-                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_start_date'] ?? '') : ''; ?>">
-            </div>
-            <div class="date-field">
-                <label for="event_end_date">End<span class="required">*</span></label>
-                <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_end_date'] ?? '') : ''; ?>">
-            </div>
-        </div>
-        <br>
-
-        <!-- Event type fields -->
-        <div class="event-row">
-            <div class="event-group">
-                <label class="label-container" for="event_type">Event Type</label>
-                <select name="event_type" id="event_type">
-                    <?php
-                    $event_types = \Dnr\Domain\ReferenceData::eventTypes();
-                    $selected_type = $_POST['event_type'] ?? '';
-                    foreach ($event_types as $type) {
-                        $selected = ($selected_type === $type) ? 'selected' : '';
-                        echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
-                    }
-                    ?>
-                </select>
-            </div>
-
-            <div class="event-group" id="other_event_type_div" <?php echo isset($_POST['event_type']) && $_POST['event_type'] === 'other' ? '' : 'hidden'; ?>>
-                <label class="label-container" for="event_type_other">Other Event Type<span class="required">*</span></label>
-                <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
-            </div>
-        </div>
-        </section>
-        </div>
-
-        <div class="engagement-section-row">
         <section class="form-section engagement-logistics-section">
-        <h2>Logistics &amp; Compensation</h2>
-
-        <div class="checkbox-row">
+        <div class="engagement-logistics-heading">
+            <h2>Logistics and Compensation</h2>
             <div class="checkbox-group">
                 <label class="checkbox-label">
                     <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> Book Table Provided
@@ -471,7 +463,6 @@ try {
                 </div>
             </fieldset>
         </div>
-<br>
         <div class="compensation-grid">
             <div class="compensation-type-row">
                 <div class="form-field">
@@ -492,7 +483,7 @@ try {
 
                 <div class="form-field" id="other_compensation_div" <?php echo isset($_POST['compensation_type']) && $_POST['compensation_type'] === 'Other' ? '' : 'hidden'; ?>>
                     <div class="field-group">
-                        <label for="other_compensation">Describe Other Compensation<span class="required">*</span></label>
+                        <label for="other_compensation" class="required"><span aria-hidden="true">*</span>Describe Other Compensation</label>
                         <input type="text" name="other_compensation" id="other_compensation" value="<?php echo htmlspecialchars($_POST['other_compensation'] ?? ''); ?>">
                     </div>
                 </div>
@@ -535,7 +526,7 @@ try {
 
             <div class="form-field" id="other_housing_div" <?php echo isset($_POST['housing_type']) && $_POST['housing_type'] === 'Other' ? '' : 'hidden'; ?>>
                 <div class="field-group">
-                    <label for="other_housing">Describe Other Lodging<span class="required">*</span></label>
+                    <label for="other_housing" class="required"><span aria-hidden="true">*</span>Describe Other Lodging</label>
                     <input type="text" name="other_housing" id="other_housing" value="<?php echo htmlspecialchars($_POST['other_housing'] ?? ''); ?>">
                 </div>
             </div>
@@ -546,15 +537,17 @@ try {
         <section class="form-section engagement-location-section">
             <h2>Event Location</h2>
             <div class="address-fields">
-                <div class="form-field">
-                    <label for="event_address_line_1">Address Line 1</label>
-                    <input type="text" name="event_address_line_1" id="event_address_line_1" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_1'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="event-address-lines">
+                    <div class="form-field">
+                        <label for="event_address_line_1">Address Line 1</label>
+                        <input type="text" name="event_address_line_1" id="event_address_line_1" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_1'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <div class="form-field">
+                        <label for="event_address_line_2">Address Line 2</label>
+                        <input type="text" name="event_address_line_2" id="event_address_line_2" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_2'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
                 </div>
-                <div class="form-field">
-                    <label for="event_address_line_2">Address Line 2</label>
-                    <input type="text" name="event_address_line_2" id="event_address_line_2" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_2'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                </div>
-                <div class="address-row event-address-row">
+                <div class="event-address-row">
                     <div class="form-field event-address-city-field">
                         <label for="event_city">City</label>
                         <input type="text" name="event_city" id="event_city" maxlength="100" value="<?php echo htmlspecialchars($_POST['event_city'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -565,6 +558,8 @@ try {
                             <input type="text" name="event_state" id="event_state" maxlength="100" value="<?php echo htmlspecialchars($_POST['event_state'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" data-address-region-input>
                         </div>
                     </div>
+                </div>
+                <div class="event-address-row event-address-postal-row">
                     <div class="form-field event-address-zipcode-field">
                         <label for="event_zipcode">Zipcode</label>
                         <input type="text" name="event_zipcode" id="event_zipcode" maxlength="20" value="<?php echo htmlspecialchars($_POST['event_zipcode'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -590,14 +585,14 @@ try {
         include 'templates/presentation_form.php';
         ?>
 
-        <section class="form-section chron-log-section" id="chron-log">
-            <h2>Chron Log</h2>
-            <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
-            <label for="chron_entry">Initial Chron Entry</label>
-            <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
-        </section>
+        <div class="engagement-section-row engagement-chron-row">
+            <section class="form-section chron-log-section" id="chron-log">
+                <h2>Chron Log</h2>
+                <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
+                <label for="chron_entry">Initial Chron Entry</label>
+                <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
+            </section>
 
-        <div class="form-row">
             <div class="form-group create-form-actions create-form-actions-flush">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <input type="submit" name="save_engagement" value="Create Engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
