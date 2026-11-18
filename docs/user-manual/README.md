@@ -54,7 +54,7 @@ transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
 
-The November 18, 2026 edition applies to application version **2.11.23**.
+The November 18, 2026 edition applies to application version **2.11.24**.
 The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
 Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
 Refreshed screenshots show Scheduled lifecycle wording and the current list controls.
@@ -272,6 +272,9 @@ The CLI capture utility waits for fonts and captures lossless PNGs at a native
 - Optional `DNR_MANUAL_ONLY`: comma-separated screenshot IDs to refresh.
 - Optional `DNR_MANUAL_VIEWPORT_WIDTH`: override the recorded desktop widths with
   a width from 1280 to 2560 CSS pixels. Mobile figures retain their phone viewports.
+- `DNR_MANUAL_MAP_PROVIDER`: set this to the active deployment's provider
+  (`amazon` for the current MOED release). Use the same map style in the preview.
+  Capture requires a successful tile response and a rendered pin.
 - Optional `DNR_MANUAL_WORK_DIR`: ignored directory for page snapshots and capture results.
 - Optional `DNR_MANUAL_OUTPUT_DIR`: staging directory for PNGs and an updated manifest;
   omit to update the checked-in guide sources.
@@ -285,12 +288,18 @@ and `mail`. The augmentation JSON supplies `past_event`, `target_user`, `link`,
 `submitted`, `duplicate_org`, `archived_inquiry`, `template`, and `standard`.
 Prepare their fictional states in the disposable preview before capturing. Set
 `photo_request` to a draft reimbursement with large fictional receipt photos for
-the two photo-reduction figures.
+the two photo-reduction figures. Seed at least two eligible inactive users for
+the batch deletion review figures.
 The utility reads the existing manifest to preserve titles and instructions,
 captures separate anonymous sign-in views, and blocks business-changing POSTs.
 Authentication and selection-review POSTs are allowed. It replaces old crop
 bounds with the new capture's native pixel dimensions and records its viewport
 and CSS clip separately. Review every replacement before rebuilding the PDF.
+
+Set `"elevated": true` only for figures that show unlock-only controls,
+a protected review or confirmation, or the unlock timer itself. The utility
+checks the preview's administrator session before each figure and locks it for
+all other signed-in views, including the initial Admin Unlock dialog.
 
 Keep credentials, session cookies, enrollment keys, and raw captured page HTML
 out of Git. Captures submit only account authentication when needed; they

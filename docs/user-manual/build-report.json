@@ -1,5 +1,5 @@
 {
-  "version": "2.11.23",
+  "version": "2.11.24",
   "edition_date": "November 18, 2026",
   "pages": 197,
   "screenshots": 120,
@@ -533,7 +533,7 @@
     "__total__": 197
   },
   "outline_entries": 404,
-  "edition_scope": "Application release 2.11.23",
+  "edition_scope": "Application release 2.11.24",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",

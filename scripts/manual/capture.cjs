@@ -21,6 +21,8 @@ const f=JSON.parse(fs.readFileSync(process.env.DNR_MANUAL_FIXTURE_JSON || path.j
 const credentials=JSON.parse(fs.readFileSync(process.env.DNR_MANUAL_CREDENTIALS || path.join(folder,'credentials.json')));
 const shots=JSON.parse(fs.readFileSync(path.join(root,'docs/user-manual/screenshots.json')));
 const only=process.env.DNR_MANUAL_ONLY?.split(',');
+const expectedMapProvider=process.env.DNR_MANUAL_MAP_PROVIDER;
+if(expectedMapProvider&&!['amazon','openstreetmap'].includes(expectedMapProvider))throw Error('Unknown guide map provider.');
 const desktopWidth=Number(process.env.DNR_MANUAL_VIEWPORT_WIDTH || 1280);
 if(!Number.isInteger(desktopWidth)||desktopWidth<1280||desktopWidth>2560)throw Error('Desktop capture width must be between 1280 and 2560 CSS pixels.');
 const captureDpi=435;
@@ -47,7 +49,7 @@ function captureMetadata(file, png, details) {
  return {...details,dpi:captureDpi,native_pixels:[png.readUInt32BE(16),png.readUInt32BE(20)],
   sha256:crypto.createHash('sha256').update(tagged).digest('hex')};
 }
-function code(){let bits='';for(const ch of credentials.totp_secret.toUpperCase().replace(/=+$/,''))bits+='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(ch).toString(2).padStart(5,'0');const key=Buffer.from(bits.match(/.{8}/g).map(b=>parseInt(b,2)));const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=crypto.createHmac('sha1',key).update(counter).digest();return ((h.readUInt32BE(h[19]&15)&0x7fffffff)%1000000).toString().padStart(6,'0');}
+function code(step){let bits='';for(const ch of credentials.totp_secret.toUpperCase().replace(/=+$/,''))bits+='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(ch).toString(2).padStart(5,'0');const key=Buffer.from(bits.match(/.{8}/g).map(b=>parseInt(b,2)));const counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(step));const h=crypto.createHmac('sha1',key).update(counter).digest();return ((h.readUInt32BE(h[19]&15)&0x7fffffff)%1000000).toString().padStart(6,'0');}
 function route(s){
  let u=new URL(s.route,base+'/');const file=u.pathname.slice(1);
  const ids={'view_inquiry.php':f.inquiry,'edit_inquiry.php':f.inquiry,'convert_inquiry.php':f.inquiry,'compose_inquiry_email.php':f.inquiry,'view_engagement.php':f.event,'edit_engagement.php':f.event,'close_engagement.php':f.event,'view_organization.php':f.org,'edit_organization.php':f.org,'view_contact.php':f.contact,'edit_contact.php':f.contact,'view_speaker.php':f.speaker,'edit_speaker.php':f.speaker,'edit_task.php':f.task,'inbound_mail.php':f.mail,'map_pin.php':f.event,'edit_email_template.php':x.template,'edit_user.php':x.target_user,'view_standard_task.php':x.standard,'reimbursement_request.php':x.request,'reimbursement_submit.php':x.request,'reimbursement_expense.php':(x.expenses || [])[2]};
@@ -61,7 +63,7 @@ function route(s){
  if(file==='reset_presentation_stats.php'){u.searchParams.set('presentation_id',x.presentation);if(s.id==='presentation-link-reset')u.searchParams.set('link_id',x.link);}
  if(file==='restore_presentations.php')u.searchParams.set('engagement_id',f.event);
  if(file==='add_task.php')u.searchParams.set('duplicate_from',f.task);
- if(file==='map.php'&&s.id==='map'){u.search='?date_from=2026-11-10&date_to=2026-11-14';}
+ if(file==='map.php'&&['map','map-pending-filters'].includes(s.id)){u.search='?date_from=2026-11-10&date_to=2026-11-14';}
  if(s.id==='calendar-agenda')u.search='?day=2026-10-13';
  if(s.id==='record-merge')u.search='?kind=organization&source='+x.duplicate_org+'&target='+f.org;
  if(s.id==='task-archived')u.search='?view=archived&scope=mine';
@@ -80,11 +82,34 @@ const targets={
  const context=await browser.newContext({...(fs.existsSync(session)?{storageState:session}:{}),viewport:{width:desktopWidth,height:1000},deviceScaleFactor,reducedMotion:'reduce'});
  await context.route('**/*',route=>{const request=route.request();if(request.method()!=='POST')return route.continue();const file=new URL(request.url()).pathname.split('/').pop();const action=new URLSearchParams(request.postData()||'').get('action');if(['login.php','verify_2fa.php','admin_elevation.php','admin_lock.php'].includes(file)||(['bulk_delete.php','task_bulk.php'].includes(file)&&action==='review'))return route.continue();return route.abort('blockedbyclient');});
  await context.addInitScript(()=>localStorage.setItem('theme','light'));
- const regularPage=await context.newPage();let page=regularPage;page.setDefaultTimeout(30000);let elevatedAt=0,usedCounter=Math.floor(Date.now()/30000);
- await page.goto(base+'/dashboard.php',{waitUntil:'domcontentloaded',timeout:30000});if(page.url().includes('login.php')){await page.locator('[name=username]').fill(credentials.username);await page.locator('[name=password]').fill(credentials.password);await page.getByRole('button',{name:'Sign In',exact:true}).click();if(page.url().includes('verify_2fa.php')){await page.locator('[name=authentication_code]').fill(code());await page.getByRole('button',{name:'Verify',exact:true}).click();}}
+ const regularPage=await context.newPage();let page=regularPage;page.setDefaultTimeout(30000);let usedCounter=Math.floor(Date.now()/30000);
+ await page.goto(base+'/dashboard.php',{waitUntil:'domcontentloaded',timeout:30000});if(page.url().includes('login.php')){await page.locator('[name=username]').fill(credentials.username);await page.locator('[name=password]').fill(credentials.password);await page.getByRole('button',{name:'Sign In',exact:true}).click();if(page.url().includes('verify_2fa.php')){usedCounter=Math.floor(Date.now()/30000);await page.locator('[name=authentication_code]').fill(code(usedCounter));await page.getByRole('button',{name:'Verify',exact:true}).click();}}
  await page.locator('#app-sidebar').waitFor({state:'attached',timeout:10000});
  await context.storageState({path:session});
- async function unlock(){if(Date.now()-elevatedAt<210000)return;if(Math.floor(Date.now()/30000)<=usedCounter)await page.waitForTimeout(30500-Date.now()%30000);await page.goto(base+'/admin_elevation.php');if(!page.url().includes('admin_elevation.php')){elevatedAt=Date.now();return;}await page.locator('#admin_password').fill(credentials.password);await page.locator('#admin_code').fill(code());await page.getByRole('button',{name:'Unlock Sensitive Actions',exact:true}).click();await page.waitForURL(url=>!url.pathname.includes('admin_elevation.php'),{timeout:7000});elevatedAt=Date.now();usedCounter=Math.floor(Date.now()/30000);await context.storageState({path:session});}
+ async function adminUnlockStatus(){
+  const response=await context.request.get(base+'/admin_unlock_status.php');
+  if(!response.ok()||response.url()!==base+'/admin_unlock_status.php')throw Error('Could not read preview Admin Unlock status.');
+  return response.json();
+ }
+ async function setAdminUnlock(required){
+  const status=await adminUnlockStatus();
+  if(status.unlocked&&required&&status.expires_at-status.server_now>60)return;
+  if(status.unlocked){
+   const response=await context.request.post(base+'/admin_lock.php',{
+    headers:{Accept:'application/json'},form:{csrf_token:status.csrf_token}
+   });
+   if(!response.ok()||(await response.json()).locked!==true)throw Error('Could not lock preview administrator actions.');
+  }
+  if(!required)return;
+  await page.goto(base+'/admin_elevation.php');
+  await page.locator('#admin_password').fill(credentials.password);
+  if(Math.floor(Date.now()/30000)<=usedCounter)await page.waitForTimeout(30500-Date.now()%30000);
+  usedCounter=Math.floor(Date.now()/30000);
+  await page.locator('#admin_code').fill(code(usedCounter));
+  await page.getByRole('button',{name:'Unlock Sensitive Actions',exact:true}).click();
+  await page.waitForURL(url=>!url.pathname.includes('admin_elevation.php'),{timeout:7000});
+  if(!(await adminUnlockStatus()).unlocked)throw Error('Could not unlock preview administrator actions.');
+ }
  const result=[];let releaseUpload=null;
  for(const s of shots){if(only&&!only.includes(s.id))continue;
   try{
@@ -99,14 +124,24 @@ const targets={
    }
    const mobile=s.id==='mobile'||s.id==='calendar-agenda';
    const width=process.env.DNR_MANUAL_VIEWPORT_WIDTH?desktopWidth:s.capture?.viewport?.width??desktopWidth;
-   await page.setViewportSize({width:mobile?390:width,height:mobile?844:1000});
-   if(s.elevated||['bulk-speaker-review','bulk-user-review','bulk-user-confirmation','delete-user','presentation-delete-confirmation','network-reset','record-merge','reset-statistics','presentation-link-reset'].includes(s.id))await unlock();
+   const mapFigure=s.id==='map'||s.id==='map-pin';
+   const mapVisible=mapFigure||s.id==='map-pending-filters';
+   const height=s.id==='map-pin'?1440:mapFigure?1380:1000;
+   await page.setViewportSize({width:mobile?390:mapFigure?Math.max(width,1600):width,height:mobile?844:height});
+   const requiresUnlock=s.elevated===true;
+   if(!s.anonymous)await setAdminUnlock(requiresUnlock);
+   const renderedTile=mapVisible?page.waitForResponse(response=>{
+    const url=new URL(response.url());
+    if(!response.ok())return false;
+    if(url.hostname.endsWith('.amazonaws.com')&&url.pathname.startsWith('/v2/tiles/'))return expectedMapProvider!=='openstreetmap';
+    return url.hostname==='tile.openstreetmap.org'&&url.pathname.endsWith('.png')&&expectedMapProvider!=='amazon';
+   },{timeout:30000}).catch(()=>null):null;
    const targetUrl=route(s);const response=await page.goto(targetUrl,{waitUntil:'domcontentloaded'});if(response&&response.status()!==200)throw Error('HTTP '+response?.status());
    if(page.url().includes('login.php')&&!s.anonymous)throw Error('Preview login expired');
    if(s.tab&&await page.getByRole('tab',{name:new RegExp('^'+s.tab+'(?:\\s|$)')}).count())await page.getByRole('tab',{name:new RegExp('^'+s.tab+'(?:\\s|$)')}).click();
    if(['financial-history','final-report','financial-correction'].includes(s.id)&&await page.getByRole('tab',{name:'Financials',exact:true}).count())await page.getByRole('tab',{name:'Financials',exact:true}).click();
    if(['presentation-ppt-qr','presentation-exports'].includes(s.id))await page.getByRole('tab',{name:/^Presentations(?:\s|$)/}).click();
-   if(s.id==='elevation'){await page.goto(base+'/users.php');if(await page.locator('[data-admin-lock-button]:visible').count()){await page.locator('[data-admin-lock-button]:visible').click();await page.locator('[data-admin-lock-button]').waitFor({state:'hidden'});elevatedAt=0;}await page.locator('a[data-admin-unlock-link]:visible').first().click();await page.locator('#admin-unlock-dialog[open]').waitFor({state:'visible'});}
+   if(s.id==='elevation'){await page.locator('a[data-admin-unlock-link]:visible').first().click();await page.locator('#admin-unlock-dialog[open]').waitFor({state:'visible'});}
    if(s.id==='dark')await page.locator('[data-theme-toggle]').last().click();
    if(s.id==='mobile')await page.locator('[data-nav-toggle]').click();
    if(s.id==='engagement-cancel'){await page.locator('[data-cancel-engagement="'+f.event+'"]').click();await page.locator('#engagement-cancel-reason').fill('The host has canceled this fictional workshop. Coordinate a replacement date.');}
@@ -134,15 +169,34 @@ const targets={
     if(s.id==='presentation-delete-confirmation')await page.locator('button[form^="delete-presentation-"]').first().click();
    }
    if(['qr-selection','presentation-exports'].includes(s.id)){
-    await page.getByText('Export Presentation',{exact:true}).first().click();
-    if(s.id==='qr-selection'){await page.getByRole('link',{name:'View QR Codes PDF',exact:true}).first().click();}
+    const presentation=page.locator('#presentation-'+x.presentation);
+    await presentation.getByText('Export Presentation',{exact:true}).click();
+    if(s.id==='qr-selection'){
+     await presentation.getByRole('link',{name:'View QR Codes PDF',exact:true}).click();
+     const dialog=page.getByRole('dialog',{name:'Select QR Codes'});
+     await dialog.getByRole('button',{name:'Clear Selection',exact:true}).click();
+     for(const label of ['Speaker Notes','PPT Slidedeck']){
+      await dialog.getByRole('checkbox',{name:label,exact:true}).check();
+      await dialog.getByRole('button',{name:'Reorder '+label,exact:true}).press('Home');
+     }
+    }
    }
-   if(s.id==='presentation-ppt-qr'){await page.getByText('Files and QR Codes',{exact:true}).first().click();}if(s.id==='presentation-ppt-qr')await page.getByRole('button',{name:'Copy PPT Slidedeck QR Code',exact:true}).evaluate(e=>e.closest('.presentation-view-qr-grid').scrollIntoView({block:'start'}));
+   if(s.id==='presentation-ppt-qr'){
+    const presentation=page.locator('#presentation-'+x.presentation);
+    await presentation.getByText('Files and QR Codes',{exact:true}).click();
+    await presentation.getByRole('button',{name:'Copy PPT Slidedeck QR Code',exact:true}).evaluate(e=>e.closest('.presentation-view-qr-grid').scrollIntoView({block:'start'}));
+   }
    // The completed-task figure is read-only; prepare a completed fictional task beforehand.
    if(s.id==='network-reset')await page.getByRole('button',{name:'Reset Statistics',exact:true}).click();
    if(s.id==='delete-user'){await page.locator('.user-details').filter({hasText:'jamie.manual'}).getByRole('button',{name:'Delete User',exact:true}).click();}
    if(s.id==='bulk-speaker-review'){await page.locator('input[type=checkbox][name="selected_ids[]"]').last().check();await page.locator('[data-bulk-submit]').click();}
-   if(s.id.startsWith('bulk-user')){await page.locator('input[name="selected_ids[]"]').first().check();await page.locator('[data-bulk-submit]').click();if(s.id==='bulk-user-confirmation')await page.locator('#bulk-delete-confirmation').fill('DELETE USERS');void 0;}
+   if(s.id.startsWith('bulk-user')){
+    const selection=page.locator('input[name="selected_ids[]"]');
+    await selection.nth(0).check();
+    await selection.nth(1).check();
+    await page.locator('[data-bulk-submit]').click();
+    if(s.id==='bulk-user-confirmation')await page.locator('#bulk-delete-confirmation').fill('DELETE USERS');
+   }
    if(s.id==='financial-history')await page.getByText('Financial Revision History',{exact:true}).click();
    if(s.id==='map-pending-filters'){await page.locator('#map-date-from-display').fill('2026-11-01');await page.locator('#map-date-from-display').press('Tab');}
    if(s.id==='task-bulk-preview'){await page.locator('[data-task-selection]').first().check();await page.getByRole('button',{name:'Preview Updates',exact:true}).click();}
@@ -152,22 +206,36 @@ const targets={
    if(s.id==='reimbursement-photo-reduced'&&!/\b[1-9]\d* of \d+ photos reduced\b/i.test(body))throw Error('The fictional receipt photos were not reduced.');
    await page.waitForLoadState('networkidle',{timeout:7000}).catch(()=>{});
    await page.evaluate(async()=>{await document.fonts.ready;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
-   if(['map','map-pin','map-pending-filters'].includes(s.id))await page.waitForTimeout(1800);
-   let selector=targets[s.id]||s.focus;
+   let mapProvider;
+   if(mapVisible){
+    const tile=await renderedTile;
+    if(!tile)throw Error('The expected map provider did not deliver a tile for this figure.');
+    mapProvider=new URL(tile.url()).hostname.endsWith('.amazonaws.com')?'amazon':'openstreetmap';
+    await page.locator('.maplibregl-canvas:visible').waitFor({state:'visible'});
+    await page.locator('.maplibregl-marker:visible').first().waitFor({state:'visible'});
+    if(s.id==='map')await page.locator('#fit-map-pins').click();
+    // Allow the camera to settle and the tiles for the final view to render.
+    await page.waitForTimeout(2500);
+   }
+   let selector=mapFigure?null:targets[s.id]||s.focus;
    if(selector&&await page.locator(selector).count())await page.locator(selector).first().evaluate(e=>{e.scrollIntoView({block:'start'});window.scrollBy(0,-20);});
    if(s.id==='presentation-management')await page.locator(selector).first().evaluate(e=>e.scrollIntoView({block:'center'}));
    if(['bulk-speaker-review','bulk-user-review','bulk-user-confirmation'].includes(s.id))await page.evaluate(()=>window.scrollTo(0,0));
    if(s.id==='reimbursement-confirm')await page.locator('.reimbursement-confirm').evaluate(e=>window.scrollTo(0,window.scrollY+e.getBoundingClientRect().top-630));
    if(s.id.startsWith('reimbursement-photo-'))await page.locator('#receipt-photo-heading').evaluate(heading=>{for(let element=heading;element;element=element.parentElement)element.scrollTop=0;window.scrollTo(0,0);});
-   if(s.id==='reimbursement-delivery')await page.getByRole('heading',{name:'Email Delivery',exact:true}).evaluate(e=>window.scrollTo(0,window.scrollY+e.getBoundingClientRect().top-80));
+   if(s.id==='reimbursement-delivery')await page.getByRole('heading',{name:'Email Delivery',exact:true}).evaluate(e=>{
+    e.scrollIntoView({block:'start',behavior:'instant'});
+    window.scrollBy({top:-100,behavior:'instant'});
+   });
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   if(await page.locator('[data-admin-unlock]').isVisible()!==requiresUnlock)throw Error('Admin Unlock banner does not match this figure’s required state.');
    const dialog=page.locator('dialog[open]');let clip;
    if(await dialog.count()){
     const box=await dialog.last().boundingBox();clip={x:Math.floor(Math.max(0,box.x-18)),y:Math.floor(Math.max(0,box.y-18)),width:Math.ceil(Math.min(page.viewportSize().width-box.x+18,box.width+36)),height:Math.ceil(Math.min(1000-box.y+18,box.height+36))};
    }else if(s.shell||['manual','roles','inbox','login','forgot-password'].includes(s.id)){
     const v=page.viewportSize();clip={x:0,y:0,width:v.width,height:v.height};
    }else{
-    const v=page.viewportSize();clip={x:270,y:0,width:v.width-270,height:s.id==='engagement-form'?v.height:Math.min(850,v.height)};
+    const v=page.viewportSize();clip={x:270,y:0,width:v.width-270,height:mapFigure||s.id==='engagement-form'?v.height:Math.min(850,v.height)};
    }
    const footer=page.locator('.app-footer');const fb=await footer.count()?await footer.boundingBox():null;
    if(fb&&fb.y>clip.y+160&&fb.y<clip.y+clip.height)clip.height=Math.floor(fb.y-clip.y-8);
@@ -179,7 +247,7 @@ const targets={
    }
    const file=path.join(output,'screenshots',s.id+'.png');
    const png=await page.screenshot({type:'png',scale:'device',clip,animations:'disabled'});
-   const capture=captureMetadata(file,png,{device_scale_factor:deviceScaleFactor,viewport:page.viewportSize(),clip,source:'native browser PNG; no resizing or sharpening'});
+   const capture=captureMetadata(file,png,{device_scale_factor:deviceScaleFactor,viewport:page.viewportSize(),clip,source:'native browser PNG; no resizing or sharpening',...(mapProvider?{map_provider:mapProvider}:{})});
    if(releaseUpload){releaseUpload();releaseUpload=null;}
    fs.writeFileSync(path.join(folder,'captures',s.id+'.txt'),body);fs.writeFileSync(path.join(folder,'captures',s.id+'.html'),await page.content());
    const location=new URL(page.url());location.searchParams.delete('selection');
