@@ -61,8 +61,11 @@ try{
             if(!$id){$id=(int)$store->one('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])['id'];$people[]=$id;}
             $needsConfirmation=$status!=='new'||$mode==='double';$expect($result['confirmed']===$needsConfirmation,$label.' preserves opt-in semantics');
             if($needsConfirmation){
-                $before=$store->person($id);$expect($same($before['tag_ids'],$beforeTags)&&$same($before['group_ids'],$beforeGroups),$label.' leaves memberships unchanged before confirmation');
-                $q=$challenge($id);$expect(!$store->confirmSubscription($q['token'])&&!$events($id),$label.' cannot apply or trigger additions before delivery');
+                $before=$store->person($id);
+                $expect($same($before['tag_ids'],$status==='new'?$tags:$beforeTags)&&$same($before['group_ids'],$beforeGroups),
+                    $label.' assigns configured tags to a new pending record and leaves existing memberships unchanged');
+                if($status==='new')$expect($before['email_status']==='pending',$label.' early tags do not grant subscription consent');
+                $q=$challenge($id);$expect(!$store->confirmSubscription($q['token'])&&!$events($id),$label.' emits no membership automation event while awaiting confirmation');
                 $accept($q);$expect($store->confirmSubscription($q['token']),$label.' confirms successfully');
             }
             $after=$store->person($id);
@@ -80,6 +83,32 @@ try{
         }
     }
     $form=$forms[0];
+    foreach(['profile','bulk','edit']as$path){
+        $email='staff-approval-'.$path.'-'.$suffix.'@example.test';
+        $submit($forms[1],$email,[$checkboxOptions[1]]);
+        $id=(int)$store->one('SELECT id FROM marketing_contacts WHERE audience_id=1 AND email=?',[$email])['id'];$people[]=$id;
+        $pending=$store->person($id);$q=$challenge($id);
+        $expect($pending['email_status']==='pending'&&$same($pending['tag_ids'],$tags)&&!$pending['group_ids']&&!$events($id),
+            $path.' begins with form tags, pending consent and no automation event');
+        $approval=['consent_note'=>'Permission confirmed by staff'];
+        $retainedTags=$tags;
+        if($path==='profile'){
+            $store->saveProfileSection($id,(int)$pending['version'],'marketing',$approval+['email'=>$email,'email_consent'=>'1']);
+        }elseif($path==='bulk'){
+            $store->mutatePerson($id,(int)$pending['version'],'subscribe',$approval);
+        }else{
+            $retainedTags=array_slice($tags,1);
+            $store->savePerson($approval+['email'=>$email,'email_status'=>'subscribed','tag_ids'=>$retainedTags],$id,(int)$pending['version']);
+        }
+        $after=$store->person($id);$changes=$events($id);
+        $expect($after['email_status']==='subscribed'&&$same($after['tag_ids'],$retainedTags)&&!$after['group_ids'],$path.' retains the form tags when staff records consent, respecting explicit removals');
+        $expect(count($changes)===1&&$changes[0]['event_type']==='tags_changed'&&$same(audienceJson($changes[0]['details_json'])['added'],$retainedTags),
+            $path.' emits one form tag event on approval');
+        $accept($q);
+        $expect($store->confirmSubscription($q['token'])&&$same($store->person($id)['tag_ids'],$retainedTags)
+            &&array_column($events($id),'event_type')===['tags_changed','groups_changed'],
+            $path.' later email confirmation cannot restore removed tags or repeat the form tag event');
+    }
     // Repeating the full signup with a new proof is also idempotent.
     [$id,$email]=$person('subscribed');$submit($form,$email,$selected);$q=$challenge($id);$accept($q);$store->confirmSubscription($q['token']);$changes=$events($id);
     $age($id);$submit($form,$email,$selected);$q=$challenge($id);$accept($q);

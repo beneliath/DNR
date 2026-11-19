@@ -133,7 +133,10 @@ trait AudienceContacts
             foreach ($groupIds as $group) $this->write('INSERT INTO marketing_contact_groups (contact_id,option_id) VALUES (?,?)',[$id,$group]);
             $changed=[];foreach(['first_name','last_name','language','timezone']as$key)if(!$previous||($previous[$key]??'')!==($key==='language'?$language:($key==='timezone'?$timezone:$data[$key])))$changed[]=$key;foreach($custom as$key=>$value)if(!$previous||($previous['custom'][$key]??'')!==$value)$changed[]=(string)$key;
             $this->event($id,$previous?'contact_updated':'contact_added',['email'=>$data['email'],'status'=>$data['email_status'],'consent_note'=>$data['consent_note'],'changed_fields'=>$changed,'origin'=>$origin]);
-            if ($previous && $previous['email_status']!==$data['email_status']) $this->event($id,'subscription_changed',['from'=>$previous['email_status'],'to'=>$data['email_status'],'consent_note'=>$data['consent_note'],'origin'=>$origin]);
+            if ($previous && $previous['email_status']!==$data['email_status']) {
+                if ($data['email_status']==='subscribed') $this->activatePendingSignupTags($id);
+                $this->event($id,'subscription_changed',['from'=>$previous['email_status'],'to'=>$data['email_status'],'consent_note'=>$data['consent_note'],'origin'=>$origin]);
+            }
             if ($tagIds !== ($previous['tag_ids']??[])) $this->event($id,'tags_changed',['tag_ids'=>$tagIds,'added'=>array_values(array_diff($tagIds,$previous['tag_ids']??[])),'removed'=>array_values(array_diff($previous['tag_ids']??[],$tagIds))]);
             if ($groupIds !== ($previous['group_ids']??[])) $this->event($id,'groups_changed',['group_ids'=>$groupIds,'added'=>array_values(array_diff($groupIds,$previous['group_ids']??[])),'removed'=>array_values(array_diff($previous['group_ids']??[],$groupIds))]);
             return $id;
@@ -160,7 +163,10 @@ trait AudienceContacts
                     && audienceDeletedEmailSuppressed($this->db,$this->audienceId,$id,hash('sha256',$data['email']))) throw new InvalidArgumentException('This address was permanently deleted. It can only resubscribe through a signup form and email confirmation.');
                 $this->write('UPDATE marketing_contacts SET email=?,email_status=?,version=version+1 WHERE id=? AND audience_id=?',[$data['email'],$status,$id,$this->audienceId]);
                 $detail+=['email'=>$data['email'],'status'=>$status,'consent_note'=>$data['consent_note']];
-                if ($person['email_status']!==$status) $this->event($id,'subscription_changed',['from'=>$person['email_status'],'to'=>$status,'consent_note'=>$data['consent_note']]);
+                if ($person['email_status']!==$status) {
+                    if ($status==='subscribed') $this->activatePendingSignupTags($id);
+                    $this->event($id,'subscription_changed',['from'=>$person['email_status'],'to'=>$status,'consent_note'=>$data['consent_note']]);
+                }
             } elseif ($section==='groups') {
                 $ids=audienceIds([...(array)($input['group_ids']??[]),...array_filter((array)($input['group_pick']??[]),fn($v)=>$v!=='')]);
                 $available=[];
