@@ -76,8 +76,8 @@ function audienceSummaryProfile(array $row, array $fields, bool $includeAddress)
     ];
 }
 
-/** Report subscriptions and unsubscribes as events, and sign-ups still pending at the end of the UTC day. */
-function audienceDailySummaryRows(AudienceStore $store, string $day, int $startEvent): array
+/** Report subscription events and sign-ups still pending at the window's closing time. */
+function audienceDailySummaryRows(AudienceStore $store, int $from, int $until, int $startEvent): array
 {
     $groups = ['signup'=>[], 'pending'=>[], 'unsubscribe'=>[]];
     // Older form receipts omit the prior status. The next transition's "from"
@@ -96,13 +96,14 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
                     ), c.email_status) END AS legacy_signup_status
          FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id
          WHERE c.audience_id=? AND c.deleted_at IS NULL AND e.id>?
-             AND e.created_at>=? AND e.created_at<DATE_ADD(?, INTERVAL 1 DAY)
+             AND e.created_at>=? AND e.created_at<?
              AND e.event_type IN ('signup-permission','subscription-confirmed','subscription_changed','status','contact_added')
          ORDER BY e.created_at DESC, e.id DESC",
-        [$store->audienceId, $startEvent, $day, $day]
+        [$store->audienceId, $startEvent, gmdate('Y-m-d H:i:s', $from), gmdate('Y-m-d H:i:s', $until)]
     );
     $fields = $store->fields();
     $utc = new DateTimeZone('UTC');
+    $chicago = new DateTimeZone(AUDIENCE_DAILY_SUMMARY_TIME_ZONE);
     $estimateLookup = audienceInteractionEstimateLookup();
     // Events are newest first. A later outcome or request supersedes earlier pending rows.
     $hasLaterOutcome = [];
@@ -136,15 +137,19 @@ function audienceDailySummaryRows(AudienceStore $store, string $day, int $startE
             'current_estimate'=>$estimatePlace,
             'dbip_location'=>($place !== '' && ($location['source'] ?? '') === 'DB-IP City Lite')
                 || ($estimatePlace !== '' && $estimate['source'] === 'DB-IP City Lite'),
-            'time'=>(new DateTimeImmutable($event['created_at'], $utc))->format('M j, Y · g:i:s A T'),
+            'time'=>(new DateTimeImmutable($event['created_at'], $utc))->setTimezone($chicago)->format('M j, Y · g:i:s A T'),
         ];
     }
     return $groups;
 }
 
 /** Render both MIME alternatives from the same rows and account-scoped links. */
-function audienceDailySummaryEmail(string $audienceName, string $day, array $groups): array
+function audienceDailySummaryEmail(string $audienceName, int $from, int $until, array $groups): array
 {
+    $chicago = new DateTimeZone(AUDIENCE_DAILY_SUMMARY_TIME_ZONE);
+    $startLabel = (new DateTimeImmutable('@'.$from))->setTimezone($chicago)->format('M j, Y, g:i A T');
+    $endLabel = (new DateTimeImmutable('@'.$until))->setTimezone($chicago)->format('M j, Y, g:i A T');
+    $window = $startLabel.' to '.$endLabel;
     $sections = [
         'signup'=>['title'=>'Subscriptions', 'action'=>'Subscribed', 'place'=>'Subscription Location', 'empty'=>'No subscriptions.', 'color'=>'#137a55', 'tint'=>'#e7f6ef'],
         'pending'=>['title'=>'Pending Sign-Ups', 'action'=>'Signed Up', 'place'=>'Sign-Up Location', 'empty'=>'No pending sign-ups.', 'color'=>'#843600', 'tint'=>'#fff3d8'],
@@ -163,7 +168,7 @@ function audienceDailySummaryEmail(string $audienceName, string $day, array $gro
         $counts[] = $n.' '.$noun.($n === 1 ? '' : 's');
     }
     $summary = implode(' · ', $counts);
-    $lines = ['MessageMonkey Daily Audience Summary', $audienceName, 'Audience changes for '.$day.' (UTC)', $summary];
+    $lines = ['MessageMonkey Daily Audience Summary', $audienceName, 'Reporting window (Chicago time)', $window, $summary];
     $usesDbip = false;
     foreach ($sections as $kind => $section) {
         $lines[] = '';

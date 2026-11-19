@@ -46,7 +46,8 @@
             </td></tr>
             <tr><td style="padding:26px 2px 18px">
                 <h1 style="margin:0;color:#172033;font-size:28px;line-height:1.22;letter-spacing:-.025em">Daily Audience Summary</h1>
-                <p style="margin:7px 0 0;color:#475467;font-size:14px;line-height:1.55"><?= $h($audienceName) ?> · <?= $h((new DateTimeImmutable($day))->format('F j, Y')) ?> (UTC)</p>
+                <p style="margin:7px 0 0;color:#475467;font-size:14px;line-height:1.55"><?= $h($audienceName) ?></p>
+                <p style="margin:7px 0 0;color:#475467;font-size:13px;line-height:1.55">Reporting window (Chicago time)<br><?= $h($window) ?></p>
             </td></tr>
             <tr><td>
                 <table role="presentation" width="100%" style="width:100%;table-layout:fixed"><tr>
