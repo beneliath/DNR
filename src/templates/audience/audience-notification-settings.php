@@ -5,7 +5,7 @@ $noticeError=$error!==''&&($_POST['action']??'')==='save_audience'&&isset($_POST
 ?>
 <h3>Subscriber Notifications</h3>
 <input type="hidden" name="notifications_present" value="1">
-<p class="audience-help">Daily summary emails list subscriptions, pending sign-ups and unsubscribes for the previous UTC day. Each row links to the connection profile. Individual alerts start with new activity after these preferences are saved. Imported snapshots are excluded. Daily summaries are queued at 11:11 p.m. America/Chicago every day, including days with no changes. Delivery may be delayed by the sending queue or provider limits.</p>
+<p class="audience-help">Daily summary emails list subscriptions, pending sign-ups and unsubscribes for the 24 hours ending at 11:11 p.m. Chicago time. The email shows the reporting window and event times in Chicago time. Each row links to the connection profile. Individual alerts start with new activity after these preferences are saved. Imported snapshots are excluded. Summaries are queued daily, including days with no changes. Delivery may be delayed by the sending queue or provider limits.</p>
 <?php foreach(['signup'=>'New Subscriptions','unsubscribe'=>'Unsubscribes','digest'=>'Daily Summary']as$kind=>$label): ?>
 <label class="audience-check"><input type="checkbox" name="in_app_<?= $kind ?>" value="1"<?= ($noticeError?($_POST['in_app_'.$kind]??'')==='1':!empty($noticePrefs['in_app_'.$kind]))?' checked':'' ?>>Show <?= $h($label) ?> in the Notification Bell</label>
 <label for="notification-<?= $kind ?>">Email <?= $h($label) ?> To</label>

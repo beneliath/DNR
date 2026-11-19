@@ -18,8 +18,7 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
         $state=$store->one('SELECT * FROM marketing_audience_notification_state WHERE audience_id=1 FOR UPDATE');
         if($state['generation']!==$prefs['generation']){
             $state['generation']=$prefs['generation'];$state['event_cursor']=$prefs['start_event'];
-            // The daily checkpoint belongs to the UTC day, independent of edits
-            // to recipients or bell preferences. Never skip or repeat that day.
+            // Keep the scheduled slot's UTC date as the checkpoint across preference edits.
         }
         $ses=$store->one('SELECT * FROM marketing_ses_settings WHERE audience_id=1');$users=$store->audienceNotificationUsers();$queued=0;
         $queue=function(string $kind,string $key,string $text,?int $contact=null,array $report=[])use($store,$prefs,$ses,$users,$now,&$queued):bool{
@@ -47,7 +46,7 @@ function queueAudienceChangeAlerts(mysqli $db,int $limit=100,?int $now=null):int
             else{
                 // Store the reporting window. Resolve names and links after the recipient
                 // check at delivery, so a subsequently deleted profile stays out of the email.
-                $report=['day'=>gmdate('Y-m-d',$due-86400),'start_event'=>(int)($prefs['digest_start_event']??$prefs['start_event'])];
+                $report=['window_end'=>$due,'start_event'=>(int)($prefs['digest_start_event']??$prefs['start_event'])];
                 // Keep the day due while SES is disabled or no configured staff
                 // recipient is eligible, so a later worker pass can try again.
                 if($queue('digest','digest:'.$today,'',null,$report))$state['digest_day']=$today;
@@ -68,14 +67,19 @@ function audienceChangeAlertReady(mysqli $db,array $message):array
     if(!in_array($kind,['signup','unsubscribe','digest'],true)||!$user||($kind!=='digest'&&($prefs['generation']??'')!==($notice['generation']??null))||strtolower($user['email'])!==strtolower($message['email'])||!in_array(strtolower($user['email']),$prefs[$kind.'_emails']??[],true))throw new DomainException('This audience notification is no longer eligible.');
     if(!empty($notice['contact'])&&!$db->execute_query('SELECT id FROM marketing_contacts WHERE audience_id=1 AND id=? AND deleted_at IS NULL',[$notice['contact']])->fetch_assoc())throw new DomainException('This connection is unavailable.');
     if($kind==='digest'){
-        $day=$notice['day']??null;
-        // Older queued summaries stored the reporting date in their plain-text heading.
-        if($day===null&&preg_match('/^Audience changes for (\d{4}-\d{2}-\d{2}) \(UTC\): \d+ subscriptions, \d+ unsubscribes\.$/m',$message['text'],$match))$day=$match[1];
-        if($day===null)return $message;
+        $until=$notice['window_end']??null;
+        if($until===null){
+            // Preserve the UTC window selected for summaries already in the queue.
+            $day=$notice['day']??null;
+            if($day===null&&preg_match('/^Audience changes for (\d{4}-\d{2}-\d{2}) \(UTC\): \d+ subscriptions, \d+ unsubscribes\.$/m',$message['text'],$match))$day=$match[1];
+            if($day===null)return $message;
+            $until=(new DateTimeImmutable($day,new DateTimeZone('UTC')))->modify('+1 day')->getTimestamp();
+        }
+        $from=$until-86400;
         $store=new AudienceStore($db,1,0,'Audience notifications');
         $startEvent=(int)($notice['start_event']??$prefs['digest_start_event']??$prefs['start_event']??0);
-        $groups=audienceDailySummaryRows($store,$day,$startEvent);
-        $message=array_replace($message,audienceDailySummaryEmail($row['name'],$day,$groups));
+        $groups=audienceDailySummaryRows($store,$from,$until,$startEvent);
+        $message=array_replace($message,audienceDailySummaryEmail($row['name'],$from,$until,$groups));
     }
     return $message;
 }

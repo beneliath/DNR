@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const AUDIENCE_DAILY_SUMMARY_TIME_ZONE = 'America/Chicago';
+
 function audienceSubscriptionChange(string $type,array $details,bool $includePending=false):?string
 {
     if(($details['origin']??'')==='Import')return null;
@@ -25,7 +27,7 @@ function audienceNotificationPreferences(array $input,array $users):array
 /** Most recent daily email slot: 23:11 Chicago time, including daylight saving. */
 function audienceDailySummaryDue(int $now):int
 {
-    $local=(new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone('America/Chicago'));
+    $local=(new DateTimeImmutable('@'.$now))->setTimezone(new DateTimeZone(AUDIENCE_DAILY_SUMMARY_TIME_ZONE));
     $due=$local->setTime(23,11);
     if($due>$local)$due=$due->modify('-1 day');
     return $due->getTimestamp();
