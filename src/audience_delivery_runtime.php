@@ -274,6 +274,7 @@ trait AudienceDeliveryRuntime
                 $revision=$this->one('SELECT document_json FROM marketing_collection_revisions WHERE audience_id=? AND resource_id=? AND id=?',[$this->audienceId,(int)($context['resource_id']??0),(int)($context['revision_id']??0)]);
                 $memberships=['tag_ids'=>$revision?(audienceJson($revision['document_json'])['tag_ids']??[]):[]];
             }
+            if($person['email_status']!=='subscribed')$this->activatePendingSignupTags((int)$person['id']);
             if($memberships!==null)$this->applyCollectionSignupMemberships((int)$person['id'],$memberships,$context);
             $this->write("UPDATE marketing_contacts SET email_status='subscribed',is_archived=0,version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$person['id']]);$this->write('DELETE FROM marketing_email_optouts WHERE audience_id=? AND email_hash=?',[$this->audienceId,$challenge['email_hash']]);$this->write('UPDATE marketing_consent_challenges SET used_at=UTC_TIMESTAMP() WHERE id=?',[$challenge['id']]);
             if($person['is_archived'])$this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Email recipient','recipient','contact_restored',?)",[$person['id'],json_encode(['source'=>'Confirmed signup form','resource_id'=>$context['resource_id'],'challenge_id'=>(int)$challenge['id']],JSON_THROW_ON_ERROR)]);

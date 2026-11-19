@@ -540,6 +540,14 @@ trait AudienceCollection
                 $this->write("INSERT INTO marketing_contacts(audience_id,email,first_name,last_name,email_status,custom_json,source,notes) VALUES (?,?,?,?,?,?,?, '')",[$this->audienceId,$email,$values['first_name'],$values['last_name'],$confirmation?'pending':'subscribed',json_encode((object)$custom,JSON_THROW_ON_ERROR),'Signup Form']);
                 $person=$this->person((int)$this->db->insert_id);
             }
+            $memberships=['tag_ids'=>$d['tag_ids'],'group_ids'=>$chosen];
+            // Attach operator tags to a new pending connection, but defer their
+            // automation event until the connection actually becomes subscribed.
+            $pendingTags=[];
+            if ($confirmation && $newPerson) {
+                $pendingTags=$this->addCollectionSignupTags((int)$person['id'],audienceIds($memberships['tag_ids']));
+                $memberships['tag_ids']=[];
+            }
             // Existing profiles remain unchanged until the owner confirms this submission.
             $receipt = [
                 'resource_id'=>(int)$r['id'], 'revision_id'=>(int)$r['published_revision'],
@@ -547,11 +555,11 @@ trait AudienceCollection
                 'opt_in'=>$confirmation ? 'double' : 'single', 'prior_status'=>$newPerson ? null : $person['email_status'],
                 'email_format'=>$newPerson ? $format : null, 'at'=>gmdate(DATE_ATOM),
             ];
+            if ($pendingTags) $receipt['pending_tag_ids']=$pendingTags;
             if ($interactionLocation) $receipt['interaction_location'] = $interactionLocation;
             $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json)
                 VALUES (?,NULL,'Signup Form','recipient','signup-permission',?)", [$person['id'],json_encode($receipt,JSON_THROW_ON_ERROR)]);
             $context=['resource_id'=>(int)$r['id'],'revision_id'=>(int)$r['published_revision'],'variant_key'=>$r['variant']??'A'];
-            $memberships=['tag_ids'=>$d['tag_ids'],'group_ids'=>$chosen];
             if ($confirmation) {
                 $context['memberships']=$memberships;
                 if(!$newPerson)$context['profile']=['first_name'=>$values['first_name'],'last_name'=>$values['last_name'],'custom'=>$custom,'custom_types'=>$customTypes];
@@ -565,16 +573,48 @@ trait AudienceCollection
         return [['signup'=>true,'permission'=>$d['permission'],'choices'=>$permissions,'email_format'=>$format,'quiz'=>audienceText($input,'quiz',200),'confirmation_required'=>$confirmation],$confirmation];
     }
 
+    private function addCollectionSignupTags(int $contact,array $tags):array
+    {
+        $added=[];
+        foreach($tags as $tag){
+            $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) SELECT ?,id FROM marketing_tags WHERE audience_id=? AND id=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$contact,$this->audienceId,$tag]);
+            if($this->db->affected_rows>0)$added[]=$tag;
+        }
+        return $added;
+    }
+
+    private function recordCollectionSignupMembershipChange(int $contact,string $event,array $added,array $context):void
+    {
+        if(!$added)return;
+        $details=['added'=>$added,'removed'=>[],'source'=>'Signup form','resource_id'=>(int)$context['resource_id'],'revision_id'=>(int)$context['revision_id']];
+        $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json)
+            VALUES (?,NULL,'Signup form','recipient',?,?)",[$contact,$event,json_encode($details,JSON_THROW_ON_ERROR)]);
+    }
+
+    /** Publish the initial tag additions on the first subscription, with the contact locked. */
+    private function activatePendingSignupTags(int $contact):void
+    {
+        $receipt=$this->one("SELECT e.details_json FROM marketing_contact_events e
+            WHERE e.contact_id=? AND e.event_type='signup-permission'
+                AND JSON_CONTAINS_PATH(e.details_json,'one','$.pending_tag_ids')
+                AND NOT EXISTS (SELECT 1 FROM marketing_contact_events n WHERE n.contact_id=e.contact_id AND n.id>e.id
+                    AND n.event_type IN ('subscription_changed','subscription-confirmed','status') AND n.details_json->>'$.to'='subscribed')
+            ORDER BY e.id DESC LIMIT 1",[$contact]);
+        if(!$receipt)return;
+        $context=audienceJson($receipt['details_json']);
+        // Respect tag removals and archived definitions while the signup was pending.
+        $activeTags=$this->all('SELECT t.id FROM marketing_contact_tags ct JOIN marketing_tags t ON t.id=ct.tag_id
+            WHERE t.audience_id=? AND ct.contact_id=?'.($this->definitionArchiveAvailable()?' AND t.archived_at IS NULL':''),[$this->audienceId,$contact]);
+        $retained=array_values(array_intersect(audienceIds($context['pending_tag_ids']),array_map('intval',array_column($activeTags,'id'))));
+        $this->recordCollectionSignupMembershipChange($contact,'tags_changed',$retained,$context);
+    }
+
     /** Apply consented additions for every signup kind, retaining existing memberships. */
     private function applyCollectionSignupMemberships(int $contact,array $memberships,array $context):void
     {
         $person=$this->person($contact,true);
-        $tags=array_intersect(audienceIds($memberships['tag_ids']??[]),array_map('intval',array_column($this->tags(false,false),'id')));
-        $addedTags=[];$addedGroups=[];
-        foreach(array_diff($tags,$person['tag_ids'])as$tag){
-            $this->write('INSERT IGNORE INTO marketing_contact_tags(contact_id,tag_id) SELECT ?,id FROM marketing_tags WHERE audience_id=? AND id=?'.($this->definitionArchiveAvailable()?' AND archived_at IS NULL':''),[$contact,$this->audienceId,$tag]);
-            if($this->db->affected_rows>0)$addedTags[]=$tag;
-        }
+        $addedTags=$this->addCollectionSignupTags($contact,array_diff(audienceIds($memberships['tag_ids']??[]),$person['tag_ids']));
+        $addedGroups=[];
         $chosen=audienceIds($memberships['group_ids']??[]);
         foreach($chosen?$this->groups(false,false):[]as$group){
             if($group['display_type']==='hidden')continue;
@@ -587,10 +627,8 @@ trait AudienceCollection
                 if($this->db->affected_rows>0)$addedGroups[]=$option;
             }
         }
-        foreach(['tags_changed'=>$addedTags,'groups_changed'=>$addedGroups]as$type=>$added)if($added){
-            $details=['added'=>$added,'removed'=>[],'source'=>'Signup form','resource_id'=>(int)$context['resource_id'],'revision_id'=>(int)$context['revision_id']];
-            $this->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json) VALUES (?,NULL,'Signup form','recipient',?,?)",[$contact,$type,json_encode($details,JSON_THROW_ON_ERROR)]);
-        }
+        $this->recordCollectionSignupMembershipChange($contact,'tags_changed',$addedTags,$context);
+        $this->recordCollectionSignupMembershipChange($contact,'groups_changed',$addedGroups,$context);
         if($addedTags||$addedGroups)$this->write('UPDATE marketing_contacts SET version=version+1 WHERE audience_id=? AND id=?',[$this->audienceId,$contact]);
     }
 
