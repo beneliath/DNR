@@ -7,10 +7,11 @@ require_once __DIR__.'/integration_auth_helpers.php';
 $db=applicationDatabaseConnection();$checks=0;
 $expect=static function(bool $ok,string $why)use(&$checks):void{if(!$ok)throw new RuntimeException($why);$checks++;};
 $request=static function(string $path,array $headers=[],?array $post=null):array{
-    $curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers]);
+    $curl=curl_init('http://127.0.0.1/'.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>10,CURLOPT_HTTPHEADER=>$headers]);
     if($post!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,http_build_query($post));
-    $body=curl_exec($curl);if($body===false)throw new RuntimeException('Public fixture request failed.');
-    return ['status'=>(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'body'=>$body];
+    $response=curl_exec($curl);if($response===false)throw new RuntimeException('Public fixture request failed.');
+    $size=(int)curl_getinfo($curl,CURLINFO_HEADER_SIZE);
+    return ['status'=>(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE),'headers'=>substr($response,0,$size),'body'=>substr($response,$size)];
 };
 $adminUsername='public-security-'.bin2hex(random_bytes(6));$adminPassword=bin2hex(random_bytes(16));
 $db->execute_query('INSERT INTO users(username,password,role) VALUES (?,?,?)',[$adminUsername,password_hash($adminPassword,PASSWORD_DEFAULT),'admin']);
@@ -29,6 +30,12 @@ foreach ([$bucket,$signupBucket] as $key) {
 }
 $authCookies=[];
 try{
+    $login=$request('login.php/map.php');
+    $expect($login['status']===200&&str_contains($login['headers'],"style-src-attr 'none'"),'Security header exceptions use the executed script even when the URL includes path information');
+    foreach(['login.php','login.php/extra'] as $loginPath){
+        $oversized=$request($loginPath,[],['fixture'=>str_repeat('a',1048576)]);
+        $expect($oversized['status']===413,'Login request limit applies to the canonical route and trailing path information');
+    }
     $db->execute_query('INSERT INTO marketing_collection_limits(audience_id,bucket_hash,hour_start,attempts) VALUES (1,?,?,299) ON DUPLICATE KEY UPDATE attempts=299',[$bucket,$hour]);
     $first=$request($path.str_repeat('1',64));$expect($first['status']===200&&$count()===1,'Final admitted view remains usable and recorded');
     $repeat=$request($path.str_repeat('1',64));$expect($repeat['status']===200&&$count()===1,'Repeat visit remains usable without an extra row');
@@ -65,11 +72,22 @@ try{
     $delivery=(int)$db->insert_id;$recipientToken=bin2hex(random_bytes(32));
     $store->write("INSERT INTO marketing_campaign_recipients(audience_id,delivery_id,contact_id,email_hash,context_ciphertext,token_hash,message_id,state,next_attempt_at,delivery_started_at,accepted_at) VALUES (1,?,?,?,?,?,?,'accepted',UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())",[$delivery,$contact['id'],audienceDispatchEmailHash($email),\Dnr\Security\ApplicationKey::seal('{}'),hash('sha256',$recipientToken),'<location-'.bin2hex(random_bytes(12)).'@example.test>']);
     $recipientId=(int)$db->insert_id;
-    $open=$request('audience_track.php?'.http_build_query(['token'=>$recipientToken,'open'=>1,'sig'=>hash_hmac('sha256','open',$trackingKey)]));
+    $openPath='audience_track.php?'.http_build_query(['token'=>$recipientToken,'open'=>1,'sig'=>hash_hmac('sha256','open',$trackingKey)]);
+    $open=$request($openPath);
     $link=rtrim(strtr(base64_encode('https://example.test/location'),'+/','-_'),'=');
     $click=$request('audience_track.php?'.http_build_query(['token'=>$recipientToken,'url'=>$link,'sig'=>hash_hmac('sha256',$link,$trackingKey)]));
     $tracked=$store->all("SELECT event_type,details_json FROM marketing_message_events WHERE recipient_id=? AND event_type IN ('open','click') ORDER BY id",[$recipientId]);
     $expect($open['status']===200&&$click['status']===302&&count($tracked)===2&&array_reduce($tracked,static fn(bool $ok,array $event)=>$ok&&(audienceJson($event['details_json'])['interaction_location']['ip_address']??'')==='127.0.0.1',true),'Tracked email opens and clicks record the verified request address');
+    $started=time();
+    foreach(['Mail Reader Alpha','Mail Reader Beta','Mail Scanner Alpha','Mail Scanner Beta'] as $agent){
+        $repeat=$request($openPath,['User-Agent: '.$agent]);
+        $expect($repeat['status']===200&&$repeat['body']===$open['body'],'Deduplicated tracking serves the same pixel');
+    }
+    $observations=$store->all("SELECT DATE_FORMAT(event_at,'%Y-%m-%d %H:%i') AS minute, JSON_EXTRACT(details_json,'$.bot') AS bot, COUNT(*) AS n
+        FROM marketing_message_events WHERE recipient_id=? AND event_type='open' GROUP BY minute,bot",[$recipientId]);
+    $expect(count(array_unique(array_column($observations,'bot')))===2&&max(array_column($observations,'n'))===1
+        &&count($observations)<=2*(int)(1+intdiv(time(),60)-intdiv($started,60)),
+        'User agent changes keep at most one observation per recipient, minute and scanner classification');
     $privateProof=static function(array $resource)use($store,$recipientToken):string{
         $sealed=$store->collectionChallenge($resource,bin2hex(random_bytes(32)),'A',$recipientToken);
         $payload=json_decode(\Dnr\Security\ApplicationKey::open($sealed),true,12,JSON_THROW_ON_ERROR);$payload['issued']-=5;

@@ -373,7 +373,9 @@ function mattermostPendingReplyNotifications(mysqli $conn, string $instanceId, i
          INNER JOIN mattermost_user_links link
             ON link.instance_id = notification.instance_id
            AND link.mattermost_user_id = notification.mattermost_user_id
+           AND link.linked_at <= notification.created_at
          INNER JOIN users user ON user.id = link.user_id AND user.account_status = 'active'
+            AND user.platform_identity_id IS NULL
          INNER JOIN inbound_email_messages message
             ON message.id = notification.inbound_email_message_id
          INNER JOIN engagements engagement ON engagement.id = notification.engagement_id

@@ -10,12 +10,17 @@ header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
 $user_id = (int) $_SESSION['user_id'];
+$can_issue_subscription = platformIdentityPayload() === [];
 $calendar_fragment = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['fragment'] ?? '') === 'calendar';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
     try {
         if ($action === 'create') {
+            if (!$can_issue_subscription) {
+                http_response_code(403);
+                exit('Private calendar subscriptions require a local Account sign-in.');
+            }
             $label = is_string($_POST['label'] ?? null) ? $_POST['label'] : 'Calendar subscription';
             $content = $_POST['content'] ?? [];
             normalizeCalendarSubscriptionContent($content);
@@ -95,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-$new_subscription = $_SESSION['_new_calendar_subscription'] ?? null;
+$new_subscription = $can_issue_subscription ? ($_SESSION['_new_calendar_subscription'] ?? null) : null;
 $message = $_SESSION['_calendar_subscription_message'] ?? '';
 $error = $_SESSION['_calendar_subscription_error'] ?? '';
 $subscription_form = $_SESSION['_calendar_subscription_form'] ?? [
@@ -278,6 +283,7 @@ $webcal_url = $calendar_url === null
     <div class="calendar-subscription-management-grid">
         <section class="security-card calendar-card" aria-labelledby="create-calendar-title">
             <h3 id="create-calendar-title">Create Subscription</h3>
+            <?php if ($can_issue_subscription): ?>
             <p>Use a separate link for each device or calendar service so a single subscriber can be revoked without disrupting the others.</p>
             <form method="post" action="view_calendar.php" class="security-form">
                 <?php echo csrfInput(); ?>
@@ -298,6 +304,9 @@ $webcal_url = $calendar_url === null
                 <p id="calendar-content-help" class="field-help">Choose one or more. Active work appears on its due date. My Active Work includes work assigned to you; All Active Work includes everyone's work, including unassigned work.</p>
                 <button type="submit" class="security-button">Create Private Link</button>
             </form>
+            <?php else: ?>
+                <p>Private calendar subscriptions require a local Account sign-in.</p>
+            <?php endif; ?>
         </section>
 
         <section class="security-card calendar-card" aria-labelledby="existing-calendar-title">
@@ -332,7 +341,7 @@ $webcal_url = $calendar_url === null
                             <td><?php echo htmlspecialchars($subscription['label'], ENT_QUOTES, 'UTF-8'); ?><span class="calendar-subscription-content-summary"><?php echo htmlspecialchars(calendarSubscriptionContentSummary($subscription), ENT_QUOTES, 'UTF-8'); ?></span></td>
                             <td><?php echo htmlspecialchars(formatUserTimestamp($subscription['created_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo htmlspecialchars($subscription['last_used_at'] ? formatUserTimestamp($subscription['last_used_at'], 'Y-m-d H:i:s T') : 'Never', ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo $subscription['revoked_at'] === null ? 'Active' : 'Revoked'; ?></td>
+                            <td><?php echo $subscription['revoked_at'] === null ? ($can_issue_subscription ? 'Active' : 'Unavailable') : 'Revoked'; ?></td>
                             <td>
                                 <?php if ($subscription['revoked_at'] === null): ?>
                                     <form method="post" action="view_calendar.php" data-confirm="Revoke this calendar subscription? Existing calendar clients will stop refreshing.">

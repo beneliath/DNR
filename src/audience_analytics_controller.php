@@ -113,8 +113,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
         if(!in_array($download,['csv','recipients','links','custom','audience','forms','flows'],true)){http_response_code(400);exit('Choose a supported report export.');}
         header('Content-Type: text/csv; charset=UTF-8');header('Content-Disposition: attachment; filename="message-monkey-'.$download.'.csv"');header('Cache-Control: no-store');
         $out=fopen('php://output','w');$csv=static function(array $row)use($out):void{
-            // Prevent formula execution when a spreadsheet opens user-provided names or addresses.
-            $row=array_map(static fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row);fputcsv($out,$row,',','"','');
+            $row=array_map(static fn($v)=>is_string($v)?audienceCsvCell($v):$v,$row);fputcsv($out,$row,',','"','');
         };
         if($download==='csv'){$csv(['UTC day','Accepted messages','Observed unique opens','Observed unique clicks','Bot filter']);foreach($overview['daily']as$day=>$row)$csv([$day,$row['accepted'],$row['opens'],$row['clicks'],$window['bots']]);}
         elseif($download==='recipients'){

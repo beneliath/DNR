@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/user_time_helpers.php';
 require_once __DIR__.'/audience_pagination.php';
+require_once __DIR__.'/shared/csv.php';
 
 final class AudienceRateLimitException extends InvalidArgumentException
 {
@@ -196,8 +197,7 @@ function audienceArchiveContact(mysqli $db, int $id, int $version, bool $archive
 
 function audienceCsvCell(string $value): string
 {
-    // Prevent spreadsheet formula execution, including whitespace-prefixed input.
-    return preg_match('/^[\s\x00-\x1f]*[=+@-]/u', $value) ? "'" . $value : $value;
+    return spreadsheetCsvText($value);
 }
 
 /** Conversion is recorded only when a signup actually becomes subscribed. */

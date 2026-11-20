@@ -6,6 +6,7 @@ require_once __DIR__ . '/reimbursement_limits.php';
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/email_ascii_footer.php';
 require_once __DIR__ . '/reimbursement_photo_helpers.php';
+require_once __DIR__ . '/shared/csv.php';
 
 const REIMBURSEMENT_SUBMISSION_TEMPLATE_VERSION = 8;
 
@@ -84,12 +85,6 @@ function reimbursementIndividualAttachmentManifest(array $context): array
     return $manifest;
 }
 
-function reimbursementCsvText(mixed $value): string
-{
-    $text = (string) $value;
-    return preg_match('/\A[\s\x{FEFF}]*[=+\-@]/u', $text) ? "'" . $text : $text;
-}
-
 /** One row per expense keeps spreadsheet totals correct when an expense has multiple receipts. */
 function reimbursementExpenseCsv(array $items, array $receipts): string
 {
@@ -105,8 +100,8 @@ function reimbursementExpenseCsv(array $items, array $receipts): string
             $cents = (int) $item['amount_cents'];
             [$year, $month, $day] = explode('-', reimbursementDate($item['expense_date'], 'expense date'));
             $rows[] = [
-                (int) $month . '/' . (int) $day . '/' . $year, reimbursementCsvText($item['merchant']),
-                reimbursementCsvText($item['coa_number']), reimbursementCsvText(reimbursementExpenseDescription($item)),
+                (int) $month . '/' . (int) $day . '/' . $year, spreadsheetCsvText((string) $item['merchant']),
+                spreadsheetCsvText((string) $item['coa_number']), spreadsheetCsvText(reimbursementExpenseDescription($item)),
                 sprintf('$%d.%02d', intdiv($cents, 100), $cents % 100),
                 implode('; ', $namesByExpense[(int) $item['expense_id']] ?? []),
             ];

@@ -54,6 +54,9 @@ try {
         expectLinks($saved === $images, 'Repeated saves, speaker changes and destination edits preserve the original rendered bytes and timestamps');
     }
     try { updateShortLink($conn,$linkId,1,'https://example.com/stale',true); throw new RuntimeException('Stale update accepted'); } catch (InvalidArgumentException $expected) {}
+    // Analytics must not commit unrelated writes made by its caller.
+    $conn->execute_query('INSERT INTO organizations (organization_name) VALUES (?)', ['Unrelated QR rollback fixture ' . bin2hex(random_bytes(6))]);
+    $unrelatedOrg = (int) $conn->insert_id;
     $server = ['REQUEST_METHOD'=>'GET','REMOTE_ADDR'=>'203.0.113.10','HTTP_USER_AGENT'=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'];
     recordShortLinkVisit($conn,$linkId,$server); recordShortLinkVisit($conn,$linkId,$server);
     recordShortLinkVisit($conn,$linkId,array_replace($server,['REQUEST_METHOD'=>'HEAD']));
@@ -72,5 +75,9 @@ try {
     recordShortLinkVisit($conn,(int)$links[1]['id'],$server);
     $qrStats = shortLinkStats($conn,'l.id = '.$linkId,gmdate('Y-m-d').' 00:00:00',gmdate('Y-m-d',strtotime('+1 day')).' 00:00:00');
     expectLinks($qrStats['total'] === 23,'QR statistics exclude notes visits and the same speaker website at another presentation');
-    echo "Short links integration tests passed.\n";
 } finally { $conn->rollback(); }
+expectLinks($conn->execute_query('SELECT id FROM organizations WHERE id=?', [$unrelatedOrg])->num_rows === 0,
+    'Caller rollback removes unrelated changes after recording short-link visits');
+expectLinks($conn->execute_query('SELECT link_id FROM short_link_stats WHERE link_id=?', [$linkId])->num_rows === 0,
+    'Recorded visits remain part of the caller transaction and are rolled back with it');
+echo "Short links integration tests passed, including caller-owned transaction rollback.\n";

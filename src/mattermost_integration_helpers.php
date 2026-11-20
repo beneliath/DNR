@@ -51,6 +51,10 @@ function generateMattermostLinkCode(mysqli $conn, int $userId): array
 
     $conn->begin_transaction();
     try {
+        // Member proxy identities must be revalidated against the primary on every use.
+        $user = $conn->execute_query("SELECT id FROM users
+            WHERE id = ? AND account_status = 'active' AND platform_identity_id IS NULL FOR UPDATE", [$userId])->fetch_row();
+        if (!$user) throw new InvalidArgumentException('Linking Mattermost requires a local Account sign-in.');
         $delete = $conn->prepare(
             'DELETE FROM mattermost_link_codes
              WHERE user_id = ?'
@@ -199,6 +203,7 @@ function redeemMattermostLinkCode(
                AND code.consumed_at IS NULL
                AND code.expires_at > UTC_TIMESTAMP(6)
                AND users.account_status = 'active'
+               AND users.platform_identity_id IS NULL
              FOR UPDATE"
         );
         if (!$codeStmt) {
@@ -329,7 +334,8 @@ function mattermostLinkedUser(
          INNER JOIN users ON users.id = links.user_id
          WHERE links.instance_id = ?
            AND links.mattermost_user_id = ?
-           AND users.account_status = 'active'"
+           AND users.account_status = 'active'
+           AND users.platform_identity_id IS NULL"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare Mattermost identity lookup.');

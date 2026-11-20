@@ -531,8 +531,10 @@ The web request never calls the geocoder. New or changed addresses enter a datab
 
 ### Calendar and private subscriptions
 
-Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
-private subscription URLs per device. The feed includes non-archived engagements in the configured
+Users signed in directly to an Account can open **Calendar** to create, label, copy, and revoke
+private subscription URLs per device. SuperAdmins who switch into another Account can use its
+interactive calendar. Private subscription URLs issued to those switched identities are unavailable.
+The feed includes non-archived engagements in the configured
 bounded calendar window, regardless of lifecycle. Entries are all-day events covering the event
 date range and include lifecycle, confirmation, organization, title, type, and location. Canceled
 events use the calendar-standard `CANCELLED` status; postponed and canceled entries are marked
@@ -932,7 +934,9 @@ The installable server plugin under `mattermost-plugin/` exposes private daily
 summaries, engagement search/cards, editor/admin channel bindings, and
 role-checked follow-up buttons while keeping MOED authoritative. It uses
 single-use account-link codes and a deployment secret; it never connects to the
-database directly. Build it with `make -C mattermost-plugin dist` and follow
+database directly. Linking requires a direct sign-in to that MOED Account. Existing links
+issued to SuperAdmins who switched in from the primary Account are unavailable.
+Build it with `make -C mattermost-plugin dist` and follow
 the complete deployment, installation, verification, and rotation guide in
 [`docs/mattermost-plugin.md`](docs/mattermost-plugin.md). End-user behavior is
 documented in the in-app **User Manual → Mattermost** chapter.

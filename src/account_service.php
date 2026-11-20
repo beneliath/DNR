@@ -9,15 +9,20 @@ if (!accountGatewayEnabled() || accountIsPrimary() || ($_SERVER['REQUEST_METHOD'
     http_response_code(404); exit('{}');
 }
 try {
-    $body = file_get_contents('php://input', false, null, 0, ACCOUNT_SERVICE_MAX_BODY_BYTES + 1);
     $time = (string) ($_SERVER['HTTP_X_MOED_TIME'] ?? '');
     $nonce = (string) ($_SERVER['HTTP_X_MOED_NONCE'] ?? '');
     $signature = (string) ($_SERVER['HTTP_X_MOED_SIGNATURE'] ?? '');
-    if (!is_string($body) || strlen($body) > ACCOUNT_SERVICE_MAX_BODY_BYTES || !ctype_digit($time)
-        || abs(time() - (int) $time) > 60 || !preg_match('/\A[a-f0-9]{64}\z/D', $nonce)) throw new RuntimeException('Invalid request.');
+    if (!ctype_digit($time) || abs(time() - (int) $time) > 60
+        || !preg_match('/\A[a-f0-9]{64}\z/D', $nonce) || !preg_match('/\A[a-f0-9]{64}\z/D', $signature)
+        || (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > ACCOUNT_SERVICE_MAX_BODY_BYTES) throw new RuntimeException('Invalid request.');
     $secret = configurationSecret('DNR_PLATFORM_API_KEY');
     if (strlen($secret) < 64) throw new RuntimeException('Invalid configuration.');
-    $expected = hash_hmac('sha256', "primary\n" . currentAccountKey() . "\n" . $time . "\n" . $nonce . "\n" . $body, $secret);
+    $body = file_get_contents('php://input', false, null, 0, ACCOUNT_SERVICE_MAX_BODY_BYTES + 1);
+    if (!is_string($body) || strlen($body) > ACCOUNT_SERVICE_MAX_BODY_BYTES) throw new RuntimeException('Invalid request.');
+    $hmac = hash_init('sha256', HASH_HMAC, $secret);
+    hash_update($hmac, "primary\n" . currentAccountKey() . "\n" . $time . "\n" . $nonce . "\n");
+    hash_update($hmac, $body);
+    $expected = hash_final($hmac);
     if (!hash_equals($expected, $signature)) throw new RuntimeException('Invalid request.');
     $conn->execute_query('DELETE FROM account_service_nonces WHERE expires_at < UTC_TIMESTAMP()');
     $conn->execute_query('INSERT INTO account_service_nonces VALUES (?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 120 SECOND))', [$nonce]);
