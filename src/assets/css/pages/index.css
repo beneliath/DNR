@@ -14,6 +14,18 @@ html:not(.has-js) #new-engagement-form :is([data-form-draft-panel], [data-relati
     width: 100%;
 }
 
+#organization-address-option {
+    margin-bottom: 18px;
+}
+
+#organization-address-status {
+    margin: 8px 0 0;
+}
+
+#organization-address-status:empty {
+    margin: 0;
+}
+
 /* Keep the organization row centered; apply field spacing to the whole row. */
     .organization-container {
         margin-bottom: 18px;

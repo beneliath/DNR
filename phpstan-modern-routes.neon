@@ -14,6 +14,7 @@ parameters:
         - src/map_pin.php
         - src/dashboard.php
         - src/organization_contacts.php
+        - src/organization_address.php
         - src/engagement_reschedule_options.php
         - src/task_subject_search.php
         - src/inquiry_relationship_search.php
@@ -66,6 +67,7 @@ parameters:
         - src/contact_organization_helpers.php
         - src/dashboard_helpers.php
         - src/engagement_contact_helpers.php
+        - src/engagement_location_helpers.php
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/follow_up_task_helpers.php

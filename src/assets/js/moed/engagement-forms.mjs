@@ -3,6 +3,7 @@ import {setConditionalField} from './form-fields.mjs';
 export function initializeEngagementForm() {
     const form = document.querySelector('.engagement-form, #engagement-edit-form, .inquiry-form, [data-chron-form]');
     if (!form) return;
+    if (form.id === 'new-engagement-form') initializeOrganizationAddress();
     const startDate = document.getElementById('event_start_date');
     const endDate = document.getElementById('event_end_date');
     if (form.id === 'new-engagement-form' && startDate && endDate) {
@@ -99,6 +100,72 @@ export function initializeEngagementForm() {
         }
         if (typeof window.validateEngagementPresentations === 'function' && !window.validateEngagementPresentations()) {
             event.preventDefault();
+        }
+    });
+}
+
+function initializeOrganizationAddress() {
+    const organization = document.getElementById('organization_id');
+    const option = document.getElementById('organization-address-option');
+    const button = document.getElementById('use-organization-address');
+    const status = document.getElementById('organization-address-status');
+    if (!organization || !option || !button || !status) return;
+
+    // Set country first because its change handler switches the active state control.
+    const fields = ['event_country', 'event_address_line_1', 'event_address_line_2', 'event_city', 'event_state', 'event_zipcode'];
+    const controlFor = name => document.querySelector('[name="' + name + '"]:not(:disabled)');
+    let controller;
+
+    function updateOption() {
+        controller?.abort();
+        option.hidden = !organization.value || Boolean(organization.selectedOptions[0]?.disabled);
+        button.disabled = false;
+        status.textContent = '';
+    }
+
+    organization.addEventListener('change', updateOption);
+    updateOption();
+
+    button.addEventListener('click', async function () {
+        const request = new AbortController();
+        controller = request;
+        const selectedOrganization = organization.value;
+        const previousValues = fields.map(name => controlFor(name).value);
+        button.disabled = true;
+        status.textContent = 'Loading the organization address…';
+        try {
+            const parameters = new URLSearchParams({organization_id: selectedOrganization});
+            const response = await fetch('organization_address.php?' + parameters, {
+                credentials: 'same-origin', signal: request.signal
+            });
+            const result = await response.json();
+            if (request.signal.aborted || organization.value !== selectedOrganization) return;
+            if (response.status === 404 || response.status === 422) {
+                status.textContent = result.error;
+                return;
+            }
+            if (!response.ok) throw new Error('Address request failed');
+            if (!result.address) {
+                status.textContent = 'This organization has no saved physical address. Enter the event location below.';
+                return;
+            }
+            if (fields.some((name, index) => controlFor(name).value !== previousValues[index])) {
+                status.textContent = 'The event location changed while the address was loading. Select Use Organization Address again to replace it.';
+                return;
+            }
+            fields.forEach(function (name) {
+                const control = controlFor(name);
+                control.value = result.address[name];
+                control.dispatchEvent(new Event('input', {bubbles: true}));
+                control.dispatchEvent(new Event('change', {bubbles: true}));
+            });
+            status.textContent = 'Organization address copied. You can edit the event location below.';
+        } catch (error) {
+            if (!request.signal.aborted) {
+                status.textContent = 'The organization address could not be loaded. Try again or enter the event location below.';
+            }
+        } finally {
+            if (!request.signal.aborted) button.disabled = false;
         }
     });
 }

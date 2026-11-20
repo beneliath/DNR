@@ -9,16 +9,20 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → + New Engagement",
-      "condition": "Choose Organization inside this form, not on Organization Details.",
+      "entry": "Engagements \u2192 + New Engagement",
+      "condition": "Choose Organization inside this form, not on Organization Details. After selecting an organization, Use Organization Address copies its saved physical address into the editable Event Location fields.",
       "source_files": {
-        "index.php": "7e12b8bc19b1a3dc6d7d46bce3149239eee190431899711732dea69bbff3b38d",
+        "index.php": "5b2d4d82c3431b68760924b4a733ed8f5a87a28b3acda74eaacb654abe38c300",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {
         "new-organization": {
           "label": "Organization",
           "selector": "#new-engagement-form #organization_id"
+        },
+        "new-organization-address": {
+          "label": "Use Organization Address",
+          "selector": "#new-engagement-form #use-organization-address"
         },
         "new-title": {
           "label": "Event Title",
@@ -55,8 +59,8 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → event → Presentations tab → Edit Presentations",
-      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations. Duplicate Presentation is inside the intended presentation’s colored banner. It adds an editable copy below that presentation within the same engagement; review its details and Save Changes to generate its own unique QR codes. Clear No presentation required to show the presentation fields.",
+      "entry": "Engagements \u2192 event \u2192 Presentations tab \u2192 Edit Presentations",
+      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations. Duplicate Presentation is inside the intended presentation\u2019s colored banner. It adds an editable copy below that presentation within the same engagement; review its details and Save Changes to generate its own unique QR codes. Clear No presentation required to show the presentation fields.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
@@ -100,7 +104,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Tasks → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
+      "entry": "Tasks \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task. For an existing task use Edit Task.",
       "condition": "Use Change Record to open the Find a Related Record dialog. Type at least three characters, then choose a result. Searching alone does not change the selection. Cancel, Escape, or clicking outside the dialog keeps the selected record. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
         "templates/follow_up_task_form.php": "14ef5881834b7b4468b3fb69d4fbbce6f2e78bda9a6019c9eb653ce2ec8beed6",
@@ -188,7 +192,7 @@
             "\\b(cannot|can t|unable|not|error|failed)\\b"
           ],
           "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
-          "message": "Waiting does not lock the task’s status. Waiting On is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
+          "message": "Waiting does not lock the task\u2019s status. Waiting On is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
           "question": "What exact error does MOED show when you save? Copy its text and any field label; if no error appears, say so and describe what happens instead."
         },
         {
@@ -221,7 +225,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → existing event → Edit Engagement",
+      "entry": "Engagements \u2192 existing event \u2192 Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
@@ -252,7 +256,7 @@
         "editor",
         "reviewer"
       ],
-      "entry": "Calendar → Create Subscription",
+      "entry": "Calendar \u2192 Create Subscription",
       "condition": "Private subscriptions require a direct sign-in to the Account. Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
         "view_calendar.php": "82b40679751339d1ebd5e1848eb6bc351c33938a9e4e584a5dde3ed8f2f6e63b"
@@ -302,7 +306,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
+      "entry": "Tasks \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "be0fab98ddba13d88eb9234edf0aa0d3bea64cda147cfdf6aac214e56220580f",
@@ -336,7 +340,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Reimbursements → + Add Expense",
+      "entry": "Reimbursements \u2192 + Add Expense",
       "condition": "Use + Add Expense for expense receipts and account selection. + Add Mileage opens Date, Origin Location, Destination Location, Starting Odometer Reading, optional Ending Odometer Reading, and Description or Purpose. Mileage uses 6110 Mileage Reimbursement automatically and retains its saved rate. Without an ending reading it stays Incomplete and cannot enter a request. Create and edit only your own active editable entries; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "b361b4a128fbcec0fca817ce24d389c10e90c7c327bbd447a740ff73aa01fb40",
@@ -409,7 +413,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
+      "entry": "Reimbursements \u2192 select eligible expenses \u2192 Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
         "reimbursements.php": "d8d8808020eabb547afeed348dbc8d8c326b546ee8d643644d3c35f731b0d036",
@@ -460,7 +464,7 @@
         "admin",
         "editor"
       ],
-      "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
+      "entry": "Requests \u2192 Submit icon on your active draft, or request \u2192 Review and Submit",
       "condition": "Review recipients, expense descriptions below each Merchant / Payee in the email preview, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
@@ -495,7 +499,7 @@
       "roles": [
         "admin"
       ],
-      "entry": "Administration → Reimbursement Setup",
+      "entry": "Administration \u2192 Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
         "reimbursement_setup.php": "ed6bbe2dde27216f3ffe00b897b1e277e09f01b6cf63f47c8067a1d882b98454"
@@ -530,7 +534,7 @@
         "editor",
         "reviewer"
       ],
-      "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
+      "entry": "Engagements \u2192 event \u2192 Presentations \u2192 Edit Presentations \u2192 bottom of the intended saved presentation block",
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../src/functions.php';
+require_once __DIR__ . '/../src/engagement_location_helpers.php';
+
 function expectEngagementLocationFeature(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -49,5 +52,57 @@ expectEngagementLocationFeature(
         && str_contains($form_styles, '@container event-address'),
     'The shared address layout should adapt to the pane width.'
 );
+
+$physical_address = [
+    'physical_address_line_1' => ' 123 Main Street ',
+    'physical_address_line_2' => 'Suite 2',
+    'physical_city' => 'Toronto',
+    'physical_state' => 'Ontario',
+    'physical_zipcode' => 'M5V 2T6',
+    'physical_country' => 'Canada',
+    'mailing_address_line_1' => 'PO Box 123',
+];
+$event_address = organizationEventLocation($physical_address);
+expectEngagementLocationFeature($event_address === [
+    'event_address_line_1' => '123 Main Street',
+    'event_address_line_2' => 'Suite 2',
+    'event_city' => 'Toronto',
+    'event_state' => 'ON',
+    'event_zipcode' => 'M5V 2T6',
+    'event_country' => 'CA',
+], 'The physical address should map to all six event fields with canonical country and region codes.');
+
+$normalized = \Dnr\Domain\EngagementInput::normalize($event_address + [
+    'organization_id' => 1,
+    'event_title' => 'Address copy test',
+    'event_type' => 'conference',
+    'event_start_date' => '2099-09-10',
+    'event_end_date' => '2099-09-11',
+]);
+expectEngagementLocationFeature(
+    array_intersect_key($normalized, $event_address) === $event_address,
+    'Copied values should survive the normal engagement save validation.'
+);
+expectEngagementLocationFeature(
+    organizationEventLocation([]) === null
+        && organizationEventLocation(['physical_country' => 'US', 'mailing_city' => 'Chicago']) === null,
+    'A country default or a mailing address alone should not count as a physical event location.'
+);
+expectEngagementLocationFeature(
+    organizationEventLocation(['physical_city' => 'Paris', 'physical_state' => 'Île-de-France', 'physical_country' => 'France'])['event_state'] === 'Île-de-France',
+    'Countries with free-text regions should retain the saved region.'
+);
+expectEngagementLocationFeature(
+    organizationEventLocation(['physical_city' => 'Chicago'])['event_country'] === applicationDefaultCountry(),
+    'A legacy address without a country should use the same application default as the form.'
+);
+foreach ([['physical_country' => 'Invalid country'], ['physical_state' => 'Invalid province']] as $invalid) {
+    try {
+        organizationEventLocation(array_replace($physical_address, $invalid));
+        expectEngagementLocationFeature(false, 'Invalid saved countries and regions must not be silently dropped.');
+    } catch (InvalidArgumentException $exception) {
+        expectEngagementLocationFeature(str_contains($exception->getMessage(), 'physical country and state'), 'The user should be told how to repair an invalid saved address.');
+    }
+}
 
 echo "Engagement location feature tests passed.\n";
