@@ -2189,7 +2189,7 @@
       ]
     },
     "index.php": {
-      "sha256": "7e12b8bc19b1a3dc6d7d46bce3149239eee190431899711732dea69bbff3b38d",
+      "sha256": "5b2d4d82c3431b68760924b4a733ed8f5a87a28b3acda74eaacb654abe38c300",
       "controls": [
         {
           "kind": "a",
@@ -2296,6 +2296,11 @@
         {
           "kind": "h2",
           "label": "Event Location"
+        },
+        {
+          "kind": "button",
+          "label": "Use Organization Address",
+          "id": "use-organization-address"
         },
         {
           "kind": "label",

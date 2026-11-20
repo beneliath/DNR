@@ -536,6 +536,10 @@ try {
 
         <section class="form-section engagement-location-section">
             <h2>Event Location</h2>
+            <div id="organization-address-option" hidden>
+                <button type="button" class="button-secondary" id="use-organization-address" aria-describedby="organization-address-status">Use Organization Address</button>
+                <p class="field-help" id="organization-address-status" role="status"></p>
+            </div>
             <div class="address-fields">
                 <div class="event-address-lines">
                     <div class="form-field">
