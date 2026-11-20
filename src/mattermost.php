@@ -12,6 +12,7 @@ header('Pragma: no-cache');
 
 $userId = (int) $_SESSION['user_id'];
 $configured = mattermostIntegrationConfigured();
+$canLink = platformIdentityPayload() === [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
@@ -21,6 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Mattermost linking is not configured by the administrator.');
         }
         if ($action === 'create_code') {
+            if (!$canLink) {
+                http_response_code(403);
+                exit('Linking Mattermost requires a local Account sign-in.');
+            }
             $_SESSION['_new_mattermost_link_code'] = generateMattermostLinkCode($conn, $userId);
         } elseif ($action === 'revoke') {
             $linkId = filter_input(INPUT_POST, 'link_id', FILTER_VALIDATE_INT);
@@ -93,6 +98,8 @@ try {
             <h2>Integration Not Configured</h2>
             <p>An administrator must install the Mattermost plugin and configure the matching MOED service secret before accounts can be linked.</p>
         </section>
+    <?php elseif (!$canLink): ?>
+        <p>Linking Mattermost requires a local Account sign-in.</p>
     <?php else: ?>
         <?php if (is_array($newCode)): ?>
             <section class="security-card" aria-labelledby="mattermost-new-code-title">

@@ -253,9 +253,9 @@
         "reviewer"
       ],
       "entry": "Calendar → Create Subscription",
-      "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
+      "condition": "Private subscriptions require a direct sign-in to the Account. Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
-        "view_calendar.php": "f17ed82a2c9a78180b4778f01144f834e45de8b8956e2669e65245819f466583"
+        "view_calendar.php": "82b40679751339d1ebd5e1848eb6bc351c33938a9e4e584a5dde3ed8f2f6e63b"
       },
       "controls": {
         "calendar-device": {
@@ -464,7 +464,7 @@
       "condition": "Review recipients, expense descriptions below each Merchant / Payee in the email preview, report PDF, expense CSV, and receipts before confirming. Reduce Photo Sizes creates smaller email copies without changing original uploads; download the package and check receipt readability. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "9695d252ad6adde5cfde35ecc3119e1a1fdf897af79a1154241ae5bb420deae3",
-        "reimbursement_submission_helpers.php": "6efe5cb6a93eb0d69439964c34a020b2e04aa83704eece3fae7e8382612733bd",
+        "reimbursement_submission_helpers.php": "0d2b3a8cf086acf5780877e3b9a260935054f9939761f703deefb8fa01d4f4b9",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
         "reimbursement_photo_helpers.php": "ac4c993d867110a05f8183b01fb6391209a9d34a652a24899cb4f5f063cec499",
         "reimbursement_workflow_helpers.php": "3bca6cd9e12bc124c11c37f6fb85c31983d05ed77da8ca19c5f9f470e35d432d"

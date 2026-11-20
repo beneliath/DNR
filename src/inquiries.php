@@ -241,11 +241,8 @@ if ($exportCsv) {
         abortApplication(503, 'The pipeline export could not be created.');
     }
     fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred Dates', 'Next action', 'Due', 'Owner', 'Open Tasks', 'Archived at (' . applicationTimezoneName() . ')'], ',', '"', '');
+    $safe = static fn(mixed $value): string => spreadsheetCsvText(trim((string) $value));
     foreach (\Dnr\Infrastructure\StatementRows::stream($stmt) as $inquiry) {
-        $safe = static function (mixed $value): string {
-            $text = trim((string) $value);
-            return preg_match('/^[=+\-@]/', $text) === 1 ? "'" . $text : $text;
-        };
         fputcsv($output, [
             (int) $inquiry['id'],
             $safe($inquiry['title']),

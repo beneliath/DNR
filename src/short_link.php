@@ -36,7 +36,7 @@ if ($link['link_type'] === 'slidedeck') {
         WHERE presentation_id = ? AND speaker_id = ? AND storage_key IS NOT NULL',
         [$link['presentation_id'], $link['speaker_id']])->fetch_row();
     if (!$deck) { http_response_code(404); exit('PPT Slidedeck is not available yet.'); }
-    recordShortLinkVisit($conn, (int) $link['id'], $_SERVER);
+    recordShortLinkVisit($conn, (int) $link['id'], $_SERVER, standalone: true);
     header('Location: ' . accountPublicPath() . '/surls/' . $code . '/ppt-slidedeck', true, 302);
     exit;
 }
@@ -53,11 +53,11 @@ if ($link['link_type'] === 'notes') {
     if (!$notes->get_result()->fetch_row()) { http_response_code(404); exit('Notes are not available yet.'); }
     // Count the uncached navigation, including when Cloudflare serves the PDF.
     // These are link visits, not proof that the PDF was downloaded completely.
-    recordShortLinkVisit($conn, (int) $link['id'], $_SERVER);
+    recordShortLinkVisit($conn, (int) $link['id'], $_SERVER, standalone: true);
     header('Location: ' . accountPublicPath() . '/surls/' . $code . '/speaker-notes.pdf', true, 302);
     exit;
 }
 try { $target = shortLinkTarget($link['target_url']); }
 catch (InvalidArgumentException $exception) { http_response_code(410); exit('This destination is unavailable.'); }
-recordShortLinkVisit($conn, (int) $link['id'], $_SERVER);
+recordShortLinkVisit($conn, (int) $link['id'], $_SERVER, standalone: true);
 header('Location: ' . $target, true, 302);

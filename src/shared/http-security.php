@@ -40,7 +40,8 @@ function sendApplicationSecurityHeaders() {
     }
 
     $nonce = contentSecurityPolicyNonce();
-    $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
+    // PHP_SELF includes client-supplied PATH_INFO. Style exceptions belong to the actual script.
+    $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
     $map_page = in_array($page, ['map.php', 'map_pin.php'], true);
     $inline_styles = $map_page || $page === 'reimbursement_submit.php';
     $style_source = $inline_styles ? "'self' 'unsafe-inline'" : "'self'";

@@ -15,6 +15,7 @@ require_once __DIR__ . '/shared/audit.php';
 require_once __DIR__ . '/shared/authentication-limits.php';
 require_once __DIR__ . '/shared/authorization.php';
 require_once __DIR__ . '/shared/csrf.php';
+require_once __DIR__ . '/shared/csv.php';
 
 require_once __DIR__.'/audience_pagination.php';
 require_once __DIR__ . '/application_runtime.php';

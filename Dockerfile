@@ -22,7 +22,7 @@ RUN edition=dbip-city-lite-2026-11.mmdb.gz \
     && echo 'b69c625515f636ac92112b71df26bb92a5748f648c79bad124ecd9ba1c97bf4a  /tmp/city.mmdb.gz' | sha256sum -c - \
     && gzip -dc /tmp/city.mmdb.gz > /tmp/dbip-city-lite.mmdb
 
-FROM php:8.5.12-apache@sha256:08af36df144462d84c7f16190557eec06cb9f656882685610b712a15eec54d46
+FROM php:8.5.13-apache@sha256:0a785eab8b7eb4836f9c6093771c8ea15ff8ba7269444f3da70a1d33d15fe664
 
 # PHP 8.5 includes OPcache in the binary; do not build it as a shared extension.
 # Install the extensions used by the database and PDF export dependencies,

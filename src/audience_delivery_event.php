@@ -5,11 +5,14 @@ sendApplicationSecurityHeaders();header('Cache-Control: no-store');header('Conte
 if(!accountSecurityAccessAllowed()){http_response_code(403);exit('{"error":"Delivery events are disabled for this account"}');}
 if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);exit('{"error":"POST required"}');}
 if((int)($_SERVER['CONTENT_LENGTH']??0)>64000){http_response_code(413);exit('{"error":"Payload too large"}');}
-$raw=file_get_contents('php://input',false,null,0,64001);$stamp=(string)($_SERVER['HTTP_X_MESSAGE_MONKEY_TIMESTAMP']??'');$signature=(string)($_SERVER['HTTP_X_MESSAGE_MONKEY_SIGNATURE']??'');
 $db=applicationDatabaseConnection();$store=new AudienceStore($db,1,0,'Authenticated event source');if(!$store->deliveryRuntimeAvailable()){http_response_code(503);exit('{"error":"Event receiver is not configured"}');}if($store->sesAvailable()){http_response_code(410);exit('{"error":"Use the signed SES SNS event receiver"}');}$policy=$store->deliveryPolicy();
 if(empty($policy['event_key_ciphertext'])){http_response_code(503);exit('{"error":"Event source is not configured"}');}
+$stamp=(string)($_SERVER['HTTP_X_MESSAGE_MONKEY_TIMESTAMP']??'');$signature=(string)($_SERVER['HTTP_X_MESSAGE_MONKEY_SIGNATURE']??'');
+if(!ctype_digit($stamp)||abs(time()-(int)$stamp)>300||!preg_match('/\A[a-f0-9]{64}\z/D',$signature)){http_response_code(403);exit('{"error":"Invalid event signature"}');}
+$raw=file_get_contents('php://input',false,null,0,64001);
+if($raw===false||strlen($raw)>64000){http_response_code(413);exit('{"error":"Payload too large"}');}
 $key=\Dnr\Security\ApplicationKey::open($policy['event_key_ciphertext']);
-if(!ctype_digit($stamp)||abs(time()-(int)$stamp)>300||!hash_equals(hash_hmac('sha256',$stamp.'.'.$raw,$key),$signature)){http_response_code(403);exit('{"error":"Invalid event signature"}');}
+if(!hash_equals(hash_hmac('sha256',$stamp.'.'.$raw,$key),$signature)){http_response_code(403);exit('{"error":"Invalid event signature"}');}
 try{
  $event=json_decode($raw,true,16,JSON_THROW_ON_ERROR);$id=audienceText($event,'id',100);$type=audienceText($event,'type',30);$messageId=audienceText($event,'message_id',140);$at=audienceText($event,'event_at',30);
  if($id===''||!in_array($type,['delivered','soft-bounce','hard-bounce','complaint'],true)||!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/D',$at))throw new InvalidArgumentException('Invalid event fields.');

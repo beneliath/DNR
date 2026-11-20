@@ -9,6 +9,7 @@ require_once __DIR__ . '/presentation_asset_helpers.php';
 
 const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donate',
     'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'slidedeck' => 'PPT Slidedeck', 'custom' => 'Custom Links'];
+const SHORT_LINK_HOURLY_DIMENSION_LIMIT = 512;
 
 function shortLinkLabel(array $link): string
 {
@@ -314,18 +315,40 @@ function shortLinkVisitDimensions(array $server): ?array
         'country' => shortLinkCountry($server), 'referrer' => $referrer];
 }
 
-function recordShortLinkVisit(mysqli $conn, int $linkId, array $server): void
+/** The caller holds a transaction unless a standalone public request explicitly owns it here. */
+function recordShortLinkVisit(mysqli $conn, int $linkId, array $server, bool $standalone = false): void
 {
+    $ownsTransaction = false;
     try {
         $dimensions = shortLinkVisitDimensions($server);
         if ($dimensions === null) return;
         $hour = gmdate('Y-m-d H:00:00');
-        $stmt = $conn->prepare('INSERT INTO short_link_stats (link_id, visit_hour, browser, os, country, referrer)
-            VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE visits = visits + 1');
-        $stmt->bind_param('isssss', $linkId, $hour, $dimensions['browser'], $dimensions['os'], $dimensions['country'], $dimensions['referrer']);
-        $stmt->execute();
-    } catch (Throwable $exception) {
+        $params = [$linkId, $hour, $dimensions['browser'], $dimensions['os'], $dimensions['country'], $dimensions['referrer']];
+        // START TRANSACTION would commit any transaction already held by the caller.
+        if ($standalone) {
+            $conn->begin_transaction();
+            $ownsTransaction = true;
+        }
+        // Serialize new dimension rows for this link. Referer is supplied by the client.
+        $link = $conn->execute_query('SELECT id FROM short_links WHERE id=? FOR UPDATE', [$linkId])->fetch_row();
+        if ($link) {
+            $conn->execute_query('UPDATE short_link_stats SET visits=visits+1
+                WHERE link_id=? AND visit_hour=? AND browser=? AND os=? AND country=? AND referrer=?', $params);
+            if ($conn->affected_rows === 0) {
+                $atCapacity = $conn->execute_query('SELECT 1 FROM short_link_stats
+                    WHERE link_id=? AND visit_hour=? LIMIT 1 OFFSET ?',
+                    [$linkId, $hour, SHORT_LINK_HOURLY_DIMENSION_LIMIT - 1])->fetch_row();
+                if ($atCapacity) $params = [$linkId, $hour, 'Unclassified', 'Unclassified', 'ZZ', ''];
+                $conn->execute_query('INSERT INTO short_link_stats (link_id, visit_hour, browser, os, country, referrer)
+                    VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE visits=visits+1', $params);
+            }
+        }
+        if ($ownsTransaction) $conn->commit();
+    } catch (Throwable) {
         // A statistics outage must not break a distributed link.
+        if ($ownsTransaction) {
+            try { $conn->rollback(); } catch (mysqli_sql_exception) {}
+        }
         applicationLog('error', 'Unable to record short-link visit', ['link_id' => $linkId]);
     }
 }

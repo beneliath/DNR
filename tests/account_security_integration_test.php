@@ -9,6 +9,8 @@ $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/config.php';
 require_once $source . '/functions.php';
 require_once $source . '/account_email_change_helpers.php';
+require_once $source . '/calendar_helpers.php';
+require_once $source . '/mattermost_integration_helpers.php';
 function checkAccountSecurity(bool $ok, string $message): void {
     if (!$ok) throw new RuntimeException($message);
 }
@@ -80,6 +82,22 @@ try {
     rejectedAccountSecurity(fn() => enableTwoFactorForUser($conn, $id, $secret, 2, $version), 'Deactivated enrollment accepted');
     $conn->query("UPDATE users SET account_status = 'active', auth_version = auth_version + 1 WHERE id = $id");
     rejectedAccountSecurity(fn() => enableTwoFactorForUser($conn, $id, $secret, 2, $version), 'Reactivated stale enrollment accepted');
+    $calendar = createCalendarSubscription($conn, $otherId, 'Security fixture');
+    $linkCode = generateMattermostLinkCode($conn, $otherId);
+    $instanceId = mattermostIntegrationInstanceId();
+    $mattermostId = 'fixture' . $suffix;
+    $conn->execute_query('INSERT INTO mattermost_user_links (instance_id, mattermost_user_id, mattermost_username, user_id)
+        VALUES (?, ?, ?, ?)', [$instanceId, $mattermostId, $name, $otherId]);
+    checkAccountSecurity(calendarSubscriptionForToken($conn, $calendar['token']) !== null, 'Local user calendar token must work');
+    checkAccountSecurity(mattermostLinkedUser($conn, $instanceId, $mattermostId) !== null, 'Local Mattermost link must work');
+
+    // Model credentials already issued to a proxy while it was active in this Account.
+    $conn->execute_query('UPDATE users SET platform_identity_id = ? WHERE id = ?', [$id, $otherId]);
+    checkAccountSecurity(calendarSubscriptionForToken($conn, $calendar['token']) === null, 'A member proxy calendar token still grants access');
+    checkAccountSecurity(mattermostLinkedUser($conn, $instanceId, $mattermostId) === null, 'A member proxy Mattermost link still grants access');
+    rejectedAccountSecurity(fn() => createCalendarSubscription($conn, $otherId, 'Denied proxy fixture'), 'Member proxy issued a calendar token');
+    rejectedAccountSecurity(fn() => generateMattermostLinkCode($conn, $otherId), 'Member proxy issued a Mattermost link code');
+    rejectedAccountSecurity(fn() => redeemMattermostLinkCode($conn, $instanceId, $mattermostId, $name, $linkCode['code']), 'Existing member proxy link code could be redeemed');
     echo "Account security integration tests passed.\n";
 } finally {
     if ($otherId > 0) $conn->query("DELETE FROM users WHERE id = $otherId");

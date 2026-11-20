@@ -2344,7 +2344,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "6695edb322f103d99948317f2c091c202e35aca5085f27c10612098f03c702f4",
+      "sha256": "3c4a729995ba66a5606137e77734d9190f15fe83a8f082d621e113623482a6a2",
       "controls": [
         {
           "kind": "a",
@@ -2630,7 +2630,7 @@
       ]
     },
     "mattermost.php": {
-      "sha256": "a7827d3b56614f5c0db972a1c4c5064ac0aa49305e701e7018cd429f3f3d587a",
+      "sha256": "69d3e327aeff24db03b6989465938fb7ce705d9816bd56b2927531cb4c8d25dc",
       "controls": [
         {
           "kind": "h1",
@@ -4440,7 +4440,7 @@
       ]
     },
     "view_calendar.php": {
-      "sha256": "f17ed82a2c9a78180b4778f01144f834e45de8b8956e2669e65245819f466583",
+      "sha256": "82b40679751339d1ebd5e1848eb6bc351c33938a9e4e584a5dde3ed8f2f6e63b",
       "controls": [
         {
           "kind": "h1",

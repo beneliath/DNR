@@ -446,6 +446,16 @@ try {
             (int) $notification['engagement_id'] === $engagementId
             && $notification['mattermost_user_id'] === $mattermostUserId
     ));
+    $linkParams = ['primary', $mattermostUserId];
+    $linkedAt = $conn->execute_query('SELECT linked_at FROM mattermost_user_links WHERE instance_id=? AND mattermost_user_id=?', $linkParams)->fetch_row()[0];
+    $conn->execute_query('UPDATE mattermost_user_links SET linked_at=UTC_TIMESTAMP(6)+INTERVAL 1 SECOND
+        WHERE instance_id=? AND mattermost_user_id=?', $linkParams);
+    try {
+        $pendingUsers = array_column(mattermostPendingReplyNotifications($conn, 'primary'), 'mattermost_user_id');
+        expectInboundIntegration(!in_array($mattermostUserId, $pendingUsers, true), 'A newly linked identity cannot receive a notification queued for a previous link.');
+    } finally {
+        $conn->execute_query('UPDATE mattermost_user_links SET linked_at=? WHERE instance_id=? AND mattermost_user_id=?', [$linkedAt, ...$linkParams]);
+    }
     expectInboundIntegration(
         count($matchingReplyNotifications) === 1
             && $matchingReplyNotifications[0]['sender_address'] === $contactEmail

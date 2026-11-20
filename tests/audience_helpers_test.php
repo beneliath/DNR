@@ -29,6 +29,9 @@ audienceExpect(!str_contains($where, $attack) && in_array($attack, $params, true
 audienceReject(fn() => audienceFilters(['tag' => ['bad']]));
 audienceReject(fn() => audienceFilters(['status' => 'unknown']));
 foreach (['=1+1', "\t=HYPERLINK(\"bad\")", '+1', '-1', '@SUM(1)'] as $cell) audienceExpect(str_starts_with(audienceCsvCell($cell), "'"), 'CSV formulas must be neutralized.');
+foreach (["  =1+1", "\u{FEFF}=1+1", "\u{00A0}+1", '＝1+1', "\rText"] as $cell) {
+    audienceExpect(audienceCsvCell($cell) === "'" . $cell, 'CSV text retains its value after escaping leading whitespace, controls, or full-width formula prefixes.');
+}
 audienceExpect(audienceCsvCell('connection@example.com') === 'connection@example.com', 'Normal export values should be unchanged.');
 echo "Audience validation, consent, suppression, filters, and CSV tests passed.\n";
 

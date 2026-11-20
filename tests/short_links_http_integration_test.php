@@ -216,6 +216,20 @@ try{
  updateShortLink($conn,(int)$web['id'],1,'https://example.com/new',false);
  expectLinkHttp($request('surls/'.$web['code'])['status']===410,'Disabled links return 410');
  expectLinkHttp($count()===1,'Disabled links do not record visits');
+ $knownReferrer='fixture-0.example.test';
+ expectLinkHttp($request('surls/'.$missingCode,null,'',['Referer: https://'.$knownReferrer.'/'])['status']===302,'A visit records its initial breakdown');
+ $seed=$conn->execute_query('SELECT visit_hour,browser,os,country FROM short_link_stats WHERE link_id=?',[$missingId])->fetch_assoc();
+ for($i=1;$i<512;$i++){
+  $conn->execute_query('INSERT INTO short_link_stats(link_id,visit_hour,browser,os,country,referrer) VALUES (?,?,?,?,?,?)',[$missingId,...array_values($seed),'fixture-'.$i.'.example.test']);
+ }
+ foreach([$knownReferrer,'another.example.test','different.example.test'] as $referrer){
+  expectLinkHttp($request('surls/'.$missingCode,null,'',['Referer: https://'.$referrer.'/'])['status']===302,'A full analytics budget leaves redirects available');
+ }
+ $cappedStats=$conn->execute_query("SELECT COUNT(*) AS buckets,SUM(visits) AS total,
+   SUM(IF(browser='Unclassified',visits,0)) AS overflow,SUM(IF(referrer=?,visits,0)) AS known
+   FROM short_link_stats WHERE link_id=? AND visit_hour=?",[$knownReferrer,$missingId,$seed['visit_hour']])->fetch_assoc();
+ expectLinkHttp((int)$cappedStats['buckets']===513&&(int)$cappedStats['total']===515&&(int)$cappedStats['overflow']===2&&(int)$cappedStats['known']===2,
+   'A link hour retains 512 detailed buckets and one overflow bucket while counting all visits');
 }finally{
  $conn->query("DELETE FROM engagements WHERE id=$event");$conn->query("DELETE FROM organizations WHERE id=$org");foreach($userIds as$uid)$conn->query("DELETE FROM users WHERE id=$uid");
  foreach($sessionIds as$id){if(session_status()===PHP_SESSION_ACTIVE)session_write_close();session_id($id);session_start();session_destroy();}
