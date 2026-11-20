@@ -4,9 +4,14 @@ body {
     margin: 0;
     padding: 48px 0;
     background: radial-gradient(ellipse at top, #ffffffb8, transparent 70%), var(--collection-background);
+    background-repeat: no-repeat;
     color: var(--collection-text);
     font: 16px/1.6 var(--collection-font), sans-serif;
     -webkit-text-size-adjust: 100%;
+}
+body:not(.collection-embedded) {
+    min-height: 100vh;
+    min-height: 100dvh;
 }
 main {
     width: calc(100% - 40px);
