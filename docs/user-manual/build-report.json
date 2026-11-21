@@ -1,6 +1,6 @@
 {
-  "version": "2.11.24",
-  "edition_date": "November 18, 2026",
+  "version": "2.11.30",
+  "edition_date": "November 21, 2026",
   "pages": 197,
   "screenshots": 120,
   "chapters": 14,
@@ -15,7 +15,7 @@
     "topic-1-open-your-account": 4,
     "topic-1-a-practical-first-session": 4,
     "topic-1-learn-with-ai-coach": 4,
-    "topic-1-follow-an-interactive-walkthrough": 4,
+    "topic-1-follow-an-interactive-walkthrough": 5,
     "topic-1-manage-the-coach-conversation": 5,
     "topic-1-rate-an-answer-and-report-a-missing-control": 5,
     "topic-1-find-a-topic-in-this-manual": 5,
@@ -533,7 +533,7 @@
     "__total__": 197
   },
   "outline_entries": 404,
-  "edition_scope": "Application release 2.11.24",
+  "edition_scope": "Application release 2.11.30",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -1134,8 +1134,8 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "91885b4a8f1f70fc10186d9b135b836055cfba8dc9af8f216f56d204de1b8b48",
-    "bytes": 116582,
+    "sha256": "bc2484ba1c70d3a02c5805bcd2f27cd517711da35738d050b18d5743647c590d",
+    "bytes": 116891,
     "start_page": 170,
     "sections": 62,
     "attachment": "README.md"

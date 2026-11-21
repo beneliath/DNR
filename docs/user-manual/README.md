@@ -54,7 +54,8 @@ transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
 
-The November 18, 2026 edition applies to application version **2.11.24**.
+The November 21, 2026 edition applies to application version **2.11.30**.
+The My Profile figure shows Account Security, Mattermost, and Calendar Subscriptions in the page header.
 The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
 Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
 Refreshed screenshots show Scheduled lifecycle wording and the current list controls.

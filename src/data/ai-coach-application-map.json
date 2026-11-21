@@ -2853,11 +2853,26 @@
       ]
     },
     "profile.php": {
-      "sha256": "c89b958bb301be1a07b83dbb24f529a6b181a312a4df3ea080e30932689281af",
+      "sha256": "8ffa6d7bbf8f67a446984f09d838a5af67baefe0309621353df97055552a1e87",
       "controls": [
         {
           "kind": "h1",
           "label": "My Profile"
+        },
+        {
+          "kind": "a",
+          "label": "Account Security",
+          "href": "two_factor_settings.php"
+        },
+        {
+          "kind": "a",
+          "label": "Mattermost",
+          "href": "mattermost.php"
+        },
+        {
+          "kind": "a",
+          "label": "Calendar Subscriptions",
+          "href": "view_calendar.php#calendar-subscriptions-title"
         },
         {
           "kind": "h2",

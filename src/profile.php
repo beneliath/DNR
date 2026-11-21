@@ -8,6 +8,7 @@ require_once __DIR__ . '/account_email_change_helpers.php';
 startSecureSession();
 requireLogin();
 $account_security_access = accountSecurityAccessAllowed();
+$account_mattermost_access = accountMattermostAccessAllowed();
 
 $user_id = (int) $_SESSION['user_id'];
 
@@ -354,7 +355,21 @@ $task_digest_day_options = [
 <body class="profile-page">
 <?php include 'templates/header.php'; ?>
 <main class="container profile-container">
-    <div class="page-heading profile-heading"><div><h1>My Profile</h1><p class="page-intro">Manage your personal details and profile picture.</p></div></div>
+    <div class="page-heading profile-heading">
+        <div>
+            <h1>My Profile</h1>
+            <p class="page-intro">Manage your personal details and profile picture.</p>
+        </div>
+        <div class="page-heading-actions">
+            <?php if ($account_security_access): ?>
+                <a href="two_factor_settings.php" class="button-secondary">Account Security</a>
+            <?php endif; ?>
+            <?php if ($account_mattermost_access): ?>
+                <a href="mattermost.php" class="button-secondary">Mattermost</a>
+            <?php endif; ?>
+            <a href="view_calendar.php#calendar-subscriptions-title" class="button-secondary">Calendar Subscriptions</a>
+        </div>
+    </div>
 
     <?php if (isset($error)): ?>
         <?php echo formErrorSummary($error); ?>

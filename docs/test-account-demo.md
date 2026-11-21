@@ -19,7 +19,7 @@ changes/verification are blocked in this Account. Authentication MFA challenges
 still apply to users outside the three pinned demo exceptions. Account Settings
 remains hidden and forbidden for TestAdmin, including direct GET/POST requests.
 The operator's SuperAdmin login remains available with its existing MFA.
-Mattermost is hidden in the Test Account sidebar for every user, including linked
+Mattermost is hidden on My Profile for every Test Account user, including linked
 SuperAdmins. Direct page GET/POST and integration API access are also forbidden.
 Other Accounts retain their normal Mattermost access.
 

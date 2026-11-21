@@ -39,10 +39,28 @@ def assert_security_denied(client, password, user_id, check_profile=True):
         assert response[0] == 403 and json.loads(response[2])['code'] == 'account_unavailable', 'Mattermost API allowed Test Account access'
     if check_profile:
         profile = client.request('profile.php')
-        assert profile[0] == 200 and 'id="recovery-email-heading"' not in profile[2], 'Recovery email controls appeared'
+        assert profile[0] == 200, 'Test Account profile failed to load'
+        assert 'href="two_factor_settings.php"' not in profile[2], 'Account Security appeared on Test Account profile'
+        assert 'href="mattermost.php"' not in profile[2], 'Mattermost appeared on Test Account profile'
+        assert 'id="recovery-email-heading"' not in profile[2], 'Recovery email controls appeared'
         for action in ['change_email', 'cancel_email_change', 'resend_verification']:
             assert client.request('profile.php', dict(fields, action=action))[0] == 403, 'Profile security mutation allowed: ' + action
     assert php(digest, {'id': user_id}) == before, 'Blocked security requests modified the user'
+
+
+def assert_profile_navigation(client, dashboard):
+    assert dashboard[0] == 200, 'Dashboard failed to load'
+    profile = client.request('profile.php')
+    assert profile[0] == 200, 'Profile failed to load'
+    _, actions_start, actions_markup = profile[2].partition('<div class="page-heading-actions">')
+    assert actions_start, 'Profile header actions missing'
+    actions = actions_markup.partition('</div>')[0]
+    assert 'href="view_calendar.php#calendar-subscriptions-title"' in actions, 'Calendar Subscriptions shortcut missing'
+    for route in ('two_factor_settings.php', 'mattermost.php'):
+        link = f'href="{route}"'
+        assert link not in dashboard[2], f'{route} appeared in sidebar'
+        assert link in actions, f'{route} missing from profile header'
+        assert client.request(route)[0] == 200, f'{route} access regressed'
 
 
 def main():
@@ -65,9 +83,7 @@ def main():
         primary_client = Client('http://localhost:8080/a/shalom-in-messiah')
         primary_client.login(operator)
         dashboard = primary_client.request('dashboard.php')
-        assert 'href="two_factor_settings.php"' in dashboard[2], 'Primary lost the security menu'
-        assert primary_client.request('two_factor_settings.php')[0] == 200, 'Primary SuperAdmin security access regressed'
-        assert 'href="mattermost.php"' in dashboard[2] and primary_client.request('mattermost.php')[0] == 200, 'Primary Mattermost access regressed'
+        assert_profile_navigation(primary_client, dashboard)
         switch = primary_client.request('accounts.php', {'csrf_token': csrf(dashboard[2]),
                                                        'action': 'switch', 'account_key': 'test-account'})
         assert switch[0] == 302 and '/account_signin.php?ticket=' in switch[1].get('Location', '')
@@ -79,9 +95,7 @@ def main():
         for user in other['users'].values():
             client = Client('http://localhost:8080/a/account-isolation-preview')
             client.login(user)
-            assert 'href="two_factor_settings.php"' in client.request('dashboard.php')[2], 'Other Account lost security menu'
-            assert client.request('two_factor_settings.php')[0] == 200, 'Other Account security access regressed'
-            assert 'href="mattermost.php"' in client.request('dashboard.php')[2] and client.request('mattermost.php')[0] == 200, 'Other Account Mattermost access regressed'
+            assert_profile_navigation(client, client.request('dashboard.php'))
 
         anonymous = Client('http://localhost:8080/a/test-account')
         for route in ['setup_2fa.php', 'recover_password.php', 'verify_email.php']:

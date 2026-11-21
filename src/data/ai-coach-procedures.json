@@ -568,13 +568,14 @@
         "reviewer"
       ],
       "steps": [
-        "Sign in directly to the Account, open Calendar, and find Create Subscription. Enter Device or Service and choose the content to include.",
+        "Sign in directly to the Account. Select Calendar Subscriptions in My Profile, or open Calendar from Schedule in the sidebar and find Create Subscription. Enter Device or Service and choose the content to include.",
         "Select Create Private Link. The Save This New Link section appears after creation.",
         "Copy its one-time private URL into your calendar app as a subscribed calendar. Keep it private; it grants access to the selected content."
       ],
       "on_pages": {},
       "source_files": {
-        "view_calendar.php": "82b40679751339d1ebd5e1848eb6bc351c33938a9e4e584a5dde3ed8f2f6e63b"
+        "view_calendar.php": "82b40679751339d1ebd5e1848eb6bc351c33938a9e4e584a5dde3ed8f2f6e63b",
+        "profile.php": "8ffa6d7bbf8f67a446984f09d838a5af67baefe0309621353df97055552a1e87"
       },
       "subjects": [
         "calendar",
@@ -935,13 +936,14 @@
         "reviewer"
       ],
       "steps": [
-        "Account Security is unavailable in Test Account, where demo credentials are managed by the operator. In other accounts, open Account Security in the sidebar and find Change Password.",
+        "Account Security is unavailable in Test Account, where demo credentials are managed by the operator. In other accounts, open My Profile from your name in the sidebar, select Account Security in the profile header, and find Change Password.",
         "Enter Current Password, New Password, and Confirm New Password. Use 12 or more characters, no more than 72 UTF-8 bytes. Do not put passwords in the coach.",
         "Select Change Password. Check the confirmation; other sessions will be signed out. If MOED requests recent two-factor verification, sign in again first."
       ],
       "source_files": {
         "two_factor_settings.php": "7f1ba88a7867ba359ab0b7a9ff9ea7740ba9368bc1f1839b5c5a27b1b83e2ed0",
-        "templates/header.php": "d755047beb66f1ad976a127f8b4ea1cc9f4d7e3733c831a7fcb627c99edab583",
+        "templates/header.php": "80d225c5c3500ec145026cd58b00769bc23e86c2fe0a8d62b614a7c9408a0576",
+        "profile.php": "8ffa6d7bbf8f67a446984f09d838a5af67baefe0309621353df97055552a1e87",
         "templates/deployment-notice.php": "985aee2d55a646d05733893b93cc3e6e4d4782955568730128191e8ac9b0e6cc"
       },
       "subjects": [
@@ -1232,7 +1234,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "profile.php": "c89b958bb301be1a07b83dbb24f529a6b181a312a4df3ea080e30932689281af"
+        "profile.php": "8ffa6d7bbf8f67a446984f09d838a5af67baefe0309621353df97055552a1e87"
       },
       "subjects": [
         "reviewer",

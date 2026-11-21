@@ -1943,7 +1943,7 @@
     "title": "Private calendar subscriptions",
     "route": "view_calendar.php",
     "steps": [
-      "Name each device or service, and choose Events, Presentations, My Active Work, All Active Work, and/or Birthdays (from Contacts).",
+      "Select Calendar Subscriptions on My Profile. Name the device or service, then choose the content to include.",
       "Create the link, copy its private URL immediately, and add it in the calendar application as a subscribed calendar.",
       "Treat the URL as an access credential for its selected content, including task information when work is selected.",
       "Revoke one device link when no longer needed; purge revoked records separately."
@@ -1980,32 +1980,35 @@
     "route": "profile.php",
     "steps": [
       "Open My Profile from your name at the bottom of the sidebar. Update your name, phone, or optional picture.",
+      "Select Account Security in the profile header to manage your password, authenticator, and recovery codes.",
+      "Select Mattermost next to Account Security to manage linked Mattermost accounts.",
+      "Select Calendar Subscriptions to manage private calendar links. Calendar is highlighted in the sidebar.",
       "Use JPEG, PNG, or WebP for a photo, then review the crop before saving. The maximum upload is 5 MB.",
       "The recovery email is displayed here. Use the separate Change Recovery Email form to verify a new address.",
       "Scroll to Notifications to choose Daily Digest delivery time and days, then select Save Changes."
     ],
     "file": "screenshots/profile.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-21",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 948
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
-        4577,
-        3852
+        6027,
+        4296
       ],
-      "sha256": "02fddd7a37158db6ac84fdde22ed3222ae28f1a8bf6d1953286669abd239b040"
+      "sha256": "8004b8270ffd21978ab10753a3910dac9a8a58b890551b1dbdb3c2c9861150dd"
     }
   },
   {

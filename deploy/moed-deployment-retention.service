@@ -1,0 +1,12 @@
+[Unit]
+Description=Archive and retire expired MOED deployment backups
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+TimeoutStartSec=3h
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -B %h/.local/lib/moed-deployment-retention/v1/deployment_retention.py --apply

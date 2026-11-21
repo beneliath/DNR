@@ -182,8 +182,8 @@ $header = $read('src/templates/header.php');
 expectUserProfile(
     str_contains($header, 'href="profile.php" class="sidebar-account-link')
         && str_contains($header, 'src="profile_picture.php?v=')
-        && str_contains($header, "'profile' => ['profile.php']"),
-    'the account block at the bottom of the sidebar should open and identify the active profile page.'
+        && str_contains($header, 'aria-label="Open Profile for '),
+    'the account block at the bottom of the sidebar should open My Profile and identify the signed-in user.'
 );
 
 $migration = $read('migrations/20260818_add_user_profiles.sql');
