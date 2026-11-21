@@ -3,7 +3,7 @@ import {setConditionalField} from './form-fields.mjs';
 export function initializeEngagementForm() {
     const form = document.querySelector('.engagement-form, #engagement-edit-form, .inquiry-form, [data-chron-form]');
     if (!form) return;
-    if (form.id === 'new-engagement-form') initializeOrganizationAddress();
+    initializeOrganizationAddress();
     const startDate = document.getElementById('event_start_date');
     const endDate = document.getElementById('event_end_date');
     if (form.id === 'new-engagement-form' && startDate && endDate) {
@@ -109,7 +109,8 @@ function initializeOrganizationAddress() {
     const option = document.getElementById('organization-address-option');
     const button = document.getElementById('use-organization-address');
     const status = document.getElementById('organization-address-status');
-    if (!organization || !option || !button || !status) return;
+    const confirmation = document.getElementById('organization-address-confirmation');
+    if (!organization || !option || !button || !status || !confirmation) return;
 
     // Set country first because its change handler switches the active state control.
     const fields = ['event_country', 'event_address_line_1', 'event_address_line_2', 'event_city', 'event_state', 'event_zipcode'];
@@ -121,12 +122,26 @@ function initializeOrganizationAddress() {
         option.hidden = !organization.value || Boolean(organization.selectedOptions[0]?.disabled);
         button.disabled = false;
         status.textContent = '';
+        if (confirmation.open) confirmation.close();
     }
 
     organization.addEventListener('change', updateOption);
     updateOption();
 
-    button.addEventListener('click', async function () {
+    button.addEventListener('click', function () {
+        const hasLocation = fields.some(name => name !== 'event_country' && controlFor(name).value.trim() !== '');
+        if (hasLocation) confirmation.showModal();
+        else copyOrganizationAddress();
+    });
+    confirmation.querySelector('[data-cancel-organization-address]').addEventListener('click', function () {
+        confirmation.close();
+    });
+    confirmation.querySelector('[data-confirm-organization-address]').addEventListener('click', function () {
+        confirmation.close();
+        copyOrganizationAddress();
+    });
+
+    async function copyOrganizationAddress() {
         const request = new AbortController();
         controller = request;
         const selectedOrganization = organization.value;
@@ -167,5 +182,5 @@ function initializeOrganizationAddress() {
         } finally {
             if (!request.signal.aborted) button.disabled = false;
         }
-    });
+    }
 }

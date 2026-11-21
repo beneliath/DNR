@@ -1432,7 +1432,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "7cee8287d8755618cd9fc41d518a71e6345898c2683e3cfef120b97eabd78f7e",
+      "sha256": "89a41ef5379a7b2ba345229de850914ff6f8fcd1782fc2f7b991d36618189109",
       "controls": [
         {
           "kind": "a",
@@ -1535,6 +1535,11 @@
         {
           "kind": "h2",
           "label": "Event Location"
+        },
+        {
+          "kind": "button",
+          "label": "Use Organization Address",
+          "id": "use-organization-address"
         },
         {
           "kind": "label",
@@ -2189,7 +2194,7 @@
       ]
     },
     "index.php": {
-      "sha256": "5b2d4d82c3431b68760924b4a733ed8f5a87a28b3acda74eaacb654abe38c300",
+      "sha256": "90546f69f3fe9ab338371f8aaec841d18bf9566234427f5beb1f37f9de0f5387",
       "controls": [
         {
           "kind": "a",

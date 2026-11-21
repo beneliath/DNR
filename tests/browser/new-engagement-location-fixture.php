@@ -1,6 +1,7 @@
 <?php
 // Render the real organization and location controls with synthetic records.
 require_once __DIR__ . '/../../src/functions.php';
+set_include_path(__DIR__ . '/../../src' . PATH_SEPARATOR . get_include_path());
 
 $source = file_get_contents(__DIR__ . '/../../src/index.php');
 $organization_start = strpos($source, '<div class="organization-container">');

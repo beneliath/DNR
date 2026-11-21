@@ -32,12 +32,14 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
             let pendingAddress;
             let holdAddress = false;
             let failAddress = false;
+            let addressRequests = 0;
             await page.route('https://engagement.test/**', async route => {
                 const url = new URL(route.request().url());
                 if (url.pathname === '/index.php') {
                     return route.fulfill({contentType: 'text/html', body: fixture(url.searchParams.get('created_organization_id') || '')});
                 }
                 if (url.pathname === '/organization_address.php') {
+                    addressRequests += 1;
                     if (holdAddress) { pendingAddress = route; return; }
                     if (failAddress) return route.fulfill({status: 503, json: {error: 'Unavailable'}});
                     return route.fulfill({json: addressPayload(url.searchParams.get('organization_id'))});
@@ -53,18 +55,36 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
             const button = page.getByRole('button', {name: 'Use Organization Address', exact: true});
             const organization = page.locator('#organization_id');
             const status = page.locator('#organization-address-status');
-            const copy = async () => {
+            const confirmation = page.getByRole('dialog', {name: 'Replace Event Location?', exact: true});
+            const startCopy = async (confirm = true) => {
                 await button.click();
+                assert.equal(await confirmation.isVisible(), confirm);
+                if (confirm) await confirmation.getByRole('button', {name: 'Replace Event Location', exact: true}).click();
+            };
+            const copy = async (confirm = true) => {
+                await startCopy(confirm);
                 await page.waitForFunction(() => document.getElementById('organization-address-status').textContent.startsWith('Organization address copied.'));
             };
             assert.equal(await button.isVisible(), false);
             await organization.selectOption('1');
             assert.equal(await button.isVisible(), true);
             assert.equal((await values(page))[0], '', 'Selecting an organization requires an explicit copy action');
-            await copy();
+            await copy(false);
             assert.deepEqual(await values(page), addresses[1]);
             assert.equal(await page.locator('.address-region-label').textContent(), 'Illinois');
             await page.locator('#event_address_line_1').fill('Custom venue');
+            const customLocation = await values(page);
+            await button.click();
+            assert.equal(await confirmation.isVisible(), true);
+            assert.equal(await confirmation.getByRole('button', {name: 'Cancel', exact: true}).evaluate(element => element === document.activeElement), true);
+            await confirmation.getByRole('button', {name: 'Cancel', exact: true}).click();
+            assert.deepEqual(await values(page), customLocation, 'Cancel preserves unsaved event location edits');
+            assert.equal(addressRequests, 1, 'Cancel does not request an address');
+            await button.click();
+            await page.keyboard.press('Escape');
+            await confirmation.waitFor({state: 'hidden'});
+            assert.deepEqual(await values(page), customLocation, 'Escape dismisses confirmation without replacing the location');
+            assert.equal(addressRequests, 1);
             await organization.selectOption('2');
             assert.equal((await values(page))[0], 'Custom venue', 'Changing organizations preserves the event location');
             await copy();
@@ -75,13 +95,13 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
             await copy();
             assert.deepEqual(await values(page), addresses[3], 'Free-text regions are copied into the enabled state field');
             await organization.selectOption('4');
-            await button.click();
+            await startCopy();
             await page.waitForFunction(() => document.getElementById('organization-address-status').textContent.includes('no saved physical address'));
             assert.deepEqual(await values(page), addresses[3], 'An empty organization address preserves the existing location');
 
             await organization.selectOption('1');
             failAddress = true;
-            await button.click();
+            await startCopy();
             await page.waitForFunction(() => document.getElementById('organization-address-status').textContent.includes('could not be loaded'));
             assert.equal(await button.isEnabled(), true);
             assert.deepEqual(await values(page), addresses[3]);
@@ -91,7 +111,7 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
 
             holdAddress = true;
             const loading = page.waitForRequest('**/organization_address.php?organization_id=1');
-            await button.click();
+            await startCopy();
             await loading;
             await page.locator('#event_city').fill('User edit while loading');
             await pendingAddress.fulfill({json: addressPayload(1)});
@@ -99,7 +119,7 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
             assert.equal((await values(page))[2], 'User edit while loading');
 
             const staleLoading = page.waitForRequest('**/organization_address.php?organization_id=1');
-            await button.click();
+            await startCopy();
             await staleLoading;
             const staleRequest = pendingAddress;
             await organization.selectOption('2');
@@ -124,7 +144,7 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
 
             await page.goto('https://engagement.test/index.php?created_organization_id=2');
             assert.equal(await button.isVisible(), true, 'An organization preselected after creation exposes the action');
-            await copy();
+            await copy(false);
             assert.deepEqual(await values(page), addresses[2]);
             const bounds = await page.locator('.engagement-location-section').boundingBox();
             const action = await button.boundingBox();
