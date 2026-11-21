@@ -23,6 +23,18 @@
     font-size: 1.14rem;
 }
 
+#organization-address-option {
+    margin-bottom: 18px;
+}
+
+#organization-address-status {
+    margin: 8px 0 0;
+}
+
+#organization-address-status:empty {
+    margin: 0;
+}
+
 .engagement-form .presentation-entry-banner {
     border-bottom: 0;
 }

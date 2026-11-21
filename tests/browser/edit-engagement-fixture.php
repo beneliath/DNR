@@ -51,7 +51,10 @@ $engagement = [
     'event_country' => 'US',
 ];
 $selected_engagement_organization_id = 1;
-$engagement_organization_options = [['id' => 1, 'organization_name' => 'Fixture organization']];
+$engagement_organization_options = [
+    ['id' => 1, 'organization_name' => 'Fixture organization'],
+    ['id' => 2, 'organization_name' => 'Canadian organization'],
+];
 $organization_contacts = $engagement_added_contacts = $engagement_new_contact_rows = [];
 $engagement_contact_role_options = engagementContactRoles();
 $conn = new class {

@@ -33,6 +33,58 @@ async function verifyPresentationDraft(page) {
     assert.deepEqual(times, ['07:30 PM', '08:45 AM']);
 }
 
+async function verifyOrganizationAddress(page) {
+    const fields = ['event_address_line_1', 'event_address_line_2', 'event_city', 'event_state', 'event_zipcode', 'event_country'];
+    const addresses = {
+        1: ['123 Main Street', 'Suite 2', 'Chicago', 'IL', '60601', 'US'],
+        2: ['456 King Street', '', 'Toronto', 'ON', 'M5V 2T6', 'CA'],
+    };
+    await page.route('**/organization_address.php?*', route => {
+        const id = new URL(route.request().url()).searchParams.get('organization_id');
+        return route.fulfill({json: {address: Object.fromEntries(fields.map((field, index) => [field, addresses[id][index]]))}});
+    });
+    await page.goto('https://engagement.test/edit_engagement.php?draft');
+    const values = () => page.locator('#engagement-edit-form').evaluate((form, names) => {
+        const data = new FormData(form);
+        return names.map(name => data.get(name));
+    }, fields);
+    const button = page.getByRole('button', {name: 'Use Organization Address', exact: true});
+    const confirmation = page.getByRole('dialog', {name: 'Replace Event Location?', exact: true});
+    const save = page.getByRole('button', {name: 'Save Changes', exact: true});
+    const copy = async () => {
+        await button.click();
+        assert.equal(await confirmation.isVisible(), true);
+        await confirmation.getByRole('button', {name: 'Replace Event Location', exact: true}).click();
+        await page.waitForFunction(() => document.getElementById('organization-address-status').textContent.startsWith('Organization address copied.'));
+    };
+    assert.equal(await button.isVisible(), true, 'The saved organization exposes its address action on load');
+    assert.deepEqual(await values(), ['', '', 'Washington', 'DC', '', 'US'], 'The saved event location stays intact until the user requests a copy');
+    assert.equal(await save.getAttribute('data-unsaved-changes'), null);
+    await button.click();
+    assert.equal(await confirmation.isVisible(), true, 'Replacing an existing saved location requires confirmation');
+    await confirmation.getByRole('button', {name: 'Cancel', exact: true}).click();
+    assert.deepEqual(await values(), ['', '', 'Washington', 'DC', '', 'US'], 'Cancel preserves the saved event location');
+    assert.equal(await save.getAttribute('data-unsaved-changes'), null, 'Cancel leaves the edit form clean');
+    await copy();
+    assert.deepEqual(await values(), addresses[1]);
+    assert.equal(await page.locator('.address-region-label').textContent(), 'Illinois');
+    await page.waitForFunction(() => document.querySelector('[name=save_engagement]').hasAttribute('data-unsaved-changes'));
+    await page.locator('#event_city').fill('Custom event city');
+    await page.locator('#organization_id').selectOption('2');
+    assert.equal((await values())[2], 'Custom event city', 'Selecting another organization preserves manual location edits');
+    await copy();
+    assert.deepEqual(await values(), addresses[2], 'Copying replaces all six saved fields, including an empty second address line');
+    assert.equal(await page.locator('.address-region-label').textContent(), 'Ontario');
+    assert.equal(await page.locator('[data-address-country-label]').textContent(), 'Canada');
+    const pane = await page.locator('.engagement-location-section').boundingBox();
+    const action = await button.boundingBox();
+    assert.ok(action.x >= pane.x && action.x + action.width <= pane.x + pane.width, 'The address action fits the edit pane');
+    await page.getByRole('button', {name: 'Save Draft', exact: true}).click();
+    await page.reload();
+    await page.getByRole('button', {name: 'Restore Draft', exact: true}).click();
+    assert.deepEqual(await values(), addresses[2], 'Copied event locations survive edit draft recovery');
+}
+
 async function verifyForm(page, width) {
     await page.setViewportSize({width, height: 800});
     await page.goto('https://engagement.test/edit_engagement.php');
@@ -236,6 +288,7 @@ async function verifyForm(page, width) {
             });
             await verifyForm(page, width);
             await verifyPresentationDraft(page);
+            await verifyOrganizationAddress(page);
             await page.close();
         }
         console.log('Edit Engagement desktop and mobile browser checks passed.');

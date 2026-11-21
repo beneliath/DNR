@@ -540,6 +540,7 @@ try {
                 <button type="button" class="button-secondary" id="use-organization-address" aria-describedby="organization-address-status">Use Organization Address</button>
                 <p class="field-help" id="organization-address-status" role="status"></p>
             </div>
+            <?php include 'templates/organization_address_confirmation.php'; ?>
             <div class="address-fields">
                 <div class="event-address-lines">
                     <div class="form-field">
