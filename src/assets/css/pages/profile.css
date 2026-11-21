@@ -9,6 +9,14 @@
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
 
+.profile-heading .page-heading-actions {
+    flex-direction: row;
+}
+
+.profile-heading .page-heading-actions > a {
+    width: auto !important;
+}
+
 .profile-page .profile-form {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.15rem;

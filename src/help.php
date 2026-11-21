@@ -123,7 +123,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-card-number">3</span>
                         <h3>Open Your Account</h3>
-                        <p>Select your fixed name and picture block to edit your profile, or its adjacent sign-out icon to log out. <strong>Account Security</strong>, <strong>User Manual</strong>, Mattermost, and the theme switch are in the lower part of the scrollable menu.</p>
+                        <p>Select your fixed name and picture block to open <strong>My Profile</strong>, or its adjacent sign-out icon to log out. The My Profile header contains <strong>Account Security</strong>, <strong>Mattermost</strong>, and <strong>Calendar Subscriptions</strong>. The profile tile stays highlighted on the first two pages. <strong>Calendar Subscriptions</strong> opens the subscriptions section with <strong>Calendar</strong> selected in the sidebar. <strong>User Manual</strong> and the theme switch are in the lower part of the scrollable menu.</p>
                     </article>
                 </section>
 
@@ -750,9 +750,10 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
+                        <p>Select <strong>Calendar Subscriptions</strong> in <strong>My Profile</strong> to jump to the subscriptions section on the Calendar page.</p>
                         <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. Choose Events, Presentations, My Active Work, All Active Work, and/or Birthdays (from Contacts) for each link. All Active Work includes everyone’s due-dated active tasks and disables My Active Work. Events, Presentations, and Birthdays are selected by default.</p>
                         <p>Revoke one link without affecting the others. Revoked token records can be purged. Share a subscription URL only with the intended device or calendar service: it grants access to the selected schedule, task titles, and contact birthday names. Internal Chron, travel, lodging, and compensation are excluded.</p>
-                        <a href="view_calendar.php" class="manual-inline-link">Manage Calendar Links</a>
+                        <a href="view_calendar.php#calendar-subscriptions-title" class="manual-inline-link">Manage Calendar Links</a>
                     </article>
                 </section>
 
@@ -809,7 +810,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                     <article class="manual-card">
                         <h3>Password Rules</h3>
-                        <p>To change your own password, open <strong>Account Security</strong> in the sidebar, then find <strong>Change Password</strong>. Enter <strong>Current Password</strong>, <strong>New Password</strong>, and <strong>Confirm New Password</strong>, then select <strong>Change Password</strong>. Use at least 12 characters and no more than 72 UTF-8 bytes. Other sessions are signed out. If prompted, sign in with two-factor authentication again. The <strong>Change Recovery Email</strong> form on My Profile changes the recovery address, not your password. A temporary password must be replaced before using other areas.</p>
+                        <p>To change your own password, open <strong>My Profile</strong>, select <strong>Account Security</strong> in the upper right, then find <strong>Change Password</strong>. Enter <strong>Current Password</strong>, <strong>New Password</strong>, and <strong>Confirm New Password</strong>, then select <strong>Change Password</strong>. Use at least 12 characters and no more than 72 UTF-8 bytes. Other sessions are signed out. If prompted, sign in with two-factor authentication again. The <strong>Change Recovery Email</strong> form on My Profile changes the recovery address, not your password. A temporary password must be replaced before using other areas.</p>
                         <a href="two_factor_settings.php" class="manual-inline-link">Open Account Security</a>
                     </article>
                 </section>
@@ -848,7 +849,7 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">◇</span>
                     <div class="manual-callout-body">
                         <h3>Link Your Account First</h3>
-                        <p>Open <a href="mattermost.php">Mattermost</a> in MOED and generate a one-time code. The code is shown once, expires after 10 minutes, and becomes invalid after use. In Mattermost, run <code>/moed connect CODE</code>. Command responses are private to you. Never paste the code into an ordinary channel message.</p>
+                        <p>In MOED, open <a href="profile.php">My Profile</a> and select <strong>Mattermost</strong> next to <strong>Account Security</strong> to generate a one-time code. The code is shown once, expires after 10 minutes, and becomes invalid after use. In Mattermost, run <code>/moed connect CODE</code>. Command responses are private to you. Never paste the code into an ordinary channel message.</p>
                     </div>
                 </article>
 
@@ -955,7 +956,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><strong>Private by default:</strong> personal summaries, searches, email forms, delivery results, reply alerts, errors, and action confirmations are visible only to the requesting user. <code>link-event</code> deliberately posts a channel-visible engagement card, including its routing marker and Copy control.</li>
                         <li><strong>MOED is authoritative:</strong> task, Chron, and email actions use MOED's permissions, delivery service, and records. The plugin does not connect to the MOED database or keep a second copy of engagement email.</li>
                         <li><strong>Post actions are scoped:</strong> the plugin verifies that you can read the selected post and obtains the engagement from the channel's link. MOED permits task, Chron, and email actions only for linked editors and administrators.</li>
-                        <li><strong>Remove access:</strong> open <a href="mattermost.php">Mattermost</a> in MOED and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
+                        <li><strong>Remove access:</strong> select <strong>Mattermost</strong> from <a href="profile.php">My Profile</a> and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
                     </ul>
                 </section>
             </section>

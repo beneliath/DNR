@@ -1091,6 +1091,7 @@
       "expected": {
         "procedure": "change-own-password",
         "required_terms": [
+          "My Profile",
           "Account Security",
           "Change Password"
         ],

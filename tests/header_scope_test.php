@@ -268,11 +268,39 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<nav class="utility-navigation"[^>]*>\s*<a href="audience\.php\?view=home"[^>]*>.*?<span>MessageMonkey<\/span>\s*<\/a>\s*<a href="mattermost\.php"[^>]*>.*?<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        '/<nav class="utility-navigation"[^>]*>\s*<a href="audience\.php\?view=home"[^>]*>.*?<span>MessageMonkey<\/span>\s*<\/a>\s*<a href="help\.php"[^>]*>.*?<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
         $header_markup
-    ) === 1,
-    'Utility navigation should open MessageMonkey Home immediately above Mattermost, followed by account security, help, and appearance.'
+    ) === 1
+        && !str_contains($header_markup, 'href="two_factor_settings.php"')
+        && !str_contains($header_markup, 'href="mattermost.php"'),
+    'Utility navigation should list MessageMonkey Home, help, and appearance. Account Security and Mattermost belong on My Profile.'
 );
+expectHeaderScope(
+    str_contains($header_markup, 'class="sidebar-account-link"'),
+    'The profile tile should be inactive outside My Profile.'
+);
+$original_shell_page = $_SERVER['PHP_SELF'];
+foreach (['profile.php', 'two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php', 'mattermost.php'] as $profile_route) {
+    $_SERVER['PHP_SELF'] = '/' . $profile_route;
+    ob_start();
+    include __DIR__ . '/../src/templates/header.php';
+    $profile_header_markup = ob_get_clean();
+    $expected_current = $profile_route === 'profile.php' ? 'page' : 'location';
+    expectHeaderScope(
+        preg_match('/<a href="profile\.php" class="sidebar-account-link active"\s+aria-current="' . $expected_current . '"/', $profile_header_markup) === 1,
+        $profile_route . ' should highlight the sidebar profile tile.'
+    );
+}
+$_SERVER['PHP_SELF'] = '/view_calendar.php';
+ob_start();
+include __DIR__ . '/../src/templates/header.php';
+$calendar_header_markup = ob_get_clean();
+expectHeaderScope(
+    str_contains($calendar_header_markup, 'href="view_calendar.php" class="nav-link active" aria-current="page"')
+        && str_contains($calendar_header_markup, 'href="profile.php" class="sidebar-account-link"'),
+    'Calendar, including its subscription section, should highlight Calendar in the sidebar.'
+);
+$_SERVER['PHP_SELF'] = $original_shell_page;
 
 foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);

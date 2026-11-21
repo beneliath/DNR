@@ -90,6 +90,39 @@ inspection and cleanup. The backup account can delete its own share's files;
 separate NAS snapshots or immutable/off-site copies remain a useful additional
 protection against account compromise and loss of the premises.
 
+## Deployment backup retention on s1
+
+The user systemd timer runs daily at **3:30 a.m. America/Chicago**. It keeps
+14 days of native deployment backups on s1 and leaves sets referenced by an
+open recovery in place. It publishes older sets under
+`MOED_Backups/deployment-retention-v1/backups/` only after reading back and
+hashing every copied file and its exact database image over encrypted SMB3.
+A private local journal lets it retry an interrupted retirement.
+
+The job checks running and stopped containers, retained local and NAS backup
+receipts, and rollback records before pruning any matching local database image.
+Deployment and scheduled snapshot locks cover local removal. The separate
+four-hour snapshot policy continues to manage its own snapshots and replicas.
+
+On s1, check the schedule and the latest run or list candidates without applying
+retention:
+
+```sh
+systemctl --user list-timers moed-deployment-retention.timer
+journalctl --user -u moed-deployment-retention.service -n 50
+python3 -B ~/.local/lib/moed-deployment-retention/v1/deployment_retention.py --check
+```
+
+Every backup's `archive-record.json` identifies its files and database image
+receipt. For an OCI image, copy the receipt's `images/blobs/sha256` objects into
+a separate layout under `blobs/sha256`. Create `oci-layout` with
+`{"imageLayoutVersion":"1.0.0"}` and an `index.json` with
+`schemaVersion: 2` and a `manifests` array containing the receipt's `manifest`
+descriptor. Use its OCI tag with a tool such as Skopeo. An image recorded as
+`docker-save` can be restored with `docker image load -i` using the listed
+archive. In either case, verify the loaded image ID against the backup receipt
+before using the release recovery procedure.
+
 ## Operator checks
 
 On s1:

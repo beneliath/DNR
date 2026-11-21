@@ -10,12 +10,13 @@ function expectUserManual(bool $condition, string $message): void
 
 $manual = file_get_contents(__DIR__ . '/../src/help.php');
 $header = file_get_contents(__DIR__ . '/../src/templates/header.php');
+$profile = file_get_contents(__DIR__ . '/../src/profile.php');
 $styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/help.css');
 $behavior = file_get_contents(__DIR__ . '/../src/assets/js/user-manual.js');
 $package = file_get_contents(__DIR__ . '/../package.json');
 $assetCatalog = file_get_contents(__DIR__ . '/../scripts/frontend-assets.mjs');
 
-foreach ([$manual, $header, $styles, $behavior, $package] as $source) {
+foreach ([$manual, $header, $profile, $styles, $behavior, $package] as $source) {
     expectUserManual(is_string($source), 'all manual source files should be readable.');
 }
 
@@ -68,10 +69,9 @@ foreach ([
     'standard_tasks.php',
     'inbound_mail.php',
     'map.php',
-    'view_calendar.php',
+    'view_calendar.php#calendar-subscriptions-title',
     'profile.php',
     'two_factor_settings.php',
-    'mattermost.php',
     'users.php',
     'audit_log.php',
     'database_maintenance.php',
@@ -134,9 +134,9 @@ expectUserManual(
         && str_contains($manual, 'Opening, reviewing, or canceling a form changes nothing')
         && str_contains($manual, 'Reviewers stay read only')
         && str_contains($manual, 'Private by default')
-        && str_contains($header, "'mattermost' => ['mattermost.php']")
-        && str_contains($header, 'href="mattermost.php"'),
-    'the manual and utility navigation should explain the Mattermost plugin workflow, privacy, and role boundaries.'
+        && str_contains($manual, 'select <strong>Mattermost</strong> next to <strong>Account Security</strong>')
+        && str_contains($profile, 'href="mattermost.php"'),
+    'the manual should explain the Mattermost entry point on My Profile, plugin workflow, privacy, and role boundaries.'
 );
 
 expectUserManual(

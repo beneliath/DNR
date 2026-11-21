@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily MOED deployment backup retention
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 America/Chicago
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
