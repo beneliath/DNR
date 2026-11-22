@@ -474,6 +474,9 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 'id' => (int) $task['id'],
                 'return_to' => $task_return_to,
             ]);
+            $task_record_url = $subject['type'] === 'engagement'
+                ? $subject['url'] . '#engagement-tasks'
+                : $task_edit_url;
             ?>
             <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
                 <td data-field="Due">
@@ -490,7 +493,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     </span>
                 </td>
                 <td data-field="Task">
-                    <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
+                    <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_record_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <div class="task-record-priority"><span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     <?php if (isset($email_follow_up_states[(int) $task['id']])): $emailState = $email_follow_up_states[(int) $task['id']]; ?>
