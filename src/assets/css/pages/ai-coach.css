@@ -3,6 +3,14 @@ body.has-coach {
   padding-right: var(--coach-width);
 }
 body.has-coach.coach-open { --coach-width: clamp(350px, 28vw, 410px); }
+@media (min-width: 1101px) and (pointer: fine) {
+  /* End the desktop scroll container at the Coach pane, keeping its native
+     scrollbar beside the content instead of underneath the fixed panel. */
+  body.has-app-shell.account-context-active.coach-open {
+    right: var(--coach-width);
+    padding-right: 0;
+  }
+}
 .coach-panel[hidden], .coach-panel [hidden], .coach-launcher[hidden] { display: none !important; }
 .coach-launcher {
   position: fixed;
@@ -79,7 +87,7 @@ html body .coach-control-highlight { outline-width: 3px !important; outline-styl
   .coach-control-highlight { animation: none; }
 }
 body.has-coach .manual-page-nav { right: calc(var(--coach-width) + 18px); }
-body.has-coach .engagement-page-actions { right: var(--coach-width); }
+body.has-coach.coach-open .engagement-page-actions { right: var(--coach-width); }
 body.coach-open.user-manual-page .manual-shell { grid-template-columns: minmax(0, 1fr); }
 body.coach-open.user-manual-page .manual-toc { position: static; }
 body.coach-open.user-manual-page .manual-toc nav { display: flex; flex-wrap: wrap; gap: 6px; }

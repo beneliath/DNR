@@ -51,8 +51,8 @@ html { scrollbar-gutter: stable; }
   --admin-nav-focus: #c2410c;
   --action-view: #175cd3;
   --action-view-bg: #dbeafe;
-  --action-edit: #0f766e;
-  --action-edit-bg: #ccfbf1;
+  --action-edit: #9a5b05;
+  --action-edit-bg: #fff3d8;
   --action-start: #175cd3;
   --action-start-bg: #dbeafe;
   --action-complete: #067647;
@@ -144,8 +144,8 @@ html.dark-mode {
   --admin-unlock-outline: #fb923c;
   --action-view: #84adff;
   --action-view-bg: #243f73;
-  --action-edit: #5eead4;
-  --action-edit-bg: #134e4a;
+  --action-edit: #f5bd68;
+  --action-edit-bg: #3c2d16;
   --action-start: #84adff;
   --action-start-bg: #243f73;
   --action-complete: #6ce9a6;
@@ -1821,7 +1821,6 @@ html body .calendar-month-today {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
-  scrollbar-color: var(--border-strong) transparent;
 }
 
 .calendar-month-scroll:focus-visible {
@@ -3701,8 +3700,8 @@ html body .action-icon-button.view-button:focus-visible {
   color: var(--action-view) !important;
 }
 
-html body .action-icon-button.edit-button:hover,
-html body .action-icon-button.edit-button:focus-visible {
+html body .action-icon-button.edit-button:hover:not(:disabled):not([aria-disabled="true"]),
+html body .action-icon-button.edit-button:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   border-color: color-mix(in srgb, var(--action-edit) 48%, transparent) !important;
   background: var(--action-edit-bg) !important;
   color: var(--action-edit) !important;
