@@ -76,7 +76,7 @@ $context_status_labels = followUpTaskStatuses();
                 'return_to' => $context_task_return_to,
             ]);
             ?>
-            <article class="context-task-card context-task-<?php echo htmlspecialchars($context_due['key'], ENT_QUOTES, 'UTF-8'); ?>">
+            <article id="follow-up-task-<?php echo (int) $context_task['id']; ?>" class="context-task-card context-task-<?php echo htmlspecialchars($context_due['key'], ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="context-task-main">
                     <div class="context-task-title-row">
                         <?php if ($context_task_can_manage): ?><a href="<?php echo htmlspecialchars($context_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="record-link"><?php echo htmlspecialchars($context_task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($context_task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>

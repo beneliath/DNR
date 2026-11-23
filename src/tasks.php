@@ -475,7 +475,9 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 'return_to' => $task_return_to,
             ]);
             $task_record_url = $subject['type'] === 'engagement'
-                ? $subject['url'] . '#engagement-tasks'
+                ? $subject['url'] . (in_array($task['status'], $active_task_statuses, true)
+                    ? '#follow-up-task-' . (int) $task['id']
+                    : '#engagement-tasks')
                 : $task_edit_url;
             ?>
             <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">

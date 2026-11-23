@@ -1074,6 +1074,24 @@ html body #engagement-workspace .engagement-tab-list button:focus-visible {
     gap: 12px;
 }
 
+.engagement-workspace .context-task-card:target {
+    box-shadow: 0 0 0 3px var(--primary);
+    scroll-margin-block: 24px;
+    animation: engagement-task-highlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes engagement-task-highlight-pulse {
+    50% {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .engagement-workspace .context-task-card:target {
+        animation: none;
+    }
+}
+
 .engagement-workspace .context-task-title-row {
     font-size: 0.88rem;
 }
