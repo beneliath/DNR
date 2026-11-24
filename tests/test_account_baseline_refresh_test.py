@@ -1,7 +1,9 @@
 """Date boundaries and cron preservation for the recurring baseline restore."""
 import datetime
+from contextlib import closing
 import fcntl
 import json
+import sqlite3
 from pathlib import Path
 import subprocess
 import sys
@@ -69,6 +71,67 @@ class BaselineRefreshTest(unittest.TestCase):
             with patch('test_account_baseline_refresh.inspect',return_value={'HostConfig':{'NetworkMode':network},'Config':{'Labels':{'org.dnr.recovery-owner':owner}}}), patch('test_account_baseline_refresh.subprocess.run') as command:
                 with self.assertRaises(RuntimeError):upgrade_staged_schema(name,'','','')
                 command.assert_not_called()
+
+    def test_simulated_mail_retirement_refuses_live_or_unowned_databases(self):
+        for name,network,owner in [('moed-account-test-account-db-1','none','test-account-baseline-refresh'),
+                ('dnr-online-restore-nightly-baseline-stage-fixture','bridge','test-account-baseline-refresh'),
+                ('dnr-online-restore-nightly-baseline-stage-fixture','none','unrelated')]:
+            with patch.object(refresh_operator,'inspect',return_value={'HostConfig':{'NetworkMode':network},
+                    'Config':{'Labels':{'org.dnr.recovery-owner':owner}}}),patch.object(refresh_operator,'execute') as write:
+                with self.assertRaisesRegex(RuntimeError,'isolated baseline stage'):
+                    refresh_operator.retire_simulated_correspondence_failures(name)
+                write.assert_not_called()
+
+    def test_simulated_mail_retirement_requires_test_account_identity(self):
+        info={'HostConfig':{'NetworkMode':'none'},'Config':{'Labels':{'org.dnr.recovery-owner':'test-account-baseline-refresh'}}}
+        with patch.object(refresh_operator,'inspect',return_value=info),patch.object(refresh_operator,'query',return_value='primary'),\
+                patch.object(refresh_operator,'execute') as write:
+            with self.assertRaisesRegex(RuntimeError,'Test Account identity'):
+                refresh_operator.retire_simulated_correspondence_failures('dnr-online-restore-nightly-baseline-stage-fixture')
+            write.assert_not_called()
+
+    def test_simulated_mail_selection_excludes_real_attempts_and_mixed_messages(self):
+        with closing(sqlite3.connect(':memory:')) as db:
+            db.executescript('''CREATE TABLE engagement_email_messages(id INTEGER,template_label TEXT);
+                CREATE TABLE engagement_email_deliveries(id INTEGER,message_id INTEGER,status TEXT,last_error TEXT,
+                recipient_email TEXT,payload_ciphertext TEXT,processing_started_at TEXT,delivery_started_at TEXT,
+                claim_token TEXT,sent_at TEXT);
+                INSERT INTO engagement_email_messages VALUES(12,'Demo correspondence (simulated)');
+                INSERT INTO engagement_email_deliveries VALUES(12,12,'failed','Simulated demo failure; no delivery attempted',
+                    'fixture@example.invalid',NULL,NULL,NULL,NULL,NULL);''')
+            def query(database, sql):
+                return '\n'.join('\t'.join(map(str,row)) for row in db.execute(sql.replace('dnr.','main.')))
+            with patch.object(refresh_operator,'query',side_effect=query):
+                selected=lambda: refresh_operator.simulated_correspondence_failures('fixture')['message_ids']
+                self.assertEqual(selected(),[12])
+                for field,value in [('status','delivery_uncertain'),('last_error',None),('last_error','SMTP rejected'),
+                        ('recipient_email','real@example.org'),('payload_ciphertext','sealed'),
+                        ('processing_started_at','2026-11-24'),('delivery_started_at','2026-11-24'),
+                        ('claim_token','claim'),('sent_at','2026-11-24')]:
+                    db.execute('SAVEPOINT fixture')
+                    db.execute('UPDATE engagement_email_deliveries SET '+field+'=?',(value,))
+                    self.assertEqual(selected(),[],field)
+                    db.execute('ROLLBACK TO fixture');db.execute('RELEASE fixture')
+                db.execute("INSERT INTO engagement_email_deliveries(id,message_id,status,recipient_email) VALUES(13,12,'failed','fixture@example.invalid')")
+                self.assertEqual(selected(),[],'A sibling with NULL/unknown error must preserve the entire message')
+                db.execute('DELETE FROM engagement_email_deliveries WHERE id=13')
+                db.execute("UPDATE engagement_email_messages SET template_label='Real correspondence'")
+                self.assertEqual(selected(),[])
+
+    def test_simulated_mail_retirement_is_empty_after_removal(self):
+        info={'HostConfig':{'NetworkMode':'none'},'Config':{'Labels':{'org.dnr.recovery-owner':'test-account-baseline-refresh'}}}
+        with patch.object(refresh_operator,'inspect',return_value=info),\
+                patch.object(refresh_operator,'query',side_effect=['test-account','12\t12','']),\
+                patch.object(refresh_operator,'execute') as write:
+            self.assertEqual(refresh_operator.retire_simulated_correspondence_failures('dnr-online-restore-nightly-baseline-stage-fixture'),
+                             {'message_ids':[12],'delivery_ids':[12]})
+            self.assertEqual(write.call_count,1)
+        with patch.object(refresh_operator,'inspect',return_value=info),\
+                patch.object(refresh_operator,'query',side_effect=['test-account','','']),\
+                patch.object(refresh_operator,'execute') as write:
+            self.assertEqual(refresh_operator.retire_simulated_correspondence_failures('dnr-online-restore-nightly-baseline-stage-fixture'),
+                             {'message_ids':[],'delivery_ids':[]})
+            write.assert_not_called()
 
     def test_legacy_speaker_names_keep_automatic_sorting_after_restore(self):
         self.assertIn('speakers', refresh_operator.TABLES)

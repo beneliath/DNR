@@ -308,6 +308,39 @@ def check_baseline_speaker_sort_names(db):
   require(query(db,'SELECT COUNT(*) FROM dnr.speakers WHERE sort_name IS NOT NULL')=='0',
           'Restored baseline speakers must retain automatic surname sorting')
 
+SIMULATED_FAILURE = """d.status='failed'
+ AND d.last_error='Simulated demo failure; no delivery attempted'
+ AND d.recipient_email LIKE '%@example.invalid' AND d.payload_ciphertext IS NULL
+ AND d.processing_started_at IS NULL AND d.delivery_started_at IS NULL
+ AND d.claim_token IS NULL AND d.sent_at IS NULL"""
+
+def simulated_correspondence_failures(db):
+ # Only complete, explicitly fictional messages qualify. A real/attempted
+ # sibling delivery prevents retiring the parent or any of its deliveries.
+ rows=query(db,"""SELECT m.id,d.id FROM dnr.engagement_email_messages m
+  JOIN dnr.engagement_email_deliveries d ON d.message_id=m.id
+  WHERE m.template_label='Demo correspondence (simulated)' AND """+SIMULATED_FAILURE+"""
+  AND NOT EXISTS (SELECT 1 FROM dnr.engagement_email_deliveries sibling
+    WHERE sibling.message_id=m.id AND NOT COALESCE(("""+SIMULATED_FAILURE.replace('d.','sibling.')+"""),FALSE))
+  ORDER BY m.id,d.id""")
+ pairs=[tuple(map(int,line.split('\t'))) for line in rows.splitlines()]
+ return {'message_ids':sorted({m for m,d in pairs}),'delivery_ids':sorted({d for m,d in pairs})}
+
+def retire_simulated_correspondence_failures(db):
+ info=inspect(db)
+ require(db.startswith('dnr-online-restore-nightly-baseline-stage-')
+         and info['HostConfig']['NetworkMode']=='none'
+         and info['Config'].get('Labels',{}).get('org.dnr.recovery-owner')=='test-account-baseline-refresh',
+         'Simulated correspondence retirement requires an isolated baseline stage')
+ require(query(db,'SELECT account_key FROM dnr.account_profile WHERE id=1')==KEY,'Test Account identity required')
+ retired=simulated_correspondence_failures(db)
+ if retired['message_ids']:
+  # Existing foreign keys retain chronology entries and clear their email link;
+  # only the explicitly simulated parent/delivery records are removed.
+  execute(db,'DELETE FROM dnr.engagement_email_messages WHERE id IN ('+','.join(map(str,retired['message_ids']))+')')
+ require(not simulated_correspondence_failures(db)['message_ids'],'Simulated failure retirement incomplete')
+ return retired
+
 def validate(db,anchor):
  check_baseline_presentation_requirement(db)
  check_baseline_speaker_sort_names(db)
@@ -338,7 +371,8 @@ def validate(db,anchor):
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title LIKE '[Demo team task] %' AND u.username IN ('TestAdmin','TestReviewer') AND t.status IN ('open','in_progress','waiting') AND t.is_archived=0")=='6','Task examples missing'
  assert query(db,"SELECT COUNT(*) FROM dnr.follow_up_tasks t JOIN dnr.users u ON u.id=t.assigned_to WHERE t.title NOT LIKE '[Demo team task] %' AND u.username<>'TestEditor'")=='0','Baseline ownership failed'
  assert not foreign_key_errors(db),'Broken foreign keys: '+str(foreign_key_errors(db))
- assert query(db,"SELECT COUNT(*) FROM dnr.engagement_email_deliveries WHERE status IN ('queued','retry','processing') OR payload_ciphertext IS NOT NULL")=='0','Outbound replay risk'
+ assert query(db,"SELECT COUNT(*) FROM dnr.engagement_email_deliveries WHERE status IN ('pending','queued','retry','processing') OR payload_ciphertext IS NOT NULL")=='0','Outbound replay risk'
+ require(not simulated_correspondence_failures(db)['message_ids'],'Simulated correspondence failure remains active')
  assert query(db,'SELECT COUNT(*) FROM dnr.reimbursement_email_deliveries')=='0','Unexpected reimbursement delivery'
  assert query(db,"SELECT COUNT(*) FROM dnr.inbound_email_messages WHERE status IN ('queued','processing')")=='0','Unexpected inbound queue'
  assert int(query(db,"SELECT COUNT(*) FROM dnr.engagements e LEFT JOIN dnr.engagement_financial_reports r ON r.engagement_id=e.id WHERE e.is_deleted=0 AND e.lifecycle_status IN ('active','completed') AND e.event_end_date<'"+anchor.isoformat()+"' AND r.engagement_id IS NULL"))>0,'No dashboard closeout example'
@@ -415,6 +449,7 @@ def stage_approved_baseline(source_db,image,database_image,member_directory,base
    # Baseline migrations may add operational defaults; never replay baseline marketing data.
    execute(staged,'SET FOREIGN_KEY_CHECKS=0;'+''.join('DELETE FROM `'+t+'`;' for t in CLEAR_TABLES+list(reversed(MESSAGE_MONKEY_TABLES)))+'SET FOREIGN_KEY_CHECKS=1;')
    remap=run_staged((OPS/'test_account_baseline_remap.php').read_text(),['--tables=/run/tables.json','--source-anchor='+manifest['source_anchor'],'--as-of='+anchor.isoformat()])
+   retired_mail=retire_simulated_correspondence_failures(staged)
    require(date_relationships(staged)==relationships,'Event durations, linked dates or reimbursement periods changed')
    # Rebuild every submitted package, even if the captured owner already matches.
    execute(staged,"UPDATE reimbursement_requests SET owner_name_snapshot='' WHERE status='submitted'")
@@ -429,7 +464,8 @@ def stage_approved_baseline(source_db,image,database_image,member_directory,base
    for t,n in before_counts.items():
     if t in MESSAGE_MONKEY_TABLES:continue
     extra=6 if t=='follow_up_tasks' else (1 if t in ['engagements','engagement_financial_drafts'] and samples['financial_closeout']['created'] else 0)
-    assert int(query(staged,'SELECT COUNT(*) FROM dnr.`'+t+'`'))==n+extra,t+' changed row count'
+    removed=len(retired_mail['message_ids']) if t=='engagement_email_messages' else len(retired_mail['delivery_ids']) if t=='engagement_email_deliveries' else 0
+    assert int(query(staged,'SELECT COUNT(*) FROM dnr.`'+t+'`'))==n+extra-removed,t+' changed row count'
    owners=validate(staged,anchor)
    staged_policy=run_staged(POLICY_CHECK)
    require(policy_before is None or staged_policy==policy_before,'Staged demo policy changed')
@@ -438,7 +474,7 @@ def stage_approved_baseline(source_db,image,database_image,member_directory,base
    print('Isolated restore/remap validated: '+json.dumps({'remap':remap,'owners':owners,'files':filecheck}),flush=True)
    qualification={'account':KEY,'anchor':anchor.isoformat(),'window':window,'qualified_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
      'code_sha256':code_hash(),'application_image':image,'baseline_unchanged':True,'isolated_restore_verified':True,
-     'live_business_records_changed':False,'baseline_manifest_sha256':baseline_manifest_sha256,'remap':remap,'message_monkey':message_monkey_validation,'schema_upgrade':schema_upgrade,'consistency':consistency,'files':filecheck,'policy':staged_policy}
+     'live_business_records_changed':False,'baseline_manifest_sha256':baseline_manifest_sha256,'remap':remap,'retired_simulated_correspondence':retired_mail,'message_monkey':message_monkey_validation,'schema_upgrade':schema_upgrade,'consistency':consistency,'files':filecheck,'policy':staged_policy}
    require(sha(baseline_path/'SHA256SUMS.json')==baseline_manifest_sha256
            and all(sha(baseline_path/f)==h for f,h in checks.items()),'Immutable baseline changed')
    yield staged,files,qualification,ownership,samples,message_monkey
