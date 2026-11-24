@@ -37,9 +37,21 @@ export function initializeConnectionsWorkspace(config, show) {
         const reserveRows = () => {
             const height = ['.audience-table-tools','.audience-bulk-toolbar','.mm-pagination','thead']
                 .reduce((sum,selector) => sum + ($(selector,peopleResults)?.getBoundingClientRect().height || 0),120);
-            document.body.style.setProperty('--audience-connections-reserve',`${Math.ceil(height + 2)}px`);
+            const reserve = `${Math.ceil(height + 2)}px`;
+            if (document.body.style.getPropertyValue('--audience-connections-reserve') !== reserve) {
+                document.body.style.setProperty('--audience-connections-reserve', reserve);
+            }
         };
-        const sizes = new ResizeObserver(reserveRows);
+        // The reservation changes the observed results height. Apply it outside
+        // resize delivery so wrapping controls cannot create a notification loop.
+        let reserveFrame = null;
+        const sizes = new ResizeObserver(() => {
+            if (reserveFrame !== null) return;
+            reserveFrame = requestAnimationFrame(() => {
+                reserveFrame = null;
+                reserveRows();
+            });
+        });
         const observeResults = () => {
             sizes.disconnect();
             [peopleResults,...$$('.audience-table-tools,.audience-bulk-toolbar,.mm-pagination,thead',peopleResults)].forEach(node => sizes.observe(node));
