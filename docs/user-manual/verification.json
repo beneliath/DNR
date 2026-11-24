@@ -1,17 +1,17 @@
 {
-  "pages": 197,
-  "screenshots": 120,
-  "internal_links": 1700,
-  "bookmarks": 404,
+  "pages": 202,
+  "screenshots": 124,
+  "internal_links": 1745,
+  "bookmarks": 408,
   "chapter_targets": "14/14 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
     "sections": 62,
-    "text_fragments_verified": 1259,
-    "attachment_bytes": 116891,
+    "text_fragments_verified": 1277,
+    "attachment_bytes": 118337,
     "attachment_matches_current_source": true,
-    "sha256": "bc2484ba1c70d3a02c5805bcd2f27cd517711da35738d050b18d5743647c590d"
+    "sha256": "41546a0bfb30f56d2acdc9174ee3735389e86e9730369031e993be45768e8d9f"
   },
   "format": {
     "reference_text": "two columns",
@@ -22,19 +22,19 @@
     "column_gutters": "clear",
     "full_width_reference_blocks": 8,
     "automatic_word_breaks": 0,
-    "sparse_reference_pages_checked": 74,
+    "sparse_reference_pages_checked": 75,
     "stray_continuation_pages": 0,
     "paragraph_widows_and_orphans": "disabled",
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.11.30",
-    "edition_date": "November 21, 2026",
+    "version": "2.11.35",
+    "edition_date": "November 24, 2026",
     "cover_and_metadata": "verified"
   },
   "screenshot_quality": {
-    "native_png_figures": 120,
-    "lossless_embedded_figures": 120,
+    "native_png_figures": 124,
+    "lossless_embedded_figures": 124,
     "source_capture_dpi": 435,
     "minimum_effective_dpi": 435.0,
     "source_pixels": "identical to included capture pixels",

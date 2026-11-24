@@ -23,6 +23,7 @@ $presentation_helper = file_get_contents($root . '/src/presentation_helpers.php'
 $template = file_get_contents($root . '/src/templates/presentation_form.php');
 $new_engagement = file_get_contents($root . '/src/index.php');
 $edit_engagement = file_get_contents($root . '/src/edit_engagement.php');
+$engagement_write = file_get_contents($root . '/src/app/Service/EngagementWrite.php');
 $view_engagement = file_get_contents($root . '/src/view_engagement.php');
 $presentation_script = file_get_contents($root . '/src/assets/js/presentation-form.js');
 $page_actions = readModuleSource($root . '/src/assets/js/page-actions.js');
@@ -51,7 +52,7 @@ expectPresentationAssetFeature(
     str_contains($new_engagement, 'enctype="multipart/form-data"')
         && str_contains($edit_engagement, 'enctype="multipart/form-data"')
         && str_contains($new_engagement, 'attachPresentationAssetChanges')
-        && str_contains($edit_engagement, 'attachPresentationAssetChanges'),
+        && str_contains($engagement_write, 'attachPresentationAssetChanges'),
     'new and edit engagement submissions should accept and validate presentation uploads.'
 );
 

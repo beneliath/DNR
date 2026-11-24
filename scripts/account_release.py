@@ -60,14 +60,15 @@ def pause_members(members):
         compose(member, 'stop', *(service for service in member['active'] if service != 'ingress'))
 
 
-def backup_members(members, app_image, password_file, records):
+def backup_members(members, app_image, password_file, records, *, verify_migrations):
     from account_lifecycle_local import backup_configuration
     receipts = []
     for member in members:
         member['protected_identity'] = protected_identity(member['project'])
         receipt = create_verified_backup(member['project'] + '-db-1', member['previous_database'],
             app_image, member['metadata']['commit'], member['previous_version'], password_file,
-            records / 'accounts' / member['key'] / 'backups')
+            records / 'accounts' / member['key'] / 'backups',
+            restore_verifier=lambda restored: verify_migrations(restored, member['key']))
         receipt['configuration'] = backup_configuration(member['directory'], receipt, app_image, Path(password_file))
         member['backup'] = receipt
         from account_production import private_file
@@ -76,10 +77,35 @@ def backup_members(members, app_image, password_file, records):
     return receipts
 
 
+def audience_worker_template(root):
+    """Read the shared service definition without starting or inspecting containers."""
+    from provision_local_account import clean_environment
+    command = ['docker', 'compose', '--project-directory', str(root),
+               '-f', str(root / 'docker-compose.yaml'), 'config', '--format', 'json']
+    return json.loads(subprocess.check_output(command, env=clean_environment(), text=True, timeout=45))['services']['audience-jobs']
+
+
 def stage_runtime(root, directory, document, release, timestamp):
     """Preserve topology/settings; refresh qualified code binds into a new frozen tree."""
     from account_production import configuration_digest, ingress_security_configuration
     updated = copy.deepcopy(document)
+    if 'audience-jobs' not in updated['services']:
+        # Image replacement cannot add a service to an Account's frozen Compose
+        # document. Use the canonical definition and the Account's own config.
+        worker = copy.deepcopy(audience_worker_template(root))
+        web = updated['services']['web']
+        worker['image'] = web['image']
+        allowed_environment = set(worker.get('environment', {})) | {'DNR_PLATFORM_API_KEY_FILE'}
+        worker['environment'].update({key: value for key, value in web.get('environment', {}).items()
+                                      if key in allowed_environment})
+        worker['secrets'] = copy.deepcopy(web.get('secrets', []))
+        worker['volumes'] = [copy.deepcopy(volume) for volume in web.get('volumes', [])
+                             if volume['target'] == '/run/dnr/config/application.yaml'
+                             or volume['target'].startswith('/run/secrets/')]
+        worker['networks'] = {'backend': {}}
+        updated['services']['audience-jobs'] = worker
+    if 'audience-jobs' not in updated['x-moed-active-services']:
+        updated['x-moed-active-services'].append('audience-jobs')
     original_images = {kind:document['services'][service]['image'] for kind, service in
         [('app', 'web'), ('database', 'db'), ('ingress', 'ingress')]}
     replacements = {value:release['images'][kind] for kind, value in original_images.items()}
@@ -141,7 +167,7 @@ def stage_runtime(root, directory, document, release, timestamp):
 
 
 def apply_members(root, members, release, timestamp):
-    from account_production import private_file, qualify_runtime
+    from account_production import private_file, qualify_runtime, validate_active_services
     for member in members:
         if not member.get('backup', {}).get('restore_verified'):
             raise ValueError('A fresh restore-verified Account backup is required')
@@ -152,6 +178,7 @@ def apply_members(root, members, release, timestamp):
         metadata['runtime_sha256'] = sha(member['directory'] / 'runtime.compose.json')
         private_file(member['directory'] / 'deployment.json', json.dumps(metadata, indent=2))
         member['document'] = document
+        member['active'] = validate_active_services(document)
         member['metadata'] = metadata
         compose(member, 'up', '-d', '--no-build', '--no-deps', '--wait', 'db')
         compose(member, 'run', '--rm', '--no-deps', 'migrator')

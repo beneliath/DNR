@@ -11,6 +11,7 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
 import account_production as production
+import account_release as release
 
 
 def render(command):
@@ -68,6 +69,9 @@ def main():
                 if volume['type']=='bind' and volume['target'] not in ['/run/dnr/deployment','/backups']:
                     assert volume['source'].startswith(str(directory/'runtime-config')+'/')
         assert 'receipt-previews' in complete['services']
+        assert complete['services']['audience-jobs']['entrypoint'] == ['php', '/opt/dnr/bin/process_audience_jobs.php', '--loop']
+        assert complete['services']['audience-jobs']['read_only']
+        assert list(frozen['services']['audience-jobs']['networks']) == ['backend']
         assert list(frozen['services']['web']['networks'])==['backend']
         assert list(frozen['services']['backup']['networks'])==['backend']
         assert frozen['networks']['backend']['internal']
@@ -96,6 +100,27 @@ def main():
             assert uses_smtp_key==(name=='mail-dispatch'),name
         assert frozen['services']['web']['environment']['DNR_INBOUND_ADDRESS']==config['smtp']['from']
         assert frozen['services']['web']['environment']['DNR_ACCOUNT_MAIL_ENABLED']=='1'
+        # Existing members keep frozen Compose documents. A qualified upgrade
+        # must add new services with the member's own credentials and settings.
+        previous=json.loads(json.dumps(complete))
+        del previous['services']['audience-jobs']
+        previous['x-moed-active-services'].remove('audience-jobs')
+        qualified={'commit':'c'*40,'images':config['images']}
+        staged=release.stage_runtime(ROOT,directory,previous,qualified,'2026-11-24T00:00:00Z')
+        production.verify_frozen_configuration(directory,staged)
+        staged_path=directory/'staged.compose.json';staged_path.write_text(json.dumps(staged))
+        upgraded=json.loads(render(['docker','compose','-p','review-member-upgrade','-f',str(staged_path),
+            'config','--format','json']).stdout)
+        worker=upgraded['services']['audience-jobs']
+        assert worker['environment']['DNR_ACCOUNT_KEY']=='test-account'
+        assert worker['environment']['DNR_PUBLIC_BASE_URL']==expected['DNR_PUBLIC_BASE_URL']
+        assert worker['environment']['MYSQL_PASSWORD_FILE']==frozen['services']['web']['environment']['MYSQL_PASSWORD_FILE']
+        assert worker['environment']['DNR_PLATFORM_API_KEY_FILE']=='/run/secrets/platform_api_key'
+        assert worker['image']==config['images']['app']
+        assert list(worker['networks'])==['backend']
+        assert 'audience-jobs' in staged['x-moed-active-services']
+        assert any(v['target']=='/run/dnr/config/application.yaml'
+            and '/release-'+'c'*40+'/' in v['source'] for v in worker['volumes'])
         config['primary_control_edge_ip']='172.29.255.4'
         primary=root/'primary';production.prepare_primary(config,primary)
         # Supply no real secrets and no active project name; Compose parsing only.
@@ -114,7 +139,7 @@ def main():
         assert parsed['networks']['edge']['name']==config['edge_network']
         assert relay['image']==config['images']['ingress']
         assert relay['networks']['edge']['ipv4_address']==config['primary_control_edge_ip']
-        print('PASS: real primary/member Compose parsing, full service profiles, per-service Account environment, saved lifecycle validation, frozen configuration, private networks, relay and proxy trust. No services started.')
+        print('PASS: real primary/member Compose parsing and member worker upgrades, full service profiles, per-service Account environment, saved lifecycle validation, frozen configuration, private networks, relay and proxy trust. No services started.')
 
 
 if __name__=='__main__':main()

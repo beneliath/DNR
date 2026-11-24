@@ -5,6 +5,7 @@ Requires ReportLab, lxml, Pillow, and pypdf. Screenshots remain native lossless 
 """
 from __future__ import annotations
 import hashlib, html, json, re
+from datetime import date
 from pathlib import Path
 from functools import lru_cache
 from lxml import html as LH, etree
@@ -23,9 +24,11 @@ W,H=612,792
 M=42; CW=W-2*M
 INK=colors.HexColor('#202b2c'); TEAL=colors.HexColor('#007d8a'); PALE=colors.HexColor('#eaf6f5')
 MUTED=colors.HexColor('#59676c'); BORDER=colors.HexColor('#d6e1e4'); ORANGE=colors.HexColor('#d96b00')
-VERSION=(ROOT/'VERSION').read_text().strip(); EDITION='November 17, 2026'
+VERSION=(ROOT/'VERSION').read_text().strip()
 CHAPTERS=json.loads((DATA/'chapters.json').read_text())
 SHOTS=json.loads((DATA/'screenshots.json').read_text())
+CAPTURE_DATE=date.fromisoformat(max(shot['capture']['captured_at'] for shot in SHOTS))
+EDITION=f'{CAPTURE_DATE:%B} {CAPTURE_DATE.day}, {CAPTURE_DATE.year}'
 rl_config.useA85=False
 fonts=Path('/System/Library/Fonts/Supplemental')
 for name,file in [('Guide','Arial.ttf'),('GuideBold','Arial Bold.ttf'),('GuideItalic','Arial Italic.ttf')]:

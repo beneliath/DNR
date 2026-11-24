@@ -177,6 +177,8 @@ foreach ([
 
 $new_engagement_source = file_get_contents(__DIR__ . '/../src/index.php');
 $edit_engagement_source = file_get_contents(__DIR__ . '/../src/edit_engagement.php');
+$toolbar = file_get_contents(__DIR__ . '/../src/templates/engagement_lifecycle_form.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
 $presentation_template = file_get_contents(__DIR__ . '/../src/templates/presentation_form.php');
 $presentation_script = file_get_contents(__DIR__ . '/../src/assets/js/presentation-form.js');
 $restore_presentations = file_get_contents(__DIR__ . '/../src/restore_presentations.php');
@@ -191,15 +193,17 @@ $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source) {
     expectPresentationFeature(
         str_contains($engagement_source, "include 'templates/presentation_form.php'")
-            && str_contains($engagement_source, 'requirePresentationForConfirmedEngagement')
             && str_contains($engagement_source, "renderScript('assets/js/presentation-form.min.js'"),
-        'new and edit engagement flows should share the form and enforce the confirmation rule.'
+        'new and edit engagement flows should share the presentation form.'
     );
 }
 
 expectPresentationFeature(
-    str_contains($edit_engagement_source, 'syncEngagementPresentations'),
-    'editing should transactionally synchronize added and changed presentations.'
+    str_contains($new_engagement_source, 'requirePresentationForConfirmedEngagement')
+        && str_contains($edit_engagement_source, 'EngagementWrite::edit')
+        && str_contains($engagement_write, 'requirePresentationForConfirmedEngagement')
+        && str_contains($engagement_write, 'syncEngagementPresentations'),
+    'create and edit should enforce the confirmation rule, and edit should synchronize presentations transactionally.'
 );
 expectPresentationFeature(
     str_contains($view_source, "require_once __DIR__ . '/presentation_export_helpers.php';")
@@ -277,7 +281,7 @@ expectPresentationFeature(
     !str_contains($presentation_template, 'name="save_engagement"')
         && str_contains($presentation_template, '$short_link_show_reset_action = false;')
         && str_contains($presentation_template, 'class="button-secondary presentation-stats-reset"')
-        && str_contains($edit_engagement_source, 'form="engagement-edit-form">Save Changes</button>')
+        && str_contains($toolbar, 'form="engagement-edit-form">Save Changes</button>')
         && preg_match('/\.presentation-management-actions \.presentation-stats-reset\s*\{[^}]*margin-right:\s*auto;/s', $modern_styles) === 1,
     'saved presentation panes should place statistics reset on the left and use the persistent engagement save action.'
 );

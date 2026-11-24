@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/operations_helpers.php';
+require_once __DIR__ . '/queue_health_helpers.php';
 require_once __DIR__ . '/task_visibility_helpers.php';
 startSecureSession();
 requireAdmin();
@@ -18,6 +19,7 @@ $metric = static function (mysqli $connection, string $query): array {
 
 try {
     $business_date = applicationBusinessDate();
+    $queue_health = applicationQueueHealth($conn);
     $geocoding = $metric($conn, "SELECT
         SUM(status = 'pending') AS pending,
         SUM(status = 'processing') AS processing,
@@ -77,6 +79,7 @@ try {
         <div class="summary-card"><span><small>Failed authentication, 24h</small><strong><?php echo (int) ($authentication['failed_last_24_hours'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Applied migrations</small><strong><?php echo (int) ($migration['applied'] ?? 0); ?></strong></span></div>
     </div>
+    <?php include __DIR__ . '/templates/operations_queue_health.php'; ?>
     <section class="record-section">
         <h2>Mail Ingestion</h2>
         <p>Mailbox checks and imported messages are tracked separately from read or unread status. Times below use <?php echo htmlspecialchars(applicationTimezoneName(), ENT_QUOTES, 'UTF-8'); ?>.</p>

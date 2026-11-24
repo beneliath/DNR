@@ -61,6 +61,12 @@ try {
     $data = json_decode($reply['body'], true, 32, JSON_THROW_ON_ERROR);
     coachHttpExpect($data['history_saved'] === true, 'Accepted questions and fallback responses are recorded');
     coachHttpExpect($reply['status'] === 200 && $data['mode'] === 'manual' && count($data['sources']) > 0, 'Offline model keeps manual guidance available');
+    // Preparing fallback guidance can itself outlast the two-second cooldown.
+    // Exercise a fresh burst independently of the host's rendering speed.
+    session_id($session); session_start();
+    coachHttpExpect((float) ($_SESSION['_ai_coach_last_request'] ?? 0) > 0, 'Accepted inference records its cooldown');
+    $_SESSION['_ai_coach_last_request'] = microtime(true);
+    session_write_close();
     coachHttpExpect($http('ai_coach.php', ['question' => 'How do I attach a PowerPoint?'], $csrf)['status'] === 429, 'Repeated requests are rate limited');
     // Remove only the cooldown from this synthetic session to test changed-role enforcement.
     session_id($session); session_start(); unset($_SESSION['_ai_coach_last_request']); session_write_close();

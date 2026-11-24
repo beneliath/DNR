@@ -54,7 +54,13 @@ transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
 
-The November 21, 2026 edition applies to application version **2.11.30**.
+The November 24, 2026 edition applies to application version **2.11.35**.
+Eight figures were recaptured, and four new figures show the New Engagement
+toolbar, the venue replacement confirmation, restored draft highlights, and
+the selected engagement task. The Work Queue guidance explains the difference
+between opening a task from its title and editing it with the pencil action.
+The toolbar groups the schedule, lifecycle, confirmation, and form actions.
+Other figures retain their recorded capture dates.
 The My Profile figure shows Account Security, Mattermost, and Calendar Subscriptions in the page header.
 The engagement lifecycle uses Scheduled, Postponed, Canceled, and Completed.
 Active and Archived describe record visibility; Engagements opens on Active visibility and Scheduled lifecycle.
@@ -318,6 +324,10 @@ PDF edition, and adds calendar, recovery-email, map-pin, presentation, and form
 details. Reconcile these supplements with the
 live source when updating the manual. Attach an illustrative PowerPoint to the
 first fictional presentation before capturing its QR selector. Set a fictional
-task due on the day after capture to illustrate Due tomorrow. The Mattermost chapter describes the configured
+task due on the day after capture to illustrate Due tomorrow. For the selected
+engagement task figure, keep the example task visible among the first active
+cards. For the lifecycle figure, add an active engagement named Replacement
+workshop for the fictional host organization. Include separate completed and
+completed/archived tasks for the two queue figures. The Mattermost chapter describes the configured
 plugin from the application guide; the preview screenshot explicitly shows the
 unconfigured state rather than a simulated connected service.

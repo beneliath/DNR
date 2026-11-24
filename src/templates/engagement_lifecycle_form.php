@@ -1,4 +1,5 @@
 <section class="engagement-lifecycle-section" aria-label="Event Lifecycle"
+         data-sticky-toolbar
          data-engagement-lifecycle
          data-reschedule-options-url="engagement_reschedule_options.php"
          data-engagement-id="<?php echo (int) ($current_engagement_id ?? 0); ?>">
@@ -20,9 +21,16 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $selected_lifecycle_status, ENT_QUOTES, 'UTF-8'); ?>" data-lifecycle-badge>
-            <?php echo htmlspecialchars(engagementLifecycleLabel($selected_lifecycle_status), ENT_QUOTES, 'UTF-8'); ?>
-        </span>
+        <?php include __DIR__ . '/engagement_schedule_form.php'; ?>
+        <div class="engagement-lifecycle-actions" aria-label="Engagement Form Actions">
+            <?php if ($engagement_form_editing): ?>
+                <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
+                <button type="submit" name="save_engagement" value="1" class="save-button"<?php if (!empty($error_message)): ?> data-unsaved-changes<?php endif; ?> form="engagement-edit-form">Save Changes</button>
+            <?php else: ?>
+                <a href="engagements.php" class="cancel-button">Cancel</a>
+                <input type="submit" name="save_engagement" value="Create Engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="lifecycle-dependent-field" data-cancellation-fields<?php echo $selected_lifecycle_status === 'canceled' ? '' : ' hidden'; ?>>

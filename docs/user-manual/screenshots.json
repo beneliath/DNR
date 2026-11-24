@@ -258,7 +258,7 @@
     ],
     "file": "screenshots/inquiry-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -277,7 +277,7 @@
         4577,
         3852
       ],
-      "sha256": "a98c5d584961e7fdbd623ba27c304578d4d6e1e982f74756b2b6b394339f24eb"
+      "sha256": "5171d35639855b43bdd82520ed35afbea36b9bcb8443e5a163793fb1f6251795"
     }
   },
   {
@@ -464,7 +464,7 @@
       "Sort using the column headings. Administrators can select records using the toolbar inside the table pane; it stays visible while scrolling. Records Per Page is remembered."
     ],
     "file": "screenshots/engagement-list.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
@@ -476,15 +476,15 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 760
+        "height": 736
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         6027,
-        3444
+        3335
       ],
-      "sha256": "e6f809fd7f32e24009ba08284016cb544c6b34d95fc71d44c6c8c655be02eb76"
+      "sha256": "72dd3e92428d7fe2f777c19973e4a15609c688949776d43a94bc67b07ff2d4f2"
     }
   },
   {
@@ -526,12 +526,13 @@
     "title": "Edit an engagement in focused cards",
     "route": "edit_engagement.php?id=1",
     "steps": [
-      "Review Event Details and the Schedule at the bottom of that pane. Assign roles and review the Caller in the Event Contacts pane.",
-      "Keep unsaved changes in this browser with Save Draft where offered, or save the record using Save Changes."
+      "Use the engagement toolbar to change the dates, event type, lifecycle, and confirmation.",
+      "Review Event Details and use the Event Contacts pane to assign roles and choose a Caller.",
+      "Select Save Changes in the toolbar to save the whole engagement, including any pending presentation changes."
     ],
     "file": "screenshots/engagement-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -550,8 +551,109 @@
         4577,
         4531
       ],
-      "sha256": "ed8d81991a51505971c9b55615c43afec98439cb07e42e4db5aa3569dc19ad81"
+      "sha256": "8fc2b760415a2bcf275ed163e535af80c8327499ca1776293681caeb5297f102"
     }
+  },
+  {
+    "id": "new-engagement-toolbar",
+    "chapter": 5,
+    "title": "Start a new engagement",
+    "route": "index.php",
+    "steps": [
+      "Open Engagements and select New Engagement. Choose the organization and enter the event title.",
+      "Use the toolbar for dates, event type, lifecycle, and confirmation. Select Create Engagement when the form is ready."
+    ],
+    "file": "screenshots/new-engagement-toolbar.png",
+    "captured_at": "2026-11-24",
+    "capture": {
+      "device_scale_factor": 4.53125,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "04bfb10e8178fabc401faee5f0e84987462e5a2427db4c1a5f33d0e335e43e4d"
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "organization-address-replacement",
+    "chapter": 5,
+    "title": "Copy the organization’s physical address",
+    "route": "edit_engagement.php?id=1",
+    "steps": [
+      "In Event Location, select Use Organization Address for the chosen organization.",
+      "If there is already an event location, confirm Replace Event Location before the fields change.",
+      "Review the copied address, edit it if needed, and select Save Changes."
+    ],
+    "file": "screenshots/organization-address-replacement.png",
+    "captured_at": "2026-11-24",
+    "capture": {
+      "device_scale_factor": 4.53125,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 384,
+        "y": 381,
+        "width": 496,
+        "height": 237
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        2248,
+        1074
+      ],
+      "sha256": "4679ca475a41f7024a0fd57edabde0ba62e9aabd2e3c7eed2ccc05f7b7795445"
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "id": "engagement-draft-restored",
+    "chapter": 5,
+    "title": "Restore an engagement draft",
+    "route": "edit_engagement.php?id=1",
+    "steps": [
+      "Expand the draft panel and select Save Draft to keep unsaved values in this browser.",
+      "Reopen the same engagement and select Restore Draft. Review each highlighted field.",
+      "Select Save Changes to persist the restored values to the engagement."
+    ],
+    "file": "screenshots/engagement-draft-restored.png",
+    "captured_at": "2026-11-24",
+    "capture": {
+      "device_scale_factor": 4.53125,
+      "viewport": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 850
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        3852
+      ],
+      "sha256": "a622ebbff944bcd89c0fa3b98aed1eeb598f5ef224033b31144907a988085b7b"
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
   {
     "chapter": 5,
@@ -708,7 +810,7 @@
       "Find the intended numbered presentation, check its topic and speaker, and enter the date, time, duration, and expected attendance.",
       "Record actual attendance after the event. Zero is valid when nobody attended.",
       "Continue to Presentation Files & QR Codes below these fields to add PDF notes and a PowerPoint file.",
-      "Use Save Changes in the persistent bottom bar to save the whole engagement form, including other edits on the page."
+      "Use Save Changes in the engagement toolbar to save the whole engagement form, including other edits on the page."
     ],
     "focus": ".presentation-entry",
     "file": "screenshots/presentation-form.png",
@@ -744,7 +846,7 @@
     "steps": [
       "In the intended numbered presentation, choose a file or drop one onto Drop PDF here or Drop PowerPoint here. PPT Slidedeck accepts .ppt and .pptx. Choosing or dropping a file does not save it.",
       "PDF files may be up to 100 MB and PowerPoint files up to 500 MB. Save Changes uploads files in small chunks. Watch the progress indicator, keep the page open, and wait for saving to finish. Interrupted chunks retry automatically.",
-      "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
+      "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the engagement toolbar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
     "captured_at": "2026-11-18",
@@ -780,7 +882,7 @@
     "steps": [
       "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
       "Read the pending notice. Selecting a file or checking Remove does not apply the change immediately.",
-      "Select Save Changes in the persistent bar at the bottom of the window. It saves the whole engagement form, including pending file changes.",
+      "Select Save Changes in the engagement toolbar. It saves the whole engagement form, including pending file changes.",
       "After saving, verify the file details and sharing links. Leave without saving to keep the existing file."
     ],
     "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept.",
@@ -848,14 +950,14 @@
     "title": "Lifecycle and rescheduling",
     "route": "edit_engagement.php?id=1",
     "steps": [
-      "Use Active, Postponed, Canceled, or Completed to describe the operational state.",
+      "Use Scheduled, Postponed, Canceled, or Completed to describe the operational state.",
       "Keep Work in Progress, Under Review, or Confirmed as the separate planning confidence.",
       "Provide a cancellation reason. When rescheduling, link the replacement event from the same organization."
     ],
     "focus": "[name=lifecycle_status]",
     "file": "screenshots/lifecycle.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -874,7 +976,7 @@
         4577,
         3852
       ],
-      "sha256": "578d408c7a372ad2fc03981afde55bfa9396c90e717ecc60c275f3a9ea42190a"
+      "sha256": "7de7f60da90a14899619b21922cb9ddc9fac91bb0bc3a4daab7b0fa88321d4b9"
     }
   },
   {
@@ -1487,10 +1589,11 @@
     "steps": [
       "Choose My Tasks, Everyone’s Tasks, or Unassigned Tasks. Use the summary cards, search, and Active/Archived tabs to focus the queue.",
       "Records Per Page is remembered separately for each ownership view, including after leaving Tasks and returning. Select All Active and clear the search to widen a view.",
+      "Select an open engagement task’s title to open its Tasks tab. Use the pencil in Actions to edit directly.",
       "Select tasks using the toolbar inside the table pane. Choose the update and Preview Updates, or Review Deletion when available. The toolbar stays visible while scrolling."
     ],
     "file": "screenshots/tasks.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
@@ -1502,29 +1605,30 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 807
+        "height": 775
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         6027,
-        3657
+        3512
       ],
-      "sha256": "97910b6b193e0c3c8f1978b9ffb9ff20bfcb95dc963bdffdf56c1c6645162cab"
+      "sha256": "aecf6d4960dce16281e2d36592e86abb280136059b0e5d6d2b7b4c3e9b340f2a"
     }
   },
   {
+    "id": "engagement-task-panel",
     "chapter": 7,
-    "id": "task-form",
-    "title": "Edit a task",
-    "route": "edit_task.php?id=10",
+    "title": "Open a specific engagement task",
+    "route": "view_engagement.php?id=1#follow-up-task-10",
+    "focus": "#follow-up-work",
     "steps": [
-      "Choose or change a related record using the relationship picker.",
-      "Review owner, due date, priority, status, and Waiting On before Save Changes. Use Duplicate Task when separate follow-up is needed."
+      "Select the title of an open engagement task in Work Queue.",
+      "The engagement opens on its Tasks tab. Look for the outlined task card.",
+      "Select the pencil in Actions when you want to edit a task directly from Work Queue."
     ],
-    "file": "screenshots/task-form.png",
-    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "file": "screenshots/engagement-task-panel.png",
+    "captured_at": "2026-11-24",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1543,7 +1647,41 @@
         4577,
         3852
       ],
-      "sha256": "390c3601bd6c1e908274ee7a2c73b119a7d7c78f374e6b55cca925993544b4e1"
+      "sha256": "6b57663094bfdccb02f0c7a09904a02693f8282cc6aeb675406ed86b5c2f7de0"
+    },
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+  },
+  {
+    "chapter": 7,
+    "id": "task-form",
+    "title": "Edit a task",
+    "route": "edit_task.php?id=10",
+    "steps": [
+      "Choose or change a related record using the relationship picker.",
+      "Review owner, due date, priority, status, and Waiting On before Save Changes. Use Duplicate Task when separate follow-up is needed."
+    ],
+    "file": "screenshots/task-form.png",
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
+    "captured_at": "2026-11-24",
+    "capture": {
+      "device_scale_factor": 4.53125,
+      "viewport": {
+        "width": 1280,
+        "height": 1240
+      },
+      "clip": {
+        "x": 270,
+        "y": 0,
+        "width": 1010,
+        "height": 1218
+      },
+      "source": "native browser PNG; no resizing or sharpening",
+      "dpi": 435,
+      "native_pixels": [
+        4577,
+        5519
+      ],
+      "sha256": "85ac08937a9401112e9399426320c548f885e579e6adf824d3fd42c84465d084"
     }
   },
   {
@@ -2913,7 +3051,7 @@
     "action": "task-confirmation",
     "note": "The completed list shows a fictional preview task. No task is completed by the capture utility.",
     "file": "screenshots/task-confirmation.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
@@ -2925,15 +3063,15 @@
         "x": 0,
         "y": 0,
         "width": 1600,
-        "height": 706
+        "height": 678
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         7250,
-        3199
+        3072
       ],
-      "sha256": "56b7ec558a58dc690dfbee4a0be47bf675cf8c3ebe1b85373bb2f63541addfff"
+      "sha256": "1deb8c71282f43a12d99513f94a07e0a35c0592442a3828e62e8343825702245"
     }
   },
   {
@@ -2947,7 +3085,7 @@
       "Select the curved-arrow Restore task control. Details, status, owner, and due date are retained. An open overdue task becomes eligible for active reminders again."
     ],
     "file": "screenshots/task-archived.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-24",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
@@ -2959,15 +3097,15 @@
         "x": 270,
         "y": 0,
         "width": 1330,
-        "height": 601
+        "height": 573
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         6027,
-        2723
+        2596
       ],
-      "sha256": "dd01dc47d7fe1d4abdd98ca804e06a3b5d0d7e399807ee05eb3fa5a471604a8c"
+      "sha256": "f21170cb31c6758f0e111924ff4b6de66d1c9b75161c0087578f22229c638a30"
     }
   },
   {

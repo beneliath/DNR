@@ -2627,7 +2627,8 @@ html body .chron-restore-page-actions a:focus-visible {
 }
 .record-table-pane > .data-table-scroll { border-radius: 0 0 var(--radius-md) var(--radius-md); }
 .record-table-pane .data-table { border: 0; border-radius: 0; box-shadow: none; margin: 0; }
-html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) {
+html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]),
+html body [data-sticky-toolbar] {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2642,8 +2643,10 @@ html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: var(--surface) !important;
 }
-.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck { border-radius: var(--radius-md); }
-.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck::before {
+.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck,
+[data-sticky-toolbar].is-stuck { border-radius: var(--radius-md); }
+.record-table-pane > :is([data-task-bulk], [data-bulk-delete]).is-stuck::before,
+[data-sticky-toolbar].is-stuck::before {
   content: "";
   position: absolute;
   inset: -4px;
@@ -2657,7 +2660,8 @@ html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) {
 }
 .record-table-pane [data-bulk-submit] { margin-inline-start: auto; }
 @media (max-width: 860px), (pointer: coarse) {
-  html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]) { top: calc(var(--account-shell-height, 64px) + 12px); }
+  html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]),
+  html body [data-sticky-toolbar] { top: calc(var(--account-shell-height, 64px) + 12px); }
 }
 
 .summary-card {
@@ -7457,6 +7461,23 @@ html body :is(.task-actions, .context-task-actions, .context-task-heading-action
 }
 .form-draft-panel { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem; }
 .form-draft-panel button { margin-right: .5rem; }
+.form-draft-panel > summary { cursor: pointer; }
+.form-draft-panel > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.form-draft-panel[open] > summary { margin-bottom: 1rem; }
+html body [data-draft-restored] {
+  --surface: var(--warning-subtle);
+  --surface-hover: var(--warning-subtle);
+  --border-strong: var(--warning);
+  --control-hover-bg: var(--warning-subtle);
+  --control-hover-border: var(--warning);
+  --control-hover-fg: var(--warning);
+  background-color: var(--warning-subtle) !important;
+  border-color: var(--warning) !important;
+  outline: 2px solid var(--warning) !important;
+  outline-offset: 2px;
+  accent-color: var(--warning) !important;
+}
+html body .form-draft-panel [data-draft-restored] { color: var(--warning) !important; }
 .form-draft-recovery[hidden] { display: none; }
 .form-draft-recovery table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-block: 1rem; }
 .form-draft-recovery :is(th, td) { padding: .75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: anywhere; }

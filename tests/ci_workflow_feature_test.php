@@ -19,8 +19,8 @@ expectCiWorkflowFeature(
     'superseded runs for the same branch or pull request should be cancelled.'
 );
 expectCiWorkflowFeature(
-    substr_count($workflow, 'npm ci') === 2
-        && substr_count($workflow, '--no-audit') === 2
+    substr_count($workflow, 'npm ci') === 3
+        && substr_count($workflow, '--no-audit') === 3
         && substr_count($workflow, 'timeout 45s npm audit ') === 1
         && substr_count($workflow, 'timeout 45s composer audit ') === 1,
     'frontend installation should skip its implicit audit and explicit dependency audits should not be duplicated.'
@@ -43,6 +43,13 @@ expectCiWorkflowFeature(
     str_contains($workflow, 'make -C mattermost-plugin webapp')
         && str_contains($workflow, 'git diff --exit-code -- src/assets mattermost-plugin'),
     'the single frontend job should still verify application and plugin build artifacts.'
+);
+
+expectCiWorkflowFeature(
+    substr_count($workflow, 'python3 scripts/integration_environment.py release-browser') === 2
+        && strpos($workflow, 'Verify browser workflows against the exact release image')
+            < strpos($workflow, 'Write qualified release manifest'),
+    'both integration and immutable release qualification should exercise real browser workflows.'
 );
 
 echo "CI workflow feature test passed.\n";

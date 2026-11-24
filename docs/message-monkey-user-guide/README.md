@@ -1,6 +1,11 @@
 # MessageMonkey Comprehensive User Guide
 
-The November 17, 2026 edition documents MessageMonkey in MOED 2.11.19. All 56 existing figures were recaptured at native 3x resolution, and five new figures cover the country interaction map, scheduled-campaign countdown, form-image alignment, Inbox forwarding, and recorded profile locations. The examples use fictional data in a separate local preview.
+The November 24, 2026 edition documents MessageMonkey in MOED 2.11.35. It
+refreshes four figures and adds three native 3x figures covering the published
+signup-page background, tags on a new pending connection, and the Daily Summary
+settings. The guide describes the 24-hour Chicago reporting window and the
+distinction between assigned tags and confirmed consent. The examples use
+fictional data in a separate local preview.
 
 ## Deliverables and sources
 
@@ -26,8 +31,13 @@ For the October screenshot captures, the project is `dnr-mm-guide-20261031`, the
 3. Initialize its fresh database by running the existing `/opt/dnr/bin/migrate.sh` in the `db` service, with `DNR_PRIVILEGE_SCRIPT=/opt/dnr/bin/configure_database_privileges.sh`. This does not create or change migration source files.
 4. Run `/opt/dnr/bin/message-monkey-manual/account.php` as `www-data` in the `web` service. Redirect its output to the ignored `credentials.json` in the work directory. Never print, publish, or commit that file.
 5. Run `/opt/dnr/bin/seed_audience_demo.php` with `DNR_SEED_AUDIENCE_DEMO=local-only`, then `/opt/dnr/bin/message-monkey-manual/seed.php`, as `www-data` in `web`. Save the latter output as ignored `fixture.json`. Seed scripts refuse duplicate setup; inspect partial failures before retrying. If IDs differ from the clean fixture, update capture routes from the returned fixture IDs.
-6. Export `src/templates/audience/manual-content.php` as JSON to `chapters.json` using PHP in the preview. Keep its stable chapter and topic identifiers.
-7. Run `capture.cjs` with `PLAYWRIGHT_MODULE` pointing to the installed Playwright package and `CHROMIUM_EXECUTABLE` pointing to its matching Chromium headless shell. `DNR_MANUAL_ONLY` can select comma-separated figure IDs for targeted recapture.
+6. For the public signup and pending-tag figures, also run the guide seed with
+   `--signup-examples` and save its output as ignored `signup-examples.json` in
+   the same work directory. The preview seeds a pending confirmation with
+   fictional readiness metadata, restores that metadata, and publishes a
+   separate single opt-in form for the appearance figure.
+7. Export `src/templates/audience/manual-content.php` as JSON to `chapters.json` using PHP in the preview. Keep its stable chapter and topic identifiers.
+8. Run `capture.cjs` with `PLAYWRIGHT_MODULE` pointing to the installed Playwright package and `CHROMIUM_EXECUTABLE` pointing to its matching Chromium headless shell. `DNR_MANUAL_ONLY` can select comma-separated figure IDs for targeted recapture.
 
 The browser context sets `deviceScaleFactor: 3` and PNG `scale: device`. Most desktop captures are 3840x3000 native pixels from a 1280x1000 CSS viewport. Mobile and clipped captures record their actual dimensions. External network requests and business-changing POSTs are blocked; authentication, read-only previews, and local fictional Inbox read/presence updates are allowed. Raw HTML, session state, and credentials remain in ignored `tmp/pdfs/`.
 

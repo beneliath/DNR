@@ -1,7 +1,9 @@
 """Rehearse the deployment backup only in an explicitly disposable CI database."""
+import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -9,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
-from deployment_backup import create_verified_backup
+from deployment_backup import create_verified_backup, migrate_isolated_restore, query
 
 
 @unittest.skipUnless(os.getenv('DNR_INTEGRATION_TARGET') == 'disposable'
@@ -21,9 +23,28 @@ class DeploymentBackupIntegration(unittest.TestCase):
         image = subprocess.check_output(['docker', 'inspect', '--format', '{{.Image}}', container], text=True).strip()
         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
         with tempfile.TemporaryDirectory(prefix='dnr-backup-rehearsal-') as directory:
+            migrations = Path(directory) / 'candidate-migrations'
+            shutil.copytree(ROOT / 'migrations', migrations)
+            name = '99999999_release_rehearsal_fixture.sql'
+            migration = 'CREATE TABLE release_rehearsal_fixture (id INT PRIMARY KEY);\n'
+            (migrations / name).write_text(migration)
+            with (migrations / 'order.txt').open('a') as order:
+                order.write('\n' + name + '\n')
+            checksum = hashlib.sha256(migration.encode()).hexdigest()
+
+            def verify(restored):
+                migrate_isolated_restore(restored, migrations, ROOT / 'scripts/migrate.sh', require_encryption=True)
+                self.assertEqual(query(restored, "SELECT checksum FROM dnr.schema_migrations "
+                    f"WHERE migration_name='{name}' AND state='applied'"), checksum)
+                self.assertEqual(query(restored, 'SELECT COUNT(*) FROM dnr.release_rehearsal_fixture'), '0')
+                return {'fixture_migration': checksum}
+
             receipt = create_verified_backup(container, image, os.environ['DNR_DEPLOYMENT_BACKUP_APP_IMAGE'],
                 commit, (ROOT / 'VERSION').read_text().strip(),
-                os.environ['DNR_DEPLOYMENT_BACKUP_PASSWORD_FILE'], directory)
+                os.environ['DNR_DEPLOYMENT_BACKUP_PASSWORD_FILE'], Path(directory) / 'backups', restore_verifier=verify)
+            self.assertEqual(receipt['restore_qualification'], {'fixture_migration': checksum})
+            self.assertEqual(query(container, "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema='dnr' AND table_name='release_rehearsal_fixture'"), '0')
             self.assertTrue(receipt['restore_verified'])
             self.assertTrue(receipt['database_state']['table_checksums'])
             archive = Path(receipt['backup_path'])

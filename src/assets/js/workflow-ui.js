@@ -22,7 +22,7 @@
         update();
 
     }
-    document.querySelectorAll('.record-table-pane > [data-task-bulk], .record-table-pane > [data-bulk-delete]').forEach(function (taskBulk) {
+    document.querySelectorAll('.record-table-pane > [data-task-bulk], .record-table-pane > [data-bulk-delete], [data-sticky-toolbar]').forEach(function (taskBulk) {
             let scheduled = false;
             const updateStickyState = function () {
                 scheduled = false;

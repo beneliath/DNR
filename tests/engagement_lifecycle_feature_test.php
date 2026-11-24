@@ -24,6 +24,7 @@ $read = static function (string $path) use ($root): string {
 $migration = $read('migrations/20260823_add_engagement_lifecycle.sql');
 $form = $read('src/templates/engagement_lifecycle_form.php');
 $edit = $read('src/edit_engagement.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
 $list = $read('src/engagements.php');
 $list_markup = preg_replace('/<\?(?:php|=).*?\?>/s', '', $list);
 preg_match_all('/<th\b[^>]*>(.*?)<\/th>/s', $list_markup, $list_header_matches);
@@ -55,8 +56,8 @@ expectEngagementLifecycleFeature(
     'engagement forms should edit lifecycle separately from confirmation.'
 );
 expectEngagementLifecycleFeature(
-    str_contains($edit, 'validateEngagementRescheduleLink')
-        && str_contains($edit, 'cancelEngagementFollowUpTasks')
+    str_contains($engagement_write, 'validateEngagementRescheduleLink')
+        && str_contains($engagement_write, 'cancelEngagementFollowUpTasks')
         && str_contains($tasks, "e.lifecycle_status = 'active'")
         && str_contains($tasks, "e.lifecycle_status <> 'canceled'"),
     'lifecycle changes should validate replacements, cancel open canceled-event tasks, and protect checklist generation.'

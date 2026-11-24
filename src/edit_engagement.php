@@ -266,9 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     requireValidCsrfToken();
     applicationLog('info', 'Processing engagement update', ['engagement_id' => $engagement_id]);
 
-    // Start transaction
-    $conn->begin_transaction();
-
+    $locked_engagement = null;
     try {
         $submitted_engagement_added_contact_ids = normalizeEngagementAddedContactIds(
             $_POST['engagement_added_contact_ids'] ?? null
@@ -279,306 +277,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $submitted_engagement_new_contacts = normalizeEngagementNewContacts(
             $_POST['engagement_new_contacts'] ?? null
         );
-        $engagement_lock_stmt = $conn->prepare(
-            'SELECT * FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE'
-        );
-        if (!$engagement_lock_stmt) {
-            throw new RuntimeException('Unable to lock the engagement for editing.');
-        }
-        $engagement_lock_stmt->bind_param('i', $engagement_id);
-        $engagement_lock_stmt->execute();
-        $locked_engagement = $engagement_lock_stmt->get_result()->fetch_assoc();
-        $engagement_lock_stmt->close();
-        if (!$locked_engagement) {
-            throw new InvalidArgumentException('That engagement is no longer active.');
-        }
-        $submitted_version = trim((string) ($_POST['engagement_version'] ?? ''));
-        if ($submitted_version === ''
-            || !hash_equals((string) $locked_engagement['updated_at'], $submitted_version)
-        ) {
-            throw new InvalidArgumentException(
-                'This engagement changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
-            );
-        }
-        $engagement = array_merge($engagement, $locked_engagement);
-
-        $event_type_raw = is_scalar($_POST['event_type'] ?? null)
-            ? trim((string) $_POST['event_type'])
-            : '';
-        $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
-        foreach ($engagement_input as $field => $value) {
-            ${$field} = $value;
-        }
-        requireActiveOrganization($conn, $organization_id, true);
-        validateEngagementLifecycleStatus($conn, $engagement_id, $lifecycle_status);
-        validateEngagementRescheduleLink(
-            $conn,
-            $organization_id,
-            $lifecycle_status,
-            $rescheduled_to_engagement_id,
-            $engagement_id
-        );
-        $caller = $caller_user_id !== null
-            && $caller_user_id === (int) ($locked_engagement['caller_user_id'] ?? 0)
-            ? [
-                'id' => $caller_user_id,
-                'username' => (string) ($locked_engagement['caller_name'] ?? ''),
-            ]
-            : \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
-        $caller_user_id = $caller['id'];
-        $caller_name = $caller['username'];
-        $engagement_input['caller_user_id'] = $caller_user_id;
-        $engagement_input['caller_name'] = $caller_name;
-        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
-
-        $submitted_presentations = $presentation_not_required ? null : ($_POST['presentations'] ?? null);
-        $presentation_files = !$presentation_not_required && is_array($_FILES['presentations'] ?? null)
-            ? $_FILES['presentations']
-            : [];
-        $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
-        $staged_assets = stagedPresentationAssets(is_array($submitted_presentations) ? $submitted_presentations : [], $engagement_id);
-        $presentations = normalizeEngagementPresentations(
-            $submitted_presentations,
-            $event_start_date,
-            $event_end_date,
-            $default_speaker_id,
-            true,
-            array_fill_keys(array_merge(array_keys($presentation_asset_uploads), array_keys($staged_assets)), true)
-        );
-        $presentations = attachPresentationAssetChanges(
-            $presentations,
-            $submitted_presentations,
-            $presentation_files,
-            $staged_assets
-        );
-        requirePresentationForConfirmedEngagement(
-            $confirmation_status,
-            $presentations,
-            $lifecycle_status,
-            (bool) $presentation_not_required
-        );
-
-        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
-            $_POST['chron_entries'] ?? null
-        );
-        $submitted_chron_versions = normalizeSubmittedChronLogVersions(
-            $_POST['chron_entry_versions'] ?? null
-        );
-
-        // Validate required fields
-        if (
-            ($compensation_type === 'Other' && empty($other_compensation)) ||
-            ($housing_type === 'Other' && empty($other_housing)) ||
-            (isset($_POST['save_and_add_chron']) && $new_chron_entry === '')
-        ) {
-            throw new InvalidArgumentException("Please provide valid required fields, dates, and non-negative amounts.");
-        }
-
-        $current_user_id = (int) $_SESSION['user_id'];
-        $lifecycle_changed = $lifecycle_status
-            !== (string) ($locked_engagement['lifecycle_status'] ?? 'active');
-        $update_plan = \Dnr\Service\EngagementUpdatePlan::build($engagement, $engagement_input);
-        $update_fields = $update_plan['assignments'];
-        $update_values = $update_plan['values'];
-        $types = $update_plan['types'];
-        if ($lifecycle_changed) {
-            $update_fields[] = 'lifecycle_changed_by = ?, lifecycle_changed_at = UTC_TIMESTAMP(6)';
-            $update_values[] = $current_user_id;
-            $types .= 'i';
-        }
-
-        $update_values[] = $engagement_id;
-        $types .= "i";
-
-        if (!empty($update_fields)) {
-            $update_query = "UPDATE engagements SET " . implode(", ", $update_fields) . " WHERE id = ?";
-            $stmt = $conn->prepare($update_query);
-
-            // Bind parameters dynamically
-            $bind_params = array_merge([$types], $update_values);
-            $stmt->bind_param(...$bind_params);
-
-            if (!$stmt->execute()) {
-                applicationLog('error', 'Engagement update query failed', ['error' => $stmt->error]);
-                throw new Exception("Failed to update engagement.");
-            }
-        }
-
-        $engagement_dates_changed = $update_plan['date_range_changed'];
-        if ($engagement_dates_changed) {
-            if ($presentation_not_required) {
-                $outside_dates = $conn->execute_query(
-                    'SELECT 1 FROM presentations WHERE engagement_id = ? AND is_archived = 0
-                         AND presentation_date NOT BETWEEN ? AND ? LIMIT 1',
-                    [$engagement_id, $event_start_date, $event_end_date]
-                )->fetch_row();
-                if ($outside_dates) {
-                    throw new InvalidArgumentException('A saved presentation falls outside the new event dates. Clear “No Presentation Required” to adjust its date.');
-                }
-            }
-            rescheduleGeneratedEngagementTasks(
-                $conn,
-                $engagement_id,
-                $event_start_date,
-                $event_end_date
-            );
-        }
-
-        $archived_task_count = 0;
-        if ($lifecycle_changed && $lifecycle_status === 'canceled') {
-            $archived_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id, $current_user_id);
-        }
-
-        if (!$presentation_not_required && syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id)) {
-            $touch_engagement_stmt = $conn->prepare(
-                'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?'
-            );
-            if (!$touch_engagement_stmt) {
-                throw new RuntimeException('Unable to update the engagement calendar timestamp.');
-            }
-            $touch_engagement_stmt->bind_param('i', $engagement_id);
-            if (!$touch_engagement_stmt->execute()) {
-                $touch_engagement_stmt->close();
-                throw new RuntimeException('Unable to update the engagement calendar timestamp.');
-            }
-            $touch_engagement_stmt->close();
-        }
-
-        $saved_engagement_contacts = prepareEngagementContactAssignments(
-            $conn,
-            $organization_id,
-            $submitted_engagement_contacts,
-            $submitted_engagement_added_contact_ids,
-            $submitted_engagement_new_contacts,
-            $engagement_id
-        );
-        syncEngagementContacts(
+        $result = \Dnr\Service\EngagementWrite::edit(
             $conn,
             $engagement_id,
-            $saved_engagement_contacts,
-            $current_user_id
+            $_POST,
+            $_FILES,
+            [
+                'assignments' => $submitted_engagement_contacts,
+                'added_ids' => $submitted_engagement_added_contact_ids,
+                'new_contacts' => $submitted_engagement_new_contacts,
+            ],
+            $default_speaker_id,
+            (int) $_SESSION['user_id'],
+            (string) $_SESSION['username'],
+            $locked_engagement
         );
-        if ($submitted_chron_entries) {
-            $current_chron_stmt = $conn->prepare(
-                'SELECT id, entry_text, updated_at
-                 FROM engagement_chron_entries
-                 WHERE engagement_id = ? AND is_archived = 0
-                 FOR UPDATE'
-            );
-            if (!$current_chron_stmt) {
-                throw new RuntimeException('Unable to prepare the Chron entry update.');
-            }
-            $current_chron_stmt->bind_param('i', $engagement_id);
-            if (!$current_chron_stmt->execute()) {
-                $current_chron_stmt->close();
-                throw new RuntimeException('Unable to load the Chron entries for updating.');
-            }
-            $current_chron_entries = [];
-            $current_chron_result = $current_chron_stmt->get_result();
-            while ($current_chron_entry = $current_chron_result->fetch_assoc()) {
-                $current_chron_entries[(int) $current_chron_entry['id']] = [
-                    'entry_text' => (string) $current_chron_entry['entry_text'],
-                    'updated_at' => (string) $current_chron_entry['updated_at'],
-                ];
-            }
-            $current_chron_stmt->close();
-
-            $chron_update_stmt = $conn->prepare(
-                'UPDATE engagement_chron_entries
-                 SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP(6)
-                 WHERE id = ? AND engagement_id = ? AND is_archived = 0 AND updated_at = ?'
-            );
-            if (!$chron_update_stmt) {
-                throw new RuntimeException('Unable to prepare the Chron entry changes.');
-            }
-            $updated_chron_text = '';
-            $updated_chron_id = 0;
-            $expected_chron_version = '';
-            $chron_update_stmt->bind_param(
-                'siiis',
-                $updated_chron_text,
-                $current_user_id,
-                $updated_chron_id,
-                $engagement_id,
-                $expected_chron_version
-            );
-            foreach ($submitted_chron_entries as $submitted_entry_id => $submitted_entry_text) {
-                if (!array_key_exists($submitted_entry_id, $current_chron_entries)
-                    || $submitted_entry_text === $current_chron_entries[$submitted_entry_id]['entry_text']) {
-                    continue;
-                }
-                $expected_chron_version = (string) (
-                    $submitted_chron_versions[$submitted_entry_id] ?? ''
-                );
-                if ($expected_chron_version === ''
-                    || !hash_equals(
-                        $current_chron_entries[$submitted_entry_id]['updated_at'],
-                        $expected_chron_version
-                    )
-                ) {
-                    $chron_update_stmt->close();
-                    throw new InvalidArgumentException(
-                        'A Chron entry changed after you opened this page. Reload before saving so newer history is not overwritten.'
-                    );
-                }
-                $updated_chron_id = $submitted_entry_id;
-                $updated_chron_text = $submitted_entry_text;
-                if (!$chron_update_stmt->execute() || $chron_update_stmt->affected_rows !== 1) {
-                    $chron_update_stmt->close();
-                    throw new RuntimeException('Unable to save the Chron entry changes.');
-                }
-            }
-            $chron_update_stmt->close();
-        }
-
-        if ($new_chron_entry !== '') {
-            $chron_stmt = $conn->prepare(
-                'INSERT INTO engagement_chron_entries
-                    (engagement_id, entry_text, created_by,
-                     created_by_username_snapshot, updated_by)
-                 VALUES (?, ?, ?, ?, ?)'
-            );
-            if (!$chron_stmt) {
-                throw new RuntimeException('Unable to prepare the new Chron entry.');
-            }
-            $current_username = (string) $_SESSION['username'];
-            $chron_stmt->bind_param(
-                'isisi',
-                $engagement_id,
-                $new_chron_entry,
-                $current_user_id,
-                $current_username,
-                $current_user_id
-            );
-            if (!$chron_stmt->execute()) {
-                $chron_error = $chron_stmt->error;
-                $chron_stmt->close();
-                throw new RuntimeException('Unable to save the new Chron entry: ' . $chron_error);
-            }
-            $chron_stmt->close();
-        }
-
-        $map_address = engagementMapAddress([
-            'event_address_line_1' => $event_address_line_1,
-            'event_address_line_2' => $event_address_line_2,
-            'event_city' => $event_city,
-            'event_state' => $event_state,
-            'event_zipcode' => $event_zipcode,
-            'event_country' => $event_country,
-        ]);
-        if ($map_address !== ''
-            && !queueEngagementMapAddress($conn, $map_address, true)
-        ) {
-            throw new RuntimeException('Unable to queue the engagement location.');
-        }
-
-        // Commit the engagement and its background lookup request atomically.
-        $conn->commit();
-        foreach ($staged_assets as $row => $assets) {
-            foreach (array_keys($assets) as $asset_key) {
-                $token_field = $asset_key === 'ppt_slidedeck' ? 'ppt_upload_token' : 'pdf_upload_token';
-                discardPresentationChunk($_POST['presentations'][$row][$token_field]);
-            }
+        $archived_task_count = $result['archived_tasks'];
+        foreach ($result['consumed_upload_tokens'] as $token) {
+            discardPresentationChunk($token);
         }
         $success_message = 'Engagement updated successfully.';
         if ($archived_task_count > 0) {
@@ -594,7 +310,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         exit();
 
     } catch (Throwable $e) {
-        $conn->rollback();
+        if ($locked_engagement !== null) {
+            $engagement = array_merge($engagement, $locked_engagement);
+        }
+        $event_type_raw = $locked_engagement !== null && is_scalar($_POST['event_type'] ?? null)
+            ? trim((string) $_POST['event_type'])
+            : '';
         applicationLog('error', 'Engagement update failed', [
             'engagement_id' => $engagement_id,
             'error' => $e->getMessage(),
@@ -617,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 $engagement[$rehydrated_field] = trim((string) $_POST[$rehydrated_field]);
             }
         }
-        $engagement['event_type'] = in_array($event_type_raw ?? '', \Dnr\Domain\ReferenceData::eventTypes(), true)
+        $engagement['event_type'] = in_array($event_type_raw, \Dnr\Domain\ReferenceData::eventTypes(), true)
             ? $event_type_raw
             : ($engagement['event_type'] ?? 'conference');
         $engagement['event_type_other'] = trim((string) ($_POST['event_type_other'] ?? ''));
@@ -800,10 +521,17 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             ?>
             <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>">
         <?php endforeach; ?>
-        <?php renderFormDraftPanel(); ?>
-        <?php include 'templates/engagement_lifecycle_form.php'; ?>
-        <div class="engagement-section-row engagement-primary-row">
+        <div class="engagement-form-meta">
+            <?php renderFormDraftPanel(true); ?>
             <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
+        </div>
+        <?php
+        $engagement_form_editing = true;
+        $engagement_form_values = $engagement;
+        include 'templates/engagement_lifecycle_form.php';
+        unset($engagement_form_editing, $engagement_form_values);
+        ?>
+        <div class="engagement-section-row engagement-primary-row">
             <section class="form-section engagement-details-section">
                 <h2>Event Details</h2>
                 <div class="organization-container">
@@ -817,44 +545,12 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                     <p class="field-help" role="status" data-relationship-search-status></p>
                 </div>
 
-                <label for="event_title">Event Title</label>
+                <label for="event_title" class="required"><span aria-hidden="true">*</span>Event Title</label>
                 <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
 
                 <label for="event_description">Event Description</label>
                 <textarea name="event_description" id="event_description" rows="11"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
 
-                <section class="engagement-schedule-section">
-                    <h3>Schedule</h3>
-
-                    <div class="engagement-schedule-row">
-                        <div class="engagement-schedule-field">
-                            <label for="event_start_date" class="required"><span aria-hidden="true">*</span>Start</label>
-                            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" aria-label="Start" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
-                        </div>
-                        <div class="engagement-schedule-field">
-                            <label for="event_end_date" class="required"><span aria-hidden="true">*</span>End</label>
-                            <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" aria-label="End" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
-                        </div>
-                        <div class="engagement-schedule-field">
-                            <label class="label-container" for="event_type">Event Type</label>
-                            <select name="event_type" id="event_type">
-                                <?php
-                                $event_types = \Dnr\Domain\ReferenceData::eventTypes();
-                                $selected_type = $engagement['event_type'];
-                                foreach ($event_types as $type) {
-                                    $selected = ($selected_type === $type) ? 'selected' : '';
-                                    echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
-
-                        <div class="engagement-schedule-field" id="other_event_type_div" <?php echo $engagement['event_type'] === 'other' ? '' : 'hidden'; ?>>
-                            <label for="event_type_other" class="required"><span aria-hidden="true">*</span>Other Event Type</label>
-                            <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
-                        </div>
-                    </div>
-                </section>
             </section>
 
             <div class="engagement-contact-column">
@@ -1113,12 +809,6 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
         <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
     </section>
 
-    <div class="engagement-page-actions" aria-label="Engagement Form Actions">
-        <div class="engagement-edit-actions-inner">
-            <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <button type="submit" name="save_engagement" value="1" class="save-button"<?php if (!empty($error_message)): ?> data-unsaved-changes<?php endif; ?> form="engagement-edit-form">Save Changes</button>
-        </div>
-    </div>
 </div>
 
 <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(

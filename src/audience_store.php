@@ -65,7 +65,12 @@ final class AudienceStore
             if ($depth === 0) $this->db->commit(); else $this->db->query('RELEASE SAVEPOINT audience_' . $depth);
             return $result;
         } catch (Throwable $error) {
-            if ($depth === 0) $this->db->rollback(); else $this->db->query('ROLLBACK TO SAVEPOINT audience_' . $depth);
+            // InnoDB deadlocks roll back the whole transaction, including its
+            // savepoints. Preserve the original error so a worker can reconnect
+            // and retry instead of mistaking a missing savepoint for job failure.
+            if (!($error instanceof mysqli_sql_exception && in_array($error->getCode(), [1213, 2006, 2013], true))) {
+                if ($depth === 0) $this->db->rollback(); else $this->db->query('ROLLBACK TO SAVEPOINT audience_' . $depth);
+            }
             if ($error instanceof mysqli_sql_exception && $error->getCode() === 1062) throw new InvalidArgumentException('That email address or name already exists in this audience. Open the existing record to update it.');
             throw $error;
         } finally { --$this->transactionDepth; }

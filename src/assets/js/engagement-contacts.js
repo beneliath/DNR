@@ -42,6 +42,7 @@
     let nextIndex = newList.querySelectorAll('[data-new-contact-row]').length;
     let displayedOrganization = organization.value;
     let organizationContactsReady = true;
+    let pendingContactLoad;
     const organizationDrafts = new Map();
 
     function updateCount() {
@@ -283,8 +284,19 @@
         searchResults.replaceChildren();
         searchStatus.textContent = '';
     });
-    organization.addEventListener('change', loadContacts);
-    retryLoad?.addEventListener('click', loadContacts);
+    function queueContactLoad() {
+        if (organization.value === displayedOrganization && organizationContactsReady) return pendingContactLoad;
+        const loading = loadContacts();
+        pendingContactLoad = loading;
+        loading.finally(function () { if (pendingContactLoad === loading) pendingContactLoad = null; });
+        return loading;
+    }
+    organization.dataset.draftDependency = '';
+    organization.addEventListener('change', queueContactLoad);
+    retryLoad?.addEventListener('click', queueContactLoad);
+    picker.closest('form')?.addEventListener('form-draft-ready', function (event) {
+        if (pendingContactLoad) event.detail.waitUntil(pendingContactLoad);
+    });
     picker.closest('form')?.addEventListener('submit', function (event) {
         if (organizationContactsReady) return;
         event.preventDefault();

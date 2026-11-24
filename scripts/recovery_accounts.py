@@ -13,13 +13,13 @@ class AccountCoverageError(ValueError):
 
 def resolve_service(project, service):
     ids = subprocess.check_output(['docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project,
-        '--filter', 'label=com.docker.compose.service=' + service, '--filter', 'label=com.docker.compose.oneoff=False'], text=True).split()
+        '--filter', 'label=com.docker.compose.service=' + service, '--filter', 'label=com.docker.compose.oneoff=False'], text=True, timeout=30).split()
     if len(ids) != 1:
         raise AccountCoverageError('Expected exactly one running ' + service + ' service')
     return ids[0]
 
 
-def account_directory(root, project):
+def account_directory(root, project, *, ready_only=False):
     primary = inspect(resolve_service(project, 'web'))
     env = dict(value.split('=', 1) for value in primary['Config']['Env'])
     primary_key = env.get('DNR_ACCOUNT_KEY') or 'primary'
@@ -50,11 +50,11 @@ def account_directory(root, project):
     for key, account in accounts.items():
         if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,62}', key):
             raise AccountCoverageError('Unsafe account identity')
-        if account['state'] != 'ready':
+        if account['state'] != 'ready' and not ready_only:
             # Retain its previous copies and flag incomplete coverage rather than
             # starting a disabled account or claiming it was included.
             raise AccountCoverageError('An account is not online and ready for backup')
-    return [accounts[key] for key in sorted(accounts)]
+    return [accounts[key] for key in sorted(accounts) if not ready_only or accounts[key]['state'] == 'ready']
 
 
 def resolve_account(account, root, version):

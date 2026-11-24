@@ -83,7 +83,7 @@ expectServiceDatabaseIsolation(
     'only the outbound-mail worker should receive the SMTP password secret.'
 );
 expectServiceDatabaseIsolation(
-    str_contains($grants, 'GRANT SELECT (token_id, status, claim_token, next_attempt_at, created_at)')
+    str_contains($grants, 'GRANT SELECT (token_id, status, claim_token, next_attempt_at, processing_started_at, created_at, updated_at)')
         && str_contains($grants, 'task_digest_enabled')
         && str_contains($grants, '.follow_up_tasks')
         && !str_contains($grants, 'GRANT SELECT, INSERT, UPDATE, DELETE ON `${MYSQL_DATABASE}`.email_outbox TO'),
@@ -91,7 +91,7 @@ expectServiceDatabaseIsolation(
 );
 expectServiceDatabaseIsolation(
     count($webNotificationGrants) === 1
-        && str_starts_with(trim($webNotificationGrants[0]), 'GRANT SELECT (status,next_attempt_at,created_at) ON ')
+        && str_starts_with(trim($webNotificationGrants[0]), 'GRANT SELECT (status,next_attempt_at,processing_started_at,created_at,updated_at) ON ')
         && str_contains($grants, 'GRANT SELECT, INSERT, UPDATE ON')
         && str_contains($grants, '.notification_outbox TO')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%';"),

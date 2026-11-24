@@ -66,6 +66,7 @@ function route(s){
  if(file==='map.php'&&['map','map-pending-filters'].includes(s.id)){u.search='?date_from=2026-11-10&date_to=2026-11-14';}
  if(s.id==='calendar-agenda')u.search='?day=2026-10-13';
  if(s.id==='record-merge')u.search='?kind=organization&source='+x.duplicate_org+'&target='+f.org;
+ if(s.id==='engagement-task-panel')return base+'/tasks.php?owner=me';
  if(s.id==='task-archived')u.search='?view=archived&scope=mine';
  if(s.id==='task-confirmation')u.search='?view=completed&scope=mine';
  if(s.id==='bulk-speaker-review')return base+'/speakers.php';
@@ -74,7 +75,7 @@ function route(s){
  return u.href;
 }
 const targets={
- 'inquiry-action':'#inquiry-next-action','engagement-form':'.engagement-details-section','presentation-form':'.presentation-fields','presentation-files':'.presentation-assets','presentation-file-pending':'.presentation-assets','presentation-management':'.presentation-management-actions','lifecycle':'[data-engagement-lifecycle]',
+ 'inquiry-action':'#inquiry-next-action','presentation-form':'.presentation-fields','presentation-files':'.presentation-assets','presentation-file-pending':'.presentation-assets','presentation-management':'.presentation-management-actions','lifecycle':'[data-engagement-lifecycle]',
  'statistics':'.short-link-report','email-template-fields':'.email-template-field-help','speaker-links':'#speaker-custom-links-heading','standard-form':'.form-section:has(#standard-task-priority)','email-message':'#body','subscription':'#calendar-subscriptions-title','retention':'#audit-retention-title','link-controls':'[name=target_url]','closeout-amounts':'.closeout-form','recovery-email':'#recovery-email-heading',
  'digest-preferences':'#notification-preferences-heading','reimbursement-profile':'.profile-reviewer-email','reimbursement-receipts':'[data-receipt-drop]','reimbursement-selection':'.reimbursement-selection-summary','reimbursement-confirm':'.reimbursement-confirm','dashboard-timing':'.dashboard-my-work'};
 (async()=>{
@@ -126,7 +127,7 @@ const targets={
    const width=process.env.DNR_MANUAL_VIEWPORT_WIDTH?desktopWidth:s.capture?.viewport?.width??desktopWidth;
    const mapFigure=s.id==='map'||s.id==='map-pin';
    const mapVisible=mapFigure||s.id==='map-pending-filters';
-   const height=s.id==='map-pin'?1440:mapFigure?1380:1000;
+   const height=s.id==='map-pin'?1440:mapFigure?1380:s.id==='task-form'?1240:1000;
    await page.setViewportSize({width:mobile?390:mapFigure?Math.max(width,1600):width,height:mobile?844:height});
    const requiresUnlock=s.elevated===true;
    if(!s.anonymous)await setAdminUnlock(requiresUnlock);
@@ -144,7 +145,41 @@ const targets={
    if(s.id==='elevation'){await page.locator('a[data-admin-unlock-link]:visible').first().click();await page.locator('#admin-unlock-dialog[open]').waitFor({state:'visible'});}
    if(s.id==='dark')await page.locator('[data-theme-toggle]').last().click();
    if(s.id==='mobile')await page.locator('[data-nav-toggle]').click();
+   if(s.id==='new-engagement-toolbar'){
+    await page.locator('#organization_id').selectOption(String(f.org));
+    await page.locator('#event_title').fill('Community Learning Weekend');
+    await page.locator('#event_start_date-display').fill('12/12/2026');
+    await page.locator('#event_end_date-display').fill('12/13/2026');
+    await page.locator('#event_type').selectOption('conference');
+    await page.locator('#event_type').blur();
+    await page.evaluate(()=>window.scrollTo(0,0));
+   }
+   if(s.id==='organization-address-replacement'){
+    await page.getByRole('button',{name:'Use Organization Address',exact:true}).click();
+    await page.locator('#organization-address-confirmation[open]').waitFor();
+   }
+   if(s.id==='engagement-draft-restored'){
+    const panel=page.locator('.form-draft-panel');
+    await page.locator('#event_title').fill('Community Learning Weekend - planning draft');
+    await panel.locator('summary').click();
+    await panel.getByRole('button',{name:'Save Draft',exact:true}).click();
+    await page.reload();
+    await panel.locator('summary').click();
+    await panel.getByRole('button',{name:'Restore Draft',exact:true}).click();
+    await page.locator('#event_title[data-draft-restored]').waitFor();
+    await page.evaluate(()=>window.scrollTo(0,0));
+   }
+   if(s.id==='engagement-task-panel'){
+    await page.locator('a.record-link[href$="#follow-up-task-'+f.task+'"]').click();
+    await page.locator('#engagement-tasks-tab[aria-selected="true"]').waitFor();
+    await page.locator('#follow-up-task-'+f.task+':target').waitFor();
+   }
    if(s.id==='engagement-cancel'){await page.locator('[data-cancel-engagement="'+f.event+'"]').click();await page.locator('#engagement-cancel-reason').fill('The host has canceled this fictional workshop. Coordinate a replacement date.');}
+   if(s.id==='lifecycle'){
+    await page.locator('#lifecycle_status').selectOption('postponed');
+    await page.locator('#rescheduled_to_engagement_id option', {hasText:'Replacement workshop'}).waitFor({state:'attached'});
+    await page.locator('#rescheduled_to_engagement_id').selectOption({label: await page.locator('#rescheduled_to_engagement_id option', {hasText:'Replacement workshop'}).first().textContent()});
+   }
    if(s.id==='presentation-optional')await page.locator('#presentation_not_required').check();
    if(s.id==='presentation-duplicate')await page.locator('[data-duplicate-presentation]').first().click();
    if(s.id==='presentation-upload-progress'){
@@ -235,7 +270,7 @@ const targets={
    }else if(s.shell||['manual','roles','inbox','login','forgot-password'].includes(s.id)){
     const v=page.viewportSize();clip={x:0,y:0,width:v.width,height:v.height};
    }else{
-    const v=page.viewportSize();clip={x:270,y:0,width:v.width-270,height:mapFigure||s.id==='engagement-form'?v.height:Math.min(850,v.height)};
+    const v=page.viewportSize();clip={x:270,y:0,width:v.width-270,height:mapFigure||['engagement-form','task-form'].includes(s.id)?v.height:Math.min(850,v.height)};
    }
    const footer=page.locator('.app-footer');const fb=await footer.count()?await footer.boundingBox():null;
    if(fb&&fb.y>clip.y+160&&fb.y<clip.y+clip.height)clip.height=Math.floor(fb.y-clip.y-8);
@@ -251,7 +286,7 @@ const targets={
    if(releaseUpload){releaseUpload();releaseUpload=null;}
    fs.writeFileSync(path.join(folder,'captures',s.id+'.txt'),body);fs.writeFileSync(path.join(folder,'captures',s.id+'.html'),await page.content());
    const location=new URL(page.url());location.searchParams.delete('selection');
-   result.push({id:s.id,route:location.pathname.slice(1)+location.search,file:'screenshots/'+s.id+'.png',captured_at:capturedAt,capture});
+   result.push({id:s.id,route:location.pathname.slice(1)+location.search+(s.id==='engagement-task-panel'?location.hash:''),file:'screenshots/'+s.id+'.png',captured_at:capturedAt,capture});
    console.log('Captured '+s.id);
   }catch(error){fs.writeFileSync(path.join(folder,'captures',s.id+'-failed.txt'),await page.locator('body').innerText().catch(()=>''));fs.writeFileSync(path.join(folder,'captures',s.id+'-failed.html'),await page.content().catch(()=>''));console.error('FAILED '+s.id+': '+error.message);result.push({id:s.id,error:error.message});}
  }

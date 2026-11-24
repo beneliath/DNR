@@ -496,13 +496,8 @@ export function initializeConnectionsWorkspace(config, show) {
 
     const openSegment = initializeSegmentBuilder(config, show, currentFiltersReady, filterSummary);
     if (config.job && ['queued', 'processing'].includes(config.job.state) && $('[data-job-panel]')) {
-        let stopped = false, startedAt = 0;
+        let stopped = false;
         const showError = message => { $('[data-job-error]').textContent = message; $('[data-job-error]').hidden = false; };
-        const start = async () => {
-            startedAt = Date.now();
-            const data = new FormData(); for (const [key, value] of Object.entries({action: 'process_job', id: config.job.id, audience: config.audience, csrf_token: config.csrf})) data.set(key, value);
-            try { await request(config.url, {method: 'POST', body: data}); } catch (error) { if (!stopped) showError(error.message); }
-        };
         const poll = async () => {
             if (stopped) return;
             try {
@@ -511,11 +506,10 @@ export function initializeConnectionsWorkspace(config, show) {
                 $('[data-job-progress-label]').textContent = `${Number(status.processed).toLocaleString()} of ${Number(status.total).toLocaleString()} processed`;
                 $$('[data-job-stat]').forEach(node => { node.textContent = Number(status[node.dataset.jobStat]).toLocaleString(); });
                 if (!['queued', 'processing'].includes(status.state)) { stopped = true; location.reload(); return; }
-                if (Date.now() - startedAt > 245000) start();
                 window.setTimeout(poll, 1500);
             } catch (error) { showError(`${error.message} You can reload or resume this operation from history.`); }
         };
-        start(); window.setTimeout(poll, 1000);
+        window.setTimeout(poll, 1000);
         window.addEventListener('pagehide', () => { stopped = true; });
     }
     // Reopen failed editors with submitted values and the original version token.

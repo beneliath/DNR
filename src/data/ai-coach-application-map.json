@@ -1432,7 +1432,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "89a41ef5379a7b2ba345229de850914ff6f8fcd1782fc2f7b991d36618189109",
+      "sha256": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
       "controls": [
         {
           "kind": "a",
@@ -1454,37 +1454,13 @@
         },
         {
           "kind": "label",
-          "label": "Event Title",
+          "label": "*Event Title",
           "for": "event_title"
         },
         {
           "kind": "label",
           "label": "Event Description",
           "for": "event_description"
-        },
-        {
-          "kind": "h3",
-          "label": "Schedule"
-        },
-        {
-          "kind": "label",
-          "label": "*Start",
-          "for": "event_start_date"
-        },
-        {
-          "kind": "label",
-          "label": "*End",
-          "for": "event_end_date"
-        },
-        {
-          "kind": "label",
-          "label": "Event Type",
-          "for": "event_type"
-        },
-        {
-          "kind": "label",
-          "label": "*Other Event Type",
-          "for": "event_type_other"
         },
         {
           "kind": "h2",
@@ -1598,16 +1574,6 @@
           "kind": "button",
           "label": "Delete",
           "name": "chron_action"
-        },
-        {
-          "kind": "a",
-          "label": "Cancel",
-          "href": ""
-        },
-        {
-          "kind": "button",
-          "label": "Save Changes",
-          "name": "save_engagement"
         }
       ]
     },
@@ -2194,7 +2160,7 @@
       ]
     },
     "index.php": {
-      "sha256": "90546f69f3fe9ab338371f8aaec841d18bf9566234427f5beb1f37f9de0f5387",
+      "sha256": "81317c992ed5c14e75aa99b52f439bf95d6de9d517918823869739c904272c59",
       "controls": [
         {
           "kind": "a",
@@ -2220,37 +2186,13 @@
         },
         {
           "kind": "label",
-          "label": "Event Title",
+          "label": "*Event Title",
           "for": "event_title"
         },
         {
           "kind": "label",
           "label": "Event Description",
           "for": "event_description"
-        },
-        {
-          "kind": "h3",
-          "label": "Schedule"
-        },
-        {
-          "kind": "label",
-          "label": "*Start",
-          "for": "event_start_date"
-        },
-        {
-          "kind": "label",
-          "label": "*End",
-          "for": "event_end_date"
-        },
-        {
-          "kind": "label",
-          "label": "Event Type",
-          "for": "event_type"
-        },
-        {
-          "kind": "label",
-          "label": "*Other Event Type",
-          "for": "event_type_other"
         },
         {
           "kind": "h2",
@@ -2340,16 +2282,6 @@
           "kind": "label",
           "label": "Initial Chron Entry",
           "for": "chron_entry"
-        },
-        {
-          "kind": "a",
-          "label": "Cancel",
-          "href": "engagements.php"
-        },
-        {
-          "kind": "submit",
-          "label": "Create Engagement",
-          "name": "save_engagement"
         }
       ]
     },
@@ -2737,7 +2669,7 @@
       ]
     },
     "operations.php": {
-      "sha256": "3b69925d15d4203b013f934cb10c3c902f53e4b9a1b2c4ac6296622a7818e00c",
+      "sha256": "7b057908796d3de8cc70c73ce3c42670257aa6f582db027c6291cb380ba7f15f",
       "controls": [
         {
           "kind": "h1",

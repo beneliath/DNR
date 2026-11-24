@@ -17,6 +17,7 @@ $affiliationMigration = $read('migrations/20260906_add_contact_organizations.sql
 $order = $read('migrations/order.txt');
 $create = $read('src/index.php');
 $edit = $read('src/edit_engagement.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
 $view = $read('src/view_engagement.php');
 $viewStyles = $read('src/assets/css/pages/view_engagement.css');
 $pdf = $read('src/download_engagement_pdf.php');
@@ -49,7 +50,7 @@ expectEngagementContactsFeature(
     str_contains($create, 'normalizeEngagementContactAssignments')
         && str_contains($create, 'syncEngagementContacts')
         && str_contains($edit, 'normalizeEngagementContactAssignments')
-        && str_contains($edit, 'syncEngagementContacts')
+        && str_contains($engagement_write, 'syncEngagementContacts')
         && str_contains($template, "include __DIR__ . '/engagement_existing_contact_card.php'")
         && substr_count($contactCard, 'engagement_contacts[') >= 1
         && str_contains($javascript, 'organization_contacts.php') === false

@@ -28,7 +28,7 @@ from account_ingress_security import configuration as ingress_security_configura
 from account_map_configuration import primary_amazon_map, with_amazon_map
 
 ACTIVE_SERVICES = ['web', 'downloads', 'backup', 'ingress', 'geocoder', 'mail-dispatch',
-                   'receipt-previews', 'file-monitor', 'data-maintenance', 'account-control']
+                   'receipt-previews', 'file-monitor', 'audience-jobs', 'data-maintenance', 'account-control']
 
 PRIMARY_DIRECTORY = Path('var/deployment/account-production')
 

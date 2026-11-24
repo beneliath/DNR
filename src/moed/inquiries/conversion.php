@@ -159,51 +159,33 @@ function convertBookingInquiry(
         $callerId = (int) ($inquiry['owner_user_id'] ?? 0) ?: $userId;
         $caller = \Dnr\Domain\EngagementInput::resolveCaller($conn, $callerId);
         $callerId = $caller['id'];
-        $callerName = $caller['username'];
         $organizationId = (int) $inquiry['organization_id'];
-        $eventTitle = (string) $inquiry['title'];
         $eventDescription = (string) ($inquiry['request_summary'] ?? '');
-        $eventStart = (string) $inquiry['preferred_start_date'];
-        $eventEnd = (string) $inquiry['preferred_end_date'];
-        $eventType = (string) $inquiry['event_type'];
-        $eventTypeOther = $inquiry['event_type_other'];
-        $confirmation = 'work_in_progress';
-        $lifecycle = 'active';
-        $bookTable = 0;
-        $brochures = 0;
-        $address1 = $inquiry['event_address_line_1'];
-        $address2 = $inquiry['event_address_line_2'];
-        $city = $inquiry['event_city'];
-        $state = $inquiry['event_state'];
-        $zipcode = $inquiry['event_zipcode'];
-        $country = $inquiry['event_country'];
-        $travelCovered = 'unknown';
-        $compensationType = 'Unknown';
-        $housingType = 'Unknown';
-        $stmt = $conn->prepare(
-            'INSERT INTO engagements
-                (organization_id, event_title, event_description,
-                 event_start_date, event_end_date, event_type, event_type_other,
-                 book_table, brochures, caller_name, caller_user_id,
-                 confirmation_status, lifecycle_status, lifecycle_changed_by,
-                 event_address_line_1, event_address_line_2, event_city, event_state,
-                 event_zipcode, event_country, travel_covered,
-                 compensation_type, housing_type)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        if (!$stmt) {
-            throw new RuntimeException('Unable to prepare the engagement conversion.');
-        }
-        $stmt->bind_param(
-            'issssssiisississsssssss',
-            $organizationId, $eventTitle, $eventDescription, $eventStart, $eventEnd,
-            $eventType, $eventTypeOther, $bookTable, $brochures, $callerName, $callerId,
-            $confirmation, $lifecycle, $userId, $address1, $address2, $city, $state,
-            $zipcode, $country, $travelCovered, $compensationType, $housingType
-        );
-        $stmt->execute();
-        $engagementId = (int) $conn->insert_id;
-        $stmt->close();
+        $engagement = [
+            'organization_id' => $organizationId,
+            'event_title' => (string) $inquiry['title'],
+            'event_description' => $eventDescription,
+            'event_start_date' => (string) $inquiry['preferred_start_date'],
+            'event_end_date' => (string) $inquiry['preferred_end_date'],
+            'event_type' => (string) $inquiry['event_type'],
+            'event_type_other' => $inquiry['event_type_other'],
+            'book_table' => 0,
+            'brochures' => 0,
+            'caller_name' => $caller['username'],
+            'caller_user_id' => $callerId,
+            'confirmation_status' => 'work_in_progress',
+            'lifecycle_status' => 'active',
+            'event_address_line_1' => $inquiry['event_address_line_1'],
+            'event_address_line_2' => $inquiry['event_address_line_2'],
+            'event_city' => $inquiry['event_city'],
+            'event_state' => $inquiry['event_state'],
+            'event_zipcode' => $inquiry['event_zipcode'],
+            'event_country' => $inquiry['event_country'],
+            'travel_covered' => 'unknown',
+            'compensation_type' => 'Unknown',
+            'housing_type' => 'Unknown',
+        ];
+        $engagementId = \Dnr\Service\EngagementWrite::insert($conn, $engagement, $userId);
 
         $contactId = (int) ($inquiry['primary_contact_id'] ?? 0);
         $activeContact = false;
@@ -284,17 +266,7 @@ function convertBookingInquiry(
         $checklist = generateEngagementFollowUpChecklist(
             $conn, $engagementId, $callerId, $userId, false
         );
-        $mapAddress = engagementMapAddress([
-            'event_address_line_1' => $address1,
-            'event_address_line_2' => $address2,
-            'event_city' => $city,
-            'event_state' => $state,
-            'event_zipcode' => $zipcode,
-            'event_country' => $country,
-        ]);
-        if ($mapAddress !== '' && !queueEngagementMapAddress($conn, $mapAddress, true)) {
-            throw new RuntimeException('Unable to queue the engagement location.');
-        }
+        \Dnr\Service\EngagementWrite::queueLocation($conn, $engagement);
 
         // The locked inquiry's task summary may have changed as its linked task moved.
         $expectedVersion = (string) fetchBookingInquiry($conn, $inquiryId, true)['updated_at'];

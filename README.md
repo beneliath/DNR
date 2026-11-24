@@ -410,14 +410,15 @@ never completes the task automatically; forwarded messages without those headers
 
 Tasks supports bulk reassignment, due-date changes, and completion with a preview. Each task is
 checked again on Apply; changed, archived, or completed tasks are skipped and reported. Clearing a
-bulk due date removes dates, and manual due-date changes override checklist rescheduling. Selection
+bulk due date removes dates, and manual due-date changes override checklist rescheduling. An open
+engagement task title opens that task on the engagement’s **Tasks** tab. Use the pencil icon to edit directly. Selection
 buttons affect only the current page. Administrative bulk deletion retains its separate review and unlock.
 
 Engagement, inquiry, and email forms offer **Save Draft**, **Restore Draft**, and **Discard Draft**.
 Drafts are scoped to the signed-in user in this browser, expire after 30 days, and are cleared after
 a successful save or send. Changed record versions block automatic restoration and expose saved values
 for manual recovery. Uploaded files must be selected again; values from removed or newly added repeat
-rows are retained for manual recovery when matching controls are unavailable. Drafts do not save records
+rows are retained for manual recovery when matching controls are unavailable. The engagement forms group these controls in a collapsible draft panel and highlight restored fields for review. Drafts do not save records
 or send mail, and browser storage must be available for recovery.
 
 New Contact and New Organization forms warn about likely existing records by name, email, and phone.
@@ -1164,6 +1165,7 @@ This protects database files taken without their keys. It does not prevent a run
 - `/health.php` is a dependency-free liveness response.
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
+- Administrators can inspect [queue outcomes](docs/queue-operations.md) in Operations. [Gatus monitoring](docs/gatus-monitoring.md) covers deployed workers, host services, and scheduled-job freshness.
 
 Every DNR Compose service opts out of host-wide Watchtower polling. Production images are built and qualified by CI on the final merged commit, then promoted by digest through the [guarded deployment workflow](docs/release-workflow.md).
 The opt-out prevents Watchtower from treating Compose's local `project-service:latest` image names
@@ -1508,21 +1510,25 @@ HTTP entry points load `src/bootstrap.php`, which initializes Composer/local aut
 
 Telephone numbers are validated with libphonenumber metadata and stored in canonical E.164 form. National and international formatting is applied only when values are rendered or returned to an edit form.
 
-Run the complete local quality gate before opening a pull request:
+Install dependencies and the pinned browser runtimes, then run the local quality gate before opening a pull request:
 
 ```sh
 composer install
 npm ci
+npx playwright install chromium webkit
 composer validate --strict --no-check-publish
 composer audit --no-interaction
 npm audit --audit-level=high
-composer check
-npm test
+npm run verify
 ```
 
 `composer check` runs PHP syntax checks, PHPStan level 6 on the typed domain/runtime layer, PHPStan level 5 on the legacy helper layer, level 3 on migrated request/controller routes, level 0 on the remaining HTTP surface, and all unit/feature tests. `npm test` rebuilds every committed production asset and runs JavaScript syntax and behavior tests. GitHub Actions runs the PHP checks on PHP 8.4 and 8.5 while frontend checks, locked-dependency audits, plugin checks, and integration checks run once in parallel. Dependency audits have bounded retries so an advisory-service outage fails promptly without weakening the security threshold, and superseded runs for the same branch or pull request are cancelled. CI also validates every Compose overlay combination and starts a disposable Docker/MySQL environment through the documented automatic-migration path before exercising HTTP and database behavior. Dependabot proposes weekly Composer, npm, Docker, and pinned GitHub Actions updates.
 
-Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Run them only against the disposable Compose environment with `sh scripts/run_integration_tests.sh disposable`; the runner sends destructive backup/restore coverage to the isolated maintenance container.
+`npm run verify` runs PHP, JavaScript, Python, Mattermost Go, desktop/mobile browser checks, disposable database/HTTP suites, and packaged browser workflows. Docker must be running. It compares generated assets with their contents before the build, so stale bundles fail even in a dirty checkout; review the rebuilt files and rerun. `python3 scripts/verify_project.py --quick` omits only the Docker checks and explicitly reports that omission. `npm run test:browser` runs the same layout/interaction gate used by frontend CI.
+
+Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Use `python3 scripts/integration_environment.py` to create, verify, and remove their disposable environment; the runner sends destructive backup/restore coverage to an isolated maintenance container. Teardown includes stopped profile services before removing test images.
+
+MessageMonkey imports, exports, and bulk changes run in the `audience-jobs` service for each account. They continue after the browser closes, commit bounded batches, and resume remaining rows after a restart. See [queue operations](docs/queue-operations.md) for health thresholds, failure recovery, and independent per-account alerts.
 
 `VERSION` is the single source of release-version metadata. DNR uses SemVer
 `[major].[minor].[patch]` = `x.y.z`: a major release is `(x+1).0.0`, a minor release is

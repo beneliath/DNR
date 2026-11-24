@@ -100,6 +100,7 @@ const fixtures = [
                         else assert.deepEqual(stable, activeLayouts.get(key), name + ' keeps controls in place when visibility changes');
                     }
                     if (name.startsWith('draft') && draftState === 'saved') {
+                        if (name === 'draft-chron') await page.locator('.form-draft-panel > summary').click();
                         await page.getByRole('button', {name: 'Restore Draft', exact: true}).click();
                         assert.equal(await page.locator('[name="name"]').inputValue(), 'A saved name');
                         assert.match(await page.locator('.form-draft-panel [role=status]').textContent(), /^Draft restored\./);

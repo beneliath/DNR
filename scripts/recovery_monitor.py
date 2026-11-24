@@ -52,7 +52,7 @@ def alert_due(previous, healthy, now):
 
 def smtp_configuration(project):
     container = resolve_service(project, 'mail-dispatch')
-    info = json.loads(subprocess.check_output(['docker', 'inspect', container]))[0]
+    info = json.loads(subprocess.check_output(['docker', 'inspect', container], timeout=30))[0]
     env = dict(item.split('=', 1) for item in info['Config']['Env'])
     def mounted(name):
         destination = env.get(name, '')
@@ -66,8 +66,8 @@ def smtp_configuration(project):
     # Docker-only hostnames cannot be resolved by the host process. Preserve the
     # certificate peer name, but connect to that service's private bridge address.
     connect_host = host
-    ids = subprocess.check_output(['docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project], text=True).split()
-    for peer in json.loads(subprocess.check_output(['docker', 'inspect', *ids])):
+    ids = subprocess.check_output(['docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project], text=True, timeout=30).split()
+    for peer in json.loads(subprocess.check_output(['docker', 'inspect', *ids], timeout=30)):
         for network_name, network in peer['NetworkSettings']['Networks'].items():
             if network_name in info['NetworkSettings']['Networks'] and host in (network.get('Aliases') or []):
                 connect_host = network['IPAddress']
@@ -98,6 +98,11 @@ def send_alert(config, healthy, verification=False):
     message.set_content('This message verifies delivery of the external backup monitor to the configured administrator address. It does not indicate a backup failure.' if verification else ('Verified backups to the Synology NAS are current again.' if healthy else
                         'MOED has no verified NAS recovery snapshot within the configured freshness limit, or the latest backup attempt failed. '
                         'Inspect the s1 backup job and ~/.local/state/moed-backup/status.json. Previous copies have been retained.'))
+    send_smtp_message(config, message)
+
+
+def send_smtp_message(config, message):
+    """Independent verified-TLS transport shared by recovery and queue alerts."""
     context = ssl.create_default_context(cafile=config['ca'])
     if config['encryption'] not in ('starttls', 'tls'):
         raise ValueError('External backup alerts require verified TLS')

@@ -15,6 +15,18 @@ const shots = JSON.parse(fs.readFileSync(path.join(root, 'docs/message-monkey-us
   return prior ? {...prior, ...shot, file:prior.file, capture:prior.capture} : shot;
 });
 const only = process.env.DNR_MANUAL_ONLY?.split(',');
+const examples = fs.existsSync(path.join(work, 'signup-examples.json'))
+  ? JSON.parse(fs.readFileSync(path.join(work, 'signup-examples.json')))
+  : null;
+function captureRoute(shot) {
+  if (shot.id === 'public-signup-background' && examples?.public_key) {
+    return 'audience_collect_public.php?key=' + encodeURIComponent(examples.public_key);
+  }
+  if (shot.id === 'pending-form-tags' && examples?.contact_id) {
+    return 'audience.php?view=contact&id=' + Number(examples.contact_id);
+  }
+  return shot.route;
+}
 fs.mkdirSync(path.join(output, 'screenshots'), { recursive: true });
 fs.mkdirSync(path.join(work, 'states'), { recursive: true });
 function totp() {
@@ -65,7 +77,7 @@ function totp() {
       pageErrors = []; browserLogs = [];
       await page.setViewportSize(shot.viewport || { width: 1280, height: 1000 });
       await page.evaluate(theme => localStorage.setItem('theme', theme), shot.theme || 'light');
-      let response = await page.goto(base + '/' + shot.route, { waitUntil: 'networkidle' });
+      let response = await page.goto(base + '/' + captureRoute(shot), { waitUntil: 'networkidle' });
       // Hash-only navigation does not rerun the theme initializer.
       if (!response) response = await page.reload({ waitUntil: 'networkidle' });
       if ((response && response.status() !== 200) || /login\.php|verify_2fa\.php/.test(page.url())) throw Error('HTTP or authentication error: ' + response?.status());
@@ -99,6 +111,8 @@ function totp() {
       fs.writeFileSync(path.join(work, 'states', shot.id + '.html'), await page.content());
       fs.writeFileSync(path.join(work, 'states', shot.id + '-errors.json'), JSON.stringify(pageErrors));
       fs.writeFileSync(path.join(work, 'states', shot.id + '-console.json'), JSON.stringify(browserLogs));
+      if (shot.id === 'public-signup-background' && (!/Community newsletter signup/i.test(body) || /signup is temporarily unavailable/i.test(body))) throw Error('Fictional published form did not render.');
+      if (shot.id === 'pending-form-tags' && !(/Pending/i.test(body) && /Community newsletter/i.test(body))) throw Error('Pending signup and published form tag are required.');
       if (shot.id === 'interaction-locations' && /map could not be loaded/i.test(body)) throw Error('The live interaction map did not render; inspect its browser log.');
       if (pageErrors.length) throw Error('Browser error: ' + pageErrors.join('; '));
       if (/Fatal error:|Warning:.*\.php on line|Uncaught .*Error:/.test(body)) throw Error('Application error in rendered page: ' + body.slice(-1300));

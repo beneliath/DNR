@@ -16,6 +16,9 @@ assert report['pages']==len(pages)==report['destinations']['__total__']
 assert report['pdf_sha256']==hashlib.sha256(PDF.read_bytes()).hexdigest()
 assert report['shared_content_sha256']==hashlib.sha256((ROOT/'src/templates/audience/manual-content.php').read_bytes()).hexdigest()
 texts=[p.extract_text() or '' for p in pages]
+version=(ROOT/'VERSION').read_text().strip()
+assert report['version']==version and f'Version {version} | {report["edition"]}' in ' '.join(texts[0].split())
+
 ids={p.indirect_reference.idnum:n for n,p in enumerate(pages)}
 links=0
 for number,page in enumerate(pages,1):

@@ -12,8 +12,10 @@
       "entry": "Engagements \u2192 + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details. After selecting an organization, Use Organization Address copies its saved physical address into the editable Event Location fields.",
       "source_files": {
-        "index.php": "90546f69f3fe9ab338371f8aaec841d18bf9566234427f5beb1f37f9de0f5387",
-        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
+        "index.php": "81317c992ed5c14e75aa99b52f439bf95d6de9d517918823869739c904272c59",
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2",
+        "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
+        "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
       },
       "controls": {
         "new-organization": {
@@ -64,9 +66,11 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "89a41ef5379a7b2ba345229de850914ff6f8fcd1782fc2f7b991d36618189109",
+        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
-        "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf"
+        "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf",
+        "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
+        "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
       },
       "controls": {
         "presentations-tab": {
@@ -229,8 +233,10 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "89a41ef5379a7b2ba345229de850914ff6f8fcd1782fc2f7b991d36618189109",
-        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
+        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
+        "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2",
+        "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
+        "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
       },
       "controls": {
         "edit-event": {
@@ -538,11 +544,13 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "89a41ef5379a7b2ba345229de850914ff6f8fcd1782fc2f7b991d36618189109",
+        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "templates/footer.php": "1d217a244076e5ab635b2c4e87e417dc7a0cf202068c063b7302b7117a8df706",
         "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",
-        "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c"
+        "admin_elevation.php": "0472c00887e3a2d55a241e3711e1d4b436f7c9be4d0c8fbf192677c8af54251c",
+        "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
+        "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
       },
       "controls": {
         "presentation-blocks": {

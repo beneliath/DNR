@@ -173,6 +173,14 @@ trait AudienceJobs
         $result=['Email Address'=>$person['email'],'First Name'=>$person['first_name'],'Last Name'=>$person['last_name'],'Status'=>$person['email_status'],'Tags'=>audienceListCell(array_intersect_key($params['tag_names'],array_flip($person['tag_ids']))),'Groups'=>audienceListCell(array_intersect_key($params['group_names'],array_flip($person['group_ids']))),'Language'=>$person['language'],'Time Zone'=>$person['timezone'],'Source'=>$person['source'],'Archived'=>$person['is_archived']?'Yes':'No','Date Added'=>$person['created_at'],'Last Changed'=>$person['updated_at']];
         foreach($params['fields']as$field){$v=$person['custom'][$field['id']]??'';$result[$field['label'].' ('.$field['merge_tag'].')']=is_array($v)?audienceListCell($v):$v;}return $result;
     }
+    public function resumeJob(int $id):void
+    {
+        $this->transaction(function()use($id){
+            $job=$this->job($id,true);
+            if(!in_array($job['state'],['failed','processing'],true))throw new InvalidArgumentException('This job does not need to be resumed.');
+            $this->write("UPDATE marketing_jobs SET state='queued',error_message='',actor_user_id=?,actor_label=? WHERE id=?",[$this->actorId,$this->actorLabel,$id]);
+        });
+    }
     public function cancelJob(int $id):void
     {
         $this->transaction(function()use($id){$job=$this->job($id,true);if(!in_array($job['state'],['draft','queued','processing','failed'],true))throw new InvalidArgumentException('This operation has already finished.');$this->write("UPDATE marketing_jobs SET state='cancelled' WHERE id=?",[$id]);});
