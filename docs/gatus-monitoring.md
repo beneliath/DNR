@@ -33,7 +33,10 @@ the systemd user-bus environment that cron normally lacks.
 
 `scripts/gatus_moed.py` augments the existing collector. Every minute it discovers
 long-running containers in the `moed` and `moed-account-*` Compose projects and
-adds missing checks. One-off jobs and completed migration containers are excluded.
+adds missing checks. Names must start with their Compose project's stable prefix.
+One-off jobs, completed migration containers, and temporary `<id>_<name>`
+replacement names are excluded. An existing stable check remains active when
+its container disappears during replacement.
 Existing unrelated Gatus endpoints, tokens, connections, and schedules are preserved.
 
 The primary and Test Account `audience-jobs` checks are preconfigured and disabled
@@ -43,6 +46,20 @@ keeps unreleased features from appearing as production outages. Once a check has
 activated, disappearance remains a failure; it never silently returns to the
 pending state. Deliberate Account retirement must include explicit retirement
 of its monitoring targets after the application lifecycle work is verified.
+
+Queue failures in Gatus identify the affected Account and queue, with uncertain,
+failed/partial (last 24 hours), stalled, and overdue counts. Missing or stale
+monitor reports have separate explanations. Delivery payloads, addresses, and
+raw exception text are excluded; large reports explicitly direct operators to
+the Account Operations pages for remaining issues.
+
+The queue's Mattermost alert uses Gatus's supported custom HTTP template with
+`[RESULT_ERRORS]`, because the native Mattermost provider omits external-check
+errors. It reuses the existing webhook, channel, client settings, mentions, and
+alert thresholds. Discord and email alerts remain intact; the independent queue
+monitor also emails full per-Account details. The custom template is static, so
+changing counts do not reload Gatus or reset notification state. When changing
+Mattermost connection settings, also update this queue alert's `provider-override`.
 
 ## Install or update
 

@@ -50,6 +50,19 @@ message bodies, credentials, or encrypted payloads.
 Worker container health continues to measure liveness. Successful heartbeats
 cannot hide these separate delivery failures or stalled-job warnings.
 
+Reviewed uncertain campaign attempts can be closed as `cancelled` without
+resending or asserting delivery. Retain the original attempt/receipt metadata,
+record the unresolved delivery outcome and no-resend decision in the error and
+audit history, and take a verified recovery copy before operator reconciliation.
+
+The Test Account baseline operator retires explicitly simulated failed
+correspondence during isolated staging so the same fictional failure does not
+reappear as a new operational incident each night. It requires the known demo
+label, fictional recipient domain, exact simulation error, and no payload,
+claim, start, or sent timestamp; any nonmatching sibling delivery preserves the
+whole message. Chronology entries remain, and the immutable baseline is kept.
+Real delivery failures continue to alert normally.
+
 ## External alerts
 
 `scripts/queue_monitor.py` discovers all active accounts through the primary directory,
