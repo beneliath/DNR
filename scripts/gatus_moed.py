@@ -32,8 +32,52 @@ def long_lived_moed(container):
     project = labels.get('com.docker.compose.project', '')
     if project != 'moed' and not re.fullmatch(r'moed-account-[a-z][a-z0-9-]*', project):
         return False
-    return (labels.get('com.docker.compose.oneoff', '').lower() == 'false'
+    # Compose temporarily renames the old container to <id>_<name> while
+    # replacing it. Its labels and restart policy still look permanent.
+    return (container.get('Name', '').lstrip('/').startswith(project + '-')
+            and labels.get('com.docker.compose.oneoff', '').lower() == 'false'
             and container.get('HostConfig', {}).get('RestartPolicy', {}).get('Name') in ('always', 'unless-stopped', 'on-failure'))
+
+
+def queue_alert_details(document, endpoint):
+    """Use Gatus's result template without changing descriptions every cycle.
+
+    The native Mattermost provider omits external-endpoint errors. A scoped
+    custom alert can use the same connection and Gatus's existing thresholds.
+    Other alerts and any pre-existing custom provider stay untouched.
+    """
+    for alert in endpoint.get('alerts', []):
+        if alert['type'] != 'mattermost':
+            continue
+        provider = document['alerting']['mattermost']
+        connection = copy.deepcopy(provider)
+        for override in provider.get('overrides', []):
+            if override.get('group') == endpoint.get('group', ''):
+                connection.update(override)
+                break
+        connection.update(alert.get('provider-override', {}))
+        description = alert.get('description', provider.get('default-alert', {}).get('description', ''))
+        # Keep the existing mention/custom instructions, including @doug.
+        description = description.replace('Health Check Failed', 'MOED queue outcomes')
+        body = {'text': ('Gatus [ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP]/[ENDPOINT_NAME]\n'
+                         + description + '\n[RESULT_ERRORS]\n'
+                         'Review the affected account\u2019s Operations page. '
+                         'Check provider receipts before resending uncertain mail.')}
+        if connection.get('channel'):
+            body['channel'] = connection['channel']
+        custom = {'url': connection['webhook-url'], 'method': 'POST',
+                  'headers': {'Content-Type': 'application/json'},
+                  'body': json.dumps(body, ensure_ascii=True),
+                  'client': copy.deepcopy(connection.get('client') or {}),
+                  'placeholders': {'ALERT_TRIGGERED_OR_RESOLVED': {'TRIGGERED': 'needs attention', 'RESOLVED': 'recovered'}}}
+        document['alerting'].setdefault('custom', copy.deepcopy(custom))
+        # Materialize native defaults before switching provider so an unrelated
+        # custom provider cannot change this alert's delivery policy.
+        settings = {**provider.get('default-alert', {}), **alert}
+        for key, default in (('enabled', True), ('failure-threshold', 3), ('success-threshold', 2),
+                             ('send-on-resolved', True), ('minimum-reminder-interval', '0s')):
+            alert[key] = settings.get(key, default)
+        alert.update(type='custom', description=description, **{'provider-override': custom})
 
 
 def plan(config, document, containers, *, queue_ready=False):
@@ -82,6 +126,8 @@ def plan(config, document, containers, *, queue_ready=False):
         endpoint['enabled'] = not target.get('awaiting_first_deployment', False)
         if not endpoint.get('alerts') and alerts:
             endpoint['alerts'] = copy.deepcopy(alerts)
+        if name == 'moed-host-queue-outcomes':
+            queue_alert_details(document, endpoint)
     config['targets'] = list(targets.values())
     document['external-endpoints'] = list(endpoints.values())
     return config, document
@@ -150,6 +196,56 @@ def service_properties(name, *, user=True):
     return dict(line.split('=', 1) for line in output.splitlines() if '=' in line)
 
 
+def queue_outcomes(receipt, now):
+    """Only expose account/queue identifiers and counters, never delivery data."""
+    if not fresh(receipt.get('checked_at'), 15 * 60, now):
+        return False, 'MOED queue monitor report is stale or has an invalid timestamp (maximum age 15 minutes)'
+    reports = receipt.get('accounts', {})
+    if not reports:
+        return False, 'MOED queue monitor has no account reports; account coverage cannot be confirmed'
+    issues = []
+    for account, report in sorted(reports.items()):
+        # Only canonical identifiers and numeric counters enter the Gatus custom
+        # JSON template. Labels, exception text and delivery payloads are private.
+        account = account if re.fullmatch(r'[a-z][a-z0-9-]{0,79}', account) else 'unknown-account'
+        if report.get('healthy') is True:
+            continue
+        if report.get('unavailable'):
+            issues.append(account + ': queue health unavailable')
+            continue
+        found = False
+        for queue in report.get('queues', []):
+            if not queue.get('issues'):
+                continue
+            key = queue.get('key', '')
+            key = key if re.fullmatch(r'[a-z][a-z0-9_]{0,79}', key) else 'unknown-queue'
+            counts = []
+            for issue in ('uncertain', 'failed', 'partial', 'stalled', 'overdue'):
+                if issue not in queue['issues']:
+                    continue
+                if issue == 'overdue':
+                    counts.append('overdue=' + str(max(0, int(queue.get('queued', 0))) + max(0, int(queue.get('retry', 0)))))
+                    counts.append('oldest_due_seconds=' + str(max(0, int(queue.get('oldest_due_seconds', 0)))))
+                else:
+                    label = issue + ('(24h)' if issue in ('failed', 'partial') else '')
+                    counts.append(label + '=' + str(max(0, int(queue.get(issue, 0)))))
+            issues.append(account + '/' + key + ': ' + (', '.join(counts) or 'queue needs attention'))
+            found = True
+        if not found:
+            issues.append(account + ': unhealthy queue report without issue details')
+    if not issues:
+        return True, ''
+    # Keep webhook payloads comfortably below chat-provider limits as accounts
+    # grow, and say explicitly when the Operations pages have further details.
+    message = 'MOED queue outcomes: '
+    for index, issue in enumerate(issues):
+        if len(message) + len(issue) > 1400:
+            message += '; ' + str(len(issues) - index) + ' more issues; see account Operations pages'
+            break
+        message += ('; ' if index else '') + issue
+    return False, message
+
+
 def probe_host(target, *, home=None, now=None):
     home, now = home or Path.home(), time.time() if now is None else now
     check = target['container'].removeprefix('moed-host-')
@@ -184,11 +280,9 @@ def probe_host(target, *, home=None, now=None):
             healthy = service.get('ActiveState') == 'active' and all(command in entries for command in CRON_COMMANDS)
         elif check == 'queue-outcomes':
             receipt = state(home / '.local/state/moed-queues/health.json')
-            reports = receipt.get('accounts', {})
-            healthy = bool(reports) and fresh(receipt.get('checked_at'), 15 * 60, now) \
-                and all(report.get('healthy') is True for report in reports.values())
+            return queue_outcomes(receipt, now)
         else:
             return False, 'Unknown MOED operational check'
         return (True, '') if healthy else (False, 'MOED ' + check + ' failed or its successful result is stale')
-    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError, subprocess.SubprocessError):
         return False, 'MOED ' + check + ' state could not be verified'
