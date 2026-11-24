@@ -125,3 +125,20 @@ test('loading and failed organization changes preserve roles and block premature
     fixture.form.listeners.submit({ preventDefault() { prevented = true; } });
     assert.equal(prevented, false, 'Saving should resume after contacts have loaded successfully');
 });
+
+test('draft readiness waits for contact loading and leaves an unchanged organization intact', async () => {
+    const fixture = contactPickerHarness();
+    fixture.change('1');
+    assert.equal(fixture.requests.length, 0, 'Restoring the existing organization keeps its rendered checkboxes');
+    const loading = fixture.change('2');
+    const waits = [];
+    fixture.form.listeners['form-draft-ready']({detail: {waitUntil(promise) { waits.push(promise); }}});
+    assert.equal(waits.length, 1);
+    assert.equal(waits[0], loading);
+    fixture.requests[0].resolve({ok: true, json: async () => ({contacts: [{id: 202, name: 'New contact'}], roles: {billing: 'Billing'}})});
+    await Promise.all(waits);
+    assert.equal(fixture.parts.engagementContactList.querySelectorAll('input[type="checkbox"]').length, 1);
+    const completed = [];
+    fixture.form.listeners['form-draft-ready']({detail: {waitUntil(promise) { completed.push(promise); }}});
+    assert.equal(completed.length, 0);
+});

@@ -82,6 +82,7 @@ parameters:
         - src/mattermost_integration_helpers.php
         - src/notification_helpers.php
         - src/operations_helpers.php
+        - src/queue_health_helpers.php
         - src/short_link_helpers.php
         - src/notes_cache_helpers.php
         - src/speaker_helpers.php

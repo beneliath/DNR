@@ -166,6 +166,31 @@ def backup_persistent_files(db_container, app_image, archive, password_file):
                 backup_sha256=sha(archive), format='tar-gzip-secretstream-v2')
 
 
+def migrate_isolated_restore(container, migrations, runner, *, require_encryption=False):
+    """Run the canonical ordered schema migrations on an owned, offline restore."""
+    state = json.loads(subprocess.check_output(['docker', 'inspect', container]))[0]
+    labels = state['Config']['Labels']
+    owned = (container.startswith('dnr-restore-check-') and labels.get('org.dnr.backup-owner')
+             or container.startswith('dnr-online-restore-nightly-baseline-stage-')
+             and labels.get('org.dnr.recovery-owner') == 'test-account-baseline-refresh')
+    if state['HostConfig']['NetworkMode'] != 'none' or not owned:
+        raise ValueError('Schema rehearsal requires a network-isolated backup restore')
+    directory = '/tmp/dnr-release-migrations'
+    script = '/tmp/dnr-release-migrate.sh'
+    grants = '/tmp/dnr-release-restore-grants.sh'
+    for source, target in ((migrations, directory), (runner, script)):
+        subprocess.run(['docker', 'cp', str(source), container + ':' + target], check=True, capture_output=True)
+    # Native snapshots contain the application schema only. The isolated runner
+    # applies schema and encryption; deployment applies grants to the live roles.
+    source = '#!/bin/sh\nprintf "SELECT 1;\\n" > "$DNR_PRIVILEGE_SQL_FILE"\n'
+    subprocess.run(root_command(container, 'sh', '-c', 'cat > ' + grants), input=source, text=True, check=True)
+    result = subprocess.run(root_command(container, 'env', 'MYSQL_USER=dnruser',
+        'DNR_REQUIRE_DATABASE_ENCRYPTION=' + str(int(require_encryption)), 'DNR_PRIVILEGE_SCRIPT=' + grants,
+        'DNR_MIGRATION_DIRECTORY=' + directory, 'sh', script), capture_output=True, text=True)
+    if result.returncode:
+        raise ValueError('Isolated migration rehearsal failed: ' + (result.stdout + result.stderr)[-2500:])
+
+
 def create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory, *, restore_verifier=None):
     """Writers are paused; lock also coordinates interrupted-run recovery cleanup."""
     import fcntl

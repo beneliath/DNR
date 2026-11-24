@@ -31,14 +31,15 @@ expectBetaReadiness(
 
 $new_engagement = $read('src/index.php');
 $edit_engagement = $read('src/edit_engagement.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
 $engagement_update_plan = $read('src/app/Service/EngagementUpdatePlan.php');
 $presentation_helpers = $read('src/presentation_helpers.php');
 expectBetaReadiness(
-    str_contains($new_engagement, 'event_address_line_1')
+    str_contains($engagement_write, 'event_address_line_1')
         && str_contains($new_engagement, "header('Location: engagements.php')")
         && str_contains($new_engagement, 'requireActiveOrganization')
         && str_contains($edit_engagement, 'engagement_version')
-        && str_contains($edit_engagement, 'EngagementUpdatePlan::build')
+        && str_contains($engagement_write, 'EngagementUpdatePlan::build')
         && str_contains($engagement_update_plan, "'travel_amount'")
         && str_contains($engagement_update_plan, "'housing_amount'")
         && str_contains($presentation_helpers, 'Every active presentation must be included')

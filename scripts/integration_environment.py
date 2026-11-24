@@ -15,6 +15,20 @@ ROOT = Path(__file__).resolve().parent.parent
 LABEL = 'org.dnr.disposable-test'
 
 
+def run_audience_suite(compose, env, suite, extra_env=()):
+    background = suite == 'audience_http_integration_test.php'
+    try:
+        if background:
+            subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'audience-jobs'], cwd=ROOT, env=env, check=True)
+        php_options = ['-d', 'disable_functions=exec,passthru,shell_exec,system,popen'] if suite == 'audience_job_worker_integration_test.php' else []
+        subprocess.run(compose + ['exec', '-T', '-u', 'www-data', '-e', 'DNR_INTEGRATION_TEST=1',
+            '-e', 'DNR_INTEGRATION_TARGET=disposable', '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+            *extra_env, 'web', 'php', *php_options, '/opt/dnr/tests/' + suite], cwd=ROOT, env=env, check=True)
+    finally:
+        if background:
+            subprocess.run(compose + ['stop', 'audience-jobs'], cwd=ROOT, env=env, check=True)
+
+
 def verify_inbox_forward_smtp(compose, env, values):
     # The synthetic receiver and the dispatch-role process share only loopback.
     subprocess.run(compose + ['exec','-T','web','php','-r',
@@ -74,8 +88,9 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['event-tasks'], ['audience'], ['audience-ses'], ['audience-minor-fixes'], ['audience-signup'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|event-tasks|audience|audience-ses|audience-minor-fixes|audience-signup|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management'], ['test-account-closeout'], ['event-tasks'], ['audience'], ['audience-ses'], ['audience-minor-fixes'], ['audience-signup'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data'], ['queue-workers'], ['release-browser']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|test-account-closeout|event-tasks|audience|audience-ses|audience-minor-fixes|audience-signup|audience-presend|user-timezone|audience-planner|audience-template-transfer|audience-performance|audience-security|audience-data|defensive-data|queue-workers|release-browser|verify]')
+    browser_only = sys.argv[1:] == ['release-browser']
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
@@ -123,7 +138,7 @@ def main():
             values['DNR_DOCUMENT_SCANNING'] = '1'
         envfile = folder / 'test.env'
         envfile.write_text(''.join(k + '=' + v + '\n' for k, v in values.items()))
-        services = ('web', 'downloads', 'document-scans', 'document-scanner', 'data-maintenance', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'key-rotation', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
+        services = ('web', 'downloads', 'document-scans', 'document-scanner', 'audience-jobs', 'data-maintenance', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'key-rotation', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
         override = {'services': {s: {'labels': {LABEL: token}} for s in services},
                     'volumes': {v: {'labels': {LABEL: token}} for v in ('app_sessions', 'uploaded_files', 'db_data', 'db_keyring', 'db_socket', 'scanner_signatures')},
                     'networks': {name: {'labels': {LABEL: token}, 'ipam': {'config': [{'subnet': str(subnet)}]}}
@@ -149,18 +164,32 @@ def main():
             override['services'][service]['volumes'] = [str(notice) + ':/run/dnr/deployment:ro']
         if sys.argv[1:] in (['audience'], ['audience-ses'], ['audience-minor-fixes'], ['audience-signup'], ['audience-presend'], ['user-timezone'], ['audience-planner'], ['audience-template-transfer'], ['audience-performance'], ['audience-security'], ['audience-data'], ['defensive-data']):
             override['services']['web']['volumes'].append(str(ROOT/'tests')+':/opt/dnr/tests:ro')
+        if browser_only:
+            override['services']['web']['environment'].update(DNR_MAIL_TRANSPORT='log', DNR_AI_COACH_ENABLED='0')
         overlay = folder / 'test.json'; overlay.write_text(json.dumps(override))
         env.update(values, DNR_INTEGRATION_PROJECT=project, DNR_ISOLATION_TOKEN=token,
                    DNR_INTEGRATION_ENV_FILE=str(envfile), DNR_INTEGRATION_OVERLAY=str(overlay))
         compose = ['docker', 'compose', '--env-file', str(envfile), '-p', project,
                    '-f', str(ROOT/'docker-compose.yaml'), '-f', str(ROOT/'docker-compose.dev.yaml'),
-                   '-f', str(ROOT/'docker-compose.mail.yaml'), '-f', str(overlay)]
+                   '-f', str(ROOT/'docker-compose.mail.yaml')]
+        if browser_only:
+            compose += ['-f', str(ROOT/'docker-compose.ci-image.yaml')]
+        compose += ['-f', str(overlay)]
         try:
             if build_services:
                 subprocess.run(compose + ['build', *build_services], cwd=ROOT, env=env, check=True)
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if sys.argv[1:] == ['queue-workers']:
+                for suite in ('audience_job_worker_integration_test.php', 'queue_health_integration_test.php', 'audience_http_integration_test.php'):
+                    run_audience_suite(compose, env, suite)
+                return
+            if browser_only:
+                address = subprocess.check_output(compose + ['port', 'ingress', '80'], cwd=ROOT, env=env, text=True).strip()
+                subprocess.run(['node', '--test', 'tests/browser/release-workflows.test.cjs'],
+                    cwd=ROOT, env={**env, 'DNR_TEST_BASE_URL': 'http://' + address}, check=True)
+                return
             if sys.argv[1:] == ['defensive-data']:
                 for suite in ('audience_public_security_http_integration_test.php',
                               'audience_data_management_integration_test.php',
@@ -218,13 +247,8 @@ def main():
                           'audience-performance': ('audience_performance_integration_test.php',
                                                    'audience_workspace_performance_http_integration_test.php')}[sys.argv[1]]
                 for suite in suites:
-                    subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
-                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                        '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
-                        '-e', 'DNR_SUBSCRIPTION_NOTICE_WORKER_FIXTURE='+('1' if sys.argv[1:] == ['audience-minor-fixes'] else '0'),
-                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php',
-                        '/opt/dnr/tests/'+suite],
-                        cwd=ROOT, env=env, check=True)
+                    run_audience_suite(compose, env, suite, ['-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
+                        '-e', 'DNR_SUBSCRIPTION_NOTICE_WORKER_FIXTURE='+('1' if sys.argv[1:] == ['audience-minor-fixes'] else '0')])
                 if sys.argv[1:] == ['audience-presend']:
                     subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
@@ -252,18 +276,7 @@ def main():
                         path.name for path in (ROOT / 'tests').glob('audience*_integration_test.php'))
                 for suite in suites:
                     print('Running ' + suite, flush=True)
-                    subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
-                        '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', 'web', 'php', '/opt/dnr/tests/'+suite],
-                        cwd=ROOT, env=env, check=True)
-                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
-                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                    'web', 'php', '/opt/dnr/tests/audience_ses_alert_admin_fixture.php'], cwd=ROOT, env=env, check=True)
-                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
-                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
-                    '-e', 'MYSQL_USER=dnrmaildispatch', '-e', 'MYSQL_PASSWORD_FILE=/run/secrets/setup_test_mail_password',
-                    '-v', values['DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE']+':/run/secrets/setup_test_mail_password:ro',
-                    'web', '/opt/dnr/tests/audience_delivery_worker_privileges_test.php'], cwd=ROOT, env=env, check=True)
+                    run_audience_suite(compose, env, suite)
                 if sys.argv[1:] == ['audience-ses']:
                     return
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
@@ -402,7 +415,9 @@ def main():
             raise
         finally:
             # Project name is generated here, never supplied by a caller.
-            subprocess.run(compose + ['down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True)
+            # Explicitly started profile services can be stopped but still retain
+            # the app image. Include every profile before removing owned images.
+            subprocess.run(compose + ['--profile', '*', 'down', '--volumes', '--remove-orphans'], cwd=ROOT, env=env, check=True)
             remove_run_images(project, owned_images)
 
 

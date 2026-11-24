@@ -41,7 +41,7 @@ expectIntegrationRunner(
         && str_contains($runner, 'DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore')
         && str_contains($runner, 'isolated_project="dnr-backup-test-')
         && str_contains($runner, 'compose_isolated up -d --wait db')
-        && str_contains($runner, 'compose_isolated down --volumes --remove-orphans')
+        && str_contains($runner, "compose_isolated --profile '*' down --volumes --remove-orphans")
         && str_contains($runner, 'trap cleanup_isolated_backup EXIT HUP INT TERM')
         && str_contains($runner, 'maintenance'),
     'the destructive backup suite should use and always destroy its own database project and volume.'

@@ -60,7 +60,7 @@ const visibleInPane = (page, selector, paneSelector = '.writing-ai-content') => 
                 await page.evaluate(() => document.documentElement.classList.add('dark-mode'));
                 await page.locator('[data-ai-checks]').click();
                 await visibleInPane(page, '[data-ai-check-result] h3');
-                assert.match(await page.locator('[data-ai-check-result]').textContent(), /Word count/);
+                assert.match(await page.locator('[data-ai-check-result]').textContent(), /Word Count/);
                 await page.locator('[name=prompt]').fill('Help me share a community update');
                 await page.locator('[data-ai-generate]').click();
                 await visibleInPane(page, '[data-ai-thinking]');

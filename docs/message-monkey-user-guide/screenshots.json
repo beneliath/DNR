@@ -259,6 +259,45 @@
     ]
   },
   {
+    "id": "pending-form-tags",
+    "chapter": 3,
+    "title": "Check a pending signup and its form tags",
+    "route": "audience.php?view=contact",
+    "steps": [
+      "Open the connection profile and read its email subscription status.",
+      "A new pending signup already shows the tags assigned by the published form.",
+      "Wait for confirmed subscription before treating the connection as an eligible campaign recipient."
+    ],
+    "file": "screenshots/pending-form-tags.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1430
+      },
+      "clip_css": {
+        "x": 270,
+        "y": 76,
+        "width": 970,
+        "height": 1300
+      },
+      "theme": "light",
+      "captured_at": "2026-11-24",
+      "sha256": "a54bdba08bfe6cc9bc7308b823ecb6c5903edb3d91d533efc30abf00f4951647"
+    },
+    "viewport": {
+      "width": 1280,
+      "height": 1430
+    },
+    "clip": {
+      "x": 270,
+      "y": 76,
+      "width": 970,
+      "height": 1300
+    }
+  },
+  {
     "id": "import",
     "chapter": 3,
     "title": "Begin a connection import",
@@ -1184,18 +1223,14 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "f9ed8da6c17caf360d8d47d930ac87e3d38c55a191b5a129d6235a14b964672a",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-24",
+      "sha256": "9215f2289dd9e415df92cb1f0a7dcc585248ddca543d9d1a7708674730d90e8e"
     },
     "crop": [
       720,
-      336,
+      180,
       3120,
-      2400
+      2670
     ]
   },
   {
@@ -1218,12 +1253,8 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "523e59a867cfc4a70e3ff8b0c29616e84916e66674a4fb0de6ac46386d6745d9",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-24",
+      "sha256": "ea389894f1114a63748db0228a03bef399fb1e0980f52595f53548078011d2ee"
     }
   },
   {
@@ -1302,12 +1333,35 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "a51b644e895be0fc9c9f1843ac8f818fc9736a61117bd023b3d6c17545cb1f37",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-24",
+      "sha256": "004c01abbca51cd66e0b0f92ace0d7b72737d66e85c641a7054cf18f6a04cf05"
+    }
+  },
+  {
+    "id": "public-signup-background",
+    "chapter": 10,
+    "title": "Preview a published signup page",
+    "route": "audience_collect_public.php",
+    "viewport": {
+      "width": 1280,
+      "height": 850
+    },
+    "steps": [
+      "Open the published hosted form in a tall browser window.",
+      "Check that the background covers the window, including below the form. Compare the desktop and phone layouts."
+    ],
+    "file": "screenshots/public-signup-background.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 850
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-11-24",
+      "sha256": "a3d2ab8763acc317c40e4ac1bbbaa0dde774b35b896998483097f92c3762586a"
     }
   },
   {
@@ -1732,19 +1786,40 @@
       },
       "clip_css": null,
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "5081e10dbd6c526750eca171efeea2dc39ae42e4d0f1938bf35c13cf96800edd",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-24",
+      "sha256": "1d85496b3678eaf9462f08f104cd78519cd9720ab0bf3579d9d761d72bab5d08"
     },
     "crop": [
       720,
-      336,
+      180,
       3120,
-      2400
+      2670
     ]
+  },
+  {
+    "id": "subscriber-notifications",
+    "chapter": 12,
+    "title": "Set staff alerts and the Daily Summary",
+    "route": "audience.php?view=settings",
+    "focus": "h3:has-text(\"Subscriber Notifications\")",
+    "steps": [
+      "In Audience Settings, find Subscriber Notifications. Choose the notices to show in the bell or email to verified staff.",
+      "The Daily Summary covers the 24 hours ending at 11:11 p.m. Chicago time and shows times in that zone.",
+      "Open a link in the summary to review the corresponding connection."
+    ],
+    "file": "screenshots/subscriber-notifications.png",
+    "capture": {
+      "source": "Native browser PNG; no resizing or sharpening",
+      "device_scale_factor": 3,
+      "viewport_css": {
+        "width": 1280,
+        "height": 1000
+      },
+      "clip_css": null,
+      "theme": "light",
+      "captured_at": "2026-11-24",
+      "sha256": "ad40faf031f0b7225469d9a2ec541583c2cb3b5eb42e13fa8112ff68e23e37c1"
+    }
   },
   {
     "id": "writing-ai",

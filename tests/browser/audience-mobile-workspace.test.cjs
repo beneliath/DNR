@@ -184,10 +184,10 @@ const visualDifference = (page, a, b) => page.evaluate(async ({a,b}) => {
             current='conversation';await visit(new URL(conversationUrl,'http://mobile-workspace.test/').href);await settle(page);
             assert.equal(await page.locator('.inbox-list').isVisible(),false,'reading a conversation uses the screen');
             assert.equal(await page.locator('.inbox-return').isVisible(),true,'conversation has an obvious way back');
-            const forwardButton=page.getByRole('button',{name:'Forward email',exact:true});
+            const forwardButton=page.getByRole('button',{name:'Forward Email',exact:true});
             await forwardButton.click();
-            const forwardDialog=page.getByRole('dialog',{name:'Forward email'});
-            const submitForward=forwardDialog.getByRole('button',{name:'Forward email'});
+            const forwardDialog=page.getByRole('dialog',{name:'Forward Email'});
+            const submitForward=forwardDialog.getByRole('button',{name:'Forward Email'});
             assert.equal(await submitForward.isDisabled(),true,'a forward starts with no recipients');
             await forwardDialog.getByLabel(/alex@example.test/).check();
             await forwardDialog.getByLabel(/sam@example.test/).check();

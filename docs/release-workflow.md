@@ -194,6 +194,24 @@ for the restricted SSH identity and FileVault restart requirements.
 
 The Compose wrapper still supports explicit development/source builds. Manual database upgrades must follow the same backup directive; a bare Compose command is not a replacement for the guarded deployment procedure.
 
+### Schema rehearsal
+
+Before changing the checkout or running live DDL, the host compares each verified
+backup restore with the candidate migration ledger. When schema inputs have
+changed or an account has pending migrations, the canonical migrator runs against
+that account's network-isolated restore. The backup receipt records the candidate
+application digest, migration checksums, and result. A failed rehearsal blocks
+the release. The rehearsal uses the backup's database engine and exercises schema
+and encryption. The live migrator applies the configured account grants.
+
+For the active Test Account, schema changes and baseline-operator changes also
+require a full rehearsal of the approved encrypted baseline. The release operator
+uses the candidate app and the staged migration sources, verifies the date remap,
+dependencies, demo policy, and files, then discards the staging database. After
+a schema deployment, use the installed refresh runner's rehearsal mode to check
+its compatibility with the deployed app before the next scheduled refresh. See
+[Test Account demo maintenance](test-account-demo.md#daily-baseline-refresh-on-s1).
+
 ### Initial speaker profile transfer
 
 For the initial speaker rollout, export the sole Olivier Melnick record with

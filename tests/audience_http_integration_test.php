@@ -17,6 +17,7 @@ try{
         $login=$client('login.php');$login=$client('login.php',['csrf_token'=>audienceHttpCsrf($login),'username'=>$username,'password'=>$password]);$login=finishIntegrationTestEnrollment($client,$login);audienceHttpExpect($login['status']===302,'Fixture login '.$clientKey);$clients[$clientKey]=$client;
     }
     $admin=$clients['admin'];$editor=$clients['editor'];$reviewer=$clients['reviewer'];
+    $operations=$admin('operations.php');audienceHttpExpect($operations['status']===200&&str_contains($operations['body'],'Queue Health'),'Administrator sees live per-account queue outcomes');
     $page=$admin('audience.php');$csrf=audienceHttpCsrf($page);audienceHttpExpect($page['status']===200&&str_contains($page['body'],'Advanced Filters'),'Connections renders');
     audienceHttpExpect(str_contains($page['body'],'<span>MOED MessageMonkey</span></div>'),'Brand Audience is plain text');audienceHttpExpect(!str_contains($page['body'],'aria-label="Return to MOED"'),'Logo is not linked');
     audienceHttpExpect(!str_contains($page['body'],'audience-switch')&&!str_contains($page['body'],'create-audience'),'No audience selection or creation UI');
@@ -50,12 +51,12 @@ try{
     $upload=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'import_upload','paste'=>"Email,First Name\nsecond@example.test,Second\ninvalid-email,Invalid"]);audienceHttpExpect($upload['status']===302,'Paste starts wizard');preg_match('/id=(\d+)/',$upload['headers'],$m);$job=(int)$m[1];
     foreach(['organize','tag','match','subscribe','review']as$step)audienceHttpExpect($editor($path.'&view=import&id='.$job.'&step='.$step)['status']===200,'Import step '.$step);
     $start=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'start_import','id'=>$job,'mapping'=>['email','first_name'],'import_status'=>'non-subscribed']);audienceHttpExpect($start['status']===302,'Import starts');
-    $worker=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'process_job','id'=>$job]);audienceHttpExpect($worker['status']===200&&json_decode($worker['body'],true)['accepted'],'Worker accepted');
+    // The independent worker must finish even if no browser asks it to process.
     for($i=0;$i<60;$i++){$status=json_decode($editor($path.'&api=job&id='.$job)['body'],true);if($status['state']==='complete')break;usleep(100000);}
     audienceHttpExpect($status['state']==='complete'&&(int)$status['added']===1&&(int)$status['errors']===1,'Durable import completes');
     $errors=$editor($path.'&id='.$job.'&download=errors');audienceHttpExpect($errors['status']===200&&str_contains($errors['body'],'invalid-email'),'Row errors downloadable');
     $export=$editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'queue_export','selection_scope'=>'all']);audienceHttpExpect($export['status']===302,'Export queued');preg_match('/id=(\d+)/',$export['headers'],$m);$exportId=(int)$m[1];
-    $editor($path,['csrf_token'=>$token,'audience'=>$aid,'action'=>'process_job','id'=>$exportId]);for($i=0;$i<60;$i++){$status=json_decode($editor($path.'&api=job&id='.$exportId)['body'],true);if($status['state']==='complete')break;usleep(100000);}
+    for($i=0;$i<60;$i++){$status=json_decode($editor($path.'&api=job&id='.$exportId)['body'],true);if($status['state']==='complete')break;usleep(100000);}
     $archive=$editor($path.'&id='.$exportId.'&download=zip');audienceHttpExpect($archive['status']===200&&str_contains($archive['headers'],'application/zip')&&str_contains($archive['headers'],'.zip'),'Audience export downloads a ZIP');
     audienceHttpExpect($admin($path.'&id='.$exportId.'&download=zip')['status']===200,'Administrator can download the audience ZIP');
     $exportPath=tempnam(sys_get_temp_dir(),'audience-archive-test-');file_put_contents($exportPath,$archive['body']);$exportZip=new ZipArchive();
@@ -72,6 +73,13 @@ try{
     $legacyDownload=$editor($path.'&id='.$legacyExport.'&download=csv');audienceHttpExpect($legacyDownload['status']===200&&str_contains($legacyDownload['headers'],'text/csv')&&str_contains($legacyDownload['body'],'legacy@example.test'),'Existing saved CSV exports remain downloadable');
     $conn->query("INSERT INTO marketing_audiences(name,settings_json) VALUES ('Internal isolation fixture',JSON_OBJECT())");$other=(int)$conn->insert_id;
     $otherStore=new AudienceStore($conn,$other,1,'Isolation fixture');$otherPerson=$otherStore->savePerson(['email'=>'other@example.test','email_status'=>'non-subscribed']);
+    $conn->execute_query("INSERT INTO marketing_jobs(audience_id,job_type,name,state,actor_user_id,actor_label,params_json) VALUES (1,'bulk','Protected resume fixture','failed',0,'Fixture',JSON_OBJECT('action','delete'))");$protectedResume=(int)$conn->insert_id;
+    $resumePost=['action'=>'resume_job','id'=>$protectedResume,'audience'=>1];
+    audienceHttpExpect($editor($path,$resumePost+['csrf_token'=>$token])['status']===403,'An editor cannot take over a failed delete job');
+    $lockedResume=$admin($path,$resumePost+['csrf_token'=>$csrf]);
+    audienceHttpExpect($lockedResume['status']===302&&str_contains($lockedResume['headers'],'admin_elevation.php'),'Delete-job resume requires a fresh Admin Unlock');
+    audienceHttpExpect($conn->execute_query('SELECT state FROM marketing_jobs WHERE id=?',[$protectedResume])->fetch_assoc()['state']==='failed','Rejected resumes leave the job unchanged');
+    $conn->execute_query("UPDATE marketing_jobs SET state='cancelled' WHERE id=?",[$protectedResume]);
     $otherJob=$otherStore->createImport(audienceParseImport("Email\nother@example.test"),'Foreign job');
     $conn->execute_query("UPDATE marketing_jobs SET state='complete' WHERE id=?",[$otherJob]);
     $notifications=$editor($path)['body'];

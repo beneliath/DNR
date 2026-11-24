@@ -9,6 +9,8 @@ function expectChronFeature($condition, $message) {
 
 $new_engagement = file_get_contents(__DIR__ . '/../src/index.php');
 $edit_engagement = file_get_contents(__DIR__ . '/../src/edit_engagement.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
+$engagement_toolbar = file_get_contents(__DIR__ . '/../src/templates/engagement_lifecycle_form.php');
 $view_engagement = file_get_contents(__DIR__ . '/../src/view_engagement.php');
 $restore_chron_entries = file_get_contents(__DIR__ . '/../src/restore_chron_entries.php');
 $engagement_list = file_get_contents(__DIR__ . '/../src/engagements.php');
@@ -43,17 +45,17 @@ expectChronFeature(
 expectChronFeature(
     strrpos($edit_engagement, 'chron-log-section')
         > strrpos($edit_engagement, '<h2>Logistics and Compensation</h2>')
-        && strrpos($edit_engagement, 'engagement-page-actions')
-            > strrpos($edit_engagement, 'chron-log-section')
-        && str_contains($edit_engagement, 'name="save_engagement" value="1"')
-        && str_contains($edit_engagement, 'form="engagement-edit-form">Save Changes</button>'),
-    'Chron should be the final Edit section, followed by page-level Cancel and Save Changes actions.'
+        && str_contains($edit_engagement, "include 'templates/engagement_lifecycle_form.php'")
+        && str_contains($engagement_toolbar, 'data-sticky-toolbar')
+        && str_contains($engagement_toolbar, 'name="save_engagement" value="1"')
+        && str_contains($engagement_toolbar, 'form="engagement-edit-form">Save Changes</button>'),
+    'Chron should be the final Edit section, with Save Changes associated with the edit form in the sticky toolbar.'
 );
 expectChronFeature(
     str_contains($edit_engagement, 'name="save_and_add_chron"')
         && str_contains($edit_engagement, 'form="engagement-edit-form"')
         && str_contains($edit_engagement, "isset(\$_POST['save_and_add_chron'])")
-        && str_contains($edit_engagement, "if (\$new_chron_entry !== '')")
+        && str_contains($engagement_write, "if (\$new_chron_entry !== '')")
         && str_contains($edit_engagement, "header(\"Location: engagements.php\")"),
     'Add entry and Save Changes should preserve new Chron content and return to the Engagements list.'
 );
@@ -64,8 +66,8 @@ expectChronFeature(
         && str_contains($edit_engagement, 'required form="engagement-edit-form"')
         && str_contains($edit_engagement, 'FOR UPDATE')
         && str_contains($edit_engagement, 'name="chron_entry_versions[')
-        && str_contains($edit_engagement, 'updated_at = UTC_TIMESTAMP(6)')
-        && str_contains($edit_engagement, 'AND updated_at = ?'),
+        && str_contains($engagement_write, 'updated_at = UTC_TIMESTAMP(6)')
+        && str_contains($engagement_write, 'AND updated_at = ?'),
     'existing Chron text changes should be saved by the bottom Save Changes button.'
 );
 expectChronFeature(

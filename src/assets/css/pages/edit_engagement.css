@@ -13,16 +13,6 @@ html[data-engagement-restoring] .edit-engagement-page {
     font-size: 1.55rem;
 }
 
-.edit-engagement-page .form-draft-panel {
-    border-bottom: 0;
-    padding-bottom: 0;
-    margin-bottom: 8px;
-}
-
-html:not(.has-js) #engagement-edit-form :is([data-form-draft-panel], [data-relationship-search-input], [data-relationship-search-status]) {
-    display: none;
-}
-
 .edit-engagement-page #event_description {
     /* Eleven complete text lines plus the 8px padding and 1px border on each edge. */
     height: calc(16.5em + 18px);
@@ -56,58 +46,30 @@ html:not(.has-js) #engagement-edit-form :is([data-form-draft-panel], [data-relat
     margin-top: 18px;
 }
 
-/* Leave room for the fixed actions, including devices with a home indicator. */
-body.edit-engagement-body {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+/* Keep the toolbar sticky through the separately submitted Chron forms. */
+#engagement-edit-form {
+    display: contents;
 }
 
 html:has(.edit-engagement-body) {
     scroll-behavior: auto;
-    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
 .edit-engagement-body {
     scrollbar-gutter: stable;
 }
 
-.edit-engagement-page .engagement-page-actions {
-    position: fixed;
-    z-index: 84;
-    inset: auto 0 0 var(--sidebar-width);
-    margin: 0;
-    padding: 0 0 env(safe-area-inset-bottom, 0px);
-    border: 0;
-    border-top: 1px solid var(--border);
-    border-radius: 0;
-    box-shadow: 0 -2px 12px rgba(16, 24, 40, 0.08);
-}
-
-.engagement-edit-actions-inner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    width: min(100%, var(--app-content-max));
-    min-height: 5rem;
-    margin-inline: auto;
-    padding: 14px var(--app-content-padding);
-}
-
-.engagement-edit-actions-inner .cancel-button {
-    margin-left: 0;
-}
-
-.edit-engagement-page .engagement-page-actions .save-button {
+.edit-engagement-page .engagement-lifecycle-actions .save-button {
     --primary-hover: var(--success);
     --save-outline-color: var(--primary);
     position: relative;
 }
 
-.edit-engagement-page .engagement-page-actions .save-button:is(:hover, :focus-visible):not(.coach-control-highlight) {
+.edit-engagement-page .engagement-lifecycle-actions .save-button:is(:hover, :focus-visible):not(.coach-control-highlight) {
     --save-outline-color: var(--primary-hover);
 }
 
-.edit-engagement-page .engagement-page-actions .save-button[data-unsaved-changes]::after {
+.edit-engagement-page .engagement-lifecycle-actions .save-button[data-unsaved-changes]::after {
     content: "";
     position: absolute;
     inset: -1px;
@@ -118,7 +80,7 @@ html:has(.edit-engagement-body) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .edit-engagement-page .engagement-page-actions .save-button[data-unsaved-changes]::after {
+    .edit-engagement-page .engagement-lifecycle-actions .save-button[data-unsaved-changes]::after {
         animation: engagement-save-outline 1.4s ease-in-out infinite;
     }
 }
@@ -128,18 +90,8 @@ html:has(.edit-engagement-body) {
     50% { outline-offset: 7px; }
 }
 
-@media (max-width: 860px) {
-    .edit-engagement-page .engagement-page-actions {
-        left: 0;
-    }
-}
-
 @media print {
-    body.edit-engagement-body {
-        padding-bottom: 0;
-    }
-
-    .edit-engagement-page .engagement-page-actions {
+    .edit-engagement-page .engagement-lifecycle-actions {
         display: none;
     }
 }

@@ -31,6 +31,7 @@ $geocoder_worker = $read('scripts/process_geocode_queue.php');
 $map_helpers = $read('src/map_helpers.php');
 $new_engagement = $read('src/index.php');
 $edit_engagement = $read('src/edit_engagement.php');
+$engagement_write = file_get_contents(__DIR__ . '/../src/app/Service/EngagementWrite.php');
 $migration = $read('migrations/20260817_add_engagement_map.sql');
 $hardening_migration = $read('migrations/20260821_security_performance_hardening.sql');
 $apache = $read('docker/apache-security.conf');
@@ -221,8 +222,10 @@ expectMapFeature(
 );
 
 expectMapFeature(
-    str_contains($new_engagement, 'queueEngagementMapAddress($conn, $map_address, true)')
-        && str_contains($edit_engagement, 'queueEngagementMapAddress($conn, $map_address, true)'),
+    str_contains($new_engagement, 'EngagementWrite::queueLocation')
+        && str_contains($engagement_write, 'self::queueLocation($conn, $engagement_input)')
+        && str_contains($engagement_write, 'queueEngagementMapAddress($conn, $address, true)')
+        && str_contains($edit_engagement, 'EngagementWrite::edit'),
     'an explicit create or edit submission should revive a terminal geocoding failure.'
 );
 

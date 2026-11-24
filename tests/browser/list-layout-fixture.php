@@ -19,6 +19,7 @@ $userId=11; $user_role='admin'; $can_manage_tasks=$can_manage_speakers=$canManag
 $canSelect=!$archived; $selectionRemoved=false;
 $search=$action_message=$action_error=$message=$error=$date_error=$date_from=$date_to='';
 $page_size=$pageSize=20; $current_page=1; $list_current_url=$listUrl=$returnUrl=$page.'.php';
+$total_contacts=$total_speakers=1; // One sample row is rendered below, including pagination.
 $sort_column=$sortBy='name'; $name_sort=$last_name_sort=$organization_sort=$last_giving_sort=$lifetime_giving_sort=$date_sort=$status_sort=$lifecycle_sort=$org_sort=$title_sort=$sortDir=$direction='asc';
 $sort='created'; $state='all'; $lifecycle_filter='active';
 $date_from=$_GET['date_from'] ?? ''; $date_to=$_GET['date_to'] ?? '';

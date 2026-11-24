@@ -35,6 +35,10 @@ if($isPost){
         $action=audienceText($_POST,'action');$version=\Dnr\Http\RequestInput::positiveInt($_POST,'version')??0;
         $protectedViews=['delete_tag'=>'tags','delete_segment'=>'segments','delete_group'=>'groups','delete_field'=>'fields','undo_import'=>'job','delete_export_history'=>'jobs'];
         $protectedView=$protectedViews[$action]??null;
+        if($action==='resume_job'){
+            $resumeJob=$store->job($id);
+            if($resumeJob['job_type']==='bulk'&&($resumeJob['params']['action']??'')==='delete')$protectedView='job';
+        }
         if($action==='archive_definition')$protectedView=match(audienceText($_POST,'kind')){'tag'=>'tags','segment'=>'segments','group'=>'groups',default=>throw new InvalidArgumentException('Choose a tag, segment, or group.')};
         if(in_array($action,['person_action','bulk'],true)&&audienceText($_POST,'operation')==='delete')$protectedView=$action==='person_action'?'contact':'contacts';
         if($action==='delete_selected_definitions'&&in_array(audienceText($_POST,'kind'),['tags','segments'],true))$protectedView=audienceText($_POST,'kind');
@@ -45,7 +49,7 @@ if($isPost){
         }
         if($protectedView!==null){
             if(!$canDelete){http_response_code(403);exit('This operation requires an administrator and Admin Unlock.');}
-            $return=['view'=>$protectedView];if($action==='undo_import')$return['id']=$id;if($action==='delete_export_history')$return['kind']='export';
+            $return=['view'=>$protectedView];if(in_array($action,['undo_import','resume_job'],true))$return['id']=$id;if($action==='delete_export_history')$return['kind']='export';
             if($action==='person_action')$return['id']=$id;
             requireRecentAdminElevation($url($return));
         }
@@ -107,13 +111,12 @@ if($isPost){
             case 'cancel_job':$store->cancelJob($id);$redirect=$url(['view'=>'job','id'=>$id]);$message='Operation cancelled. Completed rows have been kept.';break;
             case 'undo_import':$result=$store->undoImport($id);$redirect=$url(['view'=>'job','id'=>$id]);$message=$result['undone'].' newly imported connections archived; '.$result['changed'].' subsequently changed connections kept. Existing updates were not reverted.';break;
             case 'process_job':
-                $store->job($id);releaseApplicationSessionLock();ignore_user_abort(true);set_time_limit(0);header('Content-Type: application/json');header('Cache-Control: no-store');$response=json_encode(['accepted'=>true]);header('Content-Length: '.strlen($response));header('Connection: close');echo $response;while(ob_get_level()>0)ob_end_flush();flush();
-                $deadline=microtime(true)+240;
-                try{do{$job=$store->processJob($id);if(!in_array($job['state'],['queued','processing'],true))break;}while(microtime(true)<$deadline);}catch(Throwable $e){applicationLog('error','Audience job failed',['job_id'=>$id,'error'=>$e->getMessage()]);$store->write("UPDATE marketing_jobs SET state='failed',error_message='Processing stopped. Resume to retry the remaining rows.' WHERE id=? AND audience_id=?",[$id,$audienceId]);}exit;
+                // Compatibility for already-open pages. Work is owned by the CLI worker.
+                $job=$store->job($id);releaseApplicationSessionLock();header('Content-Type: application/json');header('Cache-Control: no-store');echo json_encode(['accepted'=>true,'state'=>$job['state']],JSON_THROW_ON_ERROR);exit;
             case 'delete_export_history':
                 if(!$canDelete){http_response_code(403);exit('Only administrators can delete export history.');}
                 $deleted=$store->deleteExportHistory(is_array($_POST['export_ids']??null)?$_POST['export_ids']:[],($_POST['delete_all']??'')==='1');$redirect=$url(['view'=>'jobs','kind'=>'export']);$message=$deleted.' export history entries and saved downloads deleted. Connections were kept.';break;
-            case 'resume_job':$job=$store->job($id);if(!in_array($job['state'],['failed','processing'],true))throw new InvalidArgumentException('This job does not need to be resumed.');$store->write("UPDATE marketing_jobs SET state='queued',error_message='' WHERE id=? AND audience_id=?",[$id,$audienceId]);$redirect=$url(['view'=>'job','id'=>$id]);break;
+            case 'resume_job':$store->resumeJob($id);$redirect=$url(['view'=>'job','id'=>$id]);break;
             case 'save_audience':
                 if(!$canDelete)throw new InvalidArgumentException('Only administrators can change audience defaults.');$store->saveAudienceDefaults($_POST,$version);$redirect=$url(['view'=>'settings']);$message='Audience defaults saved.';break;
             default:throw new InvalidArgumentException('Unknown Audience action.');

@@ -78,6 +78,8 @@ function fixture({countryCode = 'CA', regionValue = 'ON', regionType = 'select-o
     let nextTimer = 0;
     vm.runInNewContext(source, {window, document, Event: class {
         constructor(type, options) {this.type = type; this.bubbles = options?.bubbles;}
+    }, CustomEvent: class {
+        constructor(type, options) {this.type = type; this.detail = options?.detail;}
     }, setTimeout(handler) {timers.set(++nextTimer, handler); return nextTimer;}, clearTimeout(timer) {timers.delete(timer);}});
     if (loading) window.DnrFormDrafts.initialize(form);
     const [status, save, restore, discard, , recovery] = panel.children;
@@ -134,6 +136,66 @@ test('a stale record version prevents draft restoration', () => {
     assert.equal(f.restore.disabled, true);
     f.restore.events.click();
     assert.equal(f.country.value, 'US');
+});
+
+for (const available of [true, false]) {
+    test('draft restoration waits for dependent controls before ' + (available ? 'restoring roles' : 'reporting unavailable roles'), async () => {
+        let release, role;
+        const f = fixture({configure({form, fields, node}) {
+            const organization = Object.assign(node('SELECT', ['data-draft-dependency']), {
+                name: 'organization_id', value: '1', type: 'select-one', options: [{value: '1'}, {value: '2'}]
+            });
+            role = Object.assign(node(), {name: 'engagement_contacts[5][]', type: 'checkbox', value: 'primary_host'});
+            form.elements = [organization];
+            fields.splice(0, fields.length,
+                {name: role.name, type: 'checkbox', value: 'primary_host', checked: true},
+                {name: organization.name, type: 'select-one', value: '2'});
+            let pending;
+            organization.addEventListener('change', () => {
+                pending = new Promise(resolve => { release = () => {
+                    if (available) { role.form = form; form.elements.push(role); }
+                    pending = null;
+                    resolve();
+                }; });
+            });
+            form.addEventListener('form-draft-ready', event => { if (pending) event.detail.waitUntil(pending); });
+        }});
+        const restoring = f.restore.events.click();
+        assert.equal(f.status.textContent, 'Restoring draft…');
+        assert.equal(f.restore.disabled, true);
+        assert.equal(f.save.disabled, true);
+        assert.deepEqual(f.rows(), [], 'Loading fields are not prematurely reported as missing');
+        let blocked = false;
+        f.form.events.submit({preventDefault() { blocked = true; }});
+        assert.equal(blocked, true, 'The form cannot submit partially restored values');
+        release();
+        await restoring;
+        assert.equal(role.checked, available);
+        assert.equal(f.restore.disabled, false);
+        assert.equal(f.save.disabled, false);
+        assert.equal(f.restore.dataset.draftRestored, '');
+        assert.equal(f.rows().length, available ? 0 : 1);
+        assert.equal(f.savedDraft().fields[0].checked, true, 'Waiting or failed loads never overwrite the saved selections');
+        if (available) assert.equal(role.dataset.draftRestored, '');
+    });
+}
+
+test('draft restoration retries an option enabled by a later restored field', async () => {
+    let confirmation;
+    const f = fixture({configure({form, fields, node}) {
+        const confirmed = {value: 'confirmed', disabled: true};
+        confirmation = Object.assign(node('SELECT'), {name: 'confirmation_status', type: 'select-one',
+            value: 'work_in_progress', options: [{value: 'work_in_progress'}, confirmed]});
+        const topic = Object.assign(node(), {name: 'presentation_topic', value: ''});
+        topic.addEventListener('change', () => { confirmed.disabled = !topic.value; });
+        form.elements = [confirmation, topic];
+        fields.splice(0, fields.length,
+            {name: confirmation.name, type: 'select-one', value: 'confirmed'},
+            {name: topic.name, type: 'text', value: 'Restored presentation'});
+    }});
+    await f.restore.events.click();
+    assert.equal(confirmation.value, 'confirmed');
+    assert.deepEqual(f.rows(), []);
 });
 
 test('early draft controls stay stable and do not warn while an untouched form is still loading', () => {

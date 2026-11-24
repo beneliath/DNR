@@ -11,6 +11,7 @@ introduce account-specific implementations or bypass the existing access gates.
 | `src/bootstrap.php`, `src/application_runtime.php` | Request bootstrap, dependency loading, account-aware configuration |
 | `src/functions.php` → `src/shared/` | Stable helper API for rendering, sessions, authentication, authorization, CSRF, validation, addresses, phones, records, and audit |
 | `src/follow_up_task_helpers.php` → `src/moed/tasks/` | Task policy, subject validation, input, persistence, lifecycle, presentation, templates, and generation |
+| `src/app/Service/EngagementWrite.php` | Engagement inserts and location queueing shared by direct creation and inquiry conversion, plus the edit transaction |
 | `src/booking_inquiry_helpers.php` → `src/moed/inquiries/` | Inquiry policy, input, persistence, lifecycle, conversion, email, and presentation |
 | `src/inbound_email_helpers.php` → `src/moed/inbound/` | MIME parsing, sender authentication, storage, matching, markers, routing, processing, and queue operations |
 | `src/app/MessageMonkey/WorkspaceRequest.php` | Validated workspace selection and transfer/delivery access requirements |
@@ -54,6 +55,10 @@ the new modules do not add runtime network imports.
 
 ## Build and verification
 
+`npm run verify` is the complete local entry point for the checks below, Python
+and Go checks, and both disposable integration modes. It detects build drift
+against the starting working tree, without requiring a clean checkout.
+
 `scripts/frontend-assets.mjs` is the catalog of JavaScript entry points, bundle
 settings, and root stylesheets. `scripts/build-frontend-assets.mjs` compiles that
 catalog; page stylesheets are discovered automatically. Map/PDF dependency builds
@@ -68,9 +73,19 @@ asset fingerprint manifest. Commit generated assets with their source changes.
   environment with synthetic data and runs the HTTP/database integration suites.
   It removes its test containers and volumes afterward. Never point these tests
   at an active production account.
-- `tests/browser/*.test.cjs` provides fixture-based browser checks. Set
+- `npm run test:browser` runs the desktop/mobile layout and interaction gate in
+  frontend CI, including Contacts/Speakers pagination, draft recovery, and the
+  MessageMonkey workspace. `tests/browser/*.test.cjs` contains additional focused
+  fixture checks. Set
   `DNR_PLAYWRIGHT_MODULE` and `PLAYWRIGHT_BROWSERS_PATH` when using an existing
   Playwright installation outside this repository.
+- `npx playwright install chromium webkit` installs the pinned browser runtimes.
+  Run `python3 scripts/integration_environment.py release-browser` for
+  the inquiry, recoverable engagement draft, and campaign journeys against a
+  packaged application in disposable Docker. Integration CI runs the same suite.
+  Release qualification supplies the published app, ingress, and database digests
+  and runs it before writing the release manifest. The campaign worker uses an
+  in-process simulated transport and synthetic addresses.
 
 Source contract tests use `tests/support/source_modules.php` to inspect explicitly
 loaded modules without executing them. Prefer behavior tests for new logic;

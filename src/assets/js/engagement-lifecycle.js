@@ -24,9 +24,11 @@
     const badge = section?.querySelector('[data-lifecycle-badge]');
     if (!section || !lifecycle || !confirmationField || !organization || !cancellationFields
         || !cancellationReason || !rescheduleFields || !rescheduleSelect
-        || !rescheduleStatus || !badge) return;
+        || !rescheduleStatus) return;
 
     let request;
+    let pendingRescheduleLoad;
+    let loadedOrganization = organization.value;
 
     function synchronizeFields() {
         const status = lifecycle.value;
@@ -37,8 +39,10 @@
         cancellationReason.required = state.cancellationVisible;
         rescheduleFields.hidden = !state.rescheduleVisible;
         rescheduleSelect.disabled = !state.rescheduleVisible;
-        badge.className = 'lifecycle-badge lifecycle-' + status;
-        badge.textContent = lifecycle.selectedOptions[0]?.textContent.trim() || 'Lifecycle Not Set';
+        if (badge) {
+            badge.className = 'lifecycle-badge lifecycle-' + status;
+            badge.textContent = lifecycle.selectedOptions[0]?.textContent.trim() || 'Lifecycle Not Set';
+        }
     }
 
     function replaceOptions(engagements) {
@@ -59,12 +63,15 @@
 
     async function loadRescheduleOptions() {
         request?.abort();
+        loadedOrganization = null;
         if (!organization.value) {
             replaceOptions([]);
+            loadedOrganization = '';
             rescheduleStatus.textContent = 'Select an organization to load replacement events.';
             return;
         }
-        request = new AbortController();
+        const currentRequest = new AbortController();
+        request = currentRequest;
         rescheduleStatus.textContent = 'Loading replacement events…';
         try {
             const url = new URL(section.dataset.rescheduleOptionsUrl, window.location.href);
@@ -75,11 +82,13 @@
             const response = await fetch(url, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
-                signal: request.signal
+                signal: currentRequest.signal
             });
             const payload = await response.json();
+            if (currentRequest.signal.aborted) return;
             if (!response.ok || !Array.isArray(payload.engagements)) throw new Error();
             replaceOptions(payload.engagements);
+            loadedOrganization = organization.value;
             rescheduleStatus.textContent = payload.engagements.length === 0
                 ? 'No eligible replacement events are available for this organization.'
                 : payload.engagements.length + ' replacement event'
@@ -93,6 +102,16 @@
     }
 
     lifecycle.addEventListener('change', synchronizeFields);
-    organization.addEventListener('change', loadRescheduleOptions);
+    organization.dataset.draftDependency = '';
+    lifecycle.dataset.draftDependency = '';
+    organization.addEventListener('change', function () {
+        if (organization.value === loadedOrganization && !pendingRescheduleLoad) return;
+        const loading = loadRescheduleOptions();
+        pendingRescheduleLoad = loading;
+        loading.finally(function () { if (pendingRescheduleLoad === loading) pendingRescheduleLoad = null; });
+    });
+    section.closest('form')?.addEventListener('form-draft-ready', function (event) {
+        if (pendingRescheduleLoad) event.detail.waitUntil(pendingRescheduleLoad);
+    });
     synchronizeFields();
 })();

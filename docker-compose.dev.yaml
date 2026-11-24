@@ -10,6 +10,11 @@ services:
   data-maintenance:
     volumes:
       - ./src:/var/www/html:ro
+  audience-jobs:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./scripts/process_audience_jobs.php:/opt/dnr/bin/process_audience_jobs.php:ro
+      - ./scripts/check_worker_health.php:/opt/dnr/bin/check_worker_health.php:ro
   ai-coach-worker:
     volumes:
       - ./src:/var/www/html:ro

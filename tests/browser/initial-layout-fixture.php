@@ -90,7 +90,7 @@ if (str_starts_with($case, 'task')) {
     if ($case === 'draft-chron') {
         $source = file_get_contents(__DIR__ . '/../../src/edit_engagement.php');
         $start = strpos($source, '<input type="hidden" name="engagement_version"');
-        $end = strpos($source, '<?php renderFormDraftPanel(); ?>', $start);
+        $end = strpos($source, '<div class="engagement-form-meta">', $start);
         $engagement = ['updated_at' => '1'];
         $chron_entries = [['id' => 8, 'updated_at' => '2'], ['id' => 9, 'updated_at' => '3']];
         $submitted_chron_versions = [];
@@ -98,7 +98,7 @@ if (str_starts_with($case, 'task')) {
     } else {
         echo '<input type="hidden" name="version" value="1">';
     }
-    renderFormDraftPanel();
+    renderFormDraftPanel($case === 'draft-chron');
     echo '<section class="form-section" id="after-content"><h2>Record details</h2><label>Name<input name="name"></label><button>Save</button></section></form>';
 }
 echo '</main><span hidden data-initial-layout-parsed></span>';

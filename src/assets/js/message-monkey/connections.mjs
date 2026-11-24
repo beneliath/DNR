@@ -37,9 +37,21 @@ export function initializeConnectionsWorkspace(config, show) {
         const reserveRows = () => {
             const height = ['.audience-table-tools','.audience-bulk-toolbar','.mm-pagination','thead']
                 .reduce((sum,selector) => sum + ($(selector,peopleResults)?.getBoundingClientRect().height || 0),120);
-            document.body.style.setProperty('--audience-connections-reserve',`${Math.ceil(height + 2)}px`);
+            const reserve = `${Math.ceil(height + 2)}px`;
+            if (document.body.style.getPropertyValue('--audience-connections-reserve') !== reserve) {
+                document.body.style.setProperty('--audience-connections-reserve', reserve);
+            }
         };
-        const sizes = new ResizeObserver(reserveRows);
+        // The reservation changes the observed results height. Apply it outside
+        // resize delivery so wrapping controls cannot create a notification loop.
+        let reserveFrame = null;
+        const sizes = new ResizeObserver(() => {
+            if (reserveFrame !== null) return;
+            reserveFrame = requestAnimationFrame(() => {
+                reserveFrame = null;
+                reserveRows();
+            });
+        });
         const observeResults = () => {
             sizes.disconnect();
             [peopleResults,...$$('.audience-table-tools,.audience-bulk-toolbar,.mm-pagination,thead',peopleResults)].forEach(node => sizes.observe(node));
@@ -496,13 +508,8 @@ export function initializeConnectionsWorkspace(config, show) {
 
     const openSegment = initializeSegmentBuilder(config, show, currentFiltersReady, filterSummary);
     if (config.job && ['queued', 'processing'].includes(config.job.state) && $('[data-job-panel]')) {
-        let stopped = false, startedAt = 0;
+        let stopped = false;
         const showError = message => { $('[data-job-error]').textContent = message; $('[data-job-error]').hidden = false; };
-        const start = async () => {
-            startedAt = Date.now();
-            const data = new FormData(); for (const [key, value] of Object.entries({action: 'process_job', id: config.job.id, audience: config.audience, csrf_token: config.csrf})) data.set(key, value);
-            try { await request(config.url, {method: 'POST', body: data}); } catch (error) { if (!stopped) showError(error.message); }
-        };
         const poll = async () => {
             if (stopped) return;
             try {
@@ -511,11 +518,10 @@ export function initializeConnectionsWorkspace(config, show) {
                 $('[data-job-progress-label]').textContent = `${Number(status.processed).toLocaleString()} of ${Number(status.total).toLocaleString()} processed`;
                 $$('[data-job-stat]').forEach(node => { node.textContent = Number(status[node.dataset.jobStat]).toLocaleString(); });
                 if (!['queued', 'processing'].includes(status.state)) { stopped = true; location.reload(); return; }
-                if (Date.now() - startedAt > 245000) start();
                 window.setTimeout(poll, 1500);
             } catch (error) { showError(`${error.message} You can reload or resume this operation from history.`); }
         };
-        start(); window.setTimeout(poll, 1000);
+        window.setTimeout(poll, 1000);
         window.addEventListener('pagehide', () => { stopped = true; });
     }
     // Reopen failed editors with submitted values and the original version token.

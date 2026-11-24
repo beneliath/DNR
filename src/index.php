@@ -99,13 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     }
 
     if (empty($error_message)) {
-        // Start transaction
         $conn->begin_transaction();
-
-
         try {
-        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'engagement');
-        if ($replayed_id !== null) { $conn->commit(); header('Location: view_engagement.php?id=' . $replayed_id, true, 303); exit(); }
+            $current_user_id = (int) $_SESSION['user_id'];
+            $replayed_id = beginRecordCreation($conn, $current_user_id, $creation_operation_token, 'engagement');
+            if ($replayed_id !== null) {
+                $conn->commit();
+                header('Location: view_engagement.php?id=' . $replayed_id, true, 303);
+                exit();
+            }
             requireActiveOrganization($conn, $organization_id, true);
             validateEngagementRescheduleLink(
                 $conn,
@@ -113,149 +115,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 $lifecycle_status,
                 $rescheduled_to_engagement_id
             );
-            $current_user_id = (int) $_SESSION['user_id'];
             $standard_task_assignee_id = initialEngagementChecklistAssigneeId(
                 $caller_user_id,
                 $current_user_id
             );
-            $standard_task_assignee_label = $caller_user_id === null
-                ? 'you'
-                : $caller_name;
-            // Insert engagement data
-            $stmt = $conn->prepare("INSERT INTO engagements (
-                organization_id, event_title, event_description, event_start_date, event_end_date,
-                event_type, event_type_other, book_table, brochures, caller_name, caller_user_id,
-                confirmation_status, lifecycle_status, cancellation_reason,
-                rescheduled_to_engagement_id, lifecycle_changed_by,
-                event_address_line_1, event_address_line_2, event_city, event_state,
-                event_zipcode, event_country,
-                travel_covered, travel_amount, compensation_type, other_compensation,
-                housing_type, other_housing, housing_amount, presentation_not_required
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $standard_task_assignee_label = $caller_user_id === null ? 'you' : $caller_name;
+            $engagement_input['caller_user_id'] = $caller_user_id;
+            $engagement_input['caller_name'] = $caller_name;
+            $engagement_id = \Dnr\Service\EngagementWrite::insert($conn, $engagement_input, $current_user_id);
 
-            if ($stmt) {
-                $stmt->bind_param(
-                    "issssssiisisssiisssssssssssssi",
-                    $organization_id,
-                    $event_title,
-                    $event_description,
-                    $event_start_date,
-                    $event_end_date,
-                    $event_type,
-                    $event_type_other,
-                    $book_table,
-                    $brochures,
-                    $caller_name,
-                    $caller_user_id,
-                    $confirmation_status,
-                    $lifecycle_status,
-                    $cancellation_reason,
-                    $rescheduled_to_engagement_id,
-                    $current_user_id,
-                    $event_address_line_1,
-                    $event_address_line_2,
-                    $event_city,
-                    $event_state,
-                    $event_zipcode,
-                    $event_country,
-                    $travel_covered,
-                    $travel_amount,
-                    $compensation_type,
-                    $other_compensation,
-                    $housing_type,
-                    $other_housing,
-                    $housing_amount,
-                    $presentation_not_required
+            $saved_engagement_contacts = prepareEngagementContactAssignments(
+                $conn,
+                $organization_id,
+                $submitted_engagement_contacts,
+                $submitted_engagement_added_contact_ids,
+                $submitted_engagement_new_contacts
+            );
+            syncEngagementContacts(
+                $conn,
+                $engagement_id,
+                $saved_engagement_contacts,
+                $current_user_id,
+                false
+            );
+
+            syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id);
+
+            if ($chron_entry !== '') {
+                $chron_stmt = $conn->prepare(
+                    "INSERT INTO engagement_chron_entries
+                        (engagement_id, entry_text, created_by,
+                         created_by_username_snapshot, updated_by)
+                     VALUES (?, ?, ?, ?, ?)"
                 );
-
-                if ($stmt->execute()) {
-                    $engagement_id = $conn->insert_id;
-
-                    $saved_engagement_contacts = prepareEngagementContactAssignments(
-                        $conn,
-                        $organization_id,
-                        $submitted_engagement_contacts,
-                        $submitted_engagement_added_contact_ids,
-                        $submitted_engagement_new_contacts
-                    );
-                    syncEngagementContacts(
-                        $conn,
-                        $engagement_id,
-                        $saved_engagement_contacts,
-                        $current_user_id,
-                        false
-                    );
-
-                    syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id);
-
-                    if ($chron_entry !== '') {
-                        $chron_stmt = $conn->prepare(
-                            "INSERT INTO engagement_chron_entries
-                                (engagement_id, entry_text, created_by,
-                                 created_by_username_snapshot, updated_by)
-                             VALUES (?, ?, ?, ?, ?)"
-                        );
-                        if (!$chron_stmt) {
-                            throw new Exception("Unable to prepare the initial Chron entry.");
-                        }
-                        $current_username = (string) $_SESSION['username'];
-                        $chron_stmt->bind_param(
-                            "isisi",
-                            $engagement_id,
-                            $chron_entry,
-                            $current_user_id,
-                            $current_username,
-                            $current_user_id
-                        );
-                        if (!$chron_stmt->execute()) {
-                            throw new Exception("Unable to save the initial Chron entry: " . $chron_stmt->error);
-                        }
-                        $chron_stmt->close();
-                    }
-
-                    $standard_task_count = $lifecycle_status === 'active'
-                        ? generateEngagementFollowUpChecklist(
-                            $conn,
-                            $engagement_id,
-                            $standard_task_assignee_id,
-                            $current_user_id,
-                            false
-                        )
-                        : 0;
-
-                    $map_address = engagementMapAddress([
-                        'event_address_line_1' => $event_address_line_1,
-                        'event_address_line_2' => $event_address_line_2,
-                        'event_city' => $event_city,
-                        'event_state' => $event_state,
-                        'event_zipcode' => $event_zipcode,
-                        'event_country' => $event_country,
-                    ]);
-                    if ($map_address !== ''
-                        && !queueEngagementMapAddress($conn, $map_address, true)
-                    ) {
-                        throw new RuntimeException('Unable to queue the engagement location.');
-                    }
-
-                    completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $engagement_id);
-                    $conn->commit();
-                    $_SESSION['engagement_action_message'] = 'Engagement saved successfully.'
-                        . ($standard_task_count > 0
-                            ? ' ' . $standard_task_count . ' standard task'
-                                . ($standard_task_count === 1 ? ' was' : 's were')
-                                . ' added and assigned to ' . $standard_task_assignee_label . '.'
-                            : '');
-        $_SESSION['clear_form_drafts'][] = 'index.php:new';
-                    header('Location: engagements.php');
-                    exit();
-                } else {
-                    throw new Exception("Unable to save engagement: " . $stmt->error);
+                if (!$chron_stmt) {
+                    throw new Exception("Unable to prepare the initial Chron entry.");
                 }
-
-                $stmt->close();
-            } else {
-                throw new Exception("Unable to prepare engagement insert: " . $conn->error);
+                $current_username = (string) $_SESSION['username'];
+                $chron_stmt->bind_param(
+                    "isisi",
+                    $engagement_id,
+                    $chron_entry,
+                    $current_user_id,
+                    $current_username,
+                    $current_user_id
+                );
+                if (!$chron_stmt->execute()) {
+                    throw new Exception("Unable to save the initial Chron entry: " . $chron_stmt->error);
+                }
+                $chron_stmt->close();
             }
+
+            $standard_task_count = $lifecycle_status === 'active'
+                ? generateEngagementFollowUpChecklist(
+                    $conn,
+                    $engagement_id,
+                    $standard_task_assignee_id,
+                    $current_user_id,
+                    false
+                )
+                : 0;
+
+            \Dnr\Service\EngagementWrite::queueLocation($conn, $engagement_input);
+
+            completeRecordCreation($conn, $current_user_id, $creation_operation_token, $engagement_id);
+            $conn->commit();
+            $_SESSION['engagement_action_message'] = 'Engagement saved successfully.'
+                . ($standard_task_count > 0
+                    ? ' ' . $standard_task_count . ' standard task'
+                        . ($standard_task_count === 1 ? ' was' : 's were')
+                        . ' added and assigned to ' . $standard_task_assignee_label . '.'
+                    : '');
+            $_SESSION['clear_form_drafts'][] = 'index.php:new';
+            header('Location: engagements.php');
+            exit();
         } catch (Throwable $e) {
             $conn->rollback();
             applicationLog('error', 'Engagement creation failed', ['error' => $e->getMessage()]);
@@ -370,10 +303,22 @@ try {
 
     <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
         <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
-        <?php renderFormDraftPanel(); ?>
-        <?php include 'templates/engagement_lifecycle_form.php'; ?>
-        <div class="engagement-section-row engagement-primary-row">
+        <div class="engagement-form-meta">
+            <?php renderFormDraftPanel(true); ?>
             <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
+        </div>
+        <?php
+        $engagement_form_editing = false;
+        $engagement_form_values = [
+            'event_start_date' => !empty($error_message) ? ($_POST['event_start_date'] ?? '') : '',
+            'event_end_date' => !empty($error_message) ? ($_POST['event_end_date'] ?? '') : '',
+            'event_type' => $_POST['event_type'] ?? '',
+            'event_type_other' => $_POST['event_type_other'] ?? '',
+        ];
+        include 'templates/engagement_lifecycle_form.php';
+        unset($engagement_form_editing, $engagement_form_values);
+        ?>
+        <div class="engagement-section-row engagement-primary-row">
         <section class="form-section engagement-details-section">
         <h2>Event Details</h2>
 <div class="organization-container">
@@ -389,44 +334,12 @@ try {
     <a href="add_organization.php?return_to=index.php" class="add-org-button">Add New Organization</a>
 </div>
 
-        <label for="event_title">Event Title</label>
+        <label for="event_title" class="required"><span aria-hidden="true">*</span>Event Title</label>
         <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
 
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="10"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
 
-        <section class="engagement-schedule-section">
-            <h3>Schedule</h3>
-
-            <div class="engagement-schedule-row">
-                <div class="engagement-schedule-field">
-                    <label for="event_start_date" class="required"><span aria-hidden="true">*</span>Start</label>
-                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_start_date" id="event_start_date" aria-label="Start" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_start_date'] ?? '') : ''; ?>">
-                </div>
-                <div class="engagement-schedule-field">
-                    <label for="event_end_date" class="required"><span aria-hidden="true">*</span>End</label>
-                    <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="event_end_date" id="event_end_date" aria-label="End" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_end_date'] ?? '') : ''; ?>">
-                </div>
-                <div class="engagement-schedule-field">
-                    <label class="label-container" for="event_type">Event Type</label>
-                    <select name="event_type" id="event_type">
-                        <?php
-                        $event_types = \Dnr\Domain\ReferenceData::eventTypes();
-                        $selected_type = $_POST['event_type'] ?? '';
-                        foreach ($event_types as $type) {
-                            $selected = ($selected_type === $type) ? 'selected' : '';
-                            echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-                <div class="engagement-schedule-field" id="other_event_type_div" <?php echo isset($_POST['event_type']) && $_POST['event_type'] === 'other' ? '' : 'hidden'; ?>>
-                    <label for="event_type_other" class="required"><span aria-hidden="true">*</span>Other Event Type</label>
-                    <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
-                </div>
-            </div>
-        </section>
         </section>
 
             <div class="engagement-contact-column">
@@ -597,11 +510,6 @@ try {
                 <label for="chron_entry">Initial Chron Entry</label>
                 <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
             </section>
-
-            <div class="form-group create-form-actions create-form-actions-flush">
-                <a href="engagements.php" class="cancel-button">Cancel</a>
-                <input type="submit" name="save_engagement" value="Create Engagement" class="save-button save-button-flush" data-pending-reminder="engagement">
-            </div>
         </div>
     </form>
 </div>

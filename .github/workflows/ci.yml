@@ -138,7 +138,7 @@ jobs:
 
   frontend-quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -162,6 +162,16 @@ jobs:
         run: make -C mattermost-plugin webapp
       - name: Verify frontend builds leave no tracked drift
         run: git diff --exit-code -- src/assets mattermost-plugin
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: curl, gd, mbstring, mysqli, sodium, zip
+          coverage: none
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Install browsers for layout and interaction checks
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify desktop and mobile fixtures
+        run: npm run test:browser
 
   mattermost-plugin:
     runs-on: ubuntu-latest
@@ -272,12 +282,26 @@ jobs:
           DNR_TEST_INGRESS_IMAGE: dnr-ingress:local
           DNR_TEST_DATABASE_IMAGE: dnr-database:local
         run: sh scripts/run_integration_tests.sh disposable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Chromium for workflow checks
+        run: |
+          npm ci --no-audit
+          npx playwright install --with-deps chromium --only-shell
+      - name: Verify browser workflows against a disposable app image
+        env:
+          DNR_TEST_APP_IMAGE: dnr-app:local
+          DNR_TEST_INGRESS_IMAGE: dnr-ingress:local
+          DNR_TEST_DATABASE_IMAGE: dnr-database:local
+        run: python3 scripts/integration_environment.py release-browser
       - name: Show service logs
         if: failure()
         run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml logs --no-color
       - name: Remove disposable environment
         if: always()
-        run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v
+        run: docker compose --profile '*' -f docker-compose.yaml -f docker-compose.dev.yaml down -v --remove-orphans
 
   release-image:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -352,6 +376,13 @@ jobs:
             -e DNR_TEST_MAIL_INGEST_PASSWORD_FILE=/run/secrets/test_mail_ingest_password \
             -v "$PWD/secrets/mysql_mail_ingest_password:/run/secrets/test_mail_ingest_password:ro" \
             maintenance /opt/dnr/tests/inbound_mailbox_sync_integration_test.php
+      - name: Verify browser workflows against the exact release image
+        run: |
+          npx playwright install --with-deps chromium --only-shell
+          DNR_TEST_APP_IMAGE=$(cat release/app.digest) \
+          DNR_TEST_INGRESS_IMAGE=$(cat release/ingress.digest) \
+          DNR_TEST_DATABASE_IMAGE=$(cat release/database.digest) \
+            python3 scripts/integration_environment.py release-browser
       - name: Rehearse the deployment backup and restore gate
         run: |
           docker compose stop web backup geocoder

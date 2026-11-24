@@ -16,6 +16,7 @@ from storage_encryption_preflight import require_encrypted_upload_storage
 from deployment_notice import DeploymentNotice, login_restoration_estimate
 from deployment_guard import DeploymentGuard
 from release_timestamp import timestamp_utc
+from release_migration_rehearsal import candidate_migration_verifier
 from account_release import discover_members, pause_members, backup_members, apply_members, start_and_verify_members, public_login_available
 
 
@@ -133,7 +134,7 @@ def main():
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
         def application_writers():
             configured = set(compose('config', '--services').splitlines())
-            return [name for name in ('web', 'backup', 'receipt-previews', 'document-scans', 'data-maintenance', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache', 'ai-coach-worker')
+            return [name for name in ('web', 'backup', 'receipt-previews', 'document-scans', 'audience-jobs', 'data-maintenance', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache', 'ai-coach-worker')
                     if name in configured]
         def container(service):
             return compose('ps', '-aq', service).splitlines()[-1]
@@ -210,11 +211,15 @@ def main():
             save('backing-up')
             # Standing deployment directive: finish and verify a NEW backup before
             # changing the checkout, database version, schema, or application image.
-            record['backup'] = create_verified_backup(
-                container('db'), previous_database_image_id, images['app'], previous_commit,
-                run(['git', 'show', previous_commit + ':VERSION']), backup_password_file, records / 'backups'
-            )
-            record['account_backups'] = backup_members(members, images['app'], backup_password_file, records)
+            with candidate_migration_verifier(root, previous_commit, release) as verify_migrations:
+                record['backup'] = create_verified_backup(
+                    container('db'), previous_database_image_id, images['app'], previous_commit,
+                    run(['git', 'show', previous_commit + ':VERSION']), backup_password_file, records / 'backups',
+                    restore_verifier=lambda restored: verify_migrations(
+                        restored, account_configuration['config']['primary_key']),
+                )
+                record['account_backups'] = backup_members(
+                    members, images['app'], backup_password_file, records, verify_migrations=verify_migrations)
             save('backup-verified')
             run(['git', 'merge', '--ff-only', expected])
             if account_configuration is not None:

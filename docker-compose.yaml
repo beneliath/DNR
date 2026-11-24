@@ -186,6 +186,35 @@ services:
       retries: 3
       start_period: 90s
 
+  audience-jobs:
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    entrypoint: ["php", "/opt/dnr/bin/process_audience_jobs.php", "--loop"]
+    user: www-data
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 16
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    environment:
+      <<: *app-environment
+    secrets: [dnr_mysql_app_password, dnr_2fa_encryption_key, dnr_inbound_routing_key]
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
+    labels: *watchtower-disabled-labels
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "audience-jobs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   ai-coach-worker:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
     profiles: [coach]

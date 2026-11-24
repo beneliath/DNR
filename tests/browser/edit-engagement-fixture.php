@@ -23,7 +23,7 @@ $presentation_form_rows = [['topic_title' => $rejectedSave ? 'Submitted edit' : 
 $source_dir = __DIR__ . '/../../src';
 set_include_path($source_dir . PATH_SEPARATOR . get_include_path());
 $source = file_get_contents($source_dir . '/edit_engagement.php');
-$layout_start = strpos($source, '<div class="engagement-section-row engagement-primary-row">');
+$layout_start = strpos($source, '<div class="engagement-form-meta">');
 $layout_end = strpos($source, "<?php\n        \$presentation_not_required", $layout_start);
 $chron_start = strpos($source, '<section class="form-section chron-log-section" id="chron-log">');
 $chron_end = strpos($source, "\n</div>\n\n<script nonce=", $chron_start);
@@ -94,7 +94,7 @@ $archived_chron_count = 1;
     'assets/css/style.min.css', 'assets/css/modern.min.css',
     'assets/css/pages/edit_engagement.min.css', 'assets/css/pages/engagement_contacts.min.css',
     'assets/css/pages/engagement_lifecycle.min.css', 'assets/css/pages/engagement_form.min.css',
-]]); ?>
+], 'scripts' => ['assets/js/relationship-search.min.js']]); ?>
 <body class="edit-engagement-body">
 <?php if ($withDraft): ?><aside hidden id="app-sidebar" data-nav-preference-user="draft-fixture"></aside><?php endif; ?>
 <?php renderScript('assets/js/edit-engagement.min.js', false); ?>
@@ -103,7 +103,6 @@ $archived_chron_count = 1;
 <main class="container edit-engagement-page">
     <form class="engagement-form" id="engagement-edit-form"<?= $withDraft ? ' data-recoverable-draft="edit_engagement.php:1"' : '' ?>>
         <input type="hidden" name="edit_baseline" value="<?= htmlspecialchars($rejectedSave ? $argv[1] : '', ENT_QUOTES, 'UTF-8') ?>">
-        <?php include __DIR__ . '/../../src/templates/engagement_lifecycle_form.php'; ?>
         <?php eval('?>' . substr($source, $layout_start, $layout_end - $layout_start)); ?>
         <?php include __DIR__ . '/../../src/templates/presentation_form.php'; ?>
     </form>
@@ -111,4 +110,6 @@ $archived_chron_count = 1;
 </main>
 <?php eval('?>' . substr($source, $footer_start, $footer_end - $footer_start)); ?>
 <?php renderScript('assets/js/presentation-form.min.js'); ?>
+<?php renderScript('assets/js/engagement-contacts.min.js', false); ?>
+<?php renderScript('assets/js/engagement-lifecycle.min.js', false); ?>
 </body></html>

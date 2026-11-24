@@ -105,6 +105,20 @@
             item.appendChild(link);
         }
 
+        function connectErrorMessage(field, item, message) {
+            const target = errorTarget(field);
+            if (target.closest('[data-sticky-toolbar]')) {
+                connect(target, item);
+                return;
+            }
+            const inline = doc.createElement('span');
+            inline.className = 'form-field-error';
+            inline.textContent = message;
+            const placement = target.closest('.date-picker-field, [data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
+            placement.insertAdjacentElement('afterend', inline);
+            connect(target, inline);
+        }
+
         function showValidationErrors() {
             scheduled = false;
             pending.forEach(function (fields, form) {
@@ -123,15 +137,9 @@
                     clearFieldError(field);
                     const message = fieldValidationMessage(field);
                     const label = fieldLabel(field);
-                    const inline = doc.createElement('span');
-                    inline.className = 'form-field-error';
-                    inline.textContent = message;
-                    const target = errorTarget(field);
-                    const placement = target.closest('.date-picker-field, [data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
-                    placement.insertAdjacentElement('afterend', inline);
-                    connect(errorTarget(field), inline);
                     const item = doc.createElement('li');
                     linkToField(item, field, label + ': ' + message);
+                    connectErrorMessage(field, item, message);
                     list.appendChild(item);
                 });
                 if (!list.children.length) return;
@@ -167,15 +175,9 @@
                 const field = doc.getElementById(item.dataset.errorFor);
                 if (!field) return;
                 const text = item.textContent;
-                const inline = doc.createElement('span');
-                inline.className = 'form-field-error';
-                inline.textContent = text;
-                const target = errorTarget(field);
-                const placement = target.closest('.date-picker-field, [data-phone-input-group], [data-address-region-control], [data-address-country-picker], label') || target;
-                placement.insertAdjacentElement('afterend', inline);
-                connect(target, inline);
                 item.replaceChildren();
                 linkToField(item, field, text);
+                connectErrorMessage(field, item, text);
             });
         });
         const firstSummary = summaries.find(function (summary) {

@@ -8,6 +8,15 @@ parameters:
         - src/functions.php
     scanFiles:
         - src/account_mail_helpers.php
+        - src/chron_log_helpers.php
+        - src/engagement_contact_helpers.php
+        - src/engagement_contact_input_helpers.php
+        - src/engagement_lifecycle_helpers.php
+        - src/map_helpers.php
+        - src/moed/tasks/generation.php
+        - src/presentation_asset_helpers.php
+        - src/presentation_chunk_helpers.php
+        - src/presentation_helpers.php
     tmpDir: /tmp/dnr-phpstan
     parallel:
         maximumNumberOfProcesses: 1

@@ -82,6 +82,7 @@ class ProductionAccountTest(unittest.TestCase):
         self.assertTrue(environment['DNR_PRIMARY_INTERNAL_URL'].startswith('https://'))
         self.assertEqual(environment['DNR_ACCOUNT_MODE'],'member')
         self.assertNotIn('db',production.ACTIVE_SERVICES)
+        self.assertIn('audience-jobs',production.ACTIVE_SERVICES)
 
     def test_primary_trust_and_private_control_transport(self):
         value=config(); overlay=production.primary_overlay(value)

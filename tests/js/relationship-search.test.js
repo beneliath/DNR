@@ -12,7 +12,9 @@ function harness(kind = 'organization', prerendered = false) {
     }
     const chosen = new Element('Saved ' + kind, '999');
     let input, status, timer;
-    const select = {value: '999', isConnected: true,
+    const formListeners = {};
+    const select = {form: {addEventListener: (event, listener) => { formListeners[event] = listener; }},
+        value: '999', isConnected: true,
         dataset: kind === 'contact' ? {contactSearch: ''} : {},
         labels: [{textContent: kind === 'contact' ? 'Existing Contact' : 'Primary Organization'}],
         selectedOptions: [chosen], children: [chosen],
@@ -38,7 +40,18 @@ function harness(kind = 'organization', prerendered = false) {
         setTimeout(callback) { timer = callback; return 1; }, clearTimeout() {},
         fetch(url, options) { return new Promise((resolve, reject) => pending.push({url, options, resolve, reject})); },
     });
-    return {select, pending, status, search(value) { input.value = value; input.listeners.input(); return timer(); }};
+    return {
+        select, pending, status,
+        search(value) {
+            input.value = value;
+            input.listeners.input();
+            timer();
+            const requests = [];
+            formListeners['form-draft-ready']({detail: {waitUntil: request => requests.push(request)}});
+            assert.equal(requests.length, 1);
+            return Promise.all(requests);
+        },
+    };
 }
 test('organization lookup preserves a selected record outside the first page and ignores stale responses', async () => {
     const h = harness();

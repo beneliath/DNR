@@ -16,7 +16,7 @@ import time
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVICES = ('web', 'downloads', 'receipt-previews', 'document-scans', 'file-monitor',
-            'file-migrator', 'ai-coach-worker', 'data-maintenance', 'geocoder',
+            'file-migrator', 'ai-coach-worker', 'audience-jobs', 'data-maintenance', 'geocoder',
             'mail-dispatch', 'backup', 'maintenance', 'key-rotation')
 
 
@@ -207,7 +207,7 @@ SELECT account_key FROM account_profile WHERE id = 1;
         'MYSQL_PWD=$(cat /run/secrets/dnr_mysql_root_password) mysql -uroot dnr --batch --skip-column-names',
         input=sql, capture_output=True).stdout.strip()
     if initialized != key: raise ValueError('Account identity mismatch; refusing to expose this deployment')
-    dc('up', '-d', '--no-build', '--wait', 'web', 'downloads', 'backup', 'ingress', 'geocoder', 'mail-dispatch')
+    dc('up', '-d', '--no-build', '--wait', 'web', 'downloads', 'backup', 'ingress', 'geocoder', 'mail-dispatch', 'audience-jobs')
     from configure_local_account_gateway import configure
     configure(args.primary_port)
     # Do not show Open Account until the route reaches its application. Apache

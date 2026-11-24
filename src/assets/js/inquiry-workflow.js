@@ -47,6 +47,13 @@
         });
     }
     const requests = {};
+    const pendingSearches = {};
+    function queueSearch(kind, validateSelection) {
+        const loading = searchRecords(kind, validateSelection);
+        pendingSearches[kind] = loading;
+        loading.finally(function () { if (pendingSearches[kind] === loading) delete pendingSearches[kind]; });
+        return loading;
+    }
     async function searchRecords(kind, validateSelection) {
         const select = kind === 'organization' ? org : contact;
         const search = kind === 'organization' ? orgSearch : contactSearch;
@@ -123,24 +130,30 @@
     }
     [ ['organization', orgSearch], ['contact', contactSearch] ].forEach(function (entry) {
         let timer;
+        entry[1].dataset.draftDependency = '';
         entry[1].addEventListener('input', function () {
             window.clearTimeout(timer);
             // Invalidate the previous request immediately, including while debouncing.
             if (requests[entry[0]]) requests[entry[0]].abort();
             delete requests[entry[0]];
-            timer = window.setTimeout(function () { return searchRecords(entry[0], false); }, 250);
+            if (form.dataset.draftRestoring !== undefined) queueSearch(entry[0], false);
+            else timer = window.setTimeout(function () { return queueSearch(entry[0], false); }, 250);
         });
         entry[1].addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 window.clearTimeout(timer);
-                searchRecords(entry[0], false);
+                queueSearch(entry[0], false);
             }
         });
     });
+    org.dataset.draftDependency = '';
+    form.addEventListener('form-draft-ready', function (event) {
+        Object.values(pendingSearches).forEach(promise => event.detail.waitUntil(promise));
+    });
     org.addEventListener('change', function () {
         updateCreateContactLink();
-        searchRecords('contact', true);
+        queueSearch('contact', true);
     });
     contact.addEventListener('change', function () {
         const selected = selectedOption(contact);
@@ -148,13 +161,13 @@
             restoreSelection(org, selected.dataset.organizationId,
                 {id: selected.dataset.organizationId, label: selected.dataset.organizationName});
             updateCreateContactLink();
-            searchRecords('contact', true);
+            queueSearch('contact', true);
         }
     });
     updateCreateContactLink();
     if ((restored || createdOrg || createdContact) && (org.value || contact.value)) {
-        searchRecords('organization', true);
-        searchRecords('contact', true);
+        queueSearch('organization', true);
+        queueSearch('contact', true);
     }
     document.querySelectorAll('[data-inquiry-create]').forEach(function (link) {
         link.addEventListener('click', function (event) {

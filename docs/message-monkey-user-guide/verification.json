@@ -1,11 +1,11 @@
 {
-  "pages": 89,
+  "pages": 93,
   "chapters": 14,
-  "native_3x_figures": 61,
+  "native_3x_figures": 64,
   "minimum_effective_dpi": 435.26,
-  "verified_internal_links": 673,
-  "verified_bookmarks": 123,
-  "lossless_pixel_matches": 61,
+  "verified_internal_links": 701,
+  "verified_bookmarks": 127,
+  "lossless_pixel_matches": 64,
   "page_bounds": "passed",
-  "pdf_sha256": "7c0008d373f1d458922fa6e7fd57119b78d16df1910dc245885b101fe59c024f"
+  "pdf_sha256": "daf40b5318898feafc34ccbca0112226a32b6ca966272e2a008535340873fbad"
 }

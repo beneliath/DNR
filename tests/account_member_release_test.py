@@ -16,6 +16,17 @@ from deploy_release_host import reload_account_operators, active_account_worker
 
 
 class MemberReleaseTest(unittest.TestCase):
+    def setUp(self):
+        # Unit staging checks stay independent of the Docker CLI. The Compose
+        # contract test exercises the canonical service definition separately.
+        template = {'image': 'canonical-app', 'entrypoint': ['php', '/opt/dnr/bin/process_audience_jobs.php', '--loop'],
+                    'environment': {'DNR_ACCOUNT_KEY': 'primary', 'DNR_PUBLIC_BASE_URL': '', 'MYSQL_USER': 'dnruser',
+                                    'MYSQL_PASSWORD_FILE': '/run/secrets/primary_password'},
+                    'networks': {'backend': {}}, 'read_only': True}
+        loader = patch.object(release, 'audience_worker_template', return_value=template)
+        loader.start()
+        self.addCleanup(loader.stop)
+
     def test_worker_reload_targets_only_an_active_matching_checkout_service(self):
         root = Path('/qualified/moed')
         for invocation, allowed in [('/qualified/moed', True), ('/another/moed', False)]:
@@ -66,8 +77,13 @@ class MemberReleaseTest(unittest.TestCase):
         (root / 'migrations/new.sql').write_text('qualified new schema')
         (frozen / 'ingress-security.conf').write_text('previous gateway policy')
         (frozen / 'ingress-security.conf').chmod(0o444)
+        (frozen / 'application.yaml').write_text('brand:\n  display_name: Member Account\n')
+        (frozen / 'application.yaml').chmod(0o444)
         document = {'services': {'web': {'image': 'old-app', 'environment': {'DNR_ACCOUNT_KEY': 'member-account',
-            'DNR_PUBLIC_BASE_URL': 'https://example.test/a/member-account', 'SETTING': 'private value'}},
+            'DNR_PUBLIC_BASE_URL': 'https://example.test/a/member-account', 'SETTING': 'private value',
+            'MYSQL_PASSWORD_FILE': '/run/secrets/member_password', 'DNR_PLATFORM_API_KEY_FILE': '/run/secrets/member_api'},
+            'volumes': [{'type': 'bind', 'source': str(frozen / 'application.yaml'),
+                         'target': '/run/dnr/config/application.yaml', 'read_only': True}]},
             'db': {'image': 'old-db'}, 'ingress': {'image': 'old-ingress', 'volumes': [
                 {'type': 'bind', 'source': str(frozen / 'ingress-security.conf'),
                  'target': '/etc/apache2/conf-enabled/zy-dnr-account-security.conf', 'read_only': True}]},
@@ -80,7 +96,7 @@ class MemberReleaseTest(unittest.TestCase):
             'secrets': {'private-key': {'file': str(directory / 'private-key')}},
             'x-moed-active-services': ['web', 'ingress'], 'x-moed-live-binds': [],
             'x-moed-frozen-configuration': {str(p.relative_to(directory)): production.configuration_digest(p)
-                for p in [frozen / 'migrations', frozen / 'migrate.sh', frozen / 'configure_database_privileges.sh', frozen / 'ingress-security.conf']}}
+                for p in [frozen / 'migrations', frozen / 'migrate.sh', frozen / 'configure_database_privileges.sh', frozen / 'ingress-security.conf', frozen / 'application.yaml']}}
         metadata = {'commit': '1' * 40, 'mode': 'production', 'project': 'member-project', 'networks': {'backend': '10.252.4.0/24'}}
         qualified = {'commit': 'a' * 40, 'version': '2.5.11', 'images': {'app': 'qualified-app', 'database': 'qualified-db', 'ingress': 'qualified-ingress'}}
         member = dict(key='member-account', project='member-project', directory=directory, document=document,
@@ -96,7 +112,16 @@ class MemberReleaseTest(unittest.TestCase):
             self.assertEqual(original, member['document'])
             self.assertEqual(staged['networks'], original['networks'])
             self.assertEqual(staged['secrets'], original['secrets'])
-            self.assertEqual(staged['x-moed-active-services'], original['x-moed-active-services'])
+            self.assertEqual(staged['x-moed-active-services'], original['x-moed-active-services'] + ['audience-jobs'])
+            worker = staged['services']['audience-jobs']
+            self.assertEqual(worker['image'], 'qualified-app')
+            self.assertEqual(worker['environment']['DNR_ACCOUNT_KEY'], 'member-account')
+            self.assertEqual(worker['networks'], {'backend': {}})
+            self.assertTrue(worker['read_only'])
+            self.assertEqual(worker['environment']['MYSQL_PASSWORD_FILE'], '/run/secrets/member_password')
+            self.assertEqual(worker['environment']['DNR_PLATFORM_API_KEY_FILE'], '/run/secrets/member_api')
+            self.assertEqual(worker['volumes'], staged['services']['web']['volumes'])
+            self.assertIn('Member Account', Path(worker['volumes'][0]['source']).read_text())
             self.assertEqual(staged['services']['web']['environment']['SETTING'], 'private value')
             self.assertEqual(staged['services']['web']['image'], 'qualified-app')
             self.assertEqual(staged['services']['db']['image'], 'qualified-db')
@@ -147,6 +172,7 @@ class MemberReleaseTest(unittest.TestCase):
             self.assertEqual(metadata['commit'], qualified['commit'])
             self.assertEqual(metadata['runtime_sha256'], production.sha(member['directory'] / 'runtime.compose.json'))
             self.assertEqual(metadata['networks'], {'backend': '10.252.4.0/24'})
+            self.assertIn('audience-jobs', member['active'])
 
     def test_public_version_mismatch_cannot_complete_member_release(self):
         with tempfile.TemporaryDirectory() as folder:

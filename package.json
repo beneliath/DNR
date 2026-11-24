@@ -9,13 +9,16 @@
     "build:assets": "npm run build:css && npm run build:js && npm run build:pdfjs && npm run build:manifest",
     "check:js": "node scripts/check-js-syntax.mjs",
     "test:js": "node --test tests/js/*.test.js",
+    "test:browser": "node scripts/test-browser.mjs",
+    "verify": "python3 scripts/verify_project.py",
     "test": "npm run build:assets && npm run check:js && npm run test:js"
   },
   "devDependencies": {
     "chart.js": "^4.6.1",
     "d3-geo": "^3.1.2",
     "esbuild": "^0.28.2",
-    "maplibre-gl": "6.19.0"
+    "maplibre-gl": "6.19.0",
+    "playwright": "1.65.1"
   },
   "dependencies": {
     "pdfjs-dist": "6.5.438"

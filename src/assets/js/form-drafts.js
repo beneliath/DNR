@@ -66,13 +66,41 @@
         let recoveryFields = [];
         const existingPanel = form.querySelector('[data-form-draft-panel]');
         const panel = existingPanel || document.createElement('section'); panel.className = 'form-draft-panel';
-        const status = document.createElement('p'); status.setAttribute('role','status');
+        const collapsible = panel.tagName === 'DETAILS';
+        const status = document.createElement(collapsible ? 'span' : 'p'); status.setAttribute('role','status');
+        const heading = collapsible ? document.createElement('summary') : status;
+        if (collapsible) heading.append(status);
         const save = document.createElement('button'); save.type='button'; save.className='button-secondary'; save.textContent='Save Draft';
         const restore = document.createElement('button'); restore.type='button'; restore.className='button-secondary'; restore.textContent='Restore Draft';
         const discard = document.createElement('button'); discard.type='button'; discard.className='button-secondary'; discard.textContent='Discard Draft';
+        const restoredHighlights = new Set();
+        function clearRestoredHighlights() {
+            restoredHighlights.forEach(el => { delete el.dataset.draftRestored; });
+            restoredHighlights.clear();
+        }
+        function highlightRestoredChanges(before) {
+            const consumed = new Set();
+            const highlight = el => {
+                el.dataset.draftRestored = '';
+                restoredHighlights.add(el);
+            };
+            controls().forEach(el => {
+                const previous = matchingControl(el, before, consumed);
+                if (previous) consumed.add(previous);
+                const unchanged = ['checkbox', 'radio'].includes(el.type)
+                    ? !!previous?.checked === !!el.checked
+                    : (previous?.value || '').replace(/\r\n?/g, '\n') === el.value.replace(/\r\n?/g, '\n');
+                if (unchanged) return;
+                const target = (el.dataset.errorTarget && document.getElementById(el.dataset.errorTarget))
+                    || el.closest('[data-address-country-picker]')?.querySelector('[data-address-country-toggle]')
+                    || el;
+                highlight(target);
+            });
+            highlight(restore);
+        }
         const recovery = document.createElement('div'); recovery.className='form-draft-recovery'; recovery.hidden=true;
         const note=document.createElement('p'); note.textContent='Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.';
-        panel.replaceChildren(status,save,restore,discard,note,recovery);
+        panel.replaceChildren(heading,save,restore,discard,note,recovery);
         if (!existingPanel) form.prepend(panel);
         try {
             const cleared = JSON.parse(existingPanel?.dataset?.clearedDrafts || '[]');
@@ -196,26 +224,59 @@
             } catch (_) { status.textContent='Draft could not be saved in this browser. Keep this page open or copy your changes.'; }
         }
         save.addEventListener('click',persist);
-        restore.addEventListener('click',function () {
-            if(!saved || saved.version!==versions()) return;
-            const consumed=new Set(); const missing=[];
-            controls().forEach(el => { if (el.type === 'checkbox') el.checked = false; });
-            // Countries rebuild region choices and can switch between a select
-            // and a text input. Restore them first, then find the live controls.
-            const isCountry = value => Array.from(form.elements).some(el => el.name===value.name && el.hasAttribute('data-address-country-native'));
-            const fields = saved.fields.filter(isCountry).concat(saved.fields.filter(value => !isCountry(value)));
-            fields.forEach(function (value) {
-                const el=matchingControl(value, controls(), consumed);
-                if(!el) { missing.push(value); return; }
-                consumed.add(el);
-                if (!restoreValue(value, el)) missing.push(value);
-            });
+        restore.addEventListener('click',async function () {
+            if(!saved || saved.version!==versions() || applyingDraft) return;
+            const before = capture();
             clearTimeout(timer);
-            renderRecovery(missing);
-            status.textContent=missing.length?'Draft restored where controls still exist. Recreate missing rows using the saved values below; select files again.':'Draft restored. Review the form and select files again before saving.';
+            clearRestoredHighlights();
+            const consumed = new Set();
+            let remaining = saved.fields.slice();
+            const dependency = field => Array.from(form.elements).some(el => el.name === field.name
+                && (el.hasAttribute('data-address-country-native') || el.hasAttribute('data-draft-dependency')));
+            let dependencies = remaining.filter(dependency);
+            applyingDraft = true;
+            form.dataset.draftRestoring = '';
+            save.disabled = restore.disabled = discard.disabled = true;
+            status.textContent = 'Restoring draft…';
+            try {
+                // Restore selectors that build dependent controls first, then wait
+                // for their actual loads before matching the rest of the draft.
+                do {
+                    const batch = dependencies.length ? dependencies : remaining;
+                    const retry = [];
+                    const deferred = remaining.filter(field => !batch.includes(field));
+                    controls().forEach(el => {
+                        if (el.type === 'checkbox' && !consumed.has(el)) el.checked = false;
+                    });
+                    batch.forEach(function (value) {
+                        const el = matchingControl(value, controls(), consumed);
+                        if (!restoreValue(value, el)) { retry.push(value); return; }
+                        consumed.add(el);
+                    });
+                    const pending = [];
+                    form.dispatchEvent(new CustomEvent('form-draft-ready', {
+                        detail: {waitUntil: promise => pending.push(promise)}
+                    }));
+                    if (pending.length) await Promise.allSettled(pending);
+                    remaining = retry.concat(deferred);
+                    const progress = retry.length < batch.length;
+                    const hadDependencies = dependencies.length > 0;
+                    dependencies = [];
+                    if (!progress && !pending.length && !hadDependencies) break;
+                } while (remaining.length);
+            } finally {
+                applyingDraft = false;
+                delete form.dataset.draftRestoring;
+                save.disabled = discard.disabled = false;
+                restore.disabled = !!saved && saved.version !== versions();
+            }
+            clearTimeout(timer);
+            const unresolved = renderRecovery(remaining);
+            highlightRestoredChanges(before);
+            status.textContent=unresolved?'Draft restored where controls still exist. Recreate missing rows using the saved values below; select files again.':'Draft restored. Review the form and select files again before saving.';
             lastSaved=JSON.stringify(capture());
         });
-        discard.addEventListener('click',function () { clearTimeout(timer); try { window.DnrAccountContext.local.removeItem(key); } catch (_) {} saved=null; showSaved(); });
+        discard.addEventListener('click',function () { clearTimeout(timer); clearRestoredHighlights(); try { window.DnrAccountContext.local.removeItem(key); } catch (_) {} saved=null; showSaved(); });
         function handleInput(event) {
             if(applyingDraft || panel.contains(event.target)) return;
             // Never overwrite an older draft before the user chooses to restore or discard it.
@@ -230,12 +291,24 @@
         }
         form.addEventListener('input', handleInput);
         form.addEventListener('change', handleInput);
-        form.addEventListener('submit',function () { clearTimeout(timer); persist(); submitting=true; });
+        form.addEventListener('submit',function (event) {
+            if (applyingDraft) { event.preventDefault(); return; }
+            clearTimeout(timer); persist(); submitting=true;
+        });
         window.addEventListener('beforeunload',function (event) {
             if(baseline !== '' && !submitting && JSON.stringify(capture())!==baseline && JSON.stringify(capture())!==lastSaved) { event.preventDefault(); event.returnValue=''; }
         });
         if (document.readyState === 'loading') {
             showDraftAvailability();
+            // All controls exist at interactive, before deferred page scripts
+            // finish. Resolve stale drafts then so loading those scripts does
+            // not move the form. Reconcile once more after their enhancements.
+            const parsed = () => {
+                if (document.readyState === 'loading') return;
+                document.removeEventListener('readystatechange', parsed);
+                showSaved();
+            };
+            document.addEventListener('readystatechange', parsed);
             document.addEventListener('DOMContentLoaded', showSaved, {once: true});
         } else {
             showSaved();

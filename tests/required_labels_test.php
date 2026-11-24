@@ -11,6 +11,8 @@ function expectRequiredLabelStyle($condition, $message)
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $new_engagement_source = file_get_contents(__DIR__ . '/../src/index.php');
 $edit_engagement_source = file_get_contents(__DIR__ . '/../src/edit_engagement.php');
+$lifecycle_toolbar = file_get_contents(__DIR__ . '/../src/templates/engagement_lifecycle_form.php');
+$schedule_form = file_get_contents(__DIR__ . '/../src/templates/engagement_schedule_form.php');
 $presentation_form_source = file_get_contents(__DIR__ . '/../src/templates/presentation_form.php');
 
 expectRequiredLabelStyle(
@@ -24,16 +26,13 @@ expectRequiredLabelStyle(
     'Required labels should be red whether the marker is a class or a nested asterisk.'
 );
 
-foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source) {
-    expectRequiredLabelStyle(
-        !str_contains($engagement_source, '<div class="label-container">Other Event Type'),
-        'The required other-event caption should be an accessible label.'
-    );
-    expectRequiredLabelStyle(
-        preg_match('/<label\b[^>]*\sfor="event_type_other"[^>]*>/', $engagement_source) === 1,
-        'The other-event label should be associated with its input.'
-    );
-}
+expectRequiredLabelStyle(
+    str_contains($new_engagement_source, 'templates/engagement_lifecycle_form.php')
+        && str_contains($edit_engagement_source, 'templates/engagement_lifecycle_form.php')
+        && str_contains($lifecycle_toolbar, 'engagement_schedule_form.php')
+        && preg_match('/<label\b[^>]*\sfor="event_type_other"[^>]*>/', $schedule_form) === 1,
+    'The shared schedule form should associate the required other-event label with its input.'
+);
 
 foreach (['Topic/Title', 'Date', 'Time', 'Duration (Minutes)'] as $presentation_label) {
     expectRequiredLabelStyle(

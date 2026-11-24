@@ -145,13 +145,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.users TO '${MYSQL_
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.stored_files TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${MYSQL_USER}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
-GRANT SELECT (token_id, status, claim_token, next_attempt_at, created_at) ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
+GRANT SELECT (token_id, status, claim_token, next_attempt_at, processing_started_at, created_at, updated_at) ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_recovery_codes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_sending_domains TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_sending_addresses TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_delivery_setup_jobs TO '${MYSQL_USER}'@'%';
-GRANT SELECT (status,next_attempt_at,created_at) ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${MYSQL_USER}'@'%';
+GRANT SELECT (status,next_attempt_at,processing_started_at,created_at,updated_at) ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${MYSQL_USER}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.marketing_ses_settings TO '${MYSQL_USER}'@'%';
 GRANT SELECT (audience_id), UPDATE (credential_ciphertext) ON \`${MYSQL_DATABASE}\`.marketing_ses_credentials TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.marketing_ses_usage TO '${MYSQL_USER}'@'%';

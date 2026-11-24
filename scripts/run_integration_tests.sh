@@ -54,8 +54,18 @@ compose_isolated() {
 
 cleanup_isolated_backup() {
     if [ -n "$isolated_project" ]; then
-        compose_isolated down --volumes --remove-orphans >/dev/null 2>&1 || true
-        isolated_project=
+        cleanup_attempt=1
+        while [ "$cleanup_attempt" -le 3 ]; do
+            if compose_isolated --profile '*' down --volumes --remove-orphans; then
+                isolated_project=
+                return 0
+            fi
+            echo "Disposable backup cleanup attempt $cleanup_attempt failed for $isolated_project." >&2
+            sleep 3
+            cleanup_attempt=$((cleanup_attempt + 1))
+        done
+        echo "Unable to remove disposable backup project $isolated_project; retaining its identity for cleanup." >&2
+        return 1
     fi
 }
 
@@ -63,6 +73,21 @@ run_integration_suite() {
     test_file=$1
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'audience_job_worker_integration_test.php' ]; then
+        # This isolated regression kills a child worker mid-transaction.
+        compose exec -T -u www-data -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html web php \
+            -d disable_functions=exec,passthru,shell_exec,system,popen "/opt/dnr/${test_file}" </dev/null
+        return
+    fi
+    if [ "$test_name" = 'audience_http_integration_test.php' ]; then
+        compose up -d --no-build --wait audience-jobs </dev/null
+        status=0
+        compose exec -T -u www-data -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/${test_file}" </dev/null || status=$?
+        compose stop audience-jobs </dev/null
+        return "$status"
+    fi
     if [ "$test_name" = 'record_merge_privileges_integration_test.php' ]; then
         # Key rotation supplies fixture cleanup privileges and the application key;
         # business actions use the real web grants.

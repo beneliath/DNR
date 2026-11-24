@@ -302,9 +302,46 @@ class ReleaseWorkflow(unittest.TestCase):
                 prepare.main()
             self.assertEqual((root/'VERSION').read_text(),'1.11.6\n')
 
+class CandidateMigrationRehearsal(unittest.TestCase):
+    def test_candidate_schema_and_demo_policy_use_the_same_qualified_inputs(self):
+        import hashlib
+        import tarfile
+        from release_migration_rehearsal import candidate_migration_verifier
+
+        source = b'CREATE TABLE candidate_fixture (id INT);'
+        checksum = hashlib.sha256(source).hexdigest()
+        archive = io.BytesIO()
+        with tarfile.open(fileobj=archive, mode='w') as contents:
+            for name, data in {
+                'migrations/order.txt': b'candidate.sql\n',
+                'migrations/candidate.sql': source,
+                'scripts/migrate.sh': b'#!/bin/sh\n',
+                'scripts/test_account_baseline_refresh.py': (
+                    b'def qualify_release_baseline(restored, root, image, database, sources):\n'
+                    b'    return dict(source=restored, image=image, database=database, staging=sources[0].name)\n'
+                ),
+            }.items():
+                entry = tarfile.TarInfo(name)
+                entry.size = len(data)
+                contents.addfile(entry, io.BytesIO(data))
+        release = dict(commit='a' * 40, images={'app': 'app@digest', 'database': 'db@digest'},
+                       migrations={'candidate.sql': checksum})
+        with patch('release_migration_rehearsal.subprocess.check_output',
+                   side_effect=['migrations/candidate.sql', '', archive.getvalue()]), \
+                patch('release_migration_rehearsal.query', side_effect=['', f'candidate.sql\t{checksum}\tapplied']), \
+                patch('release_migration_rehearsal.migrate_isolated_restore') as migrate, \
+                candidate_migration_verifier(ROOT, 'b' * 40, release) as verify:
+            receipt = verify('verify-clone', 'test-account')
+        self.assertEqual(migrate.call_args.args[0], 'verify-clone')
+        self.assertTrue(migrate.call_args.kwargs['require_encryption'])
+        self.assertEqual(receipt['migration_checksums'], release['migrations'])
+        self.assertEqual(receipt['approved_baseline'],
+                         dict(source='verify-clone', image='app@digest', database='db@digest', staging='migrations'))
+
+
 class DeploymentBackupGate(unittest.TestCase):
     def exercise(self, backup_fails, seed_fails=False, photo_fails=False, qr_fails=False, guard_fails=False,
-                 complete_release=False, withdraw_fails=False):
+                 complete_release=False, withdraw_fails=False, rehearsal_fails=False):
         import datetime, hashlib, os
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'.git').mkdir()
@@ -365,16 +402,25 @@ class DeploymentBackupGate(unittest.TestCase):
                             raise ValueError('synthetic seed failure')
                     return ''
                 return ''
-            def backup(*args):
+            def backup(*args, restore_verifier):
                 events.append(['backup'])
                 if backup_fails: raise ValueError('synthetic backup failure')
-                return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True}
+                qualification = restore_verifier('isolated-fixture')
+                return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True,
+                        'restore_qualification': qualification}
+            def verify(restored, account):
+                self.assertEqual((restored, account), ('isolated-fixture', 'primary-account'))
+                events.append(['schema-rehearsal'])
+                if rehearsal_fails:
+                    raise ValueError('synthetic rehearsal failure')
+                return {'schema_rehearsed': True}
             cwd=Path.cwd()
             try:
                 with patch.object(deploy_release_host, 'account_release_configuration', return_value={'config': {'primary_key': 'primary-account', 'origin': 'https://example.test'}}), \
                         patch.object(deploy_release_host, 'active_account_worker', return_value=None), \
                         patch.object(deploy_release_host, 'discover_members', return_value=[]), \
                         patch.object(deploy_release_host, 'reload_account_operators'), \
+                        patch.object(deploy_release_host, 'candidate_migration_verifier', return_value=nullcontext(verify)), \
                         patch.object(deploy_release_host, 'public_login_available', side_effect=lambda url, options=(): events.append(['login-probe' if options else 'public-login']) or clock[0] + 1), \
                         patch.object(deploy_release_host, 'DeploymentGuard') as guard, \
                         patch.object(deploy_release_host,'require_encrypted_upload_storage',return_value={'encryption':'dm-crypt'}), patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), \
@@ -389,6 +435,7 @@ class DeploymentBackupGate(unittest.TestCase):
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
                 if complete_release and not withdraw_fails:
                     self.assertEqual(record['outcome'], 'success')
+                    self.assertTrue(record['backup']['restore_qualification']['schema_rehearsed'])
                     self.assertEqual(notice.read()['phase'], 'complete')
                     self.assertEqual(record['all_accounts_login_available_at'], clock[0] + 1)
                     self.assertLess(events.index(['guard-withdrawn']), events.index(['public-login']))
@@ -412,6 +459,11 @@ class DeploymentBackupGate(unittest.TestCase):
                     return
                 merge=[i for i,event in enumerate(events) if event[:2]==['git','merge']]
                 backup_index=events.index(['backup'])
+                if rehearsal_fails:
+                    self.assertIn(['schema-rehearsal'], events)
+                    self.assertEqual(merge, [])
+                    self.assertFalse(any(event[-1:] == ['migrator'] for event in events))
+                    return
                 self.assertLess(events.index(['maintenance-protected']), backup_index)
                 guard.return_value.protect.assert_called_once()
                 guard.return_value.withdraw.assert_not_called()
@@ -431,6 +483,9 @@ class DeploymentBackupGate(unittest.TestCase):
     def test_success_drains_routes_before_recording_login_and_releasing_browsers(self): self.exercise(False, complete_release=True)
     def test_failed_handoff_reactivates_maintenance_and_never_announces_completion(self): self.exercise(False, complete_release=True, withdraw_fails=True)
     def test_migration_failure_retains_verified_recovery_record(self): self.exercise(False)
+    def test_schema_rehearsal_failure_blocks_checkout_and_live_migrations(self):
+        self.exercise(False, rehearsal_fails=True)
+
     def test_speaker_import_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, True)
     def test_photo_optimization_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, photo_fails=True)
     def test_qr_backfill_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, qr_fails=True)

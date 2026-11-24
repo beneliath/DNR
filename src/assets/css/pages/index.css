@@ -2,18 +2,6 @@ html {
     scrollbar-gutter: stable;
 }
 
-#new-engagement-form .form-draft-panel {
-    border-bottom: 0;
-}
-
-html:not(.has-js) #new-engagement-form :is([data-form-draft-panel], [data-relationship-search-input], [data-relationship-search-status]) {
-    display: none;
-}
-
-#new-engagement-form #chron_entry {
-    width: 100%;
-}
-
 /* Keep the organization row centered; apply field spacing to the whole row. */
     .organization-container {
         margin-bottom: 18px;

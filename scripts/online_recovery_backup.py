@@ -21,7 +21,7 @@ def utc_now():
 
 
 def inspect(identifier):
-    return json.loads(subprocess.check_output(['docker', 'inspect', identifier]))[0]
+    return json.loads(subprocess.check_output(['docker', 'inspect', identifier], timeout=30))[0]
 
 
 def upload_volume(web):

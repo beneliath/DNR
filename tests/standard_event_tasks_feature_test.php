@@ -68,12 +68,12 @@ $addStyles = $read('src/assets/css/pages/add_standard_task.css');
 $view = $read('src/view_standard_task.php');
 $edit = $read('src/edit_standard_task.php');
 $new_engagement = $read('src/index.php');
-$edit_engagement = $read('src/edit_engagement.php');
+$engagement_write = $read('src/app/Service/EngagementWrite.php');
 $form = $read('src/templates/standard_event_task_form.php');
 $header = $read('src/templates/header.php');
 $privileges = $read('scripts/configure_database_privileges.sh');
 $checklist_position = strpos($new_engagement, 'generateEngagementFollowUpChecklist(');
-$map_queue_position = strpos($new_engagement, 'queueEngagementMapAddress(', $checklist_position ?: 0);
+$map_queue_position = strpos($new_engagement, 'EngagementWrite::queueLocation(', $checklist_position ?: 0);
 $engagement_commit_position = strpos($new_engagement, '$conn->commit()', $map_queue_position ?: 0);
 
 expectStandardEventTaskFeature(
@@ -139,8 +139,8 @@ expectStandardEventTaskFeature(
     'new engagement creation should atomically generate standard tasks and queue its map lookup before commit.'
 );
 expectStandardEventTaskFeature(
-    !str_contains($edit_engagement, 'generateEngagementFollowUpChecklist(')
-        && !str_contains($edit_engagement, 'assigned_to'),
+    !str_contains($engagement_write, 'generateEngagementFollowUpChecklist(')
+        && !str_contains($engagement_write, 'assigned_to'),
     'editing an engagement, including its Caller, must not regenerate or reassign its initial standard tasks.'
 );
 expectStandardEventTaskFeature(

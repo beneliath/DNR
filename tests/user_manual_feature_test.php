@@ -184,7 +184,10 @@ expectUserManual(
 
 expectUserManual(
     str_contains($manual, 'Enter a required event title')
-        && str_contains($manual, 'a valid start and end date')
+        && str_contains($manual, 'Set the start date, end date, and event type in the toolbar')
+        && str_contains($manual, '<strong>Use Organization Address</strong>')
+        && str_contains($manual, '<strong>Replace Event Location</strong>')
+        && str_contains($manual, 'A rounded outline pulses around the selected card')
         && str_contains($manual, 'Initial standard tasks go to the selected <strong>Caller</strong>')
         && str_contains($manual, 'Changing the Caller later does not reassign these tasks')
         && str_contains($manual, 'reassign those tasks in the Work Queue')

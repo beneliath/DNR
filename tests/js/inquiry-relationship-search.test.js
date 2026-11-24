@@ -48,7 +48,7 @@ function harness(draft = null, search = '') {
         request.resolve({ok: true, json: async () => ({results, selected, has_more})});
         await new Promise(setImmediate);
     };
-    return {org, contact, orgSearch, contactSearch, feedback, createLink, storage, pending, answer,
+    return {form, org, contact, orgSearch, contactSearch, feedback, createLink, storage, pending, answer,
         search: async (input, query) => { input.value = query; input.listeners.input(); const promise = scheduled(); await Promise.resolve(); return {promise}; }};
 }
 
@@ -81,6 +81,22 @@ test('failed inquiry searches retain the selected records', async () => {
     assert.equal(h.org.value, '2');
     assert.equal(h.contact.value, '8');
     assert.match(h.feedback.textContent, /preserved/);
+});
+
+test('draft restoration starts dependent searches immediately and waits for their results', async () => {
+    const h = harness();
+    h.form.dataset.draftRestoring = '';
+    h.contactSearch.listeners.input();
+    assert.equal(h.pending.length, 1, 'Draft restoration does not leave a debounced search to run afterward');
+    const waits = [];
+    h.form.listeners['form-draft-ready']({detail: {waitUntil(promise) { waits.push(promise); }}});
+    assert.equal(waits.length, 1);
+    await h.answer(h.pending[0], [{id: 20, label: 'Saved draft contact'}]);
+    await Promise.all(waits);
+    assert.ok(h.contact.options.some(option => option.value === '20'));
+    const completed = [];
+    h.form.listeners['form-draft-ready']({detail: {waitUntil(promise) { completed.push(promise); }}});
+    assert.equal(completed.length, 0);
 });
 
 test('draft selections outside the first 25 results are restored and retained on lookup failure', async () => {

@@ -36,6 +36,8 @@ foreach ($files as $file) {
     $markup = preg_replace('~<\?(?:php|=).*?\?>~s', ' VALUE ', $source) ?? $source;
     $markup = preg_replace('~<(small|code|script|style|p)\b[^>]*>.*?</\1>~si', '', $markup) ?? $markup;
     $markup = preg_replace('~<span\b[^>]*class="[^"]*(?:audience-help|field-help|helper-text)[^"]*"[^>]*>.*?</span>~si', '', $markup) ?? $markup;
+    // Live status copy inside a disclosure uses sentence case, like status paragraphs.
+    $markup = preg_replace('~<span\b[^>]*\brole="status"[^>]*>.*?</span>~si', '', $markup) ?? $markup;
     preg_match_all('~<(label|button|option|th|dt|legend|a|summary)\b[^>]*>(.*?)</\1>|\baria-label="([^"]*)"~si', $markup, $matches, PREG_SET_ORDER);
     preg_match_all('~<(span|small|strong)\b[^>]*class="[^"]*(?:pill|badge|chip)[^"]*"[^>]*>(.*?)</\1>~si', $markup, $pillMatches, PREG_SET_ORDER);
     $matches = array_merge($matches, $pillMatches);

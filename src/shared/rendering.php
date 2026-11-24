@@ -160,14 +160,15 @@ function renderScript($path, $defer = true, $module = false, $blockRender = fals
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
 }
 
-function renderFormDraftPanel(): void {
+function renderFormDraftPanel(bool $collapsible = false): void {
     $cleared = array_values(array_filter($_SESSION['clear_form_drafts'] ?? [], 'is_string'));
-    echo '<section class="form-draft-panel" data-form-draft-panel data-cleared-drafts="'
+    $panel_tag = $collapsible ? 'details' : 'section';
+    echo '<' . $panel_tag . ' class="form-draft-panel" data-form-draft-panel data-cleared-drafts="'
         . htmlspecialchars(json_encode($cleared, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8') . '">'
-        . '<p role="status">No saved draft</p>'
+        . ($collapsible ? '<summary><span role="status">No saved draft</span></summary>' : '<p role="status">No saved draft</p>')
         . '<button type="button" class="button-secondary" disabled>Save Draft</button>'
         . '<p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>'
-        . '</section>' . PHP_EOL;
+        . '</' . $panel_tag . '>' . PHP_EOL;
     echo '<script nonce="' . htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8') . '">'
         . 'window.DnrFormDrafts?.initialize(document.currentScript.previousElementSibling.closest("form"));'
         . '</script>' . PHP_EOL;
