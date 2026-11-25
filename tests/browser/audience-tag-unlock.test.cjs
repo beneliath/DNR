@@ -35,6 +35,16 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
     assert.deepEqual(await counts.allTextContents(),[...values].reverse());
     assert.equal(await page.locator('#tag-sort').inputValue(),status+'_desc');
    }
+   const created=page.locator('th.tag-created'),dates=page.locator('td.tag-created time');
+   const archivedLabel=await page.locator('th.tag-count-archived a').boundingBox();
+   const createdLabel=await created.getByRole('link').boundingBox();
+   assert.ok(createdLabel.x-archivedLabel.x-archivedLabel.width>=47.5,'Created has extra space after Archived');
+   for(const [order,direction,firstDate] of [['newest','descending','2026-10-22T12:00:00Z'],['oldest','ascending','2026-10-21T12:00:00Z']]){
+    await created.getByRole('link',{name:'Created',exact:true}).click();
+    assert.equal(await created.getAttribute('aria-sort'),direction);
+    assert.equal(await dates.first().getAttribute('datetime'),firstDate);
+    assert.equal(await page.locator('#tag-sort').inputValue(),order);
+   }
   }
   const go=async(expand=true)=>{await page.goto(tagsUrl+'&tag_sort=newest');if(expand)await expandRowActions(page.locator('.audience-tag-actions').first());};await go(false);
   if(role==='admin'){assert.equal(await page.locator('#definition-selection .audience-check').evaluate(n=>getComputedStyle(n).fontWeight),'400');if(width===1600){const boxes=await Promise.all([page.getByLabel('Search Tags',{exact:true}),page.locator('#definition-selection'),page.locator('#tag-sort')].map(n=>n.boundingBox()));assert.ok(Math.max(...boxes.map(b=>b.y+b.height/2))-Math.min(...boxes.map(b=>b.y+b.height/2))<2,'Search, selection and sorting share a toolbar row');}}
@@ -43,7 +53,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
   assert.equal(await page.locator('.audience-tag-list tbody tr').count(),2);assert.equal(await icons.count(),role==='admin'?5:role==='editor'?4:0);const mobile=width<861;await expandRowActions(rowActions,true);assert.equal(await icons.filter({visible:true}).count(),await icons.count());await assertActionGeometry(page,icons,mobile);
   const table=page.locator('.audience-tag-list'),firstTag=table.locator('tbody tr').first();
   assert.deepEqual((await table.locator('thead th.tag-count a').allTextContents()).map(text=>text.replace(/\s[↑↓↕]$/,'')),['Active','Archived']);
-  assert.equal(await table.locator('thead th').filter({hasText:/Created/}).count(),0);
+  assert.equal(await table.locator('thead th.tag-created').getAttribute('aria-sort'),'descending');
   assert.deepEqual(await firstTag.locator('.tag-count').allTextContents(),['128','15']);
   const activeCount=firstTag.locator('.tag-count-active a'),archivedCount=firstTag.locator('.tag-count-archived a');
   for(const [link,tagId,archived] of [[activeCount,'7','0'],[archivedCount,'7','1'],[table.locator('tbody tr').nth(1).locator('.tag-count-archived a'),'8','1']]){
@@ -56,6 +66,7 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
   const details=firstTag.getByRole('button',{name:'Details for Newsletter subscribers'});
   if(mobile)await details.click();
   assert.equal(await firstTag.locator('.tag-count:visible').count(),2);
+  assert.equal(await firstTag.locator('.tag-created time').isVisible(),true);
   if(mobile)await details.click();
   assert.equal(await firstTag.locator('.tag-name a').count(),0);
   assert.equal(await firstTag.locator('.tag-label').evaluate(n=>getComputedStyle(n).fontWeight),'400');

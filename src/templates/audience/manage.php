@@ -63,6 +63,7 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
                 ?>
                     <th scope="col" class="tag-count tag-count-<?= $status ?>" aria-label="<?= $label ?> Connections" aria-sort="<?= $ascending?'ascending':($descending?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$nextOrder])) ?>"><?= $label ?> <span aria-hidden="true"><?= $ascending?'↑':($descending?'↓':'↕') ?></span></a></th>
                 <?php endforeach; ?>
+                <th scope="col" class="tag-created" aria-sort="<?= $tagSort==='oldest'?'ascending':($tagSort==='newest'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$tagSort==='newest'?'oldest':'newest'])) ?>">Created <span aria-hidden="true"><?= $tagSort==='oldest'?'↑':($tagSort==='newest'?'↓':'↕') ?></span></a></th>
                 <?php if($canManage): ?><th scope="col" class="tag-actions">Actions</th><?php endif; ?>
             </tr></thead>
             <tbody><?php foreach($visibleItems as$tag): ?><tr data-definition-row>
@@ -74,9 +75,16 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
                 ?>
                     <td class="tag-count tag-count-<?= $status ?>"><a href="<?= $h($connectionsUrl) ?>" aria-label="View <?= $count ?> <?= ucfirst($status) ?> Connections Tagged <?= $h($tag['name']) ?>"><?= $count ?></a></td>
                 <?php endforeach; ?>
+                <td class="tag-created">
+                    <?php if(!empty($tag['created_at'])): ?>
+                        <time datetime="<?= $h(str_replace(' ','T',substr($tag['created_at'],0,19)).'Z') ?>"><?= $h(formatUserTimestamp($tag['created_at'],'M j, Y, g:i A')) ?></time>
+                    <?php else: ?>
+                        <span aria-label="Creation Date Unavailable">—</span>
+                    <?php endif; ?>
+                </td>
                 <?php if($canManage): ?><td class="tag-actions"><?php $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php'; ?></td><?php endif; ?>
             </tr><?php endforeach; ?>
-            <?php if(!$visibleItems): ?><tr><td colspan="<?= 3+(int)$canManage+(int)$canDelete ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
+            <?php if(!$visibleItems): ?><tr><td colspan="<?= 4+(int)$canManage+(int)$canDelete ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
             </tbody>
         </table>
     </section>
