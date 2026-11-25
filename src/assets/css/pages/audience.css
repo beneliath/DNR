@@ -607,6 +607,7 @@ html.dark-mode .danger-text{color:#ffaaa0}
 .audience-table th .audience-definition-sort-link{display:inline-flex;align-items:center;gap:4px;color:inherit;font-weight:inherit;text-decoration:none}
 .audience-table th .audience-definition-sort-link:hover{color:var(--audience-link);text-decoration:underline}
 .audience-definition-sort-link span{min-width:1em;text-align:center}
+.audience-tag-list th.tag-count .audience-definition-sort-link,.audience-segment-table th.segment-count .audience-definition-sort-link{flex-direction:row-reverse}
 .audience-definition-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:12px;list-style:none;padding:0;margin:16px 0 0}
 .audience-definition-item{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:4px;align-items:center;align-content:center;min-height:82px;padding:12px 16px;border:1px solid var(--audience-border);border-radius:6px;background:var(--audience-surface)}
 .audience-definition-item.has-selection{grid-template-columns:20px minmax(0,1fr) auto}
@@ -1555,7 +1556,11 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 .audience-tag-list :is(th,td).definition-check{width:44px;box-sizing:border-box;padding-left:14px;padding-right:8px}
 .audience-tag-list .tag-name{width:320px;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .audience-tag-list .tag-label{font-weight:400}
-.audience-tag-list .tag-count{width:112px;text-align:left;font-variant-numeric:tabular-nums}
+.audience-tag-list .tag-count{width:112px;text-align:right;font-variant-numeric:tabular-nums}
+.audience-tag-list .tag-created,.audience-segment-table :is(.segment-created,.segment-modified){width:128px;white-space:normal;overflow-wrap:anywhere;line-height:1.4;color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
+.audience-tag-list .tag-created{width:136px;padding-inline-start:32px}
+.audience-tag-list td.tag-count-archived>a{color:#a8adb2}
+html.dark-mode .audience-tag-list td.tag-count-archived>a{color:#737b85}
 .audience-tag-list .tag-actions{width:auto;padding-inline:12px;text-align:right}
 .audience-tag-list tr.definition-selected{background:var(--audience-notice)}
 .audience-tag-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--audience-action-gap,16px)}
@@ -1563,16 +1568,17 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 @media(max-width:1280px){
   .audience-tags-card .audience-definition-controls{flex-wrap:wrap}
   .audience-tag-list,.audience-tag-list :is(thead,tbody){display:block}
-  .audience-tag-list tr{--tag-count-width:clamp(64px,15vw,100px);display:grid;grid-template-columns:minmax(0,1fr) repeat(2,var(--tag-count-width));align-items:center;gap:12px 8px;padding:12px 10px;border-bottom:1px solid var(--audience-border)}
-  .audience-tag-list tr:has(.definition-check){grid-template-columns:28px minmax(0,1fr) repeat(2,var(--tag-count-width))}
+  .audience-tag-list tr{--tag-count-width:clamp(64px,15vw,100px);--tag-date-width:clamp(56px,17vw,136px);display:grid;grid-template-columns:minmax(0,1fr) repeat(2,var(--tag-count-width)) var(--tag-date-width);align-items:center;gap:12px 8px;padding:12px 10px;border-bottom:1px solid var(--audience-border)}
+  .audience-tag-list tr:has(.definition-check){grid-template-columns:28px minmax(0,1fr) repeat(2,var(--tag-count-width)) var(--tag-date-width)}
   .audience-tag-list :is(th,td){width:auto;padding:0;border:0;background:transparent}
   .audience-tag-list thead{background:var(--audience-heading-bg)}
   .audience-tag-list .tag-name{grid-column:1;grid-row:1;width:auto}
   .audience-tag-list tr:has(.definition-check) .tag-name{grid-column:2}
   .audience-tag-list :is(th,td).definition-check{grid-column:1;grid-row:1;width:auto;padding:0}
   .audience-tag-list .tag-count{grid-row:1;width:auto;font-size:calc(13px * var(--audience-font-scale,1))}
-  .audience-tag-list .tag-count-active{grid-column:-3/-2}
-  .audience-tag-list .tag-count-archived{grid-column:-2/-1}
+  .audience-tag-list .tag-count-active{grid-column:-4/-3}
+  .audience-tag-list .tag-count-archived{grid-column:-3/-2}
+  .audience-tag-list .tag-created{grid-column:-2/-1;grid-row:1;width:auto;padding-inline-start:16px}
   .audience-tag-list th.tag-actions{display:none}
   .audience-tag-list td.tag-actions{grid-column:1/-1;grid-row:2;width:auto;padding:0}
   .audience-tag-list td.audience-empty{grid-column:1/-1;padding:40px 12px}
@@ -1599,8 +1605,7 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 .audience-segment-table :is(th,td).definition-check{width:44px;padding-left:14px;padding-right:8px}
 .audience-segment-table .segment-name{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .audience-segment-table .segment-name a{font-weight:500}
-.audience-segment-table .segment-count{width:128px;font-variant-numeric:tabular-nums}
-.audience-segment-table :is(.segment-created,.segment-modified){width:128px;white-space:normal;overflow-wrap:anywhere;line-height:1.4;color:var(--audience-muted);font-size:calc(14px * var(--audience-font-scale,1))}
+.audience-segment-table .segment-count{width:128px;text-align:right;font-variant-numeric:tabular-nums}
 .audience-segment-table .segment-actions{width:492px;text-align:right}
 .audience-segment-table.is-readonly .segment-actions{width:76px}
 .audience-segment-table tr.definition-selected{background:var(--audience-notice)}
