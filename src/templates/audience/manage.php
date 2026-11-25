@@ -25,25 +25,55 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
     <p class="audience-help"><?php if($canDelete): ?>Verify your From address and domain in <a href="<?= $h($url(['view'=>'delivery'])) ?>">Email Delivery Setup</a>.<?php else: ?>An administrator verifies sending addresses and domains.<?php endif; ?></p><?php if($canDelete): ?><button type="submit" class="primary" data-audience-defaults-save aria-describedby="audience-defaults-unsaved-status">Save Audience Defaults</button><?php endif; ?></fieldset></form>
     <div class="audience-settings-links"><a href="<?= $h($url(['view'=>'fields'])) ?>">Fields and Merge Tags →</a><a href="<?= $h($url(['view'=>'groups'])) ?>">Groups →</a><a href="<?= $h($url(['view'=>'forms'])) ?>">Signup Forms and Opt-in Settings →</a><a href="<?= $h($url(['view'=>'preferences'])) ?>">Subscriber Preferences →</a><?php if($canManage): ?><a href="<?= $h($url(['view'=>'jobs','kind'=>'import'])) ?>">Import History →</a><a href="<?= $h($url(['view'=>'jobs','kind'=>'export'])) ?>">Export History →</a><?php endif; ?></div>
 <?php elseif($view==='tags'): ?>
-    <?php $tagSort=in_array($_GET['tag_sort']??'',['newest','oldest','name','name_desc'],true)?$_GET['tag_sort']:'newest';usort($items,static fn($a,$b)=>match($tagSort){'name'=>strnatcasecmp($a['name'],$b['name']),'name_desc'=>strnatcasecmp($b['name'],$a['name']),'oldest'=>strcmp($a['created_at']??'',$b['created_at']??'')?:$a['id']<=>$b['id'],default=>strcmp($b['created_at']??'',$a['created_at']??'')?:$b['id']<=>$a['id']});$visibleItems=array_slice($items,($listPage-1)*$listSize,$listSize);$tagHeaderParams=['view'=>'tags','definition_status'=>$definitionStatus,'list_search'=>$listSearch,'list_size'=>$listSize]; ?>
+    <?php
+    $tagSortOptions = [
+        'name'=>'Name (A–Z)','name_desc'=>'Name (Z–A)',
+        'active_asc'=>'Active (Low to High)','active_desc'=>'Active (High to Low)',
+        'archived_asc'=>'Archived (Low to High)','archived_desc'=>'Archived (High to Low)',
+        'newest'=>'Date Created (Newest)','oldest'=>'Date Created (Oldest)',
+    ];
+    $tagSort = in_array($_GET['tag_sort']??'',array_keys($tagSortOptions),true) ? $_GET['tag_sort'] : 'name';
+    usort($items,static fn($a,$b)=>(match($tagSort){
+        'name'=>strnatcasecmp($a['name'],$b['name']),
+        'name_desc'=>strnatcasecmp($b['name'],$a['name']),
+        'active_asc'=>(int)($a['contact_count']??0)<=>(int)($b['contact_count']??0),
+        'active_desc'=>(int)($b['contact_count']??0)<=>(int)($a['contact_count']??0),
+        'archived_asc'=>(int)($a['archived_contact_count']??0)<=>(int)($b['archived_contact_count']??0),
+        'archived_desc'=>(int)($b['archived_contact_count']??0)<=>(int)($a['archived_contact_count']??0),
+        'oldest'=>strcmp($a['created_at']??'',$b['created_at']??'')?:$a['id']<=>$b['id'],
+        'newest'=>strcmp($b['created_at']??'',$a['created_at']??'')?:$b['id']<=>$a['id'],
+    })?:strnatcasecmp($a['name'],$b['name']));
+    $visibleItems=array_slice($items,($listPage-1)*$listSize,$listSize);
+    $tagHeaderParams=['view'=>'tags','definition_status'=>$definitionStatus,'list_search'=>$listSearch,'list_size'=>$listSize];
+    ?>
     <section class="audience-tags-card" aria-label="Tags">
         <div class="audience-definition-controls mm-search-row">
             <form method="get" class="audience-list-search audience-definition-search"><?php audienceInputs($baseForm+['view'=>'tags','definition_status'=>$definitionStatus,'tag_sort'=>$tagSort,'list_size'=>$listSize]); ?><label class="search-with-icon"><?php audienceNavIcon('search'); ?><input id="tag-list-search" type="search" autocomplete="off" name="list_search" list="tag-search-options" placeholder="Search Tags" aria-label="Search Tags" value="<?= $h($listSearch) ?>"></label><button type="submit" data-mm-search-text="tag-list-search">Search</button></form>
             <?php if($canDelete): ?><div class="audience-definition-toolbar"><?php include __DIR__.'/definition-selection.php'; ?></div><?php endif; ?>
-            <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+['view'=>'tags','definition_status'=>$definitionStatus,'list_search'=>$listSearch,'list_size'=>$listSize]); ?><label for="tag-sort">Sort By</label><select id="tag-sort" name="tag_sort" data-auto-submit><?php foreach(['newest'=>'Date Created (Newest)','oldest'=>'Date Created (Oldest)','name'=>'Name (A–Z)','name_desc'=>'Name (Z–A)']as$value=>$label): ?><option value="<?= $value ?>"<?= $tagSort===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(['view'=>'tags','definition_status'=>$definitionStatus,'tag_sort'=>'newest','list_search'=>'','list_size'=>$listSize])) ?>">Clear All</a>
+            <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+$tagHeaderParams); ?><label for="tag-sort">Sort By</label><select id="tag-sort" name="tag_sort" data-auto-submit><?php foreach($tagSortOptions as $value=>$label): ?><option value="<?= $value ?>"<?= $tagSort===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(array_replace($tagHeaderParams,['list_search'=>'']))) ?>">Clear All</a>
         </div>
         <table class="data-table audience-table audience-tag-list" data-mm-paginated-table aria-label="Tags on This Page">
             <thead><tr>
                 <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select Tag</span></th><?php endif; ?>
-                <th scope="col" class="tag-name" aria-sort="<?= $tagSort==='name'?'ascending':($tagSort==='name_desc'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$tagSort==='name'?'name_desc':'name'])) ?>">Tag Name <span aria-hidden="true"><?= $tagSort==='name'?'↑':($tagSort==='name_desc'?'↓':'↕') ?></span></a></th><th scope="col" class="tag-count">Connections</th>
-                <th scope="col" class="tag-created" aria-sort="<?= $tagSort==='oldest'?'ascending':($tagSort==='newest'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$tagSort==='newest'?'oldest':'newest'])) ?>">Created <span aria-hidden="true"><?= $tagSort==='oldest'?'↑':($tagSort==='newest'?'↓':'↕') ?></span></a></th>
+                <th scope="col" class="tag-name" aria-sort="<?= $tagSort==='name'?'ascending':($tagSort==='name_desc'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$tagSort==='name'?'name_desc':'name'])) ?>">Tag Name <span aria-hidden="true"><?= $tagSort==='name'?'↑':($tagSort==='name_desc'?'↓':'↕') ?></span></a></th>
+                <?php foreach (['active'=>'Active','archived'=>'Archived'] as $status=>$label):
+                    $ascending = $tagSort===$status.'_asc';
+                    $descending = $tagSort===$status.'_desc';
+                    $nextOrder = $status.($ascending?'_desc':'_asc');
+                ?>
+                    <th scope="col" class="tag-count tag-count-<?= $status ?>" aria-label="<?= $label ?> Connections" aria-sort="<?= $ascending?'ascending':($descending?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$nextOrder])) ?>"><?= $label ?> <span aria-hidden="true"><?= $ascending?'↑':($descending?'↓':'↕') ?></span></a></th>
+                <?php endforeach; ?>
                 <?php if($canManage): ?><th scope="col" class="tag-actions">Actions</th><?php endif; ?>
             </tr></thead>
             <tbody><?php foreach($visibleItems as$tag): ?><tr data-definition-row>
                 <?php if($canDelete): ?><td class="definition-check"><input form="definition-selection" type="checkbox" name="selected_ids[]" value="<?= (int)$tag['id'] ?>" data-definition-item aria-label="Select <?= $h($tag['name']) ?>"><input form="definition-selection" type="hidden" name="versions[<?= (int)$tag['id'] ?>]" value="<?= (int)$tag['version'] ?>"></td><?php endif; ?>
-                <td class="tag-name"><a href="<?= $h($url(['tags'=>[$tag['id']]])) ?>" aria-label="View Connections Tagged <?= $h($tag['name']) ?>"><?= $h($tag['name']) ?></a><?= !empty($tag['archived_at'])?' <span class="audience-help">Archived</span>':'' ?></td>
-                <td class="tag-count"><?= number_format((int)($tag['contact_count']??0)) ?></td>
-                <td class="tag-created"><?php if(!empty($tag['created_at'])): ?><time datetime="<?= $h(str_replace(' ','T',substr($tag['created_at'],0,19)).'Z') ?>"><?= $h(formatUserTimestamp($tag['created_at'],'M j, Y, g:i A')) ?></time><?php else: ?><span aria-label="Creation Date Unavailable">—</span><?php endif; ?></td>
+                <td class="tag-name"><span class="tag-label"><?= $h($tag['name']) ?></span><?= !empty($tag['archived_at'])?' <span class="audience-help">Archived</span>':'' ?></td>
+                <?php foreach (['active'=>'contact_count','archived'=>'archived_contact_count'] as $status=>$countKey):
+                    $count = number_format((int)($tag[$countKey]??0));
+                    $connectionsUrl = $url(['view'=>'contacts','tags'=>[$tag['id']],'archived'=>$status==='archived'?'1':'0']);
+                ?>
+                    <td class="tag-count tag-count-<?= $status ?>"><a href="<?= $h($connectionsUrl) ?>" aria-label="View <?= $count ?> <?= ucfirst($status) ?> Connections Tagged <?= $h($tag['name']) ?>"><?= $count ?></a></td>
+                <?php endforeach; ?>
                 <?php if($canManage): ?><td class="tag-actions"><?php $menuKind='tag';$menuModel=$tag;include __DIR__.'/row-menu.php'; ?></td><?php endif; ?>
             </tr><?php endforeach; ?>
             <?php if(!$visibleItems): ?><tr><td colspan="<?= 3+(int)$canManage+(int)$canDelete ?>" class="audience-empty">No tags found.<?= $canManage?' Create a tag to get started.':'' ?></td></tr><?php endif; ?>
@@ -67,6 +97,6 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
     <?php foreach(['EMAIL'=>'Email Address','FNAME'=>'First Name','LNAME'=>'Last Name']as$key=>$label): ?><tr><td><?= $label ?></td><td><?= $key==='EMAIL'?'Email':'Text' ?></td><td><code>*|<?= $key ?>|*</code></td><td>—</td><td>Built-in field</td></tr><?php endforeach; ?>
     <?php foreach($visibleItems as$field): ?><tr><td><?= $h($field['label']) ?></td><td><?= $h(AUDIENCE_FIELD_TYPES[$field['field_type']]) ?></td><td><code>*|<?= $h($field['merge_tag']) ?>|*</code></td><td><?= $h($field['default_value'])?:'—' ?></td><td><?php if($canManage): ?><div class="audience-actions audience-field-actions" role="group" aria-label="<?= $h($field['label']) ?> Actions"><button type="button" class="action-icon-button" data-field-edit="<?= $h(json_encode($field,JSON_THROW_ON_ERROR)) ?>" aria-label="Edit <?= $h($field['label']) ?>" data-tooltip="Edit"><?= actionIconSvg('edit') ?></button><?php if($canDelete): ?><form method="post" data-audience-protected-form data-admin-unlock-required data-confirm="Delete this field and all stored values? This cannot be undone."><?= $csrf ?><?php audienceInputs($baseForm+['action'=>'delete_field','id'=>$field['id'],'version'=>$field['version']]); ?><button type="submit" class="action-icon-button" data-admin-unlock-required aria-label="Delete <?= $h($field['label']) ?>" data-tooltip="Delete"><?= actionIconSvg('delete') ?></button></form><?php endif; ?></div><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></div>
 <?php endif; ?>
-<?php if($view!=='settings')audiencePagination(['total'=>$listTotal,'page'=>$listPage,'size'=>$listSize,'page_key'=>'list_page','size_key'=>'list_size','label'=>ucfirst($view).' pages','params'=>array_replace($baseForm,['view'=>$view,'definition_status'=>$definitionStatus,'list_search'=>$listSearch,'tag_sort'=>$tagSort??'newest']),'url'=>$url]); ?>
+<?php if($view!=='settings')audiencePagination(['total'=>$listTotal,'page'=>$listPage,'size'=>$listSize,'page_key'=>'list_page','size_key'=>'list_size','label'=>ucfirst($view).' pages','params'=>array_replace($baseForm,['view'=>$view,'definition_status'=>$definitionStatus,'list_search'=>$listSearch],isset($tagSort)?['tag_sort'=>$tagSort]:[]),'url'=>$url]); ?>
 
 <datalist id="tag-search-options"><?= audienceSearchOptions(array_column($tags,'name')) ?></datalist>

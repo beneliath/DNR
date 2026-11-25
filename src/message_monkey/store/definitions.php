@@ -24,12 +24,22 @@ trait AudienceDefinitions
 
     public function fields(): array { return $this->all('SELECT * FROM marketing_fields WHERE audience_id=? ORDER BY position,id',[$this->audienceId]); }
 
-    public function tags(bool $includeArchived = false, bool $withCounts = true): array
+    public function tags(bool $includeArchived = false, bool $withCounts = true, bool $withArchivedCounts = false): array
     {
-        $counts=$withCounts?',COUNT(c.id) AS contact_count':'';
-        $base=' FROM marketing_tags t';
-        if($withCounts)$base.=' LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL AND c.is_archived=0';
-        $base.=' WHERE t.audience_id=?';
+        $counts = '';
+        $base = ' FROM marketing_tags t';
+        if ($withCounts) {
+            $base .= ' LEFT JOIN marketing_contact_tags ct ON ct.tag_id=t.id'
+                .' LEFT JOIN marketing_contacts c ON c.id=ct.contact_id AND c.audience_id=t.audience_id AND c.deleted_at IS NULL';
+            if ($withArchivedCounts) {
+                $counts = ',COUNT(CASE WHEN c.is_archived=0 THEN c.id END) AS contact_count'
+                    .',COUNT(CASE WHEN c.is_archived=1 THEN c.id END) AS archived_contact_count';
+            } else {
+                $counts = ',COUNT(c.id) AS contact_count';
+                $base .= ' AND c.is_archived=0';
+            }
+        }
+        $base .= ' WHERE t.audience_id=?';
         $order=($withCounts?' GROUP BY t.id':'').' ORDER BY t.name';
         return $this->archiveAwareRows('SELECT t.*,t.archived_at AS archive_state'.$counts.$base.($includeArchived?'':' AND t.archived_at IS NULL').$order,'SELECT t.*,NULL AS archived_at'.$counts.$base.$order,[$this->audienceId]);
     }
@@ -226,10 +236,10 @@ trait AudienceDefinitions
         });
     }
 
-    /** Count only the visible saved segments using the same active-connection scope as Connections. */
+    /** Count a batch of saved segments using the same active-connection scope as Connections. */
     public function segmentConnectionCounts(array $segments, ?array $catalog=null, ?array $tags=null): array
     {
-        if(count($segments)>100)throw new InvalidArgumentException('Count up to 100 visible segments at a time.');
+        if(count($segments)>100)throw new InvalidArgumentException('Count up to 100 segments at a time.');
         if(!$segments)return [];
         $tags??=$this->tags(true, withCounts:false);
         $catalog??=$this->catalogForDefinitions($this->fields(),$tags,$this->groups(true, withCounts:false));

@@ -1,16 +1,63 @@
-<?php $definitionStatus=($_GET['definition_status']??'active')==='archived'?'archived':'active';$search=audienceText($_GET,'list_search');$segmentRows=array_values(array_filter($segments,fn($s)=>($definitionStatus==='archived'?!empty($s['archived_at']):empty($s['archived_at']))&&($search===''||mb_stripos($s['name'],$search)!==false)));$segmentSort=($_GET['segment_sort']??'name')==='created_at'?'created_at':'name';$segmentDirection=($_GET['segment_direction']??'asc')==='desc'?'desc':'asc';$segmentOrder=in_array($_GET['segment_order']??'',['name','name_desc','newest','oldest'],true)?$_GET['segment_order']:($segmentSort==='created_at'?($segmentDirection==='desc'?'newest':'oldest'):($segmentDirection==='desc'?'name_desc':'name'));$segmentSort=in_array($segmentOrder,['newest','oldest'],true)?'created_at':'name';$segmentDirection=in_array($segmentOrder,['name_desc','newest'],true)?'desc':'asc';usort($segmentRows,fn($a,$b)=>($segmentDirection==='desc'?-1:1)*strnatcasecmp($a[$segmentSort],$b[$segmentSort]));$segmentPage=max(1,(int)($_GET['segment_page']??1));$segmentSize=audiencePageSize($_GET,'segment_size',100);$segmentPage=min($segmentPage,max(1,(int)ceil(count($segmentRows)/$segmentSize))); ?>
-<?php $visibleSegments=array_slice($segmentRows,($segmentPage-1)*$segmentSize,$segmentSize);$segmentCounts??=$store->segmentConnectionCounts($visibleSegments,$catalog,$tags);$segmentHeaderParams=['view'=>'segments','definition_status'=>$definitionStatus,'list_search'=>$search,'segment_size'=>$segmentSize]; ?>
+<?php
+$definitionStatus = ($_GET['definition_status']??'active')==='archived'?'archived':'active';
+$search = audienceText($_GET,'list_search');
+$segmentRows = array_values(array_filter($segments,fn($s)=>($definitionStatus==='archived'?!empty($s['archived_at']):empty($s['archived_at']))&&($search===''||mb_stripos($s['name'],$search)!==false)));
+$segmentOrders = [
+    'name'=>['name','asc','Name (A–Z)'],
+    'name_desc'=>['name','desc','Name (Z–A)'],
+    'connections_asc'=>['connections','asc','Connections (Low to High)'],
+    'connections_desc'=>['connections','desc','Connections (High to Low)'],
+    'newest'=>['created_at','desc','Date Created (Newest)'],
+    'oldest'=>['created_at','asc','Date Created (Oldest)'],
+    'modified_newest'=>['updated_at','desc','Date Modified (Newest)'],
+    'modified_oldest'=>['updated_at','asc','Date Modified (Oldest)'],
+];
+$segmentOrder = $_GET['segment_order']??null;
+if (!is_string($segmentOrder)||!isset($segmentOrders[$segmentOrder])) {
+    $descending = ($_GET['segment_direction']??'asc')==='desc';
+    $segmentOrder = ($_GET['segment_sort']??'name')==='created_at'
+        ? ($descending?'newest':'oldest')
+        : ($descending?'name_desc':'name');
+}
+[$segmentSort,$segmentDirection] = $segmentOrders[$segmentOrder];
+$sortMultiplier = $segmentDirection==='desc'?-1:1;
+if ($segmentSort==='connections') {
+    if (!isset($segmentCounts)) {
+        $segmentCounts = [];
+        foreach (array_chunk($segmentRows,100) as $batch) {
+            $segmentCounts += $store->segmentConnectionCounts($batch,$catalog,$tags);
+        }
+    }
+    usort($segmentRows,static fn($a,$b)=>$sortMultiplier*(($segmentCounts[$a['id']]??0)<=>($segmentCounts[$b['id']]??0))?:strnatcasecmp($a['name'],$b['name']));
+} else {
+    usort($segmentRows,static fn($a,$b)=>$sortMultiplier*strnatcasecmp($a[$segmentSort]??'',$b[$segmentSort]??''));
+}
+$segmentSize = audiencePageSize($_GET,'segment_size',100);
+$segmentPage = max(1,min((int)($_GET['segment_page']??1),(int)ceil(count($segmentRows)/$segmentSize)));
+$visibleSegments = array_slice($segmentRows,($segmentPage-1)*$segmentSize,$segmentSize);
+$segmentCounts ??= $store->segmentConnectionCounts($visibleSegments,$catalog,$tags);
+$segmentHeaderParams = ['view'=>'segments','definition_status'=>$definitionStatus,'list_search'=>$search,'segment_size'=>$segmentSize];
+?>
 <section class="audience-segments-card" aria-label="Saved Segments">
 <?php if($definitionArchiveAvailable): ?><nav class="audience-tabs audience-definition-tabs" aria-label="Segment Status"><?php foreach(['active'=>'Active','archived'=>'Archived']as$status=>$label): ?><a href="<?= $h($url(['view'=>'segments','definition_status'=>$status])) ?>"<?= $definitionStatus===$status?' aria-current="page"':'' ?>><?= $label ?></a><?php endforeach; ?></nav><?php endif; ?>
 <div class="audience-segment-summary"><h2>Saved by You <span><?= count($segmentRows) ?> <?= count($segmentRows)===1?'Segment':'Segments' ?></span></h2><button class="text-button segment-about" type="button" popovertarget="segments-help">ⓘ About Segments</button></div>
 <div id="segments-help" class="audience-filter-panel" role="dialog" aria-label="About Segments" popover="auto"><h3>About Segments</h3><p>Segments find connections who meet your conditions. Combine tags, groups, personal details, and activity with AND or OR. Saved segments update automatically as your connections change.</p></div>
 <div class="audience-definition-controls mm-search-row">
-    <form method="get" class="audience-list-search audience-definition-search"><?php audienceInputs($baseForm+['view'=>'segments','definition_status'=>$definitionStatus,'segment_sort'=>$segmentSort,'segment_direction'=>$segmentDirection,'segment_size'=>$segmentSize]); ?><label class="search-with-icon"><?php audienceNavIcon('search'); ?><input id="segment-list-search" type="search" autocomplete="off" name="list_search" list="segment-search-options" aria-label="Search Segments" placeholder="Search Segments" value="<?= $h($search) ?>"></label><button type="submit" data-mm-search-text="segment-list-search">Search</button></form>
+    <form method="get" class="audience-list-search audience-definition-search"><?php audienceInputs($baseForm+['view'=>'segments','definition_status'=>$definitionStatus,'segment_order'=>$segmentOrder,'segment_size'=>$segmentSize]); ?><label class="search-with-icon"><?php audienceNavIcon('search'); ?><input id="segment-list-search" type="search" autocomplete="off" name="list_search" list="segment-search-options" aria-label="Search Segments" placeholder="Search Segments" value="<?= $h($search) ?>"></label><button type="submit" data-mm-search-text="segment-list-search">Search</button></form>
     <?php if($canDelete): ?><div class="audience-definition-toolbar"><?php include __DIR__.'/definition-selection.php'; ?></div><?php endif; ?>
-    <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+['view'=>'segments','definition_status'=>$definitionStatus,'list_search'=>$search,'segment_size'=>$segmentSize]); ?><label for="segment-sort">Sort By</label><select id="segment-sort" name="segment_order" data-auto-submit><?php foreach(['name'=>'Name (A–Z)','name_desc'=>'Name (Z–A)','newest'=>'Date Created (Newest)','oldest'=>'Date Created (Oldest)']as$value=>$label): ?><option value="<?= $value ?>"<?= $segmentOrder===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(['view'=>'segments','definition_status'=>$definitionStatus,'segment_order'=>'name','segment_sort'=>'name','segment_direction'=>'asc','list_search'=>'','segment_size'=>$segmentSize])) ?>">Clear All</a>
+    <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+$segmentHeaderParams); ?><label for="segment-sort">Sort By</label><select id="segment-sort" name="segment_order" data-auto-submit><?php foreach($segmentOrders as $value=>[,,$label]): ?><option value="<?= $value ?>"<?= $segmentOrder===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(array_replace($segmentHeaderParams,['list_search'=>'']))) ?>">Clear All</a>
 </div>
 <table class="data-table audience-table audience-segment-table<?= !$canManage?' is-readonly':'' ?>" data-mm-paginated-table aria-label="Saved Segments on This Page">
-<thead><tr><?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select Segment</span></th><?php endif; ?><th scope="col" class="segment-name" aria-sort="<?= $segmentOrder==='name'?'ascending':($segmentOrder==='name_desc'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($segmentHeaderParams+['segment_order'=>$segmentOrder==='name'?'name_desc':'name'])) ?>">Segment Name <span aria-hidden="true"><?= $segmentOrder==='name'?'↑':($segmentOrder==='name_desc'?'↓':'↕') ?></span></a></th><th scope="col" class="segment-count">Connections</th><th scope="col" class="segment-created" aria-sort="<?= $segmentOrder==='oldest'?'ascending':($segmentOrder==='newest'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($segmentHeaderParams+['segment_order'=>$segmentOrder==='newest'?'oldest':'newest'])) ?>">Created <span aria-hidden="true"><?= $segmentOrder==='oldest'?'↑':($segmentOrder==='newest'?'↓':'↕') ?></span></a></th><th scope="col" class="segment-modified">Modified</th><th scope="col" class="segment-actions">Actions</th></tr></thead>
+<thead><tr>
+    <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select Segment</span></th><?php endif; ?>
+    <?php foreach (['name'=>['segment-name','Segment Name','name_desc'],'connections_asc'=>['segment-count','Connections','connections_desc'],'newest'=>['segment-created','Created','oldest'],'modified_newest'=>['segment-modified','Modified','modified_oldest']] as $firstOrder=>[$columnClass,$label,$otherOrder]):
+        $columnDirection = in_array($segmentOrder,[$firstOrder,$otherOrder],true)?$segmentDirection:'';
+        $nextOrder = $segmentOrder===$firstOrder?$otherOrder:$firstOrder;
+    ?>
+        <th scope="col" class="<?= $columnClass ?>" aria-sort="<?= ['asc'=>'ascending','desc'=>'descending'][$columnDirection]??'none' ?>"><a class="audience-definition-sort-link" href="<?= $h($url($segmentHeaderParams+['segment_order'=>$nextOrder])) ?>"><?= $label ?> <span aria-hidden="true"><?= ['asc'=>'↑','desc'=>'↓'][$columnDirection]??'↕' ?></span></a></th>
+    <?php endforeach; ?>
+    <th scope="col" class="segment-actions">Actions</th>
+</tr></thead>
 <tbody>
 <?php foreach($visibleSegments as$s): $model=['id'=>(int)$s['id'],'version'=>(int)$s['version'],'name'=>$s['name'],'archived_at'=>$s['archived_at']??null,'rules'=>audienceLegacyRules(audienceJson($s['filters_json']),$tags)]; ?>
     <tr data-definition-row>
@@ -23,7 +70,7 @@
 <?php endforeach; ?>
 <?php if(!$segmentRows): ?><tr><td colspan="<?= $canDelete?6:5 ?>" class="audience-empty"><?= $definitionStatus==='archived'?'No archived segments':'No saved segments' ?><?= $search!==''?' match your search':' yet' ?>.</td></tr><?php endif; ?>
 </tbody></table>
-<?php $segmentPages=max(1,(int)ceil(count($segmentRows)/$segmentSize));$pageParams=$baseForm+['view'=>'segments','definition_status'=>$definitionStatus,'list_search'=>$search,'segment_sort'=>$segmentSort,'segment_direction'=>$segmentDirection,'segment_size'=>$segmentSize]; ?>
+<?php $pageParams=$baseForm+$segmentHeaderParams+['segment_order'=>$segmentOrder]; ?>
 <?php audiencePagination(['total'=>count($segmentRows),'page'=>$segmentPage,'size'=>$segmentSize,'page_key'=>'segment_page','size_key'=>'segment_size','label'=>'Segment Pages','params'=>$pageParams,'url'=>$url]); ?>
 </section>
 <section class="audience-segment-suggestions" aria-labelledby="suggested-segments-heading">
