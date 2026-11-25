@@ -101,6 +101,8 @@
     const initialOrganizations = Array.from(org.options);
     const initialContacts = Array.from(contact.options);
     let restored = false;
+    let restoredFields = null;
+    const beforeRestore = window.DnrFormDrafts?.capture(form);
     try {
         const draft = JSON.parse(window.DnrAccountContext.session.getItem(draftKey) || 'null');
         if (draft && form.dataset.inquiryFormSubmitted !== 'true') {
@@ -113,6 +115,7 @@
             });
             window.DnrAccountContext.session.removeItem(draftKey);
             restored = true;
+            restoredFields = window.DnrFormDrafts?.capture(form);
             feedback.textContent = 'Inquiry draft restored';
         }
     } catch (error) { /* Ordinary saving remains available when browser storage is unavailable. */ }
@@ -166,8 +169,11 @@
     });
     updateCreateContactLink();
     if ((restored || createdOrg || createdContact) && (org.value || contact.value)) {
-        queueSearch('organization', true);
-        queueSearch('contact', true);
+        Promise.allSettled([queueSearch('organization', true), queueSearch('contact', true)]).then(function () {
+            if (restored && beforeRestore) window.DnrFormDrafts?.highlightRestored(form, beforeRestore, restoredFields);
+        });
+    } else if (restored && beforeRestore) {
+        window.DnrFormDrafts?.highlightRestored(form, beforeRestore, restoredFields);
     }
     document.querySelectorAll('[data-inquiry-create]').forEach(function (link) {
         link.addEventListener('click', function (event) {

@@ -7447,7 +7447,8 @@ html body :is(.task-actions, .context-task-actions, .context-task-heading-action
 .form-draft-panel > summary { cursor: pointer; }
 .form-draft-panel > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 .form-draft-panel[open] > summary { margin-bottom: 1rem; }
-html body [data-draft-restored] {
+html:not(.has-js) .form-draft-panel { display: none; }
+html body :is([data-draft-restored], [data-draft-value]) {
   --surface: var(--warning-subtle);
   --surface-hover: var(--warning-subtle);
   --border-strong: var(--warning);
@@ -7460,7 +7461,7 @@ html body [data-draft-restored] {
   outline-offset: 2px;
   accent-color: var(--warning) !important;
 }
-html body .form-draft-panel [data-draft-restored] { color: var(--warning) !important; }
+html body .form-draft-panel :is([data-draft-restored], [data-draft-value]) { color: var(--warning) !important; }
 .form-draft-recovery[hidden] { display: none; }
 .form-draft-recovery table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-block: 1rem; }
 .form-draft-recovery :is(th, td) { padding: .75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: anywhere; }

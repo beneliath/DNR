@@ -134,12 +134,16 @@ const values = page => page.locator('#new-engagement-form').evaluate((form, name
             await organization.selectOption('6');
             await copy();
             assert.deepEqual(await values(page), addresses[6], 'Organizations found through search support the same copy action');
+            assert.equal(await page.getByRole('button', {name: 'Save Draft', exact: true}).isVisible(), false);
+            await page.locator('.form-draft-panel > summary').click();
             await page.getByRole('button', {name: 'Save Draft', exact: true}).click();
             await page.reload();
             // Restore the searchable organization option before recovering its saved selection.
             await page.locator('[data-relationship-search-input]').fill('Search Result');
             await page.waitForFunction(() => document.querySelector('#organization_id option[value="6"]'));
+            await page.locator('.form-draft-panel > summary').click();
             await page.getByRole('button', {name: 'Restore Draft', exact: true}).click();
+            await page.waitForFunction(() => document.querySelector('.form-draft-panel [role=status]').textContent.startsWith('Draft restored.'));
             assert.deepEqual(await values(page), addresses[6], 'Copied location fields survive draft recovery');
 
             await page.goto('https://engagement.test/index.php?created_organization_id=2');

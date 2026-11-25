@@ -52,7 +52,7 @@ function fixture({countryCode = 'CA', regionValue = 'ON', regionType = 'select-o
     const template = node('SELECT', ['data-email-template']);
     Object.assign(template, {name: 'template', type: 'select-one', options: [{value: 'saved'}]});
     template.addEventListener('change', () => {body.value = 'Overwritten by template';});
-    const panel = node('SECTION');
+    const panel = node('DETAILS');
     const form = node('FORM');
     form.elements = [region, textRegion, country, body, template];
     form.dataset = {recoverableDraft: 'inquiry'};
@@ -82,8 +82,10 @@ function fixture({countryCode = 'CA', regionValue = 'ON', regionType = 'select-o
         constructor(type, options) {this.type = type; this.detail = options?.detail;}
     }, setTimeout(handler) {timers.set(++nextTimer, handler); return nextTimer;}, clearTimeout(timer) {timers.delete(timer);}});
     if (loading) window.DnrFormDrafts.initialize(form);
-    const [status, save, restore, discard, , recovery] = panel.children;
-    return {country, region, textRegion, body, form, save, restore, discard, status, recovery,
+    const [heading, save, restore, discard, , recovery] = panel.children;
+    const status = heading.children[0];
+    return {country, region, textRegion, body, form, save, restore, discard, status, recovery, panel,
+        drafts: window.DnrFormDrafts,
         savedDraft() {return JSON.parse(stored);},
         runTimers() {for (const handler of timers.values()) handler(); timers.clear();},
         restoreField(label) {
@@ -302,6 +304,8 @@ test('restoring one stale draft value updates the form, keeps other values and p
     assert.equal(f.body.value, 'Saved body');
     assert.equal(f.country.value, 'US');
     assert.equal(f.region.value, '');
+    assert.equal(f.body.dataset.draftRestored, '');
+    assert.equal(f.country.dataset.draftRestored, undefined);
     assert.deepEqual(changes, ['input', 'change']);
     assert.ok(!f.rows().some(row => row[0] === 'Event Description'));
     assert.ok(f.rows().some(row => row[0] === 'Country'));
@@ -310,6 +314,36 @@ test('restoring one stale draft value updates the form, keeps other values and p
     assert.equal(f.warnsOnUnload(), true);
     assert.match(f.status.textContent, /before saving/);
     assert.equal(f.restore.disabled, true);
+});
+
+test('editing a restored value clears only its gold highlight', async () => {
+    const f = fixture();
+    await f.restore.events.click();
+    assert.equal(f.body.dataset.draftRestored, '');
+    assert.equal(f.country.dataset.draftRestored, '');
+    f.body.value = 'New user edit';
+    f.form.events.input({target: f.body});
+    assert.equal(f.body.dataset.draftRestored, undefined);
+    assert.equal(f.country.dataset.draftRestored, '');
+    f.discard.events.click();
+    assert.equal(f.country.dataset.draftRestored, undefined);
+});
+
+test('related-record recovery highlights only draft values that survived later selection changes', () => {
+    const f = fixture();
+    const before = f.drafts.capture(f.form);
+    f.body.value = 'Returned inquiry draft';
+    f.country.value = 'CA';
+    const restored = f.drafts.capture(f.form);
+    f.country.value = 'GB'; // A newly created related record supplies a different value.
+    const stored = f.savedDraft();
+    f.drafts.highlightRestored(f.form, before, restored);
+    assert.equal(f.body.dataset.draftRestored, '');
+    assert.equal(f.country.dataset.draftRestored, undefined);
+    assert.equal(f.region.dataset.draftRestored, undefined);
+    assert.deepEqual(f.savedDraft(), stored, 'Highlighting never replaces a saved draft');
+    f.discard.events.click();
+    assert.equal(f.body.dataset.draftRestored, undefined);
 });
 
 test('restoring a country enables its saved region for a separate Restore action', () => {

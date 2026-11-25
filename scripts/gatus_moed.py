@@ -14,6 +14,15 @@ import gatus_deployment
 HOST_GROUP = '3_moed operations'
 HOST_CHECKS = ('account-worker', 'nas-recovery', 'test-account-refresh', 'deployment-retention', 'scheduler', 'deployment')
 CRON_COMMANDS = ('run_nas_recovery.py', 'recovery_monitor.py', 'test_account_baseline_refresh.py', 'push_container_health.py')
+# Stable systemd job IDs from src/systemd/sd-messages.h, independent of locale.
+SYSTEMD_JOB_STARTED = '39f53479d3a045ac8e11786248231fbf'
+SYSTEMD_RETENTION_EVENTS = (
+    '7d4958e842da4a758f6c1cdc7b36dcc5',  # starting
+    SYSTEMD_JOB_STARTED,                 # finished for Type=oneshot
+    'be02cf6855d2428ba40df7e9d022f03d',  # failed start job
+    'd9b373ed55a64feb8242e02dbe79a49c',  # failed unit result
+    '0e4284a0caca4bfc81c0bb6786972673',  # skipped job
+)
 
 
 def run(command, **options):
@@ -213,8 +222,35 @@ def service_properties(name, *, user=True):
         environment.setdefault('XDG_RUNTIME_DIR', '/run/user/' + str(os.getuid()))
         environment.setdefault('DBUS_SESSION_BUS_ADDRESS', 'unix:path=' + environment['XDG_RUNTIME_DIR'] + '/bus')
     output = run(['systemctl', *(['--user'] if user else []), 'show', name,
-                  '--property=ActiveState,SubState,Result,ExecMainStatus,ExecMainExitTimestampMonotonic'], env=environment)
+                  '--property=ActiveState,SubState,Type,Result,ExecMainStatus'], env=environment)
     return dict(line.split('=', 1) for line in output.splitlines() if '=' in line)
+
+
+def retention_health(now):
+    unit = 'moed-deployment-retention.service'
+    timer = service_properties('moed-deployment-retention.timer')
+    service = service_properties(unit)
+    if timer.get('ActiveState') != 'active':
+        return False, 'MOED deployment retention timer is not active'
+    if service.get('Type') != 'oneshot':
+        return False, 'MOED deployment retention service is not a verified oneshot job'
+    if service.get('Result') != 'success' or service.get('ExecMainStatus') != '0':
+        return False, 'MOED deployment retention service reports a failed run'
+    # ExecMainExitTimestampMonotonic is lost on reboot; LastTriggerUSec only
+    # proves the timer fired. Read the latest job event across boots instead.
+    # Including starts/failures prevents an interrupted or failed newer run
+    # from falling back to an older success after systemd forgets its result.
+    output = run(['journalctl', '--user', '--unit=' + unit, '--no-pager',
+                  '--output=json', '--lines=1',
+                  '--output-fields=__REALTIME_TIMESTAMP,MESSAGE_ID,JOB_RESULT',
+                  '_COMM=systemd', 'USER_UNIT=' + unit,
+                  *('MESSAGE_ID=' + event for event in SYSTEMD_RETENTION_EVENTS)])
+    receipt = json.loads(output or '{}')
+    if receipt.get('MESSAGE_ID') != SYSTEMD_JOB_STARTED or receipt.get('JOB_RESULT') != 'done':
+        return False, 'MOED deployment retention has no journal confirmation that its latest run completed successfully'
+    if not fresh(int(receipt['__REALTIME_TIMESTAMP']) / 1_000_000, 27 * 3600, now):
+        return False, 'MOED deployment retention completion is stale or has an invalid timestamp (maximum age 27 hours)'
+    return True, ''
 
 
 def queue_outcomes(receipt, now):
@@ -289,12 +325,7 @@ def probe_host(target, *, home=None, now=None):
             receipt = state(home / '.local/state/moed-test-account-refresh/status.json')
             healthy = receipt.get('ok') is True and fresh(receipt.get('completed_at'), 27 * 3600, now)
         elif check == 'deployment-retention':
-            timer = service_properties('moed-deployment-retention.timer')
-            service = service_properties('moed-deployment-retention.service')
-            completed = int(service.get('ExecMainExitTimestampMonotonic', 0)) / 1_000_000
-            healthy = (timer.get('ActiveState') == 'active' and service.get('Result') == 'success'
-                and service.get('ExecMainStatus') == '0' and completed > 0
-                and 0 <= time.monotonic() - completed <= 27 * 3600)
+            return retention_health(now)
         elif check == 'scheduler':
             service = service_properties('cron.service', user=False)
             entries = '\n'.join(line for line in run(['crontab', '-l']).splitlines() if not line.lstrip().startswith('#'))
