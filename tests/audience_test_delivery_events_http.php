@@ -40,6 +40,10 @@ audienceHttpExpect($testStatus($receiptTests[1]['id'])['delivery_status']['label
 audienceSnsReceive($campaignStore,$signSes($testEvent($receiptTests[2],'Bounce',$testTime),'test-bounce-uncertain'),$fetch);
 audienceHttpExpect($testStatus($receiptTests[2]['id'])['state']==='accepted'&&$testStatus($receiptTests[2]['id'])['delivery_status']['label']==='Bounced','A signed bounce resolves uncertain API acceptance without requeueing');
 audienceHttpExpect($campaignStore->person((int)$unchangedContact['id'])['email_status']===$unchangedContact['email_status'],'Test receipts do not change audience subscription consent');
+$conn->execute_query('UPDATE marketing_service_mail SET contact_id=? WHERE id=?',[$unchangedContact['id'],$receiptTests[2]['id']]);
+audienceHttpExpect(audienceSnsReceive($campaignStore,$signSes($testEvent($receiptTests[2],'Complaint',$testTime),'test-complaint'),$fetch)==='accepted'
+    &&!$campaignStore->flowMatches((int)$unchangedContact['id'],$complaintRules)
+    &&!$campaignStore->one("SELECT id FROM marketing_contact_events WHERE contact_id=? AND event_type='email_complaint'",[$unchangedContact['id']]),'A test email complaint never qualifies for the segment or fires the contact event');
 $activityPage=$admin('audience.php?view=delivery&tab=activity');
 foreach([$receiptTests[0]['id']=>'Delivered',$receiptTests[1]['id']=>'Bounced']as$testId=>$label){
     preg_match('/<tr data-service-mail-id="'.$testId.'">(.*?)<\/tr>/s',$activityPage['body'],$activityRow);

@@ -142,6 +142,10 @@ function audienceServiceMailProviderEvent(AudienceStore $store,array $settings,a
     $store->write("UPDATE marketing_service_mail SET provider_message_id=?,error_message=IF(state='uncertain','',error_message),state=IF(state='uncertain','accepted',state) WHERE audience_id=? AND id=?",[$providerId,$store->audienceId,$job['id']]);
     if(in_array($job['kind'],['inbox','subscription-notice'],true)&&in_array($type,['hard-bounce','complaint'],true)){
         $person=$store->one('SELECT id,email,email_status FROM marketing_contacts WHERE audience_id=? AND id=? AND deleted_at IS NULL FOR UPDATE',[$store->audienceId,$job['contact_id']]);
+        if($person&&$type==='complaint'){
+            $store->write("INSERT INTO marketing_contact_events(contact_id,actor_user_id,actor_label,actor_type,event_type,details_json,created_at)
+                VALUES (?,NULL,'Authenticated event source','provider','email_complaint',JSON_OBJECT(),?)",[$person['id'],$at]);
+        }
         $confirmed=$person?$store->one("SELECT created_at FROM marketing_contact_events WHERE contact_id=? AND event_type='subscription-confirmed' ORDER BY id DESC LIMIT 1",[$person['id']]):null;
         if($person&&hash_equals($job['recipient_hash'],audienceDispatchEmailHash($person['email']))&&(!$confirmed||new DateTimeImmutable($confirmed['created_at'],new DateTimeZone('UTC'))<=new DateTimeImmutable($at,new DateTimeZone('UTC')))){
             $status=$type==='hard-bounce'||$person['email_status']==='cleaned'?'cleaned':'unsubscribed';$store->write('UPDATE marketing_contacts SET email_status=?,version=version+1 WHERE audience_id=? AND id=?',[$status,$store->audienceId,$person['id']]);

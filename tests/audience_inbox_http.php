@@ -149,8 +149,8 @@ audienceHttpExpect($event('wrong@example.test','inbox-wrong')==='ignored','Provi
 // Exercise the actual signature-validation-to-Inbox boundary, rather than only
 // calling the Inbox helper with a hand-built array.
 $inboxSes=$ib->sesSettings();$inboxSigningKey=openssl_pkey_new(['private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_RSA]);$inboxCsr=openssl_csr_new(['commonName'=>'Inbox SNS boundary fixture'],$inboxSigningKey);$inboxX509=openssl_csr_sign($inboxCsr,null,$inboxSigningKey,1);openssl_x509_export($inboxX509,$inboxCertificate);
-$signedInboxEvent=static function(string $notification,string $correlation)use($inboxSes,$inboxSigningKey):array{
-    $payload=['eventType'=>'Delivery','mail'=>['sendingAccountId'=>$inboxSes['aws_account_id'],'messageId'=>'inbox-provider-receipt','destination'=>['inbox-person@example.test'],'timestamp'=>gmdate('c'),'tags'=>['moed-receipt'=>[$correlation],'moed-account'=>[hash('sha256',currentAccountKey())]]]];
+$signedInboxEvent=static function(string $notification,string $correlation,string $kind='Delivery')use($inboxSes,$inboxSigningKey):array{
+    $payload=['eventType'=>$kind,'mail'=>['sendingAccountId'=>$inboxSes['aws_account_id'],'messageId'=>'inbox-provider-receipt','destination'=>['inbox-person@example.test'],'timestamp'=>gmdate('c'),'tags'=>['moed-receipt'=>[$correlation],'moed-account'=>[hash('sha256',currentAccountKey())]]]];
     $envelope=['Type'=>'Notification','MessageId'=>$notification,'TopicArn'=>$inboxSes['topic_arn'],'Timestamp'=>gmdate('c'),'Message'=>json_encode($payload),'SignatureVersion'=>'2','SigningCertURL'=>'https://'.audienceSnsHost($inboxSes).'/SimpleNotificationService-inbox-fixture.pem','Signature'=>'pending'];
     openssl_sign((new \Aws\Sns\MessageValidator())->getStringToSign(new \Aws\Sns\Message($envelope)),$signature,$inboxSigningKey,OPENSSL_ALGO_SHA256);$envelope['Signature']=base64_encode($signature);return $envelope;
 };
@@ -221,5 +221,24 @@ $singleDeleted=$admin($inboxPath.'&status=trash&thread='.$queuedThread['id'],['c
 audienceHttpExpect($singleDeleted['status']===302&&!$ib->one('SELECT id FROM marketing_inbox_threads WHERE audience_id=1 AND id=?',[$queuedThread['id']])&&$ib->one('SELECT id FROM marketing_inbox_delivery_events WHERE service_mail_id=?',[$job['id']])&&$ib->one('SELECT payload_ciphertext FROM marketing_service_mail WHERE id=?',[$job['id']])['payload_ciphertext']==='','Single purge keeps delivery receipts but erases frozen mail content');
 // The later restricted-ingest suite needs an active route for this sender.
 $ib->inboxReplyRoute('thread',$tid);
+$inboxComplaintRules=['match'=>'all','rules'=>[['field'=>'email_complaint','operator'=>'ever','value'=>'']]];
+$ib->mutatePerson($inboxPerson,(int)$ib->person($inboxPerson)['version'],'unsubscribe');
+audienceHttpExpect(!$ib->flowMatches($inboxPerson,$inboxComplaintRules),'An ordinary unsubscribe does not match the complaint segment');
+$inboxComplaintTag=$ib->ensureTag('Inbox spam complaint');
+$inboxComplaintFlow=audienceFlowDefault();
+$inboxComplaintFlow['trigger']=['type'=>'complaint'];
+$inboxComplaintFlow['start']='tag';
+$inboxComplaintFlow['nodes']=[['id'=>'tag','type'=>'tag','tag_id'=>$inboxComplaintTag]];
+$inboxComplaintFlowId=$ib->saveFlow('Inbox complaint tagging fixture',$inboxComplaintFlow);
+$ib->flowOperation($inboxComplaintFlowId,1,'activate');
+$inboxComplaint=$signedInboxEvent('signed-inbox-complaint',str_repeat('a',64),'Complaint');
+audienceHttpExpect(audienceSnsReceive($ib,$inboxComplaint,$inboxCertificateFetch)==='accepted'
+    &&audienceSnsReceive($ib,$inboxComplaint,$inboxCertificateFetch)==='duplicate','Verified Inbox complaint is recorded once');
+processAudienceFlows($conn,20);
+audienceHttpExpect($ib->flowMatches($inboxPerson,$inboxComplaintRules)
+    &&in_array($inboxComplaintTag,$ib->person($inboxPerson)['tag_ids'],true)
+    &&(int)$ib->one('SELECT COUNT(*) n FROM marketing_flow_runs WHERE flow_id=?',[$inboxComplaintFlowId])['n']===1,
+    'A complaint matches the segment and tags an already-unsubscribed Inbox contact once');
+$ib->flowOperation($inboxComplaintFlowId,(int)$ib->flow($inboxComplaintFlowId)['version'],'pause');
 session_id($adminSessionId);startSecureSession();unset($_SESSION['_admin_elevated_at'],$_SESSION['_admin_elevation_expires_at']);session_write_close();
 echo 'Inbox HTTP/storage qualification passed ('.($checks-$inboxStart)." checks); no external messages sent.\n";

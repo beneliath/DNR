@@ -9,7 +9,10 @@ function audienceFlowEvents(AudienceStore $store,array $cursor,int $limit=100,?i
     $aid=$store->audienceId;$limit=max(1,min(200,$limit));$events=[];
     $extra=$contact!==null?' AND c.id=?':'';$person=$contact!==null?[$contact]:[];
     foreach($store->all('SELECT e.id,e.contact_id,e.event_type,e.details_json FROM marketing_contact_events e JOIN marketing_contacts c ON c.id=e.contact_id WHERE c.audience_id=? AND e.id>?'.$extra.' ORDER BY e.id LIMIT '.$limit,[$aid,(int)($cursor['contact']??0),...$person])as$r)$events[]=['source'=>'contact','id'=>(int)$r['id'],'contact'=>(int)$r['contact_id'],'type'=>$r['event_type'],'details'=>audienceJson($r['details_json'])];
-    foreach($store->all('SELECT e.id,r.contact_id,e.event_type,e.details_json,d.campaign_id FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id WHERE e.audience_id=? AND e.id>?'.$extra.' ORDER BY e.id LIMIT '.$limit,[$aid,(int)($cursor['message']??0),...$person])as$r)$events[]=['source'=>'message','id'=>(int)$r['id'],'contact'=>(int)$r['contact_id'],'type'=>$r['event_type'],'details'=>audienceJson($r['details_json'])+['campaign_id'=>(int)$r['campaign_id']]];
+    foreach($store->all('SELECT e.id,r.contact_id,e.event_type,e.source,e.details_json,d.campaign_id FROM marketing_message_events e JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id JOIN marketing_campaign_deliveries d ON d.id=r.delivery_id AND d.audience_id=r.audience_id JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id WHERE e.audience_id=? AND e.id>?'.$extra.' ORDER BY e.id LIMIT '.$limit,[$aid,(int)($cursor['message']??0),...$person])as$r){
+        $type=$r['event_type']==='complaint'&&$r['source']==='provider'?'email_complaint':$r['event_type'];
+        $events[]=['source'=>'message','id'=>(int)$r['id'],'contact'=>(int)$r['contact_id'],'type'=>$type,'details'=>audienceJson($r['details_json'])+['campaign_id'=>(int)$r['campaign_id']]];
+    }
     foreach($store->all("SELECT r.id,r.contact_id,r.resource_id FROM marketing_collection_responses r JOIN marketing_contacts c ON c.id=r.contact_id AND c.audience_id=r.audience_id JOIN marketing_collection_resources f ON f.id=r.resource_id AND f.audience_id=r.audience_id WHERE r.audience_id=? AND r.id>? AND f.kind='survey'".$extra.' ORDER BY r.id LIMIT '.$limit,[$aid,(int)($cursor['survey']??0),...$person])as$r)$events[]=['source'=>'survey','id'=>(int)$r['id'],'contact'=>(int)$r['contact_id'],'type'=>'survey','details'=>['resource_id'=>(int)$r['resource_id']]];
     return $events;
 }
@@ -171,8 +174,9 @@ function processAudienceFlows(mysqli $db,int $limit=25,?int $now=null): int
                     audienceFlowDateEntries($store,$flow,array_replace($d,['trigger'=>$trigger]),$dateCursor,$now);$cursor[$dateKey]=$dateCursor['date'];
                 }
                 foreach(audienceFlowEvents($store,$cursor)as$event){
-                    foreach($triggers as$trigger)if(audienceFlowEventMatches($trigger,$event)){audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);break;}
                     $cursor[$event['source']]=$event['id'];
+                    if($event['type']==='email_complaint'&&$event['id']<=($cursor['complaint_after'][$event['source']]??0))continue;
+                    foreach($triggers as$trigger)if(audienceFlowEventMatches($trigger,$event)){audienceFlowEnroll($store,$flow,$d,$event['contact'],$event['source'].':'.$event['id'],$now);break;}
                 }
                 $store->write('UPDATE marketing_flows SET cursor_json=? WHERE audience_id=1 AND id=?',[json_encode($cursor,JSON_THROW_ON_ERROR),$flow['id']]);
             });
