@@ -1556,6 +1556,10 @@ body.audience-app.subscription-public>main{width:min(880px,100%);max-width:880px
 .audience-tag-list .tag-name{width:320px;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
 .audience-tag-list .tag-label{font-weight:400}
 .audience-tag-list .tag-count{width:112px;text-align:left;font-variant-numeric:tabular-nums}
+.audience-tag-list td.tag-count{text-align:right}
+.audience-tag-list td.tag-count::before{text-align:left}
+.audience-tag-list td.tag-count-archived>a{color:#a8adb2}
+html.dark-mode .audience-tag-list td.tag-count-archived>a{color:#737b85}
 .audience-tag-list .tag-actions{width:auto;padding-inline:12px;text-align:right}
 .audience-tag-list tr.definition-selected{background:var(--audience-notice)}
 .audience-tag-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--audience-action-gap,16px)}
