@@ -499,7 +499,7 @@ html.dark-mode .inquiry-form .date-picker-box input { color-scheme: dark; }
 
 .inquiry-detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 1rem; align-items: start; }
 .inquiry-detail-main { display: grid; gap: 1rem; }
-.inquiry-detail-sidebar { display: grid; gap: .9rem; position: sticky; top: 1rem; }
+.inquiry-detail-sidebar { display: grid; gap: .9rem; position: sticky; top: calc(var(--app-sticky-offset, 0px) + 1rem); }
 .inquiry-detail-sidebar > section,
 .conversion-review-card,
 .conversion-outcome { padding: 1.1rem; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
@@ -651,7 +651,6 @@ html.dark-mode .inquiry-form .date-picker-box input { color-scheme: dark; }
 .inquiry-detail-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(310px, .85fr); gap: 1.25rem; align-items: start; }
 .inquiry-detail-main,
 .inquiry-detail-sidebar { display: grid; gap: 1.1rem; }
-.inquiry-detail-sidebar { position: sticky; top: 1rem; }
 .inquiry-overview-card,
 .inquiry-workspace,
 .inquiry-detail-sidebar > section,

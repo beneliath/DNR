@@ -19,6 +19,56 @@ def report(*issues):
 
 
 class QueueMonitorTests(unittest.TestCase):
+    def test_expected_maintenance_has_no_failure_or_recovery_email_but_records_real_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+            (state / 'deployment-baseline.json').write_text(json.dumps({'checked_at': now - 30, 'accounts': {'primary': report()}}))
+            deployment = dict(mode='maintenance', id='active-deployment', started_at=now - 10)
+            with patch.object(monitor, 'deployment_status', return_value=deployment), \
+                 patch.object(monitor, 'collect_health', return_value={'account-directory': monitor.unavailable('Paused web')}), \
+                 patch.object(monitor, 'load_smtp_configuration', return_value={}), \
+                 patch.object(monitor, 'send_queue_alert') as send, patch('builtins.print'):
+                self.assertEqual(monitor.monitor(Path('/project'), 'moed', state, 'test@example.test'), 1)
+                send.assert_not_called()
+            saved = json.loads((state / 'health.json').read_text())['accounts']['primary']
+            self.assertFalse(saved['healthy'])
+            self.assertEqual(saved['deployment_id'], deployment['id'])
+            with patch.object(monitor, 'deployment_status', return_value={'mode': 'normal'}), \
+                 patch.object(monitor, 'collect_health', return_value={'primary': report()}), \
+                 patch.object(monitor, 'load_smtp_configuration', return_value={}), \
+                 patch.object(monitor, 'send_queue_alert') as send, patch('builtins.print'):
+                self.assertEqual(monitor.monitor(Path('/project'), 'moed', state, 'test@example.test'), 0)
+                send.assert_not_called()
+
+    def test_delivery_failure_during_maintenance_is_sent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+            (state / 'deployment-baseline.json').write_text(json.dumps({'checked_at': now - 30, 'accounts': {'primary': report()}}))
+            with patch.object(monitor, 'deployment_status', return_value=dict(mode='maintenance', id='active', started_at=now - 10)), \
+                 patch.object(monitor, 'collect_health', return_value={'primary': report('uncertain')}), \
+                 patch.object(monitor, 'load_smtp_configuration', return_value={}), \
+                 patch.object(monitor, 'send_queue_alert') as send, patch('builtins.print'):
+                self.assertEqual(monitor.monitor(Path('/project'), 'moed', state, 'test@example.test'), 1)
+                send.assert_called_once()
+
+    def test_deployment_starting_during_collection_does_not_send_a_false_alarm(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            now = datetime.datetime.now(datetime.timezone.utc).timestamp()
+            (state / 'deployment-baseline.json').write_text(json.dumps({'checked_at': now - 30, 'accounts': {'primary': report()}}))
+            deployment = {'mode': 'normal'}
+            def collect(*args):
+                deployment.update(mode='maintenance', id='new', started_at=now)
+                return {'primary': monitor.unavailable('Paused during query')}
+            with patch.object(monitor, 'collect_health', side_effect=collect), \
+                 patch.object(monitor, 'deployment_status', side_effect=lambda _: deployment.copy()), \
+                 patch.object(monitor, 'load_smtp_configuration', return_value={}), \
+                 patch.object(monitor, 'send_queue_alert') as send, patch('builtins.print'):
+                self.assertEqual(monitor.monitor(Path('/project'), 'moed', state, 'test@example.test'), 1)
+                send.assert_not_called()
+
     def test_alert_lifecycle_and_new_issue_deduplication(self):
         now = datetime.datetime.now(datetime.timezone.utc)
         bad = report('uncertain')

@@ -10,7 +10,6 @@
 @media (max-width: 860px), (pointer: coarse) {
     .inbound-mail-body,
     .inbound-mail-body.role-preview-active { --inbound-scroll-offset: calc(var(--account-shell-height, 64px) + 16px); }
-    html body .inbound-review-actions { top: calc(var(--account-shell-height, 64px) + 16px); }
 }
 .inbound-mail-body .app-footer {
     width: min(100%, var(--app-content-max));
@@ -168,7 +167,7 @@ html body .inbound-queue .page-size-button { min-width: 30px; min-height: 30px !
 .inbound-review-form .inbound-route-choice { display: flex; align-items: flex-start; gap: 8px; padding-block: 4px; line-height: 1.5; overflow-wrap: anywhere; }
 .inbound-route-choice input { flex: 0 0 auto; margin: 2px 0 0; width: 17px; height: 17px; accent-color: var(--primary); }
 html body .inbound-review-form :is(input[type="search"], select) { width: 100%; min-width: 0; max-width: 100%; margin: 0; font-size: .8rem; }
-.inbound-review-actions { display: grid; gap: 8px; margin-top: 16px; padding-block: 8px; position: sticky; top: 16px; z-index: 1; background: var(--surface-subtle); }
+.inbound-review-actions { display: grid; gap: 8px; margin-top: 16px; padding-block: 8px; position: sticky; top: calc(var(--app-sticky-offset, 0px) + 16px); z-index: 1; background: var(--surface-subtle); }
 .inbound-review-actions button { width: 100%; margin: 0; }
 html body .inbound-review-actions button:disabled { opacity: .5; cursor: not-allowed; }
 .inbound-other-actions { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); font-size: .8rem; }
@@ -203,7 +202,6 @@ html body .inbound-review-actions button:disabled { opacity: .5; cursor: not-all
     .inbound-back-link { display: inline; }
     .inbound-detail-toolbar { flex-wrap: wrap; padding: 16px; }
     .inbound-message-id { display: none; }
-    .inbound-review-actions { top: 76px; }
     .inbound-detail-toolbar > .inbound-status { margin-left: auto; }
     .inbound-reader, .inbound-filing-panel { padding: 20px 16px; }
     .inbound-message-headers > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }

@@ -415,7 +415,7 @@ kbd {
 
 .manual-toc {
   position: sticky;
-  top: 24px;
+  top: calc(var(--app-sticky-offset, 0px) + 24px);
   padding: 4px 0;
 }
 

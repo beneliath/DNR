@@ -14,6 +14,7 @@ import sys
 from run_nas_recovery import age_seconds, resolve_service, write_status, coverage_current
 from recovery_accounts import account_directory
 import run_nas_recovery
+from deployment_monitoring import deployment_status
 
 ALERT_RECIPIENT = 'admin@beneliath.com'
 MAX_SNAPSHOT_AGE_SECONDS = getattr(run_nas_recovery, 'MAX_SNAPSHOT_AGE_SECONDS', 3600)
@@ -150,8 +151,13 @@ def main():
         try:
             keys = [a['key'] for a in account_directory(args.project, args.compose_project)]
         except Exception:
-            keys = []  # Discovery failure must never report complete coverage.
-            status['last_error'] = {'type': 'AccountCoverageError'}
+            if deployment_status(args.project)['mode'] in ('maintenance', 'recovering', 'incident'):
+                # The paused application cannot answer directory queries. The
+                # backup receipt still supplies exact coverage and freshness.
+                keys = status.get('expected_account_keys', [])
+            else:
+                keys = []
+                status['last_error'] = {'type': 'AccountCoverageError'}
         health = recovery_health(status, keys); healthy = health['Status'] == 'Healthy'
         if args.check_only:
             print(health['Status']); return 0 if healthy else 1

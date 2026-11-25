@@ -13,6 +13,7 @@ import sys
 from recovery_accounts import account_directory, resolve_service
 from recovery_monitor import ALERT_RECIPIENT, alert_due, load_smtp_configuration, send_smtp_message
 from run_nas_recovery import write_status
+from deployment_monitoring import deployment_status, expected_queue_report, read_json
 
 
 def unavailable(reason):
@@ -91,7 +92,22 @@ def monitor(root, project, state, recipient, check_only=False):
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (state / 'monitor.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        baseline_path = state / 'deployment-baseline.json'
+        baseline = read_json(baseline_path, {})
         reports = collect_health(root, project)
+        # Read after collection: maintenance may begin while a query is running.
+        deployment = deployment_status(root)
+        if deployment['mode'] == 'normal':
+            baseline = {'checked_at': datetime.datetime.now(datetime.timezone.utc).timestamp(), 'accounts': reports}
+            write_status(baseline_path, baseline)
+        baseline_age = deployment.get('started_at', 0) - baseline.get('checked_at', 0)
+        known = baseline.get('accounts', {}) if 0 <= baseline_age <= 6 * 60 else {}
+        if deployment['mode'] in ('maintenance', 'recovering', 'incident') and known \
+                and reports.get('account-directory', {}).get('unavailable'):
+            reports = {account: unavailable('Account health unavailable during deployment.') for account in known}
+        for account, report in reports.items():
+            if expected_queue_report(report, known.get(account, {}), deployment):
+                report['deployment_id'] = deployment['id']
         healthy = all(report['healthy'] for report in reports.values())
         path = state / 'alerts.json'
         previous = json.loads(path.read_text()) if path.exists() else {}
@@ -100,6 +116,8 @@ def monitor(root, project, state, recipient, check_only=False):
         # does not require the unhealthy application's delivery worker.
         config = load_smtp_configuration(project, state / 'smtp-connection.json')
         for account, report in reports.items():
+            if report.get('deployment_id'):
+                continue
             if queue_alert_due(previous.get(account, {}), report, now):
                 send_queue_alert(config, recipient, account, report)
                 previous[account] = {'healthy': report['healthy'], 'issues': fingerprint(report), 'sent_at': now.isoformat()}
