@@ -31,6 +31,17 @@ try{
     $archiveRules=['match'=>'all','rules'=>[['field'=>'tags','operator'=>'any','value'=>[$archiveTag]],['field'=>'groups','operator'=>'any','value'=>[$archiveOption]]]];
     $archiveSegment=$store->saveSegment('Archive segment '.$suffix,$archiveRules,0,0);
     $savedFilter=$store->saveSegment('Active saved filter '.$suffix,$archiveRules,0,0);
+    $archivedConnection=$store->savePerson(['email'=>'archived-tag-'.$suffix.'@example.test','email_status'=>'non-subscribed','tag_ids'=>[$archiveTag]]);
+    $store->mutatePerson($archivedConnection,1,'archive');
+    $deletedConnection=$store->savePerson(['email'=>'deleted-tag-'.$suffix.'@example.test','email_status'=>'non-subscribed','tag_ids'=>[$archiveTag]]);
+    $store->write('UPDATE marketing_contacts SET deleted_at=UTC_TIMESTAMP(6),is_archived=1 WHERE id=?',[$deletedConnection]);
+    $tagCountLinks=static function(string $status)use($admin,$path,$suffix):array{
+        $response=$admin($path.'&definition_status='.$status.'&list_search='.rawurlencode('Archive tag '.$suffix));
+        $document=new DOMDocument();@$document->loadHTML($response['body']);
+        $links=(new DOMXPath($document))->query('//table[@aria-label="Tags on This Page"]/tbody/tr/td[contains(@class,"tag-count")]/a');
+        return array_map(static fn(DOMElement $link):array=>['count'=>trim($link->textContent),'href'=>$link->getAttribute('href')],iterator_to_array($links));
+    };
+    audienceHttpExpect(array_column($tagCountLinks('active'),'count')===['1','1'],'Active Tags show separate active and archived connection counts, excluding deleted connections');
     foreach(['tags'=>['Delete Tag Archive tag ','Archive Tag Archive tag '],'segments'=>['Delete Segment Archive segment ','Archive Segment Archive segment '],'groups'=>['Delete Archive group ','Archive Archive group ']]as$view=>[$deleteLabel,$archiveLabel]){
         $body=$admin('audience.php?view='.$view)['body'];
         audienceHttpExpect(!str_contains($body,'aria-label="'.$deleteLabel.$suffix.'"')&&str_contains($body,'aria-label="'.$archiveLabel.$suffix.'"')&&str_contains($body,'data-tooltip="Archive (Admin Unlock Required)"'),ucfirst($view).' Active tab shows gated Archive without Delete');
@@ -52,6 +63,17 @@ try{
     audienceHttpExpect((int)$store->one("SELECT COUNT(*) n FROM marketing_contacts c WHERE $archiveWhere",$archiveValues)['n']===1,'Saved filter keeps matching archived definitions');
     audienceHttpExpect(!in_array($archiveTag,array_map('intval',array_column($store->tags(),'id')),true)&&!in_array($archiveGroup,array_map('intval',array_column($store->groups(),'id')),true),'Archived definitions leave new-use pickers');
     audienceHttpExpect(str_contains($admin('audience.php?view=tags&definition_status=archived')['body'],'Archive tag '.$suffix)&&!str_contains($admin('audience.php?view=tags')['body'],'Restore Tag Archive tag '.$suffix),'Tags separate active and archived views');
+    $countLinks=$tagCountLinks('archived');
+    audienceHttpExpect(array_column($countLinks,'count')===['1','1'],'Archived Tags show both connection counts');
+    foreach (['archive-definitions-'.$suffix.'@example.test','archived-tag-'.$suffix.'@example.test'] as $column=>$email) {
+        $connections=$admin($countLinks[$column]['href']);
+        $document=new DOMDocument();@$document->loadHTML($connections['body']);
+        $rows=(new DOMXPath($document))->query('//a[@data-connection-link]');
+        audienceHttpExpect($connections['status']===200&&$rows->length===1&&trim($rows->item(0)->textContent)===$email,'Count link opens the matching connection status and tag');
+    }
+    $store->mutatePerson($archivedConnection,2,'restore');
+    audienceHttpExpect(array_column($tagCountLinks('archived'),'count')===['2','0'],'Restoring a connection moves it to the active count');
+    $store->mutatePerson($archivedConnection,3,'archive');
     audienceHttpExpect(str_contains($admin('audience.php?view=segments&definition_status=archived')['body'],'Archive segment '.$suffix)&&str_contains($admin('audience.php?view=groups&definition_status=archived')['body'],'Archive group '.$suffix),'Archived Segments and Groups are restorable');
     foreach(['tags'=>['Delete Tag Archive tag ','Restore Tag Archive tag '],'segments'=>['Delete Segment Archive segment ','Restore Segment Archive segment '],'groups'=>['Delete Archive group ','Restore Archive group ']]as$view=>[$deleteLabel,$restoreLabel]){
         $body=$admin('audience.php?view='.$view.'&definition_status=archived')['body'];
@@ -106,10 +128,18 @@ try{
     }
     $segment=$store->saveSegment('Visibility segment '.$suffix,['match'=>'all','rules'=>[]],0,0);
     foreach(['admin'=>$admin,'editor'=>$editor,'reviewer'=>$reviewer]as$role=>$client){$page=$client($path);audienceHttpExpect($page['status']===200&&!preg_match('/(?:Warning|Fatal error):/',$page['body']),$role.' Segments page renders');audienceHttpExpect(str_contains($page['body'],'data-segment-delete-form')===($role==='admin'),$role.' sees only permitted segment delete controls');}
-    $counted=$store->saveSegment('Counted segment '.$suffix,['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'tag-unlock-'.$suffix.'@example.test']]],0,0);
-    $empty=$store->saveSegment('Empty counted segment '.$suffix,['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'empty-count-'.$suffix.'@example.test']]],0,0);
+    $countSearch='Counted segment '.$suffix;
+    $counted=$store->saveSegment($countSearch.' matching',['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'tag-unlock-'.$suffix.'@example.test']]],0,0);
+    $empty=$store->saveSegment($countSearch.' empty',['match'=>'all','rules'=>[['field'=>'email','operator'=>'is','value'=>'empty-count-'.$suffix.'@example.test']]],0,0);
     $countRows=$store->all('SELECT * FROM marketing_segments WHERE audience_id=1 AND id IN (?,?)',[$counted,$empty]);
     $counts=$store->segmentConnectionCounts($countRows);audienceHttpExpect($counts[$counted]===1&&$counts[$empty]===0,'Segment connection counts match their rules including empty results');
+    foreach (['connections_asc'=>['0','1'],'connections_desc'=>['1','0']] as $order=>$expected) {
+        $response=$admin($path.'&segment_order='.$order.'&list_search='.rawurlencode($countSearch));
+        $document=new DOMDocument();@$document->loadHTML($response['body']);
+        $cells=(new DOMXPath($document))->query('//table[@aria-label="Saved Segments on This Page"]/tbody/tr/td[@class="segment-count"]');
+        $orderedCounts=array_map(static fn(DOMNode $cell):string=>trim($cell->textContent),iterator_to_array($cells));
+        audienceHttpExpect($response['status']===200&&$orderedCounts===$expected,'Segments sort by their computed connection counts');
+    }
     $store->mutatePerson($person,(int)$store->person($person)['version'],'archive');$counts=$store->segmentConnectionCounts($countRows);audienceHttpExpect($counts[$counted]===0,'Segment counts exclude archived connections');
     $store->mutatePerson($person,(int)$store->person($person)['version'],'restore');$counts=$store->segmentConnectionCounts($countRows);audienceHttpExpect($counts[$counted]===1,'Segment counts update after restoring a connection');
     audienceHttpExpect($store->segmentConnectionCounts([])===[],'Empty segment pages need no count query');

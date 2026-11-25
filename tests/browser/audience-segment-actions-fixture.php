@@ -5,6 +5,7 @@ require __DIR__.'/../../src/functions.php';
 require __DIR__.'/../../src/audience_store.php';
 $view='segments';$role=$argv[1]??'admin';$tab=$argv[2]??'active';$unlocked=($argv[3]??'locked')==='unlocked';
 parse_str($argv[5]??'',$_GET);
+$definitionArchiveAvailable ??= false;
 $_SESSION=['user_id'=>11,'username'=>'fixture-'.$role,'role'=>$role,'_csrf_token'=>'fixture-token'];
 if($unlocked)$_SESSION['_admin_elevated_at']=time();
 $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
@@ -20,7 +21,7 @@ if(($argv[6]??'')==='unknown-dates')foreach($tags as&$tag)$tag['created_at']=nul
 unset($tag);
 $rules=['match'=>'all','rules'=>[]];$filters=['q'=>'','status'=>[],'source'=>[],'tags'=>[],'archived'=>'0'];$segment=$job=null;
 
-$segments=[['id'=>7,'audience_id'=>1,'version'=>3,'name'=>'Newsletter subscribers','created_at'=>'2026-10-22 12:00:00','updated_at'=>'2026-10-23 12:00:00','filters_json'=>'{"match":"all","rules":[{"field":"email_status","operator":"is","value":"subscribed"}]}'],['id'=>8,'audience_id'=>1,'version'=>5,'name'=>'Volunteers & community friends with a longer segment name','created_at'=>'2026-10-21 12:00:00','updated_at'=>'2026-10-22 12:00:00','filters_json'=>'{"match":"all","rules":[]}']];
+$segments=[['id'=>7,'audience_id'=>1,'version'=>3,'name'=>'Newsletter subscribers','created_at'=>'2026-10-22 12:00:00','updated_at'=>'2026-10-23 12:00:00','filters_json'=>'{"match":"all","rules":[{"field":"email_status","operator":"is","value":"subscribed"}]}'],['id'=>8,'audience_id'=>1,'version'=>5,'name'=>'Volunteers & community friends with a longer segment name','created_at'=>'2026-10-21 12:00:00','updated_at'=>'2026-10-24 12:00:00','filters_json'=>'{"match":"all","rules":[]}']];
 $segmentCounts=[7=>128,8=>24];
 foreach(array_slice($tags,2)as$tag){$segments[]=['id'=>$tag['id'],'audience_id'=>1,'version'=>1,'name'=>$tag['name'],'created_at'=>'2026-10-20 12:00:00','updated_at'=>'2026-10-21 12:00:00','filters_json'=>'{"match":"all","rules":[]}'];$segmentCounts[(int)$tag['id']]=0;}
 $catalog=audienceRuleCatalog([],$tags,[]);

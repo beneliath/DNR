@@ -8,17 +8,40 @@ const {chromium}=require(process.env.DNR_PLAYWRIGHT_MODULE||'playwright');const 
   await page.addInitScript(dark=>localStorage.setItem('theme',dark?'dark':'light'),dark);
   await page.route('http://segments.test/**',route=>{const request=route.request(),url=new URL(request.url());
    if(['/admin_elevation.php','/admin_unlock_status.php'].includes(url.pathname)){if(request.method()==='POST')unlocked=true;return route.fulfill({contentType:'application/json',body:JSON.stringify({unlocked,csrf_token:unlocked?'rotated-token':'fixture-token',server_now:Date.now()/1000,expires_at:unlocked?Date.now()/1000+300:null})});}
-   if(url.pathname==='/audience.php'){if(request.method()==='POST'){posts.push(Object.fromEntries(new URLSearchParams(request.postData())));return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Fixture deletion submitted</p>'});}return route.fulfill({contentType:'text/html',body:execFileSync('php',['tests/browser/audience-segment-actions-fixture.php',role],{cwd:root,encoding:'utf8'})});}
+   if(url.pathname==='/audience.php'){if(request.method()==='POST'){posts.push(Object.fromEntries(new URLSearchParams(request.postData())));return route.fulfill({contentType:'text/html',body:'<!doctype html><p>Fixture deletion submitted</p>'});}return route.fulfill({contentType:'text/html',body:execFileSync('php',['tests/browser/audience-segment-actions-fixture.php',role,'active','locked',url.searchParams.get('segment_size')==='10'?'12':'2',url.searchParams.toString()],{cwd:root,encoding:'utf8'})});}
    const file=path.join(root,'src',url.pathname);return fs.existsSync(file)?route.fulfill({body:fs.readFileSync(file),contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'image/svg+xml'}):route.fulfill({status:404,body:''});
   });
-  const go=async(expand=true)=>{await page.goto('http://segments.test/audience.php?view=segments');if(expand)await expandRowActions(page.locator('.audience-segment-actions').first());};await go(false);
+  const segmentsUrl='http://segments.test/audience.php?view=segments';
+  if(!dark&&width===1600&&role==='admin'){
+   await page.goto(segmentsUrl);
+   const modified=page.locator('th.segment-modified'),dates=page.locator('td.segment-modified time');
+   for(const [direction,newestFirst] of [['descending',true],['ascending',false]]){
+    await modified.getByRole('link').click();
+    assert.equal(await modified.getAttribute('aria-sort'),direction);
+    assert.equal(await dates.first().getAttribute('datetime'),newestFirst?'2026-10-24T12:00:00Z':'2026-10-23T12:00:00Z');
+   }
+   const connections=page.locator('th.segment-count'),counts=page.locator('td.segment-count');
+   await connections.getByRole('link').click();
+   assert.equal(await connections.getAttribute('aria-sort'),'ascending');
+   assert.deepEqual(await counts.allTextContents(),['24','128']);
+   await connections.getByRole('link').click();
+   assert.equal(await connections.getAttribute('aria-sort'),'descending');
+   assert.deepEqual(await counts.allTextContents(),['128','24']);
+   await page.goto(segmentsUrl+'&segment_size=10');
+   await page.locator('#segment-sort').selectOption('connections_asc');
+   await page.waitForURL('**/*segment_order=connections_asc*');
+   assert.deepEqual(await counts.allTextContents(),Array(10).fill('0'));
+   await page.getByRole('link',{name:'Next Page',exact:true}).click();
+   assert.deepEqual(await counts.allTextContents(),['24','128']);
+  }
+  const go=async(expand=true)=>{await page.goto(segmentsUrl);if(expand)await expandRowActions(page.locator('.audience-segment-actions').first());};await go(false);
   const deletion=page.locator('.audience-segment-actions [data-segment-delete-form]');assert.equal(await deletion.count(),role==='admin'?2:0);assert.equal(await page.locator('[data-definition-item]').count(),role==='admin'?2:0);
   const rowActions=page.locator('.audience-segment-actions').first(),icons=rowActions.locator('.action-icon-button');
   assert.equal(await page.locator('.audience-segment-table tbody tr').count(),2);assert.equal(await icons.count(),role==='admin'?7:role==='editor'?6:1);const mobile=width<861;await expandRowActions(rowActions,true);assert.equal(await icons.filter({visible:true}).count(),await icons.count());await assertActionGeometry(page,icons,mobile);assert.match(await page.locator('.audience-segment-table tbody .segment-count').first().textContent(),/128/);
   assert.match(await page.locator('.audience-segment-table tbody .segment-name a').first().getAttribute('href'),/segment=7/);
   let previous=null;for(const icon of await icons.all()){assert.ok(await icon.getAttribute('aria-label'));assert.ok(await icon.getAttribute('data-tooltip'));const box=await icon.boundingBox();if(previous){if(!mobile)assert.equal(box.y,previous.y,'Desktop action icons share one row');if(box.y===previous.y)assert.ok(box.x-previous.x-previous.width>=(mobile?7.9:15.9),'Action icons preserve the mobile/desktop spacing');}assert(box.x>=0&&box.x+box.width<=width,'Action icons remain reachable on small screens');previous=box;}
   if(role==='admin'){assert.equal(await icons.last().getAttribute('data-admin-unlock-required'),'','Delete is the final action');assert.equal(await icons.last().getAttribute('data-tooltip'),'Delete');}
-  if(role==='admin'){const selection=page.locator('#definition-selection');assert.equal(await selection.getByText('Select all on this page',{exact:true}).isVisible(),true);await selection.locator('[data-definition-all]').check();assert.equal(await page.locator('[data-definition-item]:checked').count(),2);assert.equal(await selection.locator('[data-definition-count]').textContent(),'2 Selected');await selection.getByRole('button',{name:'Clear selection',exact:true}).click();assert.equal(await page.locator('[data-definition-item]:checked').count(),0);assert.equal(await selection.locator('[data-definition-all]').isVisible(),true);}
+  if(role==='admin'){const selection=page.locator('#definition-selection');assert.equal(await selection.getByText('Select All on This Page',{exact:true}).isVisible(),true);await selection.locator('[data-definition-all]').check();assert.equal(await page.locator('[data-definition-item]:checked').count(),2);assert.equal(await selection.locator('[data-definition-count]').textContent(),'2 Selected');await selection.getByRole('button',{name:'Clear Selection',exact:true}).click();assert.equal(await page.locator('[data-definition-item]:checked').count(),0);assert.equal(await selection.locator('[data-definition-all]').isVisible(),true);}
   assert.equal(await page.evaluate(()=>document.scrollingElement.scrollWidth>innerWidth),false);
   if(role!=='reviewer'){
    await icons.first().focus();await page.keyboard.press('Tab');const renameButton=rowActions.locator('[data-segment-rename]');assert.equal(await renameButton.evaluate(n=>n===document.activeElement),true);await page.locator('#'+await renameButton.getAttribute('aria-describedby')).waitFor({state:'visible'});
