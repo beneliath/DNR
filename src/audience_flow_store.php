@@ -98,6 +98,11 @@ trait AudienceFlows
                 $encoded=json_encode($d,JSON_THROW_ON_ERROR);$old=$row['published_revision']?$this->one('SELECT document_json FROM marketing_flow_revisions WHERE audience_id=? AND flow_id=? AND id=?',[$this->audienceId,$id,$row['published_revision']]):null;
                 if(!$old||audienceJson($old['document_json'])!=$d){$this->write('INSERT INTO marketing_flow_revisions(audience_id,flow_id,document_json,actor_label) VALUES (?,?,?,?)',[$this->audienceId,$id,$encoded,$this->actorLabel]);$revision=(int)$this->db->insert_id;}else $revision=(int)$row['published_revision'];
                 $cursor=audienceJson($row['cursor_json']);if(!$row['published_revision'])$cursor=$this->flowCursor();
+                if(in_array('complaint',array_column([$d['trigger'],...$d['additional_triggers']],'type'),true)){
+                    // Skip complaints recorded before activation without advancing other triggers' cursors.
+                    $start=$row['published_revision']?$this->flowCursor():$cursor;
+                    $cursor['complaint_after']=['contact'=>$start['contact'],'message'=>$start['message']];
+                }
                 $this->write("UPDATE marketing_flows SET state='running',published_revision=?,cursor_json=?,version=version+1 WHERE id=? AND audience_id=?",[$revision,json_encode($cursor,JSON_THROW_ON_ERROR),$id,$this->audienceId]);
             }elseif($op==='pause')$this->write("UPDATE marketing_flows SET state='paused',version=version+1 WHERE audience_id=? AND id=?",[$this->audienceId,$id]);
             elseif(in_array($op,['pause_node','resume_node'],true)){

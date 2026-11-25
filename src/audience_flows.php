@@ -4,7 +4,7 @@ declare(strict_types=1);
 const AUDIENCE_FLOW_TRIGGERS = [
     'signup'=>'Signs Up','profile'=>'Audience Field Changes','tag'=>'Tag Added','untag'=>'Tag Removed',
     'group'=>'Joins Group','ungroup'=>'Leaves Group','date'=>'Date','birthday'=>'Birthday',
-    'anniversary'=>'Signup Anniversary','open'=>'Opens Email','click'=>'Clicks Email',
+    'anniversary'=>'Signup Anniversary','open'=>'Opens Email','click'=>'Clicks Email','complaint'=>'Reports Email as Spam',
     'survey'=>'Responds to Survey','flow'=>'Completes Flow','status'=>'Email Subscription Status Changes','manual'=>'Added Manually',
 ];
 const AUDIENCE_FLOW_NODES = [
@@ -159,7 +159,7 @@ function audienceFlowDocument(array $raw): array
         foreach(['next','yes','no','field','value','event','time']as$key)$node[$key]=audienceText($n,$key,$key==='value'?1000:50);
         foreach(['tag_id','option_id','campaign_id','seconds','timeout','percent']as$key)$node[$key]=max(0,min($key==='percent'?100:31622400,(int)($n[$key]??0)));
         $node['remove']=!empty($n['remove']);$node['rules']=is_array($n['rules']??null)?$n['rules']:['match'=>'all','rules'=>[]];
-        if(isset($n['trigger'])){if(!is_array($n['trigger'])||!in_array($n['trigger']['type']??'',['signup','profile','tag','untag','group','ungroup','open','click','survey','flow'],true))throw new InvalidArgumentException('Choose a wait trigger.');$node['trigger']=array_intersect_key($n['trigger'],array_flip(['type','id','field','value']));}
+        if(isset($n['trigger'])){if(!is_array($n['trigger'])||!in_array($n['trigger']['type']??'',['signup','profile','tag','untag','group','ungroup','open','click','complaint','survey','flow'],true))throw new InvalidArgumentException('Choose a wait trigger.');$node['trigger']=array_intersect_key($n['trigger'],array_flip(['type','id','field','value']));}
         $d['nodes'][]=$node;
     }
     $d['start']=audienceText($raw,'start',40);$d['classic']=!empty($raw['classic']);
@@ -198,6 +198,7 @@ function audienceFlowEventMatches(array $trigger,array $event): bool
         'tag','untag'=>$e==='tags_changed'&&in_array($id,$d[$type==='tag'?'added':'removed']??[],true),
         'group','ungroup'=>$e==='groups_changed'&&in_array($id,$d[$type==='group'?'added':'removed']??[],true),
         'open','click'=>$e===$type&&empty($d['bot'])&&(!$id||(int)($d['campaign_id']??0)===$id),
+        'complaint'=>$e==='email_complaint',
         'survey'=>$e==='survey'&&(!$id||(int)($d['resource_id']??0)===$id),
         'flow'=>$e==='flow_completed'&&(int)($d['flow_id']??0)===$id,
         'manual'=>$e==='manual',default=>false,

@@ -97,6 +97,7 @@ function audienceRuleCatalog(array $fields, array $tags, array $groups,array $ca
     }
     $events = ['contact_added' => 'Connection Added', 'contact_updated' => 'Information Updated', 'subscription_changed' => 'Subscription Changed', 'tags_changed' => 'Tags Changed', 'groups_changed' => 'Groups Changed', 'contact_archived' => 'Connection Archived', 'contact_restored' => 'Connection Restored', 'note_added' => 'Note Added', 'imported' => 'Imported'];
     foreach ($events as $key => $label) $catalog['event:' . $key] = ['label' => $label, 'kind' => 'event', 'section' => 'Connection Activity'];
+    $catalog['email_complaint'] = ['label' => 'Email Complaint', 'kind' => 'event', 'section' => 'Email Engagement'];
     foreach(['sent'=>'Email Sent (Accepted)','open'=>'Email Opened','click'=>'Email Link Clicked']as$key=>$label)$catalog['engagement:'.$key]=['label'=>$label,'kind'=>'engagement','section'=>'Email Engagement','campaigns'=>$campaigns,'links'=>$key==='click'?$links:[]];
     return $catalog;
 }
@@ -173,16 +174,33 @@ function audienceCompileRules(array $tree, array $catalog): array
             return (in_array($op,['never','not_last_days'],true)?'NOT ':'')."EXISTS ($sql)";
         }
         if ($kind === 'event') {
-            $params[] = substr($key, 6);
-            $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type=?';
-            // Campaign unsubscribes and provider status changes use `status`.
-            // Include their existing history in saved subscription-change rules.
-            if ($key === 'event:subscription_changed') {
-                $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type IN (?,?)';
-                $params[] = 'status';
+            $complaint = $key === 'email_complaint';
+            if ($complaint) {
+                $date = 'ev.event_at';
+                $sql = "SELECT ev.audience_id,ev.contact_id FROM (
+                    SELECT r.audience_id,r.contact_id,e.event_at
+                    FROM marketing_message_events e
+                    JOIN marketing_campaign_recipients r ON r.id=e.recipient_id AND r.audience_id=e.audience_id
+                    WHERE e.event_type='complaint' AND e.source='provider'
+                    UNION ALL
+                    SELECT m.audience_id,m.contact_id,e.event_at
+                    FROM marketing_inbox_delivery_events e
+                    JOIN marketing_service_mail m ON m.id=e.service_mail_id AND m.audience_id=e.audience_id
+                    WHERE e.event_type='complaint' AND m.kind IN ('inbox','subscription-notice') AND m.contact_id IS NOT NULL
+                ) ev WHERE ev.event_at<=UTC_TIMESTAMP()";
+            } else {
+                $date = 'ev.created_at';
+                $params[] = substr($key, 6);
+                $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type=?';
+                // Campaign unsubscribes and provider status changes use `status`.
+                if ($key === 'event:subscription_changed') {
+                    $sql = 'SELECT 1 FROM marketing_contact_events ev WHERE ev.contact_id=c.id AND ev.event_type IN (?,?)';
+                    $params[] = 'status';
+                }
             }
-            if ($op === 'last_days') { if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 36500) throw new InvalidArgumentException('Enter a day count between 1 and 36500.'); $sql .= ' AND ev.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)'; $params[] = (int) $value; }
-            if ($op === 'before' || $op === 'after') { if (!audienceValidDate($value)) throw new InvalidArgumentException('Enter a valid date.'); $sql .= ' AND DATE(ev.created_at) ' . ($op === 'before' ? '<' : '>') . ' ?'; $params[] = $value; }
+            if ($op === 'last_days') { if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 36500) throw new InvalidArgumentException('Enter a day count between 1 and 36500.'); $sql .= " AND $date >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? DAY)"; $params[] = (int) $value; }
+            if ($op === 'before' || $op === 'after') { if (!audienceValidDate($value)) throw new InvalidArgumentException('Enter a valid date.'); $sql .= " AND DATE($date) " . ($op === 'before' ? '<' : '>') . ' ?'; $params[] = $value; }
+            if ($complaint) return '(c.audience_id,c.id) ' . ($op === 'never' ? 'NOT ' : '') . "IN ($sql)";
             return ($op === 'never' ? 'NOT ' : '') . "EXISTS ($sql)";
         }
         $expr = match($key){'full_name'=>"CONCAT(c.first_name,' ',c.last_name)",'signup_source'=>audienceSignupSourceExpression(),default=>str_starts_with($key, 'custom:') ? "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(c.custom_json, '$.\"" . (int) substr($key, 7) . "\"')), '')" : 'c.' . $key};

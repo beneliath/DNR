@@ -16,7 +16,17 @@ $foreign=$event;$foreign['mail']['tags']['moed-account']=[hash('sha256','another
 $foreign=$event;$foreign['mail']['destination']=['other@example.test'];audienceHttpExpect(audienceSnsReceive($campaignStore,$signSes($foreign,'ses-email-mismatch'),$fetch)==='ignored','Receipt cannot target a different email');
 $open=$event;$open['eventType']='Open';audienceHttpExpect(audienceSnsReceive($campaignStore,$signSes($open,'ses-open-ignore'),$fetch)==='ignored','SES opens do not duplicate native analytics');
 $bounce=$sesEvent($runtimeRows[1],'Bounce');$bounce['bounce']=['bounceType'=>'Permanent','timestamp'=>gmdate('c')];audienceSnsReceive($campaignStore,$signSes($bounce,'ses-hard-bounce'),$fetch);audienceHttpExpect($campaignStore->person((int)$runtimeRows[1]['contact_id'])['email_status']==='cleaned','Verified hard bounce suppresses the matching connection');
-$complaint=$sesEvent($runtimeRows[2],'Complaint');audienceSnsReceive($campaignStore,$signSes($complaint,'ses-complaint'),$fetch);audienceHttpExpect($campaignStore->person((int)$runtimeRows[2]['contact_id'])['email_status']==='unsubscribed','Verified complaint suppresses marketing');
+$campaignComplaintPerson=(int)$runtimeRows[2]['contact_id'];
+$signedComplaint=$signSes($sesEvent($runtimeRows[2],'Complaint'),'ses-complaint');
+audienceHttpExpect(audienceSnsReceive($campaignStore,$signedComplaint,$fetch)==='accepted'
+    &&audienceSnsReceive($campaignStore,$signedComplaint,$fetch)==='duplicate'
+    &&$campaignStore->person($campaignComplaintPerson)['email_status']==='unsubscribed','Verified campaign complaint suppresses marketing and deduplicates');
+$complaintRules=['match'=>'all','rules'=>[['field'=>'email_complaint','operator'=>'ever','value'=>'']]];
+audienceHttpExpect($campaignStore->flowMatches($campaignComplaintPerson,$complaintRules)
+    &&!$campaignStore->flowMatches((int)$runtimeRows[1]['contact_id'],$complaintRules),'Historical complaint rule matches a campaign receipt and excludes a hard bounce');
+$recentComplaintRules=$complaintRules;
+$recentComplaintRules['rules'][0]=['field'=>'email_complaint','operator'=>'last_days','value'=>'1'];
+audienceHttpExpect($campaignStore->flowMatches($campaignComplaintPerson,$recentComplaintRules),'Complaint dates use the provider receipt timestamp');
 $delayed=$sesEvent($runtimeRows[3],'DeliveryDelay');audienceSnsReceive($campaignStore,$signSes($delayed,'ses-delay'),$fetch);$counts=$campaignStore->deliveryReport($runtimeJob);audienceHttpExpect(array_sum(array_column($counts,'delayed'))===1,'SES delays appear in campaign reports');
 $campaignStore->write("UPDATE marketing_campaign_recipients SET state='uncertain' WHERE id=?",[$rr['id']]);audienceSnsReceive($campaignStore,$signSes($event,'ses-reconcile'),$fetch);audienceHttpExpect($campaignStore->one('SELECT state FROM marketing_campaign_recipients WHERE id=?',[$rr['id']])['state']==='accepted','Verified receipt reconciles uncertain API outcome without resend');
 $curl=curl_init('http://127.0.0.1/audience_ses_events.php');curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>json_encode(array_replace($signed,['Signature'=>'invalid']))]);curl_exec($curl);audienceHttpExpect(curl_getinfo($curl,CURLINFO_RESPONSE_CODE)===403,'Public SNS route rejects invalid signatures');unset($curl);
