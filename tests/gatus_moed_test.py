@@ -217,13 +217,80 @@ class GatusMoedTests(unittest.TestCase):
                 self.assertTrue(monitor.queue_monitor_installed(home))
             self.assertFalse(monitor.probe_host({'container': 'moed-host-queue-outcomes'}, home=home)[0])
 
-    def test_retention_requires_an_active_timer_and_successful_recent_run(self):
+    def retention_probe(self, journal, *, timer=None, service=None, now=200000):
         target = {'container': 'moed-host-deployment-retention'}
-        for result, age, expected in [('success', 100, True), ('failed', 100, False), ('success', 28 * 3600, False)]:
-            services = [{'ActiveState': 'active'}, {'Result': result, 'ExecMainStatus': '0',
-                        'ExecMainExitTimestampMonotonic': str((200000 - age) * 1000000)}]
-            with patch.object(monitor, 'service_properties', side_effect=services), patch.object(monitor.time, 'monotonic', return_value=200000):
-                self.assertEqual(monitor.probe_host(target)[0], expected)
+        services = [{'ActiveState': 'active', **(timer or {})},
+                    {'Type': 'oneshot', 'Result': 'success', 'ExecMainStatus': '0',
+                     'ExecMainExitTimestampMonotonic': '0', **(service or {})}]
+        with patch.object(monitor, 'service_properties', side_effect=services), \
+                patch.object(monitor, 'run', return_value=journal) as command:
+            result = monitor.probe_host(target, now=now)
+        return result, command
+
+    def retention_finished(self, timestamp=199900):
+        return json.dumps({'MESSAGE_ID': '39f53479d3a045ac8e11786248231fbf',
+                           'JOB_RESULT': 'done', '__REALTIME_TIMESTAMP': str(timestamp * 1000000),
+                           '_BOOT_ID': 'previous-boot'})
+
+    def test_retention_success_survives_reboot_without_runtime_completion_metadata(self):
+        result, command = self.retention_probe(self.retention_finished())
+        self.assertEqual(result, (True, ''))
+        args = command.call_args.args[0]
+        self.assertIn('--user', args)
+        self.assertIn('--unit=moed-deployment-retention.service', args)
+        self.assertIn('USER_UNIT=moed-deployment-retention.service', args)
+        self.assertIn('_COMM=systemd', args)
+        self.assertIn('--lines=1', args)
+        self.assertFalse(any(arg.startswith(('--boot', '-b')) for arg in args))
+        # Filtering only successful completions would hide a failed/interrupted
+        # newer attempt after a reboot or systemctl reset-failed.
+        for event in ('7d4958e842da4a758f6c1cdc7b36dcc5', '39f53479d3a045ac8e11786248231fbf',
+                      'be02cf6855d2428ba40df7e9d022f03d', 'd9b373ed55a64feb8242e02dbe79a49c',
+                      '0e4284a0caca4bfc81c0bb6786972673'):
+            self.assertIn('MESSAGE_ID=' + event, args)
+
+    def test_retention_rejects_current_failure_or_disabled_timer_despite_journal_success(self):
+        for timer, service, reason in [({'ActiveState': 'inactive'}, {}, 'timer'),
+                                       ({}, {'Result': 'exit-code'}, 'failed run'),
+                                       ({}, {'ExecMainStatus': '1'}, 'failed run'),
+                                       ({}, {'Type': 'simple'}, 'oneshot')]:
+            with self.subTest(timer=timer, service=service):
+                result, command = self.retention_probe(self.retention_finished(), timer=timer, service=service)
+                self.assertFalse(result[0]); self.assertIn(reason, result[1])
+                command.assert_not_called()
+
+    def test_retention_recent_timer_trigger_cannot_replace_fresh_completion_evidence(self):
+        for age, expected in [(100, True), (27 * 3600, True), (27 * 3600 + 1, False), (-61, False)]:
+            with self.subTest(age=age):
+                result, _ = self.retention_probe(self.retention_finished(200000 - age),
+                                                timer={'LastTriggerUSec': 'just now'})
+                self.assertEqual(result[0], expected)
+                if not expected:
+                    self.assertIn('timestamp', result[1])
+
+    def test_retention_latest_failed_skipped_or_interrupted_attempt_cannot_use_older_success(self):
+        for event in ('7d4958e842da4a758f6c1cdc7b36dcc5', 'be02cf6855d2428ba40df7e9d022f03d',
+                      'd9b373ed55a64feb8242e02dbe79a49c', '0e4284a0caca4bfc81c0bb6786972673'):
+            with self.subTest(event=event):
+                entry = json.loads(self.retention_finished())
+                entry.update(MESSAGE_ID=event, JOB_RESULT='failed')
+                result, _ = self.retention_probe(json.dumps(entry))
+                self.assertFalse(result[0]); self.assertIn('latest run', result[1])
+        entry = json.loads(self.retention_finished()); entry['JOB_RESULT'] = 'failed'
+        self.assertFalse(self.retention_probe(json.dumps(entry))[0][0])
+
+    def test_retention_missing_malformed_or_unreadable_journal_fails_closed(self):
+        invalid_stamp = json.loads(self.retention_finished()); invalid_stamp['__REALTIME_TIMESTAMP'] = 'bad'
+        missing_stamp = json.loads(self.retention_finished()); del missing_stamp['__REALTIME_TIMESTAMP']
+        for journal in ('', '{}', '[]', 'null', 'not-json', json.dumps(invalid_stamp), json.dumps(missing_stamp)):
+            with self.subTest(journal=journal):
+                self.assertFalse(self.retention_probe(journal)[0][0])
+        services = [{'ActiveState': 'active'}, {'Type': 'oneshot', 'Result': 'success', 'ExecMainStatus': '0'}]
+        for failure in (FileNotFoundError(), subprocess.CalledProcessError(1, ['journalctl']),
+                        subprocess.TimeoutExpired(['journalctl'], 20)):
+            with patch.object(monitor, 'service_properties', side_effect=services), \
+                    patch.object(monitor, 'run', side_effect=failure):
+                self.assertFalse(monitor.probe_host({'container': 'moed-host-deployment-retention'})[0])
 
     def test_reconciliation_is_idempotent_and_rejects_conflicting_tokens(self):
         config, doc = self.fixture()

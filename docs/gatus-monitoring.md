@@ -22,7 +22,7 @@ on s1 and are never stored in this repository.
 | Account provisioning | Active systemd user service and a successful heartbeat within three minutes |
 | NAS recovery | Verified copies for every expected Account, no reported failure, and all snapshots younger than 270 minutes |
 | Test Account refresh | Successful completed refresh within 27 hours, allowing the daylight-saving transition |
-| Deployment retention | Active timer and successful completed service run within 27 hours |
+| Deployment retention | Active timer, no current service failure, and the latest oneshot run confirmed successful in the persistent systemd journal within 27 hours |
 | Scheduler | Active cron service and entries for backups, recovery alerts, nightly refresh, and Gatus collection |
 | Queue outcomes | Once installed: recent independent queue-monitor report, with every Account healthy; stale after 15 minutes |
 | Deployment | Valid host deployment state, live deployment lock during maintenance, and recovery within 15 minutes |
@@ -30,6 +30,15 @@ on s1 and are never stored in this repository.
 Checks only read operational state. They do not refresh data, run backups, retry
 mail, start workers, or change application releases. User-service checks supply
 the systemd user-bus environment that cron normally lacks.
+
+Deployment retention reads systemd's structured job events across boots. A host
+restart clears the service's in-memory completion timestamp, but the persistent
+journal still proves when the job finished. A timer's last trigger is not proof
+of success. A newer failed, skipped, or unfinished run prevents an older success
+from passing; missing or unreadable journal evidence also fails the check. The
+probe requires persistent user journals and never reruns retention to clear an
+alert. See systemd's [journalctl documentation](https://www.freedesktop.org/software/systemd/man/latest/journalctl.html)
+and [job event definitions](https://github.com/systemd/systemd/blob/main/src/systemd/sd-messages.h).
 
 ## New services and releases
 
