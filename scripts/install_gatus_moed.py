@@ -55,13 +55,16 @@ def main():
             return
         backup = Path.home() / '.local/state/moed-gatus/config-backups' / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         backup.mkdir(parents=True, mode=0o700)
-        for original in (path, root / 'targets.json', args.directory / 'config/config.yaml', root / 'gatus_moed.py'):
+        helper_names = ('deployment_monitoring.py', 'gatus_deployment.py', 'gatus_moed.py')
+        for original in (path, root / 'targets.json', args.directory / 'config/config.yaml',
+                         root / 'deployment-alert-state.json', *(root / name for name in helper_names)):
             if original.exists():
                 saved = backup / original.name
                 shutil.copy2(original, saved); saved.chmod(0o600)
         if path.read_text() != source or json.loads((root / 'targets.json').read_text()) != config:
             raise ValueError('Collector configuration changed during preparation')
-        gatus_moed.atomic_write(root / 'gatus_moed.py', Path(gatus_moed.__file__).read_text())
+        for name in helper_names:
+            gatus_moed.atomic_write(root / name, Path(__file__).with_name(name).read_text())
         gatus_moed.reconcile(root, config)
         gatus_moed.atomic_write(path, patched)
         print('Gatus MOED monitoring installed. Existing minute schedule retained.')

@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 // Fast fixture checks complement release-workflows.test.cjs, which needs the
 // disposable application image and is run by integration_environment.py.
 const suites = [
-    'initial-layout', 'mobile-shell', 'edit-engagement', 'new-engagement-location',
+    'initial-layout', 'mobile-shell', 'sticky-banners', 'edit-engagement', 'new-engagement-location',
     'audience-mobile-workspace', 'audience-form-reminders', 'audience-ai-visibility',
 ];
 const root = fileURLToPath(new URL('../', import.meta.url));

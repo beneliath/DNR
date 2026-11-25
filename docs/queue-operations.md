@@ -83,7 +83,7 @@ SMTP acceptance, independently for each account. The default recipient is the
 existing recovery-monitor administrator; `--recipient` overrides it.
 
 For an authorized deployment, install the reviewed helper bundle containing
-`queue_monitor.py`, `install_queue_monitor.py`, and their existing recovery helper
+`queue_monitor.py`, `install_queue_monitor.py`, `deployment_monitoring.py`, and their existing recovery helper
 dependencies at `/home/dgilmore/.local/lib/moed-recovery/v1/`. Then:
 
 ```sh
@@ -92,7 +92,7 @@ python3 ~/.local/lib/moed-recovery/v1/install_queue_monitor.py
 ```
 
 The installer preserves unrelated cron entries, saves the previous schedule,
-and adds a five-minute check. State is private under `~/.local/state/moed-queues/`;
+and installs a once-per-minute check. State is private under `~/.local/state/moed-queues/`;
 syslog uses `moed-queue-monitor`. `--check-only` never sends mail or writes alert
 state. Source changes alone do not install this production schedule.
 
@@ -100,6 +100,9 @@ state. Source changes alone do not install this production schedule.
 jobs, automatically enrolls newly deployed containers, and activates its queue
 outcome check when this independent monitor is scheduled. A missing first report
 then fails the check rather than leaving an installed monitor unobserved.
+During a deployment, expected pauses are recorded but do not send email;
+delivery failures and pre-existing queue problems continue to alert. See
+[deployment notifications](gatus-monitoring.md#deployment-notifications).
 
 ## Focused verification
 

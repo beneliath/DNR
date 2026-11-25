@@ -1,4 +1,5 @@
 import datetime
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -6,9 +7,35 @@ import unittest
 from unittest.mock import patch, MagicMock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from recovery_monitor import recovery_health, alert_due, send_alert, ALERT_RECIPIENT
+import recovery_monitor
 
 
 class MonitorTests(unittest.TestCase):
+    def test_paused_directory_uses_receipt_but_backup_failures_and_age_still_alert(self):
+        now = datetime.datetime.now(datetime.timezone.utc)
+        status = {'expected_account_keys': ['primary'], 'last_success': {
+            'snapshot_started_at': now.isoformat(), 'accounts': {'primary': {
+                'snapshot_started_at': now.isoformat(), 'remote_directory': 'verified-copy'}}}}
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder)
+            state = home / '.local/state/moed-backup'
+            state.mkdir(parents=True)
+            with patch.object(Path, 'home', return_value=home), \
+                 patch.object(sys, 'argv', ['recovery_monitor.py', '--check-only']), \
+                 patch.object(recovery_monitor, 'account_directory', side_effect=RuntimeError('Paused')), \
+                 patch.object(recovery_monitor, 'deployment_status', return_value={'mode': 'maintenance'}), \
+                 patch.object(recovery_monitor, 'send_alert') as send, patch('builtins.print'):
+                (state / 'status.json').write_text(json.dumps(status))
+                self.assertEqual(recovery_monitor.main(), 0)
+                status['last_error'] = {'type': 'BackupError'}
+                (state / 'status.json').write_text(json.dumps(status))
+                self.assertEqual(recovery_monitor.main(), 1)
+                status.pop('last_error')
+                status['last_success']['accounts']['primary']['snapshot_started_at'] = (now - datetime.timedelta(hours=5)).isoformat()
+                (state / 'status.json').write_text(json.dumps(status))
+                self.assertEqual(recovery_monitor.main(), 1)
+                send.assert_not_called()
+
     def test_health_requires_fresh_verified_success_and_no_error(self):
         now=datetime.datetime.now(datetime.timezone.utc)
         status={'expected_account_keys':['primary'], 'last_success':{'snapshot_started_at':now.isoformat(),'completed_at':now.isoformat(),

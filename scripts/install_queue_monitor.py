@@ -26,15 +26,22 @@ def main():
         raise SystemExit('Unable to read the existing schedule.')
     original = result.stdout
     begin, end = '# BEGIN MOED EXTERNAL QUEUE MONITOR', '# END MOED EXTERNAL QUEUE MONITOR'
+    block = begin + '\n* * * * * /usr/bin/python3 ' + str(monitor) + ' 2>&1 | /usr/bin/logger -t moed-queue-monitor\n' + end + '\n'
+    updated = original.rstrip() + '\n\n' + block
     if begin in original or end in original:
-        raise SystemExit('A queue monitor schedule already exists; inspect it before updating.')
-    block = begin + '\n*/5 * * * * /usr/bin/python3 ' + str(monitor) + ' 2>&1 | /usr/bin/logger -t moed-queue-monitor\n' + end + '\n'
+        if original.count(begin) != 1 or original.count(end) != 1 or original.index(begin) > original.index(end):
+            raise SystemExit('The queue monitor schedule markers are invalid.')
+        start, finish = original.index(begin), original.index(end) + len(end)
+        updated = original[:start] + block.rstrip() + original[finish:]
+    if updated == original:
+        print('External queue monitor already runs every minute.')
+        return
     backup = state / ('crontab-before-monitor-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.txt')
     backup.write_text(original)
     fresh = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
     if fresh.returncode not in (0, 1) or fresh.stdout != original:
         raise SystemExit('Schedule changed during preparation; no update made.')
-    subprocess.run(['crontab', '-'], input=original.rstrip() + '\n\n' + block, text=True, check=True)
+    subprocess.run(['crontab', '-'], input=updated, text=True, check=True)
     if block not in subprocess.check_output(['crontab', '-l'], text=True):
         raise SystemExit('Queue monitor installation verification failed.')
     print('External queue monitor installed; alerts are independent of application queues.')

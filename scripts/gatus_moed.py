@@ -9,9 +9,10 @@ import re
 import secrets
 import subprocess
 import time
+import gatus_deployment
 
 HOST_GROUP = '3_moed operations'
-HOST_CHECKS = ('account-worker', 'nas-recovery', 'test-account-refresh', 'deployment-retention', 'scheduler')
+HOST_CHECKS = ('account-worker', 'nas-recovery', 'test-account-refresh', 'deployment-retention', 'scheduler', 'deployment')
 CRON_COMMANDS = ('run_nas_recovery.py', 'recovery_monitor.py', 'test_account_baseline_refresh.py', 'push_container_health.py')
 
 
@@ -39,7 +40,8 @@ def long_lived_moed(container):
             and container.get('HostConfig', {}).get('RestartPolicy', {}).get('Name') in ('always', 'unless-stopped', 'on-failure'))
 
 
-def queue_alert_details(document, endpoint):
+def queue_alert_details(document, endpoint, *, subject='MOED queue outcomes',
+                        action='Review the affected account\u2019s Operations page. Check provider receipts before resending uncertain mail.'):
     """Use Gatus's result template without changing descriptions every cycle.
 
     The native Mattermost provider omits external-endpoint errors. A scoped
@@ -58,11 +60,10 @@ def queue_alert_details(document, endpoint):
         connection.update(alert.get('provider-override', {}))
         description = alert.get('description', provider.get('default-alert', {}).get('description', ''))
         # Keep the existing mention/custom instructions, including @doug.
-        description = description.replace('Health Check Failed', 'MOED queue outcomes')
+        description = description.replace('Health Check Failed', subject)
         body = {'text': ('Gatus [ALERT_TRIGGERED_OR_RESOLVED]: [ENDPOINT_GROUP]/[ENDPOINT_NAME]\n'
                          + description + '\n[RESULT_ERRORS]\n'
-                         'Review the affected account\u2019s Operations page. '
-                         'Check provider receipts before resending uncertain mail.')}
+                         + action)}
         if connection.get('channel'):
             body['channel'] = connection['channel']
         custom = {'url': connection['webhook-url'], 'method': 'POST',
@@ -83,6 +84,7 @@ def queue_alert_details(document, endpoint):
 def plan(config, document, containers, *, queue_ready=False):
     """Preserve unrelated checks/tokens; missing activated targets remain failures."""
     config, document = copy.deepcopy(config), copy.deepcopy(document)
+    gatus_deployment.configure(document)
     targets = {t['container']: t for t in config['targets']}
     endpoints = {endpoint_key(e.get('group', ''), e['name']): e for e in document.get('external-endpoints', [])}
     present = {c['Name'].lstrip('/') for c in containers}
@@ -128,6 +130,12 @@ def plan(config, document, containers, *, queue_ready=False):
             endpoint['alerts'] = copy.deepcopy(alerts)
         if name == 'moed-host-queue-outcomes':
             queue_alert_details(document, endpoint)
+        if name == 'moed-host-deployment':
+            for alert in endpoint.get('alerts', []):
+                alert.update({'failure-threshold': 1, 'success-threshold': 2,
+                              'minimum-reminder-interval': '30m'})
+            queue_alert_details(document, endpoint, subject='MOED deployment needs attention',
+                                action='Review the deployment record and the affected services in Gatus before resuming work.')
     config['targets'] = list(targets.values())
     document['external-endpoints'] = list(endpoints.values())
     return config, document
@@ -163,8 +171,21 @@ def reconcile(root, config, *, write=True, home=None):
     # A failed discovery must not delete or deactivate any existing checks.
     containers = inventory()
     updated, planned = plan(config, document, containers, queue_ready=queue_monitor_installed(home))
+    planned, deployment = gatus_deployment.reconcile(root, updated, planned, time.time())
     if write:
-        if planned != document: atomic_write(path, yaml.safe_dump(planned, sort_keys=False))
+        # Persist ownership before the config swap so a retry can restore the
+        # prior flags/windows after a crash between these two atomic writes.
+        previous = gatus_deployment.read_json(root / 'deployment-alert-state.json', {})
+        pending = previous.get('pending_restore', []) + [
+            {key: previous.get(key, {}) for key in ('windows', 'grouped')},
+            {key: deployment[key] for key in ('windows', 'grouped')}]
+        atomic_write(root / 'deployment-alert-state.json', json.dumps(dict(deployment, pending_restore=pending), indent=2) + '\n')
+        if planned != document:
+            atomic_write(path, yaml.safe_dump(planned, sort_keys=False))
+            # Gatus polls every 30 seconds and takes another second to reload.
+            # Let suppression/grouping take effect before pushing new results.
+            time.sleep(35)
+        atomic_write(root / 'deployment-alert-state.json', json.dumps(deployment, indent=2) + '\n')
         if updated != config: atomic_write(root / 'targets.json', json.dumps(updated, indent=2) + '\n')
     active = copy.deepcopy(updated)
     active['targets'] = [t for t in updated['targets'] if not t.get('awaiting_first_deployment')]
@@ -281,6 +302,11 @@ def probe_host(target, *, home=None, now=None):
         elif check == 'queue-outcomes':
             receipt = state(home / '.local/state/moed-queues/health.json')
             return queue_outcomes(receipt, now)
+        elif check == 'deployment':
+            receipt = state(home / 'gatus/monitoring/deployment-alert-state.json')
+            if not fresh(receipt.get('checked_at'), 180, now):
+                return False, 'MOED deployment monitor is stale'
+            return receipt['healthy'], receipt['error']
         else:
             return False, 'Unknown MOED operational check'
         return (True, '') if healthy else (False, 'MOED ' + check + ' failed or its successful result is stale')

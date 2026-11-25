@@ -211,12 +211,11 @@ html.dark-mode body {
 }
 
 body.has-app-shell {
+  --mobile-app-bar-height: 0px;
+  --app-sticky-offset: var(--account-shell-height, var(--mobile-app-bar-height));
   min-height: 100vh;
   padding-left: var(--sidebar-width);
-}
-
-body.has-app-shell.role-preview-active {
-  padding-top: 68px;
+  padding-top: var(--app-sticky-offset);
 }
 
 /* Legacy dark-mode rules paint every main container black. App page roots are
@@ -364,9 +363,9 @@ html body .account-directory-name h2 { margin: 0; text-align: left !important; f
   padding: 0;
 }
 
-/* The shell measures the complete fixed-bar stack, including wrapped labels,
-   so content and anchor targets always start below it at any viewport width. */
+/* On desktop, the account shell's scrollport already starts below the bars. */
 body.has-app-shell.account-context-active {
+  --app-sticky-offset: 0px;
   position: fixed;
   inset: var(--account-shell-height, 52px) 0 0;
   min-height: 0;
@@ -487,16 +486,12 @@ html.dark-mode .deployment-notice-banner {
 }
 
 [data-deployment-timer] { font-weight: 700; font-variant-numeric: tabular-nums; }
-body.has-app-shell.deployment-notice-active { padding-top: var(--deployment-banner-height); }
-body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: calc(var(--deployment-banner-height) + 68px); }
 .deployment-notice-active .role-preview-banner { top: var(--deployment-banner-height); }
 .deployment-notice-active #calendar-agenda-title { scroll-margin-top: calc(var(--deployment-banner-height) + 80px); }
 .deployment-notice-active.role-preview-active #calendar-agenda-title { scroll-margin-top: calc(var(--deployment-banner-height) + 164px); }
 
 @media (max-width: 860px) {
   .deployment-notice-banner { inset: 64px 0 auto; padding: 9px 14px; }
-  body.has-app-shell.deployment-notice-active { padding-top: calc(64px + var(--deployment-banner-height)); }
-  body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: calc(148px + var(--deployment-banner-height)); }
   .deployment-notice-active .role-preview-banner { top: calc(64px + var(--deployment-banner-height)); }
   .deployment-notice-active .role-preview-return-form button { white-space: normal; }
 }
@@ -544,9 +539,6 @@ html.dark-mode .admin-unlock-banner { background: #fb923c !important; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-body.has-app-shell.admin-unlock-active {
-  padding-top: calc(var(--deployment-banner-height, 0px) + var(--admin-unlock-banner-height, 68px));
-}
 .admin-unlock-active #calendar-agenda-title {
   scroll-margin-top: calc(var(--deployment-banner-height, 0px) + var(--admin-unlock-banner-height, 68px) + 80px);
 }
@@ -568,9 +560,6 @@ body.has-app-shell.admin-unlock-active {
   }
   .admin-unlock-countdown { flex-direction: column; align-items: flex-end; gap: 2px; }
   .admin-unlock-countdown > span:first-child { font-size: 0.7rem; }
-  body.has-app-shell.admin-unlock-active {
-    padding-top: calc(64px + var(--deployment-banner-height, 0px) + var(--admin-unlock-banner-height, 68px));
-  }
 }
 
 .role-preview-banner-copy strong {
@@ -2633,7 +2622,7 @@ html body [data-sticky-toolbar] {
   align-items: center;
   flex-wrap: wrap;
   position: sticky;
-  top: 12px;
+  top: calc(var(--app-sticky-offset, 0px) + 12px);
   z-index: 20;
   gap: 12px 16px !important;
   margin: 0 !important;
@@ -2659,10 +2648,6 @@ html body [data-sticky-toolbar] {
   box-shadow: 0 0 0 2px var(--surface), var(--shadow-md);
 }
 .record-table-pane [data-bulk-submit] { margin-inline-start: auto; }
-@media (max-width: 860px), (pointer: coarse) {
-  html body .record-table-pane > :is([data-task-bulk], [data-bulk-delete]),
-  html body [data-sticky-toolbar] { top: calc(var(--account-shell-height, 64px) + 12px); }
-}
 
 .summary-card {
   display: flex;
@@ -5485,11 +5470,12 @@ html.dark-mode .login-secondary-link a {
   /* Keep viewport-fixed controls inside the page on mobile Safari. Moving the
      scrolling body below them can leave the header outside its painted bounds. */
   body.has-app-shell.account-context-active {
+    --app-sticky-offset: var(--account-shell-height, var(--mobile-app-bar-height));
     position: static;
     inset: auto;
     min-height: 100dvh;
     overflow-y: visible;
-    padding-top: var(--account-shell-height, 64px) !important;
+    padding-top: var(--app-sticky-offset) !important;
   }
 
   html:has(body.account-context-active) {
@@ -5522,11 +5508,8 @@ html.dark-mode .login-secondary-link a {
 
 @media (max-width: 860px) {
   body.has-app-shell {
-    padding: 64px 0 0;
-  }
-
-  body.has-app-shell.role-preview-active {
-    padding-top: 148px;
+    --mobile-app-bar-height: 64px;
+    padding-inline: 0;
   }
 
   .role-preview-banner {
@@ -5552,7 +5535,7 @@ html.dark-mode .login-secondary-link a {
     z-index: 90;
     inset: 0 0 auto;
     display: flex !important;
-    height: 64px;
+    height: var(--mobile-app-bar-height, 64px);
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
