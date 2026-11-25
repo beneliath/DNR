@@ -160,7 +160,7 @@ function renderScript($path, $defer = true, $module = false, $blockRender = fals
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
 }
 
-function renderFormDraftPanel(bool $collapsible = false): void {
+function renderFormDraftPanel(bool $collapsible = true): void {
     $cleared = array_values(array_filter($_SESSION['clear_form_drafts'] ?? [], 'is_string'));
     $panel_tag = $collapsible ? 'details' : 'section';
     echo '<' . $panel_tag . ' class="form-draft-panel" data-form-draft-panel data-cleared-drafts="'

@@ -2,6 +2,7 @@
     'use strict';
     if (window.DnrFormDrafts) return;
     const initialized = new WeakSet();
+    const forms = new WeakMap();
     function initialize(form) {
         const sidebar = document.getElementById('app-sidebar');
         if (!sidebar || !form || initialized.has(form)) return;
@@ -65,7 +66,7 @@
         let applyingDraft = false;
         let recoveryFields = [];
         const existingPanel = form.querySelector('[data-form-draft-panel]');
-        const panel = existingPanel || document.createElement('section'); panel.className = 'form-draft-panel';
+        const panel = existingPanel || document.createElement('details'); panel.className = 'form-draft-panel';
         const collapsible = panel.tagName === 'DETAILS';
         const status = document.createElement(collapsible ? 'span' : 'p'); status.setAttribute('role','status');
         const heading = collapsible ? document.createElement('summary') : status;
@@ -74,30 +75,39 @@
         const restore = document.createElement('button'); restore.type='button'; restore.className='button-secondary'; restore.textContent='Restore Draft';
         const discard = document.createElement('button'); discard.type='button'; discard.className='button-secondary'; discard.textContent='Discard Draft';
         const restoredHighlights = new Set();
+        const highlightTarget = el => (el.dataset.errorTarget && document.getElementById(el.dataset.errorTarget))
+            || el.closest('[data-address-country-picker]')?.querySelector('[data-address-country-toggle]') || el;
         function clearRestoredHighlights() {
             restoredHighlights.forEach(el => { delete el.dataset.draftRestored; });
             restoredHighlights.clear();
         }
-        function highlightRestoredChanges(before) {
+        function highlightRestoredChanges(before, source = restore, restored = null) {
             const consumed = new Set();
+            const restoredConsumed = new Set();
             const highlight = el => {
                 el.dataset.draftRestored = '';
                 restoredHighlights.add(el);
             };
             controls().forEach(el => {
+                // A related-record return may replace a restored selection with
+                // the newly created record. Only values still from the draft count.
+                if (restored) {
+                    const expected = matchingControl(el, restored, restoredConsumed);
+                    if (!expected) return;
+                    restoredConsumed.add(expected);
+                    if (['checkbox', 'radio'].includes(el.type) ? !!expected.checked !== !!el.checked : expected.value !== el.value) return;
+                }
                 const previous = matchingControl(el, before, consumed);
                 if (previous) consumed.add(previous);
                 const unchanged = ['checkbox', 'radio'].includes(el.type)
                     ? !!previous?.checked === !!el.checked
                     : (previous?.value || '').replace(/\r\n?/g, '\n') === el.value.replace(/\r\n?/g, '\n');
                 if (unchanged) return;
-                const target = (el.dataset.errorTarget && document.getElementById(el.dataset.errorTarget))
-                    || el.closest('[data-address-country-picker]')?.querySelector('[data-address-country-toggle]')
-                    || el;
-                highlight(target);
+                highlight(highlightTarget(el));
             });
-            highlight(restore);
+            if (source) highlight(source);
         }
+        forms.set(form, {capture, highlightRestoredChanges});
         const recovery = document.createElement('div'); recovery.className='form-draft-recovery'; recovery.hidden=true;
         const note=document.createElement('p'); note.textContent='Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.';
         panel.replaceChildren(heading,save,restore,discard,note,recovery);
@@ -136,7 +146,7 @@
                 const currentCell = document.createElement('td'); currentCell.dataset.field = 'Current Value';
                 currentCell.textContent = current ? displayValue(current, current)
                     : field.type === 'radio' && el ? 'Empty' : 'Field no longer available';
-                const draftCell = document.createElement('td'); draftCell.dataset.field = 'Saved Draft';
+                const draftCell = document.createElement('td'); draftCell.dataset.field = 'Saved Draft'; draftCell.dataset.draftValue = '';
                 const draftEl = draft && matchingControl(draft, elements, new Set());
                 draftCell.textContent = draft ? displayValue(draft, draftEl) : 'Empty';
                 const actions = document.createElement('td'); actions.className = 'form-draft-actions';
@@ -150,6 +160,7 @@
                         renderRecovery(recoveryFields);
                         return;
                     }
+                    const before = capture();
                     applyingDraft = true;
                     try {
                         if (field.type === 'radio') {
@@ -161,6 +172,7 @@
                         applyingDraft = false;
                     }
                     clearTimeout(timer);
+                    highlightRestoredChanges(before, status);
                     renderRecovery(recoveryFields);
                     status.textContent = label.textContent + ' restored to the form. Review your changes before saving.';
                     const nextButton = recovery.querySelector('button:not(:disabled)');
@@ -279,6 +291,13 @@
         discard.addEventListener('click',function () { clearTimeout(timer); clearRestoredHighlights(); try { window.DnrAccountContext.local.removeItem(key); } catch (_) {} saved=null; showSaved(); });
         function handleInput(event) {
             if(applyingDraft || panel.contains(event.target)) return;
+            const edited = event.target.type === 'radio'
+                ? controls().filter(el => el.name === event.target.name && el.type === 'radio') : [event.target];
+            edited.forEach(el => {
+                const target = highlightTarget(el);
+                delete target.dataset.draftRestored;
+                restoredHighlights.delete(target);
+            });
             // Never overwrite an older draft before the user chooses to restore or discard it.
             if(saved && (!status.textContent || status.textContent.startsWith('Draft available'))) return;
             if(saved && saved.version !== versions()) { showSaved(); return; }
@@ -323,7 +342,11 @@
         });
         document.querySelectorAll('form[data-recoverable-draft]').forEach(initialize);
     }
-    window.DnrFormDrafts = {initialize};
+    window.DnrFormDrafts = {
+        initialize,
+        capture: form => forms.get(form)?.capture() || [],
+        highlightRestored: (form, before, restored) => forms.get(form)?.highlightRestoredChanges(before, null, restored)
+    };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan, {once: true});
     else scan();
 }());
