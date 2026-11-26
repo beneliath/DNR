@@ -26,7 +26,6 @@ $task_selected_label = $task_selected_subject === 'general'
         ? $task_selected_record['label'] . (empty($task_selected_record['active']) ? ' · Archived' : '')
         : 'No Record Selected');
 ?>
-<p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
     <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>">

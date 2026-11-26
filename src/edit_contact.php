@@ -466,7 +466,12 @@ try {
 <?php include 'templates/header.php'; ?>
 <div class="container edit-contact-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit Contact</span></nav>
-    <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information and roles at each organization.</p></div></div>
+    <div class="page-heading form-page-heading edit-contact-heading">
+        <div class="form-heading-content">
+            <h1>Edit Contact</h1>
+            <?php renderFormHeadingSummary('Update contact information and roles at each organization.'); ?>
+        </div>
+    </div>
 
     <?php if ($error_messages): ?>
         <?php echo formErrorSummary($error_messages, $error_field_ids); ?>
@@ -479,7 +484,6 @@ try {
     <?php endif; ?>
 
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form id="contact-edit-form" class="contact-layout-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">

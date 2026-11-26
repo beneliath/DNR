@@ -12,7 +12,7 @@
       "entry": "Engagements \u2192 + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details. After selecting an organization, Use Organization Address copies its saved physical address into the editable Event Location fields.",
       "source_files": {
-        "index.php": "81317c992ed5c14e75aa99b52f439bf95d6de9d517918823869739c904272c59",
+        "index.php": "f195fe0692dc254e97ead8ac2031589bf6e22a01aae88f33b7cd16213dbf213e",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2",
         "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
         "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
@@ -66,7 +66,7 @@
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
-        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
+        "edit_engagement.php": "592de54aabc9d467691316ae4fac1b713f935a04e63b408102561e2e800deddb",
         "presentation_helpers.php": "1bb33a515379eee4c105f5a7721e9919c5393b3d5706c36749b7853a08c88592",
         "assets/js/presentation-form.js": "0cf6003ad351cabb4c334a2358f6eaff5717584fea8757b7f10b6dbfbc631dcf",
         "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
@@ -111,9 +111,9 @@
       "entry": "Tasks \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task. For an existing task use Edit Task.",
       "condition": "Use Change Record to open the Find a Related Record dialog. Type at least three characters, then choose a result. Searching alone does not change the selection. Cancel, Escape, or clicking outside the dialog keeps the selected record. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
-        "templates/follow_up_task_form.php": "14ef5881834b7b4468b3fb69d4fbbce6f2e78bda9a6019c9eb653ce2ec8beed6",
-        "add_task.php": "f7caf39146423b00633182971827d8f2273079c8faabbeb75f9df220a688fc2e",
-        "edit_task.php": "d5875dbdf90feef97d7a4a1b5a6c24f18c4acc3ae334f96260e8daeff6e86625",
+        "templates/follow_up_task_form.php": "12c1896e41a46c9d7042046c87daaf8ed93a47209dbaf538bb5fd7cb0dd4ae2e",
+        "add_task.php": "3fd6b9b12aca4de14a52e24392fb3634f16b9ee4cf0052a903baba386744d7cf",
+        "edit_task.php": "abc52ba46ee9e8cf349b6035e4635bc5f96ecac8591a204d90af49073a895ed4",
         "assets/js/task-form.js": "bae97533386505e857f19ad4bb8eb2b795c812e4285a5a4f017329537c2a5f23",
         "follow_up_task_helpers.php": "de5a0ba8a1caac0158c26e943479b2de541d57e006b3ce114df18d927c3a6301",
         "moed/tasks/generation.php": "cfe3aef866b6e2fdfea97c77c8e74bfebe3b3d5f8fea25811218e6d231b65578",
@@ -233,7 +233,7 @@
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
+        "edit_engagement.php": "592de54aabc9d467691316ae4fac1b713f935a04e63b408102561e2e800deddb",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2",
         "app/Service/EngagementWrite.php": "2936e68d516f8813ffc748fe4e2d1cc59628595615887989640facdca4d0b8c3",
         "templates/engagement_schedule_form.php": "f0a208d62467235885eff933b86493bf33ba5bd9c123cefa33eba3644ca37520"
@@ -544,7 +544,7 @@
       "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
       "source_files": {
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef",
-        "edit_engagement.php": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
+        "edit_engagement.php": "592de54aabc9d467691316ae4fac1b713f935a04e63b408102561e2e800deddb",
         "templates/presentation_form.php": "00cf4f3a8a4270da20bd5efa0f149b672e3b2d17620a1876fc38f0cc859f63d8",
         "templates/footer.php": "1d217a244076e5ab635b2c4e87e417dc7a0cf202068c063b7302b7117a8df706",
         "assets/js/footer.js": "54ecc19b9767f221be009cfc8daeb6a88c2f93712942c7b882357f34369dc5ad",

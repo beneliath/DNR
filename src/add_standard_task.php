@@ -83,7 +83,12 @@ $standard_task_form_allow_generation = $user_role === 'admin';
 <?php include 'templates/header.php'; ?>
 <main class="container add-standard-task-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><a href="standard_tasks.php">Standard Event Tasks</a><span aria-hidden="true">/</span><span>New Task</span></nav>
-    <div class="page-heading form-page-heading add-standard-task-heading"><div><h1>New Standard Event Task</h1><p class="page-intro">Add reusable work that will be assigned automatically when a new event is created.</p></div></div>
+    <div class="page-heading form-page-heading add-standard-task-heading">
+        <div class="form-heading-content">
+            <h1>New Standard Event Task</h1>
+            <?php renderFormHeadingSummary('Add reusable work that will be assigned automatically when a new event is created.'); ?>
+        </div>
+    </div>
     <?php if ($error_message !== ''): ?><p class="error"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php include 'templates/standard_event_task_form.php'; ?>
 </main>

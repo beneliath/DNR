@@ -179,9 +179,10 @@ async function verifyForm(page, width) {
     const cards = page.locator('#presentation-1 .presentation-notes-card');
     const pdf = cards.first().locator('input[type=file]');
     const notice = cards.first().locator('[data-file-drop] [data-file-save-notice]');
+    const draftPanel = page.locator('.form-draft-panel');
 
     assert.equal(await page.locator('[data-lifecycle-badge]').count(), 0);
-    assert.equal(await page.locator('.form-draft-panel').getAttribute('open'), null);
+    assert.equal(await draftPanel.getAttribute('open'), null);
     assert.equal(await page.getByRole('button', {name: 'Save Draft', exact: true}).isVisible(), false);
     const searchStatus = page.locator('[data-relationship-search-status]');
     for (const text of ['', '1 matching organization.']) {
@@ -190,7 +191,10 @@ async function verifyForm(page, width) {
             .evaluateAll(fields => fields.map(field => field.getBoundingClientRect().right));
         assert.ok(Math.max(...sides) - Math.min(...sides) < 1, 'Event details fields share a right edge');
     }
-    assert.equal(await page.locator('.required-fields-note').textContent(), '*Required Field');
+    const requiredNote = page.locator('.required-fields-note');
+    assert.equal(await requiredNote.textContent(), '*Required Field');
+    const [draft, note] = await Promise.all([draftPanel.boundingBox(), requiredNote.boundingBox()]);
+    assert.ok(note.y >= draft.y + draft.height, 'The required field note follows the draft panel');
     assert.equal(await page.locator('[data-sticky-toolbar] .engagement-schedule-row').count(), 1);
     assert.equal(await page.locator('.engagement-schedule-row label').first().textContent(), '*Start');
     assert.equal(await page.locator('#event_start_date').inputValue(), '2026-11-18');

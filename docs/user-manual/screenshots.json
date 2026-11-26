@@ -258,7 +258,7 @@
     ],
     "file": "screenshots/inquiry-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-24",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -277,7 +277,7 @@
         4577,
         3852
       ],
-      "sha256": "5171d35639855b43bdd82520ed35afbea36b9bcb8443e5a163793fb1f6251795"
+      "sha256": "9028764e4eebe4a8b442ee5b36be212fea2633b688a5288652d8e06399a58352"
     }
   },
   {
@@ -524,7 +524,7 @@
     "chapter": 5,
     "id": "engagement-form",
     "title": "Edit an engagement in focused cards",
-    "route": "edit_engagement.php?id=1",
+    "route": "edit_engagement.php?id=13",
     "steps": [
       "Use the engagement toolbar to change the dates, event type, lifecycle, and confirmation.",
       "Review Event Details and use the Event Contacts pane to assign roles and choose a Caller.",
@@ -532,7 +532,7 @@
     ],
     "file": "screenshots/engagement-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-24",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -551,7 +551,7 @@
         4577,
         4531
       ],
-      "sha256": "8fc2b760415a2bcf275ed163e535af80c8327499ca1776293681caeb5297f102"
+      "sha256": "fed3e7e60d29d43442bf555e8e16bc56abff2ed45f09637890a1de527b360879"
     }
   },
   {
@@ -564,7 +564,7 @@
       "Use the toolbar for dates, event type, lifecycle, and confirmation. Select Create Engagement when the form is ready."
     ],
     "file": "screenshots/new-engagement-toolbar.png",
-    "captured_at": "2026-11-24",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -583,7 +583,7 @@
         4577,
         3852
       ],
-      "sha256": "04bfb10e8178fabc401faee5f0e84987462e5a2427db4c1a5f33d0e335e43e4d"
+      "sha256": "d9f6c4d57761a91818e6c2d0b97580052a73078ada71b6db196915054331a2d0"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -625,14 +625,14 @@
     "id": "engagement-draft-restored",
     "chapter": 5,
     "title": "Restore an engagement draft",
-    "route": "edit_engagement.php?id=1",
+    "route": "edit_engagement.php?id=13",
     "steps": [
       "Expand the draft panel and select Save Draft to keep unsaved values in this browser.",
       "Reopen the same engagement and select Restore Draft. Review each highlighted field.",
       "Select Save Changes to persist the restored values to the engagement."
     ],
     "file": "screenshots/engagement-draft-restored.png",
-    "captured_at": "2026-11-24",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -651,7 +651,7 @@
         4577,
         3852
       ],
-      "sha256": "a622ebbff944bcd89c0fa3b98aed1eeb598f5ef224033b31144907a988085b7b"
+      "sha256": "7f3b50a18e3efc820a8c50538f4bb7c484078857a6d09bc2a88df11a1a0fb5e0"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1129,15 +1129,15 @@
     "title": "Add or edit reusable email text",
     "route": "edit_email_template.php?id=1",
     "steps": [
-      "Enter a clear template name, a subject, and the starting plain-text message.",
-      "Use event fields such as {{event_name}} in the text. The engagement routing marker is added automatically when composing.",
-      "Existing templates can be edited too. Save Changes updates the template for future selections, leaving sent messages intact.",
-      "If another session changed the template, preserve your edits, reload, and review the current version before saving."
+      "Enter a name, subject, and plain-text message. On a wide screen, Display Order is beside Template Name and Recipient Suggestions is beside Subject.",
+      "Expand Draft above *Required Field and select Save Draft to keep your work in this browser. Reopen the same new-template form or the same template and select Restore Draft.",
+      "If someone saved a newer version, compare the current and draft values and restore the fields you want to keep.",
+      "Select Create Template or Save Changes to save the template for future emails. A successful save clears its browser draft."
     ],
     "file": "screenshots/email-template-editor.png",
     "captured_on": "2026-09-10",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1156,7 +1156,7 @@
         4577,
         3852
       ],
-      "sha256": "19aaf22ca08942dcd732173358c53a564a35a49d4beba6c2183d0ba0572ab64f"
+      "sha256": "9f109d7cc3b8a46f430cfdaddaa48818c914a98a46a521425c845724ca3f4cdd"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1170,12 +1170,12 @@
     "steps": [
       "Expand Personalize with event fields. Place the cursor in the subject or message, then select a field button.",
       "Presentation schedule is available in the message only. Speaker names inserts text; it does not select recipients.",
-      "Choose suggested event contact roles. Leave all clear to choose contacts when composing. Lower Display order numbers appear first.",
+      "Choose event contact roles under Recipient Suggestions beside Subject. Leave them clear to choose contacts when composing. Lower Display Order numbers appear first.",
       "Save the template. Open an engagement email, choose it, and review the filled text and recipients before queuing."
     ],
     "file": "screenshots/email-template-fields.png",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1186,15 +1186,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 811
+        "height": 832
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         4577,
-        3675
+        3770
       ],
-      "sha256": "d0582f34aabe69532e204598c3910758357787842a92a4bd4d1c2ab52b6f29cb"
+      "sha256": "74dcfb6782aa4216dd0791ab764fe48432011464d2f9d4cf42bc07a542e6239b"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1408,7 +1408,7 @@
     "chapter": 6,
     "id": "contact-form",
     "title": "Maintain affiliations and a photo",
-    "route": "edit_contact.php?id=1",
+    "route": "edit_contact.php?id=54",
     "steps": [
       "Enter names and contact channels; an organization is optional.",
       "Set the primary organization role and add additional organization affiliations with their own roles.",
@@ -1417,7 +1417,7 @@
     ],
     "file": "screenshots/contact-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1436,7 +1436,7 @@
         4577,
         3852
       ],
-      "sha256": "a3fff989b1640b76ad4f763daead1fa9e0076cfd0a8b49f1d7f0063f8d7b5e8a"
+      "sha256": "6186c38cbddde94045fc96bd47bdbddf8282526dc6512b7bbe6b85e06aee4fcf"
     }
   },
   {
@@ -1662,7 +1662,7 @@
     ],
     "file": "screenshots/task-form.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-24",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1673,15 +1673,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 1218
+        "height": 1177
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         4577,
-        5519
+        5333
       ],
-      "sha256": "85ac08937a9401112e9399426320c548f885e579e6adf824d3fd42c84465d084"
+      "sha256": "3aff266820d1648c2a948f310731e2c3781639ea0c575720641f2efb2cf89678"
     }
   },
   {
@@ -1697,7 +1697,7 @@
     ],
     "file": "screenshots/duplicate-task.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1716,7 +1716,7 @@
         4577,
         3852
       ],
-      "sha256": "20a9ab839f8c24fd03cd774c7b8aadd46007bee936ec6e4433d884f0b57e309d"
+      "sha256": "ea96d24ed7b1dae3edcc49117d4d95b15bf5e531b5f3ff00777509aece032054"
     }
   },
   {
@@ -1760,7 +1760,7 @@
     "title": "Schedule a standard task for existing engagements",
     "route": "add_standard_task.php",
     "steps": [
-      "Enter the reusable title and notes above the Scheduling section. Choose priority, date anchor, day offset, and display order.",
+      "Enter the reusable title and notes in Task. Set priority, date anchor, day offset, and display order in Scheduling. The panes sit side by side on wide screens when adding or editing a definition.",
       "Administrators can check Also add this task to all scheduled, open engagements before Add standard task. Editors can maintain definitions but cannot use bulk generation.",
       "This adds the task to unarchived engagements with a Scheduled lifecycle and open financial closeout. Copies use the date rule and go to the active Caller, or to the administrator if none is assigned.",
       "On a saved definition, administrators can use Add to Scheduled, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication."
@@ -1768,8 +1768,7 @@
     "file": "screenshots/standard-form.png",
     "note": "The option is selected for illustration; the form was not submitted.",
     "action": "standard-generation",
-    "focus": ".form-section:has(#standard-task-priority)",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1780,15 +1779,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 812
+        "height": 850
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         4577,
-        3679
+        3852
       ],
-      "sha256": "1cdf5ecbca06cbb3c02488723b4290731dfe619955f42c1d4f78c21b2a4be45f"
+      "sha256": "268d9a12e821a9f7b674cc7cd84d2e97c12aba511b05c2f85f3ce1b9149b305d"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -3949,7 +3948,7 @@
       "Open Use Existing when a match is correct. If these are distinct records, explicitly acknowledge that before creating the new one."
     ],
     "file": "screenshots/duplicate-record-warning.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-26",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
@@ -3969,7 +3968,7 @@
         4577,
         3852
       ],
-      "sha256": "46767c3ad882750e91f75d2453e07d7805e747d2fc3ee5bfbb09f7519013579e"
+      "sha256": "fbe757b5fe53438868cc6abd489a348ebfeb01246e86ac3d7dc23b65d94b0873"
     }
   },
   {

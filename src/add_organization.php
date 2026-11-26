@@ -289,7 +289,12 @@ if (isset($_SESSION['success_message'])) {
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages, $errorFieldIds); ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
-    <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Start with a name; add contacts and address details as the relationship develops.</p></div></div>
+    <div class="page-heading form-page-heading add-organization-heading">
+        <div class="form-heading-content">
+            <h1>New Organization</h1>
+            <?php renderFormHeadingSummary('Start with a name; add contacts and address details as the relationship develops.'); ?>
+        </div>
+    </div>
     <noscript><form method="get" action="add_organization.php" class="card">
         <?php if ($creation_return !== ''): ?><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
         <label for="existing-contact-search-fallback">Find an Existing Contact</label>
@@ -297,7 +302,6 @@ if (isset($_SESSION['success_message'])) {
         <button type="submit" class="button-secondary">Find Contacts</button>
         <p>Search before filling the organization form. The results show up to 25 contacts.</p>
     </form></noscript>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" enctype="multipart/form-data" action="add_organization.php" class="organization-form" data-duplicate-kind="organization">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'organization', $creation_return); ?>
 

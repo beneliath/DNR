@@ -1423,12 +1423,33 @@ html body .container > .profile-form {
   margin-bottom: 22px;
 }
 
+.page-heading > .form-heading-content {
+  width: 100%;
+}
+
+.form-heading-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.form-heading-summary > .page-intro {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .required-fields-note {
   margin: 0 0 22px;
   color: var(--danger);
   font-size: 0.8rem;
   font-weight: 650;
   text-align: right;
+}
+
+.form-heading-summary > .required-fields-note {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .required-fields-note span {
@@ -3165,6 +3186,18 @@ html body .container > .standard-event-task-form,
   border-radius: 0;
   background: transparent !important;
   box-shadow: none;
+}
+
+@media (min-width: 60rem) {
+  .standard-event-task-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 18px;
+  }
+
+  .standard-event-task-form > :not(.standard-task-form-pane) {
+    grid-column: 1 / -1;
+  }
 }
 
 .task-record-search-dialog #task-subject-search {

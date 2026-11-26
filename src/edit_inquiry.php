@@ -74,7 +74,13 @@ $inquiry_form_submit_label = 'Save Changes';
 <?php include 'templates/header.php'; ?>
 <main class="container inquiry-form-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="inquiries.php">Booking Pipeline</a><span aria-hidden="true">/</span><a href="view_inquiry.php?id=<?php echo $inquiry_id; ?>">Inquiry</a><span aria-hidden="true">/</span><span>Edit</span></nav>
-    <header class="page-heading inquiry-form-heading"><div><p class="eyebrow">Inquiry #<?php echo $inquiry_id; ?></p><h1>Edit Inquiry</h1><p class="page-intro">Keep the request and its next action current.</p></div></header>
+    <header class="page-heading inquiry-form-heading">
+        <div class="form-heading-content">
+            <p class="eyebrow">Inquiry #<?php echo $inquiry_id; ?></p>
+            <h1>Edit Inquiry</h1>
+            <?php renderFormHeadingSummary('Keep the request and its next action current.', false); ?>
+        </div>
+    </header>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php include 'templates/booking_inquiry_form.php'; ?>
 </main>

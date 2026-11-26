@@ -160,6 +160,19 @@ function renderScript($path, $defer = true, $module = false, $blockRender = fals
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
 }
 
+function renderFormHeadingSummary(string $description, bool $showRequiredFields = true): void {
+    echo '<div class="form-heading-summary"><p class="page-intro">'
+        . htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+    if ($showRequiredFields) {
+        renderRequiredFieldsNote();
+    }
+    echo '</div>' . PHP_EOL;
+}
+
+function renderRequiredFieldsNote(): void {
+    echo '<p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>' . PHP_EOL;
+}
+
 function renderFormDraftPanel(bool $collapsible = true): void {
     $cleared = array_values(array_filter($_SESSION['clear_form_drafts'] ?? [], 'is_string'));
     $panel_tag = $collapsible ? 'details' : 'section';

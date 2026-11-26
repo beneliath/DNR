@@ -114,7 +114,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "31fccd2d6d352a3ee264f0a88992fe1ddccf791e4bafd297d5c0b88ccd4d3569",
+      "sha256": "ca7966edbbfd36f4d902201deed0d2ab128d4a1c33143ce4c317db0f5d4277da",
       "controls": [
         {
           "kind": "a",
@@ -202,7 +202,7 @@
       ]
     },
     "add_inquiry.php": {
-      "sha256": "94e98e72552af0ae46c9b6957dff6e3a27234328094b774c8c8c046fb47ddda1",
+      "sha256": "e7b568b7807aa0c0cc3d580f48f194dd905d14e8af2f67bb57a3d6b06835ae7d",
       "controls": [
         {
           "kind": "a",
@@ -216,7 +216,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "6e90f65b26762be3062a726ad32cf1c769a77d75571ab3e884f6bbf275b5ecdc",
+      "sha256": "002eda45342a4575667edef45eb9f2688a9c4cbe5298f022cfb4cc60ca28fa43",
       "controls": [
         {
           "kind": "a",
@@ -500,7 +500,7 @@
       ]
     },
     "add_standard_task.php": {
-      "sha256": "101ac8aa842b856214e36512f8e126e70f86a21bc26627a05cae6e4c38d18474",
+      "sha256": "14f08e619861dd5876503377cfe588737de074547aec4cfd035c7c99fc0fd8e4",
       "controls": [
         {
           "kind": "a",
@@ -519,7 +519,7 @@
       ]
     },
     "add_task.php": {
-      "sha256": "f7caf39146423b00633182971827d8f2273079c8faabbeb75f9df220a688fc2e",
+      "sha256": "3fd6b9b12aca4de14a52e24392fb3634f16b9ee4cf0052a903baba386744d7cf",
       "controls": [
         {
           "kind": "a",
@@ -1298,7 +1298,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "6819aefa00ef62a406ee174dc2d5dbffd2d15f1d59c846a26291d2a7e5b841f5",
+      "sha256": "0b6bf7a1b5b87a167ab3065b7cf9afb6b343fc6f975fc5217e6010e4d55bb22a",
       "controls": [
         {
           "kind": "a",
@@ -1386,7 +1386,7 @@
       ]
     },
     "edit_email_template.php": {
-      "sha256": "c33da3fe7873c223a693519d78c60007dd628e134f33e4436aa453f639d63b13",
+      "sha256": "968056062680f1fcae2befc6db1fa33cd65ac5c514061cc564be42540cbaab3b",
       "controls": [
         {
           "kind": "a",
@@ -1404,8 +1404,17 @@
         },
         {
           "kind": "label",
+          "label": "Display Order",
+          "for": "template-order"
+        },
+        {
+          "kind": "label",
           "label": "Subject",
           "for": "template-subject"
+        },
+        {
+          "kind": "legend",
+          "label": "Recipient Suggestions"
         },
         {
           "kind": "label",
@@ -1415,24 +1424,11 @@
         {
           "kind": "button",
           "label": "{{}}"
-        },
-        {
-          "kind": "h2",
-          "label": "Recipient Suggestions"
-        },
-        {
-          "kind": "legend",
-          "label": "Suggested Event Contacts"
-        },
-        {
-          "kind": "label",
-          "label": "Display Order",
-          "for": "template-order"
         }
       ]
     },
     "edit_engagement.php": {
-      "sha256": "aef01940ad6f349419d835b2a026fd668577da1b34e35352d603a61d2ffb280e",
+      "sha256": "592de54aabc9d467691316ae4fac1b713f935a04e63b408102561e2e800deddb",
       "controls": [
         {
           "kind": "a",
@@ -1578,7 +1574,7 @@
       ]
     },
     "edit_inquiry.php": {
-      "sha256": "caafb82a7b6cdb41158b71845d298eeb3f4938158241eb58259a8680d0e26672",
+      "sha256": "aa814062362dc8a6fc3c7eea1f0f0292d4b6716bd6fd6feb0b5a35c2b579f60b",
       "controls": [
         {
           "kind": "a",
@@ -1725,7 +1721,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "41387a6994f44b3aa36889534b9125c61b38eab12b1e410aa71d2aa6bb542556",
+      "sha256": "a42a0d03cc14fa79805f7ee5a9d106b634bf0e4ccec7f0199f976502330f80bd",
       "controls": [
         {
           "kind": "a",
@@ -1787,7 +1783,7 @@
       ]
     },
     "edit_standard_task.php": {
-      "sha256": "2735bef3ceea85bd0b9cb25a265733056fd97c5dd884b898a693c8efa1aac8c6",
+      "sha256": "3a322ac7c148d1c4b64cb7a0468c56c37ba0f058d954eceb77383bcba5d171dd",
       "controls": [
         {
           "kind": "a",
@@ -1806,7 +1802,7 @@
       ]
     },
     "edit_task.php": {
-      "sha256": "d5875dbdf90feef97d7a4a1b5a6c24f18c4acc3ae334f96260e8daeff6e86625",
+      "sha256": "abc52ba46ee9e8cf349b6035e4635bc5f96ecac8591a204d90af49073a895ed4",
       "controls": [
         {
           "kind": "a",
@@ -2160,7 +2156,7 @@
       ]
     },
     "index.php": {
-      "sha256": "81317c992ed5c14e75aa99b52f439bf95d6de9d517918823869739c904272c59",
+      "sha256": "f195fe0692dc254e97ead8ac2031589bf6e22a01aae88f33b7cd16213dbf213e",
       "controls": [
         {
           "kind": "a",

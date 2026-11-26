@@ -76,7 +76,7 @@ function route(s){
 }
 const targets={
  'inquiry-action':'#inquiry-next-action','presentation-form':'.presentation-fields','presentation-files':'.presentation-assets','presentation-file-pending':'.presentation-assets','presentation-management':'.presentation-management-actions','lifecycle':'[data-engagement-lifecycle]',
- 'statistics':'.short-link-report','email-template-fields':'.email-template-field-help','speaker-links':'#speaker-custom-links-heading','standard-form':'.form-section:has(#standard-task-priority)','email-message':'#body','subscription':'#calendar-subscriptions-title','retention':'#audit-retention-title','link-controls':'[name=target_url]','closeout-amounts':'.closeout-form','recovery-email':'#recovery-email-heading',
+ 'statistics':'.short-link-report','email-template-fields':'.email-template-field-help','speaker-links':'#speaker-custom-links-heading','email-message':'#body','subscription':'#calendar-subscriptions-title','retention':'#audit-retention-title','link-controls':'[name=target_url]','closeout-amounts':'.closeout-form','recovery-email':'#recovery-email-heading',
  'digest-preferences':'#notification-preferences-heading','reimbursement-profile':'.profile-reviewer-email','reimbursement-receipts':'[data-receipt-drop]','reimbursement-selection':'.reimbursement-selection-summary','reimbursement-confirm':'.reimbursement-confirm','dashboard-timing':'.dashboard-my-work'};
 (async()=>{
  const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
@@ -191,6 +191,17 @@ const targets={
    }
    if(s.id==='roles')await page.locator('.role-preview-disclosure summary, .role-preview-disclosure > summary').first().click();
    if(s.id==='manual-search')await page.locator('[data-manual-search]').fill('financial closeout');
+   if(s.id==='email-template-editor'){
+    const panel=page.locator('.form-draft-panel');
+    await page.locator('#template-name').fill('Community workshop follow-up');
+    await panel.locator('summary').click();
+    await panel.getByRole('button',{name:'Save Draft',exact:true}).click();
+    await page.reload();
+    await panel.locator('summary').click();
+    await panel.getByRole('button',{name:'Restore Draft',exact:true}).click();
+    await page.locator('#template-name[data-draft-restored]').waitFor();
+    await page.evaluate(()=>window.scrollTo(0,0));
+   }
    if(s.id==='email-template-fields')await page.getByText(/Personalize with Event Fields/i,{exact:true}).click();
    if(s.id==='standard-form'){await page.locator('#standard-task-title').fill('Review presentation resources');await page.locator('#standard-task-details').fill('Check the uploaded speaker notes and audience resource links.');await page.locator('#standard-task-priority').selectOption('high');await page.locator('#standard-task-offset').fill('-3');await page.locator('#generate-existing-engagements').check();}
    if(s.id==='email'){if(await page.locator('[data-select-all-recipients]').count())await page.locator('[data-select-all-recipients]').click();}

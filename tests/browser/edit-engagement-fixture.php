@@ -23,7 +23,9 @@ $presentation_form_rows = [['topic_title' => $rejectedSave ? 'Submitted edit' : 
 $source_dir = __DIR__ . '/../../src';
 set_include_path($source_dir . PATH_SEPARATOR . get_include_path());
 $source = file_get_contents($source_dir . '/edit_engagement.php');
-$layout_start = strpos($source, '<div class="engagement-form-meta">');
+$heading_start = strpos($source, '<div class="page-heading form-page-heading edit-engagement-heading">');
+$heading_end = strpos($source, "<?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>", $heading_start);
+$layout_start = strpos($source, '<?php renderFormDraftPanel(true); ?>');
 $layout_end = strpos($source, "<?php\n        \$presentation_not_required", $layout_start);
 $chron_start = strpos($source, '<section class="form-section chron-log-section" id="chron-log">');
 $chron_end = strpos($source, "\n</div>\n\n<script nonce=", $chron_start);
@@ -101,6 +103,7 @@ $archived_chron_count = 1;
 <div class="account-identity-banner">Fixture Account</div>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <main class="container edit-engagement-page">
+    <?php eval('?>' . substr($source, $heading_start, $heading_end - $heading_start)); ?>
     <form class="engagement-form" id="engagement-edit-form"<?= $withDraft ? ' data-recoverable-draft="edit_engagement.php:1"' : '' ?>>
         <input type="hidden" name="edit_baseline" value="<?= htmlspecialchars($rejectedSave ? $argv[1] : '', ENT_QUOTES, 'UTF-8') ?>">
         <?php eval('?>' . substr($source, $layout_start, $layout_end - $layout_start)); ?>

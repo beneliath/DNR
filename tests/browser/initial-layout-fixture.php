@@ -90,7 +90,7 @@ if (str_starts_with($case, 'task')) {
     if ($case === 'draft-chron') {
         $source = file_get_contents(__DIR__ . '/../../src/edit_engagement.php');
         $start = strpos($source, '<input type="hidden" name="engagement_version"');
-        $end = strpos($source, '<div class="engagement-form-meta">', $start);
+        $end = strpos($source, '<?php renderFormDraftPanel(true); ?>', $start);
         $engagement = ['updated_at' => '1'];
         $chron_entries = [['id' => 8, 'updated_at' => '2'], ['id' => 9, 'updated_at' => '3']];
         $submitted_chron_versions = [];

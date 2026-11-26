@@ -92,7 +92,7 @@ HTML],
         'links'=>[['Tags', ['view'=>'tags']], ['Groups', ['view'=>'groups']], ['Fields and Merge Tags', ['view'=>'fields']], ['Segments', ['view'=>'segments']]],
         'topics'=>[
             ['tags', 'Tags: Internal Labels', <<<'HTML'
-<p>Use <strong>Audience → Tags</strong> to create internal labels. Click a tag name to see its connections. Apply tags from a profile, the audience list, or an import; removing one from a connection changes only that assignment.</p>
+<p>Use <strong>Audience → Tags</strong> to create internal labels. Select a tag’s <strong>Active</strong> or <strong>Archived</strong> count to open that filtered connection list. Sort by <strong>Tag Name</strong>, <strong>Active</strong>, <strong>Archived</strong>, or <strong>Created</strong>. Apply tags from a profile, the connection list, or an import. Removing a tag from a connection changes only that assignment.</p>
 <p>Archived tags retain existing assignments and saved filters but cannot be assigned anew until restored. Find them in <strong>Archived</strong>.</p>
 HTML],
             ['groups-fields', 'Groups and Profile Fields', <<<'HTML'
@@ -101,6 +101,7 @@ HTML],
 HTML],
             ['segments', 'Segments: Reusable Audience Rules', <<<'HTML'
 <ol><li>Open <strong>Audience → Segments</strong> and create a segment.</li><li>Add profile, membership, activity, or engagement rules; choose <strong>all</strong> or <strong>any</strong> matching and review the count.</li><li>Save with a useful name, then use it when selecting a campaign audience.</li></ol>
+<p>Sort saved segments by <strong>Segment Name</strong>, <strong>Connections</strong>, <strong>Created</strong>, or <strong>Modified</strong>. Use the <strong>Email Complaint</strong> rule under <strong>Email Engagement</strong> to identify connections with a recorded complaint. A matching connection still must meet consent and delivery requirements to receive email.</p>
 <p>Membership can change, and recipient eligibility still applies at send time. Archived segments retain their rules and existing references but cannot be used for new targeting until restored from <strong>Archived</strong>.</p>
 HTML],
         ],
@@ -195,6 +196,7 @@ HTML],
             ['build-flow', 'Create and Review a Flow', <<<'HTML'
 <ol><li>Open <strong>Automations</strong> and choose a flow template or <strong>Build from scratch</strong>.</li><li>Configure the entry trigger and the available conditions, delays, and actions. Read each step’s description; a template still needs your account’s choices.</li><li>Review every email and recipient condition. Check for missing values, unintended branches, and delays that do not fit the intended timing.</li><li>Save the flow, choose <strong>Continue</strong>, and resolve the validation issues before turning it on.</li></ol>
 <p>While editing a draft or paused flow with <strong>Rules &amp; Actions</strong> open, the outline of the selected map card pulses to match the rule or action shown in the editing column. When editing the starting point, all of its trigger cards are outlined together. With reduced motion enabled, the outline stays steady.</p>
+<p>Use <strong>Reports Email as Spam</strong> to begin a flow when MessageMonkey records an email complaint. For example, add an internal follow-up tag for review. Email suppression continues to apply to the connection.</p>
 <p>Keep a new flow in draft while reviewing it. Activating an email automation can lead to real sends when its trigger and conditions are met.</p>
 HTML],
             ['pause-flow', 'Pause, Edit, and Resume', <<<'HTML'

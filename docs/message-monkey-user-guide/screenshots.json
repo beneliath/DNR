@@ -436,35 +436,46 @@
   {
     "id": "tags",
     "chapter": 4,
-    "title": "Use tag names to view their connections",
+    "title": "View active and archived connections by tag",
     "route": "audience.php?view=tags",
     "steps": [
       "Create or locate an internal label with a clear purpose.",
-      "Click a tag name to open the associated connections.",
-      "Check the Active and Archived tabs. Archived tags keep existing assignments until they are restored."
+      "Select the Active or Archived count on a tag row to open the corresponding connection list.",
+      "Select Tag Name, Active, Archived, or Created to sort. The Active and Archived tabs filter the tags themselves."
     ],
     "file": "screenshots/tags.png",
     "capture": {
       "source": "Native browser PNG; no resizing or sharpening",
       "device_scale_factor": 3,
       "viewport_css": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
-      "clip_css": null,
+      "clip_css": {
+        "x": 232,
+        "y": 72,
+        "width": 1368,
+        "height": 695
+      },
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "f54ac304cdc4da548411bf76d8a3769ae3801ab51236e2235de49ac131aa507a",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-26",
+      "sha256": "324e4fbc37a47a18966d7cd16d8638af08972afb5f82786e3f5edb9d3734793a"
+    },
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "clip": {
+      "x": 232,
+      "y": 72,
+      "width": 1368,
+      "height": 695
     },
     "crop": [
-      720,
-      336,
-      3120,
-      2400
+      0,
+      0,
+      4104,
+      1920
     ]
   },
   {
@@ -542,7 +553,8 @@
     "route": "audience.php?view=segments",
     "steps": [
       "Open a segment to inspect its rules.",
-      "Review whether all rules or any rule must match and check the resulting connections.",
+      "Review whether all rules or any rule must match. Sort the saved list by Segment Name, Connections, Created, or Modified.",
+      "To identify connections with a recorded complaint, use Email Complaint under Email Engagement in the rule builder.",
       "Use the Archived view to find a retired segment; restore it before new targeting. Recheck recipient eligibility at send time."
     ],
     "file": "screenshots/segments.png",
@@ -550,23 +562,34 @@
       "source": "Native browser PNG; no resizing or sharpening",
       "device_scale_factor": 3,
       "viewport_css": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
-      "clip_css": null,
+      "clip_css": {
+        "x": 232,
+        "y": 72,
+        "width": 1368,
+        "height": 565
+      },
       "theme": "light",
-      "captured_at": "2026-11-17",
-      "sha256": "53bb5ab3177e747e10132ca3e5189c0384eda463c5a39c7b02c2e87ebd37fba6",
-      "native_pixels": [
-        3840,
-        3000
-      ]
+      "captured_at": "2026-11-26",
+      "sha256": "33251941140edeb84a5f9e87094fbe931dd85235742c3580e1fe4ca3f55064c1"
+    },
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "clip": {
+      "x": 232,
+      "y": 72,
+      "width": 1368,
+      "height": 565
     },
     "crop": [
-      720,
-      336,
-      3120,
-      2400
+      0,
+      0,
+      4104,
+      1644
     ]
   },
   {
