@@ -67,9 +67,13 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="speakers.php">Speakers</a><span aria-hidden="true">/</span><span><?php echo $page_title; ?></span></nav>
-    <div class="page-heading form-page-heading"><div><h1><?php echo $page_title; ?></h1><p class="page-intro">Keep the speaker’s name and contact details together. Changes appear on all associated presentations.</p></div></div>
+    <div class="page-heading form-page-heading">
+        <div class="form-heading-content">
+            <h1><?php echo $page_title; ?></h1>
+            <?php renderFormHeadingSummary('Keep the speaker’s name and contact details together. Changes appear on all associated presentations.'); ?>
+        </div>
+    </div>
     <?php if ($error_message !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" enctype="multipart/form-data" action="<?php echo htmlspecialchars('edit_speaker.php' . ($speaker_id === null ? '' : '?id=' . $speaker_id), ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($return_to, ENT_QUOTES, 'UTF-8'); ?>">

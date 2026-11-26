@@ -52,6 +52,10 @@ const html = {add: fixture(false), edit: fixture(true), stale: fixture(true, 've
                     assert.equal(await panel.getAttribute('open'), null);
                     assert.equal(await page.locator('#inquiry-title').inputValue(), 'Current inquiry');
                     await panel.locator('summary').click();
+                    const requiredNote = page.locator('.required-fields-note');
+                    assert.equal(await requiredNote.textContent(), '*Required Field');
+                    const [draft, note] = await Promise.all([panel.boundingBox(), requiredNote.boundingBox()]);
+                    assert.ok(note.y >= draft.y + draft.height, 'The required field note follows the expanded draft panel');
                     if (editing) {
                         await gold(page.locator('[data-field="Saved Draft"]').first());
                         await page.getByRole('button', {name: 'Restore Inquiry Title', exact: true}).click();

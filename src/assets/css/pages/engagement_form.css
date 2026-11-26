@@ -5,24 +5,12 @@
     margin: 0;
 }
 
-:is(#new-engagement-form, #engagement-edit-form) .engagement-form-meta {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: 12px 16px;
-}
-
 html:not(.has-js) :is(#new-engagement-form, #engagement-edit-form) :is([data-form-draft-panel], [data-relationship-search-input], [data-relationship-search-status]) {
     display: none;
 }
 
 :is(#new-engagement-form, #engagement-edit-form) #chron_entry {
     width: 100%;
-}
-
-:is(#new-engagement-form, #engagement-edit-form) .engagement-form-meta > .required-fields-note {
-    grid-column: 2;
-    margin: 0;
 }
 
 :is(#new-engagement-form, #engagement-edit-form) .engagement-primary-row > :is(.engagement-details-section, .engagement-contact-column) {
@@ -167,12 +155,6 @@ html:not(.has-js) :is(#new-engagement-form, #engagement-edit-form) :is([data-for
 .engagement-contact-column {
     display: grid;
     min-width: 0;
-}
-
-.engagement-primary-row > .required-fields-note {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0;
 }
 
 .engagement-primary-row > .engagement-details-section {
@@ -395,10 +377,6 @@ html:not(.has-js) :is(#new-engagement-form, #engagement-edit-form) :is([data-for
     .engagement-primary-row > .engagement-details-section {
         grid-column: 1;
         grid-row: 1;
-    }
-    .engagement-primary-row > .required-fields-note {
-        grid-column: 1;
-        grid-row: 2;
     }
     .engagement-primary-row > .engagement-contact-column {
         grid-column: 1;

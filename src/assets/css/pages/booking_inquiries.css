@@ -307,18 +307,12 @@ html body main.container.inquiry-form-page > form.inquiry-form.inquiry-form {
     box-shadow: none !important;
     outline: 0 !important;
 }
-.inquiry-form-top-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    column-gap: .75rem;
-}
-.inquiry-form-top-row > .form-draft-panel {
+.inquiry-form > .form-draft-panel {
     border-bottom: 0;
     padding-bottom: 0;
     margin: 0;
 }
-.inquiry-form-top-row > .required-fields-note { margin: 0; }
+.inquiry-form > .required-fields-note { margin: 0; }
 .inquiry-form .form-section {
     margin: 0;
     padding: clamp(1.25rem, 2.5vw, 1.65rem);

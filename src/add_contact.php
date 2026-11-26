@@ -247,11 +247,15 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
-    <div class="page-heading form-page-heading add-contact-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
-        ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
-        : 'Connect a person with their organizations and roles.'; ?></p></div></div>
+    <div class="page-heading form-page-heading add-contact-heading">
+        <div class="form-heading-content">
+            <h1>New Contact</h1>
+            <?php renderFormHeadingSummary($context_organization !== null
+                ? 'Add a contact for ' . $context_organization['organization_name'] . '.'
+                : 'Connect a person with their organizations and roles.'); ?>
+        </div>
+    </div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form contact-layout-form" data-duplicate-kind="contact">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'contact', $creation_return); ?>
 

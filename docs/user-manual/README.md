@@ -54,7 +54,12 @@ transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
 
-The November 24, 2026 edition applies to application version **2.11.35**.
+The November 26, 2026 edition uses application version **2.11.42**. It
+documents the single-pane email template editor, browser drafts for templates,
+the Task and Scheduling panes, and the position of required-field notes on
+forms with a Draft block. Updated screenshots use fictional preview records.
+
+The November 24, 2026 edition applied to application version **2.11.35**.
 Eight figures were recaptured, and four new figures show the New Engagement
 toolbar, the venue replacement confirmation, restored draft highlights, and
 the selected engagement task. The Work Queue guidance explains the difference

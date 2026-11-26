@@ -1,6 +1,10 @@
 # MessageMonkey Comprehensive User Guide
 
-The November 24, 2026 edition documents MessageMonkey in MOED 2.11.35. It
+The November 26, 2026 edition documents MessageMonkey in MOED 2.11.42. It
+refreshes the Tags and Segments figures and covers sorting, linked active and
+archived tag counts, and complaint rules and triggers.
+
+The November 24, 2026 edition documented MessageMonkey in MOED 2.11.35. It
 refreshes four figures and adds three native 3x figures covering the published
 signup-page background, tags on a new pending connection, and the Daily Summary
 settings. The guide describes the 24-hour Chicago reporting window and the

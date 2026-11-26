@@ -1,7 +1,7 @@
 {
   "title": "MessageMonkey Comprehensive User Guide",
-  "version": "2.11.35",
-  "edition": "November 24, 2026",
+  "version": "2.11.42",
+  "edition": "November 26, 2026",
   "pages": 93,
   "chapters": 14,
   "figures": 64,
@@ -388,11 +388,11 @@
       "effective_dpi": 435.26
     },
     "tags": {
-      "width_pixels": 3120,
-      "height_pixels": 2400,
-      "width_points": 516.1,
-      "height_points": 397,
-      "effective_dpi": 435.26
+      "width_pixels": 4104,
+      "height_pixels": 1920,
+      "width_points": 528,
+      "height_points": 247.018,
+      "effective_dpi": 559.64
     },
     "groups": {
       "width_pixels": 3120,
@@ -409,11 +409,11 @@
       "effective_dpi": 435.26
     },
     "segments": {
-      "width_pixels": 3120,
-      "height_pixels": 2400,
-      "width_points": 516.1,
-      "height_points": 397,
-      "effective_dpi": 435.26
+      "width_pixels": 4104,
+      "height_pixels": 1644,
+      "width_points": 528,
+      "height_points": 211.509,
+      "effective_dpi": 559.64
     },
     "campaigns": {
       "width_pixels": 3120,
@@ -745,6 +745,6 @@
       "effective_dpi": 435.26
     }
   },
-  "pdf_sha256": "daf40b5318898feafc34ccbca0112226a32b6ca966272e2a008535340873fbad",
-  "shared_content_sha256": "c96fd7d557c9a45fbb25c670288ad2d72f765bd49eb01f25a8e36c28f610447a"
+  "pdf_sha256": "3d69b9c74efdf96b871de8cd1eedbe974a66e6bf309403485274bc8a2b804e51",
+  "shared_content_sha256": "aef108e01e32aa378cec1f644cce4ddade95b4aa7c9fce718cae9ef4021f0110"
 }

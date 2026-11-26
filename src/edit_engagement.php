@@ -495,7 +495,12 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
 <?php include 'templates/header.php'; ?>
 <div class="container edit-engagement-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
-    <div class="page-heading form-page-heading edit-engagement-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
+    <div class="page-heading form-page-heading edit-engagement-heading">
+        <div class="form-heading-content">
+            <h1>Edit Engagement</h1>
+            <?php renderFormHeadingSummary('Update event details, schedule, presentations, and logistics.', false); ?>
+        </div>
+    </div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <?php if (!empty($error_message)): ?>
         <?php echo formErrorSummary($error_message); ?>
@@ -521,10 +526,8 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             ?>
             <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>">
         <?php endforeach; ?>
-        <div class="engagement-form-meta">
-            <?php renderFormDraftPanel(true); ?>
-            <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
-        </div>
+        <?php renderFormDraftPanel(true); ?>
+        <?php renderRequiredFieldsNote(); ?>
         <?php
         $engagement_form_editing = true;
         $engagement_form_values = $engagement;

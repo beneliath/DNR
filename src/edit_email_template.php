@@ -21,6 +21,7 @@ if ($id === null && !$canManage) {
 }
 $isArchived = !empty($template['is_archived']);
 $readOnly = !$canManage || $isArchived;
+$draftKey = 'edit_email_template.php:' . ($id ?? 'new');
 $backUrl = 'email_templates.php?' . http_build_query(['status' => $isArchived ? 'archived' : 'active', 'engagement_id' => $engagementId]);
 $form = $template ?? ['name' => '', 'subject_template' => '', 'body_template' => '', 'sort_order' => 60, 'version' => ''];
 $selectedRoles = $template ? json_decode((string) $template['suggested_roles_json'], true) : [];
@@ -39,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($isArchived) throw new InvalidArgumentException('Restore this email template before editing it.');
         saveEmailMessageTemplate($conn, $_POST, (int) $_SESSION['user_id'], $id, \Dnr\Http\RequestInput::positiveInt($_POST, 'version'));
+        $_SESSION['clear_form_drafts'][] = $draftKey;
         $_SESSION['email_template_message'] = $id === null ? 'Email template added.' : 'Email template updated. Changes apply to future messages.';
         header('Location: ' . $backUrl);
         exit();
@@ -58,18 +60,51 @@ $pageTitle = $id === null ? 'New Email Template' : ($readOnly ? 'View Email Temp
 <?php include 'templates/header.php'; ?>
 <main class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8'); ?>">Email Templates</a><span aria-hidden="true">/</span><span><?php echo $pageTitle; ?></span></nav>
-    <div class="page-heading form-page-heading"><div><h1><?php echo $pageTitle; ?></h1><p class="page-intro">Set the starting subject, message, and suggested contacts for engagement emails.</p></div></div>
+    <div class="page-heading form-page-heading">
+        <div class="form-heading-content">
+            <h1><?php echo $pageTitle; ?></h1>
+            <?php renderFormHeadingSummary('Set the starting subject, message, and suggested contacts for engagement emails.', false); ?>
+        </div>
+    </div>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($isArchived): ?><p class="warning">This template is archived. Restore it from the template library before editing or using it.</p><?php endif; ?>
-    <?php if (!$readOnly): ?><p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p><?php endif; ?>
-    <form method="post" action="edit_email_template.php<?php echo $id !== null ? '?id=' . $id : ''; ?>" data-email-template-editor>
+    <form method="post" action="edit_email_template.php<?php echo $id !== null ? '?id=' . $id : ''; ?>" data-email-template-editor<?php if (!$readOnly): ?> data-recoverable-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="version" value="<?php echo htmlspecialchars((string) $form['version'], ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_id" value="<?php echo $engagementId ?? ''; ?>">
+        <?php if (!$readOnly): ?>
+            <?php renderFormDraftPanel(); ?>
+            <?php renderRequiredFieldsNote(); ?>
+        <?php endif; ?>
         <section class="form-section">
             <h2>Template Details</h2>
-            <div class="form-group"><label for="template-name" class="required">Template Name</label><input type="text" id="template-name" name="name" maxlength="100" required value="<?php echo htmlspecialchars((string) $form['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>></div>
-            <div class="form-group"><label for="template-subject" class="required">Subject</label><input type="text" id="template-subject" name="subject_template" maxlength="255" required value="<?php echo htmlspecialchars((string) $form['subject_template'], ENT_QUOTES, 'UTF-8'); ?>" data-template-subject<?php echo $readOnly ? ' readonly' : ''; ?>><p class="field-help">The engagement routing marker is added automatically when composing the email.</p></div>
+            <div class="email-template-details-grid">
+                <div class="form-group">
+                    <label for="template-name" class="required">Template Name</label>
+                    <input type="text" id="template-name" name="name" maxlength="100" required value="<?php echo htmlspecialchars((string) $form['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>>
+                </div>
+                <div class="form-group email-template-order">
+                    <div class="email-template-order-control">
+                        <label for="template-order">Display Order</label>
+                        <input type="number" id="template-order" name="sort_order" min="0" max="65535" step="1" required value="<?php echo htmlspecialchars((string) $form['sort_order'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>>
+                    </div>
+                    <p class="field-help">Lower numbers appear first in the template library and email composer.</p>
+                </div>
+                <div class="form-group">
+                    <label for="template-subject" class="required">Subject</label>
+                    <input type="text" id="template-subject" name="subject_template" maxlength="255" required value="<?php echo htmlspecialchars((string) $form['subject_template'], ENT_QUOTES, 'UTF-8'); ?>" data-template-subject<?php echo $readOnly ? ' readonly' : ''; ?>>
+                    <p class="field-help">The engagement routing marker is added automatically when composing the email.</p>
+                </div>
+                <fieldset class="email-template-suggestions" aria-describedby="template-suggestions-help"<?php echo $readOnly ? ' disabled' : ''; ?>>
+                    <legend>Recipient Suggestions</legend>
+                    <p class="field-help" id="template-suggestions-help">Suggest event contacts when this template is selected. The sender can change recipients and include speakers before sending.</p>
+                    <div class="email-template-roles">
+                        <?php foreach (engagementContactRoles() as $role => $label): ?>
+                            <label><input type="checkbox" name="suggested_roles[]" value="<?php echo $role; ?>"<?php echo in_array($role, $selectedRoles, true) ? ' checked' : ''; ?>><span><?php echo $label; ?></span></label>
+                        <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            </div>
             <div class="form-group"><label for="template-body" class="required">Plain-Text Message</label><textarea id="template-body" name="body_template" rows="14" maxlength="100000" required data-template-body<?php echo $readOnly ? ' readonly' : ''; ?>><?php echo htmlspecialchars((string) $form['body_template'], ENT_QUOTES, 'UTF-8'); ?></textarea></div>
             <details class="email-template-field-help">
                 <summary>Personalize with Event Fields</summary>
@@ -81,18 +116,6 @@ $pageTitle = $id === null ? 'New Email Template' : ($readOnly ? 'View Email Temp
                 </div>
                 <p class="field-help" data-email-field-status role="status" aria-live="polite"></p>
             </details>
-        </section>
-        <section class="form-section">
-            <h2>Recipient Suggestions</h2>
-            <div class="email-template-recipient-settings">
-                <div>
-                    <p class="field-help">Suggest event contacts when this template is selected. The sender can change recipients and include speakers before sending.</p>
-                    <fieldset class="email-template-roles"<?php echo $readOnly ? ' disabled' : ''; ?>><legend class="visually-hidden">Suggested Event Contacts</legend>
-                        <?php foreach (engagementContactRoles() as $role => $label): ?><label><input type="checkbox" name="suggested_roles[]" value="<?php echo $role; ?>"<?php echo in_array($role, $selectedRoles, true) ? ' checked' : ''; ?>><span><?php echo $label; ?></span></label><?php endforeach; ?>
-                    </fieldset>
-                </div>
-                <div class="form-group email-template-order"><div class="email-template-order-control"><label for="template-order">Display Order</label><input type="number" id="template-order" name="sort_order" min="0" max="65535" step="1" required value="<?php echo htmlspecialchars((string) $form['sort_order'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>></div><p class="field-help">Lower numbers appear first in the template library and email composer.</p></div>
-            </div>
         </section>
         <div class="engagement-page-actions">
             <a href="<?php echo htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button"><?php echo $readOnly ? 'Back to Templates' : 'Cancel'; ?></a>

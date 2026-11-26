@@ -15,10 +15,8 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
     <?php if (!empty($inbound_email_message_id)): ?><input type="hidden" name="inbound_email_message_id" value="<?php echo (int) $inbound_email_message_id; ?>"><?php endif; ?>
-    <div class="inquiry-form-top-row">
-        <?php renderFormDraftPanel(); ?>
-        <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
-    </div>
+    <?php renderFormDraftPanel(); ?>
+    <?php renderRequiredFieldsNote(); ?>
     <section class="form-section">
         <div class="form-section-heading inquiry-form-section-heading"><span class="form-section-number" aria-hidden="true">01</span><div><h2>Request</h2><p>Capture enough context to qualify the opportunity without inventing event details.</p></div></div>
         <div class="form-group">

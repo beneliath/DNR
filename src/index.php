@@ -287,9 +287,9 @@ try {
 <div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>New Engagement</span></nav>
     <div class="page-heading form-page-heading">
-        <div>
+        <div class="form-heading-content">
             <h1>New Engagement</h1>
-            <p class="page-intro">Create the event, schedule, presentations, and logistics in one place.</p>
+            <?php renderFormHeadingSummary('Create the event, schedule, presentations, and logistics in one place.', false); ?>
         </div>
     </div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
@@ -303,10 +303,8 @@ try {
 
     <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
         <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
-        <div class="engagement-form-meta">
-            <?php renderFormDraftPanel(true); ?>
-            <p class="required-fields-note"><span aria-hidden="true">*</span>Required Field</p>
-        </div>
+        <?php renderFormDraftPanel(true); ?>
+        <?php renderRequiredFieldsNote(); ?>
         <?php
         $engagement_form_editing = false;
         $engagement_form_values = [
