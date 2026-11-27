@@ -133,5 +133,7 @@ function renderAudienceAnalytics(AudienceStore $store,array $audience,string $vi
     $themeKey=currentAccountKey().':'.$actor.':'.$audienceId;
     $styles=['assets/css/pages/audience.min.css','assets/css/pages/audience-analytics.min.css'];
     if($section==='locations')$styles[]='assets/css/map.min.css';
-    ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>$styles,'scripts'=>['assets/js/audience.min.js','assets/js/audience-analytics.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
+    // Home's server-rendered summary can paint while its lightweight controls load.
+    $workspaceScript=$view==='home'?'assets/js/audience-home.min.js':'assets/js/audience.min.js';
+    ?><!doctype html><html lang="en"><?php renderPageHead(applicationPageTitle($pageTitle),['styles'=>$styles,'scripts'=>[$workspaceScript,'assets/js/audience-analytics.min.js']]);include __DIR__.'/templates/audience/workspace.php';?></html><?php
 }

@@ -40,6 +40,9 @@ audienceHttpExpect($as->analyticsOverview($window)['totals']['opens']===19,'A se
 foreach([['start'=>'2026-02-30'],['start'=>'2026-10-17','end'=>'2026-10-16'],['start'=>'2000-01-01'],['end'=>'2099-01-01'],['bots'=>'invented']]as$bad){$failed=false;try{audienceAnalyticsWindow($bad);}catch(InvalidArgumentException){$failed=true;}audienceHttpExpect($failed,'Invalid reporting window is rejected');}
 audienceHttpExpect(!array_intersect($samples['campaigns'],array_column($campaignStore->analyticsOverview($window)['campaigns'],'id')),'Analytics fixture never crosses audience boundary');
 foreach(['home','analytics']as$v){$response=$editor('audience.php?view='.$v);audienceHttpExpect($response['status']===200&&str_contains($response['body'],$v==='home'?'Email Snapshot':'Email Engagement')&&!preg_match('/(?:Warning|Fatal error):/',$response['body']),'Native report route renders '.$v);
+    $scripts=new DOMDocument();@$scripts->loadHTML($response['body']);$xpath=new DOMXPath($scripts);
+    audienceHttpExpect($xpath->query('//script[contains(@src,"assets/js/audience-home.min.js") and @defer and not(@blocking)]')->length===($v==='home'?1:0),'Only Home uses the deferred lightweight workspace controls');
+    audienceHttpExpect($xpath->query('//script[contains(@src,"assets/js/audience.min.js")]')->length===($v==='home'?0:1),'Home does not download the editing workspace bundle');
     $today=gmdate('Y-m-d');
     audienceHttpExpect(str_contains($response['body'],'id="analytics-date-end" name="end" value="'.$today.'"'), 'The default rolling report and its calendar include today on '.$v);
     preg_match('/<script type="application\/json" id="audience-config">(.*?)<\/script>/s',$response['body'],$configMatch);$config=json_decode($configMatch[1]??'',true);

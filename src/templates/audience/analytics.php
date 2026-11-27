@@ -3,6 +3,10 @@ $totals=$overview['totals'];$previous=$overview['previous'];$a=$overview['audien
 $reportQuery=['view'=>'analytics','range'=>$rangeKey,'start'=>$window['start'],'end'=>$window['end'],'bots'=>$window['bots']];
 $rate=static fn($value):string=>$value===null?'—':rtrim(rtrim(number_format((float)$value,2),'0'),'.').'%';
 $metrics=['accepted'=>['Total Sends',false],'delivery_rate'=>['Delivery Rate',true],'open_rate'=>['Open Rate',true],'click_rate'=>['Click Rate',true],'clicks_per_open'=>['Clicks Per Unique Opens',true],'unsubscribe_rate'=>['Unsubscribed Rate',true]];
+$renderHomeExplanation=static function(string $id,string $text)use($h):void{ ?>
+<button type="button" class="mm-mobile-only mm-mobile-explanation-toggle" data-home-explanation-toggle aria-controls="<?= $h($id) ?>" aria-expanded="false">About These Metrics</button>
+<p class="analytics-explanation" id="<?= $h($id) ?>" data-mm-explanation><?= $h($text) ?></p>
+<?php };
 ?>
 <div class="analytics-home-layout">
 <div class="analytics-workspace">
@@ -14,13 +18,13 @@ $metrics=['accepted'=>['Total Sends',false],'delivery_rate'=>['Delivery Rate',tr
         <div><dt><?= $h($label) ?></dt><dd><?= $h($isRate?$rate($value):number_format($value)) ?></dd><small><?= audienceAnalyticsTrend($value,$before,$key,$window['compare']!=='none') ?></small></div>
     <?php endforeach; ?>
     </dl>
-    <p class="analytics-explanation">Total sends counts SES-accepted messages. Delivery requires provider receipts. Opens and clicks are observations, not proof a person read the email; privacy tools can affect them. <?= $h(audienceEngagementExplanation()) ?> Pending delivery receipts: <?= (int)$totals['awaiting_receipt'] ?>. <?= number_format($totals['detected_bot']) ?> messages have detected bot activity.</p>
+    <?php $renderHomeExplanation('home-email-explanation','Total sends counts SES-accepted messages. Delivery requires provider receipts. Opens and clicks are observations, not proof a person read the email; privacy tools can affect them. '.audienceEngagementExplanation().' Pending delivery receipts: '.(int)$totals['awaiting_receipt'].'. '.number_format($totals['detected_bot']).' messages have detected bot activity.'); ?>
     <?php if(!$totals['accepted']): ?><p class="analytics-empty">No accepted email in this date range. Your results will appear here after qualified sending.</p><?php endif; ?>
 </section>
 <div class="analytics-home-grid">
     <section class="analytics-card" aria-labelledby="audience-snapshot"><header><h2 id="audience-snapshot">Audience</h2><a href="<?= $h($url(['view'=>'contacts'])) ?>">View Connections →</a></header>
         <dl class="analytics-audience"><div><dt>Total Connections</dt><dd><?= number_format($a['visible_total']) ?></dd></div><div><dt>Email Subscribers</dt><dd><?= number_format((int)$a['subscribed']) ?></dd></div><div><dt>Active Connections Added in This Period</dt><dd><?= number_format((int)$a['added']) ?></dd></div></dl>
-        <p class="analytics-explanation">Current active audience. Total connections excludes pending and cleaned addresses. Observed subscription changes appear below; imported join dates cannot reconstruct past subscriber totals.</p>
+        <?php $renderHomeExplanation('home-audience-explanation','Current active audience. Total connections excludes pending and cleaned addresses. Observed subscription changes appear below; imported join dates cannot reconstruct past subscriber totals.'); ?>
     </section>
     <?php include __DIR__.'/analytics-home-growth.php'; ?>
     <section class="analytics-card analytics-recent-campaigns" aria-labelledby="recent-campaigns"><header><h2 id="recent-campaigns">Recent Campaigns</h2><form method="get" class="analytics-show-drafts"><?php audienceInputs(['view'=>'home','range'=>$rangeKey,'start'=>$window['start'],'end'=>$window['end'],'bots'=>$window['bots']]); ?><label>Show Drafts <input type="checkbox" role="switch" name="drafts" value="1" data-analytics-submit<?= $showDrafts?' checked':'' ?>></label></form><a href="<?= $h($url(['view'=>'campaigns'])) ?>">All Campaigns →</a></header>
