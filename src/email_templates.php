@@ -86,10 +86,15 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
         <form method="get" action="email_templates.php" class="list-search-form unified-list-filter" role="search">
             <input type="hidden" name="status" value="<?php echo $status; ?>">
             <?php if ($engagementId !== null): ?><input type="hidden" name="engagement_id" value="<?php echo $engagementId; ?>"><?php endif; ?>
-            <label class="visually-hidden" for="template-search">Search Email Templates</label><span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="template-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Email Templates">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($listUrl, ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
-            <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+            <div class="email-template-search-field">
+                <label class="visually-hidden" for="template-search">Search Email Templates</label><span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="template-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Email Templates">
+                <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($listUrl, ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            </div>
+            <div class="email-template-search-actions">
+                <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+                <a href="email_templates.php<?php echo $engagementId !== null ? '?engagement_id=' . $engagementId : ''; ?>" class="button-secondary">Clear Filters</a>
+            </div>
         </form>
     </div>
     <p class="result-context"><?php echo $archived ? 'Restore a template to make it available again. Administrators can permanently delete archived templates.' : 'Active templates appear in the engagement email composer. Changes apply to future messages.'; ?> Custom message is always available for writing from scratch.</p>

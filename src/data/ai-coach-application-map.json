@@ -114,7 +114,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "ca7966edbbfd36f4d902201deed0d2ab128d4a1c33143ce4c317db0f5d4277da",
+      "sha256": "b13132922edb5b9a8c526d0758464974bad5f0f64837fbd0b948aacc5673b609",
       "controls": [
         {
           "kind": "a",
@@ -216,7 +216,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "002eda45342a4575667edef45eb9f2688a9c4cbe5298f022cfb4cc60ca28fa43",
+      "sha256": "b6236ac7c70a0580b09191fa52e48c73d2e998d6ec841e72997e3c8b5eb86bfe",
       "controls": [
         {
           "kind": "a",
@@ -1041,7 +1041,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "1eb19c5390b8b63b15b667bf427401c2d831ea2cd3d06aea1066c5c67076631b",
+      "sha256": "169bf97c1d930c8f209ffd6e77869af3c5701690cd580ad6b50a8edd077f1f03",
       "controls": [
         {
           "kind": "a",
@@ -1061,6 +1061,11 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "contacts.php"
         },
         {
           "kind": "a",
@@ -1298,7 +1303,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "0b6bf7a1b5b87a167ab3065b7cf9afb6b343fc6f975fc5217e6010e4d55bb22a",
+      "sha256": "69002bf1acfaa9ca9902e71b11bcf025f26498c221d3b3fa9b3d8f542cf412d6",
       "controls": [
         {
           "kind": "a",
@@ -1592,7 +1597,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "26cdb47ed51eef7fa97eb6ed34cfe5f060d138e855ceb5635780103e025c8d47",
+      "sha256": "ef9e0f285ac56f5e921adcffcbfda4311f28b1c1169af63d0086df2fbe1e3375",
       "controls": [
         {
           "kind": "a",
@@ -1721,7 +1726,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "a42a0d03cc14fa79805f7ee5a9d106b634bf0e4ccec7f0199f976502330f80bd",
+      "sha256": "15078bc225365263e7f04dc6d4bc503824e1c72bb8d2160d7b6ee7f231a1e4c8",
       "controls": [
         {
           "kind": "a",
@@ -1919,7 +1924,7 @@
       ]
     },
     "email_templates.php": {
-      "sha256": "0cb78f8c5562a520a1f230cda76dcb48cfe41a35e2362a6d5428e29112b697e2",
+      "sha256": "5b647b84a3161aa84da01748d46f72fd749ce61a9d1974c03cf93c15bf3483e8",
       "controls": [
         {
           "kind": "a",
@@ -1948,11 +1953,16 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "email_templates.php"
         }
       ]
     },
     "engagements.php": {
-      "sha256": "60c7758f2d2717951f384c738d0d3dfd3b5ac549f8765958055681736b694c69",
+      "sha256": "0819aeadb2e20bd2c34fc996cebe344c67ad9b056cbb01688cea22a02b950a49",
       "controls": [
         {
           "kind": "a",
@@ -2014,6 +2024,11 @@
         },
         {
           "kind": "a",
+          "label": "Clear Filters",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
           "label": "Event Title",
           "href": ""
         },
@@ -2040,7 +2055,7 @@
       ]
     },
     "inbound_mail.php": {
-      "sha256": "1534f4265413bbf7526fcf42f6f30f6ced87da66dda3ef3cb17a317d56df61aa",
+      "sha256": "2e12c45a6ef91d6e0d705b4e3eda4eeeac9f422675fb0bbab05958ceed6907c0",
       "controls": [
         {
           "kind": "h1",
@@ -2057,6 +2072,11 @@
           "for": "inbox-search"
         },
         {
+          "kind": "a",
+          "label": "Clear Search",
+          "href": ""
+        },
+        {
           "kind": "label",
           "label": "Order",
           "for": "inbox-sort"
@@ -2067,8 +2087,8 @@
         },
         {
           "kind": "a",
-          "label": "Clear Search",
-          "href": ""
+          "label": "Clear Filters",
+          "href": "inbound_mail.php"
         },
         {
           "kind": "a",
@@ -2282,7 +2302,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "3c4a729995ba66a5606137e77734d9190f15fe83a8f082d621e113623482a6a2",
+      "sha256": "0c1186531f232e831a0e9fbfa7f0a8554abf2274e60865932b392512910ff7d6",
       "controls": [
         {
           "kind": "a",
@@ -2315,7 +2335,7 @@
         },
         {
           "kind": "a",
-          "label": "Clear",
+          "label": "Clear Filters",
           "href": "inquiries.php"
         },
         {
@@ -2426,7 +2446,7 @@
       ]
     },
     "map.php": {
-      "sha256": "ad0666204dc3c4467a8ab84166db6ea23a807d17c01a84528a91a8565106639d",
+      "sha256": "dbd9163c5b41af11af4a580c32d050c9efb005e394eae5a823eaf4c67e52086b",
       "controls": [
         {
           "kind": "h1",
@@ -2467,7 +2487,7 @@
         },
         {
           "kind": "a",
-          "label": "Clear",
+          "label": "Clear Filters",
           "href": "map.php"
         },
         {
@@ -2695,7 +2715,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "54fe08b775591409ca8e18180ce6fbb745fb39cdbfd37904c035c352667778a9",
+      "sha256": "2fb5c5edb995e05d865a09df87c0f670a3004562763b4f6728f075545b195020",
       "controls": [
         {
           "kind": "a",
@@ -2715,6 +2735,11 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "organizations.php"
         },
         {
           "kind": "a",
@@ -4108,7 +4133,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "95fdc9870dda6633e5964d25d9848850d9f8013e9181920a3b9b19f69e301dde",
+      "sha256": "83eece8a465b1c3539a90a33e6e4fc66b6f944281020f5b5ab7ffa6c762129bd",
       "controls": [
         {
           "kind": "h1",
@@ -4131,6 +4156,11 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "speakers.php"
         },
         {
           "kind": "a",
@@ -4174,7 +4204,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "3ea38a77c2eba4f50f7ef8a18133684b44cedcb3eb94c5eeba8ce503414491e8",
+      "sha256": "3a556e01483c38a3b6588e80fcc76dcd2ef108b92091daf3f87319fc0218f99f",
       "controls": [
         {
           "kind": "h1",
@@ -4203,6 +4233,10 @@
         {
           "kind": "button",
           "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters"
         },
         {
           "kind": "a",

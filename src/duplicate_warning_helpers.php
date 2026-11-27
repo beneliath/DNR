@@ -30,7 +30,7 @@ function renderCreationDuplicateWarning(array $warning, string $kind, string $re
     <ul data-duplicate-matches><?php foreach($warning['matches'] as $match): ?>
     <li><a href="<?php echo $h(creationDuplicateDestination($kind,(int)$match['id'],$return)); ?>"><?php echo $h('Use Existing: '.$match['label']); ?></a> <?php echo $h(implode(' · ', array_filter([$match['email']??'', $match['phone']??'', $match['location']??'']))); ?></li><?php endforeach; ?></ul>
     <input type="hidden" name="duplicate_token" value="<?php echo $h($warning['token']); ?>">
-    <label><input type="checkbox" name="duplicate_distinct" value="1"> These Are Different Records — Create a New One</label>
+    <label><input type="checkbox" name="duplicate_distinct" value="1" data-draft-ignore> These Are Different Records — Create a New One</label>
     </section><?php
 }
 

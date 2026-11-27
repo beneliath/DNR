@@ -50,7 +50,7 @@ function completeRecordCreation(mysqli $conn, int $userId, string $token, int $i
 }
 
 /** Run after authorization and CSRF validation, before validation/uploads/duplicate warnings. */
-function redirectCompletedRecordCreation(mysqli $conn, string $kind, string $destination, string $return = ''): string
+function redirectCompletedRecordCreation(mysqli $conn, string $kind, string $destination, string $return = '', ?string $draftKey = null): string
 {
     try {
         $token = submittedCreationToken($_POST);
@@ -58,6 +58,7 @@ function redirectCompletedRecordCreation(mysqli $conn, string $kind, string $des
     }
     catch (InvalidArgumentException $exception) { abortApplication(422, $exception->getMessage()); }
     if ($id !== null) {
+        if ($draftKey !== null) $_SESSION['clear_form_drafts'][] = $draftKey;
         $url = $destination . $id;
         if ($return !== '') {
             require_once __DIR__ . '/record_workspace_helpers.php';

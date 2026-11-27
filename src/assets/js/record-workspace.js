@@ -85,6 +85,7 @@
             removeButton.addEventListener('click', function () {
                 row.remove();
                 validateOrganizations();
+                rows.dispatchEvent(new Event('input', {bubbles: true}));
                 status.textContent = 'Additional organization removed';
                 addButton.focus();
             });
@@ -94,15 +95,15 @@
         rows.querySelectorAll('[data-contact-affiliation-row]').forEach(initializeRow);
         if (primary) primary.addEventListener('change', validateOrganizations);
         addButton.hidden = false;
-        addButton.addEventListener('click', function () {
+        function appendRow(index = nextIndex) {
             const fragment = template.content.cloneNode(true);
             fragment.querySelectorAll('[id], [name], label[for]').forEach(function (element) {
                 ['id', 'name', 'for'].forEach(function (attribute) {
                     const value = element.getAttribute(attribute);
-                    if (value) element.setAttribute(attribute, value.replaceAll('__index__', String(nextIndex)));
+                    if (value) element.setAttribute(attribute, value.replaceAll('__index__', String(index)));
                 });
             });
-            nextIndex += 1;
+            nextIndex = Math.max(nextIndex, index + 1);
             const row = fragment.querySelector('[data-contact-affiliation-row]');
             const select = row.querySelector('[data-affiliation-organization]');
             // Include organizations created inline since the page was opened.
@@ -115,9 +116,15 @@
             }
             rows.appendChild(fragment);
             initializeRow(row);
+            return row;
+        }
+        window.DnrFormDrafts?.registerRows(rows, 'additional_organizations', appendRow, 100);
+        addButton.addEventListener('click', function () {
+            const row = appendRow();
             validateOrganizations();
+            rows.dispatchEvent(new Event('input', {bubbles: true}));
             status.textContent = 'Additional organization row added';
-            select.focus();
+            row.querySelector('[data-affiliation-organization]').focus();
         });
         validateOrganizations();
     });

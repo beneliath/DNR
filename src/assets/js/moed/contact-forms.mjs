@@ -109,18 +109,26 @@ export function initializeExistingOrganizationContacts() {
         row.querySelector('[data-existing-contact-select]').value = '';
         row.querySelector('[data-existing-contact-role]').value = '';
         rows.appendChild(row);
-        update();
+        return row;
+    }
+    window.DnrFormDrafts?.registerRows(rows, 'existing_contacts', append, 20);
+    function addRow() {
+        const row = append();
+        rows.dispatchEvent(new Event('input', {bubbles: true}));
         row.querySelector('select').focus();
     }
-    add.addEventListener('click', function () { if (rows.children.length < 20) append(); });
+    add.addEventListener('click', function () { if (rows.children.length < 20) addRow(); });
     rows.addEventListener('input', update);
     rows.addEventListener('change', update);
     rows.addEventListener('click', function (event) {
         const remove = event.target.closest('[data-remove-existing-organization-contact]');
         if (!remove) return;
         remove.closest('[data-existing-organization-contact-row]').remove();
-        if (rows.children.length === 0) append();
-        else { update(); add.focus(); }
+        if (rows.children.length === 0) addRow();
+        else {
+            rows.dispatchEvent(new Event('input', {bubbles: true}));
+            add.focus();
+        }
     });
     update();
 }
@@ -129,14 +137,13 @@ export function initializeAdditionalOrganizationContacts() {
     const container = document.getElementById('contacts-container');
     const template = document.getElementById('contact-entry-template');
     if (!container || !template) return;
-    let contactCount = 1;
+    let nextIndex = 1;
 
-    function addContact(values) {
-        contactCount += 1;
-        const index = contactCount - 1;
+    function addContact(values, index = nextIndex) {
+        nextIndex = Math.max(nextIndex, index + 1);
         const wrapper = document.createElement('div');
         wrapper.innerHTML = template.innerHTML
-            .replaceAll('__CONTACT_ID__', String(contactCount))
+            .replaceAll('__CONTACT_ID__', String(index + 1))
             .replaceAll('__CONTACT_INDEX__', String(index));
         const entry = wrapper.firstElementChild;
         container.appendChild(entry);
@@ -149,17 +156,23 @@ export function initializeAdditionalOrganizationContacts() {
         }
         const role = entry.querySelector('[data-contact-role-id]');
         if (role) updateAdditionalRole(role);
+        return entry;
     }
 
+    window.DnrFormDrafts?.registerRows(container, 'contacts', index => addContact(null, index));
     document.addEventListener('click', function (event) {
         if (event.target.closest('[data-add-contact]')) {
             addContact(null);
+            container.dispatchEvent(new Event('input', {bubbles: true}));
             return;
         }
         const remove = event.target.closest('[data-remove-contact]');
         if (remove) {
             const entry = remove.closest('.contact-entry');
-            if (entry) entry.remove();
+            if (entry) {
+                entry.remove();
+                container.dispatchEvent(new Event('input', {bubbles: true}));
+            }
         }
     });
     document.addEventListener('change', function (event) {
@@ -169,7 +182,7 @@ export function initializeAdditionalOrganizationContacts() {
     const submitted = document.getElementById('submitted-additional-contacts');
     if (submitted) {
         try {
-            JSON.parse(submitted.textContent || '[]').forEach(addContact);
+            JSON.parse(submitted.textContent || '[]').forEach(values => addContact(values));
         } catch (error) {
             // Server validation remains authoritative if stale form data cannot be restored.
         }

@@ -140,9 +140,7 @@
             picker.querySelectorAll('[data-phone-country-option]').forEach(function (candidate) {
                 candidate.setAttribute('aria-selected', String(candidate === option));
             });
-            closeCountryPicker(picker);
-            validateCountryInput(countryInput);
-            trigger.focus();
+            return countryInput;
         }
 
         let pickerSequence = 0;
@@ -152,7 +150,13 @@
         document.addEventListener('click', function (event) {
             const option = event.target.closest('[data-phone-country-option]');
             if (option) {
-                selectCountryOption(option);
+                const countryInput = selectCountryOption(option);
+                if (countryInput) {
+                    const picker = countryInput.closest('[data-phone-country-picker]');
+                    closeCountryPicker(picker);
+                    countryInput.dispatchEvent(new Event('change', {bubbles: true}));
+                    picker.querySelector('[data-phone-country-toggle]').focus();
+                }
                 return;
             }
 
@@ -230,9 +234,16 @@
         });
 
         document.addEventListener('change', function (event) {
-            if (event.target.matches('[data-phone-country-code]')) {
-                validateCountryInput(event.target);
+            const input = event.target;
+            if (!input.matches('[data-phone-country-code]')) return;
+            const picker = input.closest('[data-phone-country-picker]');
+            const selected = picker?.querySelector('[data-phone-country-option][aria-selected="true"]');
+            if (picker && selected?.dataset.countryCode !== input.value) {
+                const option = Array.from(picker.querySelectorAll('[data-phone-country-option]'))
+                    .find(candidate => candidate.dataset.countryCode === input.value);
+                if (option) selectCountryOption(option);
             }
+            validateCountryInput(input);
         });
 
         document.addEventListener('submit', function (event) {

@@ -13,13 +13,17 @@ function harness(kind = 'organization', prerendered = false) {
     const chosen = new Element('Saved ' + kind, '999');
     let input, status, timer;
     const formListeners = {};
+    const documentListeners = {};
     const select = {form: {addEventListener: (event, listener) => { formListeners[event] = listener; }},
-        value: '999', isConnected: true,
+        name: 'related_id', value: '999', isConnected: true,
         dataset: kind === 'contact' ? {contactSearch: ''} : {},
         labels: [{textContent: kind === 'contact' ? 'Existing Contact' : 'Primary Organization'}],
         selectedOptions: [chosen], children: [chosen],
         before: (node) => { input = node; }, after: (node) => { status = node; },
         querySelector: () => new Element('None', ''),
+        hasAttribute: name => kind === 'contact' && name === 'data-contact-search',
+        get options() { return this.children; },
+        add(option) { this.children.push(option); },
         replaceChildren(...options) { this.children = options; }};
     if (prerendered) {
         input = new Element(); status = new Element();
@@ -35,6 +39,7 @@ function harness(kind = 'organization', prerendered = false) {
     const pending = [];
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/relationship-search.js'), 'utf8'), {
         document: {body: {}, querySelectorAll: () => [select], createElement: () => new Element(),
+            addEventListener: (event, listener) => { documentListeners[event] = listener; },
             getElementById: id => id === 'primary-organization-search' ? input : null},
         MutationObserver: class { observe() {} }, Option: Element, URLSearchParams, AbortController,
         setTimeout(callback) { timer = callback; return 1; }, clearTimeout() {},
@@ -42,6 +47,13 @@ function harness(kind = 'organization', prerendered = false) {
     });
     return {
         select, pending, status,
+        prepareDraft(value, enabled = true) {
+            const requests = [];
+            documentListeners['form-draft-restore']({target: {querySelectorAll: () => [select],
+                hasAttribute: name => enabled && name === 'data-draft-relationships'},
+                detail: {fields: [{name: select.name, value}], waitUntil: request => requests.push(request)}});
+            return Promise.all(requests);
+        },
         search(value) {
             input.value = value;
             input.listeners.input();
@@ -53,6 +65,22 @@ function harness(kind = 'organization', prerendered = false) {
         },
     };
 }
+test('draft preparation loads only an available saved selection outside the initial options', async () => {
+    const h = harness('contact');
+    await h.prepareDraft('38', false);
+    await h.prepareDraft('999');
+    assert.equal(h.pending.length, 0);
+    const unavailable = h.prepareDraft('38');
+    assert.match(h.pending[0].url, /kind=contact&selected_id=38/);
+    h.pending[0].resolve({ok: true, json: async () => ({selected: null})});
+    await unavailable;
+    assert.deepEqual(h.select.options.map(option => option.value), ['999']);
+    const available = h.prepareDraft('39');
+    h.pending[1].resolve({ok: true, json: async () => ({selected: {id: 39, contact_first_name: 'Draft', contact_last_name: 'Contact'}})});
+    await available;
+    assert.equal(h.select.options[1].textContent, 'Draft Contact');
+    assert.equal(h.select.options[1].value, '39');
+});
 test('organization lookup preserves a selected record outside the first page and ignores stale responses', async () => {
     const h = harness();
     const first = h.search('one');

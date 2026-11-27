@@ -20,6 +20,7 @@ if (!$contact_id) {
     header('Location: contacts.php');
     exit();
 }
+$draftKey = 'edit_contact.php:' . $contact_id;
 
 $contact_stmt = $conn->prepare(
     "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
@@ -342,6 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 );
             }
             $conn->commit();
+            $_SESSION['clear_form_drafts'][] = $draftKey;
             $_SESSION['success_message'] = 'Contact updated successfully.';
             header('Location: ' . $record_edit_return);
             exit();
@@ -469,7 +471,7 @@ try {
     <div class="page-heading form-page-heading edit-contact-heading">
         <div class="form-heading-content">
             <h1>Edit Contact</h1>
-            <?php renderFormHeadingSummary('Update contact information and roles at each organization.'); ?>
+            <?php renderFormHeadingSummary('Update contact information and roles at each organization.', false); ?>
         </div>
     </div>
 
@@ -484,13 +486,16 @@ try {
     <?php endif; ?>
 
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
-    <form id="contact-edit-form" class="contact-layout-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
+    <form id="contact-edit-form" class="directory-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form data-draft-relationships data-recoverable-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+        <?php renderFormDraftPanel(); ?>
+        <?php renderRequiredFieldsNote(); ?>
         <!-- Enter in a contact field saves the contact, not the later Chron action. -->
         <button type="submit" name="save_contact" value="1" hidden>Save Changes</button>
 
+        <div class="form-section directory-form-fields contact-layout-form">
         <div class="contact-form-overview">
             <section class="contact-form-photo" aria-label="Contact Photo">
                 <div class="form-group contact-photo-field">
@@ -600,6 +605,7 @@ try {
             <textarea name="contact_notes" id="contact_notes" rows="6" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($contact['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
+        </div>
     </form>
 
     <?php

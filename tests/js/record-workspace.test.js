@@ -119,6 +119,8 @@ function affiliationFixture(initial = [{organization: '2', role: 'Chairman'}]) {
     };
     const rows = {
         items: [],
+        draftChanges: 0,
+        dispatchEvent(event) { if (event.type === 'input') this.draftChanges += 1; },
         querySelectorAll(selector) {
             return selector === '[data-contact-affiliation-row]' ? this.items : this.items.map(row => row.select);
         },
@@ -174,6 +176,7 @@ test('additional affiliations retain independent roles and unique form indices a
     assert.equal(f.focused, f.add);
     f.add.click();
     assert.equal(f.rows.items[1].title.getAttribute('name'), 'additional_organizations[2][role_title]');
+    assert.equal(f.rows.draftChanges, 3);
 });
 
 test('duplicate affiliations are blocked against both primary and additional organizations and recover after correction', () => {

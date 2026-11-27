@@ -89,6 +89,29 @@
     padding: 0;
 }
 
+.email-templates-page .list-controls > .list-search-form {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+}
+
+.email-template-search-field {
+    position: relative;
+    display: flex;
+    flex: 1 1 13rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.email-template-search-field > input[type="search"]:placeholder-shown { padding-inline-end: 12px; }
+
+.email-template-search-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-inline-start: auto;
+}
+
 .email-template-details-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

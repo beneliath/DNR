@@ -1,6 +1,13 @@
 (function () {
     'use strict';
     const initialized = new WeakSet();
+    function relationshipLabel(kind, row) {
+        return kind === 'contact' ? [
+            [row.contact_first_name, row.contact_last_name].filter(Boolean).join(' '),
+            row.contact_email || '',
+            row.organization_name || ''
+        ].filter(Boolean).join(' · ') : row.organization_name;
+    }
     function bind(select) {
         if (initialized.has(select)) return;
         initialized.add(select);
@@ -46,14 +53,7 @@
                 if (chosen && chosen.value) options.push(chosen);
                 for (const row of result.results) {
                     if (String(row.id) === chosen?.value) continue;
-                    const label = kind === 'contact'
-                        ? [
-                            [row.contact_first_name, row.contact_last_name].filter(Boolean).join(' '),
-                            row.contact_email || '',
-                            row.organization_name || ''
-                        ].filter(Boolean).join(' · ')
-                        : row.organization_name;
-                    options.push(new Option(label, String(row.id)));
+                    options.push(new Option(relationshipLabel(kind, row), String(row.id)));
                 }
                 const value = select.value;
                 select.replaceChildren(...options);
@@ -75,6 +75,27 @@
         });
     }
     function scan() { document.querySelectorAll('select[data-organization-search], select[data-contact-search]').forEach(bind); }
+    // Fetch saved selections that are outside the initial page of results.
+    document.addEventListener('form-draft-restore', event => {
+        const form = event.target;
+        if (!form.hasAttribute('data-draft-relationships')) return;
+        const fields = new Map(event.detail.fields.map(field => [field.name, field.value]));
+        form.querySelectorAll('select[data-organization-search], select[data-contact-search]').forEach(select => {
+            const value = fields.get(select.name);
+            if (!/^[1-9]\d*$/.test(value) || Array.from(select.options).some(option => option.value === value)) return;
+            const kind = select.hasAttribute('data-contact-search') ? 'contact' : 'organization';
+            const query = new URLSearchParams({kind, selected_id: value});
+            event.detail.waitUntil(fetch('inquiry_relationship_search.php?' + query, {credentials: 'same-origin'})
+                .then(response => response.ok ? response.json() : null)
+                .then(result => {
+                    const selected = result?.selected;
+                    if (String(selected?.id) === value && select.isConnected
+                        && !Array.from(select.options).some(option => option.value === value)) {
+                        select.add(new Option(relationshipLabel(kind, selected), value));
+                    }
+                }));
+        });
+    });
     scan();
     new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
 }());

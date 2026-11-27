@@ -3,7 +3,7 @@ $custom_link = $custom_link ?? [];
 $custom_value = static fn(string $field): string => htmlspecialchars(is_string($custom_link[$field] ?? null) ? $custom_link[$field] : '', ENT_QUOTES, 'UTF-8');
 ?>
 <div class="speaker-custom-link-row" data-custom-link-row>
-    <input type="hidden" name="custom_links[<?php echo $custom_index; ?>][key]" value="<?php echo $custom_value('key'); ?>" data-custom-link-key>
+    <input type="hidden" name="custom_links[<?php echo $custom_index; ?>][key]" value="<?php echo $custom_value('key'); ?>" data-custom-link-key data-draft-field="internal">
     <div class="form-group">
         <label for="custom_link_<?php echo $custom_index; ?>_label">Link Name</label>
         <input type="text" id="custom_link_<?php echo $custom_index; ?>_label" name="custom_links[<?php echo $custom_index; ?>][label]" maxlength="255" placeholder="e.g. Video Channel" value="<?php echo $custom_value('label'); ?>" data-custom-link-label>

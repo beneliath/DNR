@@ -2264,11 +2264,15 @@ html body #open-calendar-app.is-opening:focus-visible {
   position: relative;
 }
 
-html body .container > .engagement-form {
+html body .container > :is(.engagement-form, .directory-form) {
   padding: 0;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none;
+}
+
+.directory-form > .directory-form-fields {
+  padding: clamp(20px, 4vw, 32px);
 }
 
 .form-section {
@@ -3910,7 +3914,7 @@ textarea::placeholder {
   margin-bottom: 0;
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .directory-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
 .security-card,
 .organization-details,
 .contact-details,
@@ -3923,7 +3927,7 @@ textarea::placeholder {
   box-shadow: var(--shadow-sm);
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar) {
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .directory-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar) {
   padding: clamp(20px, 4vw, 32px);
 }
 
@@ -5982,7 +5986,8 @@ html.dark-mode .login-secondary-link a {
     padding-inline: 16px;
   }
 
-  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
+  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .directory-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
+  .directory-form > .directory-form-fields,
   .security-card,
   .organization-details,
   .contact-details {
@@ -7409,6 +7414,30 @@ html body .unified-list-filter > button { min-height: 42px; }
     margin-left: 0;
   }
 }
+.directory-filter-row > .list-search-form:has(> .directory-clear-filters) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 12px;
+  width: min(28rem, 100%);
+}
+.directory-filter-row > .list-search-form:has(> .directory-clear-filters) > input[type="search"]:placeholder-shown {
+  padding-inline-end: 12px;
+}
+.directory-filter-row .directory-clear-filters {
+  grid-area: 1 / 3;
+}
+@container record-list (max-width: 26rem) {
+  .directory-filter-row > .list-search-form:has(> .directory-clear-filters) > :is(input[type="search"], .clear-search) {
+    grid-column: 1 / -1;
+  }
+  .directory-filter-row > .list-search-form:has(> .directory-clear-filters) > :is(button, .directory-clear-filters) {
+    grid-row: 2;
+  }
+  .directory-filter-row > .list-search-form:has(> .directory-clear-filters) > .search-icon {
+    grid-area: 1 / 1 / 2 / -1;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
 @container (max-width: 40rem) {
   .bulk-delete-toolbar {
     display: grid;
@@ -7476,6 +7505,7 @@ html body :is(.task-actions, .context-task-actions, .context-task-heading-action
     column-gap: var(--record-action-gap, 16px) !important;
 }
 .form-draft-panel { border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem; }
+.directory-form > .form-draft-panel { border-bottom: 0; padding-bottom: 0; min-width: 0; margin: 0; }
 .form-draft-panel button { margin-right: .5rem; }
 .form-draft-panel > summary { cursor: pointer; }
 .form-draft-panel > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
