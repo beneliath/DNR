@@ -221,7 +221,8 @@
   body[data-mm-workspace] .analytics-metrics>div{padding:12px;background:var(--audience-heading-bg);border-radius:12px}
   body[data-mm-workspace] .analytics-metrics dt{min-height:0;font-size:12px;margin-bottom:8px}
   body[data-mm-workspace] .analytics-metrics dd{margin:0;font-size:24px}
-  body[data-mm-workspace] [data-mm-explanation]:not([data-mm-open]){display:none}
+  html.has-js body[data-mm-workspace] [data-mm-explanation]:not([data-mm-open]){display:none}
+  html:not(.has-js) body[data-mm-workspace] [data-home-explanation-toggle]{display:none!important}
   body[data-mm-workspace] .mm-mobile-explanation-toggle{align-items:center;padding:8px 0;border:0;background:transparent;color:var(--audience-link);font-size:13px}
   body[data-mm-workspace] .inbox-top{height:auto;min-height:60px;flex-wrap:wrap;gap:6px;padding:8px 12px}
   body[data-mm-workspace] .inbox-brand>span{display:none}

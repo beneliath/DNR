@@ -9,6 +9,7 @@ export const javascriptAssets = [
     {name: 'audience-inbox'},
     {name: 'audience-designer', bundle: true},
     {name: 'audience', bundle: true},
+    {name: 'audience-home', bundle: true},
     {name: 'audience-head', bundle: true},
     {name: 'audience-layout-init', bundle: true},
     {name: 'audience-import'},
