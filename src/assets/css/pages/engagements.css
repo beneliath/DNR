@@ -345,7 +345,7 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
 .engagement-date-window :is(input[data-date-picker], .date-picker-box input) {
     height: 44px;
 }
-.engagement-controls .engagement-date-window .button-secondary {
+.engagement-controls .engagement-date-filter-row .button-secondary {
     height: 44px !important;
 }
 
@@ -381,7 +381,7 @@ html body .action-icon-button.cancel-engagement-button:hover:not(:disabled):not(
     width: min(24rem, 100%);
     margin: 0;
 }
-.engagements-page .engagement-date-filter-row { justify-content: flex-start; }
+.engagements-page .engagement-date-filter-row > .button-secondary { margin-inline-start: auto; }
 .engagements-page .engagement-date-window {
     grid-template-columns: max-content max-content auto auto;
 }

@@ -435,6 +435,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Tasks" title="Search Tasks, Records, and Assignees">
                 <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+                <a href="tasks.php?scope=everyone" class="button-secondary task-clear-filters">Clear Filters</a>
             </form>
         </div>
     </div>

@@ -406,6 +406,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                 <button type="submit" data-pending-reminder="list-search" class="button-secondary" data-engagement-date-apply>Apply</button>
                 <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>
             </fieldset>
+            <a href="engagements.php" class="button-secondary">Clear Filters</a>
             </div>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>

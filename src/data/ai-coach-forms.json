@@ -315,7 +315,7 @@
       "entry": "Tasks \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "3ea38a77c2eba4f50f7ef8a18133684b44cedcb3eb94c5eeba8ce503414491e8",
+        "tasks.php": "3a556e01483c38a3b6588e80fcc76dcd2ef108b92091daf3f87319fc0218f99f",
         "view_engagement.php": "f0c9ba0f9a89e1b976cf915cf6372846d20e2c42ef31922f5042457553667aef"
       },
       "controls": {

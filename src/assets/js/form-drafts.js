@@ -3,13 +3,34 @@
     if (window.DnrFormDrafts) return;
     const initialized = new WeakSet();
     const forms = new WeakMap();
+    function registerRows(container, name, append, limit = Infinity) {
+        const form = container.closest('form[data-recoverable-draft]');
+        if (!form) return;
+        const pattern = new RegExp('^' + name + '\\[(\\d+)\\]\\[');
+        const indexOf = fieldName => pattern.exec(fieldName)?.[1];
+        form.addEventListener('form-draft-restore', function (event) {
+            const indices = new Set([...new Set(event.detail.fields.map(field => indexOf(field.name))
+                .filter(index => index !== undefined && Number.isSafeInteger(Number(index))))].slice(0, limit));
+            const rows = new Map();
+            for (const row of Array.from(container.children)) {
+                const field = row.querySelector(`[name^="${name}["]`);
+                if (!field) continue;
+                const index = indexOf(field.name);
+                if (indices.has(index)) rows.set(index, row);
+                else row.remove();
+            }
+            for (const index of indices) container.appendChild(rows.get(index) || append(Number(index)));
+            container.dispatchEvent(new Event('input', {bubbles: true}));
+        });
+    }
     function initialize(form) {
         const sidebar = document.getElementById('app-sidebar');
         if (!sidebar || !form || initialized.has(form)) return;
         initialized.add(form);
         const prefix = 'dnr.form-draft.' + encodeURIComponent(sidebar.dataset.navPreferenceUser) + '.';
         const key = prefix + form.dataset.recoverableDraft;
-        const controls = () => Array.from(form.elements).filter(el => el.name && !el.disabled && !['hidden','file','password','submit','button','reset'].includes(el.type));
+        const controls = () => Array.from(form.elements).filter(el => el.name && !el.disabled && !el.hasAttribute('data-draft-ignore')
+            && (el.type === 'hidden' ? el.hasAttribute('data-draft-field') : !['file','password','submit','button','reset'].includes(el.type)));
         const versions = () => JSON.stringify(Array.from(form.elements).filter(el => /version/.test(el.name)).map(el => [el.name,el.value]).concat([['record',form.dataset.draftVersion || '']]));
         const capture = () => controls().map(el => ({name:el.name,type:el.type,value:el.value,checked:el.checked}));
         const cleanText = text => String(text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
@@ -76,7 +97,8 @@
         const discard = document.createElement('button'); discard.type='button'; discard.className='button-secondary'; discard.textContent='Discard Draft';
         const restoredHighlights = new Set();
         const highlightTarget = el => (el.dataset.errorTarget && document.getElementById(el.dataset.errorTarget))
-            || el.closest('[data-address-country-picker]')?.querySelector('[data-address-country-toggle]') || el;
+            || el.closest('[data-address-country-picker]')?.querySelector('[data-address-country-toggle]')
+            || el.closest('[data-phone-country-picker]')?.querySelector('[data-phone-country-toggle]') || el;
         function clearRestoredHighlights() {
             restoredHighlights.forEach(el => { delete el.dataset.draftRestored; });
             restoredHighlights.clear();
@@ -125,6 +147,7 @@
             const radioNames = new Set();
             const rows = [];
             for (const field of fields) {
+                if (field.internal) continue;
                 let draft = field;
                 let current = matchingControl(field, elements, consumed);
                 if (field.type === 'radio') {
@@ -227,6 +250,7 @@
             controls().forEach((el, index) => {
                 draft.fields[index].label = fieldLabel(el);
                 draft.fields[index].displayValue = displayValue(draft.fields[index], el);
+                if (el.dataset.draftField === 'internal') draft.fields[index].internal = true;
             });
             try {
                 const text=JSON.stringify(draft);
@@ -245,12 +269,17 @@
             let remaining = saved.fields.slice();
             const dependency = field => Array.from(form.elements).some(el => el.name === field.name
                 && (el.hasAttribute('data-address-country-native') || el.hasAttribute('data-draft-dependency')));
-            let dependencies = remaining.filter(dependency);
             applyingDraft = true;
             form.dataset.draftRestoring = '';
             save.disabled = restore.disabled = discard.disabled = true;
             status.textContent = 'Restoring draft…';
             try {
+                const preparation = [];
+                form.dispatchEvent(new CustomEvent('form-draft-restore', {bubbles: true, detail: {
+                    fields: saved.fields, waitUntil: promise => preparation.push(promise)
+                }}));
+                if (preparation.length) await Promise.allSettled(preparation);
+                let dependencies = remaining.filter(dependency);
                 // Restore selectors that build dependent controls first, then wait
                 // for their actual loads before matching the rest of the draft.
                 do {
@@ -308,8 +337,12 @@
             }
             clearTimeout(timer); timer=setTimeout(persist,800);
         }
-        form.addEventListener('input', handleInput);
-        form.addEventListener('change', handleInput);
+        for (const type of ['input', 'change']) {
+            form.addEventListener(type, handleInput);
+            document.addEventListener(type, event => {
+                if (event.target.form === form && !form.contains(event.target)) handleInput(event);
+            });
+        }
         form.addEventListener('submit',function (event) {
             if (applyingDraft) { event.preventDefault(); return; }
             clearTimeout(timer); persist(); submitting=true;
@@ -344,6 +377,7 @@
     }
     window.DnrFormDrafts = {
         initialize,
+        registerRows,
         capture: form => forms.get(form)?.capture() || [],
         highlightRestored: (form, before, restored) => forms.get(form)?.highlightRestoredChanges(before, null, restored)
     };

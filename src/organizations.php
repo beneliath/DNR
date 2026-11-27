@@ -307,6 +307,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                 <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Organizations">
                 <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+                <a href="organizations.php" class="button-secondary directory-clear-filters">Clear Filters</a>
             </form>
         </div>
     </div>

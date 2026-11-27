@@ -51,7 +51,7 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-setup-wide{grid-column:1/-1}.reimbursement-setup-form label{display:flex;flex-direction:column;font-weight:600}.reimbursement-setup-form input{width:100%}@media(max-width:640px){.reimbursement-setup-wide{grid-column:auto}}
 .reimbursement-setup-phone>label{margin-bottom:.35rem}
 .reimbursement-filter-block .reimbursement-inline-form :is(input[type=search],.date-picker-box input,select){height:44px;min-height:44px;box-sizing:border-box}
-.reimbursement-filter-block .reimbursement-inline-form button{height:44px!important;min-height:44px;box-sizing:border-box;margin-block:0}
+.reimbursement-filter-block .reimbursement-inline-form :is(button,a.button-secondary){height:44px!important;min-height:44px;box-sizing:border-box;margin-block:0}
 .reimbursement-filter-block .reimbursement-inline-form :is(input[type=search],.date-picker-box input,select,button){font-size:max(16px,1rem)!important}
 .reimbursement-sort-group,.reimbursement-sort-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem}
 .reimbursement-sort-group .control-label{font-weight:650;color:var(--text-muted)}

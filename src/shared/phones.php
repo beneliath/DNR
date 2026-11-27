@@ -214,7 +214,7 @@ function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'P
         . $escape($selected_code) . '</span>';
     $html .= '<span class="phone-country-chevron" aria-hidden="true"></span></button>';
     $html .= '<input type="hidden" name="' . $escape($field_name) . '" value="'
-        . $escape($selected_code) . '" data-phone-country-code>';
+        . $escape($selected_code) . '" data-phone-country-code data-draft-field>';
     $html .= '<div class="phone-country-menu" role="listbox" hidden data-phone-country-menu>';
     foreach ($choices as $choice) {
         $is_selected = $choice['code'] === $selected_code;

@@ -51,7 +51,7 @@ html body .tasks-page .task-actions > .task-assign-action {
 
 .tasks-page .directory-filter-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto minmax(24rem, 1fr);
     grid-template-areas: "visibility ownership search";
 }
 
@@ -70,9 +70,19 @@ html body .tasks-page .task-actions > .task-assign-action {
 
 .tasks-page .directory-filter-row > .list-search-form {
     grid-area: search;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: 12px;
     justify-self: end;
-    width: min(24rem, 100%);
+    width: min(28rem, 100%);
     margin: 0;
+}
+
+.tasks-page .list-search-form > input[type="search"]:placeholder-shown {
+    padding-inline-end: 12px;
+}
+
+.tasks-page .list-search-form > .task-clear-filters {
+    grid-area: 1 / 3;
 }
 
 .tasks-page [data-task-bulk] .task-bulk-submit-actions {
@@ -80,7 +90,7 @@ html body .tasks-page .task-actions > .task-assign-action {
     margin-inline-start: auto;
 }
 
-@container record-list (max-width: 56rem) {
+@container record-list (max-width: 64rem) {
     .tasks-page .directory-filter-row > .list-context-tabs {
         transform: translateY(-10px);
     }
@@ -140,6 +150,20 @@ html body .tasks-page .task-actions > .task-assign-action {
 }
 
 @container record-list (max-width: 24rem) {
+    .tasks-page .list-search-form > :is(input[type="search"], .clear-search) {
+        grid-column: 1 / -1;
+    }
+
+    .tasks-page .list-search-form > :is(button, .task-clear-filters) {
+        grid-row: 2;
+    }
+
+    .tasks-page .list-search-form > .search-icon {
+        grid-area: 1 / 1 / 2 / -1;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
     .tasks-page .task-scope-selector {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }

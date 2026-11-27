@@ -53,6 +53,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
                 <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Speakers">
                 <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
                 <button type="submit" class="button-secondary" data-pending-reminder="list-search">Search</button>
+                <a href="speakers.php" class="button-secondary directory-clear-filters">Clear Filters</a>
             </form>
         </div>
     </div>

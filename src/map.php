@@ -266,7 +266,7 @@ $map_payload = [
         </div>
         <div class="map-filter-actions">
             <button type="submit" class="button-add">Apply Filters</button>
-            <a href="map.php" class="button-secondary map-clear-button">Clear</a>
+            <a href="map.php" class="button-secondary map-clear-button">Clear Filters</a>
         </div>
     </form>
 

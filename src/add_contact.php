@@ -42,9 +42,10 @@ if ($requested_organization_id !== null) {
     }
 }
 
+$draftKey = 'add_contact.php:new' . ($requested_organization_id !== null ? ':' . $requested_organization_id : '');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     requireValidCsrfToken();
-    $creation_operation_token = redirectCompletedRecordCreation($conn, 'contact', 'view_contact.php?id=', $creation_return);
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'contact', 'view_contact.php?id=', $creation_return, $draftKey);
 
     $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
     foreach ($normalized_contact['data'] as $field_name => $field_value) {
@@ -87,7 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 
         try {
         $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'contact');
-        if ($replayed_id !== null) { $conn->commit(); header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_contact_id' => $replayed_id]) : 'view_contact.php?id=' . $replayed_id), true, 303); exit(); }
+        if ($replayed_id !== null) {
+            $conn->commit();
+            $_SESSION['clear_form_drafts'][] = $draftKey;
+            header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_contact_id' => $replayed_id]) : 'view_contact.php?id=' . $replayed_id), true, 303);
+            exit();
+        }
             if ($organization_id !== null) {
                 requireActiveOrganization($conn, $organization_id, true);
             }
@@ -165,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             );
             completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $contact_id);
                     $conn->commit();
+            $_SESSION['clear_form_drafts'][] = $draftKey;
             $_SESSION['success_message'] = 'Contact added successfully.';
             $return_to_organization = $requested_organization_id !== null
                 && $organization_id === $requested_organization_id;
@@ -252,15 +259,18 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
             <h1>New Contact</h1>
             <?php renderFormHeadingSummary($context_organization !== null
                 ? 'Add a contact for ' . $context_organization['organization_name'] . '.'
-                : 'Connect a person with their organizations and roles.'); ?>
+                : 'Connect a person with their organizations and roles.', false); ?>
         </div>
     </div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
-    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form contact-layout-form" data-duplicate-kind="contact">
+    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form directory-form" data-duplicate-kind="contact" data-draft-relationships data-recoverable-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'contact', $creation_return); ?>
 
         <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
+        <?php renderFormDraftPanel(); ?>
+        <?php renderRequiredFieldsNote(); ?>
+        <div class="form-section directory-form-fields contact-layout-form">
         <div class="contact-form-overview">
             <section class="contact-form-photo" aria-label="Contact Photo">
                 <div class="form-group contact-photo-field">
@@ -376,6 +386,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
         <div class="form-group create-form-actions create-form-actions-flush">
             <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
             <input type="submit" name="save_contact" value="Create Contact" class="save-button save-button-flush" data-pending-reminder="contact">
+        </div>
         </div>
     </form>
 </main>

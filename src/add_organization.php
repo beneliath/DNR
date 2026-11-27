@@ -16,9 +16,10 @@ if (!hasRole(['admin', 'editor'])) {
     exit();
 }
 
+$draftKey = 'add_organization.php:new';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     requireValidCsrfToken();
-    $creation_operation_token = redirectCompletedRecordCreation($conn, 'organization', 'view_organization.php?id=', $creation_return);
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'organization', 'view_organization.php?id=', $creation_return, $draftKey);
 
     $error = false;
     $errorMessages = array();
@@ -139,7 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 
             try {
         $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'organization');
-        if ($replayed_id !== null) { $conn->commit(); header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_organization_id' => $replayed_id]) : 'view_organization.php?id=' . $replayed_id), true, 303); exit(); }
+        if ($replayed_id !== null) {
+            $conn->commit();
+            $_SESSION['clear_form_drafts'][] = $draftKey;
+            header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_organization_id' => $replayed_id]) : 'view_organization.php?id=' . $replayed_id), true, 303);
+            exit();
+        }
                 $org_stmt = $conn->prepare(
                     "INSERT INTO organizations (
                         organization_name, notes, affiliation, distinctives, website_url, phone, fax,
@@ -227,6 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 }
                 completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $organization_id);
                     $conn->commit();
+                $_SESSION['clear_form_drafts'][] = $draftKey;
                 $_SESSION['success_message'] = !empty($contacts_to_create) || !empty($existing_contacts)
                     ? "Organization and contact information saved successfully."
                     : "Organization saved successfully.";
@@ -292,7 +299,7 @@ if (isset($_SESSION['success_message'])) {
     <div class="page-heading form-page-heading add-organization-heading">
         <div class="form-heading-content">
             <h1>New Organization</h1>
-            <?php renderFormHeadingSummary('Start with a name; add contacts and address details as the relationship develops.'); ?>
+            <?php renderFormHeadingSummary('Start with a name; add contacts and address details as the relationship develops.', false); ?>
         </div>
     </div>
     <noscript><form method="get" action="add_organization.php" class="card">
@@ -302,11 +309,14 @@ if (isset($_SESSION['success_message'])) {
         <button type="submit" class="button-secondary">Find Contacts</button>
         <p>Search before filling the organization form. The results show up to 25 contacts.</p>
     </form></noscript>
-    <form method="post" enctype="multipart/form-data" action="add_organization.php" class="organization-form" data-duplicate-kind="organization">
+    <form method="post" enctype="multipart/form-data" action="add_organization.php" class="organization-form directory-form" data-duplicate-kind="organization" data-draft-relationships data-recoverable-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'organization', $creation_return); ?>
 
         <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
+        <?php renderFormDraftPanel(); ?>
+        <?php renderRequiredFieldsNote(); ?>
+        <div class="form-section directory-form-fields">
         <div class="form-group">
             <label class="required" for="organization_name">Organization Name</label>
             <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
@@ -657,6 +667,7 @@ if (isset($_SESSION['success_message'])) {
         <div class="form-group create-form-actions create-form-actions-end">
             <a href="<?php echo htmlspecialchars($creation_return ?: 'organizations.php', ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
             <input type="submit" name="save_org" value="Create Organization" class="save-button" data-pending-reminder="organization">
+        </div>
         </div>
     </form>
 </div>

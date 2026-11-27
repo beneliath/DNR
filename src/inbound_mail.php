@@ -216,14 +216,19 @@ $statusLabels = [
         <?php endforeach; ?>
     </nav>
 
-    <?php renderListFilterSummary(['Status' => $statusLabels[$statusFilter], 'Search' => $queueSearch, 'Order' => $queueSort === 'oldest' ? 'Oldest First' : 'Newest First'], 'inbound_mail.php?status=review&sort=oldest'); ?>
-        <form method="get" action="inbound_mail.php" class="inbound-queue-search unified-list-filter" id="inbound-queue-search">
+    <form method="get" action="inbound_mail.php" class="inbound-queue-search unified-list-filter" id="inbound-queue-search">
         <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
-        <div class="inbound-search-field"><label for="inbox-search">Search Messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Subject, Sender, or Message Content"></div>
+        <div class="inbound-search-field">
+            <div class="inbound-search-label">
+                <label for="inbox-search">Search Messages</label>
+                <?php if ($queueSearch !== ''): ?><a class="inbound-clear-search" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">Clear Search</a><?php endif; ?>
+            </div>
+            <input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Subject, Sender, or Message Content">
+        </div>
         <div><label for="inbox-sort">Order</label><select name="sort" id="inbox-sort"><option value="oldest"<?php echo $queueSort === 'oldest' ? ' selected' : ''; ?>>Oldest First</option><option value="newest"<?php echo $queueSort === 'newest' ? ' selected' : ''; ?>>Newest First</option></select></div>
         <button type="submit" class="button-secondary">Search</button>
-        <?php if ($queueSearch !== ''): ?><a class="inbound-clear-search" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">Clear Search</a><?php endif; ?>
+        <a class="button-secondary" href="inbound_mail.php">Clear Filters</a>
     </form>
 
     <div class="inbound-mail-layout<?php echo $requestedId ? ' inbound-message-open' : ''; ?>">

@@ -20,25 +20,30 @@
             });
         }
 
-        add.addEventListener('click', function () {
-            if (rows.children.length >= maximum) return;
+        function appendRow(index = nextIndex) {
             const fragment = template.content.cloneNode(true);
             fragment.querySelectorAll('[name], [id], [for]').forEach(function (element) {
                 ['name', 'id', 'for'].forEach(function (attribute) {
-                    if (element.hasAttribute(attribute)) element.setAttribute(attribute, element.getAttribute(attribute).replaceAll('__INDEX__', String(nextIndex)));
+                    if (element.hasAttribute(attribute)) element.setAttribute(attribute, element.getAttribute(attribute).replaceAll('__INDEX__', String(index)));
                 });
             });
-            nextIndex += 1;
+            nextIndex = Math.max(nextIndex, index + 1);
             rows.appendChild(fragment);
-            update();
-            rows.lastElementChild.querySelector('[data-custom-link-label]').focus();
+            return rows.lastElementChild;
+        }
+        window.DnrFormDrafts?.registerRows(rows, 'custom_links', appendRow, maximum);
+        add.addEventListener('click', function () {
+            if (rows.children.length >= maximum) return;
+            const row = appendRow();
+            rows.dispatchEvent(new Event('input', {bubbles: true}));
+            row.querySelector('[data-custom-link-label]').focus();
             status.textContent = 'Custom link added. Save the speaker to apply changes.';
         });
         rows.addEventListener('click', function (event) {
             const remove = event.target.closest('[data-remove-custom-link]');
             if (!remove) return;
             remove.closest('[data-custom-link-row]').remove();
-            update();
+            rows.dispatchEvent(new Event('input', {bubbles: true}));
             add.focus();
             status.textContent = 'Custom link removed. Published links and statistics are retained. Save the speaker to apply changes.';
         });

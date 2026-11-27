@@ -85,15 +85,17 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
     box-shadow: none !important;
 }
 
+.inquiry-filter-bar label { margin-bottom: 0; }
 .inquiry-filter-bar input,
 .inquiry-filter-bar select { width: 100%; margin: 0; }
 .inquiry-search-field { position: relative; display: block; width: min(100%, 560px); }
 .inquiry-search-field svg { position: absolute; top: 50%; left: 15px; width: 20px; height: 20px; transform: translateY(-50%); fill: none; stroke: var(--text-muted); stroke-width: 1.8; stroke-linecap: round; }
 .inquiry-search-field input { min-height: 44px; padding-left: 45px !important; border-radius: 9px !important; background: var(--surface) !important; background-color: var(--surface) !important; }
+.inquiry-search-field input::placeholder { font-weight: 400; }
 .inquiry-filter-controls { display: flex; align-items: center; justify-content: flex-end; gap: .7rem; }
 .inquiry-filter-controls label { min-width: 145px; }
 .inquiry-filter-controls select { min-height: 42px; padding-block: .45rem; border-radius: 8px; background: var(--surface) !important; background-color: var(--surface) !important; font-size: .82rem; font-weight: 650; }
-.inquiry-filter-controls .clear-search { position: static; display: inline-flex; min-height: 44px; align-items: center; justify-self: start; font-size: .8rem; white-space: nowrap; }
+.inquiry-filter-controls > .button-secondary { justify-self: start; }
 
 .inquiry-workflow-body .app-footer {
     margin-inline: auto !important;

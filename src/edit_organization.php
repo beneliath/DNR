@@ -46,6 +46,7 @@ if ($result->num_rows === 0) {
 
 $organization = $result->fetch_assoc();
 $stmt->close();
+$draftKey = 'edit_organization.php:' . $org_id;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
     requireValidCsrfToken();
@@ -202,6 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 );
             }
             $conn->commit();
+            $_SESSION['clear_form_drafts'][] = $draftKey;
             $_SESSION['success_message'] = "Organization updated successfully.";
             header('Location: ' . $record_edit_return);
             exit();
@@ -301,10 +303,13 @@ try {
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit Organization</span></nav>
     <div class="page-heading form-page-heading edit-organization-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
-    <form id="organization-edit-form" method="post" action="edit_organization.php?id=<?php echo (int) $org_id; ?>" class="organization-form" data-chron-form>
+    <form id="organization-edit-form" method="post" action="edit_organization.php?id=<?php echo (int) $org_id; ?>" class="organization-form directory-form" data-chron-form data-recoverable-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="organization_version" value="<?php echo htmlspecialchars((string) $organization['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+        <?php renderFormDraftPanel(); ?>
+        <?php renderRequiredFieldsNote(); ?>
+        <div class="form-section directory-form-fields">
         <div class="form-group">
             <label class="required" for="organization_name">Organization Name</label>
             <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($organization['organization_name'] ?? ''); ?>">
@@ -422,6 +427,7 @@ try {
             </div>
         </div>
 
+        </div>
     </form>
 
     <?php
