@@ -43,9 +43,9 @@ directly from the fictional report PDF at 435 DPI. The build preserves at least
 435 effective DPI. Verification checks PNG density, capture checksums, and the
 exact pixels embedded in the PDF.
 
-The list figures for Engagements, Organizations, Contacts, Speakers, and the
-active, completed, and archived Tasks views use a 1600-pixel desktop viewport
-so the controls and table actions fit.
+The list figures for Engagements, Organizations, Contacts, Speakers, Expenses,
+Reimbursement Requests, and the active, completed, and archived Tasks views use a
+1600-pixel desktop viewport so the controls and table actions fit.
 
 The new illustrations cover engagement cancellation, optional and duplicate
 presentations, actual chunk-upload progress, and receipt-photo reduction. The
@@ -53,6 +53,12 @@ preview uses fictional records, a separate Docker network and volumes, log mail
 transport, and no mail dispatch worker. No production data was changed.
 
 ## Current edition
+
+The November 28, 2026 edition uses application version **2.11.45**. It refreshes
+the mobile navigation, email-template list, speaker links, expense filters, and
+request filters from the UI consistency patch. Mobile navigation now provides
+AI Coach without covering page controls. The guide retains the existing workflow
+instructions and native 435 DPI screenshot quality.
 
 The November 26, 2026 edition uses application version **2.11.42**. It
 documents the single-pane email template editor, browser drafts for templates,

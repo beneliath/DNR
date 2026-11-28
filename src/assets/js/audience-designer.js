@@ -549,6 +549,16 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
     if(elapsed<6000){block.classList.add('designer-selection-blink');block.style.animationDelay=`-${elapsed}ms`;}
   }
   let brandFace=null;
+  function positionBlockTools(){
+    for(const bar of $$('.designer-block-hover-tools',canvas)){
+      const block=bar.parentElement.getBoundingClientRect();
+      if(!block.width)continue;
+      const offset=Math.max(12-block.left,Math.min(0,document.documentElement.clientWidth-12-block.left-bar.offsetWidth));
+      bar.style.setProperty('--designer-tools-offset',`${offset}px`);
+    }
+  }
+  new ResizeObserver(positionBlockTools).observe(canvas);
+  window.addEventListener('resize',positionBlockTools);
   function renderCanvas(doc=styleDraft||design){
     const design=doc;
     const previousSelection=$('.designer-block.selected',canvas);
@@ -598,6 +608,7 @@ import { createReorderHandle, wireReorderHandle } from './reorder-handle.mjs';
     });
     const footer=el('div',undefined,'designer-email-footer');footer.tabIndex=0;footer.setAttribute('role','button');footer.setAttribute('aria-label','Edit Footer');const reminder=(config.permissionReminder||'').trim(),normalizeReminder=value=>String(value).replace(/\s+/g,' ').trim();if(reminder&&!normalizeReminder(canvas.textContent+' '+design.footer.text).includes(normalizeReminder(reminder)))footer.append(el('p',reminder,'email-permission-reminder'));footer.append(el('p',design.footer.text),el('p','*|LIST:COMPANY|*\n*|LIST:ADDRESS|*'),el('p','Update your preferences or unsubscribe.'));applyStyle(footer,{background:s.body,color:'#60676b',size:12,padding:32,align:'center',lineHeight:160,...design.regions.footer,...design.footer.styles});footer.onclick=()=>{panel='footer';renderTools();};footer.onkeydown=e=>{if(e.key==='Enter')footer.click();};canvas.append(footer);if(design.badge.enabled){const badge=el('div','Made with MessageMonkey','designer-email-badge');badge.style.textAlign=design.badge.align;canvas.append(badge);}
     syncRichAppearance();
+    positionBlockTools();
   }
   function render(){renderTools();renderCanvas();updateHistory();}
   function setDevice(value){device=value;$$('[data-device]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.device===device)));render();}

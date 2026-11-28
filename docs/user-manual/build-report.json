@@ -1,6 +1,6 @@
 {
-  "version": "2.11.42",
-  "edition_date": "November 26, 2026",
+  "version": "2.11.45",
+  "edition_date": "November 28, 2026",
   "pages": 202,
   "screenshots": 124,
   "chapters": 14,
@@ -541,7 +541,7 @@
     "__total__": 202
   },
   "outline_entries": 408,
-  "edition_scope": "Application release 2.11.42",
+  "edition_scope": "Application release 2.11.45",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",

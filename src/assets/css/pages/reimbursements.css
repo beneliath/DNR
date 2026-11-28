@@ -31,11 +31,12 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-center-forms .reimbursement-card{min-width:0;margin:0}
 .reimbursement-center-forms .reimbursement-inline-form{min-width:0}
 @media(max-width:1150px){.reimbursement-center-forms{grid-template-columns:1fr}}
-.reimbursement-search-field{flex:1 1 220px;min-width:0}
+.reimbursement-search-field{flex:2 1 22rem;min-width:min(22rem,100%)}
 .reimbursement-filter-block .reimbursement-inline-form>label,.reimbursement-search-field{display:flex;flex-direction:column;justify-content:flex-end}
 .reimbursement-filter-block .reimbursement-inline-form>label,.reimbursement-search-field>label{font-size:.9rem;line-height:1.3}
 .reimbursement-search-field>label{display:block;flex:none;margin:0}
 .reimbursement-search-form{flex:none;width:100%;min-width:0;max-width:none;margin-top:.35rem}
+.reimbursement-search-form>input[type="search"]:placeholder-shown{padding-inline-end:12px}
 .reimbursement-list-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem}.reimbursement-list-heading h2{margin:0}.reimbursement-list-heading nav,.reimbursement-row-actions{display:flex;align-items:center;gap:.25rem}.reimbursement-list-heading .button-secondary{padding:.4rem .7rem}.reimbursement-list-heading .is-current{border-color:var(--primary);color:var(--primary)}.reimbursement-row-actions{white-space:nowrap}.reimbursement-row-actions form{margin:0}
 .reimbursement-request-table { --table-body-font-size: .9375rem; }
 .reimbursement-request-table th,
@@ -178,7 +179,10 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .reimbursement-page details { margin-block:.75rem; }
 .reimbursement-page summary { cursor:pointer; font-weight:600; }
 .reimbursement-page .reimbursement-filter-form { display:flex; flex-wrap:wrap; align-items:flex-end; gap:1rem; }
+.reimbursement-filter-actions { display:flex; align-items:stretch; justify-content:flex-end; gap:1rem; margin-left:auto; max-width:100%; }
+.reimbursement-filter-actions > :is(button, a) { white-space:nowrap; }
 .reimbursement-filter-form label { flex:1 1 10rem; }
+.reimbursement-filter-form > label:has(input[type="search"]) { flex-basis:13rem; }
 .reimbursement-page .reimbursement-filter-form label.reimbursement-filter-compact { flex:0 0 11rem; width:11rem; max-width:100%; }
 @media (max-width: 700px) {
   .reimbursement-expense-table { min-width:0 !important; }
@@ -214,7 +218,7 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .reimbursement-filter-form input,.reimbursement-filter-form select,.reimbursement-filter-form button { margin:0; }
 .reimbursement-page .reimbursement-filter-form :is(input:not([type="hidden"]),select,button) { box-sizing:border-box; height:2.875rem; }
 /* The shared button reset uses height:auto!important; match the adjacent filter controls. */
-.reimbursement-page .reimbursement-filter-form button { height:2.875rem!important; }
+.reimbursement-page .reimbursement-filter-form :is(button, a.button-secondary) { height:2.875rem!important; }
 .reimbursement-mobile-details { display:none; }
 @media (max-width:700px) {
   .reimbursement-mobile-details { display:block; position:relative; z-index:2; font-weight:400; }
@@ -306,6 +310,7 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
     .reimbursement-filter-block .reimbursement-search-field {
         grid-column: 1 / -1;
     }
+    .reimbursement-filter-actions { grid-column:1 / -1; width:100%; }
     .reimbursement-filter-block > .reimbursement-inline-form > label,
     .reimbursement-page .reimbursement-filter-form > label {
         min-width: 0;

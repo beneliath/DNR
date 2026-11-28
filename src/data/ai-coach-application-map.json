@@ -1924,7 +1924,7 @@
       ]
     },
     "email_templates.php": {
-      "sha256": "5b647b84a3161aa84da01748d46f72fd749ce61a9d1974c03cf93c15bf3483e8",
+      "sha256": "20ea31e3686dfa77455f073f46d0c5c761fb94acc9fa518b340df543895384e6",
       "controls": [
         {
           "kind": "a",
@@ -3384,7 +3384,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "094d04a474925fe529d3d14b802213acf22b39f25c1faf939b2cf9632fa21803",
+      "sha256": "9b615ce45395244ac3f3f409d82f7d56f03e6734e50554be3b6602767ae34922",
       "controls": [
         {
           "kind": "a",
@@ -3591,7 +3591,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "d8d8808020eabb547afeed348dbc8d8c326b546ee8d643644d3c35f731b0d036",
+      "sha256": "22a67a967ca657b014cef21780fc53aa4d752db10e81f72d0b50e68d0bc4fe20",
       "controls": [
         {
           "kind": "h1",

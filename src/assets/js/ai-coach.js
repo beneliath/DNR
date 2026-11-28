@@ -207,7 +207,7 @@
         if (focus) {
             if (open) question.focus();
             else if (returnFocus && returnFocus.isConnected && !returnFocus.closest('[data-coach]')) returnFocus.focus();
-            else openers[0].focus();
+            else openers.find(function (button) { return button.getClientRects().length && !button.closest('[hidden], [inert]'); })?.focus();
         }
         persist();
     }
@@ -440,7 +440,12 @@
         find('status').textContent = busy ? 'Thinking through your question…' : '';
     }
 
-    openers.forEach(function (button) { button.addEventListener('click', function () { setOpen(true, true); updateStep(); }); });
+    openers.forEach(function (button) { button.addEventListener('click', function () {
+        if (button.closest('#app-sidebar') && document.body.classList.contains('navigation-open')) {
+            document.querySelector('[data-nav-close]')?.click();
+        }
+        setOpen(true, true); updateStep();
+    }); });
     find('close').addEventListener('click', function () { setOpen(false, true); });
     document.querySelectorAll('#app-sidebar a[href="help.php"]').forEach(function (link) {
         link.addEventListener('click', function (event) {

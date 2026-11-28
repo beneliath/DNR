@@ -12,6 +12,7 @@ body.has-coach.coach-open { --coach-width: clamp(350px, 28vw, 410px); }
   }
 }
 .coach-panel[hidden], .coach-panel [hidden], .coach-launcher[hidden] { display: none !important; }
+.coach-navigation-entry { display: none !important; }
 .coach-launcher {
   position: fixed;
   z-index: 750;
@@ -106,7 +107,8 @@ body.coach-open.user-manual-page .app-footer { padding-left: var(--app-content-p
   body.has-coach, body.has-coach.coach-open { --coach-width: 0px; padding-right: 0; }
   body.coach-open { overflow: hidden; }
   .coach-panel { inset: 0 !important; width: 100%; z-index: 2500; }
-  .coach-launcher { top: auto; bottom: 90px; font-size: .85rem; padding: 14px 9px; }
+  .coach-launcher { display: none !important; }
+  .coach-navigation-entry { display: flex !important; }
   .coach-scroll { padding: 20px max(20px, calc((100% - 620px) / 2)); }
   .coach-compose { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   .coach-compose textarea { font-size: 16px; }

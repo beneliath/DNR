@@ -226,6 +226,11 @@ html body .tasks-page .task-actions > .task-assign-action {
     }
 }
 
+@media (max-width: 760px) {
+    .tasks-page .task-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .tasks-page .task-summary-grid .summary-card { min-width:0; padding:12px; }
+}
+
 .tasks-body .app-footer {
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);

@@ -422,9 +422,9 @@
       "entry": "Reimbursements \u2192 select eligible expenses \u2192 Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed Available expenses or edit an active draft. Mileage must have an Ending Odometer Reading before selection or addition to a request; incomplete mileage is excluded.",
       "source_files": {
-        "reimbursements.php": "d8d8808020eabb547afeed348dbc8d8c326b546ee8d643644d3c35f731b0d036",
+        "reimbursements.php": "22a67a967ca657b014cef21780fc53aa4d752db10e81f72d0b50e68d0bc4fe20",
         "reimbursement_request.php": "09ca8926c75d021ab9493b6c06a0ae8c4422e37adbfe65105d1f537fc7d2bf2b",
-        "reimbursement_requests.php": "094d04a474925fe529d3d14b802213acf22b39f25c1faf939b2cf9632fa21803",
+        "reimbursement_requests.php": "9b615ce45395244ac3f3f409d82f7d56f03e6734e50554be3b6602767ae34922",
         "assets/js/date-picker.mjs": "f2eb49279a81ba810499b12deea80c3ddfe15d342dc8bd651c76275636a0f4c2"
       },
       "controls": {

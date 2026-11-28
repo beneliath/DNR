@@ -1,5 +1,11 @@
 # MessageMonkey Comprehensive User Guide
 
+The November 28, 2026 edition documents MessageMonkey in MOED 2.11.45. It
+refreshes the mobile workspace, Tags, Segments, templates, email designer,
+Automations, and Subscriber Preferences figures after the UI consistency fixes.
+The captures use fictional records in a new isolated preview and retain native
+3x PNG pixels and the guide's minimum 300 effective DPI.
+
 The November 26, 2026 edition documents MessageMonkey in MOED 2.11.42. It
 refreshes the Tags and Segments figures and covers sorting, linked active and
 archived tag counts, and complaint rules and triggers.

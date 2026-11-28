@@ -286,10 +286,11 @@ const targets={
    const footer=page.locator('.app-footer');const fb=await footer.count()?await footer.boundingBox():null;
    if(fb&&fb.y>clip.y+160&&fb.y<clip.y+clip.height)clip.height=Math.floor(fb.y-clip.y-8);
    if(['bulk-speaker-review','bulk-user-review','bulk-user-confirmation'].includes(s.id)){const box=await page.locator('main').boundingBox();clip={x:Math.max(0,Math.floor(box.x-8)),y:0,width:Math.min(page.viewportSize().width-Math.max(0,Math.floor(box.x-8)),Math.ceil(box.width+16)),height:Math.min(850,Math.ceil(box.y+box.height))};}
-   if(['engagement-list','organizations','contacts','speakers','tasks','task-confirmation','task-archived'].includes(s.id)){
+   if(['engagement-list','organizations','contacts','speakers','tasks','task-confirmation','task-archived','reimbursement-expenses','reimbursement-requests'].includes(s.id)){
     const rows=await page.locator('main table tbody tr').evaluateAll(elements=>elements.map(e=>e.getBoundingClientRect().bottom));
     const last=rows.filter(bottom=>bottom>clip.y&&bottom<=clip.y+clip.height).pop();
     if(last&&rows.some(bottom=>bottom>clip.y+clip.height))clip.height=Math.floor(last-clip.y);
+    else if(!last&&rows[0]>clip.y&&rows[0]<=page.viewportSize().height)clip.height=Math.ceil(rows[0]-clip.y);
    }
    const file=path.join(output,'screenshots',s.id+'.png');
    const png=await page.screenshot({type:'png',scale:'device',clip,animations:'disabled'});

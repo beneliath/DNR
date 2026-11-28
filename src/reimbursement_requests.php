@@ -88,8 +88,10 @@ function reimbursementRequestsH(mixed $value): string { return htmlspecialchars(
 <?php if ($canViewAll): ?><label>Owner<select name="owner_id"><option value="0">All Users</option><?php foreach ($owners as $owner): ?><option value="<?= (int)$owner['id'] ?>"<?= $filterOwner===(int)$owner['id']?' selected':'' ?>><?= reimbursementRequestsH($owner['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
 <label>Status<select name="status"><option value="">All Statuses</option><option value="draft"<?= $status==='draft'?' selected':'' ?>>Draft</option><option value="submitted"<?= $status==='submitted'?' selected':'' ?>>Submitted</option></select></label>
 <label>Expense Dates From<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="start_date" value="<?= reimbursementRequestsH($start) ?>"></label><label>Through<input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="end_date" value="<?= reimbursementRequestsH($end) ?>"></label>
-<input type="hidden" name="sort_by" value="<?= reimbursementRequestsH($sort) ?>"><input type="hidden" name="sort_dir" value="<?= reimbursementRequestsH($direction) ?>"><input type="hidden" name="per_page" value="<?= $pageSize ?>"><button class="button-secondary" type="submit" data-reimbursement-apply>Apply</button>
+<input type="hidden" name="sort_by" value="<?= reimbursementRequestsH($sort) ?>"><input type="hidden" name="sort_dir" value="<?= reimbursementRequestsH($direction) ?>"><input type="hidden" name="per_page" value="<?= $pageSize ?>">
+<div class="reimbursement-filter-actions"><button class="button-secondary" type="submit" data-reimbursement-apply>Apply</button>
 <a class="button-secondary" href="reimbursement_requests.php">Clear Filters</a>
+</div>
 </form></section>
     <section class="reimbursement-card reimbursement-request-list"><div class="reimbursement-list-heading"><h2>Reimbursement Requests</h2></div>
         <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, $listUrl, 'requests', 'Request pages'); ?>

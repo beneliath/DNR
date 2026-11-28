@@ -47,7 +47,7 @@ $segmentHeaderParams = ['view'=>'segments','definition_status'=>$definitionStatu
     <?php if($canDelete): ?><div class="audience-definition-toolbar"><?php include __DIR__.'/definition-selection.php'; ?></div><?php endif; ?>
     <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+$segmentHeaderParams); ?><label for="segment-sort">Sort By</label><select id="segment-sort" name="segment_order" data-auto-submit><?php foreach($segmentOrders as $value=>[,,$label]): ?><option value="<?= $value ?>"<?= $segmentOrder===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(array_replace($segmentHeaderParams,['list_search'=>'']))) ?>">Clear All</a>
 </div>
-<table class="data-table audience-table audience-segment-table<?= !$canManage?' is-readonly':'' ?>" data-mm-paginated-table aria-label="Saved Segments on This Page">
+<table class="data-table audience-table audience-segment-table<?= !$canManage?' is-readonly':'' ?>" data-mm-paginated-table data-mm-sort-control="segment-sort" aria-label="Saved Segments on This Page">
 <thead><tr>
     <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select Segment</span></th><?php endif; ?>
     <?php foreach (['name'=>['segment-name','Segment Name','name_desc'],'connections_asc'=>['segment-count','Connections','connections_desc'],'newest'=>['segment-created','Created','oldest'],'modified_newest'=>['segment-modified','Modified','modified_oldest']] as $firstOrder=>[$columnClass,$label,$otherOrder]):

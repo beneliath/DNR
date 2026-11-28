@@ -99,7 +99,8 @@ export function wireAudienceMobile() {
                 }
                 // Keep sorting available when the desktop table headings are folded away.
                 const sorts = $$('thead a[href],thead button[popovertarget],thead button[data-interaction-sort]', table);
-                if (sorts.length) {
+                const existingSort = table.dataset.mmSortControl && document.getElementById(table.dataset.mmSortControl);
+                if (sorts.length && !existingSort) {
                     const label = document.createElement('label'); label.textContent = 'Sort';
                     const select = document.createElement('select');
                     select.add(new Option('Choose Sorting', ''));
