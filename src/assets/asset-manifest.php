@@ -247,7 +247,7 @@ return [
     "assets/js/audience-head.js" => "52691320ccd7",
     "assets/js/audience-head.min.js" => "b21b7be1ee40",
     "assets/js/audience-home.js" => "b5916a48d2d1",
-    "assets/js/audience-home.min.js" => "bb45b269a3ae",
+    "assets/js/audience-home.min.js" => "cb7779fbe385",
     "assets/js/audience-image-crop.mjs" => "969bbd00052f",
     "assets/js/audience-image-upload.mjs" => "524ad1944dd8",
     "assets/js/audience-import.js" => "e56712114a2a",
