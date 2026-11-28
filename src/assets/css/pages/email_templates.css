@@ -146,6 +146,8 @@ html body [data-email-template-editor] .email-template-order input[type="number"
 
 @media (max-width: 760px) {
     .email-template-details-grid { grid-template-columns: minmax(0, 1fr); }
+    .email-template-table td[data-label]::before { content: attr(data-label); }
+    .email-template-table td[colspan]::before { content: none; }
 }
 
 [data-email-template-editor] > .form-draft-panel {

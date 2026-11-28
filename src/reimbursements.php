@@ -172,8 +172,9 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
                 <label>Start Date <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="start_date" value="<?= reimbursementH($start) ?>" required></label>
                 <label>End Date <input type="text" data-date-picker="date" placeholder="YYYY-MM-DD" name="end_date" value="<?= reimbursementH($end) ?>" required></label>
                 <?php if ($canViewAll): ?><label>Expense Owner <select name="owner_id"><option value="0">All Users</option><?php foreach ($expenseOwners as $expenseOwner): ?><option value="<?= (int) $expenseOwner['id'] ?>"<?= $ownerFilterId === (int) $expenseOwner['id'] ? ' selected' : '' ?>><?= reimbursementH($expenseOwner['owner_name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
-                <button class="button-secondary" type="submit" data-reimbursement-apply>Apply</button>
+                <div class="reimbursement-filter-actions"><button class="button-secondary" type="submit" data-reimbursement-apply>Apply</button>
                 <a class="button-secondary" href="reimbursements.php">Clear Filters</a>
+                </div>
             </form>
             <nav class="reimbursement-sort-group" aria-label="Expense State Filter"><span class="control-label">State:</span><div class="reimbursement-sort-buttons">
                 <?php foreach ($stateLabels as $stateValue => $stateLabel): ?>

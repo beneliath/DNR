@@ -308,6 +308,11 @@ if (!empty($_SESSION['user_id'])) {
                 <a href="help.php" class="nav-link<?php echo $active_nav === 'help' ? ' active' : ''; ?>"<?php echo $active_nav === 'help' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h.5a2.5 2.5 0 0 1 2.5 2.5v-15Z"/></svg><span>User Manual</span>
                 </a>
+                <?php if (aiCoachEnabled() && !empty($_SESSION['user_id'])): ?>
+                <button type="button" class="nav-link coach-navigation-entry" data-coach-open aria-controls="moed-coach" aria-expanded="false">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>AI Coach</span>
+                </button>
+                <?php endif; ?>
                 <button type="button" class="nav-link theme-toggle-button" data-theme-toggle aria-label="Switch to Dark Theme">
                     <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
                     <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg><span class="theme-label">Dark Theme</span>

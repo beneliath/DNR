@@ -34,9 +34,11 @@
   body[data-mm-workspace] .audience-content{display:block;margin:0;height:auto;min-height:0;overflow:visible}
   body[data-mm-workspace] .audience-page-heading{position:static;min-height:0;display:flex;align-items:flex-start;flex-direction:column;gap:16px;margin:0;padding:22px 16px 16px;border:0;background:transparent}
   body[data-mm-workspace] .audience-page-heading h1{font-size:var(--mm-page-title-size);line-height:1.2;letter-spacing:-.5px;margin:0}
-  body[data-mm-workspace] .audience-page-heading>.audience-actions{display:flex;flex-wrap:wrap;width:100%;gap:8px}
+  body[data-mm-workspace] .audience-page-heading>.audience-actions{display:flex;align-items:stretch;flex-wrap:wrap;width:100%;gap:8px}
   body[data-mm-workspace] .audience-page-heading>.audience-actions>:is(a,button,form){flex:1;min-width:0}
-  body[data-mm-workspace] .audience-page-heading>.audience-actions>:is(a,button){white-space:normal;text-align:center}
+  body[data-mm-workspace] .audience-page-heading>.audience-actions>:is(a,button){display:flex;align-items:center;justify-content:center;white-space:normal;text-align:center;height:auto}
+  body[data-mm-workspace] .audience-page-heading>.audience-actions>form{display:flex}
+  body[data-mm-workspace] .audience-page-heading>.audience-actions>form>button{height:auto;align-self:stretch}
   body[data-mm-workspace] [data-mm-heading-actions]:not([data-mm-open])>:not([data-mm-heading-primary]):not(.mm-mobile-heading-toggle){display:none!important}
   body[data-mm-workspace] [data-mm-heading-actions]>form>button{width:100%}
   body[data-mm-workspace] .audience-page-body{padding:0 16px 24px;overflow:visible;height:auto;display:block;min-height:0}

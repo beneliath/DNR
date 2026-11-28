@@ -7468,7 +7468,7 @@ html body .unified-list-filter > button { min-height: 42px; }
 @media (max-width: 760px) {
     .mobile-record-table.sortable-table thead { position: static; display: block; width: auto; height: auto; overflow: visible; clip-path: none; margin-bottom: 14px; }
     .mobile-record-table.sortable-table thead tr { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0; border: 0; border-radius: 0; overflow: visible; background: transparent !important; box-shadow: none; }
-    .mobile-record-table.sortable-table thead th { padding: 0; border: 0; background: transparent !important; }
+    .mobile-record-table.sortable-table thead th { padding: 0 !important; border: 0 !important; background: transparent !important; }
     .mobile-record-table.sortable-table thead th:not([aria-sort]) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 @media (max-width: 720px) {

@@ -52,7 +52,7 @@ $listTotal=count($items);$listPage=min($listPage,max(1,(int)ceil($listTotal/$lis
             <?php if($canDelete): ?><div class="audience-definition-toolbar"><?php include __DIR__.'/definition-selection.php'; ?></div><?php endif; ?>
             <form method="get" class="audience-definition-sort"><?php audienceInputs($baseForm+$tagHeaderParams); ?><label for="tag-sort">Sort By</label><select id="tag-sort" name="tag_sort" data-auto-submit><?php foreach($tagSortOptions as $value=>$label): ?><option value="<?= $value ?>"<?= $tagSort===$value?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></form><a class="mm-clear-all" href="<?= $h($url(array_replace($tagHeaderParams,['list_search'=>'']))) ?>">Clear All</a>
         </div>
-        <table class="data-table audience-table audience-tag-list" data-mm-paginated-table aria-label="Tags on This Page">
+        <table class="data-table audience-table audience-tag-list" data-mm-paginated-table data-mm-sort-control="tag-sort" aria-label="Tags on This Page">
             <thead><tr>
                 <?php if($canDelete): ?><th scope="col" class="definition-check"><span class="sr-only">Select Tag</span></th><?php endif; ?>
                 <th scope="col" class="tag-name" aria-sort="<?= $tagSort==='name'?'ascending':($tagSort==='name_desc'?'descending':'none') ?>"><a class="audience-definition-sort-link" href="<?= $h($url($tagHeaderParams+['tag_sort'=>$tagSort==='name'?'name_desc':'name'])) ?>">Tag Name <span aria-hidden="true"><?= $tagSort==='name'?'↑':($tagSort==='name_desc'?'↓':'↕') ?></span></a></th>

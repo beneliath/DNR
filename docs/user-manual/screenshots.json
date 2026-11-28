@@ -74,13 +74,13 @@
     "route": "dashboard.php",
     "steps": [
       "Tap the menu button to open navigation. The close button, logo, and profile/sign-out block stay in place.",
-      "Scroll the menu between the fixed controls to reach other areas, including User Manual.",
+      "Scroll the menu between the fixed controls to reach other areas, including User Manual and AI Coach when enabled.",
       "Choose an area, use Close navigation, tap outside the panel, or press Esc."
     ],
     "action": "mobile",
     "shell": true,
     "file": "screenshots/mobile.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-28",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -99,9 +99,10 @@
         1767,
         3824
       ],
-      "sha256": "b35e6fc22ac37592e21cbc81fe53fc534fb748bb65db0a5bff3ffdaae8292f6d"
+      "sha256": "d58cd15c3e3de3bf8c28a371e7ccb4039e0f08717de79b671825fb284b23df4a"
     },
-    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
+    "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
+    "focus": ".coach-navigation-entry"
   },
   {
     "chapter": 2,
@@ -1100,7 +1101,7 @@
     ],
     "file": "screenshots/email-templates.png",
     "note": "Fictional records from the isolated template preview; no email was queued during capture.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-28",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1119,7 +1120,7 @@
         4577,
         3852
       ],
-      "sha256": "efae6db78b38db1b68f4ffba0f35895f8a8254b5d6ad7f1b9f5bb2a54d9c0054"
+      "sha256": "4031020d9100dcac6ad1f63d24b215234be1cf0040dc08cb04fb8bafa6b94da4"
     },
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview."
   },
@@ -1559,7 +1560,7 @@
     "focus": "#speaker-links-heading",
     "file": "screenshots/speaker-links.png",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-28",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
@@ -1570,15 +1571,15 @@
         "x": 270,
         "y": 0,
         "width": 1010,
-        "height": 812
+        "height": 831
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
         4577,
-        3679
+        3765
       ],
-      "sha256": "d7585c8e1910fcb8bdb9c13d72bcd3a9ac10d1f1a9467fa837e92f7e7ac01df8"
+      "sha256": "ddc6e9c865637fda096a49c3fe2b9d1817816b6acc08da1e0ac8e29effd7044a"
     }
   },
   {
@@ -3222,27 +3223,27 @@
       "Apply owner/date/state filters and check the current summary. View opens read-only detail; Edit returns through the allowed expense list."
     ],
     "file": "screenshots/reimbursement-expenses.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-28",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 853
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
-        4577,
-        3852
+        6027,
+        3865
       ],
-      "sha256": "4146570d5ae9436a4cf82bc38899a9aac59655d7b40d63dee555d3b0c2e9f07c"
+      "sha256": "83f203f2ea7ab82f96fa31ed0b650f0a9e41806fe8dc09d5dc0796aef15aee36"
     }
   },
   {
@@ -3363,28 +3364,28 @@
     ],
     "shell": false,
     "file": "screenshots/reimbursement-requests.png",
-    "captured_at": "2026-11-18",
+    "captured_at": "2026-11-28",
     "framing": "Native high-resolution capture from the actual application in an isolated fictional-data preview.",
     "note": "Fictional documentation records. The screen continues below the illustrated area.",
     "capture": {
       "device_scale_factor": 4.53125,
       "viewport": {
-        "width": 1280,
+        "width": 1600,
         "height": 1000
       },
       "clip": {
         "x": 270,
         "y": 0,
-        "width": 1010,
-        "height": 850
+        "width": 1330,
+        "height": 745
       },
       "source": "native browser PNG; no resizing or sharpening",
       "dpi": 435,
       "native_pixels": [
-        4577,
-        3852
+        6027,
+        3376
       ],
-      "sha256": "bcef31abac2fd512787abbe6d244bbbd2233825c235c760027b4104f4e4f1275"
+      "sha256": "3228eace45e33b84de5ca5264a9cbbc18929daa4c71739a246c15ade0859e9ef"
     }
   },
   {
